@@ -1,0 +1,34 @@
+<root>
+  <hit_proxy>
+    <polygon vert="-80,-45,-27,-25,-57,10" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="-112,-78,-57,-78,-77,-42" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="-120,35,-85,-5,-70,40" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="-63,-58,-18,-30,-43,-8" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="80,-45,57,10,27,-25" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="112,-78,77,-42,57,-78" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="120,35,70,40,85,-5" />
+  </hit_proxy>
+  <hit_proxy>
+    <polygon vert="63,-58,43,-8,18,-30" />
+  </hit_proxy>
+  <hit_proxy>
+  </hit_proxy>
+  <hit_proxy>
+    <circle radius="16" />
+  </hit_proxy>
+  <hit_proxy>
+    <rect x="-30" y="-50" width="60" height="100" />
+  </hit_proxy>
+</root>

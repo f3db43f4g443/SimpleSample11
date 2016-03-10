@@ -1,0 +1,13 @@
+﻿<root>
+  <gui_pass>
+    <blend type="transparent" />
+    <material vertex_shader="VSHUDCircle" pixel_shader="PSHUDCirclePercent">
+      <shader_resources>
+        <item name="Texture0" filename="textures/noise.png" address="mirror" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </gui_pass>
+</root>

@@ -1,0 +1,40 @@
+<root>
+  <update>
+    <blend type="opaque" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneTexturePixelShader">
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </update>
+  <update1>
+    <blend type="opaque" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="PSFootprintUpdate">
+      <constant_buffers>
+        <item shader_type="2">
+          <param name="h0" type="float" data="0.4" />
+          <param name="h1" type="float" data="0.05" />
+          <param name="k" type="float" data="1" />
+          <param name="texofs" array_index="0" type="float2" data="0,1" />
+          <param name="texofs" array_index="1" type="float2" data="1,0" />
+          <param name="texofs" array_index="2" type="float2" data="0,-1" />
+          <param name="texofs" array_index="3" type="float2" data="-1,0" />
+        </item>
+      </constant_buffers>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </update1>
+  <render>
+    <blend type="transparent" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="PSFootprintLiquidColor">
+      <shader_resources>
+        <item name="TextureColorMap" filename="textures/colormap2.png|nomip" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </render>
+</root>

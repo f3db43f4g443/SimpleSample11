@@ -1,0 +1,58 @@
+﻿<root x="-1024" y="-1024" width="2048" height="2048">
+  <data max_particles="50" lifetime="1" emitrate="50.0" emittype="0" >
+    <element name="max_size" type="float1" min="16" max="32" />
+    <element name="center" type="float2" min1="0" max1="0" min2="0" max2="0" global_pos="1" />
+    <element name="max_ofs" random_type="circle" min1="1" max1="1" min2="0" max2="6.28" global_dir="1" />
+  </data>
+  <color_passes>
+    <color_pass>
+      <blend type="transparent" />
+      <material max_insts="2048" inst_stride="32" vertex_shader="VSParticleSplash" pixel_shader="PSParticleSplashColor">
+        <constant_buffers>
+          <item shader_type="2">
+            <param name="baseColor" type="float3" data="0.5,0,0" />
+            <param name="baseColor1" type="float3" data="0,0,0" />
+            <param name="fColorScale" type="float" data="10" />
+          </item>
+        </constant_buffers>
+        <shader_resources>
+          <item name="Texture0" filename="textures/splash.png" />
+        </shader_resources>
+        <samplers>
+          <item name="LinearSampler" />
+        </samplers>
+      </material>
+      <params>
+        <param name="t" ofs="0" />
+        <param name="max_size" ofs="4" />
+        <param name="center" ofs="8" />
+        <param name="max_ofs" ofs="16" />
+      </params>
+    </color_pass>
+  </color_passes>
+  <occlusion_passes>
+    <occlusion_pass>
+      <blend type="multiply" />
+      <material max_insts="2048" inst_stride="32" vertex_shader="VSParticleSplash" pixel_shader="PSParticleSplashOcclusion">
+        <constant_buffers>
+          <item shader_type="2">
+            <param name="baseColor" type="float3" data="1,0.75,0.75" />
+            <param name="fColorScale" type="float" data="10" />
+          </item>
+        </constant_buffers>
+        <shader_resources>
+          <item name="Texture0" filename="textures/splash.png" />
+        </shader_resources>
+        <samplers>
+          <item name="LinearSampler" />
+        </samplers>
+      </material>
+      <params>
+        <param name="t" ofs="0" />
+        <param name="max_size" ofs="4" />
+        <param name="center" ofs="8" />
+        <param name="max_ofs" ofs="16" />
+      </params>
+    </occlusion_pass>
+  </occlusion_passes>
+</root>

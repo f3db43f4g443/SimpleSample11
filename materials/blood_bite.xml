@@ -1,0 +1,13 @@
+﻿<root>
+  <gui_pass>
+    <blend type="transparent1" />
+    <material max_insts="1365" extra_inst_data="1" vertex_shader="Default2DVertexShader1" pixel_shader="PSBloodStain">
+      <shader_resources>
+        <item name="Texture0" filename="textures/blood_bite.png" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </gui_pass>
+</root>

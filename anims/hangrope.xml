@@ -1,0 +1,124 @@
+<root frameRate="60" isGlobal="0" name="NewProject" version="4.0">
+  <armature name="hangrope">
+    <animation playTimes="0" duration="40" name="anim">
+      <bone name="root">
+        <frame duration="40" tweenEasing="NaN">
+          <transform/>
+        </frame>
+      </bone>
+      <bone name="bone">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="2.687" x="21"/>
+        </frame>
+      </bone>
+      <bone name="bone1">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="-7.2314" x="15"/>
+        </frame>
+      </bone>
+      <bone name="bone2">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="-13.457" x="5"/>
+        </frame>
+      </bone>
+      <bone name="bone3">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="-13.4614" x="-5"/>
+        </frame>
+      </bone>
+      <bone name="bone4">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="-7.2314" x="-15"/>
+        </frame>
+      </bone>
+      <bone name="bone5">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="3.2879" x="-21"/>
+        </frame>
+      </bone>
+      <bone name="bone6">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="12.8724" x="-15"/>
+        </frame>
+      </bone>
+      <bone name="bone7">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="20.7344" x="-4"/>
+        </frame>
+      </bone>
+      <bone name="bone8">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="20.7324" x="4"/>
+        </frame>
+      </bone>
+      <bone name="bone9">
+        <frame duration="40" tweenEasing="0">
+          <transform/>
+        </frame>
+        <frame duration="0" tweenEasing="NaN">
+          <transform y="12.8724" x="15"/>
+        </frame>
+      </bone>
+    </animation>
+    <bone name="root">
+      <transform/>
+    </bone>
+    <bone name="bone" parent="root">
+      <transform y="19" x="-28"/>
+    </bone>
+    <bone name="bone1" parent="root">
+      <transform y="30" x="-20"/>
+    </bone>
+    <bone name="bone2" parent="root">
+      <transform y="37" x="-7"/>
+    </bone>
+    <bone name="bone3" parent="root">
+      <transform y="37" x="7"/>
+    </bone>
+    <bone name="bone4" parent="root">
+      <transform y="30" x="20"/>
+    </bone>
+    <bone name="bone5" parent="root">
+      <transform y="19" x="28"/>
+    </bone>
+    <bone name="bone6" parent="root">
+      <transform y="7.8561" x="20"/>
+    </bone>
+    <bone name="bone7" parent="root">
+      <transform y="-1.1439" x="6"/>
+    </bone>
+    <bone name="bone8" parent="root">
+      <transform y="-1.1439" x="-6"/>
+    </bone>
+    <bone name="bone9" parent="root">
+      <transform y="7.8561" x="-20"/>
+    </bone>
+  </armature>
+</root>

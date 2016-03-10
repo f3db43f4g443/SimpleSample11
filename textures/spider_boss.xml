@@ -1,0 +1,36 @@
+<TextureAtlas imagePath="spider_boss.tga" name="NewProject" width="1024" height="1024">
+  <SubTexture y="372" frameX="0" width="135" frameY="0" height="180" name="s_leg00" x="276"/>
+  <SubTexture y="224" frameX="0" width="224" frameY="0" height="145" name="s_leg01" x="452"/>
+  <SubTexture y="1" frameX="0" width="230" frameY="0" height="221" name="s_leg02" x="233"/>
+  <SubTexture y="371" frameX="0" width="116" frameY="0" height="244" name="s_leg03" x="570"/>
+  <SubTexture y="372" frameX="0" width="135" frameY="0" height="180" name="s_leg10" x="139"/>
+  <SubTexture y="224" frameX="0" width="224" frameY="0" height="145" name="s_leg11" x="678"/>
+  <SubTexture y="1" frameX="0" width="230" frameY="0" height="221" name="s_leg12" x="465"/>
+  <SubTexture y="224" frameX="0" width="116" frameY="0" height="244" name="s_leg13" x="904"/>
+  <SubTexture y="372" frameX="0" width="36" frameY="0" height="40" name="s_head" x="413"/>
+  <SubTexture y="371" frameX="0" width="74" frameY="0" height="73" name="s_body" x="805"/>
+  <SubTexture y="554" frameX="0" width="120" frameY="0" height="158" name="s_tail" x="139"/>
+  <SubTexture y="470" frameX="0" width="137" frameY="0" height="181" name="s_leg00_1" x="805" ofsx="1"/>
+  <SubTexture y="224" frameX="0" width="224" frameY="0" height="146" name="s_leg01_1" x="1" ofsy="-2"/>
+  <SubTexture y="1" frameX="0" width="230" frameY="0" height="221" name="s_leg02_1" x="1"/>
+  <SubTexture y="371" frameX="0" width="116" frameY="0" height="244" name="s_leg03_1" x="452"/>
+  <SubTexture y="372" frameX="0" width="136" frameY="0" height="181" name="s_leg10_1" x="1" ofsx="-1"/>
+  <SubTexture y="224" frameX="0" width="223" frameY="0" height="146" name="s_leg11_1" x="227" ofsx="1" ofxy="2"/>
+  <SubTexture y="1" frameX="0" width="229" frameY="0" height="221" name="s_leg12_1" x="697" ofsx="1"/>
+  <SubTexture y="371" frameX="0" width="115" frameY="0" height="244" name="s_leg13_1" x="688" ofsx="1"/>
+  <SubTexture y="164" frameX="0" width="34" frameY="0" height="56" name="s_head_1" x="980" ofsx="-1" ofsy="8"/>
+  <SubTexture y="164" frameX="0" width="50" frameY="0" height="50" name="s_body_2" x="928" ofsy="7"/>
+  <SubTexture y="543" frameX="0" width="52" frameY="0" height="67" name="s_body_1" x="944" ofsy="2"/>
+  <SubTexture y="470" frameX="0" width="72" frameY="0" height="71" name="s_body_3" x="944" ofsy="7"/>
+  <SubTexture y="1" frameX="0" width="66" frameY="0" height="161" name="s_tail_1" x="928" ofsy="8"/>
+  <SubTexture frameWidth="135" y="935" frameHeight="180" frameY="-85" width="28" frameX="-21" height="28" name="s_leg00_e" x="154"/>
+  <SubTexture frameWidth="224" y="988" frameHeight="145" frameY="-112" width="41" frameX="-24" height="30" name="s_leg01_e" x="79"/>
+  <SubTexture frameWidth="230" y="950" frameHeight="221" frameY="-82" width="43" frameX="-18" height="36" name="s_leg02_e" x="79"/>
+  <SubTexture frameWidth="116" y="996" frameHeight="244" frameY="-132" width="21" frameX="-12" height="26" name="s_leg03_e" x="24"/>
+  <SubTexture frameWidth="135" y="935" frameHeight="180" frameY="-85" width="28" frameX="-86" height="28" name="s_leg10_e" x="124"/>
+  <SubTexture frameWidth="224" y="988" frameHeight="145" frameY="-112" width="41" frameX="-159" height="30" name="s_leg11_e" x="122"/>
+  <SubTexture frameWidth="230" y="897" frameHeight="221" frameY="-82" width="43" frameX="-169" height="36" name="s_leg12_e" x="121"/>
+  <SubTexture frameWidth="116" y="996" frameHeight="244" frameY="-132" width="21" frameX="-83" height="26" name="s_leg13_e" x="1"/>
+  <SubTexture frameWidth="74" y="897" frameHeight="73" frameY="-9" width="40" frameX="-17" height="51" name="s_body_e" x="79"/>
+  <SubTexture frameWidth="120" y="897" frameHeight="158" frameY="-40" width="76" frameX="-22" height="97" name="s_tail_e" x="1"/>
+</TextureAtlas>

@@ -1,0 +1,301 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FED9A291-1DF3-4BC3-867C-86A520DC6241}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>DevIL</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../zlib</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../zlib</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="devil_cpp_wrapper.hpp" />
+    <ClInclude Include="devil_internal_exports.h" />
+    <ClInclude Include="il.h" />
+    <ClInclude Include="IL\altivec_common.h" />
+    <ClInclude Include="IL\altivec_typeconversion.h" />
+    <ClInclude Include="IL\config.h" />
+    <ClInclude Include="IL\il_alloc.h" />
+    <ClInclude Include="IL\il_bits.h" />
+    <ClInclude Include="IL\il_bmp.h" />
+    <ClInclude Include="IL\il_dcx.h" />
+    <ClInclude Include="IL\il_dds.h" />
+    <ClInclude Include="IL\il_doompal.h" />
+    <ClInclude Include="IL\il_dpx.h" />
+    <ClInclude Include="IL\il_endian.h" />
+    <ClInclude Include="IL\il_exr.h" />
+    <ClInclude Include="IL\il_files.h" />
+    <ClInclude Include="IL\il_gif.h" />
+    <ClInclude Include="IL\il_hdr.h" />
+    <ClInclude Include="IL\il_icns.h" />
+    <ClInclude Include="IL\il_icon.h" />
+    <ClInclude Include="IL\il_internal.h" />
+    <ClInclude Include="IL\il_jp2.h" />
+    <ClInclude Include="IL\il_jpeg.h" />
+    <ClInclude Include="IL\il_lif.h" />
+    <ClInclude Include="IL\il_manip.h" />
+    <ClInclude Include="IL\il_mdl.h" />
+    <ClInclude Include="IL\il_pal.h" />
+    <ClInclude Include="IL\il_pcx.h" />
+    <ClInclude Include="IL\il_pic.h" />
+    <ClInclude Include="IL\il_pnm.h" />
+    <ClInclude Include="IL\il_psd.h" />
+    <ClInclude Include="IL\il_psp.h" />
+    <ClInclude Include="IL\il_q2pal.h" />
+    <ClInclude Include="IL\il_register.h" />
+    <ClInclude Include="IL\il_rle.h" />
+    <ClInclude Include="IL\il_sgi.h" />
+    <ClInclude Include="IL\il_stack.h" />
+    <ClInclude Include="IL\il_states.h" />
+    <ClInclude Include="IL\il_targa.h" />
+    <ClInclude Include="IL\il_utx.h" />
+    <ClInclude Include="IL\il_vtf.h" />
+    <ClInclude Include="IL\il_wdp.h" />
+    <ClInclude Include="IL\libjpeg\cderror.h" />
+    <ClInclude Include="IL\libjpeg\cdjpeg.h" />
+    <ClInclude Include="IL\libjpeg\jchuff.h" />
+    <ClInclude Include="IL\libjpeg\jconfig.h" />
+    <ClInclude Include="IL\libjpeg\jdct.h" />
+    <ClInclude Include="IL\libjpeg\jdhuff.h" />
+    <ClInclude Include="IL\libjpeg\jerror.h" />
+    <ClInclude Include="IL\libjpeg\jinclude.h" />
+    <ClInclude Include="IL\libjpeg\jmemsys.h" />
+    <ClInclude Include="IL\libjpeg\jmorecfg.h" />
+    <ClInclude Include="IL\libjpeg\jpegint.h" />
+    <ClInclude Include="IL\libjpeg\jpeglib.h" />
+    <ClInclude Include="IL\libjpeg\jversion.h" />
+    <ClInclude Include="IL\libjpeg\transupp.h" />
+    <ClInclude Include="IL\libpng\png.h" />
+    <ClInclude Include="IL\libpng\pngconf.h" />
+    <ClInclude Include="IL\libpng\pngdebug.h" />
+    <ClInclude Include="IL\libpng\pnginfo.h" />
+    <ClInclude Include="IL\libpng\pnglibconf.h" />
+    <ClInclude Include="IL\libpng\pngpriv.h" />
+    <ClInclude Include="IL\libpng\pngstruct.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IL\altivec_common.c" />
+    <ClCompile Include="IL\altivec_typeconversion.c" />
+    <ClCompile Include="IL\il_alloc.c" />
+    <ClCompile Include="IL\il_bits.c" />
+    <ClCompile Include="IL\il_blp.c" />
+    <ClCompile Include="IL\il_bmp.c" />
+    <ClCompile Include="IL\il_convbuff.c" />
+    <ClCompile Include="IL\il_convert.c" />
+    <ClCompile Include="IL\il_cut.c" />
+    <ClCompile Include="IL\il_dcx.c" />
+    <ClCompile Include="IL\il_dds-save.c" />
+    <ClCompile Include="IL\il_dds.c" />
+    <ClCompile Include="IL\il_devil.c" />
+    <ClCompile Include="IL\il_dicom.c" />
+    <ClCompile Include="IL\il_doom.c" />
+    <ClCompile Include="IL\il_dpx.c" />
+    <ClCompile Include="IL\il_endian.c" />
+    <ClCompile Include="IL\il_error.c" />
+    <ClCompile Include="IL\il_exr.cpp" />
+    <ClCompile Include="IL\il_fastconv.c" />
+    <ClCompile Include="IL\il_files.c" />
+    <ClCompile Include="IL\il_fits.c" />
+    <ClCompile Include="IL\il_ftx.c" />
+    <ClCompile Include="IL\il_gif.c" />
+    <ClCompile Include="IL\il_hdr.c" />
+    <ClCompile Include="IL\il_header.c" />
+    <ClCompile Include="IL\il_icns.c" />
+    <ClCompile Include="IL\il_icon.c" />
+    <ClCompile Include="IL\il_iff.c" />
+    <ClCompile Include="IL\il_ilbm.c" />
+    <ClCompile Include="IL\il_internal.c" />
+    <ClCompile Include="IL\il_io.c" />
+    <ClCompile Include="IL\il_iwi.c" />
+    <ClCompile Include="IL\il_jp2.c" />
+    <ClCompile Include="IL\il_jpeg.c" />
+    <ClCompile Include="IL\il_lif.c" />
+    <ClCompile Include="IL\il_main.c" />
+    <ClCompile Include="IL\il_manip.c" />
+    <ClCompile Include="IL\il_mdl.c" />
+    <ClCompile Include="IL\il_mng.c" />
+    <ClCompile Include="IL\il_mp3.c" />
+    <ClCompile Include="IL\il_neuquant.c" />
+    <ClCompile Include="IL\il_nvidia.cpp" />
+    <ClCompile Include="IL\il_pal.c" />
+    <ClCompile Include="IL\il_pcd.c" />
+    <ClCompile Include="IL\il_pcx.c" />
+    <ClCompile Include="IL\il_pic.c" />
+    <ClCompile Include="IL\il_pix.c" />
+    <ClCompile Include="IL\il_png.c" />
+    <ClCompile Include="IL\il_pnm.c" />
+    <ClCompile Include="IL\il_profiles.c" />
+    <ClCompile Include="IL\il_psd.c" />
+    <ClCompile Include="IL\il_psp.c" />
+    <ClCompile Include="IL\il_pxr.c" />
+    <ClCompile Include="IL\il_quantizer.c" />
+    <ClCompile Include="IL\il_raw.c" />
+    <ClCompile Include="IL\il_rawdata.c" />
+    <ClCompile Include="IL\il_register.c" />
+    <ClCompile Include="IL\il_rle.c" />
+    <ClCompile Include="IL\il_rot.c" />
+    <ClCompile Include="IL\il_sgi.c" />
+    <ClCompile Include="IL\il_size.c" />
+    <ClCompile Include="IL\il_squish.cpp" />
+    <ClCompile Include="IL\il_stack.c" />
+    <ClCompile Include="IL\il_states.c" />
+    <ClCompile Include="IL\il_sun.c" />
+    <ClCompile Include="IL\il_targa.c" />
+    <ClCompile Include="IL\il_texture.c" />
+    <ClCompile Include="IL\il_tiff.c" />
+    <ClCompile Include="IL\il_tpl.c" />
+    <ClCompile Include="IL\il_utility.c" />
+    <ClCompile Include="IL\il_utx.cpp" />
+    <ClCompile Include="IL\il_vtf.c" />
+    <ClCompile Include="IL\il_wal.c" />
+    <ClCompile Include="IL\il_wbmp.c" />
+    <ClCompile Include="IL\il_wdp.c" />
+    <ClCompile Include="IL\il_xpm.c" />
+    <ClCompile Include="IL\libjpeg\cdjpeg.c" />
+    <ClCompile Include="IL\libjpeg\example.c" />
+    <ClCompile Include="IL\libjpeg\jcapimin.c" />
+    <ClCompile Include="IL\libjpeg\jcapistd.c" />
+    <ClCompile Include="IL\libjpeg\jccoefct.c" />
+    <ClCompile Include="IL\libjpeg\jccolor.c" />
+    <ClCompile Include="IL\libjpeg\jcdctmgr.c" />
+    <ClCompile Include="IL\libjpeg\jchuff.c" />
+    <ClCompile Include="IL\libjpeg\jcinit.c" />
+    <ClCompile Include="IL\libjpeg\jcmainct.c" />
+    <ClCompile Include="IL\libjpeg\jcmarker.c" />
+    <ClCompile Include="IL\libjpeg\jcmaster.c" />
+    <ClCompile Include="IL\libjpeg\jcomapi.c" />
+    <ClCompile Include="IL\libjpeg\jcparam.c" />
+    <ClCompile Include="IL\libjpeg\jcphuff.c" />
+    <ClCompile Include="IL\libjpeg\jcprepct.c" />
+    <ClCompile Include="IL\libjpeg\jcsample.c" />
+    <ClCompile Include="IL\libjpeg\jctrans.c" />
+    <ClCompile Include="IL\libjpeg\jdapimin.c" />
+    <ClCompile Include="IL\libjpeg\jdapistd.c" />
+    <ClCompile Include="IL\libjpeg\jdatadst.c" />
+    <ClCompile Include="IL\libjpeg\jdatasrc.c" />
+    <ClCompile Include="IL\libjpeg\jdcoefct.c" />
+    <ClCompile Include="IL\libjpeg\jdcolor.c" />
+    <ClCompile Include="IL\libjpeg\jddctmgr.c" />
+    <ClCompile Include="IL\libjpeg\jdhuff.c" />
+    <ClCompile Include="IL\libjpeg\jdinput.c" />
+    <ClCompile Include="IL\libjpeg\jdmainct.c" />
+    <ClCompile Include="IL\libjpeg\jdmarker.c" />
+    <ClCompile Include="IL\libjpeg\jdmaster.c" />
+    <ClCompile Include="IL\libjpeg\jdmerge.c" />
+    <ClCompile Include="IL\libjpeg\jdphuff.c" />
+    <ClCompile Include="IL\libjpeg\jdpostct.c" />
+    <ClCompile Include="IL\libjpeg\jdsample.c" />
+    <ClCompile Include="IL\libjpeg\jdtrans.c" />
+    <ClCompile Include="IL\libjpeg\jerror.c" />
+    <ClCompile Include="IL\libjpeg\jfdctflt.c" />
+    <ClCompile Include="IL\libjpeg\jfdctfst.c" />
+    <ClCompile Include="IL\libjpeg\jfdctint.c" />
+    <ClCompile Include="IL\libjpeg\jidctflt.c" />
+    <ClCompile Include="IL\libjpeg\jidctfst.c" />
+    <ClCompile Include="IL\libjpeg\jidctint.c" />
+    <ClCompile Include="IL\libjpeg\jidctred.c" />
+    <ClCompile Include="IL\libjpeg\jmemansi.c" />
+    <ClCompile Include="IL\libjpeg\jmemmgr.c" />
+    <ClCompile Include="IL\libjpeg\jquant1.c" />
+    <ClCompile Include="IL\libjpeg\jquant2.c" />
+    <ClCompile Include="IL\libjpeg\jutils.c" />
+    <ClCompile Include="IL\libjpeg\rdbmp.c" />
+    <ClCompile Include="IL\libjpeg\rdcolmap.c" />
+    <ClCompile Include="IL\libjpeg\rdgif.c" />
+    <ClCompile Include="IL\libjpeg\rdppm.c" />
+    <ClCompile Include="IL\libjpeg\rdrle.c" />
+    <ClCompile Include="IL\libjpeg\rdswitch.c" />
+    <ClCompile Include="IL\libjpeg\rdtarga.c" />
+    <ClCompile Include="IL\libjpeg\transupp.c" />
+    <ClCompile Include="IL\libjpeg\wrbmp.c" />
+    <ClCompile Include="IL\libjpeg\wrgif.c" />
+    <ClCompile Include="IL\libjpeg\wrppm.c" />
+    <ClCompile Include="IL\libjpeg\wrrle.c" />
+    <ClCompile Include="IL\libjpeg\wrtarga.c" />
+    <ClCompile Include="IL\libpng\png.c" />
+    <ClCompile Include="IL\libpng\pngerror.c" />
+    <ClCompile Include="IL\libpng\pngget.c" />
+    <ClCompile Include="IL\libpng\pngmem.c" />
+    <ClCompile Include="IL\libpng\pngpread.c" />
+    <ClCompile Include="IL\libpng\pngread.c" />
+    <ClCompile Include="IL\libpng\pngrio.c" />
+    <ClCompile Include="IL\libpng\pngrtran.c" />
+    <ClCompile Include="IL\libpng\pngrutil.c" />
+    <ClCompile Include="IL\libpng\pngset.c" />
+    <ClCompile Include="IL\libpng\pngtrans.c" />
+    <ClCompile Include="IL\libpng\pngwio.c" />
+    <ClCompile Include="IL\libpng\pngwrite.c" />
+    <ClCompile Include="IL\libpng\pngwtran.c" />
+    <ClCompile Include="IL\libpng\pngwutil.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\zlib\zlib.vcxproj">
+      <Project>{005d64d7-3243-4832-ad29-dfb7be8b4189}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

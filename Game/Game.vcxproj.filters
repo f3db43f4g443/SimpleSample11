@@ -1,0 +1,242 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="MyGame.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Physics\HitProxy.cpp">
+      <Filter>Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage.cpp" />
+    <ClCompile Include="Character.cpp" />
+    <ClCompile Include="Entities\Spider.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\MainUI.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\HurtEffect.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\HpBar.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="PostEffects.cpp" />
+    <ClCompile Include="MaterialShadersImplement.cpp" />
+    <ClCompile Include="FlyingObject.cpp" />
+    <ClCompile Include="Entities\EnemyBullet.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\DizzyRegion.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerAction.cpp" />
+    <ClCompile Include="PlayerActions\PlayerActionAttack.cpp">
+      <Filter>PlayerActions</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\EffectObject.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\PlayerCrosshair.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SpiderBoss.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\HitProxyData.cpp">
+      <Filter>Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SpiderBossBullet.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SpiderBossEgg.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="PlayerDebuff.cpp" />
+    <ClCompile Include="PlayerDebuffs\PlayerDebuffSpiderWeb.cpp">
+      <Filter>PlayerDebuffs</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\ParticleSubEmitter.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SpiderWebGround.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PlayerDizzy.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\ParticleWebEmitter.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\BloodLaser.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\HUDCircle.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\CrackMeshGenerator.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Entity.h" />
+    <ClInclude Include="MyGame.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Stage.h" />
+    <ClInclude Include="stdafx.h" />
+    <CLInclude Include="winresource.h" />
+    <ClInclude Include="Physics\HitProxy.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute.h" />
+    <ClInclude Include="Character.h" />
+    <ClInclude Include="Entities\Spider.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\MainUI.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\HurtEffect.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\HpBar.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="PostEffects.h" />
+    <ClInclude Include="FlyingObject.h" />
+    <ClInclude Include="Entities\EnemyBullet.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\DizzyRegion.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerAction.h" />
+    <ClInclude Include="PlayerActions\PlayerActionAttack.h">
+      <Filter>PlayerActions</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\EffectObject.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\PlayerCrosshair.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SpiderBoss.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\HitProxyData.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SpiderBossBullet.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SpiderBossEgg.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerDebuff.h" />
+    <ClInclude Include="PlayerDebuffs\PlayerDebuffSpiderWeb.h">
+      <Filter>PlayerDebuffs</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ParticleSubEmitter.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SpiderWebGround.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\PlayerDizzy.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ParticleWebEmitter.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\BloodLaser.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\HUDCircle.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\CrackMeshGenerator.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Game.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DXUT\Optional\directx.ico" />
+    <None Include="..\Shader\Blood.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\HpBar.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\PostProcessInvertColor.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\MainUI.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\PostProcessDizzyEffect.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Particle.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\PlayerCrosshair.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\ParticleSplash.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Footprint.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\FootprintLiquid.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\SpiderWebSilk.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Laser.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\GSWrapTex.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\HUDCircle.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\CrackEffect.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Particle1.shader">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{948dc633-ac2e-4afe-9364-defef03b8aab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities">
+      <UniqueIdentifier>{0a20b1f4-c145-4f04-b042-df06e5790045}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{9381e806-c5a7-4fb0-ba65-4d67eb151b83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{54c7e55b-91d6-4d04-bbab-0c93ceb2318d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PlayerActions">
+      <UniqueIdentifier>{329193d8-7b99-41a2-8e7e-dc330e8200e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PlayerDebuffs">
+      <UniqueIdentifier>{dc03d2e9-7729-441a-b12b-110018d7bbca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Effects">
+      <UniqueIdentifier>{300eabb2-2e65-4356-a8bf-8cafd0220f0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{473e2210-87f4-49ee-b6e3-21bc91dfa7f5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

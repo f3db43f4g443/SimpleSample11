@@ -1,0 +1,13 @@
+﻿<root>
+  <gui_pass>
+    <blend type="exclude" />
+    <material vertex_shader="SingleImage2DVertexShader" pixel_shader="PSPlayerCrosshair">
+      <shader_resources>
+        <item name="Texture0" filename="textures/crosshair.png" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </gui_pass>
+</root>

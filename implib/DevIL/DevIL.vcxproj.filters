@@ -1,0 +1,660 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="devil_cpp_wrapper.hpp" />
+    <ClInclude Include="devil_internal_exports.h" />
+    <ClInclude Include="il.h" />
+    <ClInclude Include="IL\altivec_common.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\altivec_typeconversion.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\config.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_alloc.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_bits.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_bmp.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_dcx.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_dds.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_doompal.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_dpx.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_endian.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_exr.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_files.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_gif.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_hdr.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_icns.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_icon.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_internal.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_jp2.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_jpeg.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_lif.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_manip.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_mdl.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_pal.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_pcx.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_pic.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_pnm.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_psd.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_psp.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_q2pal.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_register.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_rle.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_sgi.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_stack.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_states.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_targa.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_utx.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_vtf.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\il_wdp.h">
+      <Filter>IL</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\cderror.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\cdjpeg.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jchuff.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jconfig.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jdct.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jdhuff.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jerror.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jinclude.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jmemsys.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jmorecfg.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jpegint.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jpeglib.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\jversion.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libjpeg\transupp.h">
+      <Filter>IL\libjpeg</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\png.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pngconf.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pngdebug.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pnginfo.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pnglibconf.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pngpriv.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+    <ClInclude Include="IL\libpng\pngstruct.h">
+      <Filter>IL\libpng</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="IL">
+      <UniqueIdentifier>{7783fbaa-fa59-40ba-9c67-7933f24d6aa1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IL\libjpeg">
+      <UniqueIdentifier>{9184dca2-8f76-40df-ad65-a2610ecc50d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IL\libpng">
+      <UniqueIdentifier>{56afda86-63ad-4240-b925-686c157b34ce}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IL\altivec_common.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\altivec_typeconversion.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_alloc.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_bits.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_blp.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_bmp.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_convbuff.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_convert.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_cut.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_dcx.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_dds.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_dds-save.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_devil.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_dicom.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_doom.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_dpx.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_endian.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_error.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_exr.cpp">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_fastconv.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_files.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_fits.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_ftx.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_gif.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_hdr.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_header.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_icns.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_icon.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_iff.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_ilbm.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_internal.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_io.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_iwi.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_jp2.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_jpeg.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_lif.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_main.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_manip.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_mdl.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_mng.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_mp3.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_neuquant.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_nvidia.cpp">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pal.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pcd.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pcx.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pic.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pix.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_png.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pnm.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_profiles.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_psd.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_psp.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_pxr.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_quantizer.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_raw.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_rawdata.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_register.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_rle.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_rot.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_sgi.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_size.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_squish.cpp">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_stack.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_states.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_sun.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_targa.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_texture.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_tiff.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_tpl.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_utility.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_utx.cpp">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_vtf.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_wal.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_wbmp.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_wdp.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\il_xpm.c">
+      <Filter>IL</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\cdjpeg.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\example.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcapimin.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcapistd.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jccoefct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jccolor.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcdctmgr.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jchuff.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcinit.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcmainct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcmarker.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcmaster.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcomapi.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcparam.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcphuff.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcprepct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jcsample.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jctrans.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdapimin.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdapistd.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdatadst.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdatasrc.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdcoefct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdcolor.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jddctmgr.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdhuff.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdinput.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdmainct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdmarker.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdmaster.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdmerge.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdphuff.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdpostct.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdsample.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jdtrans.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jerror.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jfdctflt.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jfdctfst.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jfdctint.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jidctflt.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jidctfst.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jidctint.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jidctred.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jmemansi.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jmemmgr.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jquant1.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jquant2.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\jutils.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdbmp.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdcolmap.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdgif.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdppm.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdrle.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdswitch.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\rdtarga.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\transupp.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\wrbmp.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\wrgif.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\wrppm.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\wrrle.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libjpeg\wrtarga.c">
+      <Filter>IL\libjpeg</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\png.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngerror.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngget.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngmem.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngpread.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngread.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngrio.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngrtran.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngrutil.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngset.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngtrans.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngwio.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngwrite.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngwtran.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+    <ClCompile Include="IL\libpng\pngwutil.c">
+      <Filter>IL\libpng</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

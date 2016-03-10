@@ -1,0 +1,13 @@
+﻿<root>
+  <color_pass>
+    <blend type="transparent" />
+    <material max_insts="2048" vertex_shader="Rope2DVertexShader" pixel_shader="ColorPixelShaderNoClip">
+      <shader_resources>
+        <item name="Texture0" filename="textures/silk1.png" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" address="wrap" />
+      </samplers>
+    </material>
+  </color_pass>
+</root>

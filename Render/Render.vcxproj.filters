@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Drawable2D.h" />
+    <ClInclude Include="Element2D.h" />
+    <ClInclude Include="Image2D.h" />
+    <ClInclude Include="IndexBuffer.h" />
+    <ClInclude Include="Lighted2DRenderer.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RenderObject2D.h" />
+    <ClInclude Include="Scene2DManager.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="VertexBuffer.h" />
+    <ClInclude Include="RenderSystem.h" />
+    <ClInclude Include="ShaderResource.h" />
+    <ClInclude Include="DX11\DX11Common.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11RenderSystem.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11VertexBuffer.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11ShaderResource.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11Texture.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11IndexBuffer.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBuffer.h" />
+    <ClInclude Include="DX11\DX11ConstantBuffer.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderState.h" />
+    <ClInclude Include="DX11\DX11RenderState.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="DX11\DX11Shader.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DXUT\Core\DXUT.h">
+      <Filter>DX11\DXUT</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DXUT\Core\DXUTDevice9.h">
+      <Filter>DX11\DXUT</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DXUT\Core\DXUTDevice11.h">
+      <Filter>DX11\DXUT</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DXUT\Core\DXUTmisc.h">
+      <Filter>DX11\DXUT</Filter>
+    </ClInclude>
+    <ClInclude Include="DX11\DX11DeviceState.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalRenderResources.h" />
+    <ClInclude Include="RenderContext2D.h" />
+    <ClInclude Include="DefaultDrawable2D.h" />
+    <ClInclude Include="CommonShader.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="LightRendering.h" />
+    <ClInclude Include="SystemShaderParams.h" />
+    <ClInclude Include="Animation.h" />
+    <ClInclude Include="TextureAtlas.h" />
+    <ClInclude Include="PostProcess.h" />
+    <ClInclude Include="Canvas.h" />
+    <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="Footprint.h" />
+    <ClInclude Include="Rope2D.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Image2D.cpp" />
+    <ClCompile Include="Lighted2DRenderer.cpp" />
+    <ClCompile Include="RenderObject2D.cpp" />
+    <ClCompile Include="Scene2DManager.cpp" />
+    <ClCompile Include="DX11\IndexBuffer.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Texture.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\VertexBuffer.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\RenderSystem.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureFile.cpp" />
+    <ClCompile Include="DX11\ConstantBuffer.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\RenderState.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\Shader.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderParams.cpp" />
+    <ClCompile Include="DX11\DXUT\Core\DXUT.cpp">
+      <Filter>DX11\DXUT</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\DXUT\Core\DXUTDevice9.cpp">
+      <Filter>DX11\DXUT</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\DXUT\Core\DXUTDevice11.cpp">
+      <Filter>DX11\DXUT</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\DXUT\Core\DXUTmisc.cpp">
+      <Filter>DX11\DXUT</Filter>
+    </ClCompile>
+    <ClCompile Include="DX11\DX11DeviceState.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderContext2D.cpp" />
+    <ClCompile Include="DefaultDrawable2D.cpp" />
+    <ClCompile Include="GlobalRenderResources.cpp" />
+    <ClCompile Include="CommonShader.cpp" />
+    <ClCompile Include="DX11\ShaderResource.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="LightRendering.cpp" />
+    <ClCompile Include="SystemShaderParams.cpp" />
+    <ClCompile Include="Animation.cpp" />
+    <ClCompile Include="AnimationLoader.cpp" />
+    <ClCompile Include="TextureAtlas.cpp" />
+    <ClCompile Include="PostProcess.cpp" />
+    <ClCompile Include="RenderTargetPool.cpp" />
+    <ClCompile Include="Canvas.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="Footprint.cpp" />
+    <ClCompile Include="Rope2D.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="DX11">
+      <UniqueIdentifier>{fa1ea174-df6b-4861-aee1-97c1cbba162f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DX11\DXUT">
+      <UniqueIdentifier>{2f659e2b-89ab-4d09-84b0-a8b52fa16ca2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{efb00259-c10f-4ed6-a668-a1ec6780837e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\Shader\Light2D.shader">
+      <Filter>Shader</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shader\Utils.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2D.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\CommonMaterial.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2D.shh">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\SingleImage2D.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\AlphaToOcclusion.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Rope2D.shader">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+</Project>

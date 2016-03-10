@@ -1,0 +1,50 @@
+﻿<root x="-1024" y="-1024" width="2048" height="2048">
+  <data max_particles="20" lifetime="1.0" emitrate="20.0" emittype="0" batchacrossinstances="1" >
+    <element name="max_size" type="float1" min="16" max="16" />
+    <element name="angle" type="float1" min="0" max="0" />
+    <element name="center" type="float2" min1="0" max1="0" min2="0" max2="0" global_pos="1" />
+    <element name="max_ofs" random_type="circle" min1="16" max1="32" min2="0" max2="6.28" global_dir="1" />
+  </data>
+  <color_passes>
+    <color_pass>
+      <blend type="transparent" />
+      <material max_insts="2048" inst_stride="32" vertex_shader="VSParticle" pixel_shader="ColorPixelShaderNoClip">
+        <shader_resources>
+          <item name="Texture0" filename="textures/enemybullet.png" />
+        </shader_resources>
+        <samplers>
+          <item name="LinearSampler" />
+        </samplers>
+      </material>
+      <params>
+        <param name="t" ofs="0" />
+        <param name="max_size" ofs="4" />
+        <param name="z" ofs="8" />
+        <param name="angle" ofs="12" />
+        <param name="center" ofs="16" />
+        <param name="max_ofs" ofs="24" />
+      </params>
+    </color_pass>
+  </color_passes>
+  <occlusion_passes>
+    <occlusion_pass>
+      <blend type="multiply" />
+      <material max_insts="2048" inst_stride="32" vertex_shader="VSParticle" pixel_shader="g_COneTexturePixelShader">
+        <shader_resources>
+          <item name="Texture0" filename="textures/enemybullet.tga" />
+        </shader_resources>
+        <samplers>
+          <item name="LinearSampler" />
+        </samplers>
+      </material>
+      <params>
+        <param name="t" ofs="0" />
+        <param name="max_size" ofs="4" />
+        <param name="z" ofs="8" />
+        <param name="angle" ofs="12" />
+        <param name="center" ofs="16" />
+        <param name="max_ofs" ofs="24" />
+      </params>
+    </occlusion_pass>
+  </occlusion_passes>
+</root>
