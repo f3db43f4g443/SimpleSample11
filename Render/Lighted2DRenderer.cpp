@@ -178,12 +178,7 @@ void CLighted2DRenderer::RenderLights( CRenderContext2D& context )
 		pDirectionalLight->RemoveFrom_DirectionalLight();
 	}
 
-	SPointLight2D* pPointLight;
-	while( ( pPointLight = context.Get_PointLight() ) != NULL )
-	{
-		RenderLightPoint( context.pRenderSystem, *pPointLight );
-		pPointLight->RemoveFrom_PointLight();
-	}
+	RenderLightPointInstancing( context.pRenderSystem, context.Get_PointLight() );
 }
 
 void CLighted2DRenderer::RenderGUI( CRenderContext2D& context )

@@ -30,9 +30,10 @@ private:
 	void RenderShadowDirectional( IRenderSystem* pSystem, SDirectionalLight2D& light );
 	void DrawSceneLightingDirectional( IRenderSystem* pSystem, SDirectionalLight2D& light );
 	
-	void RenderLightPoint( IRenderSystem* pSystem, SPointLight2D& light );
-	void RenderShadowPoint( IRenderSystem* pSystem, SPointLight2D& light );
-	void DrawSceneLightingPoint( IRenderSystem* pSystem, SPointLight2D& light );
+	void RenderLightPointInstancing( IRenderSystem* pSystem, SPointLight2D* pLights );
+	void RenderLightPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights );
+	void RenderShadowPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights );
+	void DrawSceneLightingPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights );
 
 	CReference<ITexture> m_pColorBuffer;
 	CReference<ITexture> m_pEmissionBuffer;

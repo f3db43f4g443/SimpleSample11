@@ -186,6 +186,7 @@
     <None Include="..\Shader\CommonMaterial.shader" />
     <None Include="..\Shader\Default2D.shader" />
     <None Include="..\Shader\Default2D.shh" />
+    <None Include="..\Shader\Light2DInstancing.shader" />
     <None Include="..\Shader\Rope2D.shader" />
     <None Include="..\Shader\SingleImage2D.shader" />
     <None Include="..\Shader\Utils.shader" />

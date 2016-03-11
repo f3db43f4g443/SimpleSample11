@@ -3,14 +3,16 @@
 #include "Lighted2DRenderer.h"
 #include "GlobalRenderResources.h"
 #include "CommonShader.h"
+#include "SortedList.h"
+#include "MathUtil.h"
 
-CDirectionalLightObject::CDirectionalLightObject() : Dir( 0, 0 ), fIntensity( 0 ), fShadowScale( 0 )
+CDirectionalLightObject::CDirectionalLightObject() : Dir( 0, 0 ), baseColor( 0, 0, 0 ), fShadowScale( 0 )
 {
 	m_localBound = CRectangle( -1000000, -1000000, 2000000, 2000000 );
 }
 
-CDirectionalLightObject::CDirectionalLightObject( const CVector2& Dir, float fIntensity, float fShadowScale, float fMaxShadowDist )
-	: Dir( Dir ), fIntensity( fIntensity ), fShadowScale( fShadowScale ), fMaxShadowDist( fMaxShadowDist )
+CDirectionalLightObject::CDirectionalLightObject( const CVector2& Dir, const CVector3& baseColor, float fShadowScale, float fMaxShadowDist )
+	: Dir( Dir ), baseColor( baseColor ), fShadowScale( fShadowScale ), fMaxShadowDist( fMaxShadowDist )
 {
 	m_localBound = CRectangle( -1000000, -1000000, 2000000, 2000000 );
 }
@@ -20,9 +22,9 @@ void CDirectionalLightObject::Render( CRenderContext2D& context )
 	if( context.eRenderPass != eRenderPass_Occlusion )
 		return;
 	m_light.Dir = globalTransform.MulVector2Dir( Dir );
-	m_light.fIntensity = fIntensity;
 	m_light.fShadowScale = fShadowScale;
 	m_light.fMaxShadowDist = fMaxShadowDist;
+	m_light.baseColor = baseColor;
 	context.AddDirectionalLight( &m_light );
 }
 
@@ -32,8 +34,8 @@ CPointLightObject::CPointLightObject()
 	m_localBound = CRectangle( 0, 0, 0, 0 );
 }
 
-CPointLightObject::CPointLightObject( const CVector4& AttenuationIntensity, float fShadowScale, float fMaxRange, float fLightHeight )
-	: AttenuationIntensity( AttenuationIntensity ), fShadowScale( fShadowScale ), fMaxRange( fMaxRange ), fLightHeight( fLightHeight )
+CPointLightObject::CPointLightObject( const CVector4& AttenuationIntensity, const CVector3& baseColor, float fShadowScale, float fMaxRange, float fLightHeight )
+	: AttenuationIntensity( AttenuationIntensity ), baseColor( baseColor ), fShadowScale( fShadowScale ), fMaxRange( fMaxRange ), fLightHeight( fLightHeight )
 {
 	m_localBound = CRectangle( -fMaxRange, -fMaxRange, fMaxRange, fMaxRange );
 }
@@ -49,6 +51,7 @@ void CPointLightObject::Render( CRenderContext2D& context )
 		return;
 	m_light.AttenuationIntensity.y /= fScale;
 	m_light.AttenuationIntensity.z /= fScale * fScale;
+	m_light.baseColor = baseColor;
 	m_light.fShadowScale = fShadowScale;
 	m_light.fMaxRange = fMaxRange * fScale;
 	m_light.fLightHeight = fLightHeight;
@@ -97,23 +100,23 @@ class CLight2DLinearScenePS : public CGlobalShader
 protected:
 	virtual void OnCreated() override
 	{
-		GetShader()->GetShaderInfo().Bind( m_lightAttenuationIntensity, "LightAttenuationIntensity" );
+		GetShader()->GetShaderInfo().Bind( m_lightBaseColor, "baseColor" );
 		GetShader()->GetShaderInfo().Bind( m_shadowScale, "fShadowScale" );
 		GetShader()->GetShaderInfo().Bind( m_shadowMap, "ShadowMap" );
 		GetShader()->GetShaderInfo().Bind( m_occlusionMap, "OcclusionMap" );
 		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, float fIntensity, float fShadowScale, IShaderResource* pShadowMap, IShaderResource* pOcclusionMap )
+	void SetParams( IRenderSystem* pRenderSystem, const CVector3& baseColor, float fShadowScale, IShaderResource* pShadowMap, IShaderResource* pOcclusionMap )
 	{
-		m_lightAttenuationIntensity.Set( pRenderSystem, &fIntensity, sizeof( float ), sizeof(float)* 3 );
+		m_lightBaseColor.Set( pRenderSystem, &baseColor );
 		m_shadowScale.Set( pRenderSystem, &fShadowScale );
 		m_shadowMap.Set( pRenderSystem, pShadowMap );
 		m_occlusionMap.Set( pRenderSystem, pOcclusionMap );
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
 private:
-	CShaderParam m_lightAttenuationIntensity;
+	CShaderParam m_lightBaseColor;
 	CShaderParam m_shadowScale;
 	CShaderParamShaderResource m_shadowMap;
 	CShaderParamShaderResource m_occlusionMap;
@@ -135,25 +138,19 @@ protected:
 	}
 	virtual void OnCreated() override
 	{
-		GetShader()->GetShaderInfo().Bind( m_center, "RadialBlurCenter" );
 		GetShader()->GetShaderInfo().Bind( m_baseOffset, "RadialBlurBaseLength" );
-		GetShader()->GetShaderInfo().Bind( m_lightHeight, "LightHeight" );
 		GetShader()->GetShaderInfo().Bind( m_shadowMap, "ShadowMap" );
 		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pShadowMap, const CVector2& center, float fBaseOffset, float fLightHeight )
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pShadowMap, float fBaseOffset )
 	{
-		m_center.Set( pRenderSystem, &center );
 		m_baseOffset.Set( pRenderSystem, &fBaseOffset );
-		m_lightHeight.Set( pRenderSystem, &fLightHeight );
 		m_shadowMap.Set( pRenderSystem, pShadowMap );
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
 private:
-	CShaderParam m_center;
 	CShaderParam m_baseOffset;
-	CShaderParam m_lightHeight;
 	CShaderParamShaderResource m_shadowMap;
 	CShaderParamSampler m_paramLinearSampler;
 };
@@ -166,27 +163,18 @@ class CLight2DRadialScenePS : public CGlobalShader
 protected:
 	virtual void OnCreated() override
 	{
-		GetShader()->GetShaderInfo().Bind( m_center, "RadialBlurCenter" );
-		GetShader()->GetShaderInfo().Bind( m_lightAttenuationIntensity, "LightAttenuationIntensity" );
-		GetShader()->GetShaderInfo().Bind( m_shadowScale, "fShadowScale" );
 		GetShader()->GetShaderInfo().Bind( m_shadowMap, "ShadowMap" );
 		GetShader()->GetShaderInfo().Bind( m_occlusionMap, "OcclusionMap" );
 		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, const CVector2& center, const CVector4& vecAttenuationIntensity, float fShadowScale, IShaderResource* pShadowMap, IShaderResource* pOcclusionMap )
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pShadowMap, IShaderResource* pOcclusionMap )
 	{
-		m_center.Set( pRenderSystem, &center );
-		m_lightAttenuationIntensity.Set( pRenderSystem, &vecAttenuationIntensity );
-		m_shadowScale.Set( pRenderSystem, &fShadowScale );
 		m_shadowMap.Set( pRenderSystem, pShadowMap );
 		m_occlusionMap.Set( pRenderSystem, pOcclusionMap );
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
 private:
-	CShaderParam m_center;
-	CShaderParam m_lightAttenuationIntensity;
-	CShaderParam m_shadowScale;
 	CShaderParamShaderResource m_shadowMap;
 	CShaderParamShaderResource m_occlusionMap;
 	CShaderParamSampler m_paramLinearSampler;
@@ -288,18 +276,163 @@ void CLighted2DRenderer::DrawSceneLightingDirectional( IRenderSystem* pSystem, S
 	srcRect.SetSizeY( m_screenRes.y );
 
 	pVertexShader->SetParams( pSystem, dstRect, srcRect, dstRect.GetSize(), srcRes );
-	pPixelShader->SetParams( pSystem, light.fIntensity, light.fShadowScale, m_pShadowBuffer[0]->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
+	pPixelShader->SetParams( pSystem, light.baseColor, light.fShadowScale, m_pShadowBuffer[0]->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
 
 	pSystem->DrawInput();
 }
 
-void CLighted2DRenderer::RenderLightPoint( IRenderSystem* pSystem, SPointLight2D& light )
+
+void CLighted2DRenderer::RenderLightPointInstancing( IRenderSystem* pSystem, SPointLight2D* pLights )
 {
-	RenderShadowPoint( pSystem, light );
-	DrawSceneLightingPoint( pSystem, light );
+	static const uint32 nExtension = 1;
+
+	struct CalcLightSize
+	{
+		unsigned int operator () ( SPointLight2D* light )
+		{
+			return light->nSizeLog2;
+		}
+	};
+	TSortedList<SPointLight2D*, CalcLightSize> list;
+	while( pLights )
+	{
+		float left = floor( ( pLights->Pos.x - pLights->fMaxRange ) * m_lightMapRes.x );
+		float top = floor( ( pLights->Pos.y - pLights->fMaxRange ) * m_lightMapRes.y );
+		float right = ceil( ( pLights->Pos.x + pLights->fMaxRange ) * m_lightMapRes.x );
+		float bottom = ceil( ( pLights->Pos.y + pLights->fMaxRange ) * m_lightMapRes.y );
+		pLights->SceneRect = CRectangle( left, top, right - left, bottom - top );
+
+		uint32 nSizeLog2 = 0;
+		uint32 nSize = 1;
+		float fSize = Max( pLights->SceneRect.width, pLights->SceneRect.height ) + 2;
+		while( nSize < fSize )
+		{
+			nSize <<= 1;
+			nSizeLog2++;
+		}
+		pLights->nSizeLog2 = nSizeLog2;
+
+		list.insert( pLights );
+		SPointLight2D* pPointLight = pLights->NextPointLight();
+		pLights->RemoveFrom_PointLight();
+		pLights = pPointLight;
+	}
+	
+	uint32 nCur = 0;
+	vector<SPointLight2D*> vecLights;
+	for( auto itr = list.rev_begin(); !itr.End(); itr.Next() )
+	{
+		SPointLight2D* pLight = itr.Get();
+		
+		uint32 nWidth = 1 << pLight->nSizeLog2;
+		uint16 x, y;
+		ZCurveOrderInv( nCur, x, y );
+		
+		pLight->ShadowMapRect.x = x + 1;
+		pLight->ShadowMapRect.y = y + 1;
+		pLight->ShadowMapRect.width = pLight->SceneRect.width;
+		pLight->ShadowMapRect.height = pLight->SceneRect.height;
+		pLight->Pos1 = pLight->Pos + ( CVector2( pLight->ShadowMapRect.x, pLight->ShadowMapRect.y ) - CVector2( pLight->SceneRect.x, pLight->SceneRect.y ) )
+			* CVector2( 1.0f / m_lightMapRes.x, 1.0f / m_lightMapRes.y );
+		vecLights.push_back( pLight );
+
+		nCur += nWidth * nWidth;
+		if( nCur >= m_lightMapRes.x * m_lightMapRes.x || vecLights.size() >= 682 )
+		{
+			RenderLightPoint( pSystem, vecLights );
+
+			vecLights.clear();
+			nCur = 0;
+		}
+	}
+
+	if( vecLights.size() )	
+		RenderLightPoint( pSystem, vecLights );
 }
 
-void CLighted2DRenderer::RenderShadowPoint( IRenderSystem* pSystem, SPointLight2D& light )
+void CLighted2DRenderer::RenderLightPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights )
+{
+	RenderShadowPoint( pSystem, vecLights );
+	DrawSceneLightingPoint( pSystem, vecLights );
+}
+
+class CLight2DRadialBlurVS : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CLight2DRadialBlurVS );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_instData, "g_insts", "InstBuffer" );
+		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, vector<SPointLight2D*> vecLights, const CVector2& DstResolution, const CVector2& SrcResolution, bool bFirstPass )
+	{
+		uint32 nOffset = 0;
+		if( bFirstPass )
+		{
+			for( int i = 0; i < vecLights.size(); i++ )
+			{
+				m_instData.Set( pRenderSystem, &vecLights[i]->SceneRect, 32, nOffset );
+				CVector4 vec( vecLights[i]->Pos.x, vecLights[i]->Pos.y, vecLights[i]->fLightHeight, 0 );
+				m_instData.Set( pRenderSystem, &vec, 16, nOffset + 32 );
+				nOffset += 48;
+			}
+		}
+		else
+		{
+			for( int i = 0; i < vecLights.size(); i++ )
+			{
+				m_instData.Set( pRenderSystem, &vecLights[i]->ShadowMapRect, 16, nOffset );
+				m_instData.Set( pRenderSystem, &vecLights[i]->ShadowMapRect, 16, nOffset + 16 );
+				CVector4 vec( vecLights[i]->Pos1.x, vecLights[i]->Pos1.y, vecLights[i]->fLightHeight, 0 );
+				m_instData.Set( pRenderSystem, &vec, 16, nOffset + 32 );
+				nOffset += 48;
+			}
+		}
+		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
+		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+	}
+private:
+	CShaderParam m_instData;
+	CShaderParam m_invDstSrcResolution;
+};
+
+class CLight2DRadialBlurVS1 : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CLight2DRadialBlurVS1 );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_instData, "g_insts1", "InstBuffer1" );
+		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, vector<SPointLight2D*> vecLights, const CVector2& DstResolution, const CVector2& SrcResolution )
+	{
+		uint32 nOffset = 0;
+		for( int i = 0; i < vecLights.size(); i++ )
+		{
+			m_instData.Set( pRenderSystem, &vecLights[i]->rect, 48, nOffset );
+			m_instData.Set( pRenderSystem, &vecLights[i]->AttenuationIntensity, 16, nOffset + 48 );
+			CVector4 vec( vecLights[i]->baseColor.x, vecLights[i]->baseColor.y, vecLights[i]->baseColor.z, vecLights[i]->fShadowScale );
+			m_instData.Set( pRenderSystem, &vec, 16, nOffset + 64 );
+			m_instData.Set( pRenderSystem, &vecLights[i]->Pos, 8, nOffset + 80 );
+			nOffset += 96;
+		}
+		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
+		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+	}
+private:
+	CShaderParam m_instData;
+	CShaderParam m_invDstSrcResolution;
+};
+
+
+IMPLEMENT_GLOBAL_SHADER( CLight2DRadialBlurVS, "Shader/Light2DInstancing.shader", "VSRadialBlur", "vs_5_0" );
+IMPLEMENT_GLOBAL_SHADER( CLight2DRadialBlurVS1, "Shader/Light2DInstancing.shader", "VSRadialBlur1", "vs_5_0" );
+
+void CLighted2DRenderer::RenderShadowPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights )
 {
 	float fBaseOffset = 1.0f / m_lightMapRes.x;
 
@@ -315,25 +448,22 @@ void CLighted2DRenderer::RenderShadowPoint( IRenderSystem* pSystem, SPointLight2
 	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
 	pSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
 
-	auto pVertexShader = CScreenVertexShader::Inst();
+	auto pVertexShader = CLight2DRadialBlurVS::Inst();
 	auto pPixelShader = CLight2DRadialBlurPS<3>::Inst();
 	static IShaderBoundState* g_pShaderBoundState = NULL;
 	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
 	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
 
-	CRectangle dstRect( ( light.Pos.x - light.fMaxRange ) * m_lightMapRes.x,
-		( light.Pos.y - light.fMaxRange ) * m_lightMapRes.y,
-		light.fMaxRange * m_lightMapRes.x * 2, light.fMaxRange * m_lightMapRes.y * 2 );
-	CRectangle srcRect = dstRect;
-
-	pVertexShader->SetParams( pSystem, dstRect, srcRect, CVector2( m_lightMapRes.x, m_lightMapRes.y ), CVector2( m_lightMapRes.x, m_lightMapRes.y ) );
+	bool bFirstPass = true;
+	pVertexShader->SetParams( pSystem, vecLights, CVector2( m_lightMapRes.x, m_lightMapRes.y ), CVector2( m_lightMapRes.x, m_lightMapRes.y ), true );
+	uint32 nLights = vecLights.size();
 
 	for( ;; )
 	{
 		pSystem->SetRenderTarget( pDst->GetRenderTarget(), NULL );
-		pPixelShader->SetParams( pSystem, pSrc->GetShaderResource(), light.Pos, fBaseOffset, light.fLightHeight );
+		pPixelShader->SetParams( pSystem, pSrc->GetShaderResource(), fBaseOffset );
 
-		pSystem->DrawInput();
+		pSystem->DrawInputInstanced( nLights );
 		
 		CReference<ITexture> pTempTexture;
 		pTempTexture = m_pShadowBuffer[0];
@@ -343,12 +473,23 @@ void CLighted2DRenderer::RenderShadowPoint( IRenderSystem* pSystem, SPointLight2
 		pDst = m_pShadowBuffer[1];
 
 		fBaseOffset = fBaseOffset * 4;
-		if( fBaseOffset * fBaseOffset >= light.fMaxRange * light.fMaxRange )
+		while( nLights )
+		{
+			if( fBaseOffset < vecLights[nLights - 1]->fMaxRange )
+				break;
+			nLights--;
+		}
+		if( !nLights )
 			break;
+		if( bFirstPass )
+		{
+			bFirstPass = false;
+			pVertexShader->SetParams( pSystem, vecLights, CVector2( m_lightMapRes.x, m_lightMapRes.y ), CVector2( m_lightMapRes.x, m_lightMapRes.y ), false );
+		}
 	}
 }
 
-void CLighted2DRenderer::DrawSceneLightingPoint( IRenderSystem* pSystem, SPointLight2D& light )
+void CLighted2DRenderer::DrawSceneLightingPoint( IRenderSystem* pSystem, vector<SPointLight2D*> vecLights )
 {
 	pSystem->SetRenderTarget( m_pLightAccumulationBuffer->GetRenderTarget(), NULL );
 	SViewport viewport = { 0, 0, m_screenRes.x, m_screenRes.y, 0, 1 };
@@ -356,24 +497,27 @@ void CLighted2DRenderer::DrawSceneLightingPoint( IRenderSystem* pSystem, SPointL
 
 	pSystem->SetBlendState( IBlendState::Get<false, false, 0xf, EBlendOne, EBlendOne, EBlendOpAdd>() );
 
-	auto pVertexShader = CScreenVertexShader::Inst();
+	auto pVertexShader = CLight2DRadialBlurVS1::Inst();
 	auto pPixelShader = CLight2DRadialScenePS::Inst();
 	static IShaderBoundState* g_pShaderBoundState = NULL;
 	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
 	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
 
-	CRectangle srcRect( ( light.Pos.x - light.fMaxRange ) * m_lightMapRes.x,
-		( light.Pos.y - light.fMaxRange ) * m_lightMapRes.y,
-		light.fMaxRange * m_lightMapRes.x * 2, light.fMaxRange * m_lightMapRes.y * 2 );
-	CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
-	dstRect.SetSizeX( m_lightMapRes.x );
-	dstRect.SetSizeY( m_lightMapRes.y );
-	dstRect.x += srcRect.x;
-	dstRect.y += srcRect.y;
-	dstRect.width = dstRect.height = light.fMaxRange * m_lightMapRes.x * 2;
+	for( int i = 0; i < vecLights.size(); i++ )
+	{
+		CRectangle& srcRect = vecLights[i]->SceneRect;
+		CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
+		dstRect.SetSizeX( m_lightMapRes.x );
+		dstRect.SetSizeY( m_lightMapRes.y );
+		dstRect.x += srcRect.x;
+		dstRect.y += srcRect.y;
+		dstRect.width = srcRect.width;
+		dstRect.height = srcRect.height;
+		vecLights[i]->rect = dstRect;
+	}
 
-	pVertexShader->SetParams( pSystem, dstRect, srcRect, CVector2( m_screenRes.x, m_screenRes.y ), CVector2( m_lightMapRes.x, m_lightMapRes.y ) );
-	pPixelShader->SetParams( pSystem, light.Pos, light.AttenuationIntensity, light.fShadowScale, m_pShadowBuffer[0]->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
+	pVertexShader->SetParams( pSystem, vecLights, CVector2( m_screenRes.x, m_screenRes.y ), CVector2( m_lightMapRes.x, m_lightMapRes.y ) );
+	pPixelShader->SetParams( pSystem, m_pShadowBuffer[0]->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
 
-	pSystem->DrawInput();
+	pSystem->DrawInputInstanced( vecLights.size() );
 }

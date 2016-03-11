@@ -41,7 +41,7 @@ void CGame::Start()
 		pEntity->SetRenderObject( pImage );
 		pEntity->SetParentEntity( m_pStage->GetRoot() );
 		
-		CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( -0.6f, -0.8f ), 0.1f, 8, 256.0f );
+		CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( -0.6f, -0.8f ), CVector3( 0.1f, 0.1f, 0.1f), 8, 256.0f );
 		pEntity->AddChild( pDirectionalLight );
 
 		CRenderObject2D* pRenderObject = new CRenderObject2D;
@@ -85,7 +85,7 @@ void CGame::Start()
 	}
 
 	{
-		CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), 10.0f, 0.2f, 0.4f );
+		CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
 		CPlayer* pPlayer = new CPlayer;
 		pPlayer->SetRenderObject( pPointLight );
 		pPlayer->y = -128;

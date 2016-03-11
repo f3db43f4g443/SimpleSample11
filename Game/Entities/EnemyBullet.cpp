@@ -4,7 +4,6 @@
 #include "Player.h"
 #include "xml.h"
 #include "FileUtil.h"
-#include "Render/ParticleSystem.h"
 
 CParticleSystem* __getBloodEffect()
 {
@@ -28,6 +27,7 @@ CEnemyBullet::CEnemyBullet( CEntity* pOwner, CVector2 velocity, CVector2 acceler
 	, m_velocity( velocity )
 	, m_acceleration( acceleration )
 	, m_fLifeLeft( fLife )
+	, m_fMaxKillTime( fKillTime )
 	, m_fKillTimeLeft( fKillTime )
 	, m_nDmgHp( nDmgHp )
 	, m_nDmgMp( nDmgMp )
@@ -47,6 +47,10 @@ CEnemyBullet::CEnemyBullet( CEntity* pOwner, CVector2 velocity, CVector2 acceler
 	SetRenderObject( pParticleSystem->CreateParticleSystemObject( GetAnimController(), m_pParticle.AssignPtr() ) );
 	AddCircle( fSize, CVector2( 0, 0 ) );
 	SetBulletMode( true );
+	
+	CPointLightObject* pPointLight = new CPointLightObject( CVector4( 1.5f, 0, 1000, -0.25f ), CVector3( 1, 0, 0 ), 10.0f, 0.05f, 0.4f );
+	AddChild( pPointLight );
+	m_pLight = pPointLight;
 }
 
 void CEnemyBullet::OnAddedToStage()
@@ -75,6 +79,7 @@ void CEnemyBullet::OnTickBeforeHitTest()
 			SetParentEntity( NULL );
 			return;
 		}
+		m_pLight->baseColor.x = m_fKillTimeLeft / m_fMaxKillTime;
 	}
 	else
 	{
@@ -96,6 +101,8 @@ void CEnemyBullet::OnTickBeforeHitTest()
 
 void CEnemyBullet::OnTickAfterHitTest()
 {
+	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
+
 	if( IsAlive() )
 	{
 		CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -124,8 +131,6 @@ void CEnemyBullet::OnTickAfterHitTest()
 			}
 		}
 	}
-	
-	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 }
 
 void CEnemyBullet::OnKilled()

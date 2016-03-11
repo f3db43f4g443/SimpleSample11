@@ -6,6 +6,7 @@
 struct SDirectionalLight2D
 {
 	CVector2 Dir;
+	CVector3 baseColor;
 	float fIntensity;
 	float fShadowScale;
 	float fMaxShadowDist;
@@ -17,9 +18,16 @@ struct SPointLight2D
 {
 	CVector2 Pos;
 	CVector4 AttenuationIntensity;
+	CVector3 baseColor;
 	float fShadowScale;
 	float fMaxRange;
 	float fLightHeight;
+
+	uint32 nSizeLog2;
+	CVector2 Pos1;
+	CRectangle rect;
+	CRectangle SceneRect;
+	CRectangle ShadowMapRect;
 
 	LINK_LIST( SPointLight2D, PointLight );
 };

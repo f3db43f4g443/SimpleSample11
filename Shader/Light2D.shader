@@ -25,12 +25,14 @@ void PSLinearBlur( in float2 tex : TexCoord0,
 	outShadow = vShadow;
 }
 
-float2 RadialBlurCenter;
 float RadialBlurBaseLength;
-float LightHeight;
 void PSRadialBlur( in float2 tex : TexCoord0,
+	in float4 lightData : TexCoord1,
 	out float4 outShadow : SV_Target0 )
 {
+	float2 RadialBlurCenter = lightData.xy;
+	float LightHeight = lightData.z;
+
 	float2 dTex = tex - RadialBlurCenter;
 	float l = length( dTex );
 	dTex = dTex / l;
@@ -49,29 +51,35 @@ void PSRadialBlur( in float2 tex : TexCoord0,
 	outShadow = vShadow;
 }
 
-float4 LightAttenuationIntensity;
+float3 baseColor;
 float fShadowScale;
-
 void PSLinearSceneLighting( in float2 tex : TexCoord0,
 	out float4 outLight : SV_Target0 )
 {
 	float4 vShadow = ShadowMap.Sample( LinearSampler, tex );
 	float4 vOcclusion = OcclusionMap.Sample( LinearSampler, tex );
 	vShadow.xyz *= saturate ( 1 + ( vOcclusion.w - vShadow.w ) * fShadowScale );
-	outLight = float4( vShadow.xyz * LightAttenuationIntensity.w, 0 );
+	outLight = float4( vShadow.xyz * baseColor, 0 );
 }
 
-void PSRadialSceneLighting( in float2 tex : TexCoord0,
+void PSRadialSceneLighting( in float4 tex : TexCoord0,
+	in float4 lightData : TexCoord1,
+	in float4 lightData1 : TexCoord2,
+	in float2 RadialBlurCenter : TexCoord3,
 	out float4 outLight : SV_Target0 )
 {
-	float4 vShadow = ShadowMap.Sample( LinearSampler, tex );
-	float4 vOcclusion = OcclusionMap.Sample( LinearSampler, tex );
-	vShadow.xyz *= saturate ( 1 + ( vOcclusion.w - vShadow.w ) * fShadowScale );
+	float4 LightAttenuationIntensity = lightData;
+	float3 lightColor = lightData1.xyz;
+	float shadowScale = lightData1.w;
 
-	float2 dTex = tex - RadialBlurCenter;
+	float4 vOcclusion = OcclusionMap.Sample( LinearSampler, tex.xy );
+	float4 vShadow = ShadowMap.Sample( LinearSampler, tex.zw );
+	vShadow.xyz *= saturate ( 1 + ( vOcclusion.w - vShadow.w ) * shadowScale );
+
+	float2 dTex = tex.xy - RadialBlurCenter;
 	float l2 = dot( dTex, dTex );
 	float fAttenuation = max( 0, 1.0 / dot( LightAttenuationIntensity.xyz, float3( 1, sqrt( l2 ), l2 ) ) + LightAttenuationIntensity.w );
-	outLight = float4( vShadow.xyz * fAttenuation, 0 );
+	outLight = float4( vShadow.xyz * fAttenuation * lightColor, 0 );
 }
 
 Texture2D ColorMap;
