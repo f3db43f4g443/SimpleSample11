@@ -9,7 +9,7 @@ class CRenderSystem : public IRenderSystem
 {
 public:
 	CRenderSystem() : m_pd3dDevice( NULL ), m_pDeviceContext( NULL ), m_pCurShaderBoundState( NULL ), m_nUsingRenderTargets( 0 ), m_nUsingStreamOutputs( 0 ) {}
-	virtual void CreateDevice() override;
+	virtual void CreateDevice( const SDeviceCreateContext& context ) override;
 	virtual void Start() override;
 
 	ID3D11Device* GetDevice() { return m_pd3dDevice; }
@@ -58,6 +58,7 @@ public:
 	virtual void DrawInputInstanced( uint32 nInstance ) override;
 
 	virtual void CopyResource( ITexture* pDst, ITexture* pSrc ) override;
+	virtual void UpdateSubResource( ITexture* pDst, void* pData, TVector3<uint32> vMin, TVector3<uint32> vMax, uint32 nRowPitch, uint32 nDepthPitch ) override;
 private:
 	void CommitStates();
 

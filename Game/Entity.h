@@ -39,10 +39,6 @@ public:
 
 	EEntityHitType GetHitType() { return m_eHitType; }
 	void SetHitType( EEntityHitType eHitType ) { m_eHitType = eHitType; }
-	CVector2 GetPosition() { return CVector2( x, y ); }
-	void SetPosition( const CVector2& position ) { x = position.x; y = position.y; SetTransformDirty(); }
-	float GetRotation() { return r; }
-	void SetRotation( float r ) { this->r = r; SetTransformDirty(); }
 	virtual const CMatrix2D& GetGlobalTransform() override { return globalTransform; }
 
 	CRenderObject2D* GetRenderObject() { return m_pRenderObject; }

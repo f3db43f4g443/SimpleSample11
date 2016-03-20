@@ -151,8 +151,8 @@ enum EComparison
 enum
 {
 	eEngineResType_Texture,
-	eEngineResType_Model,
 	eEngineResType_Shader,
+	eEngineResType_Font,
 
 	eEngineResType_End,
 };

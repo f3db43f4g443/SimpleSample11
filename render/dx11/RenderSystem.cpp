@@ -364,7 +364,7 @@ void CRenderSystem::CommitStates()
 	m_stateMgr.CommitStates( m_pDeviceContext );
 }
 
-void CRenderSystem::CreateDevice()
+void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 {// Enable run-time memory check for debug builds.
 #if defined(DEBUG) | defined(_DEBUG)
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
@@ -394,7 +394,7 @@ void CRenderSystem::CreateDevice()
 
 	// Only require 10-level hardware, change to D3D_FEATURE_LEVEL_11_0 to require 11-class hardware
 	// Switch to D3D_FEATURE_LEVEL_9_x for 10level9 hardware
-	DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0, true, 800, 600 );
+	DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0, true, context.resolution.x, context.resolution.y );
 }
 
 void CRenderSystem::Start()
@@ -567,6 +567,33 @@ void CALLBACK CRenderSystem::OnFrameMove( double fTime, float fElapsedTime, void
 LRESULT CALLBACK CRenderSystem::MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool* pbNoFurtherProcessing,
 	void* pUserContext )
 {
+    int iMouseX = ( short )LOWORD( lParam );
+    int iMouseY = ( short )HIWORD( lParam );
+	CRenderSystem* pThis = (CRenderSystem*)pUserContext;
+
+    switch( uMsg )
+    {
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnMouseDown( CVector2( iMouseX, iMouseY ) );
+            return TRUE;
+
+        case WM_LBUTTONUP:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnMouseUp( CVector2( iMouseX, iMouseY ) );
+            return TRUE;
+
+        case WM_MOUSEMOVE:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnMouseMove( CVector2( iMouseX, iMouseY ) );
+            return TRUE;
+
+		case WM_CHAR:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnChar( wParam );
+            return TRUE;
+    }
 	return 0;
 }
 

@@ -47,6 +47,14 @@
 				__pNext##name->__pPrev##name = __pPrev##name;\
 			} \
 		} \
+		void RemoveFrom_##name##_itr() \
+		{ \
+			*__pPrev##name = __pNext##name;\
+			if( __pNext##name ) \
+			{ \
+				__pNext##name->__pPrev##name = __pPrev##name;\
+			} \
+		} \
 		type* Shift_##name() \
 		{ \
 			type* pNext = __pNext##name; \
@@ -120,6 +128,14 @@
 				__pNext##name->__pPrev##name = __pPrev##name;\
 			} \
 			Release(); \
+		} \
+		void RemoveFrom_##name##_itr() \
+		{ \
+			*__pPrev##name = __pNext##name;\
+			if( __pNext##name ) \
+			{ \
+				__pNext##name->__pPrev##name = __pPrev##name;\
+			} \
 		} \
 		type* Shift_##name() \
 		{ \
@@ -195,8 +211,10 @@
 			type* var; \
 			for( var = itr->Shift_##name(); var; var = itr->Shift_##name() ) { \
 
-#define LINK_LIST_FOR_EACH_END() \
+#define LINK_LIST_FOR_EACH_END( var, head, type, name ) \
 			} \
+			if( var ) \
+				itr->RemoveFrom_##name##_itr(); \
 		} \
 	}
 

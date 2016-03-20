@@ -3,6 +3,7 @@
 #include "RenderSystem.h"
 #include "GlobalRenderResources.h"
 #include "Texture.h"
+#include "Font.h"
 #include "CommonShader.h"
 #include "ResourceManager.h"
 #include "Scene2DManager.h"
@@ -11,7 +12,9 @@
 void CLighted2DRenderer::OnCreateDevice( IRenderSystem* pSystem )
 {
 	CResourceManager::Inst()->Register( new TResourceFactory<CTextureFile>() );
+	CResourceManager::Inst()->Register( new TResourceFactory<CFontFile>() );
 	CTextureFile::InitLoader();
+	CFontFile::Init();
 
 	CGlobalRenderResources::Inst()->Init( pSystem );
 

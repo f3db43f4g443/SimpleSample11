@@ -73,6 +73,8 @@
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Footprint.h" />
     <ClInclude Include="Rope2D.h" />
+    <ClInclude Include="Font.h" />
+    <ClInclude Include="FontRendering.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -137,6 +139,8 @@
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Footprint.cpp" />
     <ClCompile Include="Rope2D.cpp" />
+    <ClCompile Include="Font.cpp" />
+    <ClCompile Include="FontRendering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="DX11">
@@ -177,6 +181,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Light2DInstancing.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DUI.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

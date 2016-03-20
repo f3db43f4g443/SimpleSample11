@@ -167,7 +167,9 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	pRenderSystem->SetRenderer( new CLighted2DRenderer );
 	pRenderSystem->SetGame( &CGame::Inst() );
-	pRenderSystem->CreateDevice();
+	SDeviceCreateContext context;
+	context.resolution = CVector2( 800, 600 );
+	pRenderSystem->CreateDevice( context );
 	pRenderSystem->Start();
 	exit( 0 );
 }

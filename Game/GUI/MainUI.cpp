@@ -50,8 +50,6 @@ CMainUI::CMainUI()
 	, m_tick( this, &CMainUI::Tick )
 	, m_tickNewHpBarShake( this, &CMainUI::OnNewHpBarShake )
 {
-	auto& renderer = CLighted2DRenderer::Inst();
-
 	m_element2D.SetDrawable( this );
 	m_localBound = CRectangle( -10000, -10000, 20000, 20000 );
 

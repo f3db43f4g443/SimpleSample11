@@ -28,6 +28,7 @@ public:
 
 	T GetCenterX() const { return x + width / 2; }
 	T GetCenterY() const { return y + height / 2; }
+	TVector2<T> GetCenter() const { return TVector2<T>( GetCenterX(), GetCenterY() ); }
 	T GetSizeX() const { return width; }
 	T GetSizeY() const { return height; }
 	TVector2<T> GetSize() const { return TVector2<T>( width, height ); }

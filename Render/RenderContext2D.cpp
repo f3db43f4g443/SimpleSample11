@@ -19,6 +19,7 @@ CRenderContext2D::CRenderContext2D( const CRenderContext2D& context )
 	, pInstanceDataSize( NULL )
 	, ppInstanceData( NULL )
 	, nRenderGroups( 1 )
+	, bInverseY( false )
 {
 	memset( nElemCount, 0, sizeof( nElemCount ) );
 }
@@ -85,7 +86,7 @@ void CRenderContext2D::FlushElements( uint32 nGroup )
 {
 	mat.Identity();
 	mat.m00 = 2.0f / rectScene.width;
-	mat.m11 = 2.0f / rectScene.height;
+	mat.m11 = bInverseY? -2.0f / rectScene.height: 2.0f / rectScene.height;
 	mat.m22 = 1.0f / nElemCount[nGroup];
 	mat.m03 = -rectScene.GetCenterX() * mat.m00;
 	mat.m13 = -rectScene.GetCenterY() * mat.m11;

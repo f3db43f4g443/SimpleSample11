@@ -163,7 +163,6 @@
     <ResourceCompile Include="Game.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="DXUT\Optional\directx.ico" />
     <None Include="..\Shader\Blood.shader">
       <Filter>Shader</Filter>
     </None>

@@ -24,9 +24,16 @@ public:
 	void RemoveChild( CRenderObject2D* pNode );
 	void RemoveAllChild();
 	void RemoveThis() { if( m_pParent ) m_pParent->RemoveChild( this ); }
-	void MoveToTopmost( CRenderObject2D* pNode );
+	void MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder = false );
 	int32 GetZOrder() { return m_nZOrder; }
 	void SetZOrder( int32 nZOrder );
+
+	static CRenderObject2D* FindCommonParent( CRenderObject2D* a, CRenderObject2D* b );
+
+	CVector2 GetPosition() { return CVector2( x, y ); }
+	void SetPosition( const CVector2& position ) { x = position.x; y = position.y; SetTransformDirty(); }
+	float GetRotation() { return r; }
+	void SetRotation( float r ) { this->r = r; SetTransformDirty(); }
 
 	CAnimationController* GetAnimController();
 	void SetAnim( CAnimationSet* pAnimationSet, uint32 nPose );

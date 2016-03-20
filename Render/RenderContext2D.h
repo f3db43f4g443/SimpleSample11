@@ -55,7 +55,7 @@ class CRenderContext2D
 {
 public:
 	CRenderContext2D() : pUpdatedObjects( NULL ), pRenderSystem( NULL ), renderGroup( NULL ), m_pDirectionalLight( NULL ), m_pPointLight( NULL ), pCurElement( NULL ),
-		dTime( 0 ), nTimeStamp( 0 ), nFixedUpdateCount( 0 ), pInstanceDataSize( NULL ), ppInstanceData( NULL ), nRenderGroups( 2 )
+		dTime( 0 ), nTimeStamp( 0 ), nFixedUpdateCount( 0 ), pInstanceDataSize( NULL ), ppInstanceData( NULL ), nRenderGroups( 2 ), bInverseY( false )
 	{
 		memset( nElemCount, 0, sizeof( nElemCount ) );
 	}
@@ -64,6 +64,7 @@ public:
 	uint32 nTimeStamp;
 	uint32 nFixedUpdateCount;
 	ERenderPass eRenderPass;
+	bool bInverseY;
 
 	CVector2 screenRes;
 	CVector2 lightMapRes;

@@ -101,6 +101,8 @@
     <ClInclude Include="DX11\DXUT\Core\DXUTDevice9.h" />
     <ClInclude Include="DX11\DXUT\Core\DXUTmisc.h" />
     <ClInclude Include="Element2D.h" />
+    <ClInclude Include="Font.h" />
+    <ClInclude Include="FontRendering.h" />
     <ClInclude Include="Footprint.h" />
     <ClInclude Include="GlobalRenderResources.h" />
     <ClInclude Include="Image2D.h" />
@@ -156,6 +158,11 @@
     <ClCompile Include="DX11\ShaderResource.cpp" />
     <ClCompile Include="DX11\Texture.cpp" />
     <ClCompile Include="DX11\VertexBuffer.cpp" />
+    <ClCompile Include="Font.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)../implib/freetype-2.6.3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)../implib/freetype-2.6.3/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="FontRendering.cpp" />
     <ClCompile Include="Footprint.cpp" />
     <ClCompile Include="GlobalRenderResources.cpp" />
     <ClCompile Include="Image2D.cpp" />
@@ -186,6 +193,7 @@
     <None Include="..\Shader\CommonMaterial.shader" />
     <None Include="..\Shader\Default2D.shader" />
     <None Include="..\Shader\Default2D.shh" />
+    <None Include="..\Shader\Default2DUI.shader" />
     <None Include="..\Shader\Light2DInstancing.shader" />
     <None Include="..\Shader\Rope2D.shader" />
     <None Include="..\Shader\SingleImage2D.shader" />
@@ -194,6 +202,9 @@
   <ItemGroup>
     <ProjectReference Include="..\implib\DevIL\DevIL.vcxproj">
       <Project>{fed9a291-1df3-4bc3-867c-86a520dc6241}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\implib\freetype-2.6.3\builds\windows\vc2010\freetype.vcxproj">
+      <Project>{78b079bd-9fc7-4b9e-b4a6-96da0f00248b}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

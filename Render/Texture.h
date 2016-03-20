@@ -152,7 +152,7 @@ public:
 	{
 		eResType = eEngineResType_Texture,
 	};
-	CTextureFile( const char* name, int type ) : CResource( name, type ) {}
+	CTextureFile( const char* name, int32 type ) : CResource( name, type ) {}
 	void Create();
 
 	ITexture* GetTexture() { return m_pTexture; }

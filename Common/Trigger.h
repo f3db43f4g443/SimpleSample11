@@ -60,7 +60,7 @@ public:
 		LINK_LIST_FOR_EACH_BEGIN( pTrigger, m_triggers[iEvent], CTrigger, Trigger )
 			if( pTrigger->m_bValidFlag )
 				pTrigger->Run( pContext );
-		LINK_LIST_FOR_EACH_END()
+		LINK_LIST_FOR_EACH_END( pTrigger, m_triggers[iEvent], CTrigger, Trigger )
 	}
 	void Clear()
 	{

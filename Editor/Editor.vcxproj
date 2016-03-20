@@ -27,8 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>Game</ProjectName>
-    <ProjectGuid>{D3D11105-96D0-4629-88B8-122C0256058C}</ProjectGuid>
+    <ProjectName>Editor</ProjectName>
+    <ProjectGuid>{4E34E0CD-B6EB-4308-9068-87427B8A7784}</ProjectGuid>
     <RootNamespace>SimpleSample11</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
@@ -384,99 +384,34 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="..\Shader\Blood.shader">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\Shader\CrackEffect.shader" />
-    <None Include="..\Shader\Footprint.shader" />
-    <None Include="..\Shader\FootprintLiquid.shader" />
-    <None Include="..\Shader\GSWrapTex.shader" />
-    <None Include="..\Shader\HpBar.shader" />
-    <None Include="..\Shader\HUDCircle.shader" />
-    <None Include="..\Shader\Laser.shader" />
-    <None Include="..\Shader\MainUI.shader" />
-    <None Include="..\Shader\Particle.shader" />
-    <None Include="..\Shader\Particle1.shader" />
-    <None Include="..\Shader\ParticleSplash.shader" />
-    <None Include="..\Shader\PlayerCrosshair.shader" />
-    <None Include="..\Shader\PostProcessDizzyEffect.shader" />
-    <None Include="..\Shader\PostProcessInvertColor.shader" />
-    <None Include="..\Shader\SpiderWebSilk.shader" />
+    <ResourceCompile Include="Editor.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Character.cpp" />
-    <ClCompile Include="Effects\CrackMeshGenerator.cpp" />
-    <ClCompile Include="Effects\ParticleSubEmitter.cpp" />
-    <ClCompile Include="Effects\ParticleWebEmitter.cpp" />
-    <ClCompile Include="Entities\BloodLaser.cpp" />
-    <ClCompile Include="Entities\DizzyRegion.cpp" />
-    <ClCompile Include="Entities\EffectObject.cpp" />
-    <ClCompile Include="Entities\EnemyBullet.cpp" />
-    <ClCompile Include="Entities\PlayerCrosshair.cpp" />
-    <ClCompile Include="Entities\Spider.cpp" />
-    <ClCompile Include="Entities\SpiderBoss.cpp" />
-    <ClCompile Include="Entities\SpiderBossBullet.cpp" />
-    <ClCompile Include="Entities\SpiderBossEgg.cpp" />
-    <ClCompile Include="Entities\SpiderWebGround.cpp" />
-    <ClCompile Include="Entity.cpp" />
-    <ClCompile Include="FlyingObject.cpp" />
-    <ClCompile Include="GUI\HpBar.cpp" />
-    <ClCompile Include="GUI\HUDCircle.cpp" />
-    <ClCompile Include="GUI\HurtEffect.cpp" />
-    <ClCompile Include="GUI\MainUI.cpp" />
-    <ClCompile Include="MyGame.cpp" />
-    <ClCompile Include="Physics\HitProxy.cpp" />
-    <ClCompile Include="Physics\HitProxyData.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="PlayerAction.cpp" />
-    <ClCompile Include="PlayerActions\PlayerActionAttack.cpp" />
-    <ClCompile Include="PlayerDebuff.cpp" />
-    <ClCompile Include="PlayerDebuffs\PlayerDebuffSpiderWeb.cpp" />
-    <ClCompile Include="PostEffects.cpp" />
-    <ClCompile Include="MaterialShadersImplement.cpp" />
-    <ClCompile Include="Stage.cpp" />
+    <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="EditorRenderer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Utils\PlayerDizzy.cpp" />
+    <ClCompile Include="UI\UIButton.cpp" />
+    <ClCompile Include="UI\UIDefaultDrawable.cpp" />
+    <ClCompile Include="UI\UIElement.cpp" />
+    <ClCompile Include="UI\UIFactory.cpp" />
+    <ClCompile Include="UI\UILabel.cpp" />
+    <ClCompile Include="UI\UIManager.cpp" />
+    <ClCompile Include="UI\UITextBox.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Attribute.h" />
-    <ClInclude Include="Character.h" />
-    <ClInclude Include="Effects\CrackMeshGenerator.h" />
-    <ClInclude Include="Effects\ParticleSubEmitter.h" />
-    <ClInclude Include="Effects\ParticleWebEmitter.h" />
-    <ClInclude Include="Entities\BloodLaser.h" />
-    <ClInclude Include="Entities\DizzyRegion.h" />
-    <ClInclude Include="Entities\EffectObject.h" />
-    <ClInclude Include="Entities\EnemyBullet.h" />
-    <ClInclude Include="Entities\PlayerCrosshair.h" />
-    <ClInclude Include="Entities\Spider.h" />
-    <ClInclude Include="Entities\SpiderBoss.h" />
-    <ClInclude Include="Entities\SpiderBossBullet.h" />
-    <ClInclude Include="Entities\SpiderBossEgg.h" />
-    <ClInclude Include="Entities\SpiderWebGround.h" />
-    <ClInclude Include="Entity.h" />
-    <ClInclude Include="FlyingObject.h" />
-    <ClInclude Include="GUI\HpBar.h" />
-    <ClInclude Include="GUI\HUDCircle.h" />
-    <ClInclude Include="GUI\HurtEffect.h" />
-    <ClInclude Include="GUI\MainUI.h" />
-    <ClInclude Include="MyGame.h" />
-    <ClInclude Include="Physics\HitProxy.h" />
-    <ClInclude Include="Physics\HitProxyData.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayerAction.h" />
-    <ClInclude Include="PlayerActions\PlayerActionAttack.h" />
-    <ClInclude Include="PlayerDebuff.h" />
-    <ClInclude Include="PlayerDebuffs\PlayerDebuffSpiderWeb.h" />
-    <ClInclude Include="PostEffects.h" />
-    <ClInclude Include="Stage.h" />
+    <ClInclude Include="Editor.h" />
+    <ClInclude Include="EditorRenderer.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Utils\PlayerDizzy.h" />
-    <CLInclude Include="winresource.h" />
-    <ResourceCompile Include="Game.rc" />
+    <ClInclude Include="UI\UIButton.h" />
+    <ClInclude Include="UI\UIDefaultDrawable.h" />
+    <ClInclude Include="UI\UIElement.h" />
+    <ClInclude Include="UI\UIFactory.h" />
+    <ClInclude Include="UI\UILabel.h" />
+    <ClInclude Include="UI\UIManager.h" />
+    <ClInclude Include="UI\UITextBox.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">

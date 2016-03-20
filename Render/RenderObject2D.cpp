@@ -107,13 +107,26 @@ void CRenderObject2D::RemoveAllChild()
 	}
 }
 
-void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode )
+void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder )
 {
 	CReference<CRenderObject2D> temp( pNode );
-	Remove_Child( pNode );
-	if( m_pChildren )
-		pNode->m_nZOrder = Max( pNode->m_nZOrder, m_pChildren->m_nZOrder );
-	Insert_Child( pNode );
+	if( bKeepZOrder )
+	{
+		while( pNode->__pPrevChild != &m_pChildren )
+		{
+			CRenderObject2D* pRenderObject = (CRenderObject2D*)( (uint8*)pNode->__pPrevChild - ( (uint8*)&__pNextChild - (uint8*)this ) );
+			if( pRenderObject->m_nZOrder > pNode->m_nZOrder )
+				break;
+			pRenderObject->Shift_Child();
+		}
+	}
+	else
+	{
+		Remove_Child( pNode );
+		if( m_pChildren )
+			pNode->m_nZOrder = Max( pNode->m_nZOrder, m_pChildren->m_nZOrder );
+		Insert_Child( pNode );
+	}
 }
 
 void CRenderObject2D::SetZOrder( int32 nZOrder )
@@ -121,6 +134,23 @@ void CRenderObject2D::SetZOrder( int32 nZOrder )
 	m_nZOrder = nZOrder;
 	if( m_pParent )
 		m_pParent->OnChildZOrderChanged( this );
+}
+
+CRenderObject2D* CRenderObject2D::FindCommonParent( CRenderObject2D* a, CRenderObject2D* b )
+{
+	if( a->m_depth < 0 || b->m_depth < 0 )
+		return NULL;
+
+	while( a->m_depth > b->m_depth )
+		a = a->GetParent();
+	while( b->m_depth > a->m_depth )
+		b = b->GetParent();
+	while( a && a != b )
+	{
+		a = a->GetParent();
+		b = b->GetParent();
+	}
+	return a;
 }
 
 CAnimationController* CRenderObject2D::GetAnimController()

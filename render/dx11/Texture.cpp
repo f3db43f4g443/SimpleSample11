@@ -33,7 +33,7 @@ CTexture::CTexture( ID3D11Device* pDevice, ETextureType eType, int nDim1, int nD
 		usage = D3D11_USAGE_DYNAMIC;
 		cpuAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	}
-	else if( !bBindRenderTarget && !bBindDepthStencil )
+	else if( !bBindRenderTarget && !bBindDepthStencil && data )
 		usage = D3D11_USAGE_IMMUTABLE;
 	else
 		usage = D3D11_USAGE_DEFAULT;
@@ -144,4 +144,15 @@ ITexture* CRenderSystem::CreateTexture( ETextureType eType, uint32 nDim1, uint32
 void CRenderSystem::CopyResource( ITexture* pDst, ITexture* pSrc )
 {
 	m_pDeviceContext->CopyResource( static_cast<CTexture*>( pDst )->GetTexture(), static_cast<CTexture*>( pSrc )->GetTexture() );
+}
+
+void CRenderSystem::UpdateSubResource( ITexture* pDst, void* pData, TVector3<uint32> vMin, TVector3<uint32> vMax, uint32 nRowPitch, uint32 nDepthPitch )
+{
+	D3D11_BOX box = { vMin.x, vMin.y, vMin.z, vMax.x, vMax.y, vMax.z };
+	m_pDeviceContext->UpdateSubresource( static_cast<CTexture*>( pDst )->GetTexture(),
+		0,
+		&box,
+		pData,
+		nRowPitch,
+		nDepthPitch );
 }

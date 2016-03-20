@@ -18,13 +18,18 @@ struct SViewport
 	float fMaxDepth;
 };
 
+struct SDeviceCreateContext
+{
+	CVector2 resolution;
+};
+
 class IGame;
 class IRenderer;
 class IRenderSystem
 {
 public:
 	IRenderSystem();
-	virtual void CreateDevice() = 0;
+	virtual void CreateDevice( const SDeviceCreateContext& context ) = 0;
 	virtual void Start() = 0;
 
 	virtual IVertexBuffer* CreateVertexBuffer( uint32 nElements, const SVertexBufferElement* pElements, uint32 nVertices, void* pData, bool bIsDynamic = false,
@@ -77,6 +82,7 @@ public:
 	virtual void DrawInputInstanced( uint32 nInstance ) = 0;
 
 	virtual void CopyResource( ITexture* pDst, ITexture* pSrc ) = 0;
+	virtual void UpdateSubResource( ITexture* pDst, void* pData, TVector3<uint32> vMin, TVector3<uint32> vMax, uint32 nRowPitch, uint32 nDepthPitch ) = 0;
 
 	void SetGame( IGame* pGame ) { m_pGame = pGame; }
 	void SetRenderer( IRenderer* pRenderer ) { m_pRenderer = pRenderer; }

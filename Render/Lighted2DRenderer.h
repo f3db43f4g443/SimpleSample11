@@ -16,8 +16,6 @@ public:
 
 	const CVector2& GetScreenRes() { return m_screenRes; }
 	const CVector2& GetLightMapRes() { return m_lightMapRes; }
-
-	DECLARE_GLOBAL_INST_REFERENCE( CLighted2DRenderer )
 private:
 	void RenderScene( IRenderSystem* pSystem, IRenderTarget* pTarget );
 
