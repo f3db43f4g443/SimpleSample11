@@ -122,12 +122,22 @@ void TMatrix2D<T>::Transform(T x, T y, T angle, T s)
 }
 
 template <typename T>
-void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& s )
+void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& s ) const
 {
 	x = m02;
 	y = m12;
 	s = sqrt( m00 * m00 + m01 * m01 );
 	angle = atan2( m10, m00 );
+}
+
+template <typename T>
+void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& sx, T& sy ) const
+{
+	x = m02;
+	y = m12;
+	sx = sqrt( m00 * m00 + m01 * m01 );
+	sy = sqrt( m10 * m10 + m11 * m11 );
+	angle = atan2( -m01, m00 );
 }
 
 template <typename T>
@@ -191,7 +201,17 @@ void TMatrix2D<T>::Scale(T s)
 }
 
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::InverseNoScale()
+TMatrix2D<T> TMatrix2D<T>::Inverse() const
+{
+	TMatrix2D<T> invTrans;
+	invTrans.Translate( -m02, -m12 );
+	float s2 = m00 * m00 + m01 * m01;
+	TMatrix2D<T> invRot( m00 / s2, m10 / s2, 0, m01 / s2, m11 / s2, 0, 0, 0, 1 );
+	return invRot * invTrans;
+}
+
+template <typename T>
+TMatrix2D<T> TMatrix2D<T>::InverseNoScale() const
 {
 	TMatrix2D<T> invTrans;
 	invTrans.Translate( -m02, -m12 );

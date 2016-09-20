@@ -3,6 +3,7 @@
 #include "Stage.h"
 #include "Animation.h"
 #include "Player.h"
+#include "Scene2DManager.h"
 
 CEntity::~CEntity()
 {
@@ -10,13 +11,23 @@ CEntity::~CEntity()
 		m_pChildrenEntity->SetParentEntity( NULL );
 }
 
-void CEntity::SetRenderObject( CRenderObject2D* pRenderObject )
+void CEntity::OnAdded()
 {
-	if( m_pRenderObject )
-		m_pRenderObject->RemoveThis();
-	m_pRenderObject = pRenderObject;
-	if( pRenderObject )
-		AddChild( pRenderObject );
+	CEntity* pEntity = dynamic_cast<CEntity*>( GetParent() );
+	if( pEntity )
+	{
+		pEntity->Insert_ChildEntity( this );
+		m_pParent = pEntity;
+	}
+}
+
+void CEntity::OnRemoved()
+{
+	if( m_pParent )
+	{
+		RemoveFrom_ChildEntity();
+		m_pParent = NULL;
+	}
 }
 
 void CEntity::_setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBefore )
@@ -26,16 +37,11 @@ void CEntity::_setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBef
 
 	CReference<CEntity> pTempRef( this );
 	CStage* pOldStage = m_pCurStage;
-	CStage* pNewStage = pParent? pParent->m_pCurStage: NULL;
+	CStage* pNewStage = pParent && !pParent->m_bIsChangingStage? pParent->m_pCurStage: NULL;
 
 	if( pOldStage && pOldStage != pNewStage )
 		pOldStage->RemoveEntity( this );
-	if( m_pParent )
-	{
-		RemoveFrom_ChildEntity();
-	}
 	RemoveThis();
-	m_pParent = pParent;
 	if( pParent )
 	{
 		if( pAfter )
@@ -44,10 +50,35 @@ void CEntity::_setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBef
 			pParent->AddChildBefore( this, pBefore );
 		else
 			pParent->AddChild( this );
-		pParent->Insert_ChildEntity( this );
 	}
 	if( pNewStage && pNewStage != pOldStage )
 		pNewStage->AddEntity( this );
+}
+
+void CEntity::SetRenderObject( CRenderObject2D* pRenderObject )
+{
+	if( m_pRenderObject == pRenderObject )
+		return;
+	if( m_pRenderObject )
+	{
+		CEntity* pEntity = dynamic_cast<CEntity*>( m_pRenderObject.GetPtr() );
+		if( pEntity )
+			pEntity->SetParentEntity( NULL );
+		else
+			m_pRenderObject->RemoveThis();
+		m_pRenderObject = NULL;
+	}
+	m_pRenderObject = pRenderObject;
+	if( pRenderObject )
+	{
+		pRenderObject->SetZOrder( -1 );
+		CEntity* pEntity = dynamic_cast<CEntity*>( pRenderObject );
+		if( pEntity )
+			pEntity->SetParentEntity( this );
+		else
+			AddChild( pRenderObject );
+		pRenderObject->SetZOrder( 0 );
+	}
 }
 
 uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
@@ -69,6 +100,20 @@ uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 			nTraverseIndex = pEntity->BeforeHitTest( nTraverseIndex );
 	}
 	return nTraverseIndex;
+}
+
+bool CEntity::CommonMove( float fMoveSpeed, float fTime, const CVector2& dPosition, float fMinDist )
+{
+	if( dPosition.Dot( dPosition ) > fMinDist * fMinDist )
+	{
+		float fMoveDist = fMoveSpeed * fTime;
+		CVector2 dPos = dPosition;
+		float l = dPos.Normalize();
+		dPos = dPos * Min( fMoveDist, l );
+		SetPosition( GetPosition() + dPos );
+		return l >= fMoveDist;
+	}
+	return false;
 }
 
 bool CEntity::CommonMove( float fMoveSpeed, float fTurnSpeed, float fTime, const CVector2& dPosition, float fMinDist, float& dRotation )
@@ -94,16 +139,7 @@ bool CEntity::CommonMove( float fMoveSpeed, float fTurnSpeed, float fTime, const
 		SetRotation( fTargetAngle + dRotation );
 	}
 
-	if( dPosition.Dot( dPosition ) >= fMinDist * fMinDist )
-	{
-		float fMoveDist = fMoveSpeed * fTime;
-		CVector2 dPos = dPosition;
-		dPos.Normalize();
-		dPos = dPos * fMoveDist;
-		SetPosition( GetPosition() + dPos );
-		return true;
-	}
-	return false;
+	return CommonMove( fMoveSpeed, fTime, dPosition, fMinDist );
 }
 
 void CEntity::CommonTurn( float fTurnSpeed, float fTime, float fTargetAngle, float& dRotation )
@@ -166,7 +202,10 @@ void CEntity::FixPositionAndCheckPlayerDizzy( CPlayer* pPlayer, SPlayerDizzyCont
 		}
 	}
 	if( !( posFix == CVector2( 0, 0 ) ) )
+	{
 		SetPosition( GetPosition() + posFix );
+		CScene2DManager::GetGlobalInst()->UpdateDirty();
+	}
 }
 
 void CEntity::OnPlayerAttack( SPlayerAttackContext& context )

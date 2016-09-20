@@ -106,13 +106,5 @@ bool CPlayerActionAttack::OnDo( CPlayer* pPlayer )
 		}
 	}
 
-	if( pPlayer->IsInHorrorReflex() )
-	{
-		if( bHit )
-			pPlayer->AddBreakoutValue( bCritical ? 100 : 25 );
-		else
-			pPlayer->EndHorrorReflex();
-	}
-
 	return true;
 }

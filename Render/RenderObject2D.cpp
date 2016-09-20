@@ -11,6 +11,7 @@ CRenderObject2D::CRenderObject2D()
 	m_isTransformDirty = false;
 	m_isAABBDirty = false;
 	m_bUpdated = false;
+	m_bAutoUpdateAnim = false;
 	m_pAnimController = NULL;
 	m_nTransformIndex = INVALID_16BITID;
 	x = y = 0;
@@ -96,7 +97,7 @@ void CRenderObject2D::RemoveChild( CRenderObject2D* pNode )
 	pNode->m_pParent = NULL;
 	OnRemoveChild(pNode);
 	Remove_Child( pNode );
-	SetTransformDirty();
+	SetBoundDirty();
 }
 
 void CRenderObject2D::RemoveAllChild()
@@ -168,6 +169,11 @@ CAnimationController* CRenderObject2D::GetAnimController()
 	return m_pAnimController;
 }
 
+const CMatrix2D& CRenderObject2D::GetTransform( uint16 nIndex )
+{
+	return GetAnimController()->GetTransform( m_nTransformIndex );
+}
+
 void CRenderObject2D::SetAnim( CAnimationSet* pAnimationSet, uint32 nPose )
 {
 	if( m_pAnimController )
@@ -196,6 +202,20 @@ void CRenderObject2D::UpdateAnim( float fTime )
 	{
 		m_pAnimController->UpdateTime( fTime );
 		SetTransformDirty();
+	}
+}
+
+void CRenderObject2D::SetAutoUpdateAnim( bool bAutoUpdateAnim )
+{
+	if( m_bAutoUpdateAnim == bAutoUpdateAnim )
+		return;
+	m_bAutoUpdateAnim = bAutoUpdateAnim;
+	if( m_depth >= 0 )
+	{
+		if( bAutoUpdateAnim )
+			CScene2DManager::GetGlobalInst()->Insert_AutoUpdateAnimObject( this );
+		else
+			RemoveFrom_AutoUpdateAnimObject();
 	}
 }
 
@@ -235,8 +255,8 @@ bool CRenderObject2D::CalcAABB()
 }
 void CRenderObject2D::CalcGlobalTransform()
 {
-	if( m_nTransformIndex != INVALID_16BITID && m_pParent && m_pParent->GetAnimController() )
-		globalTransform = m_pParent->GetAnimController()->GetTransform( m_nTransformIndex );
+	if( m_nTransformIndex != INVALID_16BITID && m_pParent )
+		globalTransform = m_pParent->GetTransform( m_nTransformIndex );
 	else
 	{
 		CMatrix2D mat;
@@ -247,6 +267,7 @@ void CRenderObject2D::CalcGlobalTransform()
 			globalTransform = mat;
 	}
 
+	OnTransformUpdated();
 	if( m_pAnimController )
 		m_pAnimController->Update( globalTransform );
 }
@@ -256,7 +277,6 @@ void CRenderObject2D::UpdateDirty()
 	CalcGlobalTransform();
 	SetBoundDirty();
 	m_isTransformDirty = false;
-	OnTransformUpdated();
 	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
 		pChild->UpdateDirty();
 	}
@@ -273,7 +293,16 @@ void CRenderObject2D::Dispose()
 
 void CRenderObject2D::_setDepth(int depth)
 {
+	if( m_depth == depth )
+		return;
 	m_depth = depth;
+	if( m_bAutoUpdateAnim )
+	{
+		if( m_depth >= 0 )
+			CScene2DManager::GetGlobalInst()->Insert_AutoUpdateAnimObject( this );
+		else
+			RemoveFrom_AutoUpdateAnimObject();
+	}
 	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
 		pChild->_setDepth(m_depth < 0? -1: m_depth + 1);
 	}

@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/Math3D.h"
 #include "Common/LinkList.h"
+#include "Common/BufFile.h"
 #include <vector>
 using namespace std;
 
@@ -10,6 +11,8 @@ enum
 {
 	eHitProxyType_Circle,
 	eHitProxyType_Polygon,
+
+	eHitProxyType_Count
 };
 
 struct SHitProxy;
@@ -56,6 +59,7 @@ struct SHitProxy
 struct SHitProxyCircle : public SHitProxy
 {
 	SHitProxyCircle() { nType = eHitProxyType_Circle; }
+	SHitProxyCircle( const struct SClassCreateContext& context ) { nType = eHitProxyType_Circle; }
 	bool Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult = NULL );
 	float fRadius;
 	CVector2 center;
@@ -64,6 +68,7 @@ struct SHitProxyCircle : public SHitProxy
 struct SHitProxyPolygon : public SHitProxy
 {
 	SHitProxyPolygon() { nType = eHitProxyType_Polygon; }
+	SHitProxyPolygon( const struct SClassCreateContext& context ) { nType = eHitProxyType_Polygon; }
 	bool Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult = NULL );
 	uint32 nVertices;
 	CVector2 vertices[MAX_POLYGON_VERTEX_COUNT];
@@ -85,17 +90,30 @@ struct SHitProxyManifold
 class CHitProxy
 {
 	friend class CHitTestMgr;
+	friend void RegisterGameClasses();
+	enum
+	{
+		eVersion_Cur = 0,
+	};
 public:
-	CHitProxy() : m_pMgr( NULL ), m_pHitProxies( NULL ), m_pManifolds( NULL ), m_bDirty( false ), m_bBulletMode( false ) {}
+	CHitProxy() : m_pMgr( NULL ), m_pHitProxies( NULL ), m_pManifolds( NULL ), m_bDirty( false ), m_bBulletMode( false ), m_bTransparent( false ) {}
+	CHitProxy( const struct SClassCreateContext& context ) : m_pMgr( NULL ), m_pManifolds( NULL ), m_bDirty( false ) {}
 	virtual ~CHitProxy();
 	void SetDirty() { m_bDirty = true; }
 	void SetBulletMode( bool bBulletMode );
+	bool IsTransparent() { return m_bTransparent; }
+	void SetTransparent( bool bTransparent );
 
 	void AddCircle( float fRadius, const CVector2 &center );
 	void AddRect( const CRectangle& rect );
 	void AddPolygon( uint32 nVertices, const CVector2* vertices );
 	void AddProxy( const struct SHitProxyData& data );
 
+	void PackData( CBufFile& buf, bool bWithMetaData );
+	void UnpackData( IBufReader& buf, bool bWithMetaData );
+	
+	void CalcBounds();
+	bool HitTest( CHitProxy* pOther, const CMatrix2D& transform, const CMatrix2D& transform1, SHitTestResult* pResult = NULL );
 	bool HitTest( CHitProxy* pOther, SHitTestResult* pResult = NULL );
 	bool HitTest( SHitProxy* pProxy1, const CMatrix2D& transform, SHitTestResult* pResult = NULL );
 	bool Raycast( const CVector2& begin, const CVector2& end, SRaycastResult* pResult = NULL );
@@ -104,6 +122,7 @@ protected:
 	CHitTestMgr* m_pMgr;
 	bool m_bDirty;
 	bool m_bBulletMode;
+	bool m_bTransparent;
 	LINK_LIST( CHitProxy, HitProxy );
 	LINK_LIST_HEAD( m_pHitProxies, SHitProxy, HitProxy );
 	LINK_LIST_HEAD( m_pManifolds, SHitProxyManifold, Manifold )

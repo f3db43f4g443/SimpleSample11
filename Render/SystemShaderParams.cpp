@@ -84,6 +84,15 @@ public:
 	virtual bool IsPerInstance() override { return true; }
 };
 
+class CSystemShaderParamViewScreenResolution : public CSystemShaderParam
+{
+public:
+	virtual void Set( CShaderParam& param, CRenderContext2D& renderContext ) override
+	{
+		param.Set( renderContext.pRenderSystem, &renderContext.screenRes );
+	}
+};
+
 class CSystemShaderParamViewInvScreenResolution : public CSystemShaderParam
 {
 public:
@@ -109,6 +118,16 @@ private:
 	uint32 m_nInstanceData;
 };
 
+class CSystemShaderParamTime : public CSystemShaderParam
+{
+public:
+	virtual void Set( CShaderParam& param, CRenderContext2D& renderContext ) override
+	{
+		float fTime = renderContext.pRenderSystem->GetTotalTime();
+		param.Set( renderContext.pRenderSystem, &fTime );
+	}
+};
+
 class CSystemShaderParamElapsedTime : public CSystemShaderParam
 {
 public:
@@ -127,9 +146,11 @@ CSystemShaderParams::CSystemShaderParams()
 	Register( new CSystemShaderParamZOrder(), "g_zOrder" );
 	Register( new CSystemShaderParamSpecialOfs(), "g_specialOfs" );
 	Register( new CSystemShaderParamViewMatrix(), "g_matView" );
+	Register( new CSystemShaderParamViewScreenResolution(), "g_screenResolution" );
 	Register( new CSystemShaderParamViewInvScreenResolution(), "g_invScreenResolution" );
 	Register( new CSystemShaderParamInstanceData( 0 ), "g_insts" );
 	Register( new CSystemShaderParamInstanceData( 1 ), "g_insts1" );
+	Register( new CSystemShaderParamTime(), "g_totalTime" );
 	Register( new CSystemShaderParamElapsedTime(), "g_deltaTime" );
 }
 

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <MASM Include="libs\context\src\asm\jump_i386_ms_pe_masm.asm">
+      <Filter>context</Filter>
+    </MASM>
+    <MASM Include="libs\context\src\asm\jump_x86_64_ms_pe_masm.asm">
+      <Filter>context</Filter>
+    </MASM>
+    <MASM Include="libs\context\src\asm\make_i386_ms_pe_masm.asm">
+      <Filter>context</Filter>
+    </MASM>
+    <MASM Include="libs\context\src\asm\make_x86_64_ms_pe_masm.asm">
+      <Filter>context</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="coroutine">
+      <UniqueIdentifier>{eca7c09d-2fbd-4899-9395-0d520cf5f266}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="context">
+      <UniqueIdentifier>{2b56030a-179a-415e-9bbb-ed0654263efd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="system">
+      <UniqueIdentifier>{16333928-07a7-4831-83d1-7970b426f106}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="libs\coroutine\src\exceptions.cpp">
+      <Filter>coroutine</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\coroutine\src\detail\coroutine_context.cpp">
+      <Filter>coroutine</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\coroutine\src\detail\standard_stack_allocator_windows.cpp">
+      <Filter>coroutine</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\system\src\error_code.cpp">
+      <Filter>system</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="libs\system\src\local_free_on_destruction.hpp">
+      <Filter>system</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

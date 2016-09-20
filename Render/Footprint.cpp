@@ -401,6 +401,8 @@ void CFootprintMgr::Update( float fElapsedTime, IRenderSystem* pRenderSystem )
 		uint32 nDstIndex = pReceiver->m_updateInfo.nDstTexIndex;
 		if( nSrcIndex == INVALID_32BITID || nDstIndex == INVALID_32BITID )
 			continue;
+		if( !pReceiver->GetUpdateDrawable() )
+			continue;
 		if( nSrcIndex != nSrcRT || nDstIndex != nDstRT )
 		{
 			if( nSrcRT != INVALID_32BITID )

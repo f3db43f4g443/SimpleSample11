@@ -6,7 +6,7 @@
 #include "FixedSizeAllocator.h"
 #include "Canvas.h"
 
-#define FOOTPRINT_RENDER_TARGET_SIZE 1024u
+#define FOOTPRINT_RENDER_TARGET_SIZE 2048u
 class CFootprintReceiver : public CImage2D
 {
 	friend class CFootprintMgr;

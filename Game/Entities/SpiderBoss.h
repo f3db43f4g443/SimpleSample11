@@ -51,12 +51,14 @@ private:
 	void HangedThrow();
 
 	void HangedFixPosition();
+	void OnEventHit();
 	void OnHit();
 
 	uint8 m_nState;
 	uint32 m_nMoveType;
 	CVector2 m_moveTarget;
 	float m_fHRTime;
+	bool m_bHit;
 	bool m_bHitInHR;
 	uint32 m_nSkillCounter;
 	uint32 m_nDestroyedLimbs;

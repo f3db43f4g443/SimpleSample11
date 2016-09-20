@@ -8,9 +8,12 @@ public:
 	virtual void Stop() = 0;
 	virtual void Update() = 0;
 	
+	virtual void OnResize( const CVector2& size ) {}
 	virtual void OnMouseDown( const CVector2& pos ) {}
 	virtual void OnMouseUp( const CVector2& pos ) {}
 	virtual void OnMouseMove( const CVector2& pos ) {}
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) {}
 	virtual void OnChar( uint32 nChar ) {}
+
+	virtual int32 GetTimeStamp() { return 0; }
 };

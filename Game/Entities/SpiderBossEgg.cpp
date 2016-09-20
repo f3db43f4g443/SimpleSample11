@@ -7,6 +7,7 @@
 #include "Common/FileUtil.h"
 #include "Common/xml.h"
 #include "PlayerDebuffs/PlayerDebuffSpiderWeb.h"
+#include "Effects/DynamicTextures.h"
 
 CSpiderBossEgg::CSpiderBossEgg( CEntity* pOwner, const CVector2& targetPos, float fLifeTime )
 	: m_pOwner( pOwner )
@@ -188,7 +189,6 @@ void CSpiderBossEgg::OnKilled()
 	SetRenderObject( NULL );
 }
 
-extern CParticleSystem* __getBloodEffect();
 void CSpiderBossEgg::OnPlayerAttack( SPlayerAttackContext* pContext )
 {
 	if( !IsAlive() )
@@ -196,8 +196,8 @@ void CSpiderBossEgg::OnPlayerAttack( SPlayerAttackContext* pContext )
 	pContext->nResult |= SPlayerAttackContext::eResult_Hit | SPlayerAttackContext::eResult_Critical;
 	Kill();
 	CVector2& pos = pContext->hitPos;
-	CEffectObject* pObject = new CEffectObject( 1 );
-	CParticleSystem* pParticleSystem = __getBloodEffect();
+	CEffectObject* pObject = new CEffectObject( 1, &CBloodSplashCanvas::Inst() );
+	CParticleSystem* pParticleSystem = CBloodSplashCanvas::Inst().pParticleSystem1;
 	pObject->SetRenderObject( pParticleSystem->CreateParticleSystemObject( pObject->GetAnimController() ) );
 	pObject->x = pos.x;
 	pObject->y = pos.y;

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -39,7 +39,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(ProjectDir)..\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(ProjectDir)..\$(Configuration)\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -49,7 +54,7 @@
       <SDLCheck>false</SDLCheck>
       <PrecompiledHeaderFile>Common.h</PrecompiledHeaderFile>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)../implib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../implib;$(ProjectDir)../implib/boost</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -65,7 +70,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)../implib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)../implib;$(ProjectDir)../implib/boost</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Common.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -77,20 +82,26 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BitArray.cpp" />
+    <ClCompile Include="BufFile.cpp" />
     <ClCompile Include="Camera2D.cpp" />
+    <ClCompile Include="ClassMetaData.cpp" />
     <ClCompile Include="Common.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Common.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Common.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Coroutine.cpp" />
     <ClCompile Include="Curve.cpp" />
+    <ClCompile Include="DateTime.cpp" />
     <ClCompile Include="FileUtil.cpp" />
     <ClCompile Include="FixedSizeAllocator.cpp" />
     <ClCompile Include="MathUtil.cpp" />
     <ClCompile Include="Profile.cpp" />
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="StringUtil.cpp" />
+    <ClCompile Include="TabFile.cpp" />
     <ClCompile Include="Trigger.cpp" />
     <ClCompile Include="Utf8Util.cpp" />
     <ClCompile Include="xml.cpp" />
@@ -98,9 +109,13 @@
   <ItemGroup>
     <ClInclude Include="BitArray.h" />
     <ClInclude Include="BoundBox.h" />
+    <ClInclude Include="BufFile.h" />
     <ClInclude Include="Camera2D.h" />
+    <ClInclude Include="ClassMetaData.h" />
     <ClInclude Include="Common.h" />
+    <ClInclude Include="Coroutine.h" />
     <ClInclude Include="Curve.h" />
+    <ClInclude Include="DateTime.h" />
     <ClInclude Include="Euler.h" />
     <ClInclude Include="FileUtil.h" />
     <ClInclude Include="FixedSizeAllocator.h" />
@@ -111,6 +126,7 @@
     <ClInclude Include="MathUtil.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="Matrix2D.h" />
+    <ClInclude Include="PriorityQueue.h" />
     <ClInclude Include="Profile.h" />
     <ClInclude Include="Quaternion.h" />
     <ClInclude Include="Rand.h" />
@@ -119,6 +135,8 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="SortedList.h" />
+    <ClInclude Include="StringUtil.h" />
+    <ClInclude Include="TabFile.h" />
     <ClInclude Include="Transform2D.h" />
     <ClInclude Include="Trigger.h" />
     <ClInclude Include="Utf8Util.h" />
@@ -133,6 +151,7 @@
     <None Include="Frustum.inl" />
     <None Include="Matrix.inl" />
     <None Include="Matrix2D.inl" />
+    <None Include="PriorityQueue.inl" />
     <None Include="Quaternion.inl" />
     <None Include="Rectangle.inl" />
     <None Include="Vector2.inl" />
@@ -140,6 +159,9 @@
     <None Include="Vector4.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\implib\boost\Boost.vcxproj">
+      <Project>{48ba3332-5de2-40a2-b5a6-cc47d177c9cf}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\implib\tinyxml\tinyxml.vcxproj">
       <Project>{0f72bc75-80eb-4c76-bd6b-fe1a546eab5d}</Project>
     </ProjectReference>

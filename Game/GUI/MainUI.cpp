@@ -172,6 +172,13 @@ void CMainUI::AddHurtEffect( const char* szEffect, const CVector2& ofs )
 	m_vecHpBarShakes.push_back( newShake );
 }
 
+void CMainUI::SetHpBarVisible( bool bVisible )
+{
+	m_pHpBar->bVisible = bVisible;
+	m_pMpBar->bVisible = bVisible;
+	m_pSpBar->bVisible = bVisible;
+}
+
 void CMainUI::OnModifyHp( float fHp, float fMaxHp )
 {
 	float fPercent = fMaxHp > 0? fHp / fMaxHp: 0;
@@ -198,6 +205,14 @@ void CMainUI::SetVignetteColor( const CVector4& color, float fTimeScale )
 	m_vignetteColor1 = color;
 	CVector4 dColor = m_vignetteColor1 - m_vignetteColor;
 	m_fVignetteColorChangeTime = dColor.Length() * fTimeScale;
+	if( m_fVignetteColorChangeTime <= 0 )
+		m_vignetteColor = color;
+}
+
+void CMainUI::SetVignetteColorFixedTime( const CVector4& color, float fTime )
+{
+	m_vignetteColor1 = color;
+	m_fVignetteColorChangeTime = fTime;
 	if( m_fVignetteColorChangeTime <= 0 )
 		m_vignetteColor = color;
 }
@@ -246,7 +261,7 @@ void CMainUI::Tick()
 void CMainUI::OnNewHpBarShake()
 {
 	float fPercent = 0;
-	CPlayer* pPlayer = CGame::Inst().GetStage()->GetPlayer();
+	CPlayer* pPlayer = CGame::Inst().GetWorld()->GetPlayer();
 	if( pPlayer )
 	{
 		CVector3 hpPercent;
@@ -266,4 +281,9 @@ void CMainUI::OnNewHpBarShake()
 	m_vecHpBarShakes.push_back( newShake );
 
 	CGame::Inst().Register( SRand::Inst().Rand( 50 - 40 * fPercent, 80 - 60 * fPercent ), &m_tickNewHpBarShake );
+}
+
+void Game_ShaderImplement_Dummy_MainUI()
+{
+
 }

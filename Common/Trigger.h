@@ -1,22 +1,47 @@
 #pragma once
 #include "LinkList.h"
 #include <map>
+#include <functional>
 using namespace std;
 
 class CTrigger
 {
 public:
-	CTrigger() : __pPrevTrigger( NULL ), m_bValidFlag( true ) {}
-	virtual ~CTrigger() { if( IsRegistered() ) Unregister(); }
+	CTrigger() : __pPrevTrigger( NULL ), m_bValidFlag( true ), bAutoDelete( false ) {}
+	virtual ~CTrigger() { bAutoDelete = false; if( IsRegistered() ) Unregister(); }
 
 	virtual void Run( void* pContext ) = 0;
-	virtual void OnRemoved() {}
+	virtual void OnRemoved() { if( bAutoDelete ) delete this; }
 	bool IsRegistered() { return __pPrevTrigger != NULL; }
 	void OnTimer();
 
 	void Unregister();
 	bool m_bValidFlag;
+	bool bAutoDelete;
 	LINK_LIST( CTrigger, Trigger )
+};
+
+class CFunctionTrigger : public CTrigger
+{
+public:
+	CFunctionTrigger() {}
+	CFunctionTrigger( function<void()> func ) : m_func( func ) {}
+	void Set( function<void()> func ) { m_func = func; }
+	void Run( void* pContext ) { m_func(); }
+private:
+	function<void()> m_func;
+};
+
+template <typename TParam = void*>
+class CFunctionTrigger1 : public CTrigger
+{
+public:
+	CFunctionTrigger1() {}
+	CFunctionTrigger1( function<void( TParam )> func ) : m_func( func ) {}
+	void Set( function<void( TParam )> func ) { m_func = func; }
+	void Run( void* pContext ) { m_func( (TParam)( pContext ) ); }
+private:
+	function<void( TParam )> m_func;
 };
 
 template <class T>
@@ -41,12 +66,12 @@ public:
 	TClassTrigger1() {}
 	TClassTrigger1( T* pObj, EventCallbackFunc fun ) : m_pObj( pObj ), m_fun( fun ) {}
 	void Set( T* pObj, EventCallbackFunc fun ) { m_pObj = pObj; m_fun = fun; }
-	void Run( void* pContext ) { (m_pObj->*m_fun)( *reinterpret_cast<TParam*>( &pContext ) ); }
+	void Run( void* pContext ) { (m_pObj->*m_fun)( (TParam)( pContext ) ); }
 private:
 	T* m_pObj;
 	EventCallbackFunc m_fun;
 };
-//×¢²áÊÂ¼þ
+
 template <int iCount>
 class CEventTrigger
 {
@@ -54,7 +79,7 @@ public:
 	CEventTrigger() { memset( m_triggers, 0, sizeof( m_triggers ) ); }
 	~CEventTrigger() { Clear(); }
 
-	void Trigger( int iEvent, void* pContext )
+	void Trigger( uint32 iEvent, void* pContext )
 	{
 		if( iEvent >= iCount ) return;
 		LINK_LIST_FOR_EACH_BEGIN( pTrigger, m_triggers[iEvent], CTrigger, Trigger )
@@ -70,7 +95,7 @@ public:
 				m_triggers[i]->Unregister();
 		}
 	}
-	void Register( int iEvent, CTrigger* pTrigger )
+	void Register( uint32 iEvent, CTrigger* pTrigger )
 	{
 		if( pTrigger->IsRegistered() )
 			pTrigger->Unregister();

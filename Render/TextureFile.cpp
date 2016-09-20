@@ -50,8 +50,11 @@ void CTextureFile::Create()
 	ilEnable( IL_ORIGIN_SET );
 	ilOriginFunc( IL_ORIGIN_UPPER_LEFT );
 	uint32 success = ilLoadImage( strName.c_str() );
-	success = ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE );
+	if( !success )
+		return;
+	ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE );
 
 	m_pTexture = IRenderSystem::Inst()->CreateTexture( ETextureType::Tex2D, ilGetInteger( IL_IMAGE_WIDTH ), ilGetInteger( IL_IMAGE_HEIGHT ), 1, bGenMips? 0: 1, EFormat::EFormatR8G8B8A8UNorm, ilGetData() );
 	ilDeleteImage( img );
+	m_bCreated = true;
 }

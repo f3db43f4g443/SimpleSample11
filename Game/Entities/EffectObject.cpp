@@ -1,11 +1,21 @@
 #include "stdafx.h"
 #include "EffectObject.h"
 #include "Stage.h"
+#include "Render/Canvas.h"
 
-CEffectObject::CEffectObject( float fTime, uint8 nType )
+CEffectObject::CEffectObject( float fTime, CDynamicTexture* pTexture, uint8 nType )
 	: m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
 	, m_fTimeLeft( fTime )
 	, m_nType( nType )
+	, m_pUpdateTexture( pTexture )
+{
+
+}
+
+CEffectObject::CEffectObject( const SClassCreateContext& context )
+	: CEntity( context )
+	, m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
+	, m_pUpdateTexture( NULL )
 {
 
 }
@@ -36,13 +46,28 @@ void CEffectObject::OnTickBeforeHitTest()
 		fElapsedTime = GetStage()->GetElapsedTimePerTick();
 		break;
 	}
-	m_fTimeLeft -= fElapsedTime;
-	if( m_fTimeLeft <= 0 )
+	if( m_fTimeLeft > 0 )
 	{
-		SetParentEntity( NULL );
-		return;
+		m_fTimeLeft -= fElapsedTime;
+		if( m_fTimeLeft <= 0 )
+		{
+			SetParentEntity( NULL );
+			return;
+		}
 	}
 
 	UpdateAnim( fElapsedTime );
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
+
+	if( m_pUpdateTexture )
+		m_pUpdateTexture->Update( fElapsedTime );
+}
+
+void CEffectObject::Render( CRenderContext2D& context )
+{
+	if( context.eRenderPass == eRenderPass_Color )
+	{
+		if( m_pUpdateTexture )
+			m_pUpdateTexture->Render( context );
+	}
 }

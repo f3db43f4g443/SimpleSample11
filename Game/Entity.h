@@ -2,6 +2,7 @@
 #include "RenderObject2D.h"
 #include "Physics/HitProxy.h"
 #include "Trigger.h"
+#include "Render/Prefab.h"
 
 enum EEntityHitType
 {
@@ -18,6 +19,7 @@ enum EEntityHitType
 enum EEntityEvent
 {
 	eEntityEvent_PlayerAttack,
+	eEntityEvent_PlayerUse,
 
 	eEntityEvent_Count,
 };
@@ -28,10 +30,15 @@ class CPlayerAction;
 class CStage;
 struct SPlayerDizzyContext;
 struct SPlayerAttackContext;
-class CEntity : public CRenderObject2D, public CHitProxy
+class CEntity : public CPrefabBaseNode, public CHitProxy
 {
+	friend class CStage;
+	friend void RegisterGameClasses();
 public:
-	CEntity() : m_pCurStage( NULL ), m_eHitType( eEntityHitType_WorldStatic ), m_pParent( NULL ), m_pChildrenEntity( NULL ), m_bPickable( false ), m_nTraverseIndex( -1 ) {}
+	CEntity() : m_pCurStage( NULL ), m_eHitType( eEntityHitType_WorldStatic ), m_pParent( NULL ), m_bIsChangingStage( false )
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_nTraverseIndex( -1 ) {}
+	CEntity( const SClassCreateContext& context ) : CHitProxy( context ), m_pCurStage( NULL ), m_pParent( NULL ), m_bIsChangingStage( false )
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_nTraverseIndex( -1 ) {}
 	~CEntity();
 
 	CStage* GetStage() { return m_pCurStage; }
@@ -40,9 +47,6 @@ public:
 	EEntityHitType GetHitType() { return m_eHitType; }
 	void SetHitType( EEntityHitType eHitType ) { m_eHitType = eHitType; }
 	virtual const CMatrix2D& GetGlobalTransform() override { return globalTransform; }
-
-	CRenderObject2D* GetRenderObject() { return m_pRenderObject; }
-	void SetRenderObject( CRenderObject2D* pRenderObject );
 
 	CEntity* GetParentEntity() { return m_pParent; }
 	void SetParentEntity( CEntity* pParent )
@@ -58,6 +62,8 @@ public:
 		_setParentEntity( pBefore->GetParentEntity(), NULL, pBefore );
 	}
 
+	virtual void SetRenderObject( CRenderObject2D* pRenderObject ) override;
+
 	bool IsPickable() { return m_bPickable; }
 	void SetPickable( bool bPickable ) { m_bPickable = bPickable; }
 	uint32 GetTraverseIndex() { return m_nTraverseIndex; }
@@ -66,7 +72,8 @@ public:
 	uint32 BeforeHitTest( uint32 nTraverseIndex = 0 );
 
 	virtual void CheckPlayerDizzy( CPlayer* pPlayer, const CVector2& hitPoint, const CVector2& normal, SPlayerDizzyContext& result ) {}
-
+	
+	bool CommonMove( float fMoveSpeed, float fTime, const CVector2& dPosition, float fMinDist );
 	bool CommonMove( float fMoveSpeed, float fTurnSpeed, float fTime, const CVector2& dPosition, float fMinDist, float& dRotation );
 	void CommonTurn( float fTurnSpeed, float fTime, float fTargetAngle, float& dRotation );
 
@@ -80,21 +87,35 @@ public:
 	virtual void OnAddedToStage() {}
 	virtual void OnRemovedFromStage() {}
 protected:
+	virtual void OnAdded() override;
+	virtual void OnRemoved() override;
 	virtual void OnTransformUpdated() override;
+	CEventTrigger<eEntityEvent_Count> m_trigger;
 private:
 	void _setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBefore );
 	CStage* m_pCurStage;
-	CReference<CRenderObject2D> m_pRenderObject;
 	CEntity* m_pParent;
+	bool m_bIsChangingStage;
 
 	bool m_bPickable;
 	uint32 m_nTraverseIndex;
 	EEntityHitType m_eHitType;
 
-	CEventTrigger<eEntityEvent_Count> m_trigger;
-
 	LINK_LIST_REF( CEntity, ChildEntity );
 	LINK_LIST_REF_HEAD( m_pChildrenEntity, CEntity, ChildEntity );
+};
+
+template<class T>
+class TTempEntityHolder : public CReference<T>
+{
+public:
+	TTempEntityHolder( const TTempEntityHolder<T>& r ) : CReference<T>( r ) {}
+	TTempEntityHolder( T* p ) : CReference<T>( p ) {}
+	~TTempEntityHolder()
+	{
+		if( GetPtr() )
+			GetPtr()->SetParentEntity( NULL );
+	}
 };
 
 struct SPlayerAttackContext

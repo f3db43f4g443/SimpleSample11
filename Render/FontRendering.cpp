@@ -10,6 +10,8 @@ CFontObject::CFontObject( CFontFile* pFontFile, uint16 nSize, CDrawable2D* pDraw
 	, m_bMultiLine( false )
 	, m_editOfs( 0, 0 )
 	, m_cursorPos( 0, 0 )
+	, m_bGlobalClipValid( false )
+	, m_globalClip( 0, 0, 0, 0 )
 {
 	m_element2D.rect = rect;
 	m_element2D.pInstData = this;
@@ -32,6 +34,12 @@ void CFontObject::SetSize( CFontFile* pFontFile, uint16 nSize )
 void CFontObject::SetRect( const CRectangle& rect )
 {
 	m_localBound = rect;
+	SetText( m_strText.c_str() );
+}
+
+void CFontObject::SetAlignment( uint8 nAlignment )
+{
+	m_nAlignment = nAlignment;
 	SetText( m_strText.c_str() );
 }
 
@@ -299,13 +307,11 @@ void CFontObject::Render( CRenderContext2D& context )
 		if( m_pColorDrawable )
 		{
 			m_element2D.SetDrawable( m_pColorDrawable );
-			m_element2D.worldMat = globalTransform;
 			context.AddElement( &m_element2D );
 		}
 		else if( m_pGUIDrawable )
 		{
 			m_element2D.SetDrawable( m_pGUIDrawable );
-			m_element2D.worldMat = globalTransform;
 			context.AddElement( &m_element2D, 1 );
 		}
 		break;
@@ -313,7 +319,6 @@ void CFontObject::Render( CRenderContext2D& context )
 		if( m_pOcclusionDrawable )
 		{
 			m_element2D.SetDrawable( m_pOcclusionDrawable );
-			m_element2D.worldMat = globalTransform;
 			context.AddElement( &m_element2D );
 		}
 		break;
@@ -385,29 +390,62 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 				else
 					pTexture = pTex;
 
-				CMatrix2D mat( character.rect.GetSizeX() / 2, 0, character.rect.GetCenterX(),
-					0, character.rect.GetSizeY() / 2, character.rect.GetCenterY(),
-					0, 0, 1 );
-				mat = pElement->worldMat * mat;
-
 				float* pData = fInstData + nOfs;
-				*pData++ = mat.m02;
-				*pData++ = mat.m12;
-				*pData++ = mat.m00;
-				*pData++ = mat.m10;
+				if( pFontObject->m_bGlobalClipValid )
+				{
+					CRectangle newRect = character.rect.Offset( pFontObject->globalTransform.GetPosition() );
+					CRectangle clippedRect = newRect * pFontObject->m_globalClip;
+					if( clippedRect.width <= 0 || clippedRect.height <= 0 )
+					{
+						continue;
+					}
+					CRectangle& texRect = character.texRect;
+					CRectangle clippedTexRect = CRectangle( texRect.x + texRect.width * ( clippedRect.x - newRect.x ) / newRect.width,
+						texRect.y + texRect.height * ( clippedRect.y - newRect.y ) / newRect.height,
+						texRect.width * clippedRect.width / newRect.width, texRect.height * clippedRect.height / newRect.height );
 
-				uint32 texX = character.texRect.x * 2048;
-				float dTexX = 1.0 - character.texRect.width;
-				uint32 texY = character.texRect.y * 2048;
-				float dTexY = 1.0 - character.texRect.height;
-				*pData++ = texX + dTexX;
-				*pData++ = texY + dTexY;
+					float* pData = fInstData + nOfs;
+					*pData++ = clippedRect.GetCenterX();
+					*pData++ = clippedRect.GetCenterY();
+					*pData++ = clippedRect.GetSizeX() / 2;
+					*pData++ = 0;
+					
+					uint32 texX = clippedTexRect.x * 2048;
+					float dTexX = 1.0 - clippedTexRect.width;
+					uint32 texY = clippedTexRect.y * 2048;
+					float dTexY = 1.0 - clippedTexRect.height;
+					*pData++ = texX + dTexX;
+					*pData++ = texY + dTexY;
 
-				float fMax1 = fabsf( mat.m00 ) > fabsf( mat.m10 )? mat.m00: mat.m10;
-				float fMax2 = fabsf( mat.m00 ) > fabsf( mat.m10 )? mat.m11: -mat.m01;
-				float ratio = fMax2 / fMax1;
-				*pData++ = ratio;
-				*pData++ = pElement->depth;
+					float ratio = clippedRect.GetSizeY() / clippedRect.GetSizeX();
+					*pData++ = ratio;
+					*pData++ = pElement->depth;
+				}
+				else
+				{
+					CMatrix2D mat( character.rect.GetSizeX() / 2, 0, character.rect.GetCenterX(),
+						0, character.rect.GetSizeY() / 2, character.rect.GetCenterY(),
+						0, 0, 1 );
+					mat = pFontObject->globalTransform * mat;
+
+					*pData++ = mat.m02;
+					*pData++ = mat.m12;
+					*pData++ = mat.m00;
+					*pData++ = mat.m10;
+
+					uint32 texX = character.texRect.x * 2048;
+					float dTexX = 1.0 - character.texRect.width;
+					uint32 texY = character.texRect.y * 2048;
+					float dTexY = 1.0 - character.texRect.height;
+					*pData++ = texX + dTexX;
+					*pData++ = texY + dTexY;
+
+					float fMax1 = fabsf( mat.m00 ) > fabsf( mat.m10 )? mat.m00: mat.m10;
+					float fMax2 = fabsf( mat.m00 ) > fabsf( mat.m10 )? mat.m11: -mat.m01;
+					float ratio = fMax2 / fMax1;
+					*pData++ = ratio;
+					*pData++ = pElement->depth;
+				}
 
 				uint32 nDataSize = Min( pElement->nInstDataSize, sizeof( CVector4 ) * nExtraInstData );
 				if( nDataSize )

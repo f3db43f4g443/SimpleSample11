@@ -2,6 +2,11 @@
 #include "GlobalRenderResources.h"
 #include "RenderSystem.h"
 
+class CDebugDrawShader : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CDebugDrawShader );
+};
+
 class CScreenVertexShader : public CGlobalShader
 {
 	DECLARE_GLOBAL_SHADER( CScreenVertexShader );
@@ -11,19 +16,22 @@ protected:
 		GetShader()->GetShaderInfo().Bind( m_dstRect, "DstRect" );
 		GetShader()->GetShaderInfo().Bind( m_srcRect, "SrcRect" );
 		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+		GetShader()->GetShaderInfo().Bind( m_depth, "fDepth" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, const CRectangle& DstRect, const CRectangle& SrcRect, const CVector2& DstResolution, const CVector2& SrcResolution )
+	void SetParams( IRenderSystem* pRenderSystem, const CRectangle& DstRect, const CRectangle& SrcRect, const CVector2& DstResolution, const CVector2& SrcResolution, float fDepth = 0 )
 	{
 		m_dstRect.Set( pRenderSystem, &DstRect );
 		m_srcRect.Set( pRenderSystem, &SrcRect );
 		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
 		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+		m_depth.Set( pRenderSystem, &fDepth );
 	}
 private:
 	CShaderParam m_dstRect;
 	CShaderParam m_srcRect;
 	CShaderParam m_invDstSrcResolution;
+	CShaderParam m_depth;
 };
 
 class COneColorPixelShader : public CGlobalShader
@@ -63,7 +71,7 @@ private:
 	CShaderParamSampler m_paramLinearSampler;
 };
 
-void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize );
+void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize, float fDepth = -1 );
 
 class CTwoTextureMultiplyPixelShader : public CGlobalShader
 {

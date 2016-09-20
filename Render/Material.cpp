@@ -37,6 +37,136 @@ void CMaterial::IMaterialShader::_init( const char* szShaderName, IShader* pShad
 	}
 }
 
+ISamplerState* CMaterial::GetMaterialSamplerStates( uint8 nFilter, uint8 nAddress )
+{
+	static ISamplerState* pSamplerStates[2][3] =
+	{
+		{
+			ISamplerState::Get<ESamplerFilterPPP, ETextureAddressModeClamp, ETextureAddressModeClamp, ETextureAddressModeClamp>(),
+			ISamplerState::Get<ESamplerFilterPPP, ETextureAddressModeWrap, ETextureAddressModeWrap, ETextureAddressModeWrap>(),
+			ISamplerState::Get<ESamplerFilterPPP, ETextureAddressModeMirror, ETextureAddressModeMirror, ETextureAddressModeMirror>(),
+		},
+		{
+			ISamplerState::Get<ESamplerFilterLLL, ETextureAddressModeClamp, ETextureAddressModeClamp, ETextureAddressModeClamp>(),
+			ISamplerState::Get<ESamplerFilterLLL, ETextureAddressModeWrap, ETextureAddressModeWrap, ETextureAddressModeWrap>(),
+			ISamplerState::Get<ESamplerFilterLLL, ETextureAddressModeMirror, ETextureAddressModeMirror, ETextureAddressModeMirror>(),
+		}
+	};
+	return pSamplerStates[nFilter][nAddress];
+}
+
+void CMaterial::Load( IBufReader& buf )
+{
+	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
+	m_nMaxInst = buf.Read<uint16>();
+	m_nExtraInstData = buf.Read<uint8>();
+	for( int i = 0; i < 3; i++ )
+		buf.Read( m_strShaderName[i] );
+	const char* szShaders[] = { m_strShaderName[0].c_str(), m_strShaderName[1].c_str(), m_strShaderName[2].c_str() };
+	IShader *pShaders[(uint32)EShaderType::Count];
+	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance );
+
+	uint16 nConstantBuffer = buf.Read<uint16>();
+	for( int i = 0; i < nConstantBuffer; i++ )
+	{
+		CShaderParamConstantBuffer paramConstantBuffer;
+		paramConstantBuffer.Load( buf );
+
+		IConstantBuffer* pBuffer = IRenderSystem::Inst()->CreateConstantBuffer( paramConstantBuffer.nSize, true );
+		m_vecConstantBuffers.push_back( pair<CShaderParamConstantBuffer, CReference<IConstantBuffer> >( paramConstantBuffer, pBuffer ) );
+
+		buf.Read( pBuffer->GetData(), pBuffer->GetSize() );
+	}
+
+	uint16 nShaderResources = buf.Read<uint16>();
+	for( int i = 0; i < nShaderResources; i++ )
+	{
+		CShaderParamShaderResource param;
+		param.Load( buf );
+
+		EShaderResourceType eType = param.eType;
+		if( eType == EShaderResourceType::Texture2D )
+		{
+			string strFileName;
+			buf.Read( strFileName );
+			CTextureFile* pTexture = CResourceManager::Inst()->CreateResource<CTextureFile>( strFileName.c_str() );
+			if( !pTexture )
+				continue;
+			m_vecDependentResources.push_back( pTexture );
+			m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+		}
+	}
+	
+	uint16 nSamplers = buf.Read<uint16>();
+	for( int i = 0; i < nSamplers; i++ )
+	{
+		CShaderParamSampler param;
+		param.Load( buf );
+
+		uint8 nFilter = buf.Read<uint8>();
+		uint8 nAddress = buf.Read<uint8>();
+		ISamplerState* pSamplerState = GetMaterialSamplerStates( nFilter, nAddress );
+
+		m_vecSamplers.push_back( pair<CShaderParamSampler, ISamplerState* >( param, pSamplerState ) );
+	}
+}
+
+void CMaterial::Save( CBufFile& buf )
+{
+	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
+	buf.Write( (uint16)m_nMaxInst );
+	buf.Write( (uint8)m_nExtraInstData );
+	for( int i = 0; i < 3; i++ )
+		buf.Write( m_strShaderName[i] );
+
+	buf.Write( (uint16)m_vecConstantBuffers.size() );
+	for( auto& item : m_vecConstantBuffers )
+	{
+		item.first.Save( buf );
+		IConstantBuffer* pBuffer = item.second;
+		buf.Write( pBuffer->GetData(), pBuffer->GetSize() );
+	}
+	
+	buf.Write( (uint16)m_vecShaderResources.size() );
+	uint32 nResource = 0;
+	for( auto& item : m_vecShaderResources )
+	{
+		item.first.Save( buf );
+		IShaderResource* pShaderResource = item.second->GetShaderResource();
+		if( pShaderResource->GetType() == EShaderResourceType::Texture2D )
+		{
+			CTextureFile* pTexture = static_cast<CTextureFile*>( m_vecDependentResources[nResource++].GetPtr() );
+			string strFileName = pTexture->GetName();
+			buf.Write( strFileName );
+		}
+	}
+	
+	buf.Write( (uint16)m_vecSamplers.size() );
+	for( auto& item : m_vecSamplers )
+	{
+		item.first.Save( buf );
+		bool bBreak = false;
+		for( uint8 nFilter = 0; nFilter < 2; nFilter++ )
+		{
+			for( uint8 nAddress = 0; nAddress < 3; nAddress++ )
+			{
+				ISamplerState* pSamplerState = GetMaterialSamplerStates( nFilter, nAddress );
+				if( pSamplerState == item.second )
+				{
+					bBreak = true;
+					buf.Write( nFilter );
+					buf.Write( nAddress );
+					break;
+				}
+			}
+			if( bBreak )
+				break;
+		}
+		if( !bBreak )
+			buf.Write( (uint16)0 );
+	}
+}
+
 void CMaterial::LoadXml( TiXmlElement* pRoot )
 {
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
@@ -47,6 +177,8 @@ void CMaterial::LoadXml( TiXmlElement* pRoot )
 		XmlGetAttr<const char*>( pRoot, "geometry_shader", "" ),
 		XmlGetAttr<const char*>( pRoot, "pixel_shader", "" ),
 	};
+	for( int i = 0; i < ELEM_COUNT( szShaders ); i++ )
+		m_strShaderName[i] = szShaders[i];
 	IShader *pShaders[(uint32)EShaderType::Count];
 	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance );
 
@@ -140,7 +272,7 @@ void CMaterial::LoadXml( TiXmlElement* pRoot )
 				if( !pTexture )
 					continue;
 				m_vecDependentResources.push_back( pTexture );
-				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, CReference<IShaderResource> >( param, pTexture->GetTexture()->GetShaderResource() ) );
+				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
 			}
 		}
 	}
@@ -201,7 +333,7 @@ void CMaterial::Apply( CRenderContext2D& context )
 	}
 	for( auto& item : m_vecShaderResources )
 	{
-		item.first.Set( pRenderSystem, item.second );
+		item.first.Set( pRenderSystem, item.second->GetShaderResource() );
 	}
 	for( auto& item : m_vecSamplers )
 	{
@@ -227,6 +359,28 @@ void CMaterial::UnApply( CRenderContext2D& context )
 	for( auto& item : m_vecConstantBuffers )
 	{
 		item.first.Set( pRenderSystem, NULL );
+	}
+}
+
+void CMaterial::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
+{
+	for( auto& item : m_vecShaderResources )
+	{
+		if( item.first.strName == szName )
+		{
+			item.second = pShaderResource;
+			return;
+		}
+	}
+
+	IShader* pShader = GetShader( EShaderType::PixelShader );
+	if( pShader )
+	{
+		CShaderParamShaderResource param;
+		pShader->GetShaderInfo().Bind( param, szName );
+		if( !param.bIsBound )
+			return;
+		m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pShaderResource ) );
 	}
 }
 
@@ -262,7 +416,10 @@ void CMaterial::GetShaders( const char** szShaders, IShader** pShaders, IShaderB
 	static map<string, IShaderBoundState*> g_mapShaderBoundStates;
 	IShaderBoundState* &pState = g_mapShaderBoundStates[szName];
 	auto pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
-	IRenderSystem::Inst()->SetShaderBoundState( pState, pShaders[(uint32)EShaderType::VertexShader], pShaders[(uint32)EShaderType::PixelShader],
-		&pDesc, 1, pShaders[(uint32)EShaderType::GeometryShader], false );
+	if( pShaders[(uint32)EShaderType::VertexShader] )
+	{
+		IRenderSystem::Inst()->SetShaderBoundState( pState, pShaders[(uint32)EShaderType::VertexShader], pShaders[(uint32)EShaderType::PixelShader],
+			&pDesc, 1, pShaders[(uint32)EShaderType::GeometryShader], false );
+	}
 	pShaderBoundState = pState;
 }

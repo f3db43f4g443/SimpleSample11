@@ -67,7 +67,7 @@ protected:
 	ITexture* m_pTexture;
 };
 
-class ITexture : public CReferenceObject
+class ITexture : public CReferenceObject, public IShaderResourceProxy
 {
 public:
 	ITexture( ETextureType eType, int nDim1, int nDim2, int nDim3, int nMipLevels, EFormat eFormat, void* data,
@@ -85,7 +85,7 @@ public:
 
 	const CTextureDesc& GetDesc() { return m_desc; }
 
-	IShaderResource* GetShaderResource() { return m_pSRV; }
+	virtual IShaderResource* GetShaderResource() override { return m_pSRV; }
 	IRenderTarget* GetRenderTarget() { return m_pRTV; }
 	IDepthStencil* GetDepthStencil() { return m_pDSV; }
 protected:

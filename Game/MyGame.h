@@ -1,5 +1,6 @@
 #pragma once
 #include "Game.h"
+#include "World.h"
 #include "Stage.h"
 #include "Common/BitArray.h"
 #include "Common/Trigger.h"
@@ -14,7 +15,7 @@ public:
 
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) override;
 
-	CStage* GetStage() { return m_pStage; }
+	CWorld* GetWorld() { return m_pWorld; }
 	const CVector2& GetScreenResolution() { return m_screenResolution; }
 	float GetElapsedTimePerTick() { return 1.0f / 60; }
 	double GetTotalTime() { return m_dTotalTime; }
@@ -24,7 +25,7 @@ public:
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGame )
 private:
-	CStage* m_pStage;
+	CWorld* m_pWorld;
 	CBitArray m_key;
 	CBitArray m_keyUp;
 	CBitArray m_keyDown;
@@ -34,3 +35,5 @@ private:
 	double m_dTotalTime;
 	CTimedTrigger<4096> m_trigger;
 };
+
+void InitGame();

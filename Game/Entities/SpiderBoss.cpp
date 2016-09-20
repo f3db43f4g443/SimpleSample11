@@ -17,8 +17,8 @@
 #include "Render/Image2D.h"
 #include "Render/Rope2D.h"
 #include "Physics/HitProxyData.h"
+#include "Effects/DynamicTextures.h"
 
-extern CParticleSystem* __getBloodEffect();
 class CSpiderBossLimb : public CEntity
 {
 	friend class CSpiderBoss;
@@ -486,8 +486,8 @@ private:
 			
 			pContext->nResult |= SPlayerAttackContext::eResult_Hit | SPlayerAttackContext::eResult_Critical;
 			CVector2& pos = pContext->hitPos;
-			CEffectObject* pObject = new CEffectObject( 1 );
-			CParticleSystem* pParticleSystem = __getBloodEffect();
+			CEffectObject* pObject = new CEffectObject( 1, &CBloodSplashCanvas::Inst() );
+			CParticleSystem* pParticleSystem = CBloodSplashCanvas::Inst().pParticleSystem1;
 			pObject->SetRenderObject( pParticleSystem->CreateParticleSystemObject( pObject->GetAnimController() ) );
 			pObject->x = pos.x;
 			pObject->y = pos.y;
@@ -503,8 +503,8 @@ private:
 		{
 			pContext->nResult |= SPlayerAttackContext::eResult_Hit;
 			CVector2& pos = pContext->hitPos;
-			CEffectObject* pObject = new CEffectObject( 1 );
-			CParticleSystem* pParticleSystem = __getBloodEffect();
+			CEffectObject* pObject = new CEffectObject( 1, &CBloodSplashCanvas::Inst() );
+			CParticleSystem* pParticleSystem = CBloodSplashCanvas::Inst().pParticleSystem1;
 			pObject->SetRenderObject( pParticleSystem->CreateParticleSystemObject( pObject->GetAnimController() ) );
 			pObject->x = pos.x;
 			pObject->y = pos.y;
@@ -571,8 +571,9 @@ CSpiderBoss::CSpiderBoss()
 	, m_nDestroyedLimbs( 0 )
 	, m_fTime( 0 )
 	, m_fHRTime( 0 )
+	, m_bHit( false )
 	, m_bHitInHR( false )
-	, m_onHit( this, &CSpiderBoss::OnHit )
+	, m_onHit( this, &CSpiderBoss::OnEventHit )
 	, m_tickAfterHitTest( this, &CSpiderBoss::OnTickAfterHitTest )
 {
 	static CAnimationSet* pAnimSet = NULL;
@@ -628,6 +629,12 @@ void CSpiderBoss::OnTickBeforeHitTest()
 
 void CSpiderBoss::OnTickAfterHitTest()
 {
+	if( m_bHit )
+	{
+		m_bHit = false;
+		OnHit();
+	}
+
 	float fTime = GetStage()->GetElapsedTimePerTick();
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 	if( pPlayer )
@@ -974,6 +981,11 @@ void CSpiderBoss::HangedThrow()
 		m_fTime = SRand::Inst().Rand( 2.0f, 4.0f );
 		return;
 	}
+}
+
+void CSpiderBoss::OnEventHit()
+{
+	m_bHit = true;
 }
 
 void CSpiderBoss::OnHit()

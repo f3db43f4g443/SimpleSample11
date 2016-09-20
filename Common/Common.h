@@ -27,6 +27,9 @@ typedef unsigned long long uint64;
 
 #define ELEM_COUNT( a ) ( sizeof( a ) / sizeof( (a)[0] ) )
 
+#define MEMBER_OFFSET( Class, Member ) ( reinterpret_cast<uint32>( &( ( (Class*)(NULL) )->Member ) ) )
+#define BASECLASS_OFFSET( Class, BaseClass ) ( reinterpret_cast<uint32>( static_cast<BaseClass*>( (Class*)0x10000 ) ) - 0x10000 )
+
 template<typename T>
 T Min( T a, T b )
 {
@@ -50,4 +53,11 @@ static className* Inst() \
 { \
 	static className g_inst; \
 	return &g_inst; \
+}
+
+#define DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( className ) \
+static className* Inst() \
+{ \
+	static CReference<className> g_inst = new className; \
+	return g_inst; \
 }

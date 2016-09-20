@@ -1,0 +1,72 @@
+#include "stdafx.h"
+#include "FaceToolbox.h"
+#include "UIUtils.h"
+#include "Character.h"
+#include "UICommon/UIFactory.h"
+#include "Common/ResourceManager.h"
+#include "StageDirector.h"
+
+CFaceEditItemUI* CFaceEditItemUI::Create( CFaceToolbox* pOwner, CFaceEditItem* pItem )
+{
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/faceedititem.xml" );
+	auto pUIItem = new CFaceEditItemUI;
+	g_pRes->GetElement()->Clone( pUIItem );
+	pUIItem->m_pOwner = pOwner;
+	pUIItem->Refresh( pItem );
+	return pUIItem;
+}
+
+void CFaceEditItemUI::OnClick( const CVector2& mousePos )
+{
+	m_pOwner->SetSelected( this );
+}
+
+void CFaceEditItemUI::Refresh( CFaceEditItem* pItem )
+{
+	m_pItem = pItem;
+	m_pName->SetText( pItem->strName.c_str() );
+}
+
+void CFaceEditItemUI::OnInited()
+{
+	m_pName = GetChildByName<CUILabel>( "name" );
+}
+
+void CFaceToolbox::Refresh( CCharacter* pCharacter )
+{
+	m_pSelected = NULL;
+	auto& faceEditItems = pCharacter->GetFaceEditItems();
+	for( int i = 0; i < faceEditItems.size(); i++ )
+	{
+		auto pItem = CFaceEditItemUI::Create( this, faceEditItems[i] );
+		switch( faceEditItems[i]->nType )
+		{
+		case eFaceEditType_Skin:
+			m_pToolView->AddContentChild( pItem, m_pSkinsRoot );
+			break;
+		case eFaceEditType_Organ:
+			m_pToolView->AddContentChild( pItem, m_pOrgansRoot );
+			break;
+		case eFaceEditType_Mask:
+			m_pToolView->AddContentChild( pItem, m_pMasksRoot );
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void CFaceToolbox::OnInited()
+{
+	m_pToolView = GetChildByName<CUITreeView>( "treeview" );
+
+	m_pOrgansRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Organs" );
+	m_pSkinsRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Skins" );
+	m_pMasksRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Masks" );
+}
+
+void CFaceToolbox::SetSelected( CFaceEditItemUI* pSelected )
+{
+	m_pSelected = pSelected;
+	CStageDirector::Inst()->OnSelectFaceEditItem( pSelected->GetItem() );
+}

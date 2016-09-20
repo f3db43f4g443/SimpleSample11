@@ -6,6 +6,7 @@
 #include "Common/Rand.h"
 #include "EffectObject.h"
 #include "Render/ParticleSystem.h"
+#include "Effects/DynamicTextures.h"
 
 CSpider::CSpider()
 	: m_nState( 0 )
@@ -191,15 +192,14 @@ void CSpider::OnHit()
 	}
 }
 
-extern CParticleSystem* __getBloodEffect();
 void CSpider::OnPlayerAttack( SPlayerAttackContext* pContext )
 {
 	if( pContext->pPlayer->IsInHorrorReflex() && m_nState == 3 )
 	{
 		pContext->nResult |= SPlayerAttackContext::eResult_Hit;
 		CVector2& pos = pContext->hitPos;
-		CEffectObject* pObject = new CEffectObject( 1 );
-		CParticleSystem* pParticleSystem = __getBloodEffect();
+		CEffectObject* pObject = new CEffectObject( 1, &CBloodSplashCanvas::Inst() );
+		CParticleSystem* pParticleSystem = CBloodSplashCanvas::Inst().pParticleSystem1;
 		pObject->SetRenderObject( pParticleSystem->CreateParticleSystemObject( pObject->GetAnimController() ) );
 		pObject->x = pos.x;
 		pObject->y = pos.y;

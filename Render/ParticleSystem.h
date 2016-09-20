@@ -4,6 +4,7 @@
 #include "Animation.h"
 #include "Material.h"
 #include "LinkList.h"
+#include "Resource.h"
 #include <functional>
 
 struct SParticleSystemDataElement
@@ -25,6 +26,9 @@ struct SParticleSystemDataElement
 	uint8 nRandomType;
 	uint16 nOffset;
 	float dataMin[4], dataMax[4];
+
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 	
 	void SetFloat1( float minValue, float maxValue, uint8 nRandomType );
 	void SetFloat2( const CVector2& minValue, const CVector2& maxValue, uint8 nRandomType );
@@ -56,9 +60,12 @@ enum EParticleSystemType
 class IParticleEmitter;
 class CParticleSystemData : public CReferenceObject
 {
+	friend class SParticleDataEditItem;
 public:
+	CParticleSystemData() {}
 	CParticleSystemData( EParticleSystemType eType, uint16 nMaxParticles, float lifeTime, float emitRate, uint8 emitType, bool bBatchAcrossInstances, uint8 nElements, SParticleSystemDataElement* pElements );
 	~CParticleSystemData() { delete[] m_pElements; }
+	void Update();
 
 	void InitInstanceData( SParticleInstanceData& data );
 	bool AnimateInstanceData( SParticleInstanceData& data, const CMatrix2D& transform, float fDeltaTime, IParticleEmitter* pEmitter = NULL );
@@ -79,7 +86,9 @@ public:
 	bool IsBatchAcrossInstances() { return m_bBatchAcrossInstances; }
 	uint8 GetElementCount() { return m_nElements; }
 	SParticleSystemDataElement* GetElements() { return m_pElements; }
-
+	
+	static CParticleSystemData* Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 	static CParticleSystemData* LoadXml( TiXmlElement* pRoot );
 private:
 	EParticleSystemType m_eType;
@@ -112,6 +121,9 @@ public:
 
 	CParticleSystemInstance* GetInstanceData() { return m_pInstanceData; }
 	virtual void Render( CRenderContext2D& context ) override;
+	virtual void CopyData( CParticleSystemObject* pObj );
+	virtual void LoadExtraData( IBufReader& buf );
+	virtual void SaveExtraData( CBufFile& buf );
 
 	void OnStopped();
 protected:
@@ -144,6 +156,8 @@ public:
 			if( m_pEmitter )
 				m_pEmitter->Update( m_data, fDeltaTime, matGlobal );
 			m_pParticleSystemData->AnimateInstanceData( m_data, matGlobal, fDeltaTime, m_pEmitter );
+			if( m_bAutoRestart && !m_data.isEmitting && m_data.nBegin == m_data.nEnd )
+				Reset();
 		}
 		return true;
 	}
@@ -162,6 +176,7 @@ public:
 	virtual void RegisterEvent( uint32 nEvent, CTrigger* pTrigger ) override {}
 
 	SParticleInstanceData& GetData() { return m_data; }
+	IParticleEmitter* GetEmitter() { return m_pEmitter; }
 	void SetEmitter( IParticleEmitter* pEmitter )
 	{
 		if( m_pEmitter == pEmitter )
@@ -170,8 +185,20 @@ public:
 		if( pEmitter )
 			pEmitter->Init( m_data );
 	}
+	void Reset()
+	{
+		m_data.isEmitting = true;
+		m_data.nBegin = m_data.nEnd = 0;
+		m_data.fTime = m_data.fEmitTime = 0;
+		if( m_pEmitter )
+			m_pEmitter->Init( m_data );
+	}
+
+	bool IsAutoRestart() { return m_bAutoRestart; }
+	void SetAutoRestart( bool bRestart ) { m_bAutoRestart = bRestart; }
 protected:
 	bool m_bPaused;
+	bool m_bAutoRestart;
 	SParticleInstanceData m_data;
 	CReference<CParticleSystemData> m_pParticleSystemData;
 	CReference<IParticleEmitter> m_pEmitter;
@@ -181,6 +208,7 @@ protected:
 
 struct SParticleSystemShaderParam
 {
+	friend struct SParticleShaderParamEditItem;
 	struct SParam
 	{
 		uint16 nSrcOfs;
@@ -192,18 +220,25 @@ struct SParticleSystemShaderParam
 	CShaderParam m_paramTime;
 	CShaderParam m_paramLife;
 	uint32 m_nInstStride;
-
+	
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 	void LoadXml( TiXmlElement* pRoot, IShader* pVS, CParticleSystemData* pData );
 };
 
 class CParticleSystemDrawable : public CDrawable2D
 {
+	friend class SParticleDrawableEditItem;
 public:
 	CParticleSystemDrawable( CParticleSystemData* pData ) : m_pData( pData ), m_pBlendState( NULL ) {}
 
 	virtual void Flush( CRenderContext2D& context ) override;
-
+	CMaterial& GetMaterial() { return m_material; }
 	CParticleSystemData* GetSystemData() { return m_pData; }
+
+	virtual void Load( IBufReader& buf );
+	virtual void Save( CBufFile& buf );
+	virtual void BindParams();
 
 	virtual void LoadXml( TiXmlElement* pRoot );
 protected:
@@ -216,8 +251,9 @@ protected:
 };
 
 class CRopeObject2D;
-class CParticleSystem : public CReferenceObject
+class CParticleSystem
 {
+	friend class CParticleEditor;
 public:
 	typedef CParticleSystemDrawable* DrawableAllocFunc( CParticleSystemData* pData );
 	typedef CParticleSystemObject* ParticleRenderObjectAllocFunc( CParticleSystemInstance* pData, CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, const CRectangle& rect, bool bGUI );
@@ -225,11 +261,18 @@ public:
 
 	CParticleSystem( DrawableAllocFunc *pFunc = NULL ) { m_pDrawableFunc = pFunc; }
 
+	CParticleSystemData* GetData() { return m_pParticleSystemData; }
 	CParticleSystemObject* CreateParticleSystemObject( CAnimationController* pAnimController, CParticleSystemInstance** pInst = NULL, function<ParticleRenderObjectAllocFunc> *pAlloc = NULL );
 	CRopeObject2D* CreateBeamObject( CAnimationController* pAnimController, CParticleSystemInstance** pInst = NULL, function<RopeRenderObjectAllocFunc> *pAlloc = NULL );
 	CParticleSystemInstance* CreateParticleSystemInst( CAnimationController* pAnimController, CElement2D* pElem = NULL );
+	
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+	CParticleSystemDrawable* CreateDrawable();
+	CParticleSystemDrawable* LoadDrawable( IBufReader& buf );
 
 	void LoadXml( TiXmlElement* pRoot );
+	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 private:
 	CParticleSystemDrawable* LoadDrawable( TiXmlElement* pElem );
 	CReference<CParticleSystemData> m_pParticleSystemData;
@@ -238,4 +281,21 @@ private:
 	vector<CParticleSystemDrawable*> m_vecGUIPassDrawables;
 	CRectangle m_rect;
 	DrawableAllocFunc* m_pDrawableFunc;
+};
+
+class CParticleFile : public CResource
+{
+public:
+	enum EType
+	{
+		eResType = eEngineResType_ParticleSystem,
+	};
+	CParticleFile( const char* name, int32 type ) : CResource( name, type ) {}
+	void Create();
+	virtual void Save( CBufFile& buf ) override { m_particleSystem.Save( buf ); }
+	CParticleSystem& GetParticleSystem() { return m_particleSystem; }
+
+	CParticleSystemObject* CreateInstance( CAnimationController* pAnimController );
+private:
+	CParticleSystem m_particleSystem;
 };

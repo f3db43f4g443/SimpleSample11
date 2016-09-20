@@ -8,6 +8,7 @@
 
 struct SFontFileData
 {
+	SFontFileData() : face( NULL ) {}
 	FT_Face face;
 	vector<char> content;
 };
@@ -29,8 +30,10 @@ void CFontFile::Create()
 {
 	m_pData = new SFontFileData;
 	GetFileContent( m_pData->content, GetName(), false );
-	FT_New_Memory_Face( g_FTlibrary, (FT_Byte*)&m_pData->content[0], m_pData->content.size(), 0, &m_pData->face );
-	//FT_New_Face( g_FTlibrary, GetName(), 0, &m_pData->face );
+	FT_Error err = FT_New_Memory_Face( g_FTlibrary, (FT_Byte*)&m_pData->content[0], m_pData->content.size(), 0, &m_pData->face );
+	if( err )
+		return;
+	m_bCreated = true;
 }
 
 CFontFile::~CFontFile()
@@ -39,7 +42,8 @@ CFontFile::~CFontFile()
 	{
 		delete itr->second;
 	}
-	FT_Done_Face( m_pData->face ); 
+	if( m_pData->face )
+		FT_Done_Face( m_pData->face ); 
 	delete m_pData;
 }
 

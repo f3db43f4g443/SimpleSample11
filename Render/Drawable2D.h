@@ -1,6 +1,7 @@
 #pragma once
 #include "Element2D.h"
 #include "RenderContext2D.h"
+#include "BufFile.h"
 
 class CDrawable2D
 {
@@ -13,6 +14,10 @@ public:
 		Insert_Element( pElement );
 	}
 
+	IBlendState* GetBlendState( uint16 nType );
+	IBlendState* LoadBlendState( IBufReader& buf );
+	uint16 GetBlendStateIndex( IBlendState* pState );
+	void SaveBlendState( CBufFile& buf, IBlendState* pState );
 	IBlendState* LoadBlendState( const char* szBlendType );
 
 	virtual void Flush( CRenderContext2D& context ) = 0;

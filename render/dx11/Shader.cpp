@@ -3,6 +3,7 @@
 #include "DX11RenderSystem.h"
 #include "DX11ConstantBuffer.h"
 #include "FileUtil.h"
+#include "Utf8Util.h"
 #include <string>
 using namespace std;
 
@@ -25,62 +26,22 @@ private:
 	string m_strInclude;
 };
 
-IShader* CRenderSystem::CompileShader( const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros, const char* szInclude,
-	const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
+IShader* CRenderSystem::CreateShader( EShaderType& shaderType, void* pShaderCode, uint32 nShaderCodeLength, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
 {
-#ifdef _DEBUG
-	uint32 nFlag = D3D10_SHADER_DEBUG | D3D10_SHADER_AVOID_FLOW_CONTROL | D3D10_SHADER_OPTIMIZATION_LEVEL3;
-#else
-	uint32 nFlag = D3D10_SHADER_AVOID_FLOW_CONTROL | D3D10_SHADER_OPTIMIZATION_LEVEL3;
-#endif
-	CShaderInclude shaderInclude( szInclude );
-	CReference<ID3D10Blob> pShaderCode;
-	CReference<ID3D10Blob> pErrorMsg;
-
-	D3D10_SHADER_MACRO* pMacroDefs = NULL;
-	if( pMacros && pMacros->vecNames.size() )
-	{
-		pMacroDefs = ( D3D10_SHADER_MACRO* )alloca( sizeof( D3D10_SHADER_MACRO ) * ( pMacros->vecNames.size() + 1 ) );
-		int i;
-		for( i = 0; i < pMacros->vecNames.size(); i++ )
-		{
-			pMacroDefs[i].Name = pMacros->vecNames[i].c_str();
-			pMacroDefs[i].Definition = pMacros->vecDefs[i].c_str();
-		}
-		pMacroDefs[i].Name = NULL;
-		pMacroDefs[i].Definition = NULL;
-	}
-	D3DX11CompileFromMemory( pData, nLen, "", pMacroDefs, &shaderInclude, szFunctionName, szProfile, nFlag, 0, NULL, pShaderCode.AssignPtr(), pErrorMsg.AssignPtr(), NULL );
-
-	if( pErrorMsg )
-	{
-		const char* c = (const char*)pErrorMsg->GetBufferPointer();
-		int a = 0;
-	}
-	if( !pShaderCode )
-		return NULL;
-
-	const void* pBuffer = pShaderCode->GetBufferPointer();
-	uint32 nSize = pShaderCode->GetBufferSize();
-	CReference<ID3D11ShaderReflection> pReflection;
-	if( FAILED( D3DReflect( pBuffer, nSize, IID_ID3D11ShaderReflection, (void**)pReflection.AssignPtr() ) ) )
-		return NULL;
-
 	IShader* pShader;
-	EShaderType eType;
 	if( !strncmp( szProfile, "vs", 2 ) )
 	{
 		CReference<ID3D11VertexShader> pShaderObject;
-		m_pd3dDevice->CreateVertexShader( pBuffer, nSize, NULL, pShaderObject.AssignPtr() );
-		pShader = new CVertexShader( pShaderCode, pShaderObject );
-		eType = EShaderType::VertexShader;
+		m_pd3dDevice->CreateVertexShader( pShaderCode, nShaderCodeLength, NULL, pShaderObject.AssignPtr() );
+		pShader = new CVertexShader( pShaderCode, nShaderCodeLength, pShaderObject );
+		shaderType = EShaderType::VertexShader;
 	}
 	else if( !strncmp( szProfile, "ps", 2 ) )
 	{
 		CReference<ID3D11PixelShader> pShaderObject;
-		m_pd3dDevice->CreatePixelShader( pBuffer, nSize, NULL, pShaderObject.AssignPtr() );
-		pShader = new CPixelShader( pShaderCode, pShaderObject );
-		eType = EShaderType::PixelShader;
+		m_pd3dDevice->CreatePixelShader( pShaderCode, nShaderCodeLength, NULL, pShaderObject.AssignPtr() );
+		pShader = new CPixelShader( pShaderCode, nShaderCodeLength, pShaderObject );
+		shaderType = EShaderType::PixelShader;
 	}
 	else if( !strncmp( szProfile, "gs", 2 ) )
 	{
@@ -117,23 +78,98 @@ IShader* CRenderSystem::CompileShader( const char* pData, uint32 nLen, const cha
 				}
 			}
 
-			m_pd3dDevice->CreateGeometryShaderWithStreamOutput( pBuffer, nSize, soEntries, nEntries, nStrides, nVertexBuffers, nRasterizedStream, NULL, pShaderObject.AssignPtr() );
+			m_pd3dDevice->CreateGeometryShaderWithStreamOutput( pShaderCode, nShaderCodeLength, soEntries, nEntries, nStrides, nVertexBuffers, nRasterizedStream, NULL, pShaderObject.AssignPtr() );
 		}
 		else
 		{
-			m_pd3dDevice->CreateGeometryShader( pBuffer, nSize, NULL, pShaderObject.AssignPtr() );
+			m_pd3dDevice->CreateGeometryShader( pShaderCode, nShaderCodeLength, NULL, pShaderObject.AssignPtr() );
 		}
 
-		pShader = new CGeometryShader( pShaderCode, pShaderObject );
-		eType = EShaderType::GeometryShader;
+		pShader = new CGeometryShader( pShaderCode, nShaderCodeLength, pShaderObject );
+		shaderType = EShaderType::GeometryShader;
 	}
 	else
 		return NULL;
+	return pShader;
+}
+
+IShader* CRenderSystem::LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
+{
+	uint32 nSize = buf.Read<uint32>();
+	vector<uint8> vecData;
+	vecData.resize( nSize );
+	buf.Read( &vecData[0], nSize );
+
+	EShaderType eType;
+	IShader* pShader = CreateShader( eType, &vecData[0], nSize, szProfile, ppSOVertexBufferDesc, nVertexBuffers, nRasterizedStream );
+	
+	auto& shaderInfo = pShader->GetShaderInfo();
+	shaderInfo.Load( buf );
+	return pShader;
+}
+
+bool CRenderSystem::CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros, const char* szInclude,
+	const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
+{
+#ifdef _DEBUG
+	uint32 nFlag = D3D10_SHADER_DEBUG | D3D10_SHADER_AVOID_FLOW_CONTROL | D3D10_SHADER_OPTIMIZATION_LEVEL3;
+#else
+	uint32 nFlag = D3D10_SHADER_AVOID_FLOW_CONTROL | D3D10_SHADER_OPTIMIZATION_LEVEL3;
+#endif
+	CShaderInclude shaderInclude( szInclude );
+	CReference<ID3D10Blob> pShaderCode;
+	CReference<ID3D10Blob> pErrorMsg;
+
+	D3D10_SHADER_MACRO* pMacroDefs = NULL;
+	if( pMacros && pMacros->vecNames.size() )
+	{
+		pMacroDefs = ( D3D10_SHADER_MACRO* )alloca( sizeof( D3D10_SHADER_MACRO ) * ( pMacros->vecNames.size() + 1 ) );
+		int i;
+		for( i = 0; i < pMacros->vecNames.size(); i++ )
+		{
+			pMacroDefs[i].Name = pMacros->vecNames[i].c_str();
+			pMacroDefs[i].Definition = pMacros->vecDefs[i].c_str();
+		}
+		pMacroDefs[i].Name = NULL;
+		pMacroDefs[i].Definition = NULL;
+	}
+	D3DX11CompileFromMemory( pData, nLen, "", pMacroDefs, &shaderInclude, szFunctionName, szProfile, nFlag, 0, NULL, pShaderCode.AssignPtr(), pErrorMsg.AssignPtr(), NULL );
+
+	if( pErrorMsg )
+	{
+		const char* c = (const char*)pErrorMsg->GetBufferPointer();
+		OutputDebugString( Utf8ToUnicode( c ).c_str() );
+		int a = 0;
+	}
+	if( !pShaderCode )
+		return false;
+
+	const void* pBuffer = pShaderCode->GetBufferPointer();
+	uint32 nSize = pShaderCode->GetBufferSize();
+	CReference<ID3D11ShaderReflection> pReflection;
+	if( FAILED( D3DReflect( pBuffer, nSize, IID_ID3D11ShaderReflection, (void**)pReflection.AssignPtr() ) ) )
+		return false;
+
+	buf.Write( nSize );
+	buf.Write( pBuffer, nSize );
+	EShaderType eType;
+	if( !strncmp( szProfile, "vs", 2 ) )
+	{
+		eType = EShaderType::VertexShader;
+	}
+	else if( !strncmp( szProfile, "ps", 2 ) )
+	{
+		eType = EShaderType::PixelShader;
+	}
+	else if( !strncmp( szProfile, "gs", 2 ) )
+	{
+		eType = EShaderType::GeometryShader;
+	}
 
 	D3D11_SHADER_DESC ShaderDesc;
 	pReflection->GetDesc( &ShaderDesc );
 
-	auto& shaderInfo = pShader->GetShaderInfo();
+	CShaderInfo shaderInfo;
 	shaderInfo.eType = eType;
 	shaderInfo.nMaxConstantBuffer = 0;
 	shaderInfo.nMaxShaderResource = 0;
@@ -208,7 +244,8 @@ IShader* CRenderSystem::CompileShader( const char* pData, uint32 nLen, const cha
 		}
 	}
 
-	return pShader;
+	shaderInfo.Save( buf );
+	return true;
 }
 
 CShaderBoundState::CShaderBoundState( ID3D11Device* pDevice, IShader* pVertexShader, IShader* pPixelShader, const CVertexBufferDesc** ppVertexBufferDesc, uint32 nVertexBuffers, IShader* pGeometryShader )
@@ -244,7 +281,7 @@ CShaderBoundState::CShaderBoundState( ID3D11Device* pDevice, IShader* pVertexSha
 		}
 	}
 
-	pDevice->CreateInputLayout( descs, nElemCount, m_pVertexShader->GetByteCode()->GetBufferPointer(), m_pVertexShader->GetByteCode()->GetBufferSize(), m_pInputLayout.AssignPtr() );
+	pDevice->CreateInputLayout( descs, nElemCount, &m_pVertexShader->GetByteCode()[0], m_pVertexShader->GetByteCode().size(), m_pInputLayout.AssignPtr() );
 }
 
 IShader* CShaderBoundState::GetShader( EShaderType eType )

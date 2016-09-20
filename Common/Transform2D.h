@@ -10,6 +10,7 @@ public:
 	TTransform2D( const TTransform2D& transform )
 		: x( transform.x ), y( transform.y ), r( transform.r ), sx( transform.sx ), sy( transform.sy ) {}
 	TTransform2D( T x, T y, T r, T sx, T sy ) : x( x ), y( y ), r( r ), sx( sx ), sy( sy ) {}
+	TTransform2D( const TMatrix2D<T>& mat ) { mat.Decompose( x, y, r, sx, sy ); }
 
 	TTransform2D& operator= ( const TTransform2D& transform )
 	{

@@ -157,6 +157,46 @@ void CRopeDrawable2D::Flush( CRenderContext2D& context )
 	m_material.UnApply( context );
 }
 
+void CRopeDrawable2D::Load( IBufReader& buf )
+{
+	CParticleSystemDrawable::Load( buf );
+	m_nRopeMaxInst = buf.Read<uint16>();
+}
+
+void CRopeDrawable2D::BindParams()
+{
+	CParticleSystemDrawable::BindParams();
+	BindParamsNoParticleSystem();
+}
+
+void CRopeDrawable2D::BindParamsNoParticleSystem()
+{
+	IShader* pVS = m_material.GetShader( EShaderType::VertexShader );
+	if( pVS )
+		pVS->GetShaderInfo().Bind( m_paramSegmentsPerData, "g_segmentsPerData" );
+}
+
+void CRopeDrawable2D::Save( CBufFile& buf )
+{
+	CParticleSystemDrawable::Save( buf );
+	buf.Write<uint16>( m_nRopeMaxInst );
+}
+
+void CRopeDrawable2D::LoadNoParticleSystem( IBufReader& buf )
+{
+	m_pBlendState = LoadBlendState( buf );
+	m_material.Load( buf );
+
+	m_nRopeMaxInst = m_material.GetMaxInst();
+	BindParamsNoParticleSystem();
+}
+
+void CRopeDrawable2D::SaveNoParticleSystem( CBufFile& buf )
+{
+	SaveBlendState( buf, m_pBlendState );
+	m_material.Save( buf );
+}
+
 void CRopeDrawable2D::LoadXml( TiXmlElement* pRoot )
 {
 	CParticleSystemDrawable::LoadXml( pRoot );
@@ -165,6 +205,11 @@ void CRopeDrawable2D::LoadXml( TiXmlElement* pRoot )
 	IShader* pVS = m_material.GetShader( EShaderType::VertexShader );
 	if( pVS )
 		pVS->GetShaderInfo().Bind( m_paramSegmentsPerData, "g_segmentsPerData" );
+}
+
+void CRopeDrawable2D::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
+{
+	m_material.BindShaderResource( eShaderType, szName, pShaderResource );
 }
 
 CRopeObject2D::CRopeObject2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, CParticleSystemInstance* pData, bool bGUI )
@@ -233,11 +278,11 @@ void SRopeData::CalcLocalBound( CRectangle& rect )
 		if( !ropeData.pRefObj )
 		{
 			float fHalfWidth = ropeData.fWidth * 0.5f;
-			CRectangle rect( ropeData.center.x - fHalfWidth, ropeData.center.y - fHalfWidth, ropeData.center.x + fHalfWidth, ropeData.center.y + fHalfWidth );
+			CRectangle rect1( ropeData.center.x - fHalfWidth, ropeData.center.y - fHalfWidth, ropeData.center.x + fHalfWidth, ropeData.center.y + fHalfWidth );
 			if( rect.width > 0 )
-				rect = rect + rect;
+				rect = rect + rect1;
 			else
-				rect = rect;
+				rect = rect1;
 		}
 	}
 }

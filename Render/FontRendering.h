@@ -29,10 +29,16 @@ public:
 	CFontObject( CFontFile* pFontFile, uint16 nSize, CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, const CRectangle& rect, uint8 nAlignment, bool bGUI = false, bool bInvertY = false );
 	~CFontObject() { SetText( L"" ); }
 
+	uint8 GetAlignX() { return m_nAlignment & 3; }
+	uint8 GetAlignY() { return ( m_nAlignment >> 2 ) & 3; }
+
 	const wchar_t* GetText() { return m_strText.c_str(); }
 	void SetSize( CFontFile* pFontFile, uint16 nSize );
 	void SetRect( const CRectangle& rect );
 	void SetMultiLine( bool bMultiLine ) { m_bMultiLine = bMultiLine; }
+	void SetAlignment( uint8 nAlignment );
+	const CRectangle& GetGlobalClip() { return m_globalClip; }
+	void SetGlobalClip( bool bClip, const CRectangle& rect ) { m_bGlobalClipValid = bClip; m_globalClip = rect; }
 
 	TVector2<uint32> GetCursorPosByLocalPos( const CVector2& localPos );
 	void GetCursorShowPos( CVector2& p, CVector2& p1 );
@@ -56,6 +62,9 @@ private:
 	bool m_bMultiLine;
 	CVector2 m_editOfs;
 	TVector2<uint32> m_cursorPos;
+
+	bool m_bGlobalClipValid;
+	CRectangle m_globalClip;
 
 	CElement2D m_element2D;
 	vector<SCharacterRenderInfo> m_characters;

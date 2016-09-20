@@ -1,11 +1,12 @@
 #include "Common.h"
 #include "ResourceManager.h"
+#include "FileUtil.h"
 
 CResourceManager::CResourceManager()
 {
 }
 
-CResource* CResourceFactory::CreateResource( const char* name )
+CResource* CResourceFactory::CreateResource( const char* name, bool bNew )
 {
 	map<string, CResource*>::iterator itr = m_mapRes.find( name );
 	if( itr != m_mapRes.end() )
@@ -15,6 +16,13 @@ CResource* CResourceFactory::CreateResource( const char* name )
 
 	CResource* pRes = Create( name );
 	pRes->Create();
+	if( !bNew && !pRes->IsCreated() )
+	{
+		pRes->AddRef();
+		pRes->Release();
+		return NULL;
+	}
+
 	m_mapRes[name] = pRes;
 	return pRes;
 }
@@ -29,8 +37,12 @@ void CResourceManager::RemoveRes( CResource* pRes )
 	m_mapFactories[pRes->GetResourceType()]->RemoveRes( pRes );
 }
 
-CResourceManager* CResourceManager::Inst()
+template <>
+CResource* CResourceManager::CreateResource( const char* name, bool bNew )
 {
-	static CResourceManager g_inst;
-	return &g_inst;
+	const char* szExt = GetFileExtension( name );
+	auto itr = m_mapExts.find( szExt );
+	if( itr != m_mapExts.end() )
+		return m_mapFactories[itr->second]->CreateResource( name, bNew );
+	return NULL;
 }

@@ -76,6 +76,7 @@ CConstantBuffer::CConstantBuffer( ID3D11Device* pDevice, uint32 nSize, bool bSha
 			nSharedPool--;
 
 			m_nSharedPool = nSharedPool;
+			m_nUpdatedSize = m_nSize;
 		}
 		else
 		{
@@ -159,7 +160,8 @@ void CConstantBuffer::CommitChanges( ID3D11Device* pDevice, ID3D11DeviceContext*
 			uint32 nSharedSize = MAX_CONSTANT_BUFFER_SIZE >> m_nSharedPool;
 			pDeviceContext->UpdateSubresource( m_pBuffer, 0, NULL, m_pData, nSharedSize, nSharedSize );
 		}
-		pDeviceContext->UpdateSubresource( m_pBuffer, 0, NULL, m_pData, m_nSize, m_nSize );
+		else
+			pDeviceContext->UpdateSubresource( m_pBuffer, 0, NULL, m_pData, m_nSize, m_nSize );
 		m_nUpdatedSize = 0;
 	}
 }

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -42,10 +42,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(ProjectDir)..\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(DXSDK_DIR)Lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(ProjectDir)..\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -55,6 +57,7 @@
       <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)../Common;$(ProjectDir)../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,6 +89,7 @@
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="DefaultDrawable2D.h" />
     <ClInclude Include="Drawable2D.h" />
+    <ClInclude Include="DrawableGroup.h" />
     <ClInclude Include="DX11\DX11Common.h" />
     <ClInclude Include="DX11\DX11ConstantBuffer.h" />
     <ClInclude Include="DX11\DX11DeviceState.h" />
@@ -94,6 +98,7 @@
     <ClInclude Include="DX11\DX11RenderSystem.h" />
     <ClInclude Include="DX11\DX11Shader.h" />
     <ClInclude Include="DX11\DX11ShaderResource.h" />
+    <ClInclude Include="DX11\DX11Sound.h" />
     <ClInclude Include="DX11\DX11Texture.h" />
     <ClInclude Include="DX11\DX11VertexBuffer.h" />
     <ClInclude Include="DX11\DXUT\Core\DXUT.h" />
@@ -112,6 +117,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="PostProcess.h" />
+    <ClInclude Include="Prefab.h" />
     <ClInclude Include="RenderContext2D.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RenderObject2D.h" />
@@ -121,10 +127,13 @@
     <ClInclude Include="Scene2DManager.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderResource.h" />
+    <ClInclude Include="SimpleRenderer.h" />
+    <ClInclude Include="Sound.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="SystemShaderParams.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureAtlas.h" />
+    <ClInclude Include="TileMap2D.h" />
     <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +142,7 @@
     <ClCompile Include="Canvas.cpp" />
     <ClCompile Include="CommonShader.cpp" />
     <ClCompile Include="DefaultDrawable2D.cpp" />
+    <ClCompile Include="DrawableGroup.cpp" />
     <ClCompile Include="DX11\ConstantBuffer.cpp" />
     <ClCompile Include="DX11\DX11DeviceState.cpp" />
     <ClCompile Include="DX11\DXUT\Core\DXUT.cpp">
@@ -156,11 +166,12 @@
     <ClCompile Include="DX11\RenderSystem.cpp" />
     <ClCompile Include="DX11\Shader.cpp" />
     <ClCompile Include="DX11\ShaderResource.cpp" />
+    <ClCompile Include="DX11\Sound.cpp" />
     <ClCompile Include="DX11\Texture.cpp" />
     <ClCompile Include="DX11\VertexBuffer.cpp" />
     <ClCompile Include="Font.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)../implib/freetype-2.6.3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)../implib/freetype-2.6.3/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)../implib/freetype-2.6.3/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="FontRendering.cpp" />
     <ClCompile Include="Footprint.cpp" />
@@ -171,12 +182,15 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="PostProcess.cpp" />
+    <ClCompile Include="Prefab.cpp" />
     <ClCompile Include="RenderContext2D.cpp" />
     <ClCompile Include="RenderObject2D.cpp" />
     <ClCompile Include="RenderTargetPool.cpp" />
     <ClCompile Include="Rope2D.cpp" />
     <ClCompile Include="Scene2DManager.cpp" />
     <ClCompile Include="ShaderParams.cpp" />
+    <ClCompile Include="SimpleRenderer.cpp" />
+    <ClCompile Include="SoundFile.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -184,6 +198,7 @@
     <ClCompile Include="SystemShaderParams.cpp" />
     <ClCompile Include="TextureAtlas.cpp" />
     <ClCompile Include="TextureFile.cpp" />
+    <ClCompile Include="TileMap2D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\Shader\Light2D.shader" />
@@ -193,7 +208,11 @@
     <None Include="..\Shader\CommonMaterial.shader" />
     <None Include="..\Shader\Default2D.shader" />
     <None Include="..\Shader\Default2D.shh" />
+    <None Include="..\Shader\Default2DScrTiled.shader" />
     <None Include="..\Shader\Default2DUI.shader" />
+    <None Include="..\Shader\Default2DWithPos.shader" />
+    <None Include="..\Shader\Default2DWithScrTex.shader" />
+    <None Include="..\Shader\Default2DWorldToTex.shader" />
     <None Include="..\Shader\Light2DInstancing.shader" />
     <None Include="..\Shader\Rope2D.shader" />
     <None Include="..\Shader\SingleImage2D.shader" />

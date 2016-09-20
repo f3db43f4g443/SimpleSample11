@@ -31,13 +31,23 @@
 			__pPrev##name = &pHead; \
 			pHead = this; \
 		} \
-		void Transplant_##name( type* &pHead ) \
+		type** Transplant_##name( type* &pHead ) \
 		{ \
+			auto ppRet = __pPrev##name; \
 			*__pPrev##name = pHead; \
 			if( pHead ) \
 				pHead->__pPrev##name = __pPrev##name; \
 			__pPrev##name = &pHead; \
 			pHead = this; \
+			return ppRet; \
+		} \
+		static void Swap_##name( type* a, type* b, type* c ) \
+		{ \
+			type* pHead = NULL; \
+			type** ppHead1 = a->Transplant_##name( pHead ); \
+			ppHead1 = b->Transplant_##name( *ppHead1 ); \
+			ppHead1 = c->Transplant_##name( *ppHead1 ); \
+			a->Transplant_##name( *ppHead1 ); \
 		} \
 		void RemoveFrom_##name() \
 		{ \
@@ -112,13 +122,23 @@
 			__pPrev##name = &pHead; \
 			pHead = this; \
 		} \
-		void Transplant_##name( type* &pHead ) \
+		type** Transplant_##name( type* &pHead ) \
 		{ \
+			auto ppRet = __pPrev##name; \
 			*__pPrev##name = pHead; \
 			if( pHead ) \
 				pHead->__pPrev##name = __pPrev##name; \
 			__pPrev##name = &pHead; \
 			pHead = this; \
+			return ppRet; \
+		} \
+		static void Swap_##name( type* a, type* b, type* c ) \
+		{ \
+			type* pHead = NULL; \
+			type** ppHead1 = a->Transplant_##name( pHead ); \
+			ppHead1 = b->Transplant_##name( *ppHead1 ); \
+			ppHead1 = c->Transplant_##name( *ppHead1 ); \
+			a->Transplant_##name( *ppHead1 ); \
 		} \
 		void RemoveFrom_##name() \
 		{ \
@@ -167,7 +187,7 @@
 	protected: \
 		type* member; \
 	public: \
-		type* Get_##name() \
+		type*& Get_##name() \
 		{ \
 			return member; \
 		} \
@@ -186,7 +206,7 @@
 	protected: \
 		type* member[size]; \
 	public: \
-		type* Get_##name( int n ) \
+		type*& Get_##name( int n ) \
 		{ \
 			return member[n]; \
 		} \

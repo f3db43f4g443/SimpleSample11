@@ -194,6 +194,7 @@ public:
 	uint32 GetPose() { return m_nPose; }
 	void SetPose( uint32 nPose ) { m_nPose = nPose; }
 
+	float GetUpdateTime() { return m_fUpdateTime; }
 	void UpdateTime( float fDeltaTime ) { m_fUpdateTime += fDeltaTime; }
 	void Update( const CMatrix2D& matGlobal );
 	const CMatrix2D& GetTransform( uint32 nTransform ) { return nTransform < m_vecTransforms.size()? m_vecTransforms[nTransform]: CMatrix2D::GetIdentity(); }

@@ -52,3 +52,17 @@ IVertexBuffer* CRenderSystem::CreateVertexBuffer( uint32 nElements, const struct
 {
 	return new CVertexBuffer( m_pd3dDevice, nElements, pElements, nVertices, pData, bIsDynamic, bBindShaderResource, bBindStreamOutput, bIsInstance );
 }
+
+void CRenderSystem::Lock( IVertexBuffer* pVertexBuffer, void** ppData )
+{
+	auto pBuffer = static_cast<CVertexBuffer*>( pVertexBuffer )->GetBuffer();
+	D3D11_MAPPED_SUBRESOURCE subResource;
+	m_pDeviceContext->Map( pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &subResource );
+	*ppData = subResource.pData;
+}
+
+void CRenderSystem::Unlock( IVertexBuffer* pVertexBuffer )
+{
+	auto pBuffer = static_cast<CVertexBuffer*>( pVertexBuffer )->GetBuffer();
+	m_pDeviceContext->Unmap( pBuffer, 0 );
+}

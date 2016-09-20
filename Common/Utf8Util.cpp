@@ -38,6 +38,13 @@ void Utf8ToUnicode( const char* szSrc, wstring& strDst )
 	}
 }
 
+wstring Utf8ToUnicode( const char* szSrc )
+{
+	wstring str;
+	Utf8ToUnicode( szSrc, str );
+	return str;
+}
+
 void UnicodeToUtf8( const wchar_t* szSrc, string& strDst )
 {
 	const wchar_t* p = szSrc;
@@ -60,4 +67,11 @@ void UnicodeToUtf8( const wchar_t* szSrc, string& strDst )
 			strDst.push_back( (char)( 0x80 | ( c0 & 0x3f ) ) );
 		}
 	}
+}
+
+string UnicodeToUtf8( const wchar_t* szSrc )
+{
+	string str;
+	UnicodeToUtf8( szSrc, str );
+	return str;
 }

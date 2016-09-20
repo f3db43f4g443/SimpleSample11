@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "MathUtil.h"
+#include "Euler.h"
 
 float randFloat()
 {
@@ -30,6 +31,13 @@ uint32 Pow2Ceil( uint32 n )
 		i++;
 	}
 	return 1 << i;
+}
+
+float NormalizeAngle( float f )
+{
+	f = ( f - PI ) / ( PI * 2 );
+	f = ( f - floor( f ) ) * ( PI * 2 ) - PI;
+	return f;
 }
 
 struct SZCurveTable

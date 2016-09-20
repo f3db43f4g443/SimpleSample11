@@ -6,6 +6,7 @@ class CFlyingObject : public CEntity
 {
 public:
 	CFlyingObject();
+	CFlyingObject( const SClassCreateContext& context );
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;

@@ -78,6 +78,56 @@
     <ClCompile Include="Effects\CrackMeshGenerator.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
+    <ClCompile Include="World.cpp" />
+    <ClCompile Include="Entities\Slime.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SlimeCore.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Barrage.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SlimeBlister.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\DynamicTextures.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\SlimeGenerator1.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Useable.cpp" />
+    <ClCompile Include="Entities\SlimeGenerator2.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Door.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Entrance.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\StartPoint.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\TutorialGame.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\TutorialGame0.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\GlitchEffect.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\AIObject.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\ParticleTimeoutEmitter.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\CommonBullet.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -85,7 +135,6 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="stdafx.h" />
-    <CLInclude Include="winresource.h" />
     <ClInclude Include="Physics\HitProxy.h">
       <Filter>Physics</Filter>
     </ClInclude>
@@ -158,9 +207,56 @@
     <ClInclude Include="Effects\CrackMeshGenerator.h">
       <Filter>Effects</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="Game.rc" />
+    <ClInclude Include="World.h" />
+    <ClInclude Include="Entities\Slime.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SlimeCore.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Barrage.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SlimeBlister.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\DynamicTextures.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\SlimeGenerator1.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Useable.h" />
+    <ClInclude Include="Entities\SlimeGenerator2.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Door.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Entrance.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\StartPoint.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\TutorialGame.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\TutorialGame0.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\GlitchEffect.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\AIObject.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ParticleTimeoutEmitter.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\CommonBullet.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -209,6 +305,18 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Particle1.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Slime.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\TutorialGame.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\ParticleCommon.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\TutorialGame_Particle.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

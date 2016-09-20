@@ -151,8 +151,11 @@ enum EComparison
 enum
 {
 	eEngineResType_Texture,
-	eEngineResType_Shader,
+	eEngineResType_DrawableGroup,
+	eEngineResType_ParticleSystem,
+	eEngineResType_Prefab,
 	eEngineResType_Font,
+	eEngineResType_Sound,
 
 	eEngineResType_End,
 };
@@ -165,3 +168,5 @@ enum
 #define MAX_RENDER_TARGETS 8
 #define MAX_VIEWPORTS 8
 #define MAX_SO_TARGETS 4
+
+void Engine_ShaderImplement_Dummy();

@@ -6,7 +6,9 @@
 #include "ConstantBuffer.h"
 #include "Texture.h"
 #include "Shader.h"
+#include "Sound.h"
 #include "RenderState.h"
+#include "BufFile.h"
 
 struct SViewport
 {
@@ -39,10 +41,14 @@ public:
 		bool bIsDynamic = false, bool bBindRenderTarget = false, bool bBindDepthStencil = false ) = 0;
 	virtual IConstantBuffer* CreateConstantBuffer( uint32 nSize, bool bUsePool ) = 0;
 
+	virtual ISound* CreateSound( void* pBuffer, uint32 nSize, const SWaveFormat& format ) = 0;
+	virtual ISoundTrack* CreateSoundTrack( ISound* pSound ) = 0;
+
 	virtual IRenderTarget* GetDefaultRenderTarget() = 0;
 	virtual IDepthStencil* GetDefaultDepthStencil() = 0;
-
-	virtual IShader* CompileShader( const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
+	
+	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) = 0;
+	virtual bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
 		const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) = 0;
 
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) = 0;
@@ -84,12 +90,18 @@ public:
 	virtual void CopyResource( ITexture* pDst, ITexture* pSrc ) = 0;
 	virtual void UpdateSubResource( ITexture* pDst, void* pData, TVector3<uint32> vMin, TVector3<uint32> vMax, uint32 nRowPitch, uint32 nDepthPitch ) = 0;
 
+	virtual void Lock( IVertexBuffer* pVertexBuffer, void** ppData ) = 0;
+	virtual void Unlock( IVertexBuffer* pVertexBuffer ) = 0;
+
 	void SetGame( IGame* pGame ) { m_pGame = pGame; }
+	IGame* GetGame() { return m_pGame; }
 	void SetRenderer( IRenderer* pRenderer ) { m_pRenderer = pRenderer; }
+	IRenderer* GetRenderer() { return m_pRenderer; }
 	
 	double GetLastTime() { return m_dLastTime; }
 	double GetTotalTime() { return m_dTime; }
 	float GetElapsedTime() { return m_fElapsedTime; }
+	const CVector2& GetScreenRes() { return m_screenRes; }
 	
 	static IRenderSystem* Inst();
 protected:
@@ -99,4 +111,5 @@ protected:
 	double m_dLastTime;
 	double m_dTime;
 	float m_fElapsedTime;
+	CVector2 m_screenRes;
 };

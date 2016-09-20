@@ -1,15 +1,21 @@
 #pragma once
 #include "Drawable2D.h"
 #include "Material.h"
+#include "BufFile.h"
 
 class TiXmlElement;
 class CDefaultDrawable2D : public CDrawable2D
 {
+	friend class CMaterialEditor;
 public:
 	CDefaultDrawable2D();
 	~CDefaultDrawable2D();
 
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+
 	void LoadXml( TiXmlElement* pRoot );
+	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 	void Flush( CRenderContext2D& context );
 protected:
 	virtual void OnApplyMaterial( CRenderContext2D& context ) {}

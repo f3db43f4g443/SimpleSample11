@@ -35,8 +35,10 @@ public:
 	void Translate(T x, T y);
 	void Rotate(T angle);
 	void Scale(T s);
-	void Decompose(T& x, T& y, T& angle, T& s);
-	TMatrix2D InverseNoScale();
+	void Decompose(T& x, T& y, T& angle, T& s) const;
+	void Decompose(T& x, T& y, T& angle, T& sx, T& sy) const;
+	TMatrix2D Inverse() const;
+	TMatrix2D InverseNoScale() const;
 
 	static const TMatrix2D<T>& GetIdentity()
 	{

@@ -3,7 +3,9 @@
 #include "RenderSystem.h"
 #include "GlobalRenderResources.h"
 #include "Texture.h"
+#include "DrawableGroup.h"
 #include "Font.h"
+#include "Prefab.h"
 #include "CommonShader.h"
 #include "ResourceManager.h"
 #include "Scene2DManager.h"
@@ -11,12 +13,11 @@
 
 void CLighted2DRenderer::OnCreateDevice( IRenderSystem* pSystem )
 {
-	CResourceManager::Inst()->Register( new TResourceFactory<CTextureFile>() );
-	CResourceManager::Inst()->Register( new TResourceFactory<CFontFile>() );
-	CTextureFile::InitLoader();
-	CFontFile::Init();
-
-	CGlobalRenderResources::Inst()->Init( pSystem );
+	if( !m_bIsSubRenderer )
+	{
+		InitEngine();
+		CGlobalRenderResources::Inst()->Init( pSystem );
+	}
 
 	m_lightMapRes = CVector2( 2048, 2048 );
 }
@@ -24,12 +25,22 @@ void CLighted2DRenderer::OnCreateDevice( IRenderSystem* pSystem )
 void CLighted2DRenderer::OnResize( IRenderSystem* pSystem, const CVector2& size )
 {
 	m_screenRes = size;
-	CRenderTargetPool::GetSizeDependentPool().Clear();
+	if( !m_bIsSubRenderer )
+		CRenderTargetPool::GetSizeDependentPool().Clear();
+	else
+	{
+		ReleaseSubRendererTexture();
+		m_sizeDependentPool.Clear();
+	}
 }
 
 void CLighted2DRenderer::OnDestroyDevice( IRenderSystem* pSystem )
 {
-
+	if( m_bIsSubRenderer )
+	{
+		ReleaseSubRendererTexture();
+		m_sizeDependentPool.Clear();
+	}
 }
 
 void CLighted2DRenderer::OnUpdate( IRenderSystem* pSystem )
@@ -52,23 +63,29 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 	m_nTimeStamp += m_nUpdateFrames;
 	context.nFixedUpdateCount = m_nUpdateFrames;
 
-	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
-	pSceneMgr->UpdateDirty();
-	
-	for( auto pFootprintMgr = pSceneMgr->Get_FootprintMgr(); pFootprintMgr; pFootprintMgr = pFootprintMgr->NextFootprintMgr() )
-	{
-		pFootprintMgr->Update( context.dTime, pSystem );
-	}
-	pSceneMgr->UpdateDirty();
-
 	pSystem->SetPrimitiveType( EPrimitiveType::TriangleList );
+	
+	if( !m_bIsSubRenderer )
+	{
+		CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
+		pSceneMgr->UpdateDirty();
+	
+		for( auto pFootprintMgr = pSceneMgr->Get_FootprintMgr(); pFootprintMgr; pFootprintMgr = pFootprintMgr->NextFootprintMgr() )
+		{
+			pFootprintMgr->Update( context.dTime, pSystem );
+		}
+		pSceneMgr->UpdateDirty();
+		pSceneMgr->Trigger( CScene2DManager::eEvent_BeforeRender );
+	}
 
-	auto& sizeDependentPool = CRenderTargetPool::GetSizeDependentPool();
+	auto& sizeDependentPool = m_bIsSubRenderer ? m_sizeDependentPool : CRenderTargetPool::GetSizeDependentPool();
 	auto& sizeIndependentPool = CRenderTargetPool::GetSizeIndependentPool();
 	
 	//Base pass
 	sizeDependentPool.AllocRenderTarget( m_pColorBuffer, ETextureType::Tex2D, m_screenRes.x, m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
 	sizeDependentPool.AllocRenderTarget( m_pEmissionBuffer, ETextureType::Tex2D, m_screenRes.x, m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+	if( m_bIsSubRenderer )
+		sizeDependentPool.AllocRenderTarget( m_pDepthStencil, ETextureType::Tex2D, m_screenRes.x, m_screenRes.y, 1, 1, EFormat::EFormatD32FloatS8X24UInt, NULL, false, false, true );
 	RenderColorBuffer( context );
 
 	sizeIndependentPool.AllocRenderTarget( m_pOcclusionBuffer, ETextureType::Tex2D, m_lightMapRes.x, m_lightMapRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
@@ -99,7 +116,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 			: m_pRenderer( pRenderer ), m_pSystem( pSystem ) {}
 		virtual void Process( CPostProcessPass* pPass, IRenderTarget* pFinalTarget ) override
 		{
-			auto& sizeDependentPool = CRenderTargetPool::GetSizeDependentPool();
+			auto& sizeDependentPool = m_pRenderer->m_bIsSubRenderer ? m_pRenderer->m_sizeDependentPool : CRenderTargetPool::GetSizeDependentPool();
 			IRenderTarget* pTarget = pFinalTarget;
 			if( !pTarget )
 			{
@@ -119,13 +136,17 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 		IRenderSystem* m_pSystem;
 	};
 
+	if( m_bIsSubRenderer )
+		sizeDependentPool.AllocRenderTarget( m_pSubRendererTexture, ETextureType::Tex2D, m_screenRes.x, m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
 	CPostProcessRenderScene renderScenePass( this, pSystem );
 	CReference<ITexture> pTempTarget;
 	pPostProcessPass->Register( &renderScenePass );
-	pPostProcessPass->Process( pSystem, pTempTarget, pSystem->GetDefaultRenderTarget() );
+	pPostProcessPass->Process( pSystem, pTempTarget, m_pSubRendererTexture ? m_pSubRendererTexture->GetRenderTarget() : pSystem->GetDefaultRenderTarget() );
 	sizeDependentPool.Release( pTempTarget );
 
 	RenderGUI( context );
+	if( m_bIsSubRenderer )
+		sizeDependentPool.Release( m_pDepthStencil );
 
 	while( context.pUpdatedObjects )
 	{
@@ -139,25 +160,34 @@ void CLighted2DRenderer::RenderColorBuffer( CRenderContext2D& context )
 {
 	context.eRenderPass = eRenderPass_Color;
 	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
-	pSceneMgr->Render( context );
+	if( m_bIsSubRenderer )
+		pSceneMgr->Render( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+	else
+		pSceneMgr->Render( context );
 
 	IRenderSystem* pSystem = context.pRenderSystem;
 	IRenderTarget* pTargets[2] = { m_pColorBuffer->GetRenderTarget(), m_pEmissionBuffer->GetRenderTarget() };
-	pSystem->SetRenderTargets( pTargets, 2, pSystem->GetDefaultDepthStencil() );
+	pSystem->SetRenderTargets( pTargets, 2, m_bIsSubRenderer ? m_pDepthStencil->GetDepthStencil() : pSystem->GetDefaultDepthStencil() );
 	pSystem->ClearRenderTarget( CVector4( 0, 0, 0, 0 ), pTargets[0] );
 	pSystem->ClearRenderTarget( CVector4( 0, 0, 0, 0 ), pTargets[1] );
 	pSystem->ClearDepthStencil( true, 1.0f, true, 0 );
 	SViewport viewport = { 0, 0, m_screenRes.x, m_screenRes.y, 0, 1 };
 	pSystem->SetViewports( &viewport, 1 );
-
-	pSceneMgr->Flush( context );
+	
+	if( m_bIsSubRenderer )
+		pSceneMgr->Flush( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+	else
+		pSceneMgr->Flush( context );
 }
 
 void CLighted2DRenderer::RenderOcclusionBuffer( CRenderContext2D& context )
 {
 	context.eRenderPass = eRenderPass_Occlusion;
 	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
-	pSceneMgr->Render( context );
+	if( m_bIsSubRenderer )
+		pSceneMgr->Render( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+	else
+		pSceneMgr->Render( context );
 
 	IRenderSystem* pSystem = context.pRenderSystem;
 	pSystem->SetRenderTarget( m_pOcclusionBuffer->GetRenderTarget(), m_pDepthStencilHighRes->GetDepthStencil() );
@@ -166,7 +196,10 @@ void CLighted2DRenderer::RenderOcclusionBuffer( CRenderContext2D& context )
 	SViewport viewport = { 0, 0, m_lightMapRes.x, m_lightMapRes.y, 0, 1 };
 	pSystem->SetViewports( &viewport, 1 );
 
-	pSceneMgr->Flush( context );
+	if( m_bIsSubRenderer )
+		pSceneMgr->Flush( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+	else
+		pSceneMgr->Flush( context );
 }
 
 void CLighted2DRenderer::RenderLights( CRenderContext2D& context )
@@ -189,67 +222,66 @@ void CLighted2DRenderer::RenderGUI( CRenderContext2D& context )
 	context.eRenderPass = eRenderPass_GUI;
 	
 	IRenderSystem* pSystem = context.pRenderSystem;
-	pSystem->SetRenderTarget( pSystem->GetDefaultRenderTarget(), pSystem->GetDefaultDepthStencil() );
+	pSystem->SetRenderTarget( m_pSubRendererTexture ? m_pSubRendererTexture->GetRenderTarget() : pSystem->GetDefaultRenderTarget(),
+		m_bIsSubRenderer ? m_pDepthStencil->GetDepthStencil() : pSystem->GetDefaultDepthStencil() );
 	pSystem->ClearDepthStencil( true, 1.0f, true, 0 );
 	SViewport viewport = { 0, 0, m_screenRes.x, m_screenRes.y, 0, 1 };
 	pSystem->SetViewports( &viewport, 1 );
 
 	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
-	pSceneMgr->Flush( context );
+	if( m_bIsSubRenderer )
+		pSceneMgr->Flush( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+	else
+		pSceneMgr->Flush( context );
 }
 
-class CLightScenePixelShader : public CGlobalShader
+void IRenderer::DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color )
 {
-	DECLARE_GLOBAL_SHADER( CLightScenePixelShader );
-protected:
-	virtual void OnCreated() override
-	{
-		GetShader()->GetShaderInfo().Bind( m_tex0, "ColorMap" );
-		GetShader()->GetShaderInfo().Bind( m_tex1, "EmissionMap" );
-		GetShader()->GetShaderInfo().Bind( m_tex2, "LightMap" );
-		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
-	}
-public:
-	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pColorMap, IShaderResource* pEmissionMap, IShaderResource* pLightMap )
-	{
-		m_tex0.Set( pRenderSystem, pColorMap );
-		m_tex1.Set( pRenderSystem, pEmissionMap );
-		m_tex2.Set( pRenderSystem, pLightMap );
-		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
-	}
-private:
-	CShaderParamShaderResource m_tex0;
-	CShaderParamShaderResource m_tex1;
-	CShaderParamShaderResource m_tex2;
-	CShaderParamSampler m_paramLinearSampler;
-};
-
-IMPLEMENT_GLOBAL_SHADER( CLightScenePixelShader, "Shader/Light2D.shader", "PSScene", "ps_5_0" );
-
-void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTarget )
-{
-	pSystem->SetRenderTarget( pTarget, NULL );
-	SViewport viewport = { 0, 0, m_screenRes.x, m_screenRes.y, 0, 1 };
-	pSystem->SetViewports( &viewport, 1 );
-
+	pSystem->SetPrimitiveType( EPrimitiveType::LineList );
+	
 	pSystem->SetBlendState( IBlendState::Get<>() );
 	pSystem->SetDepthStencilState( IDepthStencilState::Get<>() );
 	pSystem->SetRasterizerState( IRasterizerState::Get<>() );
 
-	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
-	pSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
-
-	auto pVertexShader = CScreenVertexShader::Inst();
-	auto pPixelShader = CLightScenePixelShader::Inst();
+	CVector2* pVertexData;
+	pSystem->Lock( CGlobalRenderResources::Inst()->GetVBDebug(), (void**)&pVertexData );
+	pVertexData[0] = pt1;
+	pVertexData[1] = pt2;
+	pSystem->Unlock( CGlobalRenderResources::Inst()->GetVBDebug() );
+	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBDebug() );
+	
+	auto pVertexShader = CDebugDrawShader::Inst();
+	auto pPixelShader = COneColorPixelShader::Inst();
 	static IShaderBoundState* g_pShaderBoundState = NULL;
 	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
 	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
+	pPixelShader->SetParams( pSystem, color );
 
-	CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
-	CRectangle srcRect( 0, 0, m_screenRes.x, m_screenRes.y );
+	pSystem->Draw( 2, 0 );
 
-	pVertexShader->SetParams( pSystem, dstRect, srcRect, dstRect.GetSize(), srcRect.GetSize() );
-	pPixelShader->SetParams( pSystem, m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(), m_pLightAccumulationBuffer->GetShaderResource() );
+	pSystem->SetPrimitiveType( EPrimitiveType::TriangleList );
+}
 
-	pSystem->DrawInput();
+void IRenderer::DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color )
+{
+	pSystem->SetBlendState( IBlendState::Get<>() );
+	pSystem->SetDepthStencilState( IDepthStencilState::Get<>() );
+	pSystem->SetRasterizerState( IRasterizerState::Get<>() );
+
+	CVector2* pVertexData;
+	pSystem->Lock( CGlobalRenderResources::Inst()->GetVBDebug(), (void**)&pVertexData );
+	pVertexData[0] = pt1;
+	pVertexData[1] = pt2;
+	pVertexData[2] = pt3;
+	pSystem->Unlock( CGlobalRenderResources::Inst()->GetVBDebug() );
+	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBDebug() );
+	
+	auto pVertexShader = CDebugDrawShader::Inst();
+	auto pPixelShader = COneColorPixelShader::Inst();
+	static IShaderBoundState* g_pShaderBoundState = NULL;
+	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
+	pPixelShader->SetParams( pSystem, color );
+
+	pSystem->Draw( 3, 0 );
 }

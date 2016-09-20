@@ -16,6 +16,8 @@ public:
 	{
 	public:
 		virtual void Init() = 0;
+		virtual void Compile() = 0;
+		virtual const char* GetFileName() = 0;
 	};
 
 	template<class T>
@@ -30,7 +32,10 @@ public:
 		}
 
 		T* GetShader() { return m_pShader; }
-		void Init() { m_pShader->Create( m_szShaderName, m_szName, m_szFunctionName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
+		void Init() { m_pShader->Create( m_szShaderName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
+		void Compile() { m_pShader->Compile( m_szShaderName, m_szName, m_szFunctionName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
+
+		const char* GetFileName() { return m_szName; }
 	protected:
 		T* m_pShader;
 		const char* m_szShaderName;
@@ -43,11 +48,18 @@ public:
 	};
 
 	virtual ~CGlobalShader() {}
-	void Create( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 );
+	void Create( const char* szShaderName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 );
+	void Compile( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 );
 	
 	IShader* GetShader() { return m_pShader; }
 
 	static void Init( IRenderSystem* pRenderSystem );
+	static bool Compile( IRenderSystem* pRenderSystem, const char* szFileName = NULL );
+	static map<string, IShader*>& GetShaders()
+	{
+		static map<string, IShader*> g_shaders;
+		return g_shaders;
+	}
 	static IShader* GetShaderByName( const char* szName );
 protected:
 	virtual void SetMacros( SShaderMacroDef& macros ) {}
@@ -58,12 +70,6 @@ private:
 	static vector<IInitor*>& GetShaderInitors()
 	{
 		static vector<IInitor*> g_shaders;
-		return g_shaders;
-	}
-
-	static map<string, IShader*>& GetShaders()
-	{
-		static map<string, IShader*> g_shaders;
 		return g_shaders;
 	}
 };
@@ -93,12 +99,16 @@ public:
 		return &g_inst;
 	}
 
+	IVertexBuffer* GetVBDebug() { return m_pVBDebug; }
 	IVertexBuffer* GetVBQuad() { return m_pVBQuad; }
 	IIndexBuffer* GetIBQuad() { return m_pIBQuad; }
 	static const uint32 nStripInstanceCount = 4096;
 	IVertexBuffer* GetVBStrip() { return m_pVBStrip; }
 private:
+	CReference<IVertexBuffer> m_pVBDebug;
 	CReference<IVertexBuffer> m_pVBQuad;
 	CReference<IIndexBuffer> m_pIBQuad;
 	CReference<IVertexBuffer> m_pVBStrip;
 };
+
+void InitEngine();

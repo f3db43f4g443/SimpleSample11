@@ -452,6 +452,13 @@ void CHitProxy::SetBulletMode( bool bBulletMode )
 		m_pMgr->ReAdd( this );
 }
 
+void CHitProxy::SetTransparent( bool bTransparent )
+{
+	m_bTransparent = bTransparent;
+	if( m_pMgr && bTransparent )
+		m_pMgr->Remove( this );
+}
+
 void CHitProxy::AddCircle( float fRadius, const CVector2 &center )
 {
 	SHitProxyCircle* pHitProxy = new ( TObjectAllocator<SHitProxyCircle>::Inst().Alloc() ) SHitProxyCircle;
@@ -496,8 +503,101 @@ void CHitProxy::AddProxy( const SHitProxyData& data )
 	}
 }
 
+void CHitProxy::PackData( CBufFile& buf, bool bWithMetaData )
+{
+	if( bWithMetaData )
+		buf.Write<uint16>( eVersion_Cur );
+
+	buf.Write<uint8>( m_bBulletMode );
+
+	vector<SHitProxy*> hitProxies;
+	for( auto pHitProxy = m_pHitProxies; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
+		hitProxies.push_back( pHitProxy );
+	buf.Write( hitProxies.size() );
+	for( int i = hitProxies.size() - 1; i >= 0; i-- )
+	{
+		auto pHitProxy = hitProxies[i];
+		buf.Write( pHitProxy->nType );
+		if( pHitProxy->nType == eHitProxyType_Circle )
+		{
+			SHitProxyCircle* pCircle = static_cast<SHitProxyCircle*>( pHitProxy );
+			buf.Write( pCircle->fRadius );
+			buf.Write( pCircle->center );
+		}
+		else
+		{
+			SHitProxyPolygon* pPolygon = static_cast<SHitProxyPolygon*>( pHitProxy );
+			buf.Write( pPolygon->nVertices );
+			buf.Write( pPolygon->vertices, sizeof( pPolygon->vertices[0] ) * pPolygon->nVertices );
+		}
+	}
+}
+
+void CHitProxy::UnpackData( IBufReader& buf, bool bWithMetaData )
+{
+	uint16 nVersion;
+	if( bWithMetaData )
+		buf.Read( nVersion );
+
+	m_bBulletMode = buf.Read<uint8>();
+	uint32 nSize = buf.Read<uint32>();
+	for( int i = 0; i < nSize; i++ )
+	{
+		uint8 nType = buf.Read<uint8>();
+		
+		if( nType == eHitProxyType_Circle )
+		{
+			float fRadius;
+			CVector2 center;
+			buf.Read( fRadius );
+			buf.Read( center );
+			AddCircle( fRadius, center );
+		}
+		else
+		{
+			uint32 nVertices = buf.Read<uint32>();
+			CVector2 vertices[MAX_POLYGON_VERTEX_COUNT];
+			buf.Read( vertices, sizeof( vertices[0] ) * nVertices );
+			AddPolygon( nVertices, vertices );
+		}
+	}
+}
+
+void CHitProxy::CalcBounds()
+{
+	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )
+	{
+		pProxy->CalcBoundGrid( GetGlobalTransform() );
+	}
+}
+
+bool CHitProxy::HitTest( CHitProxy* pOther, const CMatrix2D& transform, const CMatrix2D& transform1, SHitTestResult* pResult )
+{
+	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )
+	{
+		for( SHitProxy* pProxy1 = pOther->m_pHitProxies; pProxy1; pProxy1 = pProxy1->NextHitProxy() )
+		{
+			auto rect = pProxy->bound * pProxy1->bound;
+			if( rect.width > 0 && rect.height > 0 && SHitProxy::HitTest( pProxy, pProxy1, transform, transform1, pResult ) )
+				return true;
+		}
+	}
+	return false;
+}
+
 bool CHitProxy::HitTest( CHitProxy* pOther, SHitTestResult* pResult )
 {
+	if( m_bDirty && !m_pMgr )
+	{
+		m_bDirty = false;
+		CalcBounds();
+	}
+	if( pOther->m_bDirty && !pOther->m_pMgr )
+	{
+		pOther->m_bDirty = false;
+		pOther->CalcBounds();
+	}
+
 	const CMatrix2D& mat = GetGlobalTransform();
 	const CMatrix2D& mat1 = pOther->GetGlobalTransform();
 	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )
@@ -548,6 +648,8 @@ bool CHitProxy::Raycast( const CVector2& begin, const CVector2& end, SRaycastRes
 void CHitTestMgr::Add( CHitProxy* pProxy )
 {
 	pProxy->m_bDirty = true;
+	if( pProxy->m_bTransparent )
+		return;
 	if( pProxy->m_bBulletMode )
 		pProxy->InsertTo_HitProxy( m_pHitProxyBulletMode );
 	else
@@ -557,6 +659,8 @@ void CHitTestMgr::Add( CHitProxy* pProxy )
 
 void CHitTestMgr::Remove( CHitProxy* pProxy )
 {
+	if( pProxy->m_pMgr != this )
+		return;
 	pProxy->m_pMgr = NULL;
 	pProxy->m_bDirty = false;
 	ClearManifolds( pProxy );
@@ -700,7 +804,7 @@ void CHitTestMgr::Update( CHitProxy* pHitProxy, vector<CHitProxy*>& vecOverlaps 
 		TRectangle<int32> newRect( floor( rect.x / nGridSize ), floor( rect.y / nGridSize ), ceil( ( rect.x + rect.width ) / nGridSize ), ceil( ( rect.y + rect.height ) / nGridSize ) );
 		newRect.width -= newRect.x;
 		newRect.height -= newRect.y;
-		UpdateBound( pProxy, newRect, &vecOverlaps );
+		UpdateBound( pProxy, newRect, &vecOverlaps, !pHitProxy->m_bBulletMode );
 	}
 
 	if( vecOverlaps.size() )

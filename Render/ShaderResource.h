@@ -30,6 +30,13 @@ protected:
 	CReferenceObject* m_pOrigObject;
 };
 
+class IShaderResourceProxy
+{
+public:
+	virtual ~IShaderResourceProxy() {}
+	virtual IShaderResource* GetShaderResource() = 0;
+};
+
 enum class EStreamOutputType
 {
 	VertexBuffer,

@@ -1,0 +1,24 @@
+﻿<root>
+  <color_pass>
+    <blend type="opaque" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneTexturePixelShaderPerRT2">
+      <shader_resources>
+        <item name="Textures[0]" filename="EditorRes/Textures/grid.tga" />
+        <item name="Textures[1]" filename="textures/black.bmp" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </color_pass>
+  <occlusion_pass>
+    <blend type="opaque" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneColorPixelShader">
+      <constant_buffers>
+        <item shader_type="2">
+          <param name="vColor" type="float4" data="1,1,1,0.01" />
+        </item>
+      </constant_buffers>
+    </material>
+  </occlusion_pass>
+</root>

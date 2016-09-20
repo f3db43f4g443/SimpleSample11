@@ -2,11 +2,14 @@
 #include "Stage.h"
 #include "Render/Scene2DManager.h"
 #include "Player.h"
+#include "GUI/MainUI.h"
+#include "Common/ResourceManager.h"
 #include "Common/FileUtil.h"
 #include "Common/xml.h"
 
-CStage::CStage() : m_pPlayer( NULL ), m_bStarted( false )
+CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_pPlayer( NULL ), m_nGUIOption( 0xffffffff )
 {
+	memset( m_pCurPlayerActions, 0, sizeof( m_pCurPlayerActions ) );
 	m_pEntityRoot = new CEntity;
 	m_pFootprintMgr = new CFootprintMgr;
 }
@@ -17,7 +20,74 @@ CStage::~CStage()
 	m_pEntityRoot = NULL;
 }
 
-void CStage::Start()
+#include "Entities/Slime.h"
+#include "Entities/SlimeCore.h"
+#include "Entities/SlimeBlister.h"
+#include "Entities/SlimeGenerator2.h"
+
+void CStage::Create( SStageContext* pContext )
+{
+	m_pContext = pContext;
+	for( auto& item : m_pContext->mapDependentRes )
+	{
+		item.second = CResourceManager::Inst()->CreateResource( item.first.c_str() );
+	}
+	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_pContext->strSceneResName.c_str() );
+	if( pPrefab )
+	{
+		CReference<CRenderObject2D> pRenderObject = pPrefab->GetRoot()->CreateInstance();
+		if( pRenderObject )
+		{
+			CEntity* pEntity = dynamic_cast<CEntity*>( pRenderObject.GetPtr() );
+			if( pEntity )
+				pEntity->SetParentEntity( m_pEntityRoot );
+		}
+	}
+
+	//test
+	//{
+	//	vector<char> content;
+	//	GetFileContent( content, "materials/background.xml", true );
+	//	TiXmlDocument doc;
+	//	doc.LoadFromBuffer( &content[0] );
+	//	CDefaultDrawable2D* pDrawable = new CDefaultDrawable2D;
+	//	pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "color_pass" ) );
+	//	CDefaultDrawable2D* pDrawable1 = new CDefaultDrawable2D;
+	//	pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "occlusion_pass" ) );
+	//	CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -512, -512, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
+	//	CEntity* pEntity = new CEntity;
+	//	pEntity->SetRenderObject( pImage );
+	//	pEntity->SetParentEntity( GetRoot() );
+	//	
+	//	//CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( -0.6f, -0.8f ), CVector3( 0.15f, 0.15f, 0.15f ), 8, 256.0f );
+	//	//pEntity->AddChild( pDirectionalLight );
+
+	//	CEntity* pEntity1 = new CEntity;
+	//	pEntity1->SetParentEntity( pEntity );
+	//	pEntity1->AddRect( CRectangle( -800, -800, 1600, 340 ) );
+	//	pEntity1 = new CEntity;
+	//	pEntity1->SetParentEntity( pEntity );
+	//	pEntity1->AddRect( CRectangle( -800, -800, 340, 1600 ) );
+	//	pEntity1 = new CEntity;
+	//	pEntity1->SetParentEntity( pEntity );
+	//	pEntity1->AddRect( CRectangle( 800, 800, -340, -1600 ) );
+	//	pEntity1 = new CEntity;
+	//	pEntity1->SetParentEntity( pEntity );
+	//	pEntity1->AddRect( CRectangle( 800, 800, -1600, -340 ) );
+
+	//	CSlimeGround* pSlimeGround = new CSlimeGround();
+	//	pSlimeGround->SetParentEntity( pEntity );
+	//	CRenderObject2D* pRenderObject = new CRenderObject2D;
+	//	pSlimeGround->AddChild( pRenderObject );
+	//	SetFootprintRoot( pRenderObject );
+	//	//CSlimeBlister* pSlimeBlister = new CSlimeBlister;
+	//	//pSlimeBlister->SetParentEntity( pSlimeGround );
+	//	CSlimeGenerator2* pSlimeGenerator = new CSlimeGenerator2;
+	//	pSlimeGenerator->SetParentEntity( pSlimeGround );
+	//}
+}
+
+void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 {
 	if( m_bStarted )
 		return;
@@ -50,30 +120,58 @@ void CStage::Start()
 		pReceiver->SetZOrder( -1 );
 		AddFootprint( pReceiver );
 	}
-
 	m_bStarted = true;
+
+	pPlayer->SetParentEntity( m_pEntityRoot );
+	CEntity* pEntity = GetStartPoint( context.strStartPointName.c_str() );
+	if( !pEntity )
+	{
+		if( m_mapStartPoints.size() )
+			pEntity = m_mapStartPoints.begin()->second;
+	}
+	if( pEntity )
+	{
+		CScene2DManager::GetGlobalInst()->UpdateDirty();
+		pPlayer->SetPosition( pEntity->globalTransform.GetPosition() );
+	}
+	else
+		pPlayer->SetPosition( CVector2( 0, 0 ) );
+	SetGUIOption( m_nGUIOption );
+	m_events.Trigger( eStageEvent_Start, NULL );
 }
 
 void CStage::Stop()
 {
 	if( !m_bStarted )
 		return;
+	m_events.Trigger( eStageEvent_Stop, NULL );
 	m_bStarted = false;
+	m_mapStartPoints.clear();
 	auto pSceneMgr = CScene2DManager::GetGlobalInst();
 	pSceneMgr->RemoveActiveCamera( &m_camera );
 	pSceneMgr->RemoveFootprintMgr( m_pFootprintMgr );
-	m_pEntityRoot->SetParentEntity( NULL );
+	RemoveEntity( m_pEntityRoot );
 	m_tickBeforeHitTest.Clear();
 	m_tickAfterHitTest.Clear();
+
+	if( m_pContext )
+	{
+		for( auto& item : m_pContext->mapDependentRes )
+		{
+			item.second = NULL;
+		}
+	}
 }
 
 void CStage::AddEntity( CEntity* pEntity )
 {
 	pEntity->AddRef();
 	pEntity->SetStage( this );
+	pEntity->m_bIsChangingStage = true;
 	if( pEntity->Get_HitProxy() )
 		m_hitTestMgr.Add( pEntity );
 	pEntity->OnAddedToStage();
+	pEntity->m_bIsChangingStage = false;
 
 	CPlayer* pPlayer = dynamic_cast<CPlayer*>( pEntity );
 	if( pPlayer )
@@ -94,12 +192,14 @@ void CStage::RemoveEntity( CEntity* pEntity )
 
 	if( m_pPlayer == pEntity )
 		m_pPlayer = NULL;
-
+	
+	pEntity->m_bIsChangingStage = true;
 	pEntity->OnRemovedFromStage();
 	pEntity->SetTraverseIndex( -1 );
 	if( pEntity->Get_HitProxy() )
 		m_hitTestMgr.Remove( pEntity );
 	pEntity->SetStage( NULL );
+	pEntity->m_bIsChangingStage = false;
 	pEntity->Release();
 }
 
@@ -195,6 +295,7 @@ void CStage::Update()
 	m_tickBeforeHitTest.UpdateTime();
 	CScene2DManager::GetGlobalInst()->UpdateDirty();
 
+	m_pEntityRoot->BeforeHitTest( 0 );
 	m_hitTestMgr.Update();
 	m_tickAfterHitTest.UpdateTime();
 	
@@ -212,5 +313,19 @@ bool CStage::AddFootprint( CFootprintReceiver* pReceiver )
 		return false;
 	GetFootprintRoot()->AddChild( pReceiver );
 	pReceiver->SetMgr( m_pFootprintMgr );
+
 	return true;
+}
+
+void CStage::SetGUIOption( uint32 nOption )
+{
+	m_nGUIOption = nOption;
+	if( !m_pPlayer )
+		return;
+
+	bool bCrosshair = nOption & eGUIOption_Crosshair;
+	m_pPlayer->GetCrosshair()->bVisible = bCrosshair;
+
+	bool bHpBar = nOption & eGUIOption_HpBar;
+	CMainUI::Inst()->SetHpBarVisible( bHpBar );
 }

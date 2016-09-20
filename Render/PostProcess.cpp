@@ -21,7 +21,7 @@ void CPostProcessPass::Process( IRenderSystem* pSystem, CReference<ITexture>& pT
 	};
 	std::sort( m_vecPasses.begin(), m_vecPasses.end(), SLess() );
 
-	if( pTarget && pTarget->GetRenderTarget() == pFinalTarget )
+	if( m_pTarget && m_pTarget->GetRenderTarget() == pFinalTarget )
 		pFinalTarget = NULL;
 
 	for( int i = 0; i < m_vecPasses.size(); i++ )

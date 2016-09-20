@@ -18,6 +18,7 @@
 #endif
 #pragma comment(lib, "dxerr.lib")
 #pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dsound.lib")
 
 IRenderSystem::IRenderSystem()
 	: m_pGame( NULL ), m_pRenderer( NULL ), m_dLastTime( 0 ), m_dTime( 0 ), m_fElapsedTime( 0 )
@@ -364,6 +365,19 @@ void CRenderSystem::CommitStates()
 	m_stateMgr.CommitStates( m_pDeviceContext );
 }
 
+BOOL InitDSound( HWND hwnd, IDirectSound* &lpds )
+{
+	HRESULT hr;
+	// Create DirectSound.
+	if( FAILED( hr = DirectSoundCreate( NULL, &lpds, NULL ) ) )
+		return FALSE;
+
+	// Set cooperative level.
+	if( FAILED( hr = lpds->SetCooperativeLevel( hwnd, DSSCL_PRIORITY ) ) )
+		return FALSE;
+	return TRUE;
+}
+
 void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 {// Enable run-time memory check for debug builds.
 #if defined(DEBUG) | defined(_DEBUG)
@@ -387,6 +401,7 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	DXUTSetCallbackD3D11SwapChainReleasing( OnD3D11ReleasingSwapChain, this );
 	DXUTSetCallbackD3D11DeviceDestroyed( OnD3D11DestroyDevice, this );
 	DXUTSetCallbackD3D11FrameRender( OnD3D11FrameRender, this );
+	DXUTSetIsInGammaCorrectMode( false );
 
 	DXUTInit( true, true, NULL ); // Parse the command line, show msgboxes on error, no extra command line params
 	DXUTSetCursorSettings( true, true );
@@ -395,6 +410,7 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	// Only require 10-level hardware, change to D3D_FEATURE_LEVEL_11_0 to require 11-class hardware
 	// Switch to D3D_FEATURE_LEVEL_9_x for 10level9 hardware
 	DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0, true, context.resolution.x, context.resolution.y );
+	InitDSound( DXUTGetHWND(), m_pDSound );
 }
 
 void CRenderSystem::Start()
@@ -450,7 +466,9 @@ HRESULT CALLBACK CRenderSystem::OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevic
 		1
 	};
 	pThis->m_stateMgr.OnSwapChainResized( NULL, NULL, &viewport );
-	pThis->m_pRenderer->OnResize( pThis, CVector2( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height ) );
+	pThis->m_screenRes = CVector2( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height );
+	pThis->m_pRenderer->OnResize( pThis, pThis->m_screenRes );
+	pThis->m_pGame->OnResize( pThis->m_screenRes );
 	return S_OK;
 }
 
@@ -557,6 +575,12 @@ void CALLBACK CRenderSystem::OnFrameMove( double fTime, float fElapsedTime, void
 	pThis->m_dTime = fTime;
 	pThis->m_pGame->Update();
 	pThis->m_pRenderer->OnUpdate( pThis );
+	
+	double dLastTime = pThis->GetLastTime();
+	double dTotalTime = pThis->GetTotalTime();
+	uint32 nFrames = floor( dTotalTime * 1000 ) - floor( dLastTime * 1000 );
+	for( int i = 0; i < nFrames; i++ )
+		pThis->UpdateTime();
 	pThis->m_dLastTime = fTime;
 }
 

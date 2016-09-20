@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "BufFile.h"
 using namespace std;
 
 enum class EShaderType
@@ -24,6 +25,9 @@ public:
 	void InvalidConstantBuffer( IRenderSystem* pRenderSystem );
 	void Set( IRenderSystem* pRenderSystem, const void* pData, uint32 nDataLen = -1, uint32 nDataOffset = 0, IConstantBuffer* pBuffer = NULL );
 
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+
 	bool bIsBound;
 	EShaderType eShaderType;
 	string strName;
@@ -39,6 +43,9 @@ public:
 	CShaderParamConstantBuffer() : bIsBound( false ) {}
 	void Set( IRenderSystem* pRenderSystem, IConstantBuffer* pBuffer );
 
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+
 	bool bIsBound;
 	EShaderType eShaderType;
 	string strName;
@@ -51,6 +58,9 @@ class CShaderParamShaderResource
 public:
 	CShaderParamShaderResource() : bIsBound( false ) {}
 	void Set( IRenderSystem* pRenderSystem, IShaderResource* pShaderResource );
+
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 
 	bool bIsBound;
 	EShaderType eShaderType;
@@ -65,6 +75,9 @@ class CShaderParamSampler
 public:
 	CShaderParamSampler() : bIsBound( false ) {}
 	void Set( IRenderSystem* pRenderSystem, const ISamplerState* pState );
+	
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 
 	bool bIsBound;
 	EShaderType eShaderType;
@@ -81,6 +94,9 @@ public:
 	void Bind( CShaderParamShaderResource& param, const char* szName );
 	void BindArray( CShaderParamShaderResource* pParams, uint32 nParamCount, const char* szName );
 	void Bind( CShaderParamSampler& param, const char* szName );
+
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 
 	EShaderType eType;
 

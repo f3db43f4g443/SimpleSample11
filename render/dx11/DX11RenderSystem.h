@@ -5,7 +5,7 @@
 #include "DX11DeviceState.h"
 #include "DX11Texture.h"
 
-class CRenderSystem : public IRenderSystem
+class CRenderSystem : public IRenderSystem, public CTimedTrigger<4096>
 {
 public:
 	CRenderSystem() : m_pd3dDevice( NULL ), m_pDeviceContext( NULL ), m_pCurShaderBoundState( NULL ), m_nUsingRenderTargets( 0 ), m_nUsingStreamOutputs( 0 ) {}
@@ -22,10 +22,14 @@ public:
 		bool bIsDynamic = false, bool bBindRenderTarget = false, bool bBindDepthStencil = false ) override;
 	virtual IConstantBuffer* CreateConstantBuffer( uint32 nSize, bool bUsePool ) override;
 
+	virtual ISound* CreateSound( void* pBuffer, uint32 nSize, const SWaveFormat& format ) override;
+	virtual ISoundTrack* CreateSoundTrack( ISound* pSound ) override;
+
 	virtual IRenderTarget* GetDefaultRenderTarget() override { return &m_defaultRenderTarget; }
 	virtual IDepthStencil* GetDefaultDepthStencil() override { return &m_defaultDepthStencil; }
-
-	virtual IShader* CompileShader( const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
+	
+	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) override;
+	virtual bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
 		const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) override;
 
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) override;
@@ -59,8 +63,13 @@ public:
 
 	virtual void CopyResource( ITexture* pDst, ITexture* pSrc ) override;
 	virtual void UpdateSubResource( ITexture* pDst, void* pData, TVector3<uint32> vMin, TVector3<uint32> vMax, uint32 nRowPitch, uint32 nDepthPitch ) override;
+
+	virtual void Lock( IVertexBuffer* pVertexBuffer, void** ppData ) override;
+	virtual void Unlock( IVertexBuffer* pVertexBuffer ) override;
 private:
 	void CommitStates();
+
+	IShader* CreateShader( EShaderType& shaderType, void* pShaderCode, uint32 nShaderCodeLength, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream );
 
 	static LRESULT CALLBACK MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, bool* pbNoFurtherProcessing,
 		void* pUserContext );
@@ -90,6 +99,7 @@ private:
 private:
 	ID3D11Device* m_pd3dDevice;
 	ID3D11DeviceContext* m_pDeviceContext;
+	IDirectSound* m_pDSound;
 	CDeviceStateMgr m_stateMgr;
 
 	CRenderTarget m_defaultRenderTarget;

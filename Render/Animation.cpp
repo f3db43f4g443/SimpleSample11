@@ -30,7 +30,7 @@ CSkeletonAnimData::~CSkeletonAnimData()
 	{
 		for( int i = 0; i < nKeys; i++ )
 		{
-			free( pKeys->fTimes );
+			free( pKeys[i].fTimes );
 		}
 		free( pKeys );
 	}
@@ -39,12 +39,12 @@ CSkeletonAnimData::~CSkeletonAnimData()
 	{
 		for( int i = 0; i < nBoneAnims; i++ )
 		{
-			free( pBoneAnims->position.vertices );
-			free( pBoneAnims->position.segments );
-			free( pBoneAnims->rotation.vertices );
-			free( pBoneAnims->rotation.segments );
-			free( pBoneAnims->scale.vertices );
-			free( pBoneAnims->scale.segments );
+			free( pBoneAnims[i].position.vertices );
+			free( pBoneAnims[i].position.segments );
+			free( pBoneAnims[i].rotation.vertices );
+			free( pBoneAnims[i].rotation.segments );
+			free( pBoneAnims[i].scale.vertices );
+			free( pBoneAnims[i].scale.segments );
 		}
 		free( pBoneAnims );
 	}

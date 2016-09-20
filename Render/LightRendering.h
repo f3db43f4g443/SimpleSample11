@@ -6,9 +6,11 @@ class CDirectionalLightObject : public CRenderObject2D
 public:
 	CDirectionalLightObject();
 	CDirectionalLightObject( const CVector2& Dir, const CVector3& baseColor, float fShadowScale, float fMaxShadowDist );
+	CDirectionalLightObject( const CDirectionalLightObject& obj );
 
 	virtual void Render( CRenderContext2D& context ) override;
 
+	void SetDir( const CVector2& dir );
 	CVector2 Dir;
 	float fShadowScale;
 	float fMaxShadowDist;
@@ -22,6 +24,7 @@ class CPointLightObject : public CRenderObject2D
 public:
 	CPointLightObject();
 	CPointLightObject( const CVector4& AttenuationIntensity, const CVector3& baseColor, float fShadowScale, float fMaxRange, float fLightHeight );
+	CPointLightObject( const CPointLightObject& obj );
 
 	void RecalcBound() { m_localBound = CRectangle( -fMaxRange, -fMaxRange, fMaxRange, fMaxRange ); }
 	virtual void Render( CRenderContext2D& context ) override;

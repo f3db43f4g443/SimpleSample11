@@ -4,6 +4,7 @@
 
 CScene2DManager::CScene2DManager()
 	: m_pFootprintMgrs( NULL )
+	, m_pAutoUpdateAnimObject( NULL )
 {
 }
 
@@ -99,20 +100,25 @@ void CScene2DManager::Render( CRenderContext2D& context )
 		if( pCam->bEnabled )
 		{
 			auto& camContext = itr->second;
-			context.rectScene = pCam->GetViewArea();
-			if( context.eRenderPass == eRenderPass_Occlusion )
-			{
-				CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
-				context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
-				context.rectScene.SetSizeX( context.rectScene.width * vec.x );
-				context.rectScene.SetSizeY( context.rectScene.height * vec.y );
-			}
-			else
-				context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
-			context.renderGroup = camContext.renderGroup;
-			context.Render( camContext.pRoot );
+			Render( context, pCam, camContext.pRoot, camContext.renderGroup );
 		}
 	}
+}
+
+void CScene2DManager::Render( CRenderContext2D& context, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup )
+{
+	context.rectScene = pCamera->GetViewArea();
+	if( context.eRenderPass == eRenderPass_Occlusion )
+	{
+		CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
+		context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
+		context.rectScene.SetSizeX( context.rectScene.width * vec.x );
+		context.rectScene.SetSizeY( context.rectScene.height * vec.y );
+	}
+	else
+		context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
+	context.renderGroup = pRenderGroup;
+	context.Render( pRoot );
 }
 
 void CScene2DManager::Flush( CRenderContext2D& context )
@@ -124,35 +130,48 @@ void CScene2DManager::Flush( CRenderContext2D& context )
 		if( pCam->bEnabled )
 		{
 			auto& camContext = itr->second;
-			context.rectScene = pCam->GetViewArea();
-			if( context.eRenderPass == eRenderPass_Occlusion )
-			{
-				CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
-				context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
-				context.rectScene.SetSizeX( context.rectScene.width * vec.x );
-				context.rectScene.SetSizeY( context.rectScene.height * vec.y );
-			}
-			else
-				context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
-
-			SViewport viewport = {
-				context.rectViewport.x,
-				context.rectViewport.y,
-				context.rectViewport.width,
-				context.rectViewport.height,
-				0,
-				1
-			};
-			context.pRenderSystem->SetViewports( &viewport, 1 );
-			context.renderGroup = camContext.renderGroup;
-
-			if( context.GetElemCount( nGroup ) )
-			{
-				context.FlushElements( nGroup );
-			}
+			_flush( context, nGroup, pCam, camContext.pRoot, camContext.renderGroup );
 		}
 	}
 	context.nElemCount[nGroup] = 0;
+}
+
+
+void CScene2DManager::Flush( CRenderContext2D& context, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup )
+{
+	uint32 nGroup = context.eRenderPass == eRenderPass_GUI? 1: 0;
+	_flush( context, nGroup, pCamera, pRoot, pRenderGroup );
+	context.nElemCount[nGroup] = 0;
+}
+
+void CScene2DManager::_flush( CRenderContext2D& context, uint32 nGroup, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup )
+{
+	context.rectScene = pCamera->GetViewArea();
+	if( context.eRenderPass == eRenderPass_Occlusion )
+	{
+		CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
+		context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
+		context.rectScene.SetSizeX( context.rectScene.width * vec.x );
+		context.rectScene.SetSizeY( context.rectScene.height * vec.y );
+	}
+	else
+		context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
+
+	SViewport viewport = {
+		context.rectViewport.x,
+		context.rectViewport.y,
+		context.rectViewport.width,
+		context.rectViewport.height,
+		0,
+		1
+	};
+	context.pRenderSystem->SetViewports( &viewport, 1 );
+	context.renderGroup = pRenderGroup;
+
+	if( context.GetElemCount( nGroup ) )
+	{
+		context.FlushElements( nGroup );
+	}
 }
 
 CScene2DManager* CScene2DManager::GetGlobalInst()

@@ -6,33 +6,33 @@
 class CVertexShader : public IShader
 {
 public:
-	CVertexShader( ID3D10Blob* pCode, ID3D11VertexShader* pShader ) : m_pByteCode( pCode ), m_pShader( pShader ) {}
-	ID3D10Blob* GetByteCode() { return m_pByteCode; }
+	CVertexShader( void* pShaderCode, uint32 nShaderCodeLength, ID3D11VertexShader* pShader ) : m_pShader( pShader ) { m_code.resize( nShaderCodeLength ); memcpy( &m_code[0], pShaderCode, nShaderCodeLength ); }
+	vector<uint8>& GetByteCode() { return m_code; }
 	ID3D11VertexShader* GetShader() { return m_pShader; }
 private:
-	CReference<ID3D10Blob> m_pByteCode;
+	vector<uint8> m_code;
 	CReference<ID3D11VertexShader> m_pShader;
 };
 
 class CGeometryShader : public IShader
 {
 public:
-	CGeometryShader( ID3D10Blob* pCode, ID3D11GeometryShader* pShader ) : m_pByteCode( pCode ), m_pShader( pShader ) {}
-	ID3D10Blob* GetByteCode() { return m_pByteCode; }
+	CGeometryShader( void* pShaderCode, uint32 nShaderCodeLength, ID3D11GeometryShader* pShader ) : m_pShader( pShader ) { m_code.resize( nShaderCodeLength ); memcpy( &m_code[0], pShaderCode, nShaderCodeLength ); }
+	vector<uint8>& GetByteCode() { return m_code; }
 	ID3D11GeometryShader* GetShader() { return m_pShader; }
 private:
-	CReference<ID3D10Blob> m_pByteCode;
+	vector<uint8> m_code;
 	CReference<ID3D11GeometryShader> m_pShader;
 };
 
 class CPixelShader : public IShader
 {
 public:
-	CPixelShader( ID3D10Blob* pCode, ID3D11PixelShader* pShader ) : m_pByteCode( pCode ), m_pShader( pShader ) {}
-	ID3D10Blob* GetByteCode() { return m_pByteCode; }
+	CPixelShader( void* pShaderCode, uint32 nShaderCodeLength, ID3D11PixelShader* pShader ) : m_pShader( pShader ) { m_code.resize( nShaderCodeLength ); memcpy( &m_code[0], pShaderCode, nShaderCodeLength ); }
+	vector<uint8>& GetByteCode() { return m_code; }
 	ID3D11PixelShader* GetShader() { return m_pShader; }
 private:
-	CReference<ID3D10Blob> m_pByteCode;
+	vector<uint8> m_code;
 	CReference<ID3D11PixelShader> m_pShader;
 };
 

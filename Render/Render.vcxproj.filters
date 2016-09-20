@@ -75,6 +75,14 @@
     <ClInclude Include="Rope2D.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="FontRendering.h" />
+    <ClInclude Include="DrawableGroup.h" />
+    <ClInclude Include="Prefab.h" />
+    <ClInclude Include="Sound.h" />
+    <ClInclude Include="DX11\DX11Sound.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
+    <ClInclude Include="TileMap2D.h" />
+    <ClInclude Include="SimpleRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -141,6 +149,14 @@
     <ClCompile Include="Rope2D.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="FontRendering.cpp" />
+    <ClCompile Include="DrawableGroup.cpp" />
+    <ClCompile Include="Prefab.cpp" />
+    <ClCompile Include="SoundFile.cpp" />
+    <ClCompile Include="DX11\Sound.cpp">
+      <Filter>DX11</Filter>
+    </ClCompile>
+    <ClCompile Include="TileMap2D.cpp" />
+    <ClCompile Include="SimpleRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="DX11">
@@ -184,6 +200,18 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Default2DUI.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DWorldToTex.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DWithPos.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DWithScrTex.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DScrTiled.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

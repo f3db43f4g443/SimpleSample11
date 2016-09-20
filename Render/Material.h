@@ -2,11 +2,13 @@
 
 #include "GlobalRenderResources.h"
 #include "Resource.h"
+#include "BufFile.h"
 
 class CRenderContext2D;
 class TiXmlElement;
 class CMaterial
 {
+	friend struct SDrawableEditItems;
 public:
 	class IMaterialShader
 	{
@@ -38,7 +40,9 @@ public:
 			_init( m_szShaderName, pShader );
 		}
 	};
-
+	
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 	void LoadXml( TiXmlElement* pRoot );
 
 	uint32 GetMaxInst() { return m_nMaxInst; }
@@ -47,17 +51,21 @@ public:
 	void Apply( CRenderContext2D& context );
 	void ApplyPerInstance( CRenderContext2D& context );
 	void UnApply( CRenderContext2D& context );
+
+	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 private:
 	void GetShaders( const char** szShaders, IShader** pShaders, IShaderBoundState* &pShaderBoundState,
 		vector< pair<CShaderParam, uint32> >& vecParams, vector< pair<CShaderParam, uint32> >& vecParamsPerInstance );
+	static ISamplerState* GetMaterialSamplerStates( uint8 nFilter, uint8 nAddress );
 
 	IShaderBoundState* m_pShaderBoundState;
 	uint32 m_nMaxInst;
 	uint32 m_nExtraInstData;
+	string m_strShaderName[(uint32)EShaderType::Count];
 	vector< pair<CShaderParam, uint32> > m_vecShaderParams;
 	vector< pair<CShaderParam, uint32> > m_vecShaderParamsPerInstance;
 	vector< pair<CShaderParamConstantBuffer, CReference<IConstantBuffer> > > m_vecConstantBuffers;
-	vector< pair<CShaderParamShaderResource, CReference<IShaderResource> > > m_vecShaderResources;
+	vector< pair<CShaderParamShaderResource, IShaderResourceProxy* > > m_vecShaderResources;
 	vector< pair<CShaderParamSampler, ISamplerState* > > m_vecSamplers;
 	vector<CReference<CResource> > m_vecDependentResources;
 };

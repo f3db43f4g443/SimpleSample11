@@ -30,7 +30,9 @@ public:
 
 	void UpdateDirty();
 	void Render( CRenderContext2D& context );
+	void Render( CRenderContext2D& context, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup );
 	void Flush( CRenderContext2D& context );
+	void Flush( CRenderContext2D& context, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup );
 
 	void AddElement( CElement2D* pElement );
 
@@ -39,9 +41,19 @@ public:
 
 	CRenderObject2D* GetRoot() { return m_pRoot; }
 
+	enum
+	{
+		eEvent_BeforeRender,
+
+		eEvent_Count,
+	};
+	void Register( uint32 iEvent, CTrigger* pTrigger ) { m_trigger.Register( iEvent, pTrigger ); }
+	void Trigger( uint32 iEvent ) { m_trigger.Trigger( iEvent, NULL ); }
+
 	static CScene2DManager* GetGlobalInst();
 private:
 	void _init();
+	void _flush( CRenderContext2D& context, uint32 nGroup, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup );
 
 	set<CDrawable2D*> m_pDrawables;
 	TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerDepth> m_dirtySceneNodes;
@@ -67,5 +79,8 @@ private:
 	};
 	map<CCamera2D*, SCameraContext, SCameraLess> m_activeCams;
 
+	CEventTrigger<eEvent_Count> m_trigger;
+
 	LINK_LIST_REF_HEAD( m_pFootprintMgrs, CFootprintMgr, FootprintMgr );
+	LINK_LIST_HEAD( m_pAutoUpdateAnimObject, CRenderObject2D, AutoUpdateAnimObject );
 };

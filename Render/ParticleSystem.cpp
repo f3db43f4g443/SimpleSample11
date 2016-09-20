@@ -3,6 +3,8 @@
 #include "Rand.h"
 #include "xml.h"
 #include "Rope2D.h"
+#include "FileUtil.h"
+#include "ClassMetaData.h"
 
 void SParticleSystemDataElement::SetFloat1( float minValue, float maxValue, uint8 nRandomType )
 {
@@ -129,11 +131,7 @@ void SParticleSystemDataElement::GenerateValue( void* pData, const CMatrix2D& tr
 CParticleSystemData::CParticleSystemData( EParticleSystemType eType, uint16 nMaxParticles, float lifeTime, float emitRate, uint8 emitType, bool bBatchAcrossInstances, uint8 nElements, SParticleSystemDataElement* pElements )
 	: m_eType( eType ), m_nMaxParticles( nMaxParticles ), m_lifeTime( lifeTime ), m_emitRate( emitRate ), m_emitType( emitType ), m_bBatchAcrossInstances( bBatchAcrossInstances ), m_nElements( nElements ), m_pElements( pElements )
 {
-	m_instanceSize = 4;
-	for(int i = 0; i < m_nElements; i++) {
-		m_pElements[i].nOffset = m_instanceSize;
-		m_instanceSize += m_pElements[i].nComponents * 4;
-	}
+	Update();
 }
 
 void CParticleSystemData::InitInstanceData( SParticleInstanceData& data )
@@ -143,6 +141,15 @@ void CParticleSystemData::InitInstanceData( SParticleInstanceData& data )
 	data.nBegin = data.nEnd = 0;
 	data.fTime = 0;
 	data.fEmitTime = 0;
+}
+
+void CParticleSystemData::Update()
+{
+	m_instanceSize = 4;
+	for(int i = 0; i < m_nElements; i++) {
+		m_pElements[i].nOffset = m_instanceSize;
+		m_instanceSize += m_pElements[i].nComponents * 4;
+	}
 }
 
 bool CParticleSystemData::AnimateInstanceData( SParticleInstanceData& data, const CMatrix2D& transform, float fDeltaTime, IParticleEmitter* pEmitter )
@@ -411,6 +418,7 @@ void CParticleSystemObject::Render( CRenderContext2D& context )
 
 CParticleSystemInstance::CParticleSystemInstance( CParticleSystemData* pData )
 	: m_bPaused( false )
+	, m_bAutoRestart( false )
 	, m_pParticleSystemData( pData )
 	, m_pParticleSystemObjects( NULL )
 {
@@ -422,6 +430,59 @@ void CParticleSystemInstance::OnStopped()
 	while( m_pParticleSystemObjects )
 	{
 		m_pParticleSystemObjects->OnStopped();
+	}
+}
+
+void SParticleSystemDataElement::Load( IBufReader& buf )
+{
+	buf.Read( szName );
+	buf.Read( nComponents );
+	buf.Read( nRandomType );
+	buf.Read( dataMin, sizeof(float)* nComponents );
+	buf.Read( dataMax, sizeof(float)* nComponents );
+}
+
+void SParticleSystemDataElement::Save( CBufFile& buf )
+{
+	buf.Write( szName );
+	buf.Write( nComponents );
+	buf.Write( nRandomType );
+	buf.Write( dataMin, sizeof(float)* nComponents );
+	buf.Write( dataMax, sizeof(float)* nComponents );
+}
+
+CParticleSystemData* CParticleSystemData::Load( IBufReader& buf )
+{
+	uint16 nMaxParticles = buf.Read<uint16>();
+	uint16 eType = buf.Read<uint16>();
+	float lifeTime = buf.Read<float>();
+	float emitRate = buf.Read<float>();
+	uint8 emitType = buf.Read<uint8>();
+	bool bBatchAcrossInstances = buf.Read<uint8>();
+
+	uint8 nElements = buf.Read<uint8>();
+	SParticleSystemDataElement* elements = new SParticleSystemDataElement[nElements];
+	for( int i = 0; i < nElements; i++ )
+	{
+		auto& elem = elements[i];
+		elem.Load( buf );
+	}
+
+	return new CParticleSystemData( (EParticleSystemType)eType, nMaxParticles, lifeTime, emitRate, emitType, bBatchAcrossInstances, nElements, elements );
+}
+
+void CParticleSystemData::Save( CBufFile& buf )
+{
+	buf.Write<uint16>( m_nMaxParticles );
+	buf.Write<uint16>( m_eType );
+	buf.Write( m_lifeTime );
+	buf.Write( m_emitRate );
+	buf.Write( m_emitType );
+	buf.Write( (uint8)m_bBatchAcrossInstances );
+	buf.Write( m_nElements );
+	for( int i = 0; i < m_nElements; i++ )
+	{
+		m_pElements[i].Save( buf );
 	}
 }
 
@@ -514,6 +575,30 @@ CParticleSystemData* CParticleSystemData::LoadXml( TiXmlElement* pRoot )
 	return new CParticleSystemData( eType, nMaxParticles, lifeTime, emitRate, emitType, bBatchAcrossInstances, nElements, elements );
 }
 
+void SParticleSystemShaderParam::Load( IBufReader& buf )
+{
+	uint16 nParams = buf.Read<uint16>();
+	m_shaderParams.resize( nParams );
+	for( int i = 0; i < nParams; i++ )
+	{
+		buf.Read( m_shaderParams[i] );
+	}
+
+	buf.Read( m_nZOrderOfs );
+	buf.Read( m_nInstStride );
+}
+
+void SParticleSystemShaderParam::Save( CBufFile& buf )
+{
+	buf.Write<uint16>( m_shaderParams.size() );
+	for( int i = 0; i < m_shaderParams.size(); i++ )
+	{
+		buf.Write( m_shaderParams[i] );
+	}
+	buf.Write( m_nZOrderOfs );
+	buf.Write( m_nInstStride );
+}
+
 void SParticleSystemShaderParam::LoadXml( TiXmlElement* pRoot, IShader* pVS, CParticleSystemData* pData )
 {
 	auto pMaterial = pRoot->FirstChildElement( "material" );
@@ -565,6 +650,32 @@ void SParticleSystemShaderParam::LoadXml( TiXmlElement* pRoot, IShader* pVS, CPa
 		param.nDstOfs = itr->second.first;
 		param.nSize = Min<uint16>( itr->second.second, element.nComponents * 4 );
 		m_shaderParams.push_back( param );
+	}
+}
+
+void CParticleSystemDrawable::Load( IBufReader& buf )
+{
+	m_pBlendState = LoadBlendState( buf );
+	m_material.Load( buf );
+	m_param.Load( buf );
+	BindParams();
+}
+
+void CParticleSystemDrawable::Save( CBufFile& buf )
+{
+	SaveBlendState( buf, m_pBlendState );
+	m_material.Save( buf );
+	m_param.Save( buf );
+}
+
+void CParticleSystemDrawable::BindParams()
+{
+	IShader* pVS = m_material.GetShader( EShaderType::VertexShader );
+	if( pVS )
+	{
+		auto& info = pVS->GetShaderInfo();
+		info.Bind( m_param.m_paramTime, "g_t" );
+		info.Bind( m_param.m_paramLife, "g_life" );
 	}
 }
 
@@ -677,6 +788,94 @@ CParticleSystemInstance* CParticleSystem::CreateParticleSystemInst( CAnimationCo
 	return pInstance;
 }
 
+void CParticleSystem::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
+{
+	for( auto& item : m_vecColorPassDrawables )
+		item->GetMaterial().BindShaderResource( eShaderType, szName, pShaderResource );
+	for( auto& item : m_vecOcclusionPassDrawables )
+		item->GetMaterial().BindShaderResource( eShaderType, szName, pShaderResource );
+	for( auto& item : m_vecGUIPassDrawables )
+		item->GetMaterial().BindShaderResource( eShaderType, szName, pShaderResource );
+}
+
+void CParticleSystem::Load( IBufReader& buf )
+{
+	buf.Read( m_rect );
+
+	m_pParticleSystemData = CParticleSystemData::Load( buf );
+
+	uint16 nColorPass = buf.Read<uint16>();
+	for( int i = 0; i < nColorPass; i++ )
+	{
+		m_vecColorPassDrawables.push_back( LoadDrawable( buf ) );
+	}
+
+	uint16 nOcclusionPass = buf.Read<uint16>();
+	for( int i = 0; i < nOcclusionPass; i++ )
+	{
+		m_vecOcclusionPassDrawables.push_back( LoadDrawable( buf ) );
+	}
+
+	uint16 nGUIPass = buf.Read<uint16>();
+	for( int i = 0; i < nGUIPass; i++ )
+	{
+		m_vecGUIPassDrawables.push_back( LoadDrawable( buf ) );
+	}
+}
+
+CParticleSystemDrawable* CParticleSystem::CreateDrawable()
+{
+	switch( m_pParticleSystemData->GetType() )
+	{
+	case eParticleSystemType_Particle:
+		{
+			CParticleSystemDrawable* pDrawable = m_pDrawableFunc ? ( *m_pDrawableFunc )( m_pParticleSystemData ) : new CParticleSystemDrawable( m_pParticleSystemData );
+			return pDrawable;
+		}
+		break;
+	case eParticleSystemType_Beam:
+		{
+			CRopeDrawable2D* pDrawable = m_pDrawableFunc ? static_cast<CRopeDrawable2D*>( ( *m_pDrawableFunc )( m_pParticleSystemData ) ) : new CRopeDrawable2D( m_pParticleSystemData );
+			return pDrawable;
+		}
+		break;
+	}
+	return NULL;
+}
+
+CParticleSystemDrawable* CParticleSystem::LoadDrawable( IBufReader& buf )
+{
+	CParticleSystemDrawable* pDrawable = CreateDrawable();
+	if( pDrawable )
+		pDrawable->Load( buf );
+	return pDrawable;
+}
+
+void CParticleSystem::Save( CBufFile& buf )
+{
+	buf.Write( m_rect );
+
+	m_pParticleSystemData->Save( buf );
+
+	buf.Write<uint16>( m_vecColorPassDrawables.size() );
+	for( auto& item : m_vecColorPassDrawables )
+	{
+		item->Save( buf );
+	}
+	
+	buf.Write<uint16>( m_vecOcclusionPassDrawables.size() );
+	for( auto& item : m_vecOcclusionPassDrawables )
+	{
+		item->Save( buf );
+	}
+	
+	buf.Write<uint16>( m_vecGUIPassDrawables.size() );
+	for( auto& item : m_vecGUIPassDrawables )
+	{
+		item->Save( buf );
+	}
+}
+
 void CParticleSystem::LoadXml( TiXmlElement* pRoot )
 {
 	m_rect.x = XmlGetAttr( pRoot, "x", 0.0f );
@@ -716,22 +915,76 @@ void CParticleSystem::LoadXml( TiXmlElement* pRoot )
 
 CParticleSystemDrawable* CParticleSystem::LoadDrawable( TiXmlElement* pElem )
 {
-	switch( m_pParticleSystemData->GetType() )
+	CParticleSystemDrawable* pDrawable = CreateDrawable();
+	if( pDrawable )
+		pDrawable->LoadXml( pElem );
+	return pDrawable;
+}
+
+void CParticleFile::Create()
+{
+	if( strcmp( GetFileExtension( GetName() ), "pts" ) )
+		return;
+	vector<char> content;
+	if( GetFileContent( content, GetName(), false ) == INVALID_32BITID )
+		return;
+	CBufReader buf( &content[0], content.size() );
+	m_particleSystem.Load( buf );
+	m_bCreated = true;
+}
+
+CParticleSystemObject* CParticleFile::CreateInstance( CAnimationController* pAnimController )
+{
+	CParticleSystemObject* pObj;
+	if( m_particleSystem.GetData()->GetType() == eParticleSystemType_Particle )
 	{
-	case eParticleSystemType_Particle:
-		{
-			CParticleSystemDrawable* pDrawable = m_pDrawableFunc ? ( *m_pDrawableFunc )( m_pParticleSystemData ) : new CParticleSystemDrawable( m_pParticleSystemData );
-			pDrawable->LoadXml( pElem );
-			return pDrawable;
-		}
-		break;
-	case eParticleSystemType_Beam:
-		{
-			CRopeDrawable2D* pDrawable = m_pDrawableFunc ? dynamic_cast<CRopeDrawable2D*>( ( *m_pDrawableFunc )( m_pParticleSystemData ) ) : new CRopeDrawable2D( m_pParticleSystemData );
-			pDrawable->LoadXml( pElem );
-			return pDrawable;
-		}
-		break;
+		pObj = m_particleSystem.CreateParticleSystemObject( pAnimController );
 	}
-	return NULL;
+	else
+	{
+		pObj = m_particleSystem.CreateBeamObject( pAnimController );
+		CRopeObject2D* pRopeObject = static_cast<CRopeObject2D*>( pObj );
+		pRopeObject->SetDataCount( 2 );
+		pRopeObject->SetData( 0, CVector2( 0, 0 ), 8, CVector2( 0, 0 ), CVector2( 1, 0 ) );
+		pRopeObject->SetData( 1, CVector2( 64, 0 ), 8, CVector2( 0, 1 ), CVector2( 1, 1 ) );
+	}
+	if( !pAnimController && pObj )
+		pObj->SetAutoUpdateAnim( true );
+	return pObj;
+}
+
+void CParticleSystemObject::CopyData( CParticleSystemObject* pObj )
+{
+	auto pInstanceData = GetInstanceData();
+	auto pEmitter = pInstanceData->GetEmitter();
+	if( pEmitter )
+	{
+		auto pClassData = CClassMetaDataMgr::Inst().GetClassData( pEmitter );
+		CBufFile buf;
+		pClassData->PackData( (uint8*)pEmitter, buf, false );
+		auto pEmitter1 = (IParticleEmitter*)pClassData->NewObjFromData( buf, false );
+		pObj->GetInstanceData()->SetEmitter( pEmitter1 );
+	}
+}
+
+void CParticleSystemObject::LoadExtraData( IBufReader& buf )
+{
+	if( !buf.GetBytesLeft() )
+		return;
+	auto pInstanceData = GetInstanceData();
+	string className;
+	buf.Read( className );
+	auto pClassData = CClassMetaDataMgr::Inst().GetClassData( className.c_str() );
+	auto pEmitter = (IParticleEmitter*)pClassData->NewObjFromData( buf, true );
+	pInstanceData->SetEmitter( pEmitter );
+}
+
+void CParticleSystemObject::SaveExtraData( CBufFile& buf )
+{
+	auto pInstanceData = GetInstanceData();
+	auto pEmitter = pInstanceData->GetEmitter();
+	auto pClassData = pEmitter ? CClassMetaDataMgr::Inst().GetClassData( pEmitter ) : NULL;
+	string className = pClassData ? pClassData->strClassName : "";
+	buf.Write( className );
+	pClassData->PackData( (uint8*)pEmitter, buf, true );
 }

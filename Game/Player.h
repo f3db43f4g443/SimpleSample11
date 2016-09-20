@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity.h"
+#include "Useable.h"
 #include "Attribute.h"
 #include "Common/Trigger.h"
 #include "PlayerAction.h"
@@ -44,6 +44,7 @@ public:
 	int32 GetMaxMp() { return m_mp.GetMaxValue(); }
 	int32 GetSp() { return m_sp; }
 	int32 GetMaxSp() { return m_sp.GetMaxValue(); }
+	uint32 GetMoveSpeed() { return m_moveSpeed; }
 
 	void Move( float fXAxis, float fYAxis )
 	{
@@ -53,6 +54,8 @@ public:
 
 	CPlayerDebuffLayer* GetDebuffLayer() { return m_pDebuffLayer; }
 	CEntity* GetCrosshair() { return m_pCrosshair; }
+
+	void DelayChangeStage( const char* szName, const char* szStartPoint = "" );
 
 	bool Action();
 	bool StopAction();
@@ -66,6 +69,8 @@ public:
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
 	void Damage( SDamage& dmg );
 	void AddDizzyThisFrame( const SPlayerDizzyContext& context ) { m_dizzyContext.Add( context ); }
+
+	CPlayerAction* GetAction( uint8 i );
 
 	void TickBeforeHitTest();
 	void TickAfterHitTest();
@@ -81,7 +86,9 @@ private:
 	SAttribute m_moveSpeed;
 	SAttribute m_standHeight;
 	SAttribute m_jumpHeight;
+	CReference<CUseable> m_pUsing;
 
+	bool m_bCanUseThisFrame;
 	bool m_bIsInHorrorReflex;
 	uint8 m_nUsingAction;
 	bool m_bActionUsing;
@@ -93,6 +100,10 @@ private:
 	float m_fMoveXAxis, m_fMoveYAxis;
 	CVector2 m_g;
 	SPlayerDizzyContext m_dizzyContext;
+	
+	string m_strChangeStage;
+	string m_strChangeStageStartPoint;
+	float m_fChangeStageTime;
 
 	CPlayerAction* m_pCurPlayerActions[3];
 

@@ -9,6 +9,14 @@ CFlyingObject::CFlyingObject()
 	SetHitType( eEntityHitType_FlyingObject );
 }
 
+CFlyingObject::CFlyingObject( const SClassCreateContext& context )
+	: CEntity( context )
+	, m_tickBeforeHitTest( this, &CFlyingObject::OnTickBeforeHitTest )
+	, m_bIsAlive( true )
+{
+
+}
+
 void CFlyingObject::OnAddedToStage()
 {
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );

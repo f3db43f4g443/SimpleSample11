@@ -8,6 +8,7 @@ class CConstantBuffer : public IConstantBuffer
 public:
 	CConstantBuffer( ID3D11Device* pDevice, uint32 nSize, bool bShared = false, bool bUsePool = false );
 
+	virtual uint8* GetData() override { return m_pData; }
 	virtual void UpdateBuffer( uint32 nOffset, uint32 nSize, const void* data ) override;
 	virtual void InvalidBuffer() override;
 	void OnUnBound();

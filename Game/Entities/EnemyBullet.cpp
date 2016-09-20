@@ -5,22 +5,6 @@
 #include "xml.h"
 #include "FileUtil.h"
 
-CParticleSystem* __getBloodEffect()
-{
-	static CParticleSystem* pParticleSystem = NULL;
-	if( !pParticleSystem )
-	{
-		pParticleSystem = new CParticleSystem;
-		vector<char> content;
-		GetFileContent( content, "materials/enemybullet_particle1.xml", true );
-		TiXmlDocument doc;
-		doc.LoadFromBuffer( &content[0] );
-		pParticleSystem->LoadXml( doc.RootElement() );
-		doc.Clear();
-	}
-	return pParticleSystem;
-}
-
 CEnemyBullet::CEnemyBullet( CEntity* pOwner, CVector2 velocity, CVector2 acceleration, float fSize, float fLife, int32 nDmgHp, int32 nDmgMp, int32 nDmgSp, float fKillTime )
 	: m_tickAfterHitTest( this, &CEnemyBullet::OnTickAfterHitTest )
 	, m_pOwner( pOwner )
@@ -33,18 +17,25 @@ CEnemyBullet::CEnemyBullet( CEntity* pOwner, CVector2 velocity, CVector2 acceler
 	, m_nDmgMp( nDmgMp )
 	, m_nDmgSp( nDmgSp )
 {
+	static CDefaultDrawable2D* pDrawable = NULL;
+	static CDefaultDrawable2D* pDrawable1 = NULL;
 	static CParticleSystem* pParticleSystem = NULL;
 	if( !pParticleSystem )
 	{
-		pParticleSystem = new CParticleSystem;
 		vector<char> content;
-		GetFileContent( content, "materials/enemybullet_particle.xml", true );
+		GetFileContent( content, "materials/enemybullet.xml", true );
 		TiXmlDocument doc;
 		doc.LoadFromBuffer( &content[0] );
-		pParticleSystem->LoadXml( doc.RootElement() );
+		pDrawable = new CDefaultDrawable2D;
+		pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "color_pass" ) );
+		pDrawable1 = new CDefaultDrawable2D;
+		pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "occlusion_pass" ) );
+		pParticleSystem = new CParticleSystem;
+		pParticleSystem->LoadXml( doc.RootElement()->FirstChildElement( "particle" ) );
 		doc.Clear();
 	}
 	SetRenderObject( pParticleSystem->CreateParticleSystemObject( GetAnimController(), m_pParticle.AssignPtr() ) );
+	GetRenderObject()->AddChild( new CImage2D( pDrawable, pDrawable1, CRectangle( -16, -16, 32, 32 ), CRectangle( 0, 0, 1, 1 ) ) );
 	AddCircle( fSize, CVector2( 0, 0 ) );
 	SetBulletMode( true );
 	
@@ -117,8 +108,8 @@ void CEnemyBullet::OnTickAfterHitTest()
 			CEntity* pEntity = dynamic_cast<CEntity*>( pManifold->pOtherHitProxy );
 			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 			{
-				CParticleSystem* pParticleSystem = __getBloodEffect();
-				AddChild( pParticleSystem->CreateParticleSystemObject( GetAnimController() ) );
+				//CParticleSystem* pParticleSystem = __getBloodEffect();
+				//AddChild( pParticleSystem->CreateParticleSystemObject( GetAnimController() ) );
 				Kill();
 				return;
 			}
@@ -137,6 +128,7 @@ void CEnemyBullet::OnKilled()
 {
 	if( m_pParticle )
 		m_pParticle->GetData().isEmitting = false;
+	GetRenderObject()->RemoveAllChild();
 }
 
 void CEnemyBullet::OnHitPlayer( CPlayer* pPlayer )

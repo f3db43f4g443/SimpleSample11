@@ -12,6 +12,71 @@ CDefaultDrawable2D::~CDefaultDrawable2D()
 {
 }
 
+namespace _DefaultDrawable2D_cpp
+{
+	enum
+	{
+		eDrawableBlend_Opaque,
+		eDrawableBlend_Transparent,
+		eDrawableBlend_Transparent1,
+		eDrawableBlend_Add,
+		eDrawableBlend_Multiply,
+		eDrawableBlend_Subtract,
+		eDrawableBlend_Exclude,
+
+		eDrawableBlend_Count,
+	};
+
+	IBlendState** GetBlendStates()
+	{
+		static IBlendState* pBlendStates[] = 
+		{
+			IBlendState::Get<>(),
+			IBlendState::Get<false, false, 0xf, EBlendSrcAlpha, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendOne, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+			IBlendState::Get<false, false, 0xf, EBlendDestColor, EBlendZero, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendOne, EBlendOpRevSubtract, EBlendOne, EBlendOne, EBlendOpRevSubtract>(),
+			IBlendState::Get<false, false, 0xf, EBlendInvDestColor, EBlendInvSrcColor, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+		};
+		return pBlendStates;
+	}
+}
+using namespace _DefaultDrawable2D_cpp;
+
+IBlendState* CDrawable2D::GetBlendState( uint16 nType )
+{
+	if( nType >= eDrawableBlend_Count )
+		nType = 0;
+	m_bOpaque = nType == 0;
+	return GetBlendStates()[nType];
+}
+
+IBlendState* CDrawable2D::LoadBlendState( IBufReader& buf )
+{
+	uint16 nType = buf.Read<uint16>();
+	return GetBlendState( nType );
+}
+
+uint16 CDrawable2D::GetBlendStateIndex( IBlendState* pState )
+{
+	uint16 nType = 0;
+	for( int i = 0; i < eDrawableBlend_Count; i++ )
+	{
+		if( pState == GetBlendStates()[i] )
+		{
+			nType = i;
+			break;
+		}
+	}
+	return nType;
+}
+
+void CDrawable2D::SaveBlendState( CBufFile& buf, IBlendState* pBlendState )
+{
+	buf.Write( GetBlendStateIndex( pBlendState ) );
+}
+
 IBlendState* CDrawable2D::LoadBlendState( const char* szBlendType )
 {
 	IBlendState* pBlendState = NULL;
@@ -53,6 +118,18 @@ IBlendState* CDrawable2D::LoadBlendState( const char* szBlendType )
 	return pBlendState;
 }
 
+void CDefaultDrawable2D::Load( IBufReader& buf )
+{
+	m_pBlendState = LoadBlendState( buf );
+	m_material.Load( buf );
+}
+
+void CDefaultDrawable2D::Save( CBufFile& buf )
+{
+	SaveBlendState( buf, m_pBlendState );
+	m_material.Save( buf );
+}
+
 void CDefaultDrawable2D::LoadXml( TiXmlElement* pRoot )
 {
 	auto pBlend = pRoot->FirstChildElement( "blend" );
@@ -61,6 +138,11 @@ void CDefaultDrawable2D::LoadXml( TiXmlElement* pRoot )
 	
 	auto pMaterial = pRoot->FirstChildElement( "material" );
 	m_material.LoadXml( pMaterial );
+}
+
+void CDefaultDrawable2D::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
+{
+	m_material.BindShaderResource( eShaderType, szName, pShaderResource );
 }
 
 void CDefaultDrawable2D::Flush( CRenderContext2D& context )
