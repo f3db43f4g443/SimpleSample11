@@ -19,7 +19,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	void ShowSubStage( uint8 nSlot );
+	uint8 ShowSubStage( uint8 nSlot );
 	void HideSubStage();
 
 	const char* GetSubStageName() { return m_strSubStageName.c_str(); }
@@ -55,6 +55,8 @@ public:
 	virtual void MovePhase( CTurnBasedContext* pContext );
 	virtual void EmotePhase( CTurnBasedContext* pContext );
 	virtual void BattlePhase( CTurnBasedContext* pContext );
+
+	TVector2<int32> SelectTargetGrid( CTurnBasedContext* pContext );
 
 	bool Move( CTurnBasedContext* pContext, uint8 nDir );
 

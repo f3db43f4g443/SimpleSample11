@@ -125,6 +125,11 @@ void CFace::OnEndEdit()
 	m_pFaceEditTile->bVisible = false;
 }
 
+CRectangle CFace::GetFaceRect()
+{
+	return CRectangle( m_baseOffset - m_gridScale * 0.5f, m_gridScale + m_gridScale * CVector2( m_nWidth + 0.5f, m_nHeight + 0.5f ) );
+}
+
 void CFace::RefreshEditTile( uint32 x, uint32 y, uint8 nFlag )
 {
 	auto pGrid = GetGrid( x, y );

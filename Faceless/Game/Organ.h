@@ -8,6 +8,7 @@ class CCharacter;
 struct SOrganActionContext
 {
 	CCharacter* pCharacter;
+	COrgan* pOrgan;
 	TVector2<int> target;
 	uint8 nCharge;
 
@@ -43,6 +44,9 @@ public:
 	bool CanAction( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
 
 	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+
+	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
+	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
 private:
 	CFace* m_pFace;
 	TVector2<int32> m_pos;
@@ -56,6 +60,7 @@ private:
 
 	CString m_strOrganAction;
 	CReference<CPrefab> m_pOrganActionPrefab;
+	CReference<CPrefab> m_pOrganTargetorPrefab;
 };
 
 class COrganAction : public CEntity

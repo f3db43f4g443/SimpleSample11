@@ -56,6 +56,9 @@ public:
 	void OnEndEdit();
 
 	CTileMap2D* GetEditTile() { return m_pFaceEditTile; }
+	const CVector2& GetBaseOffset() { return m_baseOffset; }
+	const CVector2& GetGridScale() { return m_gridScale; }
+	CRectangle GetFaceRect();
 	
 	SGrid* GetGrid( uint32 x, uint32 y ) { return x < m_nWidth && y < m_nHeight ? &m_grids[x + y * m_nWidth] : NULL; }
 	void RefreshEditTile( uint32 x, uint32 y, uint8 nFlag );

@@ -54,12 +54,13 @@ void CCharacter::OnRemovedFromStage()
 		m_tickBeforeHitTest.Unregister();
 }
 
-void CCharacter::ShowSubStage( uint8 nSlot )
+uint8 CCharacter::ShowSubStage( uint8 nSlot )
 {
 	if( m_nSubStage == INVALID_32BITID || m_nSubStageShowSlot != INVALID_8BITID )
-		return;
+		return m_nSubStage;
 	if( CStageDirector::Inst()->ShowSubStage( m_nSubStage, nSlot ) )
 		m_nSubStageShowSlot = nSlot;
+	return m_nSubStage;
 }
 
 void CCharacter::HideSubStage()
@@ -121,6 +122,11 @@ void CCharacter::EmotePhase( CTurnBasedContext* pContext )
 void CCharacter::BattlePhase( CTurnBasedContext* pContext )
 {
 
+}
+
+TVector2<int32> CCharacter::SelectTargetGrid( CTurnBasedContext * pContext )
+{
+	return TVector2<int32>();
 }
 
 void CCharacter::SetHp( uint32 n, uint32 nMax )
