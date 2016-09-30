@@ -36,13 +36,19 @@ bool COrgan::IsInRange( const TVector2<int32>& pos )
 	return false;
 }
 
-bool COrgan::CanAction( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
+bool COrgan::CanAction( SOrganActionContext& actionContext )
 {
 	if( !m_pOrganActionPrefab )
 		return false;
 	CCharacter* pCharacter = actionContext.pCharacter;
 	if( pCharacter->GetSp() < m_nCost )
 		return false;
+	return true;
+}
+
+bool COrgan::CheckActionTarget( SOrganActionContext & actionContext )
+{
+	CCharacter* pCharacter = actionContext.pCharacter;
 
 	auto ofs = actionContext.target - pCharacter->GetGrid();
 	if( !IsInRange( ofs ) )
@@ -62,8 +68,6 @@ bool COrgan::CanAction( CTurnBasedContext* pContext, SOrganActionContext& action
 
 void COrgan::Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
-	CCharacter* pCharacter = actionContext.pCharacter;
-	pCharacter->SetSp( pCharacter->GetSp() - m_nCost );
 	TTempEntityHolder<COrganAction> pAction = SafeCast<COrganAction>( m_pOrganActionPrefab->GetRoot()->CreateInstance() );
 	pAction->SetParentEntity( this );
 	pAction->Action( pContext, actionContext );

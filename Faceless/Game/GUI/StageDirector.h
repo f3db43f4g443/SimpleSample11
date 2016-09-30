@@ -21,6 +21,10 @@ public:
 
 	bool ShowSubStage( uint32 nStage, uint8 nSlot );
 	bool HideSubStage( uint8 nSlot );
+	CFaceView* GetFaceView( uint8 nSlot ) { return m_pSubStageViewport[nSlot]; }
+	void SetFaceViewState( uint8 nSlot, uint8 nState );
+
+	void FocusFaceView( uint8 nSlot, class CTurnBasedContext* pContext = NULL );
 
 	void OnClickPlayerStage();
 
@@ -45,9 +49,9 @@ protected:
 	TClassTrigger<CStageDirector> m_onClickPlayerStage;
 	TClassTrigger<CStageDirector> m_onTick;
 
-	uint8 m_nCurState;
-	uint8 m_nNextState;
+	uint8 m_nFocusView;
 	CRectangle m_targetViewportArea[3];
 	CVector2 m_targetFaceToolboxPos;
 	uint32 m_nViewportMoveTime;
+	uint32 m_nFaceToolboxMoveTime;
 };

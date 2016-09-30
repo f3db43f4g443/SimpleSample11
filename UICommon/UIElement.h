@@ -41,6 +41,8 @@ public:
 
 		eEvent_Char,
 
+		eEvent_Action1,
+
 		eEvent_Count,
 	};
 

@@ -9,10 +9,15 @@
 
 void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
-	auto dPos = actionContext.target - actionContext.pCharacter->GetGrid();
-	float r = atan2( dPos.y, dPos.x );
+	auto dGridPos = actionContext.target - actionContext.pCharacter->GetGrid();
+	
 	uint32 nRemoved = 0;
 	{
+		auto dPos = CCharacter::RotateDir( dGridPos, actionContext.pCharacter->GetDir() );
+		float r = atan2( dPos.y, dPos.x );
+		CVector2 dir( dPos.x, dPos.y );
+		dir.Normalize();
+
 		vector<TTempEntityHolder<CBullet> > bullets;
 		bullets.resize( m_nCount );
 		for( int i = 0; i < m_nCount; i++ )
@@ -21,6 +26,7 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 			bullets[i] = pBullet;
 			pBullet->SetParentEntity( this );
 			pBullet->SetRotation( r );
+			pBullet->SetVelocity( dir * pBullet->GetSpeed() );
 			auto pTrigger = new CFunctionTrigger;
 			pTrigger->bAutoDelete = true;
 			pTrigger->Set( [pTrigger, &nRemoved] () {
@@ -34,14 +40,29 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 	while( nRemoved < m_nCount )
 		pContext->Yield( 0, false );
 
+	CStageDirector::Inst()->FocusFaceView( -1, pContext );
+	auto levelGrid = actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext );
+	actionContext.target = levelGrid;
+	if( actionContext.pOrgan )
+		return;
+
+	actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
 	auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
 	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
 	pTargetor->FindTargets( pContext, actionContext );
 	
 	for( auto pCharacter : actionContext.targetCharacters )
 	{
+		actionContext.pCurTarget = pCharacter;
+		auto dPos = CCharacter::RotateDir( dGridPos, pCharacter->GetDir() );
+		float r = atan2( dPos.y, dPos.x );
+		CVector2 dir( dPos.x, dPos.y );
+		dir.Normalize();
+
 		auto pSubStage = GetStage()->GetWorld()->GetSubStage( pCharacter->ShowSubStage( 1 ) );
-		TVector2<int32> targetGrid = pCharacter->SelectTargetGrid( pContext );
+		CStageDirector::Inst()->FocusFaceView( pCharacter->GetSubStageShowSlot(), pContext );
+
+		TVector2<int32> targetGrid = pCharacter->SelectTargetFaceGrid( pContext, actionContext );
 		CVector2 targetPos = pSubStage->pFace->GetBaseOffset() + pSubStage->pFace->GetGridScale() * CVector2( targetGrid.x, targetGrid.y );
 		CRectangle faceRect = pSubStage->pFace->GetFaceRect();
 		float k = Max( dPos.x == 0 ? -10000.0f : ( dPos.x > 0 ? ( faceRect.GetLeft() - targetPos.x ) / dPos.x : ( faceRect.GetRight() - targetPos.x ) / dPos.x ),
@@ -59,6 +80,7 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 				pBullet->SetParentEntity( pSubStage->pFace );
 				pBullet->SetRotation( r );
 				pBullet->SetPosition( srcPos );
+				pBullet->SetVelocity( dir * pBullet->GetSpeed() );
 				auto pTrigger = new CFunctionTrigger;
 				pTrigger->bAutoDelete = true;
 				pTrigger->Set( [pTrigger, &nRemoved]() {
@@ -73,6 +95,8 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 				pContext->Yield( 0, false );
 			pContext->Yield( 1, false );
 		}
+
+		CStageDirector::Inst()->FocusFaceView( -1, pContext );
 		pCharacter->HideSubStage();
 	}
 

@@ -7,6 +7,7 @@ class TRectangle
 public:
 	TRectangle();
 	TRectangle( T x, T y, T width, T height );
+	TRectangle( TVector2<T> vMin, TVector2<T> vMax );
 	TRectangle( const TRectangle& rect );
 
 	TRectangle& operator= (const TRectangle& rect);

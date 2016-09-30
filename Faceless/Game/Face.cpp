@@ -127,7 +127,12 @@ void CFace::OnEndEdit()
 
 CRectangle CFace::GetFaceRect()
 {
-	return CRectangle( m_baseOffset - m_gridScale * 0.5f, m_gridScale + m_gridScale * CVector2( m_nWidth + 0.5f, m_nHeight + 0.5f ) );
+	return CRectangle( m_baseOffset - m_gridScale * 0.5f, m_baseOffset + m_gridScale * CVector2( m_nWidth + 0.5f, m_nHeight + 0.5f ) );
+}
+
+CRectangle CFace::GetKillBound()
+{
+	return CRectangle( m_baseOffset - m_gridScale * 4, m_baseOffset + m_gridScale * CVector2( m_nWidth + 4, m_nHeight + 4 ) );
 }
 
 void CFace::RefreshEditTile( uint32 x, uint32 y, uint8 nFlag )

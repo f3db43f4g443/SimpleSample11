@@ -71,6 +71,11 @@ void CCharacter::HideSubStage()
 		m_nSubStageShowSlot = INVALID_8BITID;
 }
 
+SSubStage * CCharacter::GetSubStage()
+{
+	return GetStage()->GetWorld()->GetSubStage( m_nSubStage );
+}
+
 bool CCharacter::MoveTo( uint32 gridX, uint32 gridY )
 {
 	return m_pLevel->MoveCharacter( this, gridX, gridY );
@@ -124,7 +129,12 @@ void CCharacter::BattlePhase( CTurnBasedContext* pContext )
 
 }
 
-TVector2<int32> CCharacter::SelectTargetGrid( CTurnBasedContext * pContext )
+TVector2<int32> CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+{
+	return TVector2<int32>();
+}
+
+TVector2<int32> CCharacter::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext& actionContext )
 {
 	return TVector2<int32>();
 }

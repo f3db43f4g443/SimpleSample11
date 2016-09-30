@@ -13,6 +13,7 @@ struct SOrganActionContext
 	uint8 nCharge;
 
 	vector<CCharacter*> targetCharacters;
+	CCharacter* pCurTarget;
 };
 
 enum
@@ -40,10 +41,14 @@ public:
 	TVector2<int32> GetGridPos() { return m_pos; }
 
 	void GetRange( vector<TVector2<int32> >& result );
+	uint32 GetCost() { return m_nCost; }
 	bool IsInRange( const TVector2<int32>& pos );
-	bool CanAction( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+	bool CanAction( SOrganActionContext& actionContext );
+	bool CheckActionTarget( SOrganActionContext& actionContext );
 
 	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+
+	void Damage( uint32 nDmg ) {}
 
 	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
 	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
@@ -67,7 +72,7 @@ class COrganAction : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	COrganAction( const SClassCreateContext& context ) : CEntity( context ) {}
+	COrganAction( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COrganAction ); }
 	virtual void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext ) {}
 
 };
@@ -76,7 +81,7 @@ class COrganTargetor : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	COrganTargetor( const SClassCreateContext& context ) : CEntity( context ) {}
+	COrganTargetor( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COrganTargetor ); }
 	virtual void FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext ) {}
 
 	typedef function<bool( CCharacter* pChar, CTurnBasedContext* pContext, SOrganActionContext& actionContext )> FuncOnFindTarget;

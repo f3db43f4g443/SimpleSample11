@@ -80,6 +80,7 @@
     <ClCompile Include="Entities\OrganTargetorSimpleShoot.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\Bullet.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />

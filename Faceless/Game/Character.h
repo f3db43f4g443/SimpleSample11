@@ -21,11 +21,14 @@ public:
 
 	uint8 ShowSubStage( uint8 nSlot );
 	void HideSubStage();
+	struct SSubStage* GetSubStage();
+	uint8 GetSubStageShowSlot() { return m_nSubStageShowSlot; }
 
 	const char* GetSubStageName() { return m_strSubStageName.c_str(); }
 
 	CMyLevel* GetLevel() { return m_pLevel; }
 	const TVector2<int32>& GetGrid() { return m_grid; }
+	uint8 GetDir() { return m_nDir; }
 	bool MoveTo( uint32 gridX, uint32 gridY );
 	void Face( uint8 nDir );
 	uint16 GetDelay() { return m_nDelay; }
@@ -49,6 +52,11 @@ public:
 		static TVector2<int32> ofs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
 		return ofs[nDir];
 	}
+	static TVector2<int32> RotateDir( const TVector2<int32>& dir, uint8 nCharDir )
+	{
+		TVector2<int32> dirs[4] = { { -dir.y, dir.x }, { dir.x, dir.y }, { dir.y, -dir.x }, { -dir.x, -dir.y } };
+		return dirs[nCharDir & 3];
+	}
 
 	virtual void OnTurn( CTurnBasedContext* pContext );
 
@@ -56,7 +64,8 @@ public:
 	virtual void EmotePhase( CTurnBasedContext* pContext );
 	virtual void BattlePhase( CTurnBasedContext* pContext );
 
-	TVector2<int32> SelectTargetGrid( CTurnBasedContext* pContext );
+	virtual TVector2<int32> SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
+	virtual TVector2<int32> SelectTargetFaceGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
 
 	bool Move( CTurnBasedContext* pContext, uint8 nDir );
 

@@ -9,6 +9,11 @@ TRectangle<T>::TRectangle( T x, T y, T width, T height ):x(x), y(y), width(width
 {
 }
 template <typename T>
+TRectangle<T>::TRectangle( TVector2<T> vMin, TVector2<T> vMax ) : x( vMin.x ), y( vMin.y ), width( vMax.x - vMin.x ), height( vMax.y - vMin.y )
+{
+
+}
+template <typename T>
 TRectangle<T>::TRectangle(const TRectangle<T>& rect):x(rect.x), y(rect.y), width(rect.width), height(rect.height)
 {
 }

@@ -420,6 +420,7 @@
     <ClCompile Include="Effects\ParticleWebEmitter.cpp" />
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
+    <ClCompile Include="Entities\Bullet.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
     <ClCompile Include="Entities\OrganActionSimpleShoot.cpp" />

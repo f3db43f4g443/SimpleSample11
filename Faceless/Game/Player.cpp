@@ -4,6 +4,8 @@
 #include "World.h"
 #include "Common/ResourceManager.h"
 #include "MyLevel.h"
+#include "Organ.h"
+#include "Face.h"
 
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
@@ -89,6 +91,8 @@ bool CPlayer::PlayerCommandFaceEditItem( CFaceEditItem* pItem, const TVector2<in
 
 void CPlayer::EmotePhase( CTurnBasedContext* pContext )
 {
+	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_Edit );
+
 	while( 1 )
 	{
 		try
@@ -108,4 +112,99 @@ void CPlayer::EmotePhase( CTurnBasedContext* pContext )
 				pFaceEdit->bResult = true;
 		}
 	}
+	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_None );
+}
+
+struct SPlayerCommandAction
+{
+	COrgan* pOrgan;
+
+	bool bResult;
+};
+
+bool CPlayer::PlayerCommandAction( COrgan * pOrgan )
+{
+	SPlayerCommandAction cmd;
+	cmd.pOrgan = pOrgan;
+	cmd.bResult = false;
+	PlayerCommand( ePlayerCommand_Action, &cmd );
+	return cmd.bResult;
+}
+
+void CPlayer::BattlePhase( CTurnBasedContext * pContext )
+{
+	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_Action );
+
+	while( 1 )
+	{
+		try
+		{
+			CMessagePump msg( pContext );
+			m_onPlayerCommand.Register( ePlayerCommand_EndPhase, msg.Register<SPlayerCommandEndPhase*>() );
+			m_onPlayerCommand.Register( ePlayerCommand_Action, msg.Register<SPlayerCommandAction*>() );
+			pContext->Yield();
+		}
+		catch( SPlayerCommandEndPhase* pEndPhase )
+		{
+			break;
+		}
+		catch( SPlayerCommandAction* pAction )
+		{
+			auto pSubStage = GetSubStage();
+			CFace* pFace = pSubStage->pFace;
+			SOrganActionContext actionContext;
+			if( !pAction->pOrgan->CanAction( actionContext ) )
+				continue;
+
+			pAction->bResult = true;
+			CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_None );
+			pAction->pOrgan->Action( pContext, actionContext );
+			CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_Action );
+		}
+	}
+	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_None );
+}
+
+void CPlayer::PlayerCommandSelectTargetLevelGrid( const TVector2<int32>& grid )
+{
+}
+
+TVector2<int32> CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+{
+	return TVector2<int32>();
+}
+
+struct SPlayerCommandSelectTargetFaceGrid
+{
+	TVector2<int32> grid;
+};
+
+void CPlayer::PlayerCommandSelectTargetFaceGrid( const TVector2<int32>& grid )
+{
+	SPlayerCommandSelectTargetFaceGrid cmd;
+	cmd.grid = grid;
+	PlayerCommand( ePlayerCommand_SelectTargetFaceGrid, &cmd );
+}
+
+TVector2<int32> CPlayer::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+{
+	CStageDirector::Inst()->SetFaceViewState( actionContext.pCurTarget->GetSubStageShowSlot(), CFaceView::eState_SelectTarget );
+
+	TVector2<int32> res( 0, 0 );
+	while( 1 )
+	{
+		try
+		{
+			CMessagePump msg( pContext );
+			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetFaceGrid, msg.Register<SPlayerCommandSelectTargetFaceGrid*>() );
+			pContext->Yield();
+		}
+		catch( SPlayerCommandSelectTargetFaceGrid* pSelectGrid )
+		{
+			res = pSelectGrid->grid;
+			break;
+		}
+	}
+	CStageDirector::Inst()->SetFaceViewState( actionContext.pCurTarget->GetSubStageShowSlot(), CFaceView::eState_None );
+	return res;
 }
