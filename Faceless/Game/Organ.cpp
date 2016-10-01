@@ -3,6 +3,7 @@
 #include "Face.h"
 #include "Character.h"
 #include "MyLevel.h"
+#include "GUI/StageDirector.h"
 
 void COrgan::GetRange( vector<TVector2<int32> >& result )
 {
@@ -68,9 +69,14 @@ bool COrgan::CheckActionTarget( SOrganActionContext & actionContext )
 
 void COrgan::Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
+	uint8 nState = CStageDirector::Inst()->GetState();
+	CStageDirector::Inst()->SetState( CStageDirector::eState_Locked );
 	TTempEntityHolder<COrganAction> pAction = SafeCast<COrganAction>( m_pOrganActionPrefab->GetRoot()->CreateInstance() );
 	pAction->SetParentEntity( this );
 	pAction->Action( pContext, actionContext );
+	if( actionContext.bSucceed )
+		actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
+	CStageDirector::Inst()->SetState( nState );
 }
 
 bool COrganEditItem::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )

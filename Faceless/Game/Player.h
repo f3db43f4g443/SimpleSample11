@@ -27,7 +27,7 @@ public:
 	virtual void EmotePhase( CTurnBasedContext* pContext ) override;
 	virtual void BattlePhase( CTurnBasedContext* pContext ) override;
 
-	virtual TVector2<int32> SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext ) override;
+	virtual bool SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext ) override;
 	virtual TVector2<int32> SelectTargetFaceGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext ) override;
 
 	void PlayerCommand( uint32 iEvent, void* pContext ) { m_onPlayerCommand.Trigger( iEvent, pContext ); }

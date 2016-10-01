@@ -37,7 +37,7 @@ void CFaceView::OnFocused( bool bFocused )
 			m_pSubStage->pFace->OnEndEdit();
 			m_bGridMoved = false;
 			break;
-		case eState_SelectTarget:
+		case eState_SelectFaceTarget:
 			break;
 		}
 	}
@@ -50,7 +50,7 @@ void CFaceView::OnFocused( bool bFocused )
 		case eState_Edit:
 			m_pSubStage->pFace->OnBeginEdit();
 			break;
-		case eState_SelectTarget:
+		case eState_SelectFaceTarget:
 			break;
 		}
 	}
@@ -137,11 +137,11 @@ void CFaceView::OnClick( const CVector2& mousePos )
 {
 	if( !m_bFocused )
 	{
-		m_events.Trigger( eEvent_Action1, NULL );
+		m_events.Trigger( eEvent_Clicked, NULL );
 		return;
 	}
 
-	if( m_nState == eState_SelectTarget )
+	if( m_nState == eState_SelectFaceTarget )
 	{
 		auto pFace = m_pSubStage->pFace;
 		CVector2 fixOfs = GetScenePos( mousePos );

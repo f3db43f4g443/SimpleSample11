@@ -31,6 +31,7 @@ public:
 		eEvent_StartDrag,
 		eEvent_Dragged,
 		eEvent_StopDrag,
+		eEvent_Clicked,
 
 		eEvent_Action,
 		eEvent_Resize,
@@ -41,7 +42,6 @@ public:
 
 		eEvent_Char,
 
-		eEvent_Action1,
 
 		eEvent_Count,
 	};
@@ -110,7 +110,7 @@ protected:
 	virtual void OnMouseDown( const CVector2& mousePos );
 	virtual void OnMouseUp( const CVector2& mousePos );
 	virtual void OnMouseMove( const CVector2& mousePos );
-	virtual void OnClick( const CVector2& mousePos ) {}
+	virtual void OnClick( const CVector2& mousePos ) { m_events.Trigger( eEvent_Clicked, (void*)&mousePos ); }
 	virtual void OnStartDrag( const CVector2& mousePos );
 	virtual void OnDragged( const CVector2& mousePos );
 	virtual void OnStopDrag( const CVector2& mousePos );

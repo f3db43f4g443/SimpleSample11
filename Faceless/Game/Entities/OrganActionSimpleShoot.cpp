@@ -41,12 +41,12 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 		pContext->Yield( 0, false );
 
 	CStageDirector::Inst()->FocusFaceView( -1, pContext );
-	auto levelGrid = actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext );
-	actionContext.target = levelGrid;
-	if( actionContext.pOrgan )
+	if( !actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext ) )
+		return;
+	if( !actionContext.pOrgan->CheckActionTarget( actionContext ) )
 		return;
 
-	actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
+	actionContext.bSucceed = true;
 	auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
 	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
 	pTargetor->FindTargets( pContext, actionContext );

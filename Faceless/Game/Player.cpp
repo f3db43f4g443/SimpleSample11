@@ -165,13 +165,51 @@ void CPlayer::BattlePhase( CTurnBasedContext * pContext )
 	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_None );
 }
 
+struct SPlayerCommandSelectTargetFaceGrid
+{
+	TVector2<int32> grid;
+};
+
 void CPlayer::PlayerCommandSelectTargetLevelGrid( const TVector2<int32>& grid )
 {
+	SPlayerCommandSelectTargetFaceGrid cmd;
+	cmd.grid = grid;
+	PlayerCommand( ePlayerCommand_SelectTargetLevelGrid, &cmd );
 }
 
-TVector2<int32> CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
 {
-	return TVector2<int32>();
+	uint8 nState = CStageDirector::Inst()->GetState();
+	CStageDirector::Inst()->SetState( CStageDirector::eState_SelectTarget );
+
+	bool bSucceed = false;
+	while( 1 )
+	{
+		try
+		{
+			CMessagePump msg( pContext );
+			m_onPlayerCommand.Register( ePlayerCommand_EndPhase, msg.Register<SPlayerCommandEndPhase*>() );
+			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetFaceGrid, msg.Register<SPlayerCommandSelectTargetFaceGrid*>() );
+			pContext->Yield();
+		}
+		catch( SPlayerCommandEndPhase* pEndPhase )
+		{
+			bSucceed = false;
+			break;
+		}
+		catch( SPlayerCommandSelectTargetFaceGrid* pSelectGrid )
+		{
+			actionContext.target = pSelectGrid->grid;
+			if( actionContext.pOrgan->CheckActionTarget( actionContext ) )
+			{
+				bSucceed = true;
+				break;
+			}
+		}
+	}
+
+	CStageDirector::Inst()->SetState( nState );
+	return bSucceed;
 }
 
 struct SPlayerCommandSelectTargetFaceGrid
@@ -188,7 +226,7 @@ void CPlayer::PlayerCommandSelectTargetFaceGrid( const TVector2<int32>& grid )
 
 TVector2<int32> CPlayer::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
 {
-	CStageDirector::Inst()->SetFaceViewState( actionContext.pCurTarget->GetSubStageShowSlot(), CFaceView::eState_SelectTarget );
+	CStageDirector::Inst()->SetFaceViewState( actionContext.pCurTarget->GetSubStageShowSlot(), CFaceView::eState_SelectFaceTarget );
 
 	TVector2<int32> res( 0, 0 );
 	while( 1 )

@@ -7,10 +7,13 @@ class CTurnBasedContext;
 class CCharacter;
 struct SOrganActionContext
 {
+	SOrganActionContext() : pCharacter( NULL ), pOrgan( NULL ), pCurTarget( NULL ), bSucceed( false ) {}
 	CCharacter* pCharacter;
-	COrgan* pOrgan;
+	class COrgan* pOrgan;
 	TVector2<int> target;
 	uint8 nCharge;
+
+	bool bSucceed;
 
 	vector<CCharacter*> targetCharacters;
 	CCharacter* pCurTarget;

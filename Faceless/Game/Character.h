@@ -64,7 +64,7 @@ public:
 	virtual void EmotePhase( CTurnBasedContext* pContext );
 	virtual void BattlePhase( CTurnBasedContext* pContext );
 
-	virtual TVector2<int32> SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
+	virtual bool SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
 	virtual TVector2<int32> SelectTargetFaceGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
 
 	bool Move( CTurnBasedContext* pContext, uint8 nDir );

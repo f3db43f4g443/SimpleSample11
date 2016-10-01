@@ -8,8 +8,10 @@
 #include "MyLevel.h"
 
 CStageDirector::CStageDirector()
-	: m_onClickPlayerStage( this, &CStageDirector::OnClickPlayerStage )
+	: m_onClickMainStage( this, &CStageDirector::OnClickMainStage )
+	, m_onClickPlayerStage( this, &CStageDirector::OnClickPlayerStage )
 	, m_onTick( this, &CStageDirector::OnTick )
+	, m_nState( eState_Free )
 	, m_nViewportMoveTime( 0 )
 	, m_nFocusView( -1 )
 	, m_pWorld( NULL )
@@ -20,9 +22,10 @@ CStageDirector::CStageDirector()
 void CStageDirector::OnInited()
 {
 	m_pMainStageViewport = GetChildByName<CUIViewport>( "main" );
+	m_pMainStageViewport->Register( eEvent_Clicked, &m_onClickPlayerStage );
 	m_pSubStageViewport[0] = CFaceView::Create( GetChildByName<CUIViewport>( "sub0" ) );
 	m_pSubStageViewport[1] = CFaceView::Create( GetChildByName<CUIViewport>( "sub1" ) );
-	m_pSubStageViewport[0]->Register( eEvent_Action1, &m_onClickPlayerStage );
+	m_pSubStageViewport[0]->Register( eEvent_Clicked, &m_onClickPlayerStage );
 
 	m_pFaceToolbox = new CFaceToolbox;
 	CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/face_toolbox.xml" )->GetElement()->Clone( m_pFaceToolbox.GetPtr() );
@@ -34,6 +37,11 @@ void CStageDirector::OnInited()
 void CStageDirector::OnWorldCreated( CWorld* pWorld )
 {
 	m_pWorld = pWorld;
+}
+
+void CStageDirector::SetState( uint8 nState )
+{
+	m_nState = nState;
 }
 
 bool CStageDirector::ShowSubStage( uint32 nStage, uint8 nSlot )
@@ -148,8 +156,30 @@ void CStageDirector::FocusFaceView( uint8 nSlot, class CTurnBasedContext* pConte
 		pContext->Yield( 0.5f, false );
 }
 
+void CStageDirector::OnClickMainStage( CVector2* mousePos )
+{
+	if( m_nState == eState_SelectTarget )
+	{
+		auto pLevel = CMyLevel::GetInst();
+		if( !pLevel )
+			return;
+		
+		CVector2 fixOfs = m_pMainStageViewport->GetScenePos( *mousePos );
+		pLevel->GetGridScale();
+		CVector2 v = ( fixOfs - pLevel->GetBaseOffset() ) / pLevel->GetGridScale();
+		TVector2<int32> grid( floor( v.x + 0.5f ), floor( v.y + 0.5f ) );
+
+		auto pPlayer = pLevel->GetStage()->GetPlayer();
+		if( pPlayer )
+			pPlayer->PlayerCommandSelectTargetLevelGrid( grid );
+	}
+}
+
 void CStageDirector::OnClickPlayerStage()
 {
+	if( m_nState != eState_Free )
+		return;
+
 	auto pSubStage = m_pSubStageViewport[0]->GetSubStage();
 	if( !pSubStage->pCharacter )
 		return;

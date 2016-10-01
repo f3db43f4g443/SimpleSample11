@@ -11,7 +11,7 @@ public:
 		eState_None,
 		eState_Edit,
 		eState_Action,
-		eState_SelectTarget
+		eState_SelectFaceTarget
 	};
 	static CFaceView* Create( CUIElement* pElem );
 

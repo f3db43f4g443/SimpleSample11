@@ -129,9 +129,9 @@ void CCharacter::BattlePhase( CTurnBasedContext* pContext )
 
 }
 
-TVector2<int32> CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+bool CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
 {
-	return TVector2<int32>();
+	return false;
 }
 
 TVector2<int32> CCharacter::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext& actionContext )
