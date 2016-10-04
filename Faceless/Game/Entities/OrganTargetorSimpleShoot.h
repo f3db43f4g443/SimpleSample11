@@ -1,11 +1,11 @@
 #pragma once
 #include "Organ.h"
 
-class COrganTargetSimpleShoot : public COrganTargetor
+class COrganTargetorSimpleShoot : public COrganTargetor
 {
 	friend void RegisterGameClasses();
 public:
-	COrganTargetSimpleShoot( const SClassCreateContext& context ) : COrganTargetor( context ) { SET_BASEOBJECT_ID( COrganTargetSimpleShoot ); }
+	COrganTargetorSimpleShoot( const SClassCreateContext& context ) : COrganTargetor( context ) { SET_BASEOBJECT_ID( COrganTargetorSimpleShoot ); }
 
 	void FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
 private:

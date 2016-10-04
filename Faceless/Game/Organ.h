@@ -29,46 +29,7 @@ enum
 {
 	eTargetType_None,
 	eTergetType_Pos,
-	eTargetType_Cbaracter
-};
-
-class COrgan : public CEntity
-{
-	friend class CFace;
-	friend class COrganEditItem;
-	friend void RegisterGameClasses();
-public:
-	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ) { SET_BASEOBJECT_ID( COrgan ); }
-	uint32 GetWidth() { return m_nWidth; }
-	uint32 GetHeight() { return m_nHeight; }
-	TVector2<int32> GetGridPos() { return m_pos; }
-
-	void GetRange( vector<TVector2<int32> >& result );
-	uint32 GetCost() { return m_nCost; }
-	bool IsInRange( const TVector2<int32>& pos );
-	bool CanAction( SOrganActionContext& actionContext );
-	bool CheckActionTarget( SOrganActionContext& actionContext );
-
-	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
-
-	void Damage( uint32 nDmg ) {}
-
-	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
-	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
-private:
-	CFace* m_pFace;
-	TVector2<int32> m_pos;
-
-	uint32 m_nWidth, m_nHeight;
-
-	uint32 m_nCost;
-	uint8 m_nRangeType;
-	uint8 m_nTargetType;
-	uint32 m_nRange, m_nRange1;
-
-	CString m_strOrganAction;
-	CReference<CPrefab> m_pOrganActionPrefab;
-	CReference<CPrefab> m_pOrganTargetorPrefab;
+	eTargetType_Character
 };
 
 class COrganAction : public CEntity
@@ -98,6 +59,48 @@ protected:
 	}
 private:
 	FuncOnFindTarget m_onFindTarget;
+};
+
+class COrgan : public CEntity
+{
+	friend class CFace;
+	friend class COrganEditItem;
+	friend void RegisterGameClasses();
+public:
+	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ) { SET_BASEOBJECT_ID( COrgan ); }
+	uint32 GetWidth() { return m_nWidth; }
+	uint32 GetHeight() { return m_nHeight; }
+	TVector2<int32> GetGridPos() { return m_pos; }
+
+	void GetRange( vector<TVector2<int32> >& result );
+	uint32 GetCost() { return m_nCost; }
+	bool IsInRange( const TVector2<int32>& pos );
+	bool CanAction( SOrganActionContext& actionContext );
+	bool CheckActionTarget( SOrganActionContext& actionContext );
+
+	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+	bool ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+	bool ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext, COrganTargetor::FuncOnFindTarget func );
+
+	void Damage( uint32 nDmg );
+
+	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
+	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
+private:
+	CFace* m_pFace;
+	TVector2<int32> m_pos;
+
+	uint32 m_nWidth, m_nHeight;
+	uint32 m_nHp, m_nMaxHp;
+
+	uint32 m_nCost;
+	uint8 m_nRangeType;
+	uint8 m_nTargetType;
+	uint32 m_nRange, m_nRange1;
+
+	CString m_strOrganAction;
+	CReference<CPrefab> m_pOrganActionPrefab;
+	CReference<CPrefab> m_pOrganTargetorPrefab;
 };
 
 class COrganEditItem : public CFaceEditItem

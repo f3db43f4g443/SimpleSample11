@@ -55,7 +55,7 @@ bool COrgan::CheckActionTarget( SOrganActionContext & actionContext )
 	if( !IsInRange( ofs ) )
 		return false;
 
-	if( m_nTargetType == eTargetType_Cbaracter )
+	if( m_nTargetType == eTargetType_Character )
 	{
 		auto pGrid = pCharacter->GetLevel()->GetGrid( actionContext.target.x, actionContext.target.y );
 		if( !pGrid )
@@ -77,6 +77,63 @@ void COrgan::Action( CTurnBasedContext* pContext, SOrganActionContext& actionCon
 	if( actionContext.bSucceed )
 		actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
 	CStageDirector::Inst()->SetState( nState );
+}
+
+bool COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+{
+	CStageDirector::Inst()->FocusFaceView( -1, pContext );
+
+	actionContext.bSucceed = true;
+	if( m_nTargetType != eTargetType_None )
+	{
+		if( !actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext ) )
+			actionContext.bSucceed = false;
+		else if( !actionContext.pOrgan->CheckActionTarget( actionContext ) )
+			actionContext.bSucceed = false;
+	}
+
+	if( actionContext.bSucceed )
+	{
+		auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
+		pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+		pTargetor->FindTargets( pContext, actionContext );
+	}
+
+	return actionContext.bSucceed;
+}
+
+bool COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext, COrganTargetor::FuncOnFindTarget func )
+{
+	CStageDirector::Inst()->FocusFaceView( -1, pContext );
+
+	actionContext.bSucceed = true;
+	if( m_nTargetType != eTargetType_None )
+	{
+		if( !actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext ) )
+			actionContext.bSucceed = false;
+		else if( !actionContext.pOrgan->CheckActionTarget( actionContext ) )
+			actionContext.bSucceed = false;
+	}
+	else
+	{
+		actionContext.target = actionContext.pCharacter->GetGrid();
+	}
+
+	if( actionContext.bSucceed )
+	{
+		auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
+		pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+		pTargetor->SetFindTargetFunc( func );
+		pTargetor->FindTargets( pContext, actionContext );
+	}
+
+	return actionContext.bSucceed;
+}
+
+void COrgan::Damage( uint32 nDmg )
+{
+	m_nHp = Max( 0, (int32)( m_nHp - nDmg ) );
+	
 }
 
 bool COrganEditItem::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )

@@ -52,13 +52,13 @@ TVector2<T> TVector2<T>::operator* (const TVector2<T>& vec) const
 }
 
 template <typename T>
-TVector2<T> operator/ ( T scalar ) const
+TVector2<T> TVector2<T>::operator/ ( T scalar ) const
 {
 	return TVector2<T>( x / scalar, y / scalar );
 }
 
 template <typename T>
-TVector2<T> operator/ ( const TVector2<T>& vec ) const
+TVector2<T> TVector2<T>::operator/ ( const TVector2<T>& vec ) const
 {
 	return TVector2<T>( x / vec.x, y / vec.y );
 }

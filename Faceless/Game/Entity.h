@@ -104,6 +104,7 @@ template<class T>
 class TTempEntityHolder : public CReference<T>
 {
 public:
+	TTempEntityHolder() : CReference<T>() {}
 	TTempEntityHolder( const TTempEntityHolder<T>& r ) : CReference<T>( r ) {}
 	TTempEntityHolder( T* p ) : CReference<T>( p ) {}
 	~TTempEntityHolder()

@@ -40,16 +40,8 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 	while( nRemoved < m_nCount )
 		pContext->Yield( 0, false );
 
-	CStageDirector::Inst()->FocusFaceView( -1, pContext );
-	if( !actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext ) )
+	if( !actionContext.pOrgan->ActionSelectTarget( pContext, actionContext ) )
 		return;
-	if( !actionContext.pOrgan->CheckActionTarget( actionContext ) )
-		return;
-
-	actionContext.bSucceed = true;
-	auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
-	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
-	pTargetor->FindTargets( pContext, actionContext );
 	
 	for( auto pCharacter : actionContext.targetCharacters )
 	{

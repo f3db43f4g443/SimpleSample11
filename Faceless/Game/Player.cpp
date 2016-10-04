@@ -165,14 +165,14 @@ void CPlayer::BattlePhase( CTurnBasedContext * pContext )
 	CStageDirector::Inst()->SetFaceViewState( GetSubStageShowSlot(), CFaceView::eState_None );
 }
 
-struct SPlayerCommandSelectTargetFaceGrid
+struct SPlayerCommandSelectTargetLevelGrid
 {
 	TVector2<int32> grid;
 };
 
 void CPlayer::PlayerCommandSelectTargetLevelGrid( const TVector2<int32>& grid )
 {
-	SPlayerCommandSelectTargetFaceGrid cmd;
+	SPlayerCommandSelectTargetLevelGrid cmd;
 	cmd.grid = grid;
 	PlayerCommand( ePlayerCommand_SelectTargetLevelGrid, &cmd );
 }
@@ -189,7 +189,7 @@ bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionC
 		{
 			CMessagePump msg( pContext );
 			m_onPlayerCommand.Register( ePlayerCommand_EndPhase, msg.Register<SPlayerCommandEndPhase*>() );
-			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetFaceGrid, msg.Register<SPlayerCommandSelectTargetFaceGrid*>() );
+			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetFaceGrid, msg.Register<SPlayerCommandSelectTargetLevelGrid*>() );
 			pContext->Yield();
 		}
 		catch( SPlayerCommandEndPhase* pEndPhase )
@@ -197,7 +197,7 @@ bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionC
 			bSucceed = false;
 			break;
 		}
-		catch( SPlayerCommandSelectTargetFaceGrid* pSelectGrid )
+		catch( SPlayerCommandSelectTargetLevelGrid* pSelectGrid )
 		{
 			actionContext.target = pSelectGrid->grid;
 			if( actionContext.pOrgan->CheckActionTarget( actionContext ) )

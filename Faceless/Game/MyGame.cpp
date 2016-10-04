@@ -16,6 +16,10 @@
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
 
+#include "Entities/Bullet.h"
+#include "Entities/OrganActionSimpleShoot.h"
+#include "Entities/OrganTargetorSimpleShoot.h"
+
 #include "Effects/ParticleTimeoutEmitter.h"
 #include "Effects/ParticleSubEmitter.h"
 
@@ -132,6 +136,9 @@ void CGame::Update()
 			pPlayer->PlayerCommandMove( 2 );
 		else if( m_keyDown.GetBit( 'W' ) )
 			pPlayer->PlayerCommandMove( 3 );
+
+		if( m_keyDown.GetBit( ' ' ) )
+			pPlayer->PlayerCommandEndPhase();
 	}
 
 	for( int i = 0; i < nFrames; i++ )
@@ -249,6 +256,37 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_nMaxHp )
+		REGISTER_MEMBER( m_nCost )
+		REGISTER_MEMBER( m_nRangeType )
+		REGISTER_MEMBER( m_nTargetType )
+		REGISTER_MEMBER( m_nRange )
+		REGISTER_MEMBER( m_nRange1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COrganAction )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COrganTargetor )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBullet )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nDmg )
+		REGISTER_MEMBER( m_fSpeed )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COrganActionSimpleShoot )
+		REGISTER_BASE_CLASS( COrganAction )
+		REGISTER_MEMBER( m_nCount )
+		REGISTER_MEMBER( m_fInterval )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COrganTargetorSimpleShoot )
+		REGISTER_BASE_CLASS( COrganTargetor )
+		REGISTER_MEMBER( m_fFlyingSpeed )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CFace )

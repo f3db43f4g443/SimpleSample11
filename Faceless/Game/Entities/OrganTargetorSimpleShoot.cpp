@@ -3,13 +3,15 @@
 #include "MyLevel.h"
 #include "Stage.h"
 
-void COrganTargetSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
+void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
 	auto pCharacter = actionContext.pCharacter;
 	auto pLevel = actionContext.pCharacter->GetLevel();
 	auto src = actionContext.pCharacter->GetGrid();
 	auto target = actionContext.target;
 	auto delta = target - src;
+	if( !delta.x && !delta.y )
+		return;
 	SetPosition( pCharacter->GetPosition() );
 
 	CCharacter* pFindChar = NULL;
