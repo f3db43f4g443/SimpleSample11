@@ -176,7 +176,7 @@ void CUIElement::SetActive( bool bActive )
 {
 	m_bActive = bActive;
 	if( bActive )
-		GetParent()->MoveToTopmost( this, true );
+		MoveToTopmost( true );
 	OnSetActive( bActive );
 }
 

@@ -865,7 +865,7 @@ void CMaterialEditor::OnFrameCountChanged()
 		auto pItem = new SFrameDataItem;
 		m_frameDataItems[i] = pItem;
 		pItem->pTreeView = m_pTreeView;
-		pItem->Create( m_pFrameDataRoot, i, nParamCount, rect, texRect, &params[0] );
+		pItem->Create( m_pFrameDataRoot, i, nParamCount, rect, texRect, params.size() ? &params[0] : NULL );
 	}
 }
 

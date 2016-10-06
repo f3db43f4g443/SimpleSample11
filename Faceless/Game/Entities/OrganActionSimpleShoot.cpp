@@ -6,6 +6,12 @@
 #include "World.h"
 #include "Face.h"
 #include "GUI/StageDirector.h"
+#include "ResourceManager.h"
+
+void COrganActionSimpleShoot::OnAddedToStage()
+{
+	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBulletPrefab.c_str() );
+}
 
 void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
@@ -24,7 +30,8 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 		{
 			CBullet* pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
 			bullets[i] = pBullet;
-			pBullet->SetParentEntity( this );
+			pBullet->SetParentEntity( GetParentEntity() );
+			pBullet->SetPosition( GetPosition() );
 			pBullet->SetRotation( r );
 			pBullet->SetVelocity( dir * pBullet->GetSpeed() );
 			auto pTrigger = new CFunctionTrigger;
@@ -40,8 +47,7 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 	while( nRemoved < m_nCount )
 		pContext->Yield( 0, false );
 
-	if( !actionContext.pOrgan->ActionSelectTarget( pContext, actionContext ) )
-		return;
+	actionContext.pOrgan->ActionSelectTarget( pContext, actionContext );
 	
 	for( auto pCharacter : actionContext.targetCharacters )
 	{
@@ -54,7 +60,7 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 		auto pSubStage = GetStage()->GetWorld()->GetSubStage( pCharacter->ShowSubStage( 1 ) );
 		CStageDirector::Inst()->FocusFaceView( pCharacter->GetSubStageShowSlot(), pContext );
 
-		TVector2<int32> targetGrid = pCharacter->SelectTargetFaceGrid( pContext, actionContext );
+		TVector2<int32> targetGrid = actionContext.pCharacter->SelectTargetFaceGrid( pContext, actionContext );
 		CVector2 targetPos = pSubStage->pFace->GetBaseOffset() + pSubStage->pFace->GetGridScale() * CVector2( targetGrid.x, targetGrid.y );
 		CRectangle faceRect = pSubStage->pFace->GetFaceRect();
 		float k = Max( dPos.x == 0 ? -10000.0f : ( dPos.x > 0 ? ( faceRect.GetLeft() - targetPos.x ) / dPos.x : ( faceRect.GetRight() - targetPos.x ) / dPos.x ),

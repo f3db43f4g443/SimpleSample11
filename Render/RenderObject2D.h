@@ -28,6 +28,7 @@ public:
 	void RemoveAllChild();
 	void RemoveThis() { if( m_pParent ) m_pParent->RemoveChild( this ); }
 	void MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder = false );
+	void MoveToTopmost( bool bKeepZOrder = false );
 	int32 GetZOrder() { return m_nZOrder; }
 	void SetZOrder( int32 nZOrder );
 

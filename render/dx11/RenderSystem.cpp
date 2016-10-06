@@ -20,10 +20,14 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dsound.lib")
 
+#if _MSC_VER >= 1900
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+#endif
+
 IRenderSystem::IRenderSystem()
 	: m_pGame( NULL ), m_pRenderer( NULL ), m_dLastTime( 0 ), m_dTime( 0 ), m_fElapsedTime( 0 )
 {
-
+	
 }
 
 IRenderSystem* IRenderSystem::Inst()

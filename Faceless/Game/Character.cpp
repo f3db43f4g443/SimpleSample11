@@ -107,6 +107,8 @@ void CCharacter::OnTurn( CTurnBasedContext* pContext )
 	SetMp( m_nMaxMp, m_nMaxMp );
 	SetSp( m_nMaxSp, m_nMaxSp );
 
+	CStageDirector::Inst()->FocusFaceView( -1, pContext );
+
 	MovePhase( pContext );
 	EmotePhase( pContext );
 	BattlePhase( pContext );
@@ -136,7 +138,7 @@ bool CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActi
 
 TVector2<int32> CCharacter::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext& actionContext )
 {
-	return TVector2<int32>();
+	return TVector2<int32>( 0, 0 );
 }
 
 void CCharacter::SetHp( uint32 n, uint32 nMax )

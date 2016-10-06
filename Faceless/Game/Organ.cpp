@@ -4,6 +4,13 @@
 #include "Character.h"
 #include "MyLevel.h"
 #include "GUI/StageDirector.h"
+#include "ResourceManager.h"
+
+void COrgan::OnAddedToStage()
+{
+	m_pOrganActionPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strOrganAction.c_str() );
+	m_pOrganTargetorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strOrganTargetor.c_str() );
+}
 
 void COrgan::GetRange( vector<TVector2<int32> >& result )
 {
@@ -71,39 +78,7 @@ void COrgan::Action( CTurnBasedContext* pContext, SOrganActionContext& actionCon
 {
 	uint8 nState = CStageDirector::Inst()->GetState();
 	CStageDirector::Inst()->SetState( CStageDirector::eState_Locked );
-	TTempEntityHolder<COrganAction> pAction = SafeCast<COrganAction>( m_pOrganActionPrefab->GetRoot()->CreateInstance() );
-	pAction->SetParentEntity( this );
-	pAction->Action( pContext, actionContext );
-	if( actionContext.bSucceed )
-		actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
-	CStageDirector::Inst()->SetState( nState );
-}
 
-bool COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
-{
-	CStageDirector::Inst()->FocusFaceView( -1, pContext );
-
-	actionContext.bSucceed = true;
-	if( m_nTargetType != eTargetType_None )
-	{
-		if( !actionContext.pCharacter->SelectTargetLevelGrid( pContext, actionContext ) )
-			actionContext.bSucceed = false;
-		else if( !actionContext.pOrgan->CheckActionTarget( actionContext ) )
-			actionContext.bSucceed = false;
-	}
-
-	if( actionContext.bSucceed )
-	{
-		auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
-		pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
-		pTargetor->FindTargets( pContext, actionContext );
-	}
-
-	return actionContext.bSucceed;
-}
-
-bool COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext, COrganTargetor::FuncOnFindTarget func )
-{
 	CStageDirector::Inst()->FocusFaceView( -1, pContext );
 
 	actionContext.bSucceed = true;
@@ -121,13 +96,29 @@ bool COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionConte
 
 	if( actionContext.bSucceed )
 	{
-		auto pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
-		pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
-		pTargetor->SetFindTargetFunc( func );
-		pTargetor->FindTargets( pContext, actionContext );
+		actionContext.pCharacter->SetSp( actionContext.pCharacter->GetSp() - actionContext.pOrgan->GetCost() );
+
+		TTempEntityHolder<COrganAction> pAction = SafeCast<COrganAction>( m_pOrganActionPrefab->GetRoot()->CreateInstance() );
+		pAction->SetParentEntity( this );
+		pAction->Action( pContext, actionContext );
 	}
 
-	return actionContext.bSucceed;
+	CStageDirector::Inst()->SetState( nState );
+}
+
+void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+{
+	TTempEntityHolder<COrganTargetor> pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
+	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+	pTargetor->FindTargets( pContext, actionContext );
+}
+
+void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext, COrganTargetor::FuncOnFindTarget func )
+{
+	TTempEntityHolder<COrganTargetor> pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
+	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+	pTargetor->SetFindTargetFunc( func );
+	pTargetor->FindTargets( pContext, actionContext );
 }
 
 void COrgan::Damage( uint32 nDmg )

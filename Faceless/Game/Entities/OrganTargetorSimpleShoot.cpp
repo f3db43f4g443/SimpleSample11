@@ -13,6 +13,7 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrgan
 	if( !delta.x && !delta.y )
 		return;
 	SetPosition( pCharacter->GetPosition() );
+	SetRotation( atan2( delta.y, delta.x ) );
 
 	CCharacter* pFindChar = NULL;
 	pLevel->RayCast( src, target, [pLevel, &pFindChar, &pCharacter] ( const TVector2<int32>& pos )
@@ -35,7 +36,7 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrgan
 	{
 		auto n = dPos;
 		n.Normalize();
-		fMaxDist = n.Dot( pFindChar->GetPosition() - GetPosition() );
+		fMaxDist = Min( dist, n.Dot( pFindChar->GetPosition() - GetPosition() ) );
 	}
 
 	float fDist1 = 0;
@@ -48,5 +49,6 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrgan
 		SetPosition( newPos );
 	}
 
-	FindTarget( pFindChar, pContext, actionContext );
+	if( pFindChar )
+		FindTarget( pFindChar, pContext, actionContext );
 }

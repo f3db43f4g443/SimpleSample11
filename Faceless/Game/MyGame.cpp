@@ -85,7 +85,7 @@ void CGame::Start()
 	skin1.nMaxHp = 10;
 	skin1.nHp = 2;
 	pPlayer->AddFaceEditItem( &skin1 );
-	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/orb1.pf" );
+	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/organs/orb1.pf" );
 	static COrganEditItem organ;
 	organ.strName = "organ";
 	organ.nCost = 1;
@@ -254,6 +254,8 @@ void RegisterGameClasses()
 	
 	REGISTER_CLASS_BEGIN( COrgan )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_strOrganAction )
+		REGISTER_MEMBER( m_strOrganTargetor )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nMaxHp )
@@ -280,6 +282,7 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( COrganActionSimpleShoot )
 		REGISTER_BASE_CLASS( COrganAction )
+		REGISTER_MEMBER( m_strBulletPrefab )
 		REGISTER_MEMBER( m_nCount )
 		REGISTER_MEMBER( m_fInterval )
 	REGISTER_CLASS_END()

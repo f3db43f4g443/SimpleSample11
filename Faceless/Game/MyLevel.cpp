@@ -134,12 +134,14 @@ void CMyLevel::RayCast( TVector2<int32> src, TVector2<int32> target, function<bo
 	vector<CHitProxy*> vecOverlaps;
 	auto curGrid = src;
 	int32 s = delta.x * pt.y - delta.y * pt.x;
-	while( curGrid.x != target.x || curGrid.y != target.y )
+	while( true )
 	{
 		auto pGrid = GetGrid( curGrid.x, curGrid.y );
 		if( !pGrid )
 			break;
 		if( !func( curGrid ) )
+			break;
+		if( curGrid.x == target.x && curGrid.y == target.y )
 			break;
 
 		if( s > 0 )

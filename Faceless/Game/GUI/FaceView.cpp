@@ -5,6 +5,7 @@
 #include "UICommon/UIFactory.h"
 #include "Common/ResourceManager.h"
 #include "Player.h"
+#include "MyGame.h"
 
 CFaceView* CFaceView::Create( CUIElement* pElem )
 {
@@ -15,11 +16,29 @@ CFaceView* CFaceView::Create( CUIElement* pElem )
 	return pUIItem;
 }
 
+SSubStage * CFaceView::GetSubStage()
+{
+	if( m_nSubStage == INVALID_32BITID )
+		return NULL;
+	return CGame::Inst().GetWorld()->GetSubStage( m_nSubStage );
+}
+
+void CFaceView::SetSubStage( uint32 nStage )
+{
+	m_nSubStage = nStage;
+	if( nStage != INVALID_32BITID )
+	{
+		auto pSubStage = CGame::Inst().GetWorld()->GetSubStage( nStage );
+		pSubStage->pStage->SetViewport( this );
+	}
+}
+
 void CFaceView::OnFocused( bool bFocused )
 {
 	if( m_bFocused == bFocused )
 		return;
 	m_bFocused = bFocused;
+	auto pStage = GetSubStage();
 	if( !m_bFocused )
 	{
 		switch( m_nState )
@@ -31,10 +50,10 @@ void CFaceView::OnFocused( bool bFocused )
 			{
 				for( int j = m_curSelectedRect.y; j < m_curSelectedRect.GetBottom(); j++ )
 				{
-					m_pSubStage->pFace->RefreshEditTile( i, j, 0 );
+					GetSubStage()->pFace->RefreshEditTile( i, j, 0 );
 				}
 			}
-			m_pSubStage->pFace->OnEndEdit();
+			GetSubStage()->pFace->OnEndEdit();
 			m_bGridMoved = false;
 			break;
 		case eState_SelectFaceTarget:
@@ -48,7 +67,7 @@ void CFaceView::OnFocused( bool bFocused )
 		case eState_None:
 			break;
 		case eState_Edit:
-			m_pSubStage->pFace->OnBeginEdit();
+			GetSubStage()->pFace->OnBeginEdit();
 			break;
 		case eState_SelectFaceTarget:
 			break;
@@ -79,13 +98,13 @@ void CFaceView::OnMouseMove( const CVector2& mousePos )
 	if( m_nState == eState_Edit )
 	{
 		m_bIsEditValid = false;
-		if( !m_pSubStage || !m_pSubStage->pFace )
+		if( !GetSubStage() || !GetSubStage()->pFace )
 		{
 			m_curSelectedRect = TRectangle<int32>( 0, 0, 0, 0 );
 			return;
 		}
 
-		auto pFace = m_pSubStage->pFace;
+		auto pFace = GetSubStage()->pFace;
 		auto preRect = m_curSelectedRect;
 		if( m_curSelectedRect.width && m_curSelectedRect.height )
 		{
@@ -135,6 +154,7 @@ void CFaceView::OnMouseMove( const CVector2& mousePos )
 
 void CFaceView::OnClick( const CVector2& mousePos )
 {
+	auto pSubStage = GetSubStage();
 	if( !m_bFocused )
 	{
 		m_events.Trigger( eEvent_Clicked, NULL );
@@ -143,29 +163,31 @@ void CFaceView::OnClick( const CVector2& mousePos )
 
 	if( m_nState == eState_SelectFaceTarget )
 	{
-		auto pFace = m_pSubStage->pFace;
+		auto pFace = pSubStage->pFace;
 		CVector2 fixOfs = GetScenePos( mousePos );
 		CVector2 tileSize = pFace->GetEditTile()->GetTileSize();
 		auto matInv = pFace->globalTransform.Inverse();
 		auto localPos = matInv.MulVector2Pos( fixOfs );
 
-		CVector2 v = ( localPos - pFace->GetEditTile()->GetBaseOffset() * CVector2( 1.0f / tileSize.x, 1.0f / tileSize.y ) );
-		auto pPlayer = m_pSubStage->pCharacter->GetStage()->GetPlayer();
+		CVector2 v = ( localPos - pFace->GetEditTile()->GetBaseOffset() ) / tileSize;
+		auto pPlayer = pSubStage->pCharacter->GetStage()->GetPlayer();
 		if( pPlayer )
 			pPlayer->PlayerCommandSelectTargetFaceGrid( TVector2<int32>( floor( v.x ), floor( v.y ) ) );
 	}
 
 	if( m_nState == eState_Action )
 	{
-		auto pFace = m_pSubStage->pFace;
+		auto pFace = pSubStage->pFace;
 		CVector2 fixOfs = GetScenePos( mousePos );
 		CVector2 tileSize = pFace->GetEditTile()->GetTileSize();
 		auto matInv = pFace->globalTransform.Inverse();
 		auto localPos = matInv.MulVector2Pos( fixOfs );
-		auto pGrid = pFace->GetGrid( floor( localPos.x ), floor( localPos.y ) );
-		if( pGrid->pOrgan )
+
+		CVector2 v = ( localPos - pFace->GetEditTile()->GetBaseOffset() ) / tileSize;
+		auto pGrid = pFace->GetGrid( floor( v.x ), floor( v.y ) );
+		if( pGrid && pGrid->pOrgan )
 		{
-			auto pPlayer = m_pSubStage->pCharacter->GetStage()->GetPlayer();
+			auto pPlayer = pSubStage->pCharacter->GetStage()->GetPlayer();
 			if( pPlayer )
 			{
 				pPlayer->PlayerCommandAction( pGrid->pOrgan );
@@ -194,29 +216,30 @@ void CFaceView::OnDragged( const CVector2& mousePos )
 
 bool CFaceView::TryEdit()
 {
-	if( !m_pSubStage || !m_pSubStage->pFace || !m_bIsEditValid )
+	auto pSubStage = GetSubStage();
+	if( !pSubStage || !pSubStage->pFace || !m_bIsEditValid )
 		return false;
 
-	auto pPlayer = SafeCast<CPlayer>( m_pSubStage->pCharacter );
+	auto pPlayer = SafeCast<CPlayer>( pSubStage->pCharacter );
 	if( pPlayer )
 	{
 		if( !pPlayer->PlayerCommandFaceEditItem( m_pFaceEditItem, TVector2<int32>( m_curSelectedRect.x, m_curSelectedRect.y ) ) )
 			return false;
 	}
 	else
-		m_pFaceEditItem->Edit( m_pSubStage->pCharacter, m_pSubStage->pFace, TVector2<int32>( m_curSelectedRect.x, m_curSelectedRect.y ) );
+		m_pFaceEditItem->Edit( pSubStage->pCharacter, pSubStage->pFace, TVector2<int32>( m_curSelectedRect.x, m_curSelectedRect.y ) );
 
 	m_bIsEditValid = m_pFaceEditItem->nType == eFaceEditType_Organ ? true : false;
 	for( int i = m_curSelectedRect.x; i < m_curSelectedRect.GetRight(); i++ )
 	{
 		for( int j = m_curSelectedRect.y; j < m_curSelectedRect.GetBottom(); j++ )
 		{
-			bool bIsValid = m_pFaceEditItem->IsValidGrid( m_pSubStage->pFace, TVector2<int32>( i, j ) );
+			bool bIsValid = m_pFaceEditItem->IsValidGrid( pSubStage->pFace, TVector2<int32>( i, j ) );
 			if( m_pFaceEditItem->nType == eFaceEditType_Organ )
 				m_bIsEditValid = m_bIsEditValid && bIsValid;
 			else
 				m_bIsEditValid = m_bIsEditValid || bIsValid;
-			m_pSubStage->pFace->RefreshEditTile( i, j, bIsValid ? 1 : 2 );
+			pSubStage->pFace->RefreshEditTile( i, j, bIsValid ? 1 : 2 );
 		}
 	}
 	return true;

@@ -35,6 +35,17 @@ void CFaceEditItemUI::OnInited()
 void CFaceToolbox::Refresh( CCharacter* pCharacter )
 {
 	m_pSelected = NULL;
+	if( m_pSkinsRoot )
+		m_pToolView->RemoveContentTree( m_pSkinsRoot );
+	if( m_pOrgansRoot )
+		m_pToolView->RemoveContentTree( m_pOrgansRoot );
+	if( m_pMasksRoot )
+		m_pToolView->RemoveContentTree( m_pMasksRoot );
+
+	m_pOrgansRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Organs" );
+	m_pSkinsRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Skins" );
+	m_pMasksRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Masks" );
+
 	auto& faceEditItems = pCharacter->GetFaceEditItems();
 	for( int i = 0; i < faceEditItems.size(); i++ )
 	{
@@ -59,10 +70,6 @@ void CFaceToolbox::Refresh( CCharacter* pCharacter )
 void CFaceToolbox::OnInited()
 {
 	m_pToolView = GetChildByName<CUITreeView>( "treeview" );
-
-	m_pOrgansRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Organs" );
-	m_pSkinsRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Skins" );
-	m_pMasksRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Masks" );
 }
 
 void CFaceToolbox::SetSelected( CFaceEditItemUI* pSelected )

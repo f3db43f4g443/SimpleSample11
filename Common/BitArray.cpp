@@ -4,13 +4,13 @@
 CBitArray::CBitArray( uint32 nBits )
 	: m_nBitCount( nBits )
 {
-	m_bits.resize( ( ( nBits - 1 ) >> 5 ) + 1 );
+	m_bits.resize( nBits ? ( ( nBits - 1 ) >> 5 ) + 1 : 0 );
 }
 
 void CBitArray::SetBitCount( uint32 nBits )
 {
 	m_nBitCount = nBits;
-	m_bits.resize( ( ( nBits - 1 ) >> 5 ) + 1 );
+	m_bits.resize( nBits ? ( ( nBits - 1 ) >> 5 ) + 1 : 0 );
 }
 
 bool CBitArray::GetBit( uint32 nBit )

@@ -19,12 +19,14 @@ void CPlayer::OnTick()
 
 void CPlayer::OnAddedToStage()
 {
-	//GetStage()->GetWorld()->PlaySubStage( this, 0 );
+	CCharacter::OnAddedToStage();
+	ShowSubStage( 0 );
 }
 
 void CPlayer::OnRemovedFromStage()
 {
-	GetStage()->GetWorld()->StopSubStage( 0 );
+	HideSubStage();
+	CCharacter::OnRemovedFromStage();
 }
 
 struct SPlayerCommandMove
@@ -153,6 +155,8 @@ void CPlayer::BattlePhase( CTurnBasedContext * pContext )
 			auto pSubStage = GetSubStage();
 			CFace* pFace = pSubStage->pFace;
 			SOrganActionContext actionContext;
+			actionContext.pCharacter = this;
+			actionContext.pOrgan = pAction->pOrgan;
 			if( !pAction->pOrgan->CanAction( actionContext ) )
 				continue;
 
@@ -189,7 +193,7 @@ bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionC
 		{
 			CMessagePump msg( pContext );
 			m_onPlayerCommand.Register( ePlayerCommand_EndPhase, msg.Register<SPlayerCommandEndPhase*>() );
-			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetFaceGrid, msg.Register<SPlayerCommandSelectTargetLevelGrid*>() );
+			m_onPlayerCommand.Register( ePlayerCommand_SelectTargetLevelGrid, msg.Register<SPlayerCommandSelectTargetLevelGrid*>() );
 			pContext->Yield();
 		}
 		catch( SPlayerCommandEndPhase* pEndPhase )

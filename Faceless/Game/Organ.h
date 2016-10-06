@@ -67,7 +67,11 @@ class COrgan : public CEntity
 	friend class COrganEditItem;
 	friend void RegisterGameClasses();
 public:
-	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ) { SET_BASEOBJECT_ID( COrgan ); }
+	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ), m_strOrganTargetor( context )
+	{ SET_BASEOBJECT_ID( COrgan ); }
+
+	virtual void OnAddedToStage() override;
+
 	uint32 GetWidth() { return m_nWidth; }
 	uint32 GetHeight() { return m_nHeight; }
 	TVector2<int32> GetGridPos() { return m_pos; }
@@ -79,8 +83,8 @@ public:
 	bool CheckActionTarget( SOrganActionContext& actionContext );
 
 	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
-	bool ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
-	bool ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext, COrganTargetor::FuncOnFindTarget func );
+	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
+	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext, COrganTargetor::FuncOnFindTarget func );
 
 	void Damage( uint32 nDmg );
 
@@ -99,6 +103,7 @@ private:
 	uint32 m_nRange, m_nRange1;
 
 	CString m_strOrganAction;
+	CString m_strOrganTargetor;
 	CReference<CPrefab> m_pOrganActionPrefab;
 	CReference<CPrefab> m_pOrganTargetorPrefab;
 };

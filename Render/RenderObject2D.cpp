@@ -130,6 +130,12 @@ void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder )
 	}
 }
 
+void CRenderObject2D::MoveToTopmost( bool bKeepZOrder )
+{
+	if( m_pParent )
+		m_pParent->MoveToTopmost( this, bKeepZOrder );
+}
+
 void CRenderObject2D::SetZOrder( int32 nZOrder )
 {
 	m_nZOrder = nZOrder;

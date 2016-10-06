@@ -13,7 +13,8 @@ CStageDirector::CStageDirector()
 	, m_onTick( this, &CStageDirector::OnTick )
 	, m_nState( eState_Free )
 	, m_nViewportMoveTime( 0 )
-	, m_nFocusView( -1 )
+	, m_nFaceToolboxMoveTime( 0 )
+	, m_nFocusView( INVALID_8BITID )
 	, m_pWorld( NULL )
 {
 
@@ -22,7 +23,7 @@ CStageDirector::CStageDirector()
 void CStageDirector::OnInited()
 {
 	m_pMainStageViewport = GetChildByName<CUIViewport>( "main" );
-	m_pMainStageViewport->Register( eEvent_Clicked, &m_onClickPlayerStage );
+	m_pMainStageViewport->Register( eEvent_Clicked, &m_onClickMainStage );
 	m_pSubStageViewport[0] = CFaceView::Create( GetChildByName<CUIViewport>( "sub0" ) );
 	m_pSubStageViewport[1] = CFaceView::Create( GetChildByName<CUIViewport>( "sub1" ) );
 	m_pSubStageViewport[0]->Register( eEvent_Clicked, &m_onClickPlayerStage );
@@ -58,15 +59,15 @@ bool CStageDirector::ShowSubStage( uint32 nStage, uint8 nSlot )
 		if( pPreSubStage->pCharacter )
 			pPreSubStage->pCharacter->HideSubStage();
 	}
-	m_pSubStageViewport[nSlot]->SetSubStage( pSubStage );
+	m_pSubStageViewport[nSlot]->SetSubStage( nStage );
 	return true;
 }
 
 bool CStageDirector::HideSubStage( uint8 nSlot )
 {
-	m_pSubStageViewport[nSlot]->SetSubStage( NULL );
+	m_pSubStageViewport[nSlot]->SetSubStage( -1 );
 	if( nSlot == m_nFocusView )
-		FocusFaceView( -1 );
+		FocusFaceView( INVALID_8BITID );
 	return true;
 }
 
@@ -102,7 +103,7 @@ void CStageDirector::FocusFaceView( uint8 nSlot, class CTurnBasedContext* pConte
 {
 	if( nSlot == m_nFocusView )
 		return;
-	if( nSlot >= 0 )
+	if( nSlot != INVALID_8BITID )
 	{
 		auto pSubStage = m_pSubStageViewport[nSlot]->GetSubStage();
 		if( !pSubStage )
@@ -110,26 +111,29 @@ void CStageDirector::FocusFaceView( uint8 nSlot, class CTurnBasedContext* pConte
 	}
 
 	m_nViewportMoveTime = 30;
-	if( nSlot == -1 )
+	if( nSlot == INVALID_8BITID )
 	{
 		m_targetViewportArea[0] = CRectangle( 0, 0, 500, 600 );
 		m_targetViewportArea[1] = CRectangle( 500, 300, 300, 300 );
 		m_targetViewportArea[2] = CRectangle( 500, 0, 300, 300 );
+		m_pMainStageViewport->MoveToTopmost( true );
 	}
 	else if( nSlot == 0 )
 	{
 		m_targetViewportArea[0] = CRectangle( 0, 0, 200, 600 );
 		m_targetViewportArea[1] = CRectangle( 200, 0, 600, 600 );
 		m_targetViewportArea[2] = CRectangle( 500, 0, 300, 300 );
+		m_pSubStageViewport[0]->MoveToTopmost( true );
 	}
 	else
 	{
 		m_targetViewportArea[0] = CRectangle( 0, 0, 200, 600 );
 		m_targetViewportArea[1] = CRectangle( 500, 300, 300, 300 );
 		m_targetViewportArea[2] = CRectangle( 200, 0, 600, 600 );
+		m_pSubStageViewport[1]->MoveToTopmost( true );
 	}
 
-	if( m_nFocusView >= 0 )
+	if( m_nFocusView != INVALID_8BITID )
 	{
 		CFaceView* pView = GetFaceView( m_nFocusView );
 		pView->OnFocused( false );
@@ -139,7 +143,7 @@ void CStageDirector::FocusFaceView( uint8 nSlot, class CTurnBasedContext* pConte
 			m_nFaceToolboxMoveTime = 30;
 		}
 	}
-	if( nSlot >= 0 )
+	if( nSlot != INVALID_8BITID )
 	{
 		CFaceView* pView = GetFaceView( nSlot );
 		pView->OnFocused( true );
@@ -215,7 +219,7 @@ void CStageDirector::OnTick()
 		m_nViewportMoveTime--;
 	}
 
-	if( m_nFaceToolboxMoveTime )
+	if( m_nFaceToolboxMoveTime > 0 )
 	{
 		CVector2 faceToolboxPos = m_pFaceToolbox->GetPosition();
 		faceToolboxPos.x = floor( ( faceToolboxPos.x * ( m_nFaceToolboxMoveTime - 1 ) + m_targetFaceToolboxPos.x ) / m_nFaceToolboxMoveTime + 0.5f );

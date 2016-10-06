@@ -95,7 +95,7 @@ CMultiFrameImage2D::CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOc
 	: CImage2D( pDrawable, pOcclusionDrawable, CRectangle( 0, 0, 0, 0 ), CRectangle( 0, 0, 0, 0 ), bGUI )
 	, m_pData( pData )
 	, m_fCurTime( 0 )
-	, m_nCurFrame( 0 )
+	, m_nCurFrame( -1 )
 	, m_nFrameBegin( 0 )
 	, m_nFrameEnd( pData->frames.size() )
 	, m_fFramesPerSec( pData->fFramesPerSec )
@@ -109,7 +109,7 @@ void CMultiFrameImage2D::SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPer
 	m_nFrameEnd = nEnd;
 	m_fFramesPerSec = fFramesPerSec;
 	m_fCurTime = 0;
-	m_nCurFrame = 0;
+	m_nCurFrame = -1;
 	UpdateImage();
 }
 
@@ -118,6 +118,8 @@ void CMultiFrameImage2D::UpdateImage()
 	float fFrame = m_fCurTime * m_fFramesPerSec;
 	uint32 nFrame = floor( fFrame );
 	uint32 dFrame = m_nFrameEnd - m_nFrameBegin;
+	if( !dFrame )
+		return;
 	while( nFrame >= dFrame )
 	{
 		nFrame -= dFrame;
@@ -130,7 +132,8 @@ void CMultiFrameImage2D::UpdateImage()
 		auto& frame = m_pData->frames[nFrame];
 		m_element2D.rect = frame.rect;
 		m_element2D.texRect = frame.texRect;
-		memcpy( &m_params[0], &frame.params[0], sizeof(CVector4)* m_params.size() );
+		if( m_params.size() )
+			memcpy( &m_params[0], &frame.params[0], sizeof(CVector4)* m_params.size() );
 	}
 }
 
