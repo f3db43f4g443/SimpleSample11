@@ -1,0 +1,4 @@
+﻿<root type="button" rectX="0" rectY="0" rectWidth="128" rectHeight="20" >
+  <element type="label" name="name" rectX="0" rectY="0" rectWidth="128" rectHeight="20" textAlignX="0" textAlignY="1">
+  </element>
+</root>

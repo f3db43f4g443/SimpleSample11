@@ -1,0 +1,10 @@
+﻿<root type="element" x="300" y="0" >
+  <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="600" rectHeight="600" enableMouseEvent="1">
+  </element>
+  <template name="view" type="EditorRes/UI/treeview.xml" x="600" y="100" rectX="0" rectY="0" rectWidth="300" rectHeight="400" >
+    <template type="EditorRes/UI/button.xml" name="refresh" x="50" y="440" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Refresh" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="save" x="200" y="440" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Save" >
+    </template>
+  </template>
+</root>
