@@ -1,8 +1,0 @@
-﻿<root type="element" >
-  <element name="main" type="viewport" rectX="0" rectY="0" rectWidth="500" rectHeight="600" enableMouseEvent="1">
-  </element>
-  <element name="sub0" type="viewport" rectX="500" rectY="300" rectWidth="300" rectHeight="300" enableMouseEvent="1">
-  </element>
-  <element name="sub1" type="viewport" rectX="500" rectY="0" rectWidth="300" rectHeight="300" enableMouseEvent="1">
-  </element>
-</root>

@@ -1,2 +1,0 @@
-Name	Resource
-s000	data/skins/skin0.mtl

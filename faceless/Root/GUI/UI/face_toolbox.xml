@@ -1,4 +1,0 @@
-﻿<root type="element" x="-200" z="1" rectX="0" rectY="0" rectWidth="200" rectHeight="600" alignX="1" alignY="3" >
-  <template type="GUI/UI/treeview.xml" name="treeview" rectX="0" rectY="0" rectWidth="200" rectHeight="600" alignX="1" alignY="3" enableMouseEvent="1" >
-  </template>
-</root>
