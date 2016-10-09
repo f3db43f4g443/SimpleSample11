@@ -109,14 +109,14 @@ void COrgan::Action( CTurnBasedContext* pContext, SOrganActionContext& actionCon
 void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
 {
 	TTempEntityHolder<COrganTargetor> pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
-	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+	pTargetor->SetParentEntity( actionContext.pCharacter->GetParentEntity() );
 	pTargetor->FindTargets( pContext, actionContext );
 }
 
 void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionContext & actionContext, COrganTargetor::FuncOnFindTarget func )
 {
 	TTempEntityHolder<COrganTargetor> pTargetor = SafeCast<COrganTargetor>( actionContext.pOrgan->GetTargetorPrefab()->GetRoot()->CreateInstance() );
-	pTargetor->SetParentBeforeEntity( actionContext.pCharacter );
+	pTargetor->SetParentBeforeEntity( actionContext.pCharacter->GetParentEntity() );
 	pTargetor->SetFindTargetFunc( func );
 	pTargetor->FindTargets( pContext, actionContext );
 }

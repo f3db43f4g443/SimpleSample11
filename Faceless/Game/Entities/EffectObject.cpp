@@ -7,6 +7,7 @@
 CEffectObject::CEffectObject( const SClassCreateContext& context )
 	: CEntity( context )
 	, m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
+	, m_nState( 0 )
 {
 	SET_BASEOBJECT_ID( CEffectObject );
 }
@@ -17,8 +18,12 @@ void CEffectObject::OnAddedToStage()
 	m_pStates[0] = GetChildByName<CEntity>( "birth" );
 	m_pStates[1] = GetChildByName<CEntity>( "stand" );
 	m_pStates[2] = GetChildByName<CEntity>( "death" );
-	m_fTimeLeft = m_fBirthTime;
-	m_nState = 0;
+	for( int i = 0; i < ELEM_COUNT( m_pStates ); i++ )
+	{
+		if( m_pStates[i] )
+			m_pStates[i]->SetParentEntity( NULL );
+	}
+	SetState( m_nState );
 }
 
 void CEffectObject::OnRemovedFromStage()
@@ -46,7 +51,8 @@ void CEffectObject::OnTickBeforeHitTest()
 	}
 
 	UpdateAnim( fElapsedTime );
-	m_pStates[m_nState]->UpdateAnim( fElapsedTime );
+	if( m_pStates[m_nState] )
+		m_pStates[m_nState]->UpdateAnim( fElapsedTime );
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
 }
 

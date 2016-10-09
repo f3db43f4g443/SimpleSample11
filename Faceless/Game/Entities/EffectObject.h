@@ -18,7 +18,6 @@ protected:
 	virtual void OnTickBeforeHitTest();
 private:
 	TClassTrigger<CEffectObject> m_tickBeforeHitTest;
-	uint8 m_nType;
 	
 	CReference<CEntity> m_pStates[3];
 	float m_fBirthTime;

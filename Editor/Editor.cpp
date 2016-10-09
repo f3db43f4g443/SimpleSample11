@@ -57,7 +57,13 @@ void CEditor::Stop()
 
 void CEditor::Update()
 {
-
+	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
+	double dLastTime = pRenderSystem->GetLastTime();
+	double dTotalTime = pRenderSystem->GetTotalTime();
+	for( auto pObj = CScene2DManager::GetGlobalInst()->Get_AutoUpdateAnimObject(); pObj; pObj = pObj->NextAutoUpdateAnimObject() )
+	{
+		pObj->UpdateAnim( dTotalTime - dLastTime );
+	}
 }
 
 void CEditor::OnResize( const CVector2& size )

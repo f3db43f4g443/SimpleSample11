@@ -125,6 +125,7 @@ void CMultiFrameImage2D::UpdateImage()
 		nFrame -= dFrame;
 		m_fCurTime -= dFrame / m_fFramesPerSec;
 	}
+	nFrame += m_nFrameBegin;
 
 	if( m_nCurFrame != nFrame )
 	{

@@ -5,6 +5,9 @@
 
 void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
 {
+	m_pEffectObject = GetChildByName_Fast<CEffectObject>( "" );
+	m_pEffectObject->SetState( 1 );
+
 	auto pCharacter = actionContext.pCharacter;
 	auto pLevel = actionContext.pCharacter->GetLevel();
 	auto src = actionContext.pCharacter->GetGrid();
@@ -49,6 +52,14 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrgan
 		SetPosition( newPos );
 	}
 
+	if( m_pEffectObject )
+		m_pEffectObject->SetState( 2 );
 	if( pFindChar )
 		FindTarget( pFindChar, pContext, actionContext );
+	if( m_pEffectObject )
+	{
+		while( m_pEffectObject->GetParentEntity() == this )
+			pContext->Yield( 0, false );
+		m_pEffectObject = NULL;
+	}
 }

@@ -79,6 +79,7 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 				pBullet->SetRotation( r );
 				pBullet->SetPosition( srcPos );
 				pBullet->SetVelocity( dir * pBullet->GetSpeed() );
+				pBullet->SetActive( true );
 				auto pTrigger = new CFunctionTrigger;
 				pTrigger->bAutoDelete = true;
 				pTrigger->Set( [pTrigger, &nRemoved]() {

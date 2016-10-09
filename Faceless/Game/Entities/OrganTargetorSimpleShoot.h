@@ -1,5 +1,6 @@
 #pragma once
 #include "Organ.h"
+#include "Entities/EffectObject.h"
 
 class COrganTargetorSimpleShoot : public COrganTargetor
 {
@@ -10,4 +11,6 @@ public:
 	void FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
 private:
 	float m_fFlyingSpeed;
+
+	CReference<CEffectObject> m_pEffectObject;
 };

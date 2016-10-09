@@ -98,6 +98,24 @@ void CGame::Start()
 	context.strStartPointName = "start1";
 	m_pWorld->EnterStage( "data/lv0/scene0.pf", context );
 	//CMainUI::Inst()->SetVisible( true );
+
+	auto pLevel = CMyLevel::GetInst();
+	auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/man1.pf" );
+	auto pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
+	pLevel->AddCharacter( pCharacter, 12, 1 );
+	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
+	pLevel->AddCharacter( pCharacter, 20, 1 );
+	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
+	pLevel->AddCharacter( pCharacter, 12, 8 );
+	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
+	pLevel->AddCharacter( pCharacter, 20, 8 );
+	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
+	pLevel->AddCharacter( pCharacter, 16, 8 );
+	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
 }
 
 void CGame::Stop()

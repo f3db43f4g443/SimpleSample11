@@ -8,6 +8,9 @@ void CBullet::OnAddedToStage()
 	auto pStage = GetStage();
 	auto pFace = pStage->GetRoot()->GetChildByName_Fast<CFace>( "" );
 	m_pFace = pFace;
+	m_pEffectObject = GetChildByName_Fast<CEffectObject>( "" );
+	if( m_pEffectObject )
+		m_pEffectObject->SetState( 1 );
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
 	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 }
@@ -48,13 +51,31 @@ void CBullet::TickAfterHitTest()
 			if( pOrgan )
 			{
 				pOrgan->Damage( m_nDmg );
-				m_bActive = false;
-				SetParentEntity( NULL );
-				return;
+				Kill();
 			}
+		}
+	}
+
+	if( !m_bActive )
+	{
+		if( m_pEffectObject->GetParentEntity() != this )
+		{
+			m_pEffectObject = NULL;
+			SetParentEntity( NULL );
+			return;
 		}
 	}
 
 	if( GetStage() )
 		GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
+}
+
+void CBullet::Kill()
+{
+	m_bActive = false;
+	m_velocity = CVector2( 0, 0 );
+	if( m_pEffectObject )
+		m_pEffectObject->SetState( 2 );
+	else
+		SetParentEntity( NULL );
 }

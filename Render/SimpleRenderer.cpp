@@ -48,11 +48,6 @@ void CSimpleRenderer::OnUpdate( IRenderSystem* pSystem )
 	const uint32 nFPS = 60;
 	uint32 nFrames = floor( dTotalTime * nFPS ) - floor( dLastTime * nFPS );
 	m_nUpdateFrames = nFrames;
-	
-	for( auto pObj = CScene2DManager::GetGlobalInst()->Get_AutoUpdateAnimObject(); pObj; pObj = pObj->NextAutoUpdateAnimObject() )
-	{
-		pObj->UpdateAnim( dTotalTime - dLastTime );
-	}
 }
 
 void CSimpleRenderer::OnRender( IRenderSystem* pSystem )

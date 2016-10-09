@@ -87,18 +87,6 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 	if( pLevel && pPlayer )
 	{
 		pLevel->AddCharacter( pPlayer, 16, 1 );
-
-		auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/man1.pf" );
-		auto pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
-		pLevel->AddCharacter( pCharacter, 12, 1 );
-		pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
-		pLevel->AddCharacter( pCharacter, 20, 1 );
-		pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
-		pLevel->AddCharacter( pCharacter, 12, 8 );
-		pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
-		pLevel->AddCharacter( pCharacter, 20, 8 );
-		pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
-		pLevel->AddCharacter( pCharacter, 16, 8 );
 	}
 
 	auto pEntity = m_pEntityRoot->Get_ChildEntity();

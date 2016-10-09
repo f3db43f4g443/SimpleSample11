@@ -565,6 +565,63 @@ private:
 	TClassTrigger<CRopeNodeData> m_onSegmentsPerDataChanged;
 };
 
+class CMultiFrameNodeData : public CPrefabEditor::CNodeData
+{
+public:
+	CMultiFrameNodeData( CUITreeView* pView, CPrefabEditor* pOwner, CPrefabNode* pNode )
+		: CPrefabEditor::CNodeData( pOwner, pNode )
+	{
+		m_pView = pView;
+		m_pResRoot = CTreeFolder::Create( pView, NULL, "Multi Frames Data" );
+		m_pBeginFrame = CCommonEdit::Create( "Begin Frame" );
+		pView->AddContentChild( m_pBeginFrame, m_pResRoot );
+		m_onDataChanged[0].Set( this, &CMultiFrameNodeData::OnDataChanged );
+		m_pBeginFrame->Register( CUIElement::eEvent_Action, &m_onDataChanged[0] );
+		m_pEndFrame = CCommonEdit::Create( "End Frame" );
+		pView->AddContentChild( m_pEndFrame, m_pResRoot );
+		m_onDataChanged[1].Set( this, &CMultiFrameNodeData::OnDataChanged );
+		m_pEndFrame->Register( CUIElement::eEvent_Action, &m_onDataChanged[1] );
+		m_pFramesPerSec = CCommonEdit::Create( "Frames Per Sec" );
+		pView->AddContentChild( m_pFramesPerSec, m_pResRoot );
+		m_onDataChanged[2].Set( this, &CMultiFrameNodeData::OnDataChanged );
+		m_pFramesPerSec->Register( CUIElement::eEvent_Action, &m_onDataChanged[2] );
+
+		RefreshData();
+	}
+	~CMultiFrameNodeData()
+	{
+		for( int i = 0; i < ELEM_COUNT( m_onDataChanged ); i++ )
+		{
+			if( m_onDataChanged[i].IsRegistered() )
+				m_onDataChanged[i].Unregister();
+		}
+		m_pView->RemoveContentTree( m_pResRoot );
+	}
+protected:
+	void RefreshData()
+	{
+		CMultiFrameImage2D* pRopeObject = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
+		m_pBeginFrame->SetValue( pRopeObject->GetFrameBegin() );
+		m_pEndFrame->SetValue( pRopeObject->GetFrameEnd() );
+		m_pFramesPerSec->SetValue( pRopeObject->GetFramesPerSec() );
+	}
+
+	void OnDataChanged()
+	{
+		CMultiFrameImage2D* pRopeObject = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
+		pRopeObject->SetFrames( m_pBeginFrame->GetValue<uint32>(), m_pEndFrame->GetValue<uint32>(), m_pFramesPerSec->GetValue<uint32>() );
+	}
+private:
+	CUITreeView* m_pView;
+	CReference<CUITreeView::CTreeViewContent> m_pResRoot;
+	CReference<CCommonEdit> m_pBeginFrame;
+	CReference<CCommonEdit> m_pEndFrame;
+	CReference<CCommonEdit> m_pFramesPerSec;
+
+	TClassTrigger<CMultiFrameNodeData> m_onDataChanged[3];
+};
+
+
 class CTileMapNodeData : public CPrefabEditor::CNodeData
 {
 public:
@@ -1005,6 +1062,8 @@ void CPrefabEditor::SelectNode( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 						pNodeData = new CDrawableGroupNodeData( m_pNodeView, this, m_pCurNode );
 					else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_Rope )
 						pNodeData = new CRopeNodeData( m_pNodeView, this, m_pCurNode );
+					else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_MultiFrame )
+						pNodeData = new CMultiFrameNodeData( m_pNodeView, this, m_pCurNode );
 					else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_TileMap )
 						pNodeData = new CTileMapNodeData( m_pNodeView, this, m_pCurNode );
 					break;
@@ -1127,6 +1186,8 @@ void CPrefabEditor::OnCurNodeResourceChanged()
 				pNodeData = new CDrawableGroupNodeData( m_pNodeView, this, m_pCurNode );
 			else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_Rope )
 				pNodeData = new CRopeNodeData( m_pNodeView, this, m_pCurNode );
+			else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_MultiFrame )
+				pNodeData = new CMultiFrameNodeData( m_pNodeView, this, m_pCurNode );
 			else if( static_cast<CDrawableGroup*>( pResource )->GetType() == CDrawableGroup::eType_TileMap )
 				pNodeData = new CTileMapNodeData( m_pNodeView, this, m_pCurNode );
 			break;

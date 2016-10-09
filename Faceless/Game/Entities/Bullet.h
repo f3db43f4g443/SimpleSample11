@@ -1,5 +1,6 @@
 #pragma once
 #include "Entity.h"
+#include "Entities/EffectObject.h"
 
 class CBullet : public CEntity
 {
@@ -24,12 +25,16 @@ protected:
 	virtual void TickBeforeHitTest();
 	virtual void TickAfterHitTest();
 
+	void Kill();
+
 	class CFace* m_pFace;
 	bool m_bActive;
 	CVector2 m_velocity;
 
 	uint32 m_nDmg;
 	float m_fSpeed;
+
+	CReference<CEffectObject> m_pEffectObject;
 
 	TClassTrigger<CBullet> m_tickBeforeHitTest;
 	TClassTrigger<CBullet> m_tickAfterHitTest;
