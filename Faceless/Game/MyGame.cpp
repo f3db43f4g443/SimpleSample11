@@ -16,6 +16,8 @@
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
 
+#include "Entities/OrganHpBar.h"
+
 #include "Entities/Bullet.h"
 #include "Entities/OrganActionSimpleShoot.h"
 #include "Entities/OrganTargetorSimpleShoot.h"
@@ -289,6 +291,10 @@ void RegisterGameClasses()
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( COrganTargetor )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COrganHpBar )
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 

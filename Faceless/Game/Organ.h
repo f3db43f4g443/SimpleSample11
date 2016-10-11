@@ -3,6 +3,8 @@
 #include "FaceEditItem.h"
 #include "Common/StringUtil.h"
 
+#include "Entities/OrganHpBar.h"
+
 class CTurnBasedContext;
 class CCharacter;
 struct SOrganActionContext
@@ -71,10 +73,15 @@ public:
 	{ SET_BASEOBJECT_ID( COrgan ); }
 
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 
+	CFace* GetFace() { return m_pFace; }
 	uint32 GetWidth() { return m_nWidth; }
 	uint32 GetHeight() { return m_nHeight; }
 	TVector2<int32> GetGridPos() { return m_pos; }
+
+	uint32 GetCurHp() { return m_nHp; }
+	uint32 GetMaxHp() { return m_nMaxHp; }
 
 	void GetRange( vector<TVector2<int32> >& result );
 	uint32 GetCost() { return m_nCost; }
@@ -88,8 +95,12 @@ public:
 
 	void Damage( uint32 nDmg );
 
+	void ShowHpBar( bool bShown );
+
 	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
 	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
+
+	DECLARE_EVENT_TRIGGER( OnHpChanged )
 private:
 	CFace* m_pFace;
 	TVector2<int32> m_pos;
@@ -106,6 +117,8 @@ private:
 	CString m_strOrganTargetor;
 	CReference<CPrefab> m_pOrganActionPrefab;
 	CReference<CPrefab> m_pOrganTargetorPrefab;
+
+	CReference<COrganHpBar> m_pHpBar;
 };
 
 class COrganEditItem : public CFaceEditItem

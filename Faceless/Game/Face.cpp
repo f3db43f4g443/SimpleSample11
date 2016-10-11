@@ -18,6 +18,8 @@ void CFace::OnAddedToStage()
 	AddChild( m_pFaceEditTile );
 	m_pFaceEditTile->Set( m_gridScale, m_baseOffset - m_gridScale * 0.5f, m_nWidth, m_nHeight );
 	m_pFaceEditTile->bVisible = false;
+	m_pGUIRoot = new CEntity();
+	m_pGUIRoot->SetParentEntity( this );
 
 	for( int j = 0; j < m_nHeight; j++ )
 	{

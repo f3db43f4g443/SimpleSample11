@@ -104,6 +104,14 @@ public:
 	LINK_LIST_HEAD_ARR( m_triggers, iCount, CTrigger, Trigger )
 };
 
+#define DECLARE_EVENT_TRIGGER( name ) \
+	private: \
+		CEventTrigger<1> m_trigger_##name; \
+	public: \
+		void Register_##name( CTrigger* pTrigger ) { m_trigger_##name.Register( 0, pTrigger ); } \
+		void Trigger_##name( void* pContext ) { m_trigger_##name.Trigger( 0, pContext ); } \
+
+
 template <int iCount>
 class CTimedTrigger
 {

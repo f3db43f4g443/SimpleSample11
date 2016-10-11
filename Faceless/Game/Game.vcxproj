@@ -424,6 +424,7 @@
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
     <ClCompile Include="Entities\OrganActionSimpleShoot.cpp" />
+    <ClCompile Include="Entities\OrganHpBar.cpp" />
     <ClCompile Include="Entities\OrganTargetorSimpleShoot.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entity.cpp" />
@@ -466,6 +467,7 @@
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\GlitchEffect.h" />
     <ClInclude Include="Entities\OrganActionSimpleShoot.h" />
+    <ClInclude Include="Entities\OrganHpBar.h" />
     <ClInclude Include="Entities\OrganTargetorSimpleShoot.h" />
     <ClInclude Include="Entities\StartPoint.h" />
     <ClInclude Include="Entity.h" />

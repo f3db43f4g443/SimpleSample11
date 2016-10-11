@@ -12,6 +12,11 @@ void COrgan::OnAddedToStage()
 	m_pOrganTargetorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strOrganTargetor.c_str() );
 }
 
+void COrgan::OnRemovedFromStage()
+{
+	ShowHpBar( NULL );
+}
+
 void COrgan::GetRange( vector<TVector2<int32> >& result )
 {
 	switch( m_nRangeType )
@@ -124,7 +129,31 @@ void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionConte
 void COrgan::Damage( uint32 nDmg )
 {
 	m_nHp = Max( 0, (int32)( m_nHp - nDmg ) );
-	
+	Trigger_OnHpChanged( this );
+	ShowHpBar( true );
+}
+
+void COrgan::ShowHpBar( bool bShown )
+{
+	if( bShown )
+	{
+		if( !m_pHpBar )
+		{
+			COrganHpBar* pHpBar = SafeCast<COrganHpBar>( CResourceManager::Inst()->CreateResource<CPrefab>( "data/misc/hpbar_organ.pf" )->GetRoot()->CreateInstance() );
+			m_pHpBar = pHpBar;
+			pHpBar->SetOrgan( this );
+			pHpBar->SetParentEntity( m_pFace->GetGUIRoot() );
+		}
+	}
+	else
+	{
+		if( m_pHpBar )
+		{
+			m_pHpBar->SetOrgan( NULL );
+			m_pHpBar->SetParentEntity( NULL );
+			m_pHpBar = NULL;
+		}
+	}
 }
 
 bool COrganEditItem::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )

@@ -13,9 +13,7 @@ void Game_ShaderImplement_Dummy()
 }
 
 IMPLEMENT_MATERIAL_SHADER( PSBloodStain, "Shader/Blood.shader", "PSBloodStain", "ps_5_0" );
-IMPLEMENT_MATERIAL_SHADER( VSHpBar, "Shader/HpBar.shader", "VSHpBar", "vs_5_0" );
-IMPLEMENT_MATERIAL_SHADER( PSHpBar, "Shader/HpBar.shader", "PSHpBar", "ps_5_0" );
-IMPLEMENT_MATERIAL_SHADER( PSHpBarBorder, "Shader/HpBar.shader", "PSHpBarBorder", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSHpBarSmall, "Shader/HpBar.shader", "PSHpBarSmall", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );

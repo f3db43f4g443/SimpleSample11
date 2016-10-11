@@ -83,6 +83,9 @@
     <ClCompile Include="Entities\Bullet.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\OrganHpBar.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -166,6 +169,9 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="Entities\OrganTargetorSimpleShoot.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\OrganHpBar.h">
       <Filter>Entities</Filter>
     </ClInclude>
   </ItemGroup>

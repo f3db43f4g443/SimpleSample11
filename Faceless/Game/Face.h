@@ -56,6 +56,7 @@ public:
 	void OnEndEdit();
 
 	CTileMap2D* GetEditTile() { return m_pFaceEditTile; }
+	CEntity* GetGUIRoot() { return m_pGUIRoot; }
 	const CVector2& GetBaseOffset() { return m_baseOffset; }
 	const CVector2& GetGridScale() { return m_gridScale; }
 	CRectangle GetFaceRect();
@@ -80,4 +81,5 @@ private:
 	CTileMapSet* m_pSkinTile;
 
 	CReference<CTileMap2D> m_pFaceEditTile;
+	CReference<CEntity> m_pGUIRoot;
 };
