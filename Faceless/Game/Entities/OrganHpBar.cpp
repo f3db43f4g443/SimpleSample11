@@ -3,6 +3,7 @@
 #include "Face.h"
 #include "Image2D.h"
 #include "Organ.h"
+#include "Common/MathUtil.h"
 
 void COrganHpBar::SetOrgan( COrgan * pOrgan )
 {
@@ -38,6 +39,8 @@ void COrganHpBar::SetHp( uint32 nHp, uint32 nMaxHp )
 
 	pImage2D->GetParam()[0].x = nHp;
 	pImage2D->GetParam()[0].y = nMaxHp;
+
+	pImage2D->GetParam()[0].w = HighestBit( nMaxHp ) - 0.5f;
 }
 
 void COrganHpBar::OnOrganHpChanged( COrgan * pOrgan )

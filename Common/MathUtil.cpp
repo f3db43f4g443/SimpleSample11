@@ -33,6 +33,17 @@ uint32 Pow2Ceil( uint32 n )
 	return 1 << i;
 }
 
+int32 HighestBit( uint32 n )
+{
+	if( !n )
+		return 0;
+
+	int32 i;
+	for( i = 0; i < 32 && ( 1 << i ) <= n; i++ )
+		;
+	return i;
+}
+
 float NormalizeAngle( float f )
 {
 	f = ( f - PI ) / ( PI * 2 );

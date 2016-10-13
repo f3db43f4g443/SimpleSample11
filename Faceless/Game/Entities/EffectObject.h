@@ -13,6 +13,9 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
+	float GetBirthTime() { return m_fBirthTime; }
+	float GetDeathTime() { return m_fDeathTime; }
+
 	void SetState( uint8 nState );
 protected:
 	virtual void OnTickBeforeHitTest();

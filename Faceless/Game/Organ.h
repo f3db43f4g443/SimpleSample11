@@ -93,6 +93,7 @@ public:
 	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
 	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext, COrganTargetor::FuncOnFindTarget func );
 
+	void SetHp( uint32 nHp );
 	void Damage( uint32 nDmg );
 
 	void ShowHpBar( bool bShown );
@@ -112,6 +113,8 @@ private:
 	uint8 m_nRangeType;
 	uint8 m_nTargetType;
 	uint32 m_nRange, m_nRange1;
+
+	uint32 m_nFramesRowCount, m_nFramesColumnCount;
 
 	CString m_strOrganAction;
 	CString m_strOrganTargetor;

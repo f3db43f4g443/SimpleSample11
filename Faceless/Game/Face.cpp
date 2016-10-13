@@ -1,13 +1,16 @@
 #include "stdafx.h"
 #include "Face.h"
 #include "MyLevel.h"
+#include "Stage.h"
 
 void CFace::OnAddedToStage()
 {
+	m_pDefaultSkin = CSkinNMaskCfg::Inst().GetSkin( m_strDefaultSkinName.c_str() );
+
 	m_pOrganRoot = GetChildByName_Fast<CEntity>( "organs" );
 	
 	auto pTileMapObject = GetChildByName_Fast<CEntity>( "tiles" );
-	auto pTileMap = static_cast<CTileMap2D*>( pTileMapObject->GetRenderObject() );
+	CReference<CTileMap2D> pTileMap = static_cast<CTileMap2D*>( pTileMapObject->GetRenderObject() );
 	m_baseOffset = pTileMap->GetBaseOffset();
 	m_gridScale = pTileMap->GetTileSize();
 	m_nWidth = pTileMap->GetWidth() + 1;
@@ -21,6 +24,11 @@ void CFace::OnAddedToStage()
 	m_pGUIRoot = new CEntity();
 	m_pGUIRoot->SetParentEntity( this );
 
+	m_pSkinTile = new CTileMapSet( pTileMap->GetTileSize(), pTileMap->GetBaseOffset(), pTileMap->GetWidth(), pTileMap->GetHeight(),
+		&CSkinNMaskCfg::Inst().tileMapSetData );
+	pTileMapObject->SetRenderObject( m_pSkinTile );
+	pTileMapObject->SetResource( NULL );
+
 	for( int j = 0; j < m_nHeight; j++ )
 	{
 		for( int i = 0; i < m_nWidth; i++ )
@@ -28,21 +36,19 @@ void CFace::OnAddedToStage()
 			auto pGrid = GetGrid( i, j );
 			pGrid->bEnabled = !!pTileMap->GetUserData( i, j );
 			if( pGrid->bEnabled )
-				pGrid->nSkinHp.base = m_nDefaultSkinMaxHp;
+				SetSkin( m_pDefaultSkin, i, j );
 			
 			RefreshEditTile( i, j, 0 );
 		}
 	}
 
-	m_pSkinTile = new CTileMapSet( pTileMap->GetTileSize(), pTileMap->GetBaseOffset(), pTileMap->GetWidth(), pTileMap->GetHeight(),
-		&CSkinNMaskCfg::Inst().tileMapSetData );
-	pTileMapObject->SetRenderObject( m_pSkinTile );
-	pTileMapObject->SetResource( NULL );
+	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 }
 
 void CFace::OnRemovedFromStage()
 {
-
+	if( m_tickAfterHitTest.IsRegistered() )
+		m_tickAfterHitTest.Unregister();
 }
 
 bool CFace::AddOrgan( COrgan* pOrgan, uint32 x, uint32 y )
@@ -61,7 +67,7 @@ bool CFace::AddOrgan( COrgan* pOrgan, uint32 x, uint32 y )
 	pOrgan->m_pFace = this;
 	pOrgan->m_pos.x = x;
 	pOrgan->m_pos.y = y;
-	pOrgan->SetPosition( CVector2( x - pOrgan->m_nWidth + 1, y - pOrgan->m_nHeight + 1 ) * m_gridScale + m_baseOffset );
+	pOrgan->SetPosition( CVector2( x + ( pOrgan->m_nWidth - 1 ) * 0.5f, y + ( pOrgan->m_nHeight - 1 ) * 0.5f ) * m_gridScale + m_baseOffset );
 
 	for( int i = x; i < x + pOrgan->GetWidth(); i++ )
 	{
@@ -94,6 +100,24 @@ bool CFace::RemoveOrgan( COrgan* pOrgan )
 	return true;
 }
 
+bool CFace::KillOrgan( COrgan * pOrgan )
+{
+	if( pOrgan->m_pFace != this )
+		return false;
+
+	for( int32 i = pOrgan->GetGridPos().x; i < pOrgan->GetGridPos().x + pOrgan->GetWidth(); i++ )
+	{
+		for( int32 j = pOrgan->GetGridPos().y; j < pOrgan->GetGridPos().y + pOrgan->GetHeight(); j++ )
+		{
+			auto pGrid = GetGrid( i, j );
+			SetSkinHp( 0, i, j );
+		}
+	}
+
+	RemoveOrgan( pOrgan );
+	return true;
+}
+
 bool CFace::SetSkin( CSkin* pSkin, uint32 x, uint32 y )
 {
 	auto pGrid = GetGrid( x, y );
@@ -101,20 +125,68 @@ bool CFace::SetSkin( CSkin* pSkin, uint32 x, uint32 y )
 		return false;
 	pGrid->pSkin = pSkin;
 
-	uint32 nMaxHp = pSkin ? pSkin->nMaxHp : m_nDefaultSkinMaxHp;
-	uint32 nCurHp = pGrid->nSkinHp + ( pSkin ? pSkin->nHp : m_nDefaultSkinHp );
-	pGrid->nSkinHp.base = nMaxHp;
-	pGrid->nSkinHp.SetCurValue( nCurHp );
+	uint32 nMaxHp = pSkin ? pSkin->nMaxHp : 0;
+	pGrid->nSkinHp = pGrid->nSkinMaxHp = nMaxHp;
+	if( pGrid->pEffect )
+	{
+		pGrid->pEffect->RemoveThis();
+		pGrid->pEffect = NULL;
+	}
 
 	if( pSkin )
-	{
-		float fPercent = -pGrid->nSkinHp.add2 * 1.0f / pGrid->nSkinHp.GetMaxValue();
-		m_pSkinTile->EditTile( x, y, pSkin->strTileMapName.c_str(), pSkin->nTileMapEditData + ( pSkin->nTileMapEditDataCount - 1 ) * fPercent );
-	}
+		m_pSkinTile->EditTile( x, y, pSkin->strTileMapName.c_str(), pSkin->nTileMapEditData );
 	else
 		m_pSkinTile->EditTile( x, y, NULL, 0 );
 	
 	RefreshEditTile( x, y, 0 );
+}
+
+void CFace::SetSkinHp( uint32 nHp, uint32 x, uint32 y )
+{
+	auto pGrid = GetGrid( x, y );
+	if( !pGrid || !pGrid->bEnabled )
+		return;
+
+	uint32 nRow = pGrid->nSkinHp ? ( pGrid->nSkinHp * ( pGrid->pSkin->nEffectRows + 1 ) - 1 ) / pGrid->nSkinMaxHp + 1 : 0;
+	pGrid->nSkinHp = Min( nHp, pGrid->nSkinMaxHp );
+	uint32 nRow1 = pGrid->nSkinHp ? ( pGrid->nSkinHp * ( pGrid->pSkin->nEffectRows + 1 ) - 1 ) / pGrid->nSkinMaxHp + 1 : 0;
+	if( pGrid->pSkin->pEffect && nRow != nRow1 )
+	{
+		if( nRow1 < pGrid->pSkin->nEffectRows )
+		{
+			if( !pGrid->pEffect )
+			{
+				pGrid->pEffect = static_cast<CMultiFrameImage2D*>( pGrid->pSkin->pEffect->CreateInstance() );
+				pGrid->pEffect->SetZOrder( 1 );
+				pGrid->pEffect->SetPosition( CVector2( x, y ) * m_gridScale + m_baseOffset );
+				m_pSkinTile->AddChild( pGrid->pEffect );
+			}
+			pGrid->pEffect->SetFrames( ( pGrid->pSkin->nEffectRows - 1 - nRow1 ) * pGrid->pSkin->nEffectColumns,
+				( pGrid->pSkin->nEffectRows - nRow1 ) * pGrid->pSkin->nEffectColumns, pGrid->pEffect->GetData()->fFramesPerSec );
+		}
+		else
+		{
+			if( pGrid->pEffect )
+			{
+				pGrid->pEffect->RemoveThis();
+				pGrid->pEffect = NULL;
+			}
+		}
+	}
+}
+
+void CFace::DamageSkin( uint32 nDmg, uint32 x, uint32 y )
+{
+	auto pGrid = GetGrid( x, y );
+	if( !pGrid || !pGrid->bEnabled )
+		return;
+
+	SetSkinHp( Max( 0, (int)( pGrid->nSkinHp - nDmg ) ), x, y );
+	if( !pGrid->nSkinHp )
+	{
+		if( pGrid->pOrgan )
+			KillOrgan( pGrid->pOrgan );
+	}
 }
 
 void CFace::OnBeginEdit()
@@ -159,4 +231,12 @@ bool CFace::IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos )
 		}
 	}
 	return bIsEditValid;
+}
+
+void CFace::OnTickAfterHitTest()
+{
+	if( m_nAwakeFrames )
+		m_nAwakeFrames--;
+
+	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 }

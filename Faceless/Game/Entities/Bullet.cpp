@@ -8,6 +8,7 @@ void CBullet::OnAddedToStage()
 	auto pStage = GetStage();
 	auto pFace = pStage->GetRoot()->GetChildByName_Fast<CFace>( "" );
 	m_pFace = pFace;
+	m_pFace->KeepAwake( 10 );
 	m_pEffectObject = GetChildByName_Fast<CEffectObject>( "" );
 	if( m_pEffectObject )
 		m_pEffectObject->SetState( 1 );
@@ -25,15 +26,19 @@ void CBullet::OnRemovedFromStage()
 
 void CBullet::TickBeforeHitTest()
 {
-	if( !GetStage() )
+	if( !m_pFace )
 		return;
 
 	SetPosition( GetPosition() + m_velocity * GetStage()->GetElapsedTimePerTick() );
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
+	m_pFace->KeepAwake( 10 );
 }
 
 void CBullet::TickAfterHitTest()
 {
+	if( !m_pFace )
+		return;
+
 	CVector2 worldPos = globalTransform.GetPosition();
 	if( !m_pFace->GetKillBound().Contains( worldPos ) )
 	{
@@ -75,7 +80,10 @@ void CBullet::Kill()
 	m_bActive = false;
 	m_velocity = CVector2( 0, 0 );
 	if( m_pEffectObject )
+	{
+		m_pFace->KeepAwake( m_pEffectObject->GetDeathTime() / GetStage()->GetElapsedTimePerTick() + 10 );
 		m_pEffectObject->SetState( 2 );
+	}
 	else
 		SetParentEntity( NULL );
 }

@@ -19,7 +19,7 @@ class CFace : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	CFace( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CFace ); }
+	CFace( const SClassCreateContext& context ) : CEntity( context ), m_strDefaultSkinName( context ), m_tickAfterHitTest( this, &CFace::OnTickAfterHitTest ) { SET_BASEOBJECT_ID( CFace ); }
 
 	struct SGrid
 	{
@@ -28,9 +28,12 @@ public:
 		COrgan* pOrgan;
 
 		CSkin* pSkin;
-		SAttribute nSkinHp;
+		uint32 nSkinHp;
+		uint32 nSkinMaxHp;
 		CMask* pMask;
 		SAttribute nMaskHp;
+
+		CReference<CMultiFrameImage2D> pEffect;
 
 		uint8 GetEditType()
 		{
@@ -49,8 +52,14 @@ public:
 
 	bool AddOrgan( COrgan* pOrgan, uint32 x, uint32 y );
 	bool RemoveOrgan( COrgan* pOrgan );
+	bool KillOrgan( COrgan* pOrgan );
 
 	bool SetSkin( CSkin* pSkin, uint32 x, uint32 y );
+	void SetSkinHp( uint32 nHp, uint32 x, uint32 y );
+	void DamageSkin( uint32 nDmg, uint32 x, uint32 y );
+
+	bool IsAwake() { return m_nAwakeFrames > 0; }
+	void KeepAwake( uint32 nFrames ) { m_nAwakeFrames = Max( m_nAwakeFrames, nFrames ); }
 
 	void OnBeginEdit();
 	void OnEndEdit();
@@ -67,6 +76,8 @@ public:
 
 	bool IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos );
 private:
+	void OnTickAfterHitTest();
+
 	vector<SGrid> m_grids;
 	CVector2 m_baseOffset;
 	CVector2 m_gridScale;
@@ -74,12 +85,16 @@ private:
 	uint32 m_nWidth;
 	uint32 m_nHeight;
 
-	uint32 m_nDefaultSkinMaxHp;
-	uint32 m_nDefaultSkinHp;
+	CString m_strDefaultSkinName;
+	CSkin* m_pDefaultSkin;
 
 	CEntity* m_pOrganRoot;
 	CTileMapSet* m_pSkinTile;
 
 	CReference<CTileMap2D> m_pFaceEditTile;
 	CReference<CEntity> m_pGUIRoot;
+
+	uint32 m_nAwakeFrames;
+
+	TClassTrigger<CFace> m_tickAfterHitTest;
 };

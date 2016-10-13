@@ -9,6 +9,7 @@ void PSHpBarSmall( in float2 tex : TexCoord0,
 	float fCur = instData.x;
 	float fMax = instData.y;
 	float GridCount = instData.z;
+	float GridCount0 = instData.w;
 	float fPercent = fCur / fMax;
 	float p0 = floor( fPercent * GridCount );
 	float sat0 = fPercent * GridCount - p0;
@@ -17,13 +18,18 @@ void PSHpBarSmall( in float2 tex : TexCoord0,
 	float sat = fGrid < p0 ? 1 : ( fGrid < p0 + 1 ? sat0 : 0 );
 	
 	int nGrid1 = (int)floor( fGrid );
-	float l1 = ( ( 1 << nGrid1 ) & (int)fCur ) > 0 ? 1 : 0;
+	float2 l1;
+	l1.x = ( ( 1 << nGrid1 ) & (int)fCur ) > 0 ? 1 : 0;
+	l1.y = nGrid1 < GridCount0 ? 0 : 1;
 	int nGrid2 = (int)floor( GridCount - fGrid );
-	float l2 = ( ( 1 << nGrid2 ) & (int)fMax ) > 0 ? 1 : 0;
-	float l = tex.y < 0.5f ? l1 : l2;
+	float2 l2;
+	l2.x = ( ( 1 << nGrid2 ) & (int)fMax ) > 0 ? 1 : 0;
+	l2.y = nGrid2 < GridCount0 ? 0 : 1;
+	float2 l = tex.y < 0.5f ? l1 : l2;
+	l.y = l.x > 0 ? 1 : l.y;
 
-	float4 full = lerp( ColorFull[0], ColorFull[1], l );
-	float4 empty = lerp( ColorEmpty[0], ColorEmpty[1], l );
-	float4 grey = lerp( ColorGrey[0], ColorGrey[1], l );
-	outColor = lerp( grey, lerp( empty, full, fPercent ), sat );
+	float4 full = lerp( ColorFull[0], ColorFull[1], l.x );
+	float4 empty = lerp( ColorEmpty[0], ColorEmpty[1], l.x );
+	float4 grey = lerp( ColorGrey[0], ColorGrey[1], l.x );
+	outColor = lerp( grey, lerp( empty, full, fPercent ), sat ) * l.y;
 }

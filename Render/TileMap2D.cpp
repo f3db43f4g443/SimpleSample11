@@ -453,7 +453,7 @@ void CTileMapSet::EditTile( uint32 x, uint32 y, const char* szName, uint32 nValu
 {
 	STileMapLayerInfo* pInfo = NULL;
 	map<string, STileMapLayerInfo>::iterator itr;
-	if( szName )
+	if( szName && szName[0] )
 	{
 		itr = m_mapTileMaps.find( szName );
 		if( itr != m_mapTileMaps.end() )
@@ -477,7 +477,8 @@ void CTileMapSet::EditTile( uint32 x, uint32 y, const char* szName, uint32 nValu
 	auto& editData = m_editData[x + y * ( m_nWidth + 1 )];
 	if( pInfo == editData.pInfo )
 	{
-		pInfo->pTileMap->EditTile( x, y, nValue );
+		if( pInfo )
+			pInfo->pTileMap->EditTile( x, y, nValue );
 		return;
 	}
 

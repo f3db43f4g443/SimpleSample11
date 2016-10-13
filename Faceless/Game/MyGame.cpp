@@ -65,28 +65,8 @@ void CGame::Start()
 	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/player.pf" )->GetRoot()->CreateInstance() );
 	m_pWorld->SetPlayer( pPlayer );
 
-	static CSkin skin;
-	skin.strName = "skin";
-	skin.nCost = 1;
-	skin.nWidth = 1;
-	skin.nHeight = 1;
-	skin.strTileMapName = "s000";
-	skin.nTileMapEditData = 1;
-	skin.nTileMapEditDataCount = 1;
-	skin.nMaxHp = 10;
-	skin.nHp = 2;
-	pPlayer->AddFaceEditItem( &skin );
-	static CSkin skin1;
-	skin1.strName = "skin1";
-	skin1.nCost = 1;
-	skin1.nWidth = 2;
-	skin1.nHeight = 2;
-	skin1.strTileMapName = "s000";
-	skin1.nTileMapEditData = 1;
-	skin1.nTileMapEditDataCount = 1;
-	skin1.nMaxHp = 10;
-	skin1.nHp = 2;
-	pPlayer->AddFaceEditItem( &skin1 );
+	pPlayer->AddFaceEditItem( CSkinNMaskCfg::Inst().GetSkin( "Skin0" ) );
+
 	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/organs/orb1.pf" );
 	static COrganEditItem organ;
 	organ.strName = "organ";
@@ -284,6 +264,8 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nTargetType )
 		REGISTER_MEMBER( m_nRange )
 		REGISTER_MEMBER( m_nRange1 )
+		REGISTER_MEMBER( m_nFramesRowCount )
+		REGISTER_MEMBER( m_nFramesColumnCount )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( COrganAction )
@@ -318,8 +300,7 @@ void RegisterGameClasses()
 	
 	REGISTER_CLASS_BEGIN( CFace )
 		REGISTER_BASE_CLASS( CEntity )
-		REGISTER_MEMBER( m_nDefaultSkinMaxHp )
-		REGISTER_MEMBER( m_nDefaultSkinHp )
+		REGISTER_MEMBER( m_strDefaultSkinName )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

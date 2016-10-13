@@ -17,7 +17,6 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 {
 	auto dGridPos = actionContext.target - actionContext.pCharacter->GetGrid();
 	
-	uint32 nRemoved = 0;
 	{
 		auto dPos = CCharacter::RotateDir( dGridPos, actionContext.pCharacter->GetDir() );
 		float r = atan2( dPos.y, dPos.x );
@@ -34,18 +33,13 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 			pBullet->SetPosition( GetPosition() );
 			pBullet->SetRotation( r );
 			pBullet->SetVelocity( dir * pBullet->GetSpeed() );
-			auto pTrigger = new CFunctionTrigger;
-			pTrigger->bAutoDelete = true;
-			pTrigger->Set( [pTrigger, &nRemoved] () {
-				nRemoved++;
-				pTrigger->Unregister();
-			} );
-			pBullet->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pTrigger );
 			pContext->Yield( m_fInterval, false );
 		}
+
+		auto pFace = actionContext.pOrgan->GetFace();
+		while( pFace->IsAwake() )
+			pContext->Yield( 0, false );
 	}
-	while( nRemoved < m_nCount )
-		pContext->Yield( 0, false );
 
 	actionContext.pOrgan->ActionSelectTarget( pContext, actionContext );
 	
@@ -67,7 +61,6 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 			dPos.y == 0 ? -10000.0f : ( dPos.y > 0 ? ( faceRect.GetTop() - targetPos.y ) / dPos.y : ( faceRect.GetBottom() - targetPos.y ) / dPos.y ) );
 		CVector2 srcPos = targetPos + CVector2( dPos.x, dPos.y ) * k;
 
-		uint32 nRemoved = 0;
 		{
 			vector<TTempEntityHolder<CBullet> > bullets;
 			bullets.resize( m_nCount );
@@ -80,19 +73,11 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext, SOrganActionC
 				pBullet->SetPosition( srcPos );
 				pBullet->SetVelocity( dir * pBullet->GetSpeed() );
 				pBullet->SetActive( true );
-				auto pTrigger = new CFunctionTrigger;
-				pTrigger->bAutoDelete = true;
-				pTrigger->Set( [pTrigger, &nRemoved]() {
-					nRemoved++;
-					pTrigger->Unregister();
-				} );
-				pBullet->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pTrigger );
 				pContext->Yield( m_fInterval, false );
 			}
 
-			while( nRemoved < m_nCount )
+			while( pSubStage->pFace->IsAwake() )
 				pContext->Yield( 0, false );
-			pContext->Yield( 1, false );
 		}
 
 		CStageDirector::Inst()->FocusFaceView( -1, pContext );

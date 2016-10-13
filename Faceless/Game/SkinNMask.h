@@ -1,15 +1,19 @@
 #pragma once
-#include "TileMap2D.h"
+#include "Render/TileMap2D.h"
+#include "Render/DrawableGroup.h"
 #include "FaceEditItem.h"
 
 struct SSkinBaseInfo
 {
 	uint32 nMaxHp;
-	uint32 nHp;
 
 	string strTileMapName;
 	uint32 nTileMapEditData;
-	uint32 nTileMapEditDataCount;
+
+	string strEffectName;
+	CReference<CDrawableGroup> pEffect;
+	uint32 nEffectRows;
+	uint32 nEffectColumns;
 };
 
 class CSkin : public CFaceEditItem, public SSkinBaseInfo
@@ -32,6 +36,17 @@ class CSkinNMaskCfg
 public:
 	STileMapSetData tileMapSetData;
 
+	map<string, CSkin*> mapSkins;
+
 	void Load();
+	
+	CSkin* GetSkin( const char* szName )
+	{
+		auto itr = mapSkins.find( szName );
+		if( itr == mapSkins.end() )
+			return NULL;
+		return itr->second;
+	}
+
 	DECLARE_GLOBAL_INST_REFERENCE( CSkinNMaskCfg );
 };

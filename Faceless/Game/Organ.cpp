@@ -5,9 +5,16 @@
 #include "MyLevel.h"
 #include "GUI/StageDirector.h"
 #include "ResourceManager.h"
+#include "Image2D.h"
 
 void COrgan::OnAddedToStage()
 {
+	if( m_nFramesRowCount > 1 )
+	{
+		CMultiFrameImage2D* pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+		pImage->SetFrames( 0, m_nFramesColumnCount, pImage->GetData()->fFramesPerSec );
+	}
+
 	m_pOrganActionPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strOrganAction.c_str() );
 	m_pOrganTargetorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strOrganTargetor.c_str() );
 }
@@ -126,10 +133,32 @@ void COrgan::ActionSelectTarget( CTurnBasedContext * pContext, SOrganActionConte
 	pTargetor->FindTargets( pContext, actionContext );
 }
 
+void COrgan::SetHp( uint32 nHp )
+{
+	uint32 nRow = Min( m_nFramesRowCount - 1, m_nHp ? ( m_nHp * m_nFramesRowCount - 1 ) / m_nMaxHp : 0 );
+	m_nHp = nHp;
+	uint32 nRow1 = Min( m_nFramesRowCount - 1, m_nHp ? ( m_nHp * m_nFramesRowCount - 1 ) / m_nMaxHp : 0 );
+
+	if( m_nFramesRowCount > 1 )
+	{
+		CMultiFrameImage2D* pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+		if( nRow1 != nRow )
+			pImage->SetFrames( ( m_nFramesRowCount - 1 - nRow1 ) * m_nFramesColumnCount, ( m_nFramesRowCount - nRow1 ) * m_nFramesColumnCount, pImage->GetData()->fFramesPerSec );
+	}
+
+	Trigger_OnHpChanged( this );
+}
+
 void COrgan::Damage( uint32 nDmg )
 {
-	m_nHp = Max( 0, (int32)( m_nHp - nDmg ) );
-	Trigger_OnHpChanged( this );
+	SetHp( Max( 0, (int32)( m_nHp - nDmg ) ) );
+
+	if( !m_nHp )
+	{
+		m_pFace->KillOrgan( this );
+		return;
+	}
+
 	ShowHpBar( true );
 }
 

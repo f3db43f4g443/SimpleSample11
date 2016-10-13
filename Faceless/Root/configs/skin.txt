@@ -1,0 +1,3 @@
+Name	Cost	Width	Height	Hp	TileMapName	TileMapEditData	EffectName	EffectRows	EffectColumns
+Default0	1	1	1	10			data/skins/wound1.mtl	4	1
+Skin0	1	1	1	10	s000	1	data/skins/wound1.mtl	4	1
