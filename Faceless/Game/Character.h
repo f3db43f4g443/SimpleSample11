@@ -47,17 +47,6 @@ public:
 	void SetMp( uint32 n, uint32 nMax );
 	void SetSp( uint32 n, uint32 nMax );
 
-	static const TVector2<int32>& GetDirOfs( uint8 nDir )
-	{
-		static TVector2<int32> ofs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
-		return ofs[nDir];
-	}
-	static TVector2<int32> RotateDir( const TVector2<int32>& dir, uint8 nCharDir )
-	{
-		TVector2<int32> dirs[4] = { { -dir.y, dir.x }, { dir.x, dir.y }, { dir.y, -dir.x }, { -dir.x, -dir.y } };
-		return dirs[nCharDir & 3];
-	}
-
 	virtual void OnTurn( CTurnBasedContext* pContext );
 
 	virtual void MovePhase( CTurnBasedContext* pContext );

@@ -75,6 +75,14 @@ void CGame::Start()
 	organ.nHeight = 1;
 	organ.pPrefab = pPrefab;
 	pPlayer->AddFaceEditItem( &organ );
+	static COrganEditItem organ1;
+	pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/organs/orb3.pf" );
+	organ1.strName = "organ1";
+	organ1.nCost = 2;
+	organ1.nWidth = 2;
+	organ1.nHeight = 2;
+	organ1.pPrefab = pPrefab;
+	pPlayer->AddFaceEditItem( &organ1 );
 
 	SStageEnterContext context;
 	context.strStartPointName = "start1";
@@ -85,19 +93,19 @@ void CGame::Start()
 	auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/man1.pf" );
 	auto pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 12, 1 );
-	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 20, 1 );
-	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 12, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 20, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 16, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ, TVector2<int32>( 8, 8 ) );
+	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 }
 
 void CGame::Stop()
@@ -204,6 +212,10 @@ void Game_ShaderImplement_Dummy();
 
 void RegisterGameClasses()
 {
+	REGISTER_ENUM_BEGIN( ERangeType )
+		REGISTER_ENUM_ITEM( eRangeType_Normal )
+	REGISTER_ENUM_END()
+
 	REGISTER_CLASS_BEGIN( SHitProxyCircle )
 		REGISTER_MEMBER( fRadius )
 		REGISTER_MEMBER( center )
@@ -251,6 +263,12 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strFaceEditTile )
 	REGISTER_CLASS_END()
+
+	REGISTER_ENUM_BEGIN( ETargetType )
+		REGISTER_ENUM_ITEM( eTargetType_None )
+		REGISTER_ENUM_ITEM( eTergetType_Pos )
+		REGISTER_ENUM_ITEM( eTargetType_Character )
+	REGISTER_ENUM_END()
 	
 	REGISTER_CLASS_BEGIN( COrgan )
 		REGISTER_BASE_CLASS( CEntity )
@@ -280,10 +298,25 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 
-	REGISTER_CLASS_BEGIN( CBullet )
+	REGISTER_CLASS_BEGIN( CBulletBase )
 		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBullet )
+		REGISTER_BASE_CLASS( CBulletBase )
 		REGISTER_MEMBER( m_nDmg )
 		REGISTER_MEMBER( m_fSpeed )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CMissile )
+		REGISTER_BASE_CLASS( CBulletBase )
+		REGISTER_MEMBER( m_nDmg )
+		REGISTER_MEMBER( m_fSpeed )
+		REGISTER_MEMBER( m_eRangeType )
+		REGISTER_MEMBER( m_nRange )
+		REGISTER_MEMBER( m_nRange1 )
+		REGISTER_MEMBER( m_bCanDmgOrgan )
+		REGISTER_MEMBER( m_bCanDmgSkin )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( COrganActionSimpleShoot )

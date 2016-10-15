@@ -26,34 +26,12 @@ void COrgan::OnRemovedFromStage()
 
 void COrgan::GetRange( vector<TVector2<int32> >& result )
 {
-	switch( m_nRangeType )
-	{
-	case eRangeType_Normal:
-		for( int32 i = -(int32)m_nRange; i <= m_nRange; i++ )
-		{
-			result.push_back( TVector2<int32>( i, 0 ) );
-			int32 nRange1 = m_nRange * m_nRange - i * i;
-			for( int j = 1; j * j <= nRange1; j++ )
-			{
-				result.push_back( TVector2<int32>( i, -j ) );
-			}
-		}
-		break;
-	default:
-		break;
-	}
+	::GetRange( m_nRangeType, m_nRange, m_nRange1, result );
 }
 
 bool COrgan::IsInRange( const TVector2<int32>& pos )
 {
-	switch( m_nRangeType )
-	{
-	case eRangeType_Normal:
-		return pos.x * pos.x + pos.y * pos.y <= m_nRange * m_nRange;
-	default:
-		break;
-	}
-	return false;
+	return ::IsInRange( m_nRangeType, m_nRange, m_nRange1, pos );
 }
 
 bool COrgan::CanAction( SOrganActionContext& actionContext )
@@ -71,6 +49,7 @@ bool COrgan::CheckActionTarget( SOrganActionContext & actionContext )
 	CCharacter* pCharacter = actionContext.pCharacter;
 
 	auto ofs = actionContext.target - pCharacter->GetGrid();
+	ofs = RotateDirInv( ofs, pCharacter->GetDir() );
 	if( !IsInRange( ofs ) )
 		return false;
 

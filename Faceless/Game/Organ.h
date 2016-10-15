@@ -1,9 +1,17 @@
 #pragma once
 #include "Entity.h"
+#include "GameUtil.h"
 #include "FaceEditItem.h"
 #include "Common/StringUtil.h"
 
 #include "Entities/OrganHpBar.h"
+
+enum ETargetType
+{
+	eTargetType_None,
+	eTergetType_Pos,
+	eTargetType_Character
+};
 
 class CTurnBasedContext;
 class CCharacter;
@@ -19,19 +27,6 @@ struct SOrganActionContext
 
 	vector<CCharacter*> targetCharacters;
 	CCharacter* pCurTarget;
-};
-
-enum
-{
-	eRangeType_Normal,
-
-};
-
-enum
-{
-	eTargetType_None,
-	eTergetType_Pos,
-	eTargetType_Character
 };
 
 class COrganAction : public CEntity
@@ -69,7 +64,7 @@ class COrgan : public CEntity
 	friend class COrganEditItem;
 	friend void RegisterGameClasses();
 public:
-	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ), m_strOrganTargetor( context )
+	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ), m_strOrganTargetor( context ), m_nVisitFlag( 0 )
 	{ SET_BASEOBJECT_ID( COrgan ); }
 
 	virtual void OnAddedToStage() override;
@@ -102,6 +97,8 @@ public:
 	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
 
 	DECLARE_EVENT_TRIGGER( OnHpChanged )
+
+	uint8 m_nVisitFlag;
 private:
 	CFace* m_pFace;
 	TVector2<int32> m_pos;
@@ -110,8 +107,8 @@ private:
 	uint32 m_nHp, m_nMaxHp;
 
 	uint32 m_nCost;
-	uint8 m_nRangeType;
-	uint8 m_nTargetType;
+	ERangeType m_nRangeType;
+	ETargetType m_nTargetType;
 	uint32 m_nRange, m_nRange1;
 
 	uint32 m_nFramesRowCount, m_nFramesColumnCount;

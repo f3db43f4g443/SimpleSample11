@@ -86,6 +86,7 @@
     <ClCompile Include="Entities\OrganHpBar.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="GameUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Entities\OrganHpBar.h">
       <Filter>Entities</Filter>
     </ClInclude>
+    <ClInclude Include="GameUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

@@ -429,6 +429,7 @@
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Face.cpp" />
+    <ClCompile Include="GameUtil.cpp" />
     <ClCompile Include="GUI\FaceToolbox.cpp" />
     <ClCompile Include="GUI\HpBar.cpp" />
     <ClCompile Include="GUI\HUDCircle.cpp" />
@@ -473,6 +474,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="Face.h" />
     <ClInclude Include="FaceEditItem.h" />
+    <ClInclude Include="GameUtil.h" />
     <ClInclude Include="GUI\FaceToolbox.h" />
     <ClInclude Include="GUI\FaceView.h" />
     <ClInclude Include="GUI\StageDirector.h" />

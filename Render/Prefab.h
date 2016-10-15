@@ -70,6 +70,12 @@ public:
 	CPrefabNode* Clone( bool bForEditor = false );
 	CPrefabNode* Clone( CPrefab* pPrefab );
 	CRenderObject2D* CreateInstance();
+
+	template<class T>
+	const T* GetStaticData()
+	{
+		return (const T*)m_obj.GetObjData();
+	}
 	
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );

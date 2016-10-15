@@ -117,8 +117,8 @@ void CMultiFrameImage2D::UpdateImage()
 {
 	float fFrame = m_fCurTime * m_fFramesPerSec;
 	uint32 nFrame = floor( fFrame );
-	uint32 dFrame = m_nFrameEnd - m_nFrameBegin;
-	if( !dFrame )
+	int32 dFrame = m_nFrameEnd - m_nFrameBegin;
+	if( dFrame <= 0 )
 		return;
 	while( nFrame >= dFrame )
 	{
