@@ -74,6 +74,17 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 	if( !m_strText.length() )
 	{
 		m_cursorPos.x = m_cursorPos.y = 0;
+
+		m_editOfs.x = m_localBound.x;
+		uint8 nAlignY = m_nAlignment >> 2;
+		CRectangle bound( 0, -m_pFont->GetBaseLine() - m_pFont->GetSize(), 0, m_pFont->GetSize() );
+		if( nAlignY == eAlign_Left )
+			m_editOfs.y = m_localBound.y - bound.y;
+		else if( nAlignY == eAlign_Right )
+			m_editOfs.y = m_localBound.GetBottom() - bound.GetBottom();
+		else
+			m_editOfs.y = m_localBound.GetCenterY() - bound.GetCenterY();
+
 		return;
 	}
 
@@ -148,17 +159,18 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 	{
 		ofs = m_editOfs;
 		uint32 nCharacterBeginIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
-		float cursorX = m_cursorPos.x ? m_characters[nCharacterBeginIndex + m_cursorPos.x - 1].hitRect.GetRight() : 0;
+		float cursorX1 = m_cursorPos.x ? m_characters[nCharacterBeginIndex + m_cursorPos.x - 1].hitRect.GetRight() : 0;
+		float cursorX0 = m_cursorPos.x > 1 ? m_characters[nCharacterBeginIndex + m_cursorPos.x - 2].hitRect.GetRight() : 0;
 		float cursorY1 = m_cursorPos.y * m_pFont->GetSize() - m_pFont->GetBaseLine();
 		float cursorY0 = cursorY1 - m_pFont->GetSize();
 
-		if( cursorX + ofs.x > textBound.GetRight() )
+		if( cursorX1 + ofs.x > textBound.GetRight() )
 		{
-			ofs.x = textBound.GetRight() - cursorX;
+			ofs.x = textBound.GetRight() - cursorX1;
 		}
-		else if( cursorX + ofs.x < textBound.x )
+		else if( cursorX0 + ofs.x < textBound.x )
 		{
-			ofs.x = textBound.x - cursorX;
+			ofs.x = textBound.x - cursorX0;
 		}
 		if( cursorY1 + ofs.y > textBound.GetBottom() )
 		{

@@ -53,7 +53,7 @@ class CPrefabNode : public CPrefabBaseNode
 {
 	friend class CPrefabEditor;
 public:
-	CPrefabNode( class CPrefab* pPrefab ) : m_pPrefab( pPrefab ), m_nType( 0 ),
+	CPrefabNode( class CPrefab* pPrefab ) : m_pPrefab( pPrefab ), m_nType( 0 ), m_bTaggedNodePtrInfoDirty( true ),
 		m_onResourceRefreshBegin( this, &CPrefabNode::OnResourceRefreshBegin ), m_onResourceRefreshEnd( this, &CPrefabNode::OnResourceRefreshEnd )
 	{
 		SetAutoUpdateAnim( true );
@@ -88,6 +88,21 @@ private:
 	TObjectPrototype<CPrefabBaseNode> m_obj;
 	TClassTrigger<CPrefabNode> m_onResourceRefreshBegin;
 	TClassTrigger<CPrefabNode> m_onResourceRefreshEnd;
+
+	struct STaggedNodePtrInfo
+	{
+		STaggedNodePtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, uint32 nChild ) : pMemberData( pMemberData ), nOfs( nOfs ), nChild( nChild ) {}
+		SClassMetaData::SMemberData* pMemberData;
+		uint32 nOfs;
+		uint32 nChild;
+	};
+	bool m_bTaggedNodePtrInfoDirty;
+	vector<STaggedNodePtrInfo> m_vecTaggedNodePtrInfo;
+	void UpdateTaggedNodePtrInfo();
+
+	void UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo );
+
+	CRenderObject2D* CreateInstance( vector<CRenderObject2D*>& vecInst );
 };
 
 class CPrefab : public CResource

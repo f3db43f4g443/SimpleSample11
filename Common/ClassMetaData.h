@@ -56,6 +56,7 @@ struct SClassMetaData
 			eTypeClass,
 			eTypeClassPtr,
 			eTypeEnum,
+			eTypeTaggedPtr,
 		};
 		uint32 nType;
 		string strTypeName;
@@ -72,6 +73,7 @@ struct SClassMetaData
 	void AddMemberData( const char* szName, uint32 nType, uint32 nOffset );
 	void AddMemberData( const char* szName, const char* szTypeName, uint32 nOffset );
 	void AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset );
+	void AddMemberDataTaggedPtr( const char* szName, const char* szTypeName, const char* szTag, uint32 nOffset );
 
 	template <typename T>
 	struct AddMemberData_Impl{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, typeid( T ).name(), nOffset ); } };
@@ -124,6 +126,16 @@ struct SClassMetaData
 	template<typename T>
 	void AddMemberData( const char* szName, uint32 nOffset ) { AddMemberData_Impl<T>::call( this, szName, nOffset ); }
 
+	template <typename T>
+	struct AddMemberDataTaggedPtr_Impl { static void call( SClassMetaData* pThis, const char* szName, const char* szTag, uint32 nOffset ) {} };
+	template <typename T>
+	struct AddMemberDataTaggedPtr_Impl<CReference<T> > { static void call( SClassMetaData* pThis, const char* szName, const char* szTag, uint32 nOffset ) { pThis->AddMemberDataTaggedPtr( szName, typeid( T ).name(), szTag, nOffset ); } };
+	template <typename T>
+	struct AddMemberDataTaggedPtr_Impl<CReference<T>& > { static void call( SClassMetaData* pThis, const char* szName, const char* szTag, uint32 nOffset ) { pThis->AddMemberDataTaggedPtr( szName, typeid( T ).name(), szTag, nOffset ); } };
+
+	template<typename T>
+	void AddMemberDataTaggedPtr( const char* szName, const char* szTag, uint32 nOffset ) { AddMemberDataTaggedPtr_Impl<T>::call( this, szName, szTag, nOffset ); }
+
 	struct SBaseClassData
 	{
 		string strBaseClassName;
@@ -140,6 +152,7 @@ struct SClassMetaData
 	void AddBaseClassdata( uint32 nOffset ) { AddBaseClassData( typeid(T).name(), nOffset ); }
 
 	int32 GetBaseClassOfs( SClassMetaData* pBaseClass );
+	bool Is( SClassMetaData* pBaseClass ) { return pBaseClass == this || GetBaseClassOfs( pBaseClass ) >= 0; }
 	map<SClassMetaData*, int32> mapBaseClassOfs;
 	vector<SClassMetaData*> vecDerivedClasses;
 	
@@ -165,6 +178,7 @@ struct SClassMetaData
 	}
 
 	void FindAllDerivedClasses( function<void( SClassMetaData* pData )>& func );
+	void FindAllTaggedPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass = NULL, uint32 nOfs = 0 );
 };
 
 class CBaseObject
@@ -273,6 +287,9 @@ T* SafeCast( T1 t )
 #define REGISTER_MEMBER( Name ) \
 	pData->AddMemberData<decltype( __cur_class::Name )>( #Name, MEMBER_OFFSET( __cur_class, Name ) );
 
+#define REGISTER_MEMBER_TAGGED_PTR( Name, Tag ) \
+	pData->AddMemberDataTaggedPtr<decltype( __cur_class::Name )>( #Name, #Tag, MEMBER_OFFSET( __cur_class, Name ) );
+
 #define REGISTER_BASE_CLASS( Name ) \
 	pData->AddBaseClassdata<Name>( BASECLASS_OFFSET( __cur_class, Name ) );
 
@@ -305,6 +322,7 @@ public:
 
 	SClassMetaData* GetClassData() { return m_pClassMetaData; }
 	uint8* GetObjData() { return m_pObj; }
+	uint32 GetCastOffset() { return m_nCastOffset; }
 	bool SetClassName( const char* szName );
 	void CopyData( CObjectPrototype& copyTo );
 	void SetDirty() { m_bObjDataDirty = true; }

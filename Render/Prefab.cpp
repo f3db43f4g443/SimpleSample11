@@ -175,6 +175,176 @@ void CPrefabNode::OnResourceRefreshEnd()
 	}
 }
 
+void CPrefabNode::UpdateTaggedNodePtrInfo()
+{
+	if( !m_obj.GetClassData() )
+		return;
+	map<string, STaggedNodePtrInfo*> mapInfo;
+	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this, &mapInfo]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
+	{
+		m_vecTaggedNodePtrInfo.push_back( STaggedNodePtrInfo( pData, nOfs, 0 ) );
+	};
+	m_obj.GetClassData()->FindAllTaggedPtr( func );
+	for( auto& item : m_vecTaggedNodePtrInfo )
+	{
+		mapInfo[item.pMemberData->strName] = &item;
+	}
+
+	uint32 nIndex = 0;
+	UpdateTaggedNodePtrInfo( nIndex, GetName(), mapInfo );
+}
+
+void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo )
+{
+	if( nIndex > 0 )
+	{
+		auto itr = mapInfo.find( curName );
+		if( itr != mapInfo.end() )
+		{
+			auto pInfo = itr->second;
+			if( m_obj.GetClassData() && m_obj.GetClassData()->Is( pInfo->pMemberData->pTypeData ) >= 0 )
+				pInfo->nChild = nIndex;
+		}
+	}
+	nIndex++;
+
+	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		pNode->UpdateTaggedNodePtrInfo( nIndex, curName.size() ? curName + "/" + pNode->GetName() : pNode->GetName(), mapInfo );
+	}
+}
+
+CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst )
+{
+	if( !strcmp( m_pPrefab->GetName(), "data/bullets/bulletexp_eft.pf" ) )
+	{
+		int a = 0;
+	}
+	if( m_bTaggedNodePtrInfoDirty )
+	{
+		UpdateTaggedNodePtrInfo();
+		m_bTaggedNodePtrInfoDirty = false;
+	}
+
+	CPrefabBaseNode* pPrefabNode = m_obj.CreateObject();
+	if( pPrefabNode )
+	{
+		pPrefabNode->SetName( GetName() );
+		if( m_pResource )
+			pPrefabNode->SetResource( m_pResource );
+	}
+
+	CRenderObject2D* pRenderObject = NULL;
+	if( m_pResource )
+	{
+		pRenderObject = CPrefabBaseNode::CreateRenderObjectByResource( m_pResource, pPrefabNode );
+		if( m_pResource->GetResourceType() == eEngineResType_DrawableGroup )
+		{
+			auto nType = static_cast<CDrawableGroup*>( m_pResource.GetPtr() )->GetType();
+			if( nType == CDrawableGroup::eType_Default )
+			{
+				CImage2D* pImage = static_cast<CImage2D*>( m_pRenderObject.GetPtr() );
+				CImage2D* pImage1 = static_cast<CImage2D*>( pRenderObject );
+				pImage1->SetRect( pImage->GetElem().rect );
+				pImage1->SetTexRect( pImage->GetElem().texRect );
+				uint16 nParamCount;
+				CVector4* pParam = pImage->GetParam( nParamCount );
+				CVector4* pParam1 = pImage1->GetParam( nParamCount );
+				memcpy( pParam1, pParam, nParamCount * sizeof( CVector4 ) );
+			}
+			else if( nType == CDrawableGroup::eType_Rope )
+			{
+				CRopeObject2D* pRope = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
+				CRopeObject2D* pRope1 = static_cast<CRopeObject2D*>( pRenderObject );
+				uint32 nData = pRope->GetData().data.size();
+				pRope1->SetDataCount( nData );
+				pRope1->SetSegmentsPerData( pRope->GetData().nSegmentsPerData );
+				for( int i = 0; i < nData; i++ )
+				{
+					auto& data = pRope->GetData().data[i];
+					pRope1->SetData( i, data.center, data.fWidth, data.tex0, data.tex1 );
+				}
+				pRope1->CalcLocalBound();
+			}
+			else if( nType == CDrawableGroup::eType_MultiFrame )
+			{
+				CMultiFrameImage2D* pMultiImage = static_cast<CMultiFrameImage2D*>( m_pRenderObject.GetPtr() );
+				CMultiFrameImage2D* pMultiImage1 = static_cast<CMultiFrameImage2D*>( pRenderObject );
+
+				pMultiImage1->SetFrames( pMultiImage->GetFrameBegin(), pMultiImage->GetFrameEnd(), pMultiImage->GetFramesPerSec() );
+			}
+			else if( nType == CDrawableGroup::eType_TileMap )
+			{
+				CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pRenderObject.GetPtr() );
+				CTileMap2D* pTileMap1 = static_cast<CTileMap2D*>( pRenderObject );
+
+				pTileMap1->CopyData( pTileMap );
+			}
+		}
+		else if( m_pResource->GetResourceType() == eEngineResType_ParticleSystem )
+		{
+			CParticleSystemObject* pParticle = static_cast<CParticleSystemObject*>( m_pRenderObject.GetPtr() );
+			CParticleSystemObject* pParticle1 = static_cast<CParticleSystemObject*>( pRenderObject );
+			pParticle->CopyData( pParticle1 );
+		}
+	}
+	else
+	{
+		if( m_nType == 1 )
+			pRenderObject = new CDirectionalLightObject( *static_cast<CDirectionalLightObject*>( m_pRenderObject.GetPtr() ) );
+		else if( m_nType == 2 )
+			pRenderObject = new CPointLightObject( *static_cast<CPointLightObject*>( m_pRenderObject.GetPtr() ) );
+	}
+	if( pPrefabNode )
+	{
+		pPrefabNode->SetRenderObject( pRenderObject );
+		pRenderObject = pPrefabNode;
+	}
+	else if( !pRenderObject )
+		pRenderObject = new CRenderObject2D;
+
+	pRenderObject->x = x;
+	pRenderObject->y = y;
+	pRenderObject->r = r;
+	pRenderObject->s = s;
+	pRenderObject->SetZOrder( GetZOrder() );
+	uint32 nBaseIndex = vecInst.size();
+	vecInst.push_back( pRenderObject );
+
+	vector<CRenderObject2D*> vecChildren;
+	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		if( pNode )
+			vecChildren.push_back( pNode );
+	}
+	for( int i = 0; i < vecChildren.size(); i++ )
+	{
+		vecChildren[i] = static_cast<CPrefabNode*>( vecChildren[i] )->CreateInstance( vecInst );
+	}
+	for( int i = vecChildren.size() - 1; i >= 0; i-- )
+	{
+		pRenderObject->AddChild( vecChildren[i] );
+	}
+
+	for( auto& item : m_vecTaggedNodePtrInfo )
+	{
+		if( !item.nChild )
+			continue;
+		CRenderObject2D** ppObject = (CRenderObject2D**)( ( (uint8*)pPrefabNode ) - m_obj.GetCastOffset() + item.nOfs );
+		auto pRenderObject = vecInst[nBaseIndex + item.nChild];
+		pRenderObject->AddRef();
+		*ppObject = pRenderObject;
+	}
+
+	return pRenderObject;
+}
+
 void CPrefabNode::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
 {
 	CResource* pResource = GetResource();
@@ -295,7 +465,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
-		CPrefabNode* pNode = dynamic_cast<CPrefabNode*>( pChild );
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
 		if( pNode )
 			vecChildren.push_back( pNode );
 	}
@@ -309,104 +479,8 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 
 CRenderObject2D* CPrefabNode::CreateInstance()
 {
-	CPrefabBaseNode* pPrefabNode = m_obj.CreateObject();
-	if( pPrefabNode )
-	{
-		pPrefabNode->SetName( GetName() );
-		if( m_pResource )
-			pPrefabNode->SetResource( m_pResource );
-	}
-
-	CRenderObject2D* pRenderObject = NULL;
-	if( m_pResource )
-	{
-		pRenderObject = CPrefabBaseNode::CreateRenderObjectByResource( m_pResource, pPrefabNode );
-		if( m_pResource->GetResourceType() == eEngineResType_DrawableGroup )
-		{
-			auto nType = static_cast<CDrawableGroup*>( m_pResource.GetPtr() )->GetType();
-			if( nType == CDrawableGroup::eType_Default )
-			{
-				CImage2D* pImage = static_cast<CImage2D*>( m_pRenderObject.GetPtr() );
-				CImage2D* pImage1 = static_cast<CImage2D*>( pRenderObject );
-				pImage1->SetRect( pImage->GetElem().rect );
-				pImage1->SetTexRect( pImage->GetElem().texRect );
-				uint16 nParamCount;
-				CVector4* pParam = pImage->GetParam( nParamCount );
-				CVector4* pParam1 = pImage1->GetParam( nParamCount );
-				memcpy( pParam1, pParam, nParamCount * sizeof( CVector4 ) );
-			}
-			else if( nType == CDrawableGroup::eType_Rope )
-			{
-				CRopeObject2D* pRope = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
-				CRopeObject2D* pRope1 = static_cast<CRopeObject2D*>( pRenderObject );
-				uint32 nData = pRope->GetData().data.size();
-				pRope1->SetDataCount( nData );
-				pRope1->SetSegmentsPerData( pRope->GetData().nSegmentsPerData );
-				for( int i = 0; i < nData; i++ )
-				{
-					auto& data = pRope->GetData().data[i];
-					pRope1->SetData( i, data.center, data.fWidth, data.tex0, data.tex1 );
-				}
-				pRope1->CalcLocalBound();
-			}
-			else if( nType == CDrawableGroup::eType_MultiFrame )
-			{
-				CMultiFrameImage2D* pMultiImage = static_cast<CMultiFrameImage2D*>( m_pRenderObject.GetPtr() );
-				CMultiFrameImage2D* pMultiImage1 = static_cast<CMultiFrameImage2D*>( pRenderObject );
-				
-				pMultiImage1->SetFrames( pMultiImage->GetFrameBegin(), pMultiImage->GetFrameEnd(), pMultiImage->GetFramesPerSec() );
-			}
-			else if( nType == CDrawableGroup::eType_TileMap )
-			{
-				CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pRenderObject.GetPtr() );
-				CTileMap2D* pTileMap1 = static_cast<CTileMap2D*>( pRenderObject );
-				
-				pTileMap1->CopyData( pTileMap );
-			}
-		}
-		else if( m_pResource->GetResourceType() == eEngineResType_ParticleSystem )
-		{
-			CParticleSystemObject* pParticle = static_cast<CParticleSystemObject*>( m_pRenderObject.GetPtr() );
-			CParticleSystemObject* pParticle1 = static_cast<CParticleSystemObject*>( pRenderObject );
-			pParticle->CopyData( pParticle1 );
-		}
-	}
-	else
-	{
-		if( m_nType == 1 )
-			pRenderObject = new CDirectionalLightObject( *static_cast<CDirectionalLightObject*>( m_pRenderObject.GetPtr() ) );
-		else if( m_nType == 2 )
-			pRenderObject = new CPointLightObject( *static_cast<CPointLightObject*>( m_pRenderObject.GetPtr() ) );
-	}
-	if( pPrefabNode )
-	{
-		pPrefabNode->SetRenderObject( pRenderObject );
-		pRenderObject = pPrefabNode;
-	}
-	else if( !pRenderObject )
-		pRenderObject = new CRenderObject2D;
-
-	pRenderObject->x = x;
-	pRenderObject->y = y;
-	pRenderObject->r = r;
-	pRenderObject->s = s;
-	pRenderObject->SetZOrder( GetZOrder() );
-
-	vector<CPrefabNode*> vecChildren;
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
-	{
-		if( pChild == m_pRenderObject )
-			continue;
-		CPrefabNode* pNode = dynamic_cast<CPrefabNode*>( pChild );
-		if( pNode )
-			vecChildren.push_back( pNode );
-	}
-	for( int i = vecChildren.size() - 1; i >= 0; i-- )
-	{
-		pRenderObject->AddChild( vecChildren[i]->CreateInstance() );
-	}
-
-	return pRenderObject;
+	vector<CRenderObject2D*> vecInst;
+	return CreateInstance( vecInst );
 }
 
 void CPrefabNode::Load( IBufReader& buf )
@@ -621,7 +695,7 @@ void CPrefabNode::Save( CBufFile& buf )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
-		CPrefabNode* pNode = dynamic_cast<CPrefabNode*>( pChild );
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
 		if( pNode )
 			vecChildren.push_back( pNode );
 	}

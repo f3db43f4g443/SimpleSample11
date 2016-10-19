@@ -80,6 +80,20 @@ void SClassMetaData::AddMemberDataPtr( const char* szName, const char* szTypeNam
 	data.nOffset = nOffset;
 }
 
+void SClassMetaData::AddMemberDataTaggedPtr( const char * szName, const char * szTypeName, const char * szTag, uint32 nOffset )
+{
+	uint32 nIndex = vecMemberData.size();
+	vecMemberData.resize( nIndex + 1 );
+	SMemberData& data = vecMemberData[nIndex];
+	mapMemberDataIndex[szTag] = nIndex;
+	data.strName = szTag;
+	data.nType = SMemberData::eTypeTaggedPtr;
+	data.strTypeName = szTypeName;
+	data.pTypeData = NULL;
+	data.pEnumData = NULL;
+	data.nOffset = nOffset;
+}
+
 void SClassMetaData::AddBaseClassData( const char* szTypeName, uint32 nOffset )
 {
 	uint32 nIndex = vecBaseClassData.size();
@@ -140,7 +154,10 @@ uint32 SClassMetaData::SMemberData::GetDataSize()
 void SClassMetaData::SMemberData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
 {
 	pObj += nOffset;
-	if( nType == eTypeClassPtr )
+	if( nType == eTypeTaggedPtr )
+	{
+	}
+	else if( nType == eTypeClassPtr )
 	{
 		auto& pObj1 = *(uint8**)pObj;
 		buf.Write<uint8>( pObj1 ? 1 : 0 );
@@ -164,7 +181,10 @@ void SClassMetaData::SMemberData::PackData( uint8* pObj, CBufFile& buf, bool bWi
 void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData )
 {
 	pObj += nOffset;
-	if( nType == eTypeClassPtr )
+	if( nType == eTypeTaggedPtr )
+	{
+	}
+	else if( nType == eTypeClassPtr )
 	{
 		auto& pObj1 = *(uint8**)pObj;
 		bool bObj = buf.Read<uint8>();
@@ -173,7 +193,7 @@ void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool
 		else
 			pObj1 = 0;
 	}
-	if( nType == eTypeClass )
+	else if( nType == eTypeClass )
 	{
 		if( pTypeData )
 			pTypeData->UnpackData( pObj, buf, bWithMetaData );
@@ -325,6 +345,26 @@ void SClassMetaData::FindAllDerivedClasses( function<void( SClassMetaData* pData
 	}
 }
 
+void SClassMetaData::FindAllTaggedPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass, uint32 nOfs )
+{
+	for( auto& item : vecMemberData )
+	{
+		if( item.nType == SMemberData::eTypeTaggedPtr && item.pTypeData )
+		{
+			if( !pBaseClass || item.pTypeData->GetBaseClassOfs( pBaseClass ) >= 0 )
+			{
+				func( &item, nOfs + item.nOffset );
+			}
+		}
+	}
+
+	for( auto& item : vecBaseClassData )
+	{
+		if( item.pBaseClass )
+			item.pBaseClass->FindAllTaggedPtr( func, pBaseClass, nOfs + item.nOffset );
+	}
+}
+
 SClassMetaData* CClassMetaDataMgr::RegisterClass( const char* strClassName )
 {
 	SClassMetaData* pData = &m_mapClasses[strClassName];
@@ -382,7 +422,8 @@ void CClassMetaDataMgr::Init()
 		auto& classData = item.second;
 		for( auto& memberData : classData.vecMemberData )
 		{
-			if( memberData.nType == SClassMetaData::SMemberData::eTypeClass || memberData.nType == SClassMetaData::SMemberData::eTypeClassPtr )
+			if( memberData.nType == SClassMetaData::SMemberData::eTypeClass || memberData.nType == SClassMetaData::SMemberData::eTypeClassPtr
+				|| memberData.nType == SClassMetaData::SMemberData::eTypeTaggedPtr )
 			{
 				auto itr = m_mapClasses.find( memberData.strTypeName );
 				if( itr != m_mapClasses.end() )

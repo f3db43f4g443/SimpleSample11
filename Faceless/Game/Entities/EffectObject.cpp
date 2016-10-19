@@ -15,9 +15,9 @@ CEffectObject::CEffectObject( const SClassCreateContext& context )
 void CEffectObject::OnAddedToStage()
 {
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
-	m_pStates[0] = GetChildByName<CEntity>( "birth" );
+	/*m_pStates[0] = GetChildByName<CEntity>( "birth" );
 	m_pStates[1] = GetChildByName<CEntity>( "stand" );
-	m_pStates[2] = GetChildByName<CEntity>( "death" );
+	m_pStates[2] = GetChildByName<CEntity>( "death" );*/
 	for( int i = 0; i < ELEM_COUNT( m_pStates ); i++ )
 	{
 		if( m_pStates[i] )
