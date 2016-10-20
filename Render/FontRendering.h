@@ -33,6 +33,7 @@ public:
 	uint8 GetAlignY() { return ( m_nAlignment >> 2 ) & 3; }
 
 	const wchar_t* GetText() { return m_strText.c_str(); }
+	uint16 GetSize() { return m_pFont->GetSize(); }
 	void SetSize( CFontFile* pFontFile, uint16 nSize );
 	void SetRect( const CRectangle& rect );
 	void SetMultiLine( bool bMultiLine ) { m_bMultiLine = bMultiLine; }
@@ -41,13 +42,21 @@ public:
 	void SetGlobalClip( bool bClip, const CRectangle& rect ) { m_bGlobalClipValid = bClip; m_globalClip = rect; }
 
 	TVector2<uint32> GetCursorPosByLocalPos( const CVector2& localPos );
-	void GetCursorShowPos( CVector2& p, CVector2& p1 );
+	CRectangle GetCursorShowRect();
+	uint32 GetSelectRectCount();
+	CRectangle GetSelectRect( uint32 nIndex );
+
 	void SetText( const wchar_t* szText, int32 nCursorIndex = 0 );
 	void BeginEdit( const CVector2& localPos );
+	void Select( const CVector2& localPos );
 	void EndEdit();
+	bool IsEdit() { return m_bEditMode; }
 	void Insert( const wchar_t* szText );
 	void Delete();
 	void Backspace();
+
+	void SetColor( const CVector4& color ) { m_color = color; }
+	void SetSelectionColor( const CVector4& color ) { m_selectionColor = color; }
 
 	CFontObject* Clone();
 
@@ -62,6 +71,10 @@ private:
 	bool m_bMultiLine;
 	CVector2 m_editOfs;
 	TVector2<uint32> m_cursorPos;
+	TVector2<uint32> m_selectPos;
+
+	CVector4 m_color;
+	CVector4 m_selectionColor;
 
 	bool m_bGlobalClipValid;
 	CRectangle m_globalClip;

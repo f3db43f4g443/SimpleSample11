@@ -11,6 +11,7 @@ public:
 
 	TVector2& operator= (const TVector2& vec);
     bool operator== (const TVector2& vec) const;
+	bool operator!= ( const TVector2& vec ) const;
     TVector2 operator+ (const TVector2& vec) const;
     TVector2 operator- (const TVector2& vec) const;
 	TVector2 operator* (T scalar) const;

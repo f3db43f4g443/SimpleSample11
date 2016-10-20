@@ -31,6 +31,11 @@ bool TVector2<T>::operator== (const TVector2<T>& vec) const
 	return x == vec.x && y == vec.y;
 }
 template <typename T>
+bool TVector2<T>::operator!= ( const TVector2<T>& vec ) const
+{
+	return x != vec.x || y != vec.y;
+}
+template <typename T>
 TVector2<T> TVector2<T>::operator+ (const TVector2<T>& vec) const
 {
 	return TVector2<T>(x + vec.x, y + vec.y);

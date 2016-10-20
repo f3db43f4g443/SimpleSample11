@@ -82,6 +82,9 @@ CFont::CFont( CFontFile* pFontFile, uint16 nSize )
 	FT_Done_Glyph( Glyph );
 
 	m_nAtlasSlotPerRow = g_nTexSize / ( nSize + 2 );
+
+	AllocTexture();
+	m_nMaxSlot = 1;
 }
 
 SCharacterInfo& CFont::GetCharacter( uint16 nCharacter )
@@ -95,6 +98,13 @@ SCharacterInfo& CFont::GetCharacter( uint16 nCharacter )
 ITexture* CFont::GetTexture( uint16 nIndex )
 {
 	return nIndex < m_vecTextures.size() ? m_vecTextures[nIndex] : NULL;
+}
+
+CRectangle CFont::GetFirstBlockRect()
+{
+	CRectangle rect( m_nSize * 0.5f - 1, m_nSize * 0.5f - 1, 2, 2 );
+	rect = rect.Scale( 1.0f / g_nTexSize );
+	return rect;
 }
 
 SCharacterInfo& CFont::AddCharacter( uint16 nCharacter )
@@ -176,7 +186,10 @@ SCharacterInfo& CFont::AddCharacter( uint16 nCharacter )
 		nSlot = m_nMaxSlot++;
 
 		if( m_nMaxSlot >= m_vecTextures.size() * m_nAtlasSlotPerRow * m_nAtlasSlotPerRow )
+		{
 			AllocTexture();
+			nSlot = m_nMaxSlot++;
+		}
 	}
 
 	uint32 nTexture = nSlot / ( m_nAtlasSlotPerRow * m_nAtlasSlotPerRow );
@@ -202,6 +215,22 @@ SCharacterInfo& CFont::AddCharacter( uint16 nCharacter )
 
 void CFont::AllocTexture()
 {
+	auto pData = new SUpdateData;
+	Insert_UpdateData( pData );
+	pData->rect.x = 0;
+	pData->rect.y = 0;
+	pData->rect.width = m_nSize + 2;
+	pData->rect.height = m_nSize + 2;
+	pData->data.resize( ( m_nSize + 2 ) * ( m_nSize + 2 ) );
+	for( int i = 1; i <= m_nSize; i++ )
+	{
+		for( int j = 1; j <= m_nSize; j++ )
+		{
+			pData->data[j + i * ( m_nSize + 2 ) + 1] = 0xff;
+		}
+	}
+	pData->nTexture = m_vecTextures.size();
+
 	m_vecTextures.push_back( IRenderSystem::Inst()->CreateTexture( ETextureType::Tex2D, g_nTexSize, g_nTexSize, 0, 1, EFormat::EFormatR8UNorm, NULL ) );
 }
 

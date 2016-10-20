@@ -110,11 +110,33 @@ void CUIScrollBar::SetPercentByMousePos( const CVector2& mousePos )
 void CUIScrollBar::OnStartDrag( const CVector2& mousePos )
 {
 	CUILabel::OnStartDrag( mousePos );
-	SetPercentByMousePos( mousePos );
+	CVector2 localPos = mousePos - globalTransform.GetPosition();
+	CRectangle thumbRect = m_pThumb->GetLocalBound();
+	if( !thumbRect.Contains( localPos ) )
+		SetPercentByMousePos( mousePos );
+
+	m_dragPos = localPos;
+	m_fDragPercent = m_fPercent;
 }
 
 void CUIScrollBar::OnDragged( const CVector2& mousePos )
 {
 	CUILabel::OnDragged( mousePos );
-	SetPercentByMousePos( mousePos );
+	CVector2 localPos = mousePos - globalTransform.GetPosition();
+	float dragOfs;
+	float dragLength;
+	if( m_bVertical )
+	{
+		dragOfs = localPos.y - m_dragPos.y;
+		dragLength = m_dragRect.height;
+	}
+	else
+	{
+		dragOfs = localPos.x - m_dragPos.x;
+		dragLength = m_dragRect.width;
+	}
+	float fPercent = m_fDragPercent + dragOfs / ( dragLength * ( 1 - m_fThumbLengthPercent ) );
+	fPercent = Max( 0.0f, Min( 1.0f, fPercent ) );
+
+	SetPercent( fPercent );
 }

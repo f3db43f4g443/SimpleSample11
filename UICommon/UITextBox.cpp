@@ -1,10 +1,16 @@
 #include "stdafx.h"
 #include "UITextBox.h"
 
-void CUITextBox::OnMouseDown( const CVector2& mousePos )
+void CUITextBox::OnStartDrag( const CVector2 & mousePos )
 {
 	m_pTextObject->BeginEdit( mousePos - m_pTextObject->globalTransform.GetPosition() );
-	CUILabel::OnMouseDown( mousePos );
+	CUILabel::OnStartDrag( mousePos );
+}
+
+void CUITextBox::OnDragged( const CVector2 & mousePos )
+{
+	m_pTextObject->Select( mousePos - m_pTextObject->globalTransform.GetPosition() );
+	CUILabel::OnDragged( mousePos );
 }
 
 void CUITextBox::OnSetFocused( bool bFocused )

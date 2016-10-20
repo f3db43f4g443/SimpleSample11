@@ -66,6 +66,8 @@ public:
 	SCharacterInfo& GetCharacter( uint16 nCharacter );
 	ITexture* GetTexture( uint16 nIndex );
 
+	CRectangle GetFirstBlockRect();
+
 	void UpdateTexture( IRenderSystem* pRenderSystem );
 private:
 	struct SUpdateData
