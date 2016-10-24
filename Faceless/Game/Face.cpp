@@ -21,6 +21,10 @@ void CFace::OnAddedToStage()
 	AddChild( m_pFaceEditTile );
 	m_pFaceEditTile->Set( m_gridScale, m_baseOffset - m_gridScale * 0.5f, m_nWidth, m_nHeight );
 	m_pFaceEditTile->bVisible = false;
+	m_pFaceSelectTile = static_cast<CTileMap2D*>( CMyLevel::GetInst()->pFaceSelectTile->CreateInstance() );
+	AddChild( m_pFaceSelectTile );
+	m_pFaceSelectTile->Set( pTileMap->GetTileSize(), pTileMap->GetBaseOffset(), pTileMap->GetWidth(), pTileMap->GetHeight() );
+	m_pFaceSelectTile->bVisible = false;
 	m_pGUIRoot = new CEntity();
 	m_pGUIRoot->SetParentEntity( this );
 
@@ -199,6 +203,29 @@ void CFace::OnEndEdit()
 	m_pFaceEditTile->bVisible = false;
 }
 
+void CFace::OnBeginSelectTarget()
+{
+	m_pFaceSelectTile->bVisible = true;
+
+	m_pSelectEffect = CMyLevel::GetInst()->pFaceSelectRed->CreateInstance();
+	m_pSelectEffect->SetAutoUpdateAnim( true );
+	m_pSelectEffect->SetZOrder( 1 );
+	m_pGUIRoot->AddChild( m_pSelectEffect );
+	UpdateSelectGrid( TVector2<int32>( 0, 0 ) );
+}
+
+void CFace::OnEndSelectTarget()
+{
+	m_pSelectEffect->RemoveThis();
+	m_pFaceSelectTile->bVisible = false;
+}
+
+void CFace::UpdateSelectGrid( TVector2<int32> grid )
+{
+	if( m_pSelectEffect )
+		m_pSelectEffect->SetPosition( CVector2( grid.x, grid.y ) * m_gridScale + m_baseOffset );
+}
+
 CRectangle CFace::GetFaceRect()
 {
 	return CRectangle( m_baseOffset - m_gridScale * 0.5f, m_baseOffset + m_gridScale * CVector2( m_nWidth + 0.5f, m_nHeight + 0.5f ) );
@@ -214,6 +241,12 @@ void CFace::RefreshEditTile( uint32 x, uint32 y, uint8 nFlag )
 	auto pGrid = GetGrid( x, y );
 	uint16 nTile = pGrid->GetEditType() | ( nFlag << 2 );
 	m_pFaceEditTile->SetTile( x, y, 1, &nTile );
+}
+
+void CFace::RefreshSelectTile( uint32 x, uint32 y, uint8 nType )
+{
+	auto pGrid = GetGrid( x, y );
+	m_pFaceEditTile->EditTile( x, y, nType );
 }
 
 bool CFace::IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos )

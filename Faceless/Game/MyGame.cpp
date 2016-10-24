@@ -262,6 +262,8 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CMyLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strFaceEditTile )
+		REGISTER_MEMBER( m_strFaceSelectTile )
+		REGISTER_MEMBER( m_strFaceSelectRed )
 	REGISTER_CLASS_END()
 
 	REGISTER_ENUM_BEGIN( ETargetType )

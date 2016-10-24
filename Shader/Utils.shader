@@ -68,6 +68,13 @@ void PSOneTextureMulInstData( in float2 tex : TexCoord0,
 	outColor = Texture0.Sample( LinearSampler, tex ) * instData;
 }
 
+void PSOneTextureAlphaMulInstData( in float2 tex : TexCoord0,
+	in float4 instData : ExtraInstData0,
+	out float4 outColor : SV_Target )
+{
+	outColor = float4( 1.0, 1.0, 1.0, Texture0.Sample( LinearSampler, tex ).x ) * instData;
+}
+
 Texture2D Texture1;
 
 void PSTwoTextureMultiply( in float2 tex : TexCoord0,

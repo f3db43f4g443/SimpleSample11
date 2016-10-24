@@ -181,8 +181,9 @@ void CPlayer::PlayerCommandSelectTargetLevelGrid( const TVector2<int32>& grid )
 	PlayerCommand( ePlayerCommand_SelectTargetLevelGrid, &cmd );
 }
 
-bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+bool CPlayer::SelectTargetLevelGrid( CTurnBasedContext * pContext )
 {
+	auto& actionContext = *pContext->pActionContext;
 	uint8 nState = CStageDirector::Inst()->GetState();
 	CStageDirector::Inst()->SetState( CStageDirector::eState_SelectTarget );
 
@@ -228,8 +229,9 @@ void CPlayer::PlayerCommandSelectTargetFaceGrid( const TVector2<int32>& grid )
 	PlayerCommand( ePlayerCommand_SelectTargetFaceGrid, &cmd );
 }
 
-TVector2<int32> CPlayer::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+TVector2<int32> CPlayer::SelectTargetFaceGrid( CTurnBasedContext * pContext )
 {
+	auto& actionContext = *pContext->pActionContext;
 	CStageDirector::Inst()->SetFaceViewState( actionContext.pCurTarget->GetSubStageShowSlot(), CFaceView::eState_SelectFaceTarget );
 
 	TVector2<int32> res( 0, 0 );

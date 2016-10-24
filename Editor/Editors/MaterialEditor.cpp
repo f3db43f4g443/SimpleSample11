@@ -4,6 +4,9 @@
 #include "Common/Utf8Util.h"
 #include "Render/SystemShaderParams.h"
 #include "Render/Rope2D.h"
+#include "UICommon/UIFactory.h"
+#include "TabFile.h"
+#include <sstream>
 
 SParamEditItem::~SParamEditItem()
 {
@@ -626,6 +629,13 @@ void CMaterialEditor::Refresh()
 	m_pTileMapTileOffset->SetFloats( &tileMapInfo.tileOffset.x );
 	m_pTileMapDefaultTileSize->SetFloats( &tileMapInfo.defaultTileSize.x );
 	m_pTileMapEditDataCount->SetValue( tileMapInfo.editInfos.size() );
+
+	m_nTempTileMapParamRows = tileMapInfo.nTileCount;
+	m_nTempTileMapParamColumns = m_pRes->m_nParamCount;
+	m_tempTileMapParam.resize( tileMapInfo.params.size() );
+	if( tileMapInfo.params.size() )
+		memcpy( &m_tempTileMapParam[0], &tileMapInfo.params[0], sizeof( CVector4 ) * tileMapInfo.params.size() );
+
 	OnTileMapDataCountChanged();
 	for( int i = 0; i < m_tileMapEditDataItems.size(); i++ )
 	{
@@ -690,6 +700,22 @@ void CMaterialEditor::OnInited()
 	m_onTileMapEditDataCountChanged.Set( this, &CMaterialEditor::OnTileMapDataCountChanged );
 	m_pTileMapEditDataCount->Register( eEvent_Action, &m_onTileMapEditDataCountChanged );
 
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/button.xml" );
+	m_pExportFrameData = static_cast<CUIButton*>( g_pRes->GetElement()->Clone() );
+	m_pExportFrameData->Resize( CRectangle( 0, 0, 75, 20 ) );
+	m_pExportFrameData->SetText( "Export Frame Data" );
+	m_pImportFrameData = static_cast<CUIButton*>( g_pRes->GetElement()->Clone() );
+	m_pImportFrameData->Resize( CRectangle( 100, 0, 75, 20) );
+	m_pImportFrameData->SetText( "Import Frame Data" );
+	CUIElement* pUIElement = new CUIElement;
+	pUIElement->AddChild( m_pExportFrameData );
+	pUIElement->AddChild( m_pImportFrameData );
+	m_pTreeView->AddContentChild( pUIElement, m_pTileMapDataRoot );
+	m_onExportFrameData.Set( this, &CMaterialEditor::OnExportTileMapFrameData );
+	m_pExportFrameData->Register( eEvent_Action, &m_onExportFrameData );
+	m_onImportFrameData.Set( this, &CMaterialEditor::OnImportTileMapFrameData );
+	m_pImportFrameData->Register( eEvent_Action, &m_onImportFrameData );
+
 	for( int i = 0; i < ELEM_COUNT( m_drawableItems ); i++ )
 	{
 		m_drawableItems[i].pTreeView = m_pTreeView;
@@ -748,10 +774,18 @@ void CMaterialEditor::RefreshPreview()
 	tileMapInfo.params.resize( m_pRes->m_nParamCount * tileMapInfo.nTileCount );
 	if( tileMapInfo.params.size() )
 	{
-		for( int i = 0; i < tileMapInfo.nTileCount; i++ )
+		uint32 nRows = tileMapInfo.nTileCount;
+		uint32 nColumns = m_pRes->m_nParamCount;
+		for( int iRow = 0; iRow < nRows; iRow++ )
 		{
-			CVector4* pParams = &tileMapInfo.params[i * m_pRes->m_nParamCount];
-			memcpy( pParams, &m_pRes->m_defaultParams[0], sizeof( CVector4 ) * m_pRes->m_nParamCount );
+			for( int iColumn = 0; iColumn < nColumns; iColumn++ )
+			{
+				CVector4& param = tileMapInfo.params[iColumn + iRow * m_pRes->m_nParamCount];
+				if( iRow < m_nTempTileMapParamRows && iColumn < m_nTempTileMapParamColumns )
+					param = m_tempTileMapParam[iColumn + iRow * m_nTempTileMapParamColumns];
+				else
+					param = CVector4( 0, 0, 0, 0 );
+			}
 		}
 	}
 	uint32 nTileMapEditDataCount = m_tileMapEditDataItems.size();
@@ -910,6 +944,68 @@ void CMaterialEditor::OnTileMapDataCountChanged()
 		editInfo.nBegin += editInfo.nCount + editInfo.nBlendCount * 16;
 		if( editInfo.nBlendCount )
 			editInfo.nBlendBegin += editInfo.nCount + editInfo.nBlendCount * 16;
+	}
+}
+
+void CMaterialEditor::OnExportTileMapFrameData()
+{
+	uint32 nRows = m_pTileMapTileCount->GetValue<uint32>();
+	uint32 nColumns = m_pParamCount->GetValue<uint32>();
+
+	stringstream ss;
+	for( int i = 0; i < nColumns; i++ )
+	{
+		ss << "x" << i << "\t";
+		ss << "y" << i << "\t";
+		ss << "z" << i << "\t";
+		ss << "w" << i << ( i == nColumns - 1 ? "\r\n" : "\t" );
+	}
+	for( int iRow = 0; iRow < nRows; iRow++ )
+	{
+		for( int iColumn = 0; iColumn < nColumns; iColumn++ )
+		{
+			if( iRow < m_nTempTileMapParamRows && iColumn < m_nTempTileMapParamColumns )
+			{
+				auto& param = m_tempTileMapParam[iColumn + iRow * m_nTempTileMapParamColumns];
+				ss << param.x << "\t";
+				ss << param.y << "\t";
+				ss << param.z << "\t";
+				ss << param.w << ( iColumn == nColumns - 1 ? "\r\n" : "\t" );
+			}
+			else
+			{
+				ss << "0\t";
+				ss << "0\t";
+				ss << "0\t";
+				ss << ( iColumn == nColumns - 1 ? "0\r\n" : "0\t" );
+			}
+		}
+	}
+
+	auto str = ss.str();
+	SaveFile( "temp.txt", str.c_str(), str.length() );
+}
+
+void CMaterialEditor::OnImportTileMapFrameData()
+{
+	uint32 nRows = m_pTileMapTileCount->GetValue<uint32>();
+	uint32 nColumns = m_pParamCount->GetValue<uint32>();
+	m_nTempTileMapParamRows = nRows;
+	m_nTempTileMapParamColumns = nColumns;
+	m_tempTileMapParam.resize( nRows * nColumns );
+
+	CTabFile tabFile;
+	tabFile.Load( "temp.txt" );
+	for( int iRow = 0; iRow < nRows; iRow++ )
+	{
+		for( int iColumn = 0; iColumn < nColumns; iColumn++ )
+		{
+			auto& param = m_tempTileMapParam[iColumn + iRow * nColumns];
+			param.x = tabFile.Get<float>( iColumn * 4, iRow );
+			param.y = tabFile.Get<float>( iColumn * 4 + 1, iRow );
+			param.z = tabFile.Get<float>( iColumn * 4 + 2, iRow );
+			param.w = tabFile.Get<float>( iColumn * 4 + 3, iRow );
+		}
 	}
 }
 

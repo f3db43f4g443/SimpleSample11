@@ -391,8 +391,10 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\Shader\CrackEffect.shader" />
+    <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
+    <None Include="..\Shader\SelectArea.shader" />
     <None Include="..\Shader\Slime.shader" />
     <None Include="..\Shader\GSWrapTex.shader" />
     <None Include="..\Shader\HpBar.shader" />

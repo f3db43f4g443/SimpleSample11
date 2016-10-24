@@ -3,8 +3,9 @@
 #include "MyLevel.h"
 #include "Stage.h"
 
-void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext )
+void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext )
 {
+	auto& actionContext = *pContext->pActionContext;
 	m_pEffectObject = GetChildByName_Fast<CEffectObject>( "" );
 	m_pEffectObject->SetState( 1 );
 
@@ -55,7 +56,7 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext, SOrgan
 	if( m_pEffectObject )
 		m_pEffectObject->SetState( 2 );
 	if( pFindChar )
-		FindTarget( pFindChar, pContext, actionContext );
+		FindTarget( pFindChar, pContext );
 	if( m_pEffectObject )
 	{
 		while( m_pEffectObject->GetParentEntity() == this )

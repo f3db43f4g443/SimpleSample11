@@ -76,6 +76,12 @@ SSubStage * CCharacter::GetSubStage()
 	return GetStage()->GetWorld()->GetSubStage( m_nSubStage );
 }
 
+CFace * CCharacter::GetFace()
+{
+	SSubStage* pSubStage = GetSubStage();
+	return pSubStage ? pSubStage->pFace : NULL;
+}
+
 bool CCharacter::MoveTo( uint32 gridX, uint32 gridY )
 {
 	return m_pLevel->MoveCharacter( this, gridX, gridY );
@@ -131,12 +137,12 @@ void CCharacter::BattlePhase( CTurnBasedContext* pContext )
 
 }
 
-bool CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext, SOrganActionContext & actionContext )
+bool CCharacter::SelectTargetLevelGrid( CTurnBasedContext * pContext )
 {
 	return false;
 }
 
-TVector2<int32> CCharacter::SelectTargetFaceGrid( CTurnBasedContext * pContext, SOrganActionContext& actionContext )
+TVector2<int32> CCharacter::SelectTargetFaceGrid( CTurnBasedContext * pContext )
 {
 	return TVector2<int32>( 0, 0 );
 }

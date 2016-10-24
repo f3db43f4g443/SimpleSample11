@@ -10,6 +10,7 @@ CFontObject::CFontObject( CFontFile* pFontFile, uint16 nSize, CDrawable2D* pDraw
 	, m_bMultiLine( false )
 	, m_editOfs( 0, 0 )
 	, m_cursorPos( 0, 0 )
+	, m_selectPos( 0, 0 )
 	, m_bGlobalClipValid( false )
 	, m_globalClip( 0, 0, 0, 0 )
 	, m_color( 1, 1, 1, 1 )
@@ -255,7 +256,7 @@ TVector2<uint32> CFontObject::GetCursorPosByLocalPos( const CVector2& localPos )
 CRectangle CFontObject::GetCursorShowRect()
 {
 	float yMin, yMax;
-	yMax = m_cursorPos.y * m_pFont->GetSize() - m_pFont->GetBaseLine();
+	yMax = m_cursorPos.y * m_pFont->GetSize() - m_pFont->GetBaseLine() + m_editOfs.y;
 	yMin = yMax - m_pFont->GetSize();
 	if( !m_bInvertY )
 	{
@@ -265,7 +266,7 @@ CRectangle CFontObject::GetCursorShowRect()
 	}
 	uint32 iIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
 	float xMin = m_cursorPos.x ? m_characters[iIndex + m_cursorPos.x - 1].hitRect.GetRight() : 0;
-	return CRectangle( xMin, yMin, 1, yMax - yMin );
+	return CRectangle( xMin, yMin, 1, yMax - yMin ) * m_localBound;
 }
 
 uint32 CFontObject::GetSelectRectCount()
@@ -306,17 +307,18 @@ CRectangle CFontObject::GetSelectRect( uint32 nIndex )
 
 	uint32 nBeginIndex;
 	if( nRow > a.y )
-		nBeginIndex = m_vecLineBeginIndex[nRow];
+		nBeginIndex = GetLineBeginIndex( nRow );
 	else
-		nBeginIndex = m_vecLineBeginIndex[a.y] + a.x;
+		nBeginIndex = GetLineBeginIndex( a.y ) + a.x;
 	auto rect = m_characters[nBeginIndex].hitRect;
 
 	uint32 nEndIndex;
 	if( nRow < b.y )
-		nEndIndex = nRow < m_vecLineBeginIndex.size() - 1 ? m_vecLineBeginIndex[nRow + 1] : m_characters.size();
+		nEndIndex = nRow - 1 < GetLineCount() ? GetLineBeginIndex( nRow + 1 ) : m_characters.size();
 	else
-		nEndIndex = m_vecLineBeginIndex[b.y] + b.x;
+		nEndIndex = GetLineBeginIndex( b.y ) + b.x;
 	rect.SetRight( m_characters[nEndIndex - 1].hitRect.GetRight() );
+	rect = rect * m_localBound;
 
 	return rect;
 }
@@ -339,7 +341,7 @@ void CFontObject::EndEdit()
 {
 	m_bEditMode = false;
 	SetText( m_strText.c_str() );
-	m_selectPos = TVector2<uint32>( 0, 0 );
+	m_cursorPos = m_selectPos = TVector2<uint32>( 0, 0 );
 }
 
 void CFontObject::Insert( const wchar_t* szText )
@@ -381,6 +383,7 @@ void CFontObject::Delete()
 	wstring str = m_strText;
 	str.erase( nIndex, 1 );
 	SetText( str.c_str(), nIndex );
+	m_selectPos = m_cursorPos;
 }
 
 void CFontObject::Backspace()
@@ -399,6 +402,7 @@ void CFontObject::Backspace()
 	wstring str = m_strText;
 	str.erase( nIndex - 1, 1 );
 	SetText( str.c_str(), nIndex - 1 );
+	m_selectPos = m_cursorPos;
 }
 
 void CFontObject::Render( CRenderContext2D& context )
@@ -475,7 +479,7 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 			auto& characters = pFontObject->m_characters;
 			uint32 nSelectRectCount = pFontObject->GetSelectRectCount();
 			bool bCursor = pFontObject->IsEdit() && bShowCursor;
-			uint32 nElemCount = characters.size() + nSelectRectCount + bCursor ? 1 : 0;
+			uint32 nElemCount = characters.size() + nSelectRectCount + ( bCursor ? 1 : 0 );
 
 			uint32 iBegin = nLastElemRenderedCount;
 			uint32 iEnd = nElemCount;
@@ -537,7 +541,6 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 						texRect.y + texRect.height * ( clippedRect.y - newRect.y ) / newRect.height,
 						texRect.width * clippedRect.width / newRect.width, texRect.height * clippedRect.height / newRect.height );
 
-					float* pData = fInstData + nOfs;
 					*pData++ = clippedRect.GetCenterX();
 					*pData++ = clippedRect.GetCenterY();
 					*pData++ = clippedRect.GetSizeX() / 2;
@@ -580,9 +583,8 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 					*pData++ = pElement->depth;
 				}
 
-				uint32 nDataSize = Min( pElement->nInstDataSize, sizeof( CVector4 ) );
-				if( nDataSize )
-					memcpy( pData, &color, nDataSize );
+				if( nExtraInstData )
+					memcpy( pData, &color, sizeof( CVector4 ) );
 
 				i1++;
 				nOfs += 4 * ( 2 + nExtraInstData );

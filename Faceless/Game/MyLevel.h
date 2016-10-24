@@ -7,6 +7,8 @@
 
 class CTurnBasedContext : public CAIObject
 {
+public:
+	struct SOrganActionContext* pActionContext;
 protected:
 	virtual void AIFunc() override;
 };
@@ -16,7 +18,7 @@ class CMyLevel : public CEntity
 	friend class CTurnBasedContext;
 	friend void RegisterGameClasses();
 public:
-	CMyLevel( const SClassCreateContext& context ) : CEntity( context ), m_strFaceEditTile( context ) { SET_BASEOBJECT_ID( CMyLevel ); }
+	CMyLevel( const SClassCreateContext& context ) : CEntity( context ), m_strFaceEditTile( context ), m_strFaceSelectTile( context ), m_strFaceSelectRed( context ) { SET_BASEOBJECT_ID( CMyLevel ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
@@ -44,8 +46,12 @@ public:
 	SGrid* GetGrid( uint32 x, uint32 y ) { return x < m_nWidth && y < m_nHeight ? &m_grids[x + y * m_nWidth] : NULL; }
 
 	CReference<CDrawableGroup> pFaceEditTile;
+	CReference<CDrawableGroup> pFaceSelectTile;
+	CReference<CDrawableGroup> pFaceSelectRed;
 
 	void RayCast( TVector2<int32> src, TVector2<int32> target, function<bool( const TVector2<int32>& )> func );
+
+	CTurnBasedContext* GetTurnBasedContext() { return m_pTurnBasedContext; }
 
 	static CMyLevel* GetInst() { return s_pLevel; }
 private:
@@ -59,6 +65,9 @@ private:
 	CVector2 m_gridScale;
 
 	CString m_strFaceEditTile;
+	CString m_strFaceSelectTile;
+
+	CString m_strFaceSelectRed;
 
 	static CMyLevel* s_pLevel;
 

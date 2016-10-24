@@ -64,6 +64,7 @@ IMPLEMENT_MATERIAL_SHADER( PSOneColorMulTextureAlpha, "Shader/Utils.shader", "PS
 IMPLEMENT_MATERIAL_SHADER( PSInstData, "Shader/Utils.shader", "PSInstData", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSOneColorMulInstData, "Shader/Utils.shader", "PSOneColorMulInstData", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSOneTextureMulInstData, "Shader/Utils.shader", "PSOneTextureMulInstData", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSOneTextureAlphaMulInstData, "Shader/Utils.shader", "PSOneTextureAlphaMulInstData", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSTwoTexCoordMasked, "Shader/Utils.shader", "PSTwoTexCoordMasked", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( Default2DVertexShader, "Shader/Default2D.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( SingleImage2DVertexShader, "Shader/SingleImage2D.shader", "VSMain", "vs_5_0" );
@@ -95,6 +96,7 @@ IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColor, "Shader/AlphaToOcclusion.sha
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusion, "Shader/AlphaToOcclusion.shader", "PSOcclusion", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( Default2DUIVertexShader, "Shader/Default2DUI.shader", "VSDefault", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DUIVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DUI.shader", "VSDefaultExtraInstData", "vs_5_0" );
 
 void Engine_ShaderImplement_Dummy_Light();
 void Engine_ShaderImplement_Dummy()

@@ -8,10 +8,16 @@ public:
 	COrganActionSimpleShoot( const SClassCreateContext& context ) : COrganAction( context ), m_strBulletPrefab( context ) { SET_BASEOBJECT_ID( COrganActionSimpleShoot ); }
 
 	virtual void OnAddedToStage() override;
-	virtual void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext ) override;
+	virtual void Action( CTurnBasedContext* pContext ) override;
+
+	virtual void OnBeginFaceSelectTarget( const SOrganActionContext& actionContext ) override;
+	virtual void OnFaceSelectTargetMove( const SOrganActionContext& actionContext, TVector2<int32> grid ) override;
+	virtual void OnEndFaceSelectTarget( const SOrganActionContext& actionContext ) override;
 protected:
 	CString m_strBulletPrefab;
 	CReference<CPrefab> m_pBulletPrefab;
 	uint32 m_nCount;
 	float m_fInterval;
+
+	TVector2<int32> m_faceSelectGrid;
 };

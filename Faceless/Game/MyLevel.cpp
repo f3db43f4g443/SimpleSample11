@@ -19,6 +19,8 @@ void CMyLevel::OnAddedToStage()
 	m_nCurCharacterID = 0;
 
 	pFaceEditTile = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceEditTile.c_str() );
+	pFaceSelectTile = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceSelectTile.c_str() );
+	pFaceSelectRed = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceSelectRed.c_str() );
 
 	if( !m_pTurnBasedContext )
 	{
@@ -93,6 +95,7 @@ bool CMyLevel::MoveCharacter( CCharacter* pCharacter, uint32 x, uint32 y )
 	pGrid->pCharacter = NULL;
 	pCharacter->m_grid = TVector2<int32>( x, y );
 	pCharacter->SetPosition( m_baseOffset + m_gridScale * CVector2( x, y ) );
+	return true;
 }
 
 void CMyLevel::RayCast( TVector2<int32> src, TVector2<int32> target, function<bool( const TVector2<int32>& )> func )

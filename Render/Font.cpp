@@ -103,7 +103,7 @@ ITexture* CFont::GetTexture( uint16 nIndex )
 CRectangle CFont::GetFirstBlockRect()
 {
 	CRectangle rect( m_nSize * 0.5f - 1, m_nSize * 0.5f - 1, 2, 2 );
-	rect = rect.Scale( 1.0f / g_nTexSize );
+	rect = rect * ( 1.0f / g_nTexSize );
 	return rect;
 }
 

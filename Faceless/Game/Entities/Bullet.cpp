@@ -97,6 +97,13 @@ void CBullet::SetFaceTarget( const TVector2<int32>& targetGrid, SOrganActionCont
 	SetActive( true );
 }
 
+void CBullet::ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
+{
+	auto pTileMap = actionContext.pCurTarget->GetFace()->GetSelectTile();
+	if( grid.x >= 0 && grid.y >= 0 && grid.x <= pTileMap->GetWidth() && grid.y <= pTileMap->GetHeight() )
+		pTileMap->EditTile( grid.x, grid.y, bShow ? 1 : 0 );
+}
+
 void CBullet::TickBeforeHitTest()
 {
 	SetPosition( GetPosition() + m_velocity * GetStage()->GetElapsedTimePerTick() );
@@ -226,7 +233,7 @@ void CMissile::TickAfterHitTest()
 				{
 					auto grid = grids[i] + m_target;
 					auto pGrid = m_pFace->GetGrid( grid.x, grid.y );
-					if( pGrid->pOrgan && m_bCanDmgOrgan )
+					if( pGrid && pGrid->pOrgan && m_bCanDmgOrgan )
 					{
 						if( !pGrid->pOrgan->m_nVisitFlag )
 						{
@@ -253,4 +260,18 @@ void CMissile::TickAfterHitTest()
 	}
 
 	CBulletBase::TickAfterHitTest();
+}
+
+void CMissile::ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
+{
+	auto pTileMap = actionContext.pCurTarget->GetFace()->GetSelectTile();
+
+	vector<TVector2<int32> > grids;
+	GetRange( m_eRangeType, m_nRange, m_nRange1, grids );
+	for( int i = 0; i < grids.size(); i++ )
+	{
+		auto grid0 = grids[i] + grid;
+		if( grid0.x >= 0 && grid0.y >= 0 && grid0.x <= pTileMap->GetWidth() && grid0.y <= pTileMap->GetHeight() )
+			pTileMap->EditTile( grid0.x, grid0.y, bShow ? 1 : 0 );
+	}
 }

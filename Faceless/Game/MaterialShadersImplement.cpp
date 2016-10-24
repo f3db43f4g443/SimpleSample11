@@ -12,8 +12,10 @@ void Game_ShaderImplement_Dummy()
 	Game_ShaderImplement_Dummy_PostEffects();
 }
 
+IMPLEMENT_MATERIAL_SHADER( PSTwoColorLerp, "Shader/Effect.shader", "PSTwoColorLerp", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSBloodStain, "Shader/Blood.shader", "PSBloodStain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHpBarSmall, "Shader/HpBar.shader", "PSHpBarSmall", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSFaceSelectArea, "Shader/SelectArea.shader", "PSFaceSelectArea", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );

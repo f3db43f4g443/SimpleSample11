@@ -1,6 +1,6 @@
 ﻿<root texWidth="256" texHeight="256">
   <blend type="transparent" />
-  <material max_insts="2048" vertex_shader="Default2DUIVertexShader" pixel_shader="OcclusionTextureAlphaPixelShaderNoClip">
+  <material max_insts="1365" extra_inst_data="1" vertex_shader="Default2DUIVertexShader1" pixel_shader="PSOneTextureAlphaMulInstData">
     <samplers>
       <item name="LinearSampler" />
     </samplers>

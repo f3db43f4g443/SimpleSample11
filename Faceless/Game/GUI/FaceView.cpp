@@ -6,6 +6,7 @@
 #include "Common/ResourceManager.h"
 #include "Player.h"
 #include "MyGame.h"
+#include "MyLevel.h"
 
 CFaceView* CFaceView::Create( CUIElement* pElem )
 {
@@ -57,6 +58,11 @@ void CFaceView::OnFocused( bool bFocused )
 			m_bGridMoved = false;
 			break;
 		case eState_SelectFaceTarget:
+			{
+				auto& actionContext = *CMyLevel::GetInst()->GetTurnBasedContext()->pActionContext;
+				actionContext.pOrganAction->OnEndFaceSelectTarget( actionContext );
+				GetSubStage()->pFace->OnEndSelectTarget();
+			}
 			break;
 		}
 	}
@@ -70,6 +76,12 @@ void CFaceView::OnFocused( bool bFocused )
 			GetSubStage()->pFace->OnBeginEdit();
 			break;
 		case eState_SelectFaceTarget:
+			{
+				auto& actionContext = *CMyLevel::GetInst()->GetTurnBasedContext()->pActionContext;
+				GetSubStage()->pFace->OnBeginSelectTarget();
+				GetSubStage()->pFace->UpdateSelectGrid( TVector2<int32>( 0, 0 ) );
+				actionContext.pOrganAction->OnBeginFaceSelectTarget( actionContext );
+			}
 			break;
 		}
 	}
@@ -150,6 +162,22 @@ void CFaceView::OnMouseMove( const CVector2& mousePos )
 				m_bGridMoved = true;
 		}
 	}
+	else if( m_nState == eState_SelectFaceTarget )
+	{
+		auto pFace = GetSubStage()->pFace;
+		CVector2 fixOfs = GetScenePos( mousePos );
+		CVector2 tileSize = pFace->GetEditTile()->GetTileSize();
+		auto matInv = pFace->globalTransform.Inverse();
+		auto localPos = matInv.MulVector2Pos( fixOfs );
+		CVector2 v = ( localPos - pFace->GetEditTile()->GetBaseOffset() ) / tileSize;
+		TVector2<int32> grid( floor( v.x ), floor( v.y ) );
+		grid.x = Min( Max( grid.x, 0 ), (int32)( pFace->GetEditTile()->GetWidth() - 1 ) );
+		grid.y = Min( Max( grid.y, 0 ), (int32)( pFace->GetEditTile()->GetHeight() - 1 ) );
+
+		auto& actionContext = *CMyLevel::GetInst()->GetTurnBasedContext()->pActionContext;
+		pFace->UpdateSelectGrid( grid );
+		actionContext.pOrganAction->OnFaceSelectTargetMove( actionContext, grid );
+	}
 }
 
 void CFaceView::OnClick( const CVector2& mousePos )
@@ -168,11 +196,14 @@ void CFaceView::OnClick( const CVector2& mousePos )
 		CVector2 tileSize = pFace->GetEditTile()->GetTileSize();
 		auto matInv = pFace->globalTransform.Inverse();
 		auto localPos = matInv.MulVector2Pos( fixOfs );
-
 		CVector2 v = ( localPos - pFace->GetEditTile()->GetBaseOffset() ) / tileSize;
+		TVector2<int32> grid( floor( v.x ), floor( v.y ) );
+		grid.x = Min( Max( grid.x, 0 ), (int32)( pFace->GetEditTile()->GetWidth() - 1 ) );
+		grid.y = Min( Max( grid.y, 0 ), (int32)( pFace->GetEditTile()->GetHeight() - 1 ) );
+
 		auto pPlayer = pSubStage->pCharacter->GetStage()->GetPlayer();
 		if( pPlayer )
-			pPlayer->PlayerCommandSelectTargetFaceGrid( TVector2<int32>( floor( v.x ), floor( v.y ) ) );
+			pPlayer->PlayerCommandSelectTargetFaceGrid( grid );
 	}
 
 	if( m_nState == eState_Action )

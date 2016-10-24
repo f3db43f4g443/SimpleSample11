@@ -58,6 +58,9 @@ public:
 	void SetColor( const CVector4& color ) { m_color = color; }
 	void SetSelectionColor( const CVector4& color ) { m_selectionColor = color; }
 
+	uint32 GetLineBeginIndex( uint32 nLine ) { return nLine ? m_vecLineBeginIndex[nLine - 1] : 0; }
+	uint32 GetLineCount() { return m_vecLineBeginIndex.size() - 1; }
+
 	CFontObject* Clone();
 
 	virtual void Render( CRenderContext2D& context ) override;

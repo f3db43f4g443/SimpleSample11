@@ -63,8 +63,12 @@ public:
 
 	void OnBeginEdit();
 	void OnEndEdit();
+	void OnBeginSelectTarget();
+	void OnEndSelectTarget();
+	void UpdateSelectGrid( TVector2<int32> grid );
 
 	CTileMap2D* GetEditTile() { return m_pFaceEditTile; }
+	CTileMap2D* GetSelectTile() { return m_pFaceSelectTile; }
 	CEntity* GetGUIRoot() { return m_pGUIRoot; }
 	const CVector2& GetBaseOffset() { return m_baseOffset; }
 	const CVector2& GetGridScale() { return m_gridScale; }
@@ -73,6 +77,7 @@ public:
 	
 	SGrid* GetGrid( uint32 x, uint32 y ) { return x < m_nWidth && y < m_nHeight ? &m_grids[x + y * m_nWidth] : NULL; }
 	void RefreshEditTile( uint32 x, uint32 y, uint8 nFlag );
+	void RefreshSelectTile( uint32 x, uint32 y, uint8 nType );
 
 	bool IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos );
 private:
@@ -92,7 +97,9 @@ private:
 	CTileMapSet* m_pSkinTile;
 
 	CReference<CTileMap2D> m_pFaceEditTile;
+	CReference<CTileMap2D> m_pFaceSelectTile;
 	CReference<CEntity> m_pGUIRoot;
+	CReference<CRenderObject2D> m_pSelectEffect;
 
 	uint32 m_nAwakeFrames;
 

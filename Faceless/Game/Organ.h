@@ -20,6 +20,8 @@ struct SOrganActionContext
 	SOrganActionContext() : pCharacter( NULL ), pOrgan( NULL ), pCurTarget( NULL ), bSucceed( false ) {}
 	CCharacter* pCharacter;
 	class COrgan* pOrgan;
+	class COrganAction* pOrganAction;
+	class COrganTargetor* pOrganTargetor;
 	TVector2<int> target;
 	uint8 nCharge;
 
@@ -34,8 +36,11 @@ class COrganAction : public CEntity
 	friend void RegisterGameClasses();
 public:
 	COrganAction( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COrganAction ); }
-	virtual void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext ) {}
-
+	virtual void Action( CTurnBasedContext* pContext ) {}
+	
+	virtual void OnBeginFaceSelectTarget( const SOrganActionContext& actionContext ) {}
+	virtual void OnFaceSelectTargetMove( const SOrganActionContext& actionContext, TVector2<int32> grid ) {}
+	virtual void OnEndFaceSelectTarget( const SOrganActionContext& actionContext ) {}
 };
 
 class COrganTargetor : public CEntity
@@ -43,17 +48,12 @@ class COrganTargetor : public CEntity
 	friend void RegisterGameClasses();
 public:
 	COrganTargetor( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COrganTargetor ); }
-	virtual void FindTargets( CTurnBasedContext* pContext, SOrganActionContext& actionContext ) {}
+	virtual void FindTargets( CTurnBasedContext* pContext ) {}
 
-	typedef function<bool( CCharacter* pChar, CTurnBasedContext* pContext, SOrganActionContext& actionContext )> FuncOnFindTarget;
+	typedef function<bool( CCharacter* pChar, CTurnBasedContext* pContext )> FuncOnFindTarget;
 	void SetFindTargetFunc( FuncOnFindTarget func ) { m_onFindTarget = func; }
 protected:
-	void FindTarget( CCharacter* pChar, CTurnBasedContext* pContext, SOrganActionContext& actionContext )
-	{
-		if( m_onFindTarget && !m_onFindTarget( pChar, pContext, actionContext ) )
-			return;
-		actionContext.targetCharacters.push_back( pChar );
-	}
+	void FindTarget( CCharacter* pChar, CTurnBasedContext* pContext );
 private:
 	FuncOnFindTarget m_onFindTarget;
 };
@@ -85,8 +85,8 @@ public:
 	bool CheckActionTarget( SOrganActionContext& actionContext );
 
 	void Action( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
-	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext );
-	void ActionSelectTarget( CTurnBasedContext* pContext, SOrganActionContext& actionContext, COrganTargetor::FuncOnFindTarget func );
+	void ActionSelectTarget( CTurnBasedContext* pContext );
+	void ActionSelectTarget( CTurnBasedContext* pContext, COrganTargetor::FuncOnFindTarget func );
 
 	void SetHp( uint32 nHp );
 	void Damage( uint32 nDmg );

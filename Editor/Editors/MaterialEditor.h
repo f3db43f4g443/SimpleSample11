@@ -173,11 +173,20 @@ private:
 	CReference<CVectorEdit> m_pTileMapDefaultTileSize;
 	CReference<CCommonEdit> m_pTileMapEditDataCount;
 	TClassTrigger<CMaterialEditor> m_onTileMapEditDataCountChanged;
+	CReference<CUIButton> m_pExportFrameData;
+	CReference<CUIButton> m_pImportFrameData;
+	TClassTrigger<CMaterialEditor> m_onExportFrameData;
+	TClassTrigger<CMaterialEditor> m_onImportFrameData;
 	vector<STileMapEditDataItem*> m_tileMapEditDataItems;
+	vector<CVector4> m_tempTileMapParam;
+	uint32 m_nTempTileMapParamColumns;
+	uint32 m_nTempTileMapParamRows;
 
 	void OnParamCountChanged();
 	void OnFrameCountChanged();
 	void OnTileMapDataCountChanged();
+	void OnExportTileMapFrameData();
+	void OnImportTileMapFrameData();
 	void RefreshRenderObject();
 	SDrawableEditItems m_drawableItems[3];
 

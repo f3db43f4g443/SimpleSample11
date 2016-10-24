@@ -22,6 +22,7 @@ public:
 	uint8 ShowSubStage( uint8 nSlot );
 	void HideSubStage();
 	struct SSubStage* GetSubStage();
+	class CFace* GetFace();
 	uint8 GetSubStageShowSlot() { return m_nSubStageShowSlot; }
 
 	const char* GetSubStageName() { return m_strSubStageName.c_str(); }
@@ -53,8 +54,8 @@ public:
 	virtual void EmotePhase( CTurnBasedContext* pContext );
 	virtual void BattlePhase( CTurnBasedContext* pContext );
 
-	virtual bool SelectTargetLevelGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
-	virtual TVector2<int32> SelectTargetFaceGrid( CTurnBasedContext* pContext, struct SOrganActionContext& actionContext );
+	virtual bool SelectTargetLevelGrid( CTurnBasedContext* pContext );
+	virtual TVector2<int32> SelectTargetFaceGrid( CTurnBasedContext* pContext );
 
 	bool Move( CTurnBasedContext* pContext, uint8 nDir );
 

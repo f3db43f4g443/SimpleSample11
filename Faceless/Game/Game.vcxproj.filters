@@ -241,6 +241,12 @@
     <None Include="..\Shader\Water.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\SelectArea.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Effect.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">
