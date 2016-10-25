@@ -13,6 +13,9 @@ void Game_ShaderImplement_Dummy()
 }
 
 IMPLEMENT_MATERIAL_SHADER( PSTwoColorLerp, "Shader/Effect.shader", "PSTwoColorLerp", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSSelectFaceTargetBullet, "Shader/Effect.shader", "VSSelectFaceTargetBullet", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSSelectFaceTargetBullet, "Shader/Effect.shader", "PSSelectFaceTargetBullet", "ps_5_0" );
+
 IMPLEMENT_MATERIAL_SHADER( PSBloodStain, "Shader/Blood.shader", "PSBloodStain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHpBarSmall, "Shader/HpBar.shader", "PSHpBarSmall", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFaceSelectArea, "Shader/SelectArea.shader", "PSFaceSelectArea", "ps_5_0" );
