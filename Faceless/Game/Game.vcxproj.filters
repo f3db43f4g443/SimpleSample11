@@ -87,6 +87,7 @@
       <Filter>Entities</Filter>
     </ClCompile>
     <ClCompile Include="GameUtil.cpp" />
+    <ClCompile Include="GlobalCfg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -176,6 +177,7 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="GameUtil.h" />
+    <ClInclude Include="GlobalCfg.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

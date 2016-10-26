@@ -11,6 +11,7 @@
 #include "Common/Rand.h"
 #include "MyLevel.h"
 #include "Face.h"
+#include "GlobalCfg.h"
 
 #include "Entities/StartPoint.h"
 #include "Entities/GlitchEffect.h"
@@ -41,6 +42,7 @@ void CGame::Start()
 {
 	CResourceManager::Inst()->Register( new TResourceFactory<CUIResource>() );
 
+	CGlobalCfg::Inst().Load();
 	CSkinNMaskCfg::Inst().Load();
 
 	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
@@ -261,9 +263,6 @@ void RegisterGameClasses()
 	
 	REGISTER_CLASS_BEGIN( CMyLevel )
 		REGISTER_BASE_CLASS( CEntity )
-		REGISTER_MEMBER( m_strFaceEditTile )
-		REGISTER_MEMBER( m_strFaceSelectTile )
-		REGISTER_MEMBER( m_strFaceSelectRed )
 	REGISTER_CLASS_END()
 
 	REGISTER_ENUM_BEGIN( ETargetType )

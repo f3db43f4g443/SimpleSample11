@@ -29,6 +29,24 @@ struct SOrganActionContext
 
 	vector<CCharacter*> targetCharacters;
 	CCharacter* pCurTarget;
+
+	CRenderObject2D* FindObject( const char* szName ) const
+	{
+		auto itr = mapTempObjects.find( szName );
+		if( itr == mapTempObjects.end() )
+			return NULL;
+		return itr->second;
+	}
+	void RemoveObject( const char* szName )
+	{
+		auto itr = mapTempObjects.find( szName );
+		if( itr == mapTempObjects.end() )
+			return;
+		itr->second->RemoveThis();
+		mapTempObjects.erase( itr );
+	}
+
+	map<string, CReference<CRenderObject2D> > mapTempObjects;
 };
 
 class COrganAction : public CEntity

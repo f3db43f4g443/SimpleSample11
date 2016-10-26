@@ -2,6 +2,7 @@
 #include "Face.h"
 #include "MyLevel.h"
 #include "Stage.h"
+#include "GlobalCfg.h"
 
 void CFace::OnAddedToStage()
 {
@@ -17,11 +18,11 @@ void CFace::OnAddedToStage()
 	m_nHeight = pTileMap->GetHeight() + 1;
 	m_grids.resize( m_nWidth * m_nHeight );
 
-	m_pFaceEditTile = static_cast<CTileMap2D*>( CMyLevel::GetInst()->pFaceEditTile->CreateInstance() );
+	m_pFaceEditTile = static_cast<CTileMap2D*>( CGlobalCfg::Inst().pFaceEditTile->CreateInstance() );
 	AddChild( m_pFaceEditTile );
 	m_pFaceEditTile->Set( m_gridScale, m_baseOffset - m_gridScale * 0.5f, m_nWidth, m_nHeight );
 	m_pFaceEditTile->bVisible = false;
-	m_pFaceSelectTile = static_cast<CTileMap2D*>( CMyLevel::GetInst()->pFaceSelectTile->CreateInstance() );
+	m_pFaceSelectTile = static_cast<CTileMap2D*>( CGlobalCfg::Inst().pFaceSelectTile->CreateInstance() );
 	AddChild( m_pFaceSelectTile );
 	m_pFaceSelectTile->Set( pTileMap->GetTileSize(), pTileMap->GetBaseOffset(), pTileMap->GetWidth(), pTileMap->GetHeight() );
 	m_pFaceSelectTile->bVisible = false;
@@ -207,7 +208,7 @@ void CFace::OnBeginSelectTarget()
 {
 	m_pFaceSelectTile->bVisible = true;
 
-	m_pSelectEffect = CMyLevel::GetInst()->pFaceSelectRed->CreateInstance();
+	m_pSelectEffect = CGlobalCfg::Inst().pFaceSelectRed->CreateInstance();
 	m_pSelectEffect->SetAutoUpdateAnim( true );
 	m_pSelectEffect->SetZOrder( 1 );
 	m_pGUIRoot->AddChild( m_pSelectEffect );

@@ -74,6 +74,7 @@ public:
 	const CVector2& GetGridScale() { return m_gridScale; }
 	CRectangle GetFaceRect();
 	CRectangle GetKillBound();
+	CRenderObject2D* GetSelectEffect() { return m_pSelectEffect; }
 	
 	SGrid* GetGrid( uint32 x, uint32 y ) { return x < m_nWidth && y < m_nHeight ? &m_grids[x + y * m_nWidth] : NULL; }
 	void RefreshEditTile( uint32 x, uint32 y, uint8 nFlag );

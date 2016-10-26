@@ -4,6 +4,8 @@
 #include "Face.h"
 #include "Character.h"
 #include "World.h"
+#include "GlobalCfg.h"
+#include "Render/Rope2D.h"
 
 void CBulletBase::OnAddedToStage()
 {
@@ -97,11 +99,47 @@ void CBullet::SetFaceTarget( const TVector2<int32>& targetGrid, SOrganActionCont
 	SetActive( true );
 }
 
-void CBullet::ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
+void CBullet::ShowRange( SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
 {
-	auto pTileMap = actionContext.pCurTarget->GetFace()->GetSelectTile();
-	if( grid.x >= 0 && grid.y >= 0 && grid.x <= pTileMap->GetWidth() && grid.y <= pTileMap->GetHeight() )
-		pTileMap->EditTile( grid.x, grid.y, bShow ? 1 : 0 );
+	if( bShow )
+	{
+		auto pObj = static_cast<CRopeObject2D*>( actionContext.FindObject( "face_select_bullet" ) );
+		if( !pObj )
+		{
+			pObj = static_cast<CRopeObject2D*>( CGlobalCfg::Inst().pFaceSelectBullet->CreateInstance() );
+			pObj->SetZOrder( -1 );
+			auto pEffect = actionContext.pCurTarget->GetFace()->GetSelectEffect();
+			pEffect->GetParent()->AddChildAfter( pObj, pEffect );
+			pObj->SetDataCount( 2 );
+		}
+
+
+		auto dGridPos = actionContext.target - actionContext.pCharacter->GetGrid();
+		auto pCharacter = actionContext.pCurTarget;
+
+		auto dPos = RotateDirInv( dGridPos, pCharacter->GetDir() );
+		float r = atan2( dPos.y, dPos.x );
+		CVector2 dir( dPos.x, dPos.y );
+		dir.Normalize();
+
+		auto pSubStage = pCharacter->GetSubStage();
+		CVector2 targetPos = pSubStage->pFace->GetBaseOffset() + pSubStage->pFace->GetGridScale() * CVector2( grid.x, grid.y );
+		CRectangle faceRect = pSubStage->pFace->GetFaceRect();
+		float k = Max( dPos.x == 0 ? -10000.0f : ( dPos.x > 0 ? ( faceRect.GetLeft() - targetPos.x ) / dPos.x : ( faceRect.GetRight() - targetPos.x ) / dPos.x ),
+			dPos.y == 0 ? -10000.0f : ( dPos.y > 0 ? ( faceRect.GetTop() - targetPos.y ) / dPos.y : ( faceRect.GetBottom() - targetPos.y ) / dPos.y ) );
+		CVector2 srcPos = targetPos + CVector2( dPos.x, dPos.y ) * k;
+		k = Min( dPos.x == 0 ? 10000.0f : ( dPos.x < 0 ? ( faceRect.GetLeft() - targetPos.x ) / dPos.x : ( faceRect.GetRight() - targetPos.x ) / dPos.x ),
+			dPos.y == 0 ? 10000.0f : ( dPos.y < 0 ? ( faceRect.GetTop() - targetPos.y ) / dPos.y : ( faceRect.GetBottom() - targetPos.y ) / dPos.y ) );
+		CVector2 dstPos = targetPos + CVector2( dPos.x, dPos.y ) * k;
+		float l = ( dstPos - srcPos ).Length();
+
+		pObj->SetData( 0, srcPos, 8, CVector2( -2, 0 ), CVector2( 2, 0 ) );
+		pObj->SetData( 1, dstPos, 8, CVector2( -2, l / 4 ), CVector2( 2, l / 4 ) );
+	}
+	else
+	{
+		actionContext.RemoveObject( "face_select_bullet" );
+	}
 }
 
 void CBullet::TickBeforeHitTest()
@@ -262,7 +300,7 @@ void CMissile::TickAfterHitTest()
 	CBulletBase::TickAfterHitTest();
 }
 
-void CMissile::ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
+void CMissile::ShowRange( SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow )
 {
 	auto pTileMap = actionContext.pCurTarget->GetFace()->GetSelectTile();
 

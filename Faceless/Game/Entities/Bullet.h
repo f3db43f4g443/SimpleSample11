@@ -19,7 +19,7 @@ public:
 	virtual void Emit( struct SOrganActionContext& actionContext ) {}
 	virtual void SetFaceTarget( const TVector2<int32>& targetGrid, struct SOrganActionContext& actionContext ) {}
 
-	virtual void ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) {}
+	virtual void ShowRange( struct SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) {}
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
@@ -51,7 +51,7 @@ public:
 	virtual void Emit( struct SOrganActionContext& actionContext ) override;
 	virtual void SetFaceTarget( const TVector2<int32>& targetGrid, struct SOrganActionContext& actionContext ) override;
 
-	virtual void ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) override;
+	virtual void ShowRange( struct SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) override;
 
 	uint32 GetDmg() { return m_nDmg; }
 	float GetSpeed() { return m_fSpeed; }
@@ -85,7 +85,7 @@ protected:
 	virtual void TickBeforeHitTest() override;
 	virtual void TickAfterHitTest() override;
 
-	virtual void ShowRange( const SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) override;
+	virtual void ShowRange( struct SOrganActionContext & actionContext, TVector2<int32> grid, bool bShow ) override;
 
 	bool m_bTarget;
 	TVector2<int32> m_target;
