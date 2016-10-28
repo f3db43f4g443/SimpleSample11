@@ -30,6 +30,11 @@ struct SOrganActionContext
 	vector<CCharacter*> targetCharacters;
 	CCharacter* pCurTarget;
 
+	void AddObject( const char* szName, CRenderObject2D* pObject )
+	{
+		RemoveObject( szName );
+		mapTempObjects[szName] = pObject;
+	}
 	CRenderObject2D* FindObject( const char* szName ) const
 	{
 		auto itr = mapTempObjects.find( szName );
@@ -56,9 +61,9 @@ public:
 	COrganAction( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COrganAction ); }
 	virtual void Action( CTurnBasedContext* pContext ) {}
 	
-	virtual void OnBeginFaceSelectTarget( const SOrganActionContext& actionContext ) {}
-	virtual void OnFaceSelectTargetMove( const SOrganActionContext& actionContext, TVector2<int32> grid ) {}
-	virtual void OnEndFaceSelectTarget( const SOrganActionContext& actionContext ) {}
+	virtual void OnBeginFaceSelectTarget( SOrganActionContext& actionContext ) {}
+	virtual void OnFaceSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) {}
+	virtual void OnEndFaceSelectTarget( SOrganActionContext& actionContext ) {}
 };
 
 class COrganTargetor : public CEntity
@@ -70,6 +75,10 @@ public:
 
 	typedef function<bool( CCharacter* pChar, CTurnBasedContext* pContext )> FuncOnFindTarget;
 	void SetFindTargetFunc( FuncOnFindTarget func ) { m_onFindTarget = func; }
+
+	virtual void OnBeginSelectTarget( SOrganActionContext& actionContext ) {}
+	virtual void OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) {}
+	virtual void OnEndSelectTarget( SOrganActionContext& actionContext ) {}
 protected:
 	void FindTarget( CCharacter* pChar, CTurnBasedContext* pContext );
 private:

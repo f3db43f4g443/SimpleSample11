@@ -36,6 +36,7 @@ public:
 	void FocusFaceView( uint8 nSlot, class CTurnBasedContext* pContext = NULL );
 	
 	void OnClickMainStage( CVector2* mousePos );
+	void OnMainStageMouseMove( SUIMouseEvent* pEvent );
 	void OnClickPlayerStage();
 
 	void OnSelectFaceEditItem( CFaceEditItem* pItem ) { m_pSubStageViewport[0]->Select( pItem ); }
@@ -57,6 +58,7 @@ protected:
 	CReference<CFaceToolbox> m_pFaceToolbox;
 
 	TClassTrigger1<CStageDirector, CVector2*> m_onClickMainStage;
+	TClassTrigger1<CStageDirector, SUIMouseEvent*> m_onMouseMove;
 	TClassTrigger<CStageDirector> m_onClickPlayerStage;
 	TClassTrigger<CStageDirector> m_onTick;
 

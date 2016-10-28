@@ -38,6 +38,13 @@ void PSWithColorData( in float2 tex : TexCoord0,
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 }
 
+void PSEmission( in float2 tex : TexCoord0,
+	out float4 outColor[2] : SV_Target )
+{
+	outColor[0] = 0;
+	outColor[1] = Texture0.Sample( LinearSampler, tex );
+}
+
 void PSEmissionAlpha( in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )

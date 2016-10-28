@@ -90,6 +90,7 @@ IMPLEMENT_MATERIAL_SHADER( Default2DOcclusionPixelShader, "Shader/CommonMaterial
 IMPLEMENT_MATERIAL_SHADER( ColorPixelShaderNoClip, "Shader/CommonMaterial.shader", "PSDefaultNoClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( OcclusionTextureAlphaPixelShaderNoClip, "Shader/CommonMaterial.shader", "PSOcclusionTextureAlphaNoClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSWithColorData, "Shader/CommonMaterial.shader", "PSWithColorData", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSEmission, "Shader/CommonMaterial.shader", "PSEmission", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSEmissionAlpha, "Shader/CommonMaterial.shader", "PSEmissionAlpha", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColor, "Shader/AlphaToOcclusion.shader", "PSColor", "ps_5_0" );

@@ -9,6 +9,7 @@
 
 CStageDirector::CStageDirector()
 	: m_onClickMainStage( this, &CStageDirector::OnClickMainStage )
+	, m_onMouseMove( this, &CStageDirector::OnMainStageMouseMove )
 	, m_onClickPlayerStage( this, &CStageDirector::OnClickPlayerStage )
 	, m_onTick( this, &CStageDirector::OnTick )
 	, m_nState( eState_Free )
@@ -24,6 +25,7 @@ void CStageDirector::OnInited()
 {
 	m_pMainStageViewport = GetChildByName<CUIViewport>( "main" );
 	m_pMainStageViewport->Register( eEvent_Clicked, &m_onClickMainStage );
+	m_pMainStageViewport->Register( eEvent_MouseMove, &m_onMouseMove );
 	m_pSubStageViewport[0] = CFaceView::Create( GetChildByName<CUIViewport>( "sub0" ) );
 	m_pSubStageViewport[1] = CFaceView::Create( GetChildByName<CUIViewport>( "sub1" ) );
 	m_pSubStageViewport[0]->Register( eEvent_Clicked, &m_onClickPlayerStage );
@@ -42,7 +44,38 @@ void CStageDirector::OnWorldCreated( CWorld* pWorld )
 
 void CStageDirector::SetState( uint8 nState )
 {
+	if( m_nState == nState )
+		return;
+
+	switch( m_nState )
+	{
+	case eState_SelectTarget:
+		{
+			auto pLevel = CMyLevel::GetInst();
+			pLevel->GetSelectTile()->bVisible = false;
+			auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
+			actionContext.pOrganTargetor->OnEndSelectTarget( actionContext );
+		}
+		break;
+	default:
+		break;
+	}
+
 	m_nState = nState;
+
+	switch( m_nState )
+	{
+	case eState_SelectTarget:
+		{
+			auto pLevel = CMyLevel::GetInst();
+			pLevel->GetSelectTile()->bVisible = true;
+			auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
+			actionContext.pOrganTargetor->OnBeginSelectTarget( actionContext );
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 bool CStageDirector::ShowSubStage( uint32 nStage, uint8 nSlot )
@@ -169,13 +202,26 @@ void CStageDirector::OnClickMainStage( CVector2* mousePos )
 			return;
 		
 		CVector2 fixOfs = m_pMainStageViewport->GetScenePos( *mousePos );
-		pLevel->GetGridScale();
 		CVector2 v = ( fixOfs - pLevel->GetBaseOffset() ) / pLevel->GetGridScale();
 		TVector2<int32> grid( floor( v.x + 0.5f ), floor( v.y + 0.5f ) );
 
 		auto pPlayer = pLevel->GetStage()->GetPlayer();
 		if( pPlayer )
 			pPlayer->PlayerCommandSelectTargetLevelGrid( grid );
+	}
+}
+
+void CStageDirector::OnMainStageMouseMove( SUIMouseEvent * pEvent )
+{
+	if( m_nState == eState_SelectTarget )
+	{
+		auto pLevel = CMyLevel::GetInst();
+		CVector2 fixOfs = m_pMainStageViewport->GetScenePos( pEvent->mousePos );
+		CVector2 v = ( fixOfs - pLevel->GetBaseOffset() ) / pLevel->GetGridScale();
+		TVector2<int32> grid( floor( v.x + 0.5f ), floor( v.y + 0.5f ) );
+
+		auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
+		actionContext.pOrganTargetor->OnSelectTargetMove( actionContext, grid );
 	}
 }
 

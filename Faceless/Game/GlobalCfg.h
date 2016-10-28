@@ -9,6 +9,7 @@ public:
 	CReference<CDrawableGroup> pFaceSelectTile;
 	CReference<CDrawableGroup> pFaceSelectRed;
 	CReference<CDrawableGroup> pFaceSelectBullet;
+	CReference<CDrawableGroup> pWorldSelectTile;
 
 	void Load();
 

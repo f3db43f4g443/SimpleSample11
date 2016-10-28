@@ -5,6 +5,7 @@
 #include "Stage.h"
 #include "Player.h"
 #include "GUI/MainUI.h"
+#include "GlobalCfg.h"
 
 void CTurnBasedContext::AIFunc()
 {
@@ -17,10 +18,6 @@ void CMyLevel::OnAddedToStage()
 	CreateGrids();
 	s_pLevel = this;
 	m_nCurCharacterID = 0;
-
-	pFaceEditTile = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceEditTile.c_str() );
-	pFaceSelectTile = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceSelectTile.c_str() );
-	pFaceSelectRed = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strFaceSelectRed.c_str() );
 
 	if( !m_pTurnBasedContext )
 	{
@@ -51,6 +48,11 @@ void CMyLevel::CreateGrids()
 			GetGrid( i, j )->nGridFlag = pTileMap->GetUserData( i, j );
 		}
 	}
+
+	m_pWorldSelectTile = static_cast<CTileMap2D*>( CGlobalCfg::Inst().pFaceEditTile->CreateInstance() );
+	AddChildBefore( m_pWorldSelectTile, pTileMap );
+	m_pWorldSelectTile->Set( m_gridScale, m_baseOffset - m_gridScale * 0.5f, m_nWidth, m_nHeight );
+	m_pWorldSelectTile->bVisible = false;
 }
 
 bool CMyLevel::AddCharacter( CCharacter* pCharacter, uint32 x, uint32 y )

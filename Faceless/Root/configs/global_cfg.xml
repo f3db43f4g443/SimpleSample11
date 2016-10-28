@@ -1,0 +1,9 @@
+﻿<root>
+  <resources>
+    <face_edit_tile>data/face_edit_tiles.mtl</face_edit_tile>
+    <face_select_tile>data/face_select.mtl</face_select_tile>
+    <face_select_red>data/face_select_red.mtl</face_select_red>
+    <face_select_bullet>data/face_select_bullet.mtl</face_select_bullet>
+    <world_select_tile>data/world_select_tiles.mtl</world_select_tile>
+  </resources>
+</root>

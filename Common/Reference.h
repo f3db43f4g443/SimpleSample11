@@ -36,13 +36,10 @@ public:
 		if( orig ) orig->Release();
 		return *this;
 	}
-	T& operator * () {
+	T& operator * () const {
 		return *m_ptr;
 	}
-	T* operator -> () {
-		return m_ptr;
-	}
-	const T* operator -> () const {
+	T* operator -> () const {
 		return m_ptr;
 	}
 	T** operator & () {

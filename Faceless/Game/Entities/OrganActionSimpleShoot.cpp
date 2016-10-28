@@ -62,14 +62,14 @@ void COrganActionSimpleShoot::Action( CTurnBasedContext* pContext )
 	}
 }
 
-void COrganActionSimpleShoot::OnBeginFaceSelectTarget( const SOrganActionContext & actionContext )
+void COrganActionSimpleShoot::OnBeginFaceSelectTarget( SOrganActionContext & actionContext )
 {
 	auto pBullet = SafeCast<CBulletBase>( (CRenderObject2D*)( m_pBulletPrefab->GetRoot()->GetObjData() ) );
 	m_faceSelectGrid = TVector2<int32>( 0, 0 );
 	pBullet->ShowRange( actionContext, m_faceSelectGrid, true );
 }
 
-void COrganActionSimpleShoot::OnFaceSelectTargetMove( const SOrganActionContext & actionContext, TVector2<int32> grid )
+void COrganActionSimpleShoot::OnFaceSelectTargetMove( SOrganActionContext & actionContext, TVector2<int32> grid )
 {
 	if( grid == m_faceSelectGrid )
 		return;
@@ -80,7 +80,7 @@ void COrganActionSimpleShoot::OnFaceSelectTargetMove( const SOrganActionContext 
 	pBullet->ShowRange( actionContext, m_faceSelectGrid, true );
 }
 
-void COrganActionSimpleShoot::OnEndFaceSelectTarget( const SOrganActionContext & actionContext )
+void COrganActionSimpleShoot::OnEndFaceSelectTarget( SOrganActionContext & actionContext )
 {
 	auto pBullet = SafeCast<CBulletBase>( (CRenderObject2D*)( m_pBulletPrefab->GetRoot()->GetObjData() ) );
 	pBullet->ShowRange( actionContext, m_faceSelectGrid, false );

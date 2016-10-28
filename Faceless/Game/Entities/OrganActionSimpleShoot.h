@@ -10,9 +10,9 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void Action( CTurnBasedContext* pContext ) override;
 
-	virtual void OnBeginFaceSelectTarget( const SOrganActionContext& actionContext ) override;
-	virtual void OnFaceSelectTargetMove( const SOrganActionContext& actionContext, TVector2<int32> grid ) override;
-	virtual void OnEndFaceSelectTarget( const SOrganActionContext& actionContext ) override;
+	virtual void OnBeginFaceSelectTarget( SOrganActionContext& actionContext ) override;
+	virtual void OnFaceSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) override;
+	virtual void OnEndFaceSelectTarget( SOrganActionContext& actionContext ) override;
 protected:
 	CString m_strBulletPrefab;
 	CReference<CPrefab> m_pBulletPrefab;

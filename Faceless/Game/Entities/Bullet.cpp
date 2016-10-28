@@ -111,8 +111,8 @@ void CBullet::ShowRange( SOrganActionContext & actionContext, TVector2<int32> gr
 			auto pEffect = actionContext.pCurTarget->GetFace()->GetSelectEffect();
 			pEffect->GetParent()->AddChildAfter( pObj, pEffect );
 			pObj->SetDataCount( 2 );
+			actionContext.AddObject( "face_select_bullet", pObj );
 		}
-
 
 		auto dGridPos = actionContext.target - actionContext.pCharacter->GetGrid();
 		auto pCharacter = actionContext.pCurTarget;
@@ -133,8 +133,8 @@ void CBullet::ShowRange( SOrganActionContext & actionContext, TVector2<int32> gr
 		CVector2 dstPos = targetPos + CVector2( dPos.x, dPos.y ) * k;
 		float l = ( dstPos - srcPos ).Length();
 
-		pObj->SetData( 0, srcPos, 8, CVector2( -2, 0 ), CVector2( 2, 0 ) );
-		pObj->SetData( 1, dstPos, 8, CVector2( -2, l / 4 ), CVector2( 2, l / 4 ) );
+		pObj->SetData( 0, srcPos, 16, CVector2( -2, 0 ), CVector2( 2, 0 ) );
+		pObj->SetData( 1, dstPos, 16, CVector2( -2, l / 4 ), CVector2( 2, l / 4 ) );
 	}
 	else
 	{

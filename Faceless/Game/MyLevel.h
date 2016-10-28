@@ -49,6 +49,8 @@ public:
 
 	CTurnBasedContext* GetTurnBasedContext() { return m_pTurnBasedContext; }
 
+	CTileMap2D* GetSelectTile() { return m_pWorldSelectTile; }
+
 	static CMyLevel* GetInst() { return s_pLevel; }
 private:
 	void CreateGrids();
@@ -60,10 +62,12 @@ private:
 	CVector2 m_baseOffset;
 	CVector2 m_gridScale;
 
-	static CMyLevel* s_pLevel;
+	CReference<CTileMap2D> m_pWorldSelectTile;
 
 	uint16 m_nCurCharacterID;
 	TPriorityQueue<CCharacter> m_characters;
 	CReference<CTurnBasedContext> m_pTurnBasedContext;
 	TClassTrigger<CMyLevel> m_onTick;
+
+	static CMyLevel* s_pLevel;
 };

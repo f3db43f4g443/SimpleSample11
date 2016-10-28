@@ -64,3 +64,15 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext )
 		m_pEffectObject = NULL;
 	}
 }
+
+void COrganTargetorSimpleShoot::OnBeginSelectTarget( SOrganActionContext & actionContext )
+{
+}
+
+void COrganTargetorSimpleShoot::OnSelectTargetMove( SOrganActionContext & actionContext, TVector2<int32> grid )
+{
+}
+
+void COrganTargetorSimpleShoot::OnEndSelectTarget( SOrganActionContext & actionContext )
+{
+}
