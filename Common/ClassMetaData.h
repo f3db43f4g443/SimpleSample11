@@ -285,10 +285,10 @@ T* SafeCast( T1 t )
 	pData->nObjSize = sizeof( Class );
 
 #define REGISTER_MEMBER( Name ) \
-	pData->AddMemberData<decltype( __cur_class::Name )>( #Name, MEMBER_OFFSET( __cur_class, Name ) );
+	pData->AddMemberData<decltype( ( (__cur_class*)NULL )->Name )>( #Name, MEMBER_OFFSET( __cur_class, Name ) );
 
 #define REGISTER_MEMBER_TAGGED_PTR( Name, Tag ) \
-	pData->AddMemberDataTaggedPtr<decltype( __cur_class::Name )>( #Name, #Tag, MEMBER_OFFSET( __cur_class, Name ) );
+	pData->AddMemberDataTaggedPtr<decltype( ( (__cur_class*)NULL )->Name )>( #Name, #Tag, MEMBER_OFFSET( __cur_class, Name ) );
 
 #define REGISTER_BASE_CLASS( Name ) \
 	pData->AddBaseClassdata<Name>( BASECLASS_OFFSET( __cur_class, Name ) );

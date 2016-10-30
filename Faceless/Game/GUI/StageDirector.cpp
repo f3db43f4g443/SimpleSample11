@@ -46,6 +46,15 @@ void CStageDirector::SetState( uint8 nState )
 {
 	if( m_nState == nState )
 		return;
+	
+	auto pLevel = CMyLevel::GetInst();
+	auto mousePos = GetMgr()->GetMousePos();
+	bool bInside = m_pMainStageViewport->GetLocalBound().Contains( mousePos - m_pMainStageViewport->globalTransform.GetPosition() );
+	if( !bInside )
+		mousePos = m_pMainStageViewport->GetLocalBound().GetCenter();
+	CVector2 fixOfs = m_pMainStageViewport->GetScenePos( GetMgr()->GetMousePos() );
+	CVector2 v = ( fixOfs - pLevel->GetBaseOffset() ) / pLevel->GetGridScale();
+	TVector2<int32> grid( floor( v.x + 0.5f ), floor( v.y + 0.5f ) );
 
 	switch( m_nState )
 	{
@@ -54,7 +63,7 @@ void CStageDirector::SetState( uint8 nState )
 			auto pLevel = CMyLevel::GetInst();
 			pLevel->GetSelectTile()->bVisible = false;
 			auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
-			actionContext.pOrganTargetor->OnEndSelectTarget( actionContext );
+			actionContext.pOrgan->OnEndSelectTarget( actionContext );
 		}
 		break;
 	default:
@@ -70,7 +79,7 @@ void CStageDirector::SetState( uint8 nState )
 			auto pLevel = CMyLevel::GetInst();
 			pLevel->GetSelectTile()->bVisible = true;
 			auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
-			actionContext.pOrganTargetor->OnBeginSelectTarget( actionContext );
+			actionContext.pOrgan->OnBeginSelectTarget( actionContext, grid );
 		}
 		break;
 	default:
@@ -221,7 +230,7 @@ void CStageDirector::OnMainStageMouseMove( SUIMouseEvent * pEvent )
 		TVector2<int32> grid( floor( v.x + 0.5f ), floor( v.y + 0.5f ) );
 
 		auto& actionContext = *pLevel->GetTurnBasedContext()->pActionContext;
-		actionContext.pOrganTargetor->OnSelectTargetMove( actionContext, grid );
+		actionContext.pOrgan->OnSelectTargetMove( actionContext, grid );
 	}
 }
 

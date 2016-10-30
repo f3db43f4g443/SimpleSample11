@@ -1,14 +1,15 @@
 #include "stdafx.h"
 #include "GameUtil.h"
 
-void GetRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, vector<TVector2<int32>>& result )
+void GetRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, vector<TVector2<int32>>& result, bool bExcludeSelf )
 {
 	switch( eRangeType )
 	{
 	case eRangeType_Normal:
 		for( int32 i = -(int32)nRange; i <= (int32)nRange; i++ )
 		{
-			result.push_back( TVector2<int32>( i, 0 ) );
+			if( !bExcludeSelf || i )
+				result.push_back( TVector2<int32>( i, 0 ) );
 			int32 l = nRange * nRange - i * i;
 			for( int j = 1; j * j <= l; j++ )
 			{
@@ -22,8 +23,10 @@ void GetRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, vector<TVec
 	}
 }
 
-bool IsInRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, const TVector2<int32>& pos )
+bool IsInRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, const TVector2<int32>& pos, bool bExcludeSelf )
 {
+	if( bExcludeSelf && !pos.x && !pos.y )
+		return false;
 	switch( eRangeType )
 	{
 	case eRangeType_Normal:

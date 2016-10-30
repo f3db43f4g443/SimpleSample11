@@ -65,14 +65,52 @@ void COrganTargetorSimpleShoot::FindTargets( CTurnBasedContext* pContext )
 	}
 }
 
-void COrganTargetorSimpleShoot::OnBeginSelectTarget( SOrganActionContext & actionContext )
+void COrganTargetorSimpleShoot::ShowSelectTarget( SOrganActionContext& actionContext, bool bShow )
 {
-}
+	auto pLevel = CMyLevel::GetInst();
+	auto pTileMap = pLevel->GetSelectTile();
 
-void COrganTargetorSimpleShoot::OnSelectTargetMove( SOrganActionContext & actionContext, TVector2<int32> grid )
-{
-}
+	vector<TVector2<int32> > range;
+	actionContext.pOrgan->GetRange( range );
+	for( auto& pos : range )
+	{
+		pos = RotateDir( pos, actionContext.pCharacter->GetDir() ) + actionContext.pCharacter->GetGrid();
+		if( pos.x < 0 || pos.x >= pTileMap->GetWidth() || pos.y < 0 || pos.y >= pTileMap->GetHeight() )
+			continue;
+		if( bShow )
+			pTileMap->AddTileLayer( pos.x, pos.y, CMyLevel::eSelectTile_InRange );
+		else
+			pTileMap->SetTile( pos.x, pos.y, 0, NULL );
+	}
 
-void COrganTargetorSimpleShoot::OnEndSelectTarget( SOrganActionContext & actionContext )
-{
+	bool InRange = true;
+	if( m_selectGrid.x < 0 || m_selectGrid.x >= pTileMap->GetWidth() || m_selectGrid.y < 0 || m_selectGrid.y >= pTileMap->GetHeight() )
+		InRange = false;
+	if( !actionContext.pOrgan->IsInRange( RotateDirInv( m_selectGrid - actionContext.pCharacter->GetGrid(), actionContext.pCharacter->GetDir() ) ) )
+		InRange = false;
+	if( InRange )
+	{
+		auto pCharacter = actionContext.pCharacter;
+		pLevel->RayCast( actionContext.pCharacter->GetGrid(), m_selectGrid, [pLevel, pTileMap, pCharacter, bShow] ( const TVector2<int32>& pos )
+		{
+			auto pChar = pLevel->GetGrid( pos.x, pos.y )->pCharacter;
+			if( pChar == pCharacter )
+				return true;
+			if( bShow )
+				pTileMap->AddTileLayer( pos.x, pos.y, CMyLevel::eSelectTile_InEffectRange );
+			else
+				pTileMap->SetTile( pos.x, pos.y, 0, NULL );
+
+			if( pChar )
+				return false;
+			return true;
+		} );
+	}
+
+	if( m_selectGrid.x < 0 || m_selectGrid.x >= pTileMap->GetWidth() || m_selectGrid.y < 0 || m_selectGrid.y >= pTileMap->GetHeight() )
+		return;
+	if( bShow )
+		pTileMap->AddTileLayer( m_selectGrid.x, m_selectGrid.y, InRange ? CMyLevel::eSelectTile_TargetValid : CMyLevel::eSelectTile_TargetInvalid );
+	else
+		pTileMap->SetTile( m_selectGrid.x, m_selectGrid.y, 0, NULL );
 }
