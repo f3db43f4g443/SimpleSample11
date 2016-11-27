@@ -10,9 +10,7 @@ public:
 
 	virtual void FindTargets( CTurnBasedContext* pContext ) override;
 
-	virtual void OnBeginSelectTarget( SOrganActionContext& actionContext ) override;
-	virtual void OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) override;
-	virtual void OnEndSelectTarget( SOrganActionContext& actionContext ) override;
+	virtual void ShowSelectTarget( SOrganActionContext& actionContext, bool bShow ) override;
 private:
 	float m_fFlyingSpeed;
 

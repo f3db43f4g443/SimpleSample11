@@ -207,6 +207,21 @@ void CTileMap2D::SetTile( uint32 x, uint32 y, uint32 nLayers, const uint16* nVal
 	tile.nLayers = nLayers;
 }
 
+void CTileMap2D::AddTileLayer( uint32 x, uint32 y, uint16 nValue )
+{
+	auto& tile = GetTile( x, y );
+	uint16 nLayer = tile.nLayers;
+	if( nLayer >= ELEM_COUNT( tile.nTiles ) )
+		return;
+	uint16 nTiles[4];
+	for( int i = 0; i < nLayer; i++ )
+	{
+		nTiles[i] = tile.nTiles[i];
+	}
+	nTiles[nLayer++] = nValue;
+	SetTile( x, y, nLayer, nTiles );
+}
+
 void CTileMap2D::EditTile( uint32 x, uint32 y, uint32 nValue )
 {
 	if( nValue >= m_pInfo->editInfos.size() )

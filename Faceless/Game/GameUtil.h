@@ -9,8 +9,8 @@ enum ERangeType
 
 };
 
-void GetRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, vector<TVector2<int32> >& result );
-bool IsInRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, const TVector2<int32>& pos );
+void GetRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, vector<TVector2<int32> >& result, bool bExcludeSelf = false );
+bool IsInRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, const TVector2<int32>& pos, bool bExcludeSelf = false );
 
 const TVector2<int32>& GetDirOfs( uint8 nDir );
 TVector2<int32> RotateDir( const TVector2<int32>& dir, uint8 nCharDir );

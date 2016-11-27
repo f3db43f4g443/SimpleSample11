@@ -49,7 +49,7 @@ void CMyLevel::CreateGrids()
 		}
 	}
 
-	m_pWorldSelectTile = static_cast<CTileMap2D*>( CGlobalCfg::Inst().pFaceEditTile->CreateInstance() );
+	m_pWorldSelectTile = static_cast<CTileMap2D*>( CGlobalCfg::Inst().pWorldSelectTile->CreateInstance() );
 	AddChildBefore( m_pWorldSelectTile, pTileMap );
 	m_pWorldSelectTile->Set( m_gridScale, m_baseOffset - m_gridScale * 0.5f, m_nWidth, m_nHeight );
 	m_pWorldSelectTile->bVisible = false;

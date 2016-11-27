@@ -2,6 +2,13 @@
 #include "StringUtil.h"
 #include "BufFile.h"
 
+
+#if _MSC_VER >= 1900
+#define STRING_POOL &m_stringPool._Get_data()
+#else
+#define STRING_POOL &m_stringPool
+#endif
+
 map<string, int> CString::m_stringPool;
 
 CString::CString( const char* c )
@@ -28,7 +35,7 @@ CString::~CString()
 	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
 	if( !--( ptr->_Myval.second ) )
 	{
-		m_stringPool.erase( map<string, int>::iterator( ptr, &m_stringPool._Get_data() ) );
+		m_stringPool.erase( map<string, int>::iterator( ptr, STRING_POOL ) );
 	}
 }
 
@@ -72,7 +79,7 @@ CString& CString::operator = ( const char* rhs )
 		ptr = map<string, int>::_Nodeptr( m_ptr );
 		if( !--( ptr->_Myval.second ) )
 		{
-			m_stringPool.erase( map<string, int>::iterator( ptr, &m_stringPool._Get_data() ) );
+			m_stringPool.erase( map<string, int>::iterator( ptr, STRING_POOL ) );
 		}
 	}
 
@@ -93,7 +100,7 @@ CString& CString::operator = ( const CString& rhs )
 	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
 	if( !--( ptr->_Myval.second ) )
 	{
-		m_stringPool.erase( map<string, int>::iterator( ptr, &m_stringPool._Get_data() ) );
+		m_stringPool.erase( map<string, int>::iterator( ptr, STRING_POOL ) );
 	}
 	ptr = map<string, int>::_Nodeptr( rhs.m_ptr );
 	m_ptr = ptr;

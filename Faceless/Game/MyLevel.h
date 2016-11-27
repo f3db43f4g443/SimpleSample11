@@ -49,6 +49,16 @@ public:
 
 	CTurnBasedContext* GetTurnBasedContext() { return m_pTurnBasedContext; }
 
+	enum
+	{
+		eSelectTile_TargetInvalid,
+		eSelectTile_TargetValid,
+
+		eSelectTile_InRange,
+
+		eSelectTile_InEffectRange,
+	};
+
 	CTileMap2D* GetSelectTile() { return m_pWorldSelectTile; }
 
 	static CMyLevel* GetInst() { return s_pLevel; }

@@ -26,12 +26,12 @@ void COrgan::OnRemovedFromStage()
 
 void COrgan::GetRange( vector<TVector2<int32> >& result )
 {
-	::GetRange( m_nRangeType, m_nRange, m_nRange1, result );
+	::GetRange( m_nRangeType, m_nRange, m_nRange1, result, m_bRangeExcludeSelf );
 }
 
 bool COrgan::IsInRange( const TVector2<int32>& pos )
 {
-	return ::IsInRange( m_nRangeType, m_nRange, m_nRange1, pos );
+	return ::IsInRange( m_nRangeType, m_nRange, m_nRange1, pos, m_bRangeExcludeSelf );
 }
 
 bool COrgan::CanAction( SOrganActionContext& actionContext )
@@ -180,6 +180,24 @@ void COrgan::ShowHpBar( bool bShown )
 			m_pHpBar = NULL;
 		}
 	}
+}
+
+void COrgan::OnBeginSelectTarget( SOrganActionContext& actionContext, TVector2<int32> grid )
+{
+	COrganTargetor* pTargetor = SafeCast<COrganTargetor>( (CRenderObject2D*)( m_pOrganTargetorPrefab->GetRoot()->GetObjData() ) );
+	pTargetor->OnBeginSelectTarget( actionContext, grid );
+}
+
+void COrgan::OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid )
+{
+	COrganTargetor* pTargetor = SafeCast<COrganTargetor>( (CRenderObject2D*)( m_pOrganTargetorPrefab->GetRoot()->GetObjData() ) );
+	pTargetor->OnSelectTargetMove( actionContext, grid );
+}
+
+void COrgan::OnEndSelectTarget( SOrganActionContext& actionContext )
+{
+	COrganTargetor* pTargetor = SafeCast<COrganTargetor>( (CRenderObject2D*)( m_pOrganTargetorPrefab->GetRoot()->GetObjData() ) );
+	pTargetor->OnEndSelectTarget( actionContext );
 }
 
 bool COrganEditItem::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )

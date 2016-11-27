@@ -60,6 +60,7 @@ public:
 	};
 	const STile& GetTile( uint32 x, uint32 y ) { return m_tiles[x + y * m_nWidth]; }
 	void SetTile( uint32 x, uint32 y, uint32 nLayers, const uint16* nValues );
+	void AddTileLayer( uint32 x, uint32 y, uint16 nValue );
 	void EditTile( uint32 x, uint32 y, uint32 nValue );
 	uint32 GetEditData( uint32 x, uint32 y ) { return m_editData[x + y * ( m_nWidth + 1 )]; }
 	uint8 GetUserData( uint32 x, uint32 y );

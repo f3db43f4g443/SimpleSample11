@@ -76,11 +76,15 @@ public:
 	typedef function<bool( CCharacter* pChar, CTurnBasedContext* pContext )> FuncOnFindTarget;
 	void SetFindTargetFunc( FuncOnFindTarget func ) { m_onFindTarget = func; }
 
-	virtual void OnBeginSelectTarget( SOrganActionContext& actionContext ) {}
-	virtual void OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) {}
-	virtual void OnEndSelectTarget( SOrganActionContext& actionContext ) {}
+	virtual void OnBeginSelectTarget( SOrganActionContext& actionContext, TVector2<int32> grid ) { m_selectGrid = grid; ShowSelectTarget( actionContext, true ); }
+	virtual void OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid ) { OnEndSelectTarget( actionContext ); OnBeginSelectTarget( actionContext, grid ); }
+	virtual void OnEndSelectTarget( SOrganActionContext& actionContext ) { ShowSelectTarget( actionContext, false ); }
+
+	virtual void ShowSelectTarget( SOrganActionContext& actionContext, bool bShow ) {}
 protected:
 	void FindTarget( CCharacter* pChar, CTurnBasedContext* pContext );
+	
+	TVector2<int32> m_selectGrid;
 private:
 	FuncOnFindTarget m_onFindTarget;
 };
@@ -123,6 +127,10 @@ public:
 	CPrefab* GetActionPrefab() { return m_pOrganActionPrefab; }
 	CPrefab* GetTargetorPrefab() { return m_pOrganTargetorPrefab; }
 
+	void OnBeginSelectTarget( SOrganActionContext& actionContext, TVector2<int32> grid );
+	void OnSelectTargetMove( SOrganActionContext& actionContext, TVector2<int32> grid );
+	void OnEndSelectTarget( SOrganActionContext& actionContext );
+
 	DECLARE_EVENT_TRIGGER( OnHpChanged )
 
 	uint8 m_nVisitFlag;
@@ -137,6 +145,7 @@ private:
 	ERangeType m_nRangeType;
 	ETargetType m_nTargetType;
 	uint32 m_nRange, m_nRange1;
+	bool m_bRangeExcludeSelf;
 
 	uint32 m_nFramesRowCount, m_nFramesColumnCount;
 
