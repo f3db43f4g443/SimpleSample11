@@ -95,19 +95,23 @@ class COrgan : public CEntity
 	friend class COrganEditItem;
 	friend void RegisterGameClasses();
 public:
-	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ), m_strOrganTargetor( context ), m_nVisitFlag( 0 )
+	COrgan( const SClassCreateContext& context ) : CEntity( context ), m_pEditItem( NULL ), m_nHp( m_nMaxHp ), m_pFace( NULL ), m_pos( 0, 0 ), m_strOrganAction( context ), m_strOrganTargetor( context ), m_nVisitFlag( 0 )
 	{ SET_BASEOBJECT_ID( COrgan ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	CFace* GetFace() { return m_pFace; }
-	uint32 GetWidth() { return m_nWidth; }
-	uint32 GetHeight() { return m_nHeight; }
-	TVector2<int32> GetGridPos() { return m_pos; }
+	CFace* GetFace() const { return m_pFace; }
+	uint32 GetWidth() const { return m_nWidth; }
+	uint32 GetHeight() const { return m_nHeight; }
+	uint32 GetInnerX() const { return m_nInnerX; }
+	uint32 GetInnerY() const { return m_nInnerY; }
+	uint32 GetInnerWidth() const { return m_nInnerWidth; }
+	uint32 GetInnerHeight() const { return m_nInnerHeight; }
+	TVector2<int32> GetGridPos() const { return m_pos; }
 
-	uint32 GetCurHp() { return m_nHp; }
-	uint32 GetMaxHp() { return m_nMaxHp; }
+	uint32 GetCurHp() const { return m_nHp; }
+	uint32 GetMaxHp() const { return m_nMaxHp; }
 
 	void GetRange( vector<TVector2<int32> >& result );
 	uint32 GetCost() { return m_nCost; }
@@ -137,8 +141,10 @@ public:
 private:
 	CFace* m_pFace;
 	TVector2<int32> m_pos;
+	COrganEditItem* m_pEditItem;
 
 	uint32 m_nWidth, m_nHeight;
+	uint32 m_nInnerX, m_nInnerY, m_nInnerWidth, m_nInnerHeight;
 	uint32 m_nHp, m_nMaxHp;
 
 	uint32 m_nCost;
@@ -163,6 +169,25 @@ public:
 	COrganEditItem() { nType = eFaceEditType_Organ; }
 
 	CReference<CPrefab> pPrefab;
-	virtual bool IsValidGrid( CFace* pFace, const TVector2<int32>& pos ) override;
+	uint32 nInnerX, nInnerY, nInnerWidth, nInnerHeight;
+	virtual bool IsValidGrid( CFace* pFace, const TRectangle<int32>& editRect, const TVector2<int32>& pos ) override;
 	virtual void Edit( CCharacter* pCharacter, CFace* pFace, const TVector2<int32>& pos ) override;
+};
+
+class COrganCfg
+{
+public:
+	map<string, COrganEditItem> mapOrganEditItems;
+	void Load();
+	void Unload();
+
+	COrganEditItem* GetOrganEditItem( const char* szName )
+	{
+		auto itr = mapOrganEditItems.find( szName );
+		if( itr == mapOrganEditItems.end() )
+			return NULL;
+		return &itr->second;
+	}
+
+	DECLARE_GLOBAL_INST_REFERENCE( COrganCfg );
 };

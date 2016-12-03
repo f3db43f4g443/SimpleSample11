@@ -28,7 +28,7 @@ public:
 protected:
 	virtual void OnInited() override
 	{
-		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
+		CreateViewport();
 		m_onViewportStartDrag.Set( this, &TResourceEditor::OnViewportStartDrag );
 		m_pViewport->Register( eEvent_StartDrag, &m_onViewportStartDrag );
 		m_onViewportDragged.Set( this, &TResourceEditor::OnViewportDragged );
@@ -62,6 +62,11 @@ protected:
 		CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -512, -512, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
 		m_pViewport->GetRoot()->AddChild( pImage );
 		m_pBackground = pImage;
+	}
+
+	virtual void CreateViewport()
+	{
+		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
 	}
 
 	virtual void OnSetVisible( bool bVisible ) override

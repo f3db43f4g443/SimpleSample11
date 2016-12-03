@@ -21,7 +21,7 @@ class CSkin : public CFaceEditItem, public SSkinBaseInfo
 public:
 	CSkin() { nType = eFaceEditType_Skin; }
 	
-	virtual bool IsValidGrid( CFace* pFace, const TVector2<int32>& pos ) override;
+	virtual bool IsValidGrid( CFace* pFace, const TRectangle<int32>& editRect, const TVector2<int32>& pos ) override;
 	virtual void Edit( CCharacter* pCharacter, CFace* pFace, const TVector2<int32>& pos ) override;
 };
 
@@ -39,6 +39,7 @@ public:
 	map<string, CSkin*> mapSkins;
 
 	void Load();
+	void Unload();
 	
 	CSkin* GetSkin( const char* szName )
 	{

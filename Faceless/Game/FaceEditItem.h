@@ -18,6 +18,6 @@ public:
 	uint32 nWidth;
 	uint32 nHeight;
 
-	virtual bool IsValidGrid( CFace* pFace, const TVector2<int32>& pos ) { return true; }
+	virtual bool IsValidGrid( CFace* pFace, const TRectangle<int32>& editRect, const TVector2<int32>& pos ) { return true; }
 	virtual void Edit( CCharacter* pCharacter, CFace* pFace, const TVector2<int32>& pos ) {}
 };

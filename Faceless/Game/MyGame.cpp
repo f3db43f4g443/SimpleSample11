@@ -44,6 +44,7 @@ void CGame::Start()
 
 	CGlobalCfg::Inst().Load();
 	CSkinNMaskCfg::Inst().Load();
+	COrganCfg::Inst().Load();
 
 	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
 	CUIManager* pUIManager = new CUIManager;
@@ -277,6 +278,10 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strOrganTargetor )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_nInnerX )
+		REGISTER_MEMBER( m_nInnerY )
+		REGISTER_MEMBER( m_nInnerWidth )
+		REGISTER_MEMBER( m_nInnerHeight )
 		REGISTER_MEMBER( m_nMaxHp )
 		REGISTER_MEMBER( m_nCost )
 		REGISTER_MEMBER( m_nRangeType )

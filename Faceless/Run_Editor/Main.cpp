@@ -5,6 +5,10 @@
 #include "Render/SimpleRenderer.h"
 #include "Editor/HitProxyEdit.h"
 
+#include "GlobalCfg.h"
+#include "SkinNMask.h"
+#include "Organ.h"
+
 void InitEditor()
 {
 	CObjectDataEditMgr::Inst().Register<CHitProxy, CHitProxyDataEdit>();
@@ -14,6 +18,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 {
 	InitGame();
 	InitEditor();
+
+	CGlobalCfg::Inst().Load();
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	pRenderSystem->SetRenderer( new CSimpleRenderer );

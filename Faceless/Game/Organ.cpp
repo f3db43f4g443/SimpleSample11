@@ -6,6 +6,7 @@
 #include "GUI/StageDirector.h"
 #include "ResourceManager.h"
 #include "Image2D.h"
+#include "Common/TabFile.h"
 
 void COrgan::OnAddedToStage()
 {
@@ -200,19 +201,22 @@ void COrgan::OnEndSelectTarget( SOrganActionContext& actionContext )
 	pTargetor->OnEndSelectTarget( actionContext );
 }
 
-bool COrganEditItem::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )
+bool COrganEditItem::IsValidGrid( CFace* pFace, const TRectangle<int32>& editRect, const TVector2<int32>& pos )
 {
 	auto pGrid = pFace->GetGrid( pos.x, pos.y );
 	if( !pGrid )
 		return false;
-	return pGrid->bEnabled && !pGrid->pOrgan;
+	if( pGrid->pOrgan )
+		return false;
+	if( pos.x >= editRect.x + nInnerX && pos.x < editRect.x + nInnerX + nInnerWidth && pos.y >= editRect.y + nInnerY && pos.y < editRect.y + nInnerY + nInnerHeight )
+		return pGrid->bEnabled && pGrid->nSkinHp;
+	return true;
 }
 
 void COrganEditItem::Edit( CCharacter* pCharacter, CFace* pFace, const TVector2<int32>& pos )
 {
 	auto pOrgan = SafeCast<COrgan>( pPrefab->GetRoot()->CreateInstance() );
-	pOrgan->m_nWidth = nWidth;
-	pOrgan->m_nHeight = nHeight;
+	pOrgan->m_pEditItem = this;
 	pFace->AddOrgan( pOrgan, pos.x, pos.y );
 }
 
@@ -221,4 +225,34 @@ void COrganTargetor::FindTarget( CCharacter * pChar, CTurnBasedContext * pContex
 	if( m_onFindTarget && !m_onFindTarget( pChar, pContext ) )
 		return;
 	pContext->pActionContext->targetCharacters.push_back( pChar );
+}
+
+void COrganCfg::Load()
+{
+	CTabFile tabFile;
+	tabFile.Load( "configs/organ.txt" );
+	for( int i = 0; i < tabFile.GetRowCount(); i++ )
+	{
+		const char* szName = tabFile.Get( "Name", i, "" );
+		auto& item = mapOrganEditItems[szName];
+		item.strName = szName;
+		item.nType = eFaceEditType_Organ;
+		item.nCost = tabFile.Get( "Cost", i, 0 );
+		item.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( tabFile.Get( "Path", i, "" ) );
+		if( item.pPrefab )
+		{
+			auto pOrgan = item.pPrefab->GetRoot()->GetStaticData<COrgan>();
+			item.nWidth = pOrgan->GetWidth();
+			item.nHeight = pOrgan->GetHeight();
+			item.nInnerX = pOrgan->GetInnerX();
+			item.nInnerY = pOrgan->GetInnerY();
+			item.nInnerWidth = pOrgan->GetInnerWidth();
+			item.nInnerHeight = pOrgan->GetInnerHeight();
+		}
+	}
+}
+
+void COrganCfg::Unload()
+{
+	mapOrganEditItems.clear();
 }

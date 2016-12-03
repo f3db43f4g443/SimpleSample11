@@ -26,8 +26,19 @@ public:
 			return nLen;
 		if( !nCount )
 			return nLen;
-		t.resize( nLen );
+		t.resize( nCount );
 		return Read( &t[0], sizeof( T ) * nCount ) + nLen;
+	}
+
+	template <typename T>
+	bool CheckedRead( T& t )
+	{
+		return Read( t ) == sizeof( T );
+	}
+	template <typename T>
+	bool CheckedRead( vector<T>& t )
+	{
+		return Read( t ) >= sizeof( uint32 );
 	}
 
 	template <typename T>
@@ -57,6 +68,12 @@ inline uint32 IBufReader::Read( string& t )
 	return m_nCurPos - nPos;
 }
 
+template <>
+inline bool IBufReader::CheckedRead( string& t )
+{
+	return Read( t ) >= sizeof( uint32 );
+}
+
 class CBufFile : public IBufReader
 {
 public:
@@ -81,6 +98,21 @@ public:
 private:
 	vector<uint8> m_tempBuffer;
 };
+
+template <>
+inline uint32 IBufReader::Read( CBufFile& t )
+{
+	vector<uint8> vec;
+	uint32 nLen = Read( vec );
+	t.Write( vec );
+	return nLen;
+}
+
+template <>
+inline bool IBufReader::CheckedRead( CBufFile& t )
+{
+	return Read( t ) >= sizeof( uint32 );
+}
 
 template <>
 inline void CBufFile::Write( const string& t )

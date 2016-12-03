@@ -4,7 +4,7 @@
 #include "Common/TabFile.h"
 #include "Common/ResourceManager.h"
 
-bool CSkin::IsValidGrid( CFace* pFace, const TVector2<int32>& pos )
+bool CSkin::IsValidGrid( CFace* pFace, const TRectangle<int32>& editRect, const TVector2<int32>& pos )
 {
 	auto pGrid = pFace->GetGrid( pos.x, pos.y );
 	if( !pGrid )
@@ -62,4 +62,15 @@ void CSkinNMaskCfg::Load()
 			mapSkins[pSkin->strName] = pSkin;
 		}
 	}
+}
+
+void CSkinNMaskCfg::Unload()
+{
+	tileMapSetData.items.clear();
+	for( auto& item : mapSkins )
+	{
+		delete item.second;
+		item.second = NULL;
+	}
+	mapSkins.clear();
 }

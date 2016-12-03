@@ -80,6 +80,14 @@ public:
 	void RefreshEditTile( uint32 x, uint32 y, uint8 nFlag );
 	void RefreshSelectTile( uint32 x, uint32 y, uint8 nType );
 
+	void SaveExtraData( CBufFile& buf );
+	void SaveSkins( CBufFile& buf );
+	void SaveOrgans( CBufFile& buf );
+
+	void LoadExtraData( IBufReader& buf );
+	void LoadSkins( IBufReader& buf );
+	void LoadOrgans( IBufReader& buf );
+
 	bool IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos );
 private:
 	void OnTickAfterHitTest();
@@ -105,4 +113,25 @@ private:
 	uint32 m_nAwakeFrames;
 
 	TClassTrigger<CFace> m_tickAfterHitTest;
+};
+
+class CFaceData : public CResource
+{
+public:
+	enum EType
+	{
+		eGameResType_FaceData = eEngineResType_Prefab,
+	};
+	CFaceData( const char* name, int32 type ) : CResource( name, type ) {}
+	void Create();
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+
+	CPrefab* GetPrefab() { return m_pPrefab; }
+	void SetPrefab( CPrefab* pPrefab ) { if( pPrefab ) m_strPrefab = pPrefab->GetName(); m_pPrefab = pPrefab; }
+	CBufFile& GetData() { return m_data; }
+private:
+	string m_strPrefab;
+	CReference<CPrefab> m_pPrefab;
+	CBufFile m_data;
 };

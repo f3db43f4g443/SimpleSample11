@@ -149,7 +149,7 @@ void CFaceView::OnMouseMove( const CVector2& mousePos )
 			{
 				for( int j = m_curSelectedRect.y; j < m_curSelectedRect.GetBottom(); j++ )
 				{
-					bool bIsValid = m_pFaceEditItem->IsValidGrid( pFace, TVector2<int32>( i, j ) );
+					bool bIsValid = m_pFaceEditItem->IsValidGrid( pFace, m_curSelectedRect, TVector2<int32>( i, j ) );
 					if( m_pFaceEditItem->nType == eFaceEditType_Organ )
 						m_bIsEditValid = m_bIsEditValid && bIsValid;
 					else
@@ -265,7 +265,7 @@ bool CFaceView::TryEdit()
 	{
 		for( int j = m_curSelectedRect.y; j < m_curSelectedRect.GetBottom(); j++ )
 		{
-			bool bIsValid = m_pFaceEditItem->IsValidGrid( pSubStage->pFace, TVector2<int32>( i, j ) );
+			bool bIsValid = m_pFaceEditItem->IsValidGrid( pSubStage->pFace, m_curSelectedRect, TVector2<int32>( i, j ) );
 			if( m_pFaceEditItem->nType == eFaceEditType_Organ )
 				m_bIsEditValid = m_bIsEditValid && bIsValid;
 			else

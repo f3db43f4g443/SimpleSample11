@@ -3,6 +3,8 @@
 #include "MyLevel.h"
 #include "Stage.h"
 #include "GlobalCfg.h"
+#include "Common/FileUtil.h"
+#include "Common/ResourceManager.h"
 
 void CFace::OnAddedToStage()
 {
@@ -110,9 +112,9 @@ bool CFace::KillOrgan( COrgan * pOrgan )
 	if( pOrgan->m_pFace != this )
 		return false;
 
-	for( int32 i = pOrgan->GetGridPos().x; i < pOrgan->GetGridPos().x + pOrgan->GetWidth(); i++ )
+	for( int32 i = pOrgan->GetGridPos().x + pOrgan->m_nInnerX; i < pOrgan->GetGridPos().x + pOrgan->m_nInnerX + pOrgan->m_nInnerWidth; i++ )
 	{
-		for( int32 j = pOrgan->GetGridPos().y; j < pOrgan->GetGridPos().y + pOrgan->GetHeight(); j++ )
+		for( int32 j = pOrgan->GetGridPos().y + pOrgan->m_nInnerY; j < pOrgan->GetGridPos().y + pOrgan->m_nInnerY + pOrgan->m_nInnerHeight; j++ )
 		{
 			auto pGrid = GetGrid( i, j );
 			SetSkinHp( 0, i, j );
@@ -250,6 +252,165 @@ void CFace::RefreshSelectTile( uint32 x, uint32 y, uint8 nType )
 	m_pFaceEditTile->EditTile( x, y, nType );
 }
 
+void CFace::SaveExtraData( CBufFile & buf )
+{
+	{
+		CBufFile tempBuf;
+		SaveSkins( tempBuf );
+		buf.Write( tempBuf );
+	}
+	{
+		CBufFile tempBuf;
+		SaveOrgans( tempBuf );
+		buf.Write( tempBuf );
+	}
+}
+
+void CFace::SaveSkins( CBufFile & buf )
+{
+	uint16 nDataWidth = m_nWidth;
+	uint16 nDataHeight = m_nHeight;
+	buf.Write( nDataWidth );
+	buf.Write( nDataHeight );
+
+	map<CSkin*, uint16> mapUsedSkins;
+	for( int i = 0; i < m_grids.size(); i++ )
+	{
+		auto pSkin = m_grids[i].pSkin;
+		mapUsedSkins[pSkin] = 0;
+	}
+	buf.Write<uint16>( mapUsedSkins.size() );
+	uint16 nIndex = 0;
+	for( auto& item : mapUsedSkins )
+	{
+		buf.Write( item.first->strName );
+		item.second = nIndex++;
+	}
+	mapUsedSkins[NULL] = -1;
+
+	for( int i = 0; i < m_grids.size(); i++ )
+	{
+		buf.Write( mapUsedSkins[m_grids[i].pSkin] );
+		buf.Write( m_grids[i].nSkinHp );
+	}
+}
+
+void CFace::SaveOrgans( CBufFile & buf )
+{
+	map<COrganEditItem*, uint16> mapUsedOrgans;
+	uint16 nOrgans;
+	for( uint16 y = 0; y < m_nWidth; y++ )
+	{
+		for( uint16 x = 0; x < m_nHeight; x++ )
+		{
+			auto pGrid = GetGrid( x, y );
+			auto pOrgan = pGrid->pOrgan;
+			if( pOrgan->m_pos == TVector2<int32>( x, y ) )
+			{
+				nOrgans++;
+				mapUsedOrgans[pOrgan->m_pEditItem] = 0;
+			}
+		}
+	}
+	buf.Write<uint16>( mapUsedOrgans.size() );
+	uint16 nIndex = 0;
+	for( auto& item : mapUsedOrgans )
+	{
+		buf.Write( item.first->strName );
+		item.second = nIndex++;
+	}
+
+	buf.Write( nOrgans );
+	for( uint16 y = 0; y < m_nWidth; y++ )
+	{
+		for( uint16 x = 0; x < m_nHeight; x++ )
+		{
+			auto pGrid = GetGrid( x, y );
+			auto pOrgan = pGrid->pOrgan;
+			if( pOrgan->m_pos == TVector2<int32>( x, y ) )
+			{
+				buf.Write( x );
+				buf.Write( y );
+				buf.Write( mapUsedOrgans[pOrgan->m_pEditItem] );
+				buf.Write( pOrgan->m_nHp );
+			}
+		}
+	}
+}
+
+void CFace::LoadExtraData( IBufReader & buf )
+{
+	uint16 nChunk;
+	while( buf.CheckedRead( nChunk ) )
+	{
+		CBufReader tempBuf( buf );
+		switch( nChunk )
+		{
+		case 0:
+			LoadSkins( tempBuf );
+			break;
+		case 1:
+			LoadOrgans( tempBuf );
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void CFace::LoadSkins( IBufReader & buf )
+{
+	uint16 nDataWidth;
+	uint16 nDataHeight;
+	buf.Read( nDataWidth );
+	buf.Read( nDataHeight );
+
+	vector<CSkin*> vecSkins;
+	uint16 nCount = buf.Read<uint16>();
+	vecSkins.resize( nCount );
+	for( int i = 0; i < nCount; i++ )
+	{
+		string strName;
+		buf.Read( strName );
+		vecSkins[i] = CSkinNMaskCfg::Inst().GetSkin( strName.c_str() );
+	}
+
+	for( int y = 0; y < Min<uint32>( m_nHeight, nDataHeight ); y++ )
+	{
+		for( int x = 0; x < Min<uint32>( m_nWidth, nDataWidth ); x++ )
+		{
+			auto nIndex = buf.Read<uint16>();
+			SetSkin( nIndex < vecSkins.size() ? vecSkins[nIndex] : NULL, x, y );
+			SetSkinHp( buf.Read<uint32>(), x, y );
+		}
+	}
+}
+
+void CFace::LoadOrgans( IBufReader & buf )
+{
+	vector<COrganEditItem*> editItems;
+	uint16 nCount = buf.Read<uint16>();
+	editItems.resize( nCount );
+	for( int i = 0; i < nCount; i++ )
+	{
+		string strName;
+		buf.Read( strName );
+		editItems[i] = COrganCfg::Inst().GetOrganEditItem( strName.c_str() );
+	}
+
+	buf.Read( nCount );
+	for( int i = 0; i < nCount; i++ )
+	{
+		auto pos = TVector2<int32>( buf.Read<uint16>(), buf.Read<uint16>() );
+		auto pEditItem = editItems[buf.Read<uint16>()];
+		if( pEditItem && IsEditValid( pEditItem, pos ) )
+		{
+			pEditItem->Edit( NULL, this, pos );
+			GetGrid( pos.x, pos.y )->pOrgan->SetHp( buf.Read<uint32>() );
+		}
+	}
+}
+
 bool CFace::IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos )
 {
 	bool bIsEditValid = pItem->nType == eFaceEditType_Organ ? true : false;
@@ -257,7 +418,7 @@ bool CFace::IsEditValid( CFaceEditItem* pItem, const TVector2<int32>& pos )
 	{
 		for( int j = 0; j < pItem->nHeight; j++ )
 		{
-			bool bIsValid = pItem->IsValidGrid( this, TVector2<int32>( i + pos.x, j + pos.y ) );
+			bool bIsValid = pItem->IsValidGrid( this, TRectangle<int32>( pos.x, pos.y, pItem->nWidth, pItem->nHeight ), TVector2<int32>( i + pos.x, j + pos.y ) );
 			if( pItem->nType == eFaceEditType_Organ )
 				bIsEditValid = bIsEditValid && bIsValid;
 			else
@@ -273,4 +434,37 @@ void CFace::OnTickAfterHitTest()
 		m_nAwakeFrames--;
 
 	GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
+}
+
+void CFaceData::Create()
+{
+	if( strcmp( GetFileExtension( GetName() ), "f" ) )
+		return;
+	vector<char> content;
+	if( GetFileContent( content, GetName(), false ) == INVALID_32BITID )
+		return;
+	CBufReader buf( &content[0], content.size() );
+	Load( buf );
+	m_bCreated = true;
+}
+
+void CFaceData::Load( IBufReader & buf )
+{
+	buf.Read( m_strPrefab );
+	m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab.c_str() );
+	if( !m_pPrefab )
+	{
+		m_strPrefab = "";
+		return;
+	}
+	buf.Read( m_data );
+}
+
+void CFaceData::Save( CBufFile & buf )
+{
+	if( m_pPrefab )
+	{
+		buf.Write( m_strPrefab );
+		buf.Write( m_data );
+	}
 }

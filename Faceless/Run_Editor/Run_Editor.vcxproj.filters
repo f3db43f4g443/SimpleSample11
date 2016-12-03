@@ -5,10 +5,16 @@
     <ClCompile Include="Editor\HitProxyEdit.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Editor\FaceEditor.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="winresource.h" />
     <ClInclude Include="Editor\HitProxyEdit.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor\FaceEditor.h">
       <Filter>Editor</Filter>
     </ClInclude>
   </ItemGroup>
