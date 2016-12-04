@@ -11,13 +11,17 @@ void CFileExplorer::OnInited()
 {
 	CFileView::OnInited();
 	m_pNewFileName = GetChildByName<CUITextBox>( "new_filename" );
-	static CDropDownBox::SItem g_fileTypeItems[] = 
+
+	vector<CDropDownBox::SItem> vecFileTypeItems;
+	vecFileTypeItems.resize( CEditor::Inst().GetRegisteredEditors().size() );
+	int i = 0;
+	for( auto& item : CEditor::Inst().GetRegisteredEditors() )
 	{
-		{ "Material(.mtl)", "mtl" },
-		{ "Particle System(.pts)", "pts" },
-		{ "Prefab(.pf)", "pf" },
-	};
-	m_pNewFileType = CDropDownBox::Create( g_fileTypeItems, ELEM_COUNT( g_fileTypeItems ) );
+		vecFileTypeItems[i].name = item.second.strDesc;
+		vecFileTypeItems[i].pData = (void*)item.first.c_str();
+		i++;
+	}
+	m_pNewFileType = CDropDownBox::Create( &vecFileTypeItems[0], vecFileTypeItems.size() );
 	m_pNewFileType->Replace( GetChildByName( "new_filetype" ) );
 
 	m_onNew.Set( this, &CFileExplorer::OnNew );
@@ -38,21 +42,9 @@ void CFileExplorer::OnOpen()
 		return;
 
 	const char* szExt = GetFileExtension( m_strFile.c_str() );
-	if( !strcmp( szExt, "mtl" ) )
-	{
-		CEditor::Inst().SetEditor( CMaterialEditor::Inst() );
-		CMaterialEditor::Inst()->SetFileName( m_strFile.c_str() );
-	}
-	else if( !strcmp( szExt, "pts" ) )
-	{
-		CEditor::Inst().SetEditor( CParticleEditor::Inst() );
-		CParticleEditor::Inst()->SetFileName( m_strFile.c_str() );
-	}
-	else if( !strcmp( szExt, "pf" ) )
-	{
-		CEditor::Inst().SetEditor( CPrefabEditor::Inst() );
-		CPrefabEditor::Inst()->SetFileName( m_strFile.c_str() );
-	}
+	auto pEditor = CEditor::Inst().SetEditor( szExt );
+	if( pEditor )
+		pEditor->SetFileName( m_strFile.c_str() );
 	else if( !strcmp( szExt, "wav" ) )
 	{
 		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( m_strFile.c_str() )->CreateSoundTrack();
@@ -72,20 +64,8 @@ void CFileExplorer::OnNew()
 	if( IsFileExist( str.c_str() ) )
 		return;
 
-	if( !strcmp( szExt, "mtl" ) )
-	{
-		CEditor::Inst().SetEditor( CMaterialEditor::Inst() );
-		CMaterialEditor::Inst()->NewFile( str.c_str() );
-	}
-	else if( !strcmp( szExt, "pts" ) )
-	{
-		CEditor::Inst().SetEditor( CParticleEditor::Inst() );
-		CParticleEditor::Inst()->NewFile( str.c_str() );
-	}
-	else if( !strcmp( szExt, "pf" ) )
-	{
-		CEditor::Inst().SetEditor( CPrefabEditor::Inst() );
-		CPrefabEditor::Inst()->NewFile( str.c_str() );
-	}
+	auto pEditor = CEditor::Inst().SetEditor( szExt );
+	if( pEditor )
+		pEditor->NewFile( m_strFile.c_str() );
 	SelectFolder( m_strPath.c_str() );
 }

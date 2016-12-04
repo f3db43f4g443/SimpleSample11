@@ -6,7 +6,7 @@
 class CEditor : public IGame
 {
 public:
-	CEditor() : m_beforeRender( this, &CEditor::BeforeRender ) {}
+	CEditor();
 	virtual void Start() override;
 	virtual void Stop() override;
 	virtual void Update() override;
@@ -18,16 +18,34 @@ public:
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) override;
 	virtual void OnChar( uint32 nChar ) override;
 
+	struct SRegisteredEditor
+	{
+		CResourceEditor* pEditor;
+		string strPath;
+		string strDesc;
+	};
+	void RegisterEditor( CResourceEditor* pEditor, const char* szPath, const char* szDesc, const char* szTag )
+	{
+		auto& item = m_mapRegisteredEditors[szTag];
+		item.pEditor = pEditor;
+		item.strPath = szPath;
+		item.strDesc = szDesc;
+	}
+
 	CUIManager* GetUIMgr() { return m_pUIMgr; }
-	void SetEditor( CUIElement* pElem );
+	void SetEditor( CResourceEditor* pElem );
+	CResourceEditor* SetEditor( const char* szTag );
+	map<string, SRegisteredEditor>& GetRegisteredEditors() { return m_mapRegisteredEditors; }
 
 	void BeforeRender() { m_pUIMgr->UpdateLayout(); }
 	
 	DECLARE_GLOBAL_INST_REFERENCE( CEditor )
-private:
+protected:
 	CReference<CUIManager> m_pUIMgr;
 	CReference<CUIElement> m_pCurShownElem;
 	CCamera2D m_camera;
 
 	TClassTrigger<CEditor> m_beforeRender;
+
+	map<string, SRegisteredEditor> m_mapRegisteredEditors;
 };

@@ -402,4 +402,7 @@ void InitGame()
 {
 	Game_ShaderImplement_Dummy();
 	RegisterGameClasses();
+
+	CResourceManager::Inst()->Register( new TResourceFactory<CFaceData>() );
+	CResourceManager::Inst()->RegisterExtension<CFaceData>( "f" );
 }

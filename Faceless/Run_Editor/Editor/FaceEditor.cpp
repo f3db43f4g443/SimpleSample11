@@ -61,7 +61,14 @@ void CFaceEditor::Refresh()
 
 void CFaceEditor::OnInited()
 {
-	m_pToolView = GetChildByName<CUITreeView>( "treeview" );
+	Super::OnInited();
+
+	m_pCreatePanel = GetChildByName<CUIElement>( "create" );
+	m_pEditPanel = GetChildByName<CUIElement>( "edit" );
+	m_pToolView = m_pEditPanel->GetChildByName<CUITreeView>( "toolbox" );
+
+	m_onSave.Set( this, CFaceEditor::Save );
+	m_pToolView->GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
 }
 
 void CFaceEditor::CreateViewport()

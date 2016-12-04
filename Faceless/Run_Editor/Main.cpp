@@ -4,10 +4,25 @@
 #include "Editor/Editor.h"
 #include "Render/SimpleRenderer.h"
 #include "Editor/HitProxyEdit.h"
+#include "Editor/FaceEditor.h"
+#include "UICommon/UIFactory.h"
 
 #include "GlobalCfg.h"
 #include "SkinNMask.h"
 #include "Organ.h"
+
+class CMyEditor : public CEditor
+{
+public:
+	virtual void Start() override
+	{
+		CEditor::Start();
+		CFaceEditor* pPrefabEditor = CFaceEditor::Inst();
+		CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/prefab_editor.xml" )->GetElement()->Clone( pPrefabEditor );
+		pPrefabEditor->bVisible = false;
+		m_pUIMgr->AddChild( pPrefabEditor );
+	}
+};
 
 void InitEditor()
 {
@@ -20,6 +35,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	InitEditor();
 
 	CGlobalCfg::Inst().Load();
+	CEditor::Inst().RegisterEditor( CFaceEditor::Inst(), "EditorRes/UI/face_editor.xml", "Face Data(.f)", "f" );
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	pRenderSystem->SetRenderer( new CSimpleRenderer );

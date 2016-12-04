@@ -10,6 +10,14 @@
 #include "Editors/PrefabEditor.h"
 #include "Common/FileUtil.h"
 
+CEditor::CEditor()
+	: m_beforeRender( this, &CEditor::BeforeRender )
+{
+	RegisterEditor( CMaterialEditor::Inst(), "EditorRes/UI/material_editor.xml", "Material(.mtl)", "mtl" );
+	RegisterEditor( CParticleEditor::Inst(), "EditorRes/UI/material_editor.xml", "Particle System(.pts)", "pts" );
+	RegisterEditor( CPrefabEditor::Inst(), "EditorRes/UI/prefab_editor.xml", "Prefab(.pf)", "pf" );
+}
+
 void CEditor::Start()
 {
 	CResourceManager::Inst()->Register( new TResourceFactory<CUIResource>() );
@@ -30,20 +38,13 @@ void CEditor::Start()
 	CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/fileexplorer.xml" )->GetElement()->Clone( pFileEditor );
 	m_pUIMgr->AddChild( pFileEditor );
 
-	CMaterialEditor* pMaterialEditor = CMaterialEditor::Inst();
-	CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/material_editor.xml" )->GetElement()->Clone( pMaterialEditor );
-	pMaterialEditor->bVisible = false;
-	m_pUIMgr->AddChild( pMaterialEditor );
-
-	CParticleEditor* pParticleEditor = CParticleEditor::Inst();
-	CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/material_editor.xml" )->GetElement()->Clone( pParticleEditor );
-	pParticleEditor->bVisible = false;
-	m_pUIMgr->AddChild( pParticleEditor );
-
-	CPrefabEditor* pPrefabEditor = CPrefabEditor::Inst();
-	CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/prefab_editor.xml" )->GetElement()->Clone( pPrefabEditor );
-	pPrefabEditor->bVisible = false;
-	m_pUIMgr->AddChild( pPrefabEditor );
+	for( auto& item : m_mapRegisteredEditors )
+	{
+		auto pEditor = item.second.pEditor;
+		CResourceManager::Inst()->CreateResource<CUIResource>( item.second.strPath.c_str() )->GetElement()->Clone( pEditor );
+		pEditor->bVisible = false;
+		m_pUIMgr->AddChild( pEditor );
+	}
 }
 
 void CEditor::Stop()
@@ -103,7 +104,7 @@ void CEditor::OnChar( uint32 nChar )
 	m_pUIMgr->HandleChar( nChar );
 }
 
-void CEditor::SetEditor( CUIElement* pElem )
+void CEditor::SetEditor( CResourceEditor* pElem )
 {
 	if( m_pCurShownElem == pElem )
 		return;
@@ -112,4 +113,15 @@ void CEditor::SetEditor( CUIElement* pElem )
 	m_pCurShownElem = pElem;
 	if( pElem )
 		pElem->SetVisible( true );
+}
+
+CResourceEditor* CEditor::SetEditor( const char* szTag )
+{
+	auto itr = m_mapRegisteredEditors.find( szTag );
+	if( itr != m_mapRegisteredEditors.end() )
+	{
+		SetEditor( itr->second.pEditor );
+		return itr->second.pEditor;
+	}
+	return NULL;
 }

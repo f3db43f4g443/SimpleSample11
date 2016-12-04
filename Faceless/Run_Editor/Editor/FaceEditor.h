@@ -72,4 +72,6 @@ private:
 	CReference<CUITreeView::CTreeViewContent> m_pSkinsRoot;
 	CReference<CUITreeView::CTreeViewContent> m_pMasksRoot;
 	CReference<CFaceEditItemUI> m_pSelected;
+
+	TClassTrigger<CFaceEditor> m_onSave;
 };

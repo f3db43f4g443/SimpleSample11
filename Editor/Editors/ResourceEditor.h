@@ -7,17 +7,24 @@
 #include "Render/LightRendering.h"
 #include "Common/xml.h"
 
-template <class T>
-class TResourceEditor : public CUIElement
+class CResourceEditor : public CUIElement
 {
 public:
-	virtual void NewFile( const char* szFileName )
+	virtual void NewFile( const char* szFileName ) {}
+	virtual void SetFileName( const char* szFileName ) {}
+};
+
+template <class T>
+class TResourceEditor : public CResourceEditor
+{
+public:
+	virtual void NewFile( const char* szFileName ) override
 	{
 		m_pRes = CResourceManager::Inst()->CreateResource<T>( szFileName, true );
 		Save();
 	}
 
-	virtual void SetFileName( const char* szFileName )
+	virtual void SetFileName( const char* szFileName ) override
 	{
 		CReference<CResource> pTemp = m_pRes;
 		m_pRes = szFileName && szFileName[0] ? CResourceManager::Inst()->CreateResource<T>( szFileName ) : NULL;
