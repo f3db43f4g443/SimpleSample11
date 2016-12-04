@@ -6,6 +6,7 @@
 #include "Game/GUI/FaceView.h"
 #include "UICommon/UITreeView.h"
 #include "UICommon/UIButton.h"
+#include "Editor/Editors/UIComponentUtil.h"
 
 class CFaceEditor : public TResourceEditor<CFaceData>
 {
@@ -38,6 +39,9 @@ private:
 	CReference<CUIElement> m_pEditPanel;
 
 	CStage* m_pStage;
+
+	CReference<CFileNameEdit> m_pFileName;
+	void OnCreateOK();
 
 	class CFaceEditItemUI : public CUIButton
 	{
@@ -72,6 +76,7 @@ private:
 	CReference<CUITreeView::CTreeViewContent> m_pSkinsRoot;
 	CReference<CUITreeView::CTreeViewContent> m_pMasksRoot;
 	CReference<CFaceEditItemUI> m_pSelected;
-
+	
+	TClassTrigger<CFaceEditor> m_onCreateOK;
 	TClassTrigger<CFaceEditor> m_onSave;
 };

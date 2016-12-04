@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "FaceEditor.h"
 #include "UICommon/UIFactory.h"
-#include "Editor/Editors/UIComponentUtil.h"
+#include "Common/Utf8Util.h"
 
 void CFaceEditor::NewFile( const char * szFileName )
 {
@@ -17,6 +17,9 @@ void CFaceEditor::NewFile( const char * szFileName )
 		delete m_pStage;
 		m_pStage = NULL;
 	}
+	m_pEditPanel->SetVisible( false );
+	m_pCreatePanel->SetVisible( true );
+	m_pFacePrefab = NULL;
 
 	Super::NewFile( szFileName );
 }
@@ -36,6 +39,7 @@ void CFaceEditor::Refresh()
 	}
 	m_pEditPanel->SetVisible( false );
 	m_pCreatePanel->SetVisible( false );
+	m_pFacePrefab = NULL;
 
 	if( m_pRes )
 	{
@@ -46,6 +50,7 @@ void CFaceEditor::Refresh()
 			context.pViewport = m_pViewport;
 			m_pStage->Start( NULL, context );
 
+			m_pFacePrefab = m_pRes->GetPrefab();
 			m_pFace = static_cast<CFace*>( m_pRes->GetPrefab()->GetRoot()->CreateInstance() );
 			m_pFace->SetParentEntity( m_pStage->GetRoot() );
 			m_pFace->LoadExtraData( m_pRes->GetData() );
@@ -64,9 +69,13 @@ void CFaceEditor::OnInited()
 	Super::OnInited();
 
 	m_pCreatePanel = GetChildByName<CUIElement>( "create" );
+	m_pFileName = CFileNameEdit::Create( "Prefab Name:", ".pf" );
+	m_pFileName->Replace( m_pCreatePanel->GetChildByName<CUIElement>( "filename" ) );
 	m_pEditPanel = GetChildByName<CUIElement>( "edit" );
 	m_pToolView = m_pEditPanel->GetChildByName<CUITreeView>( "toolbox" );
 
+	m_onCreateOK.Set( this, &CFaceEditor::OnCreateOK );
+	m_pCreatePanel->GetChildByName<CUIElement>( "ok" )->Register( eEvent_Action, &m_onCreateOK );
 	m_onSave.Set( this, CFaceEditor::Save );
 	m_pToolView->GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
 }
@@ -131,6 +140,18 @@ void CFaceEditor::OnViewportStopDrag( SUIMouseEvent * pEvent )
 
 void CFaceEditor::OnViewportChar( uint32 nChar )
 {
+}
+
+void CFaceEditor::OnCreateOK()
+{
+	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( UnicodeToUtf8( m_pFileName->GetText() ).c_str() );
+	if( !pPrefab )
+		return;
+	if( !pPrefab->GetRoot()->GetStaticData<CFace>() )
+		return;
+
+	m_pRes->SetPrefab( pPrefab );
+	Refresh();
 }
 
 void CFaceEditor::RefreshToolbox()
