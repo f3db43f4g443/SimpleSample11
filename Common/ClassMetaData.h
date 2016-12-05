@@ -263,7 +263,7 @@ private:
 template< typename T, typename T1 >
 T* SafeCast( T1 t )
 {
-	return CClassMetaDataMgr::Inst().SafeCast<T>( t );
+	return t? CClassMetaDataMgr::Inst().SafeCast<T>( t ) : NULL;
 }
 
 #define REGISTER_CLASS_BEGIN( Class ) \

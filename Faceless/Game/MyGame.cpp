@@ -69,23 +69,8 @@ void CGame::Start()
 	m_pWorld->SetPlayer( pPlayer );
 
 	pPlayer->AddFaceEditItem( CSkinNMaskCfg::Inst().GetSkin( "Skin0" ) );
-
-	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/organs/orb1.pf" );
-	static COrganEditItem organ;
-	organ.strName = "organ";
-	organ.nCost = 1;
-	organ.nWidth = 1;
-	organ.nHeight = 1;
-	organ.pPrefab = pPrefab;
-	pPlayer->AddFaceEditItem( &organ );
-	static COrganEditItem organ1;
-	pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/organs/orb3.pf" );
-	organ1.strName = "organ1";
-	organ1.nCost = 2;
-	organ1.nWidth = 2;
-	organ1.nHeight = 2;
-	organ1.pPrefab = pPrefab;
-	pPlayer->AddFaceEditItem( &organ1 );
+	pPlayer->AddFaceEditItem( COrganCfg::Inst().GetOrganEditItem( "Organ0" ) );
+	pPlayer->AddFaceEditItem( COrganCfg::Inst().GetOrganEditItem( "Organ1" ) );
 
 	SStageEnterContext context;
 	context.strStartPointName = "start1";
@@ -96,19 +81,14 @@ void CGame::Start()
 	auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/man1.pf" );
 	auto pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 12, 1 );
-	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 20, 1 );
-	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 12, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 20, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 16, 8 );
-	pCharacter->UseFaceEditItem( NULL, &organ1, TVector2<int32>( 8, 8 ) );
 }
 
 void CGame::Stop()
@@ -253,6 +233,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CCharacter )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strSubStageName )
+		REGISTER_MEMBER( m_strFaceDataName )
 		REGISTER_MEMBER( m_nMaxHp )
 		REGISTER_MEMBER( m_nMaxMp )
 		REGISTER_MEMBER( m_nMaxSp )

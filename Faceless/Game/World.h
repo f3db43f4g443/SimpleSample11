@@ -5,7 +5,7 @@
 
 struct SSubStage
 {
-	SSubStage() : pStage( NULL ), pCharacter( NULL ), pFace( NULL ) {}
+	SSubStage() : pStage( NULL ), pCharacter( NULL ), pFace( NULL ), bPaused( false ){}
 	CStage* pStage;
 	CCharacter* pCharacter;
 	class CFace* pFace;

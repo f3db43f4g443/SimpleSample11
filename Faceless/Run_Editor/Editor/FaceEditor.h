@@ -3,6 +3,7 @@
 #include "Editor/Editors/ResourceEditor.h"
 #include "Game/Face.h"
 #include "Game/Stage.h"
+#include "Game/World.h"
 #include "Game/GUI/FaceView.h"
 #include "UICommon/UITreeView.h"
 #include "UICommon/UIButton.h"
@@ -39,6 +40,7 @@ private:
 	CReference<CUIElement> m_pEditPanel;
 
 	CStage* m_pStage;
+	SSubStage m_subStage;
 
 	CReference<CFileNameEdit> m_pFileName;
 	void OnCreateOK();

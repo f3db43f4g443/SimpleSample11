@@ -20,7 +20,7 @@ public:
 
 	struct SRegisteredEditor
 	{
-		CResourceEditor* pEditor;
+		class CResourceEditor* pEditor;
 		string strPath;
 		string strDesc;
 	};
@@ -39,8 +39,16 @@ public:
 
 	void BeforeRender() { m_pUIMgr->UpdateLayout(); }
 	
-	DECLARE_GLOBAL_INST_REFERENCE( CEditor )
+	static CEditor& Inst()
+	{
+		return *_inst();
+	}
 protected:
+	static CEditor*& _inst()
+	{
+		static CEditor* pEditor = NULL;
+		return pEditor;
+	}
 	CReference<CUIManager> m_pUIMgr;
 	CReference<CUIElement> m_pCurShownElem;
 	CCamera2D m_camera;

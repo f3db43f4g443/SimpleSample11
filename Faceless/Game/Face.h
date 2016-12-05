@@ -120,16 +120,19 @@ class CFaceData : public CResource
 public:
 	enum EType
 	{
-		eGameResType_FaceData = eEngineResType_Prefab,
+		eResType = eGameResType_FaceData,
 	};
 	CFaceData( const char* name, int32 type ) : CResource( name, type ) {}
 	void Create();
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );
 
+	const char* GetPrefabName() { return m_strPrefab.c_str(); }
 	CPrefab* GetPrefab() { return m_pPrefab; }
 	void SetPrefab( CPrefab* pPrefab ) { if( pPrefab ) m_strPrefab = pPrefab->GetName(); m_pPrefab = pPrefab; }
 	CBufFile& GetData() { return m_data; }
+
+	void ApplyFaceData( CFace* pFace ) { pFace->LoadExtraData( m_data ); m_data.ResetCurPos(); }
 private:
 	string m_strPrefab;
 	CReference<CPrefab> m_pPrefab;

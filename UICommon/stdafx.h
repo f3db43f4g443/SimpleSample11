@@ -6,6 +6,7 @@
 enum
 {
 	eEditorResType_UI = eEngineResType_End,
+	eEditorResType_End,
 };
 
 #define VK_CANCEL         0x03

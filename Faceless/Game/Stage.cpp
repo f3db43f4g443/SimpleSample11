@@ -12,7 +12,8 @@
 CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_pPlayer( NULL )
 {
 	m_pEntityRoot = new CEntity;
-	m_pFootprintMgr = new CFootprintMgr;
+	m_pFootprintMgr = NULL;
+	//m_pFootprintMgr = new CFootprintMgr;
 }
 
 CStage::~CStage()
@@ -62,7 +63,7 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 	if( m_enterContext.pViewport )
 		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, pPlayer ? true : false );
 
-	if( m_pFootprintMgr->GetFootprintRoot() )
+	if( m_pFootprintMgr && m_pFootprintMgr->GetFootprintRoot() )
 	{
 		static CFootprintDrawable* pRenderDrawable = NULL;
 		if( !pRenderDrawable )
@@ -89,49 +90,6 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 		pLevel->AddCharacter( pPlayer, 16, 1 );
 	}
 
-	auto pEntity = m_pEntityRoot->Get_ChildEntity();
-	auto pFace = SafeCast<CFace>( pEntity );
-	if( pFace )
-	{
-		/*CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/orb1.pf" );
-
-		static CSkin skin;
-		skin.strTileMapName = "s000";
-		skin.nTileMapEditData = 1;
-		skin.nTileMapEditDataCount = 1;
-		skin.nMaxHp = 10;
-		skin.nHp = 2;
-		
-		for( int i = 6; i <= 10; i++ )
-		{
-			for( int j = 6; j <= 10; j++ )
-			{
-				pFace->SetSkin( &skin, i, j );
-			}
-		}
-		for( int i = 7; i <= 9; i++ )
-		{
-			for( int j = 7; j <= 9; j++ )
-			{
-				pFace->AddOrgan( static_cast<COrgan*>( pPrefab->GetRoot()->CreateInstance() ), i, j );
-			}
-		}*/
-	}
-
-	/*pPlayer->SetParentEntity( m_pEntityRoot );
-	CEntity* pEntity = GetStartPoint( context.strStartPointName.c_str() );
-	if( !pEntity )
-	{
-		if( m_mapStartPoints.size() )
-			pEntity = m_mapStartPoints.begin()->second;
-	}
-	if( pEntity )
-	{
-		CScene2DManager::GetGlobalInst()->UpdateDirty();
-		pPlayer->SetPosition( pEntity->globalTransform.GetPosition() );
-	}
-	else
-		pPlayer->SetPosition( CVector2( 0, 0 ) );*/
 	m_events.Trigger( eStageEvent_Start, NULL );
 }
 
@@ -145,7 +103,8 @@ void CStage::Stop()
 	auto pSceneMgr = CScene2DManager::GetGlobalInst();
 	if( m_enterContext.pViewport )
 		m_enterContext.pViewport->Set( NULL, NULL, false );
-	pSceneMgr->RemoveFootprintMgr( m_pFootprintMgr );
+	if( m_pFootprintMgr )
+		pSceneMgr->RemoveFootprintMgr( m_pFootprintMgr );
 	RemoveEntity( m_pEntityRoot );
 	m_tickBeforeHitTest.Clear();
 	m_tickAfterHitTest.Clear();

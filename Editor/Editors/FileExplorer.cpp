@@ -66,6 +66,6 @@ void CFileExplorer::OnNew()
 
 	auto pEditor = CEditor::Inst().SetEditor( szExt );
 	if( pEditor )
-		pEditor->NewFile( m_strFile.c_str() );
+		pEditor->NewFile( str.c_str() );
 	SelectFolder( m_strPath.c_str() );
 }

@@ -13,6 +13,7 @@
 CEditor::CEditor()
 	: m_beforeRender( this, &CEditor::BeforeRender )
 {
+	_inst() = this;
 	RegisterEditor( CMaterialEditor::Inst(), "EditorRes/UI/material_editor.xml", "Material(.mtl)", "mtl" );
 	RegisterEditor( CParticleEditor::Inst(), "EditorRes/UI/material_editor.xml", "Particle System(.pts)", "pts" );
 	RegisterEditor( CPrefabEditor::Inst(), "EditorRes/UI/prefab_editor.xml", "Prefab(.pf)", "pf" );

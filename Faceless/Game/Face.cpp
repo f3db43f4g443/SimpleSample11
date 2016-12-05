@@ -255,11 +255,13 @@ void CFace::RefreshSelectTile( uint32 x, uint32 y, uint8 nType )
 void CFace::SaveExtraData( CBufFile & buf )
 {
 	{
+		buf.Write<uint16>( 0 );
 		CBufFile tempBuf;
 		SaveSkins( tempBuf );
 		buf.Write( tempBuf );
 	}
 	{
+		buf.Write<uint16>( 1 );
 		CBufFile tempBuf;
 		SaveOrgans( tempBuf );
 		buf.Write( tempBuf );
@@ -277,7 +279,8 @@ void CFace::SaveSkins( CBufFile & buf )
 	for( int i = 0; i < m_grids.size(); i++ )
 	{
 		auto pSkin = m_grids[i].pSkin;
-		mapUsedSkins[pSkin] = 0;
+		if( pSkin )
+			mapUsedSkins[pSkin] = 0;
 	}
 	buf.Write<uint16>( mapUsedSkins.size() );
 	uint16 nIndex = 0;
@@ -298,14 +301,14 @@ void CFace::SaveSkins( CBufFile & buf )
 void CFace::SaveOrgans( CBufFile & buf )
 {
 	map<COrganEditItem*, uint16> mapUsedOrgans;
-	uint16 nOrgans;
+	uint16 nOrgans = 0;
 	for( uint16 y = 0; y < m_nWidth; y++ )
 	{
 		for( uint16 x = 0; x < m_nHeight; x++ )
 		{
 			auto pGrid = GetGrid( x, y );
 			auto pOrgan = pGrid->pOrgan;
-			if( pOrgan->m_pos == TVector2<int32>( x, y ) )
+			if( pOrgan && pOrgan->m_pos == TVector2<int32>( x, y ) )
 			{
 				nOrgans++;
 				mapUsedOrgans[pOrgan->m_pEditItem] = 0;
@@ -327,7 +330,7 @@ void CFace::SaveOrgans( CBufFile & buf )
 		{
 			auto pGrid = GetGrid( x, y );
 			auto pOrgan = pGrid->pOrgan;
-			if( pOrgan->m_pos == TVector2<int32>( x, y ) )
+			if( pOrgan && pOrgan->m_pos == TVector2<int32>( x, y ) )
 			{
 				buf.Write( x );
 				buf.Write( y );

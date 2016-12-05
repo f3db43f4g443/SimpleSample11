@@ -86,7 +86,7 @@ public:
 		Write( &t, sizeof( T ) );
 	}
 	template <typename T>
-	uint32 Write( const vector<T>& t )
+	void Write( const vector<T>& t )
 	{
 		uint32 nCount = t.size();
 		Write( nCount );
@@ -104,7 +104,7 @@ inline uint32 IBufReader::Read( CBufFile& t )
 {
 	vector<uint8> vec;
 	uint32 nLen = Read( vec );
-	t.Write( vec );
+	t.Write( &vec[0], vec.size() );
 	return nLen;
 }
 

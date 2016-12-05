@@ -49,26 +49,29 @@ protected:
 		
 		m_camOfs = CVector2( 0, 0 );
 
-		CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
-		m_pViewport->GetRoot()->AddChild( pPointLight );
-		m_pLight = pPointLight;
-
-		static CDefaultDrawable2D* pDrawable = NULL;
-		static CDefaultDrawable2D* pDrawable1 = NULL;
-		if( !pDrawable )
+		if( m_pViewport->GetRoot() )
 		{
-			vector<char> content;
-			GetFileContent( content, "EditorRes/Drawables/background.xml", true );
-			TiXmlDocument doc;
-			doc.LoadFromBuffer( &content[0] );
-			pDrawable = new CDefaultDrawable2D;
-			pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "color_pass" ) );
-			pDrawable1 = new CDefaultDrawable2D;
-			pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "occlusion_pass" ) );
+			CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
+			m_pViewport->GetRoot()->AddChild( pPointLight );
+			m_pLight = pPointLight;
+
+			static CDefaultDrawable2D* pDrawable = NULL;
+			static CDefaultDrawable2D* pDrawable1 = NULL;
+			if( !pDrawable )
+			{
+				vector<char> content;
+				GetFileContent( content, "EditorRes/Drawables/background.xml", true );
+				TiXmlDocument doc;
+				doc.LoadFromBuffer( &content[0] );
+				pDrawable = new CDefaultDrawable2D;
+				pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "color_pass" ) );
+				pDrawable1 = new CDefaultDrawable2D;
+				pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "occlusion_pass" ) );
+			}
+			CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -512, -512, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
+			m_pViewport->GetRoot()->AddChild( pImage );
+			m_pBackground = pImage;
 		}
-		CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -512, -512, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
-		m_pViewport->GetRoot()->AddChild( pImage );
-		m_pBackground = pImage;
 	}
 
 	virtual void CreateViewport()
@@ -88,11 +91,15 @@ protected:
 	{
 		auto& cam = m_pViewport->GetCamera();
 		cam.SetPosition( ofs.x, ofs.y );
-		m_pLight->SetPosition( ofs );
+		if( m_pLight )
+			m_pLight->SetPosition( ofs );
 
 		float fGrid = 64;
-		CVector2 backgroundPos( floor( ofs.x / fGrid ) * fGrid, floor( ofs.y / fGrid ) * fGrid );
-		m_pBackground->SetPosition( backgroundPos );
+		if( m_pBackground )
+		{
+			CVector2 backgroundPos( floor( ofs.x / fGrid ) * fGrid, floor( ofs.y / fGrid ) * fGrid );
+			m_pBackground->SetPosition( backgroundPos );
+		}
 		m_camOfs = ofs;
 	}
 

@@ -5,7 +5,7 @@
 
 enum
 {
-	eGameResType_FaceData = eEngineResType_End,
+	eGameResType_FaceData = eEditorResType_End,
 
 	eGameResType_End,
 };

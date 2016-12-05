@@ -19,6 +19,8 @@ CFaceView* CFaceView::Create( CUIElement* pElem )
 
 SSubStage * CFaceView::GetSubStage()
 {
+	if( m_pSubStage )
+		return m_pSubStage;
 	if( m_nSubStage == INVALID_32BITID )
 		return NULL;
 	return CGame::Inst().GetWorld()->GetSubStage( m_nSubStage );

@@ -15,9 +15,10 @@ public:
 	};
 	static CFaceView* Create( CUIElement* pElem );
 
-	CFaceView() : m_nSubStage( INVALID_32BITID ), m_pFaceEditItem( NULL ), m_nState( eState_None ), m_bIsEditValid( false ), m_bGridMoved( false ), m_bFocused( false ) {}
+	CFaceView() : m_nSubStage( INVALID_32BITID ), m_pFaceEditItem( NULL ), m_pSubStage( NULL ), m_nState( eState_None ), m_bIsEditValid( false ), m_bGridMoved( false ), m_bFocused( false ) {}
 	SSubStage* GetSubStage();
 	void SetSubStage( uint32 nStage );
+	void SetSubStage( SSubStage* pSubStage ) { m_pSubStage = pSubStage; }
 	void Select( CFaceEditItem* pItem ) { m_pFaceEditItem = pItem; OnMouseMove( CVector2( 0, 0 ) ); }
 	void OnFocused( bool bFocused );
 
@@ -36,6 +37,7 @@ protected:
 
 	TRectangle<int32> m_curSelectedRect;
 	uint32 m_nSubStage;
+	SSubStage* m_pSubStage;
 	CFaceEditItem* m_pFaceEditItem;
 	uint8 m_nState;
 	bool m_bIsEditValid;

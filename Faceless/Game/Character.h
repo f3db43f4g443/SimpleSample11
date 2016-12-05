@@ -26,6 +26,7 @@ public:
 	uint8 GetSubStageShowSlot() { return m_nSubStageShowSlot; }
 
 	const char* GetSubStageName() { return m_strSubStageName.c_str(); }
+	const char* GetFaceDataName() { return m_strFaceDataName.c_str(); }
 
 	CMyLevel* GetLevel() { return m_pLevel; }
 	const TVector2<int32>& GetGrid() { return m_grid; }
@@ -70,6 +71,7 @@ private:
 	uint8 m_nDir;
 
 	CString m_strSubStageName;
+	CString m_strFaceDataName;
 
 	vector<CFaceEditItem*> m_vecFaceEditItems;
 

@@ -20,12 +20,19 @@ void CFaceEditor::NewFile( const char * szFileName )
 	m_pEditPanel->SetVisible( false );
 	m_pCreatePanel->SetVisible( true );
 	m_pFacePrefab = NULL;
+	m_pFaceView->OnFocused( false );
 
 	Super::NewFile( szFileName );
 }
 
 void CFaceEditor::Refresh()
 {
+	m_pEditPanel->SetVisible( false );
+	m_pCreatePanel->SetVisible( false );
+	m_pFaceView->OnFocused( false );
+	m_subStage.pStage = NULL;
+	m_subStage.pFace = NULL;
+	m_pFacePrefab = NULL;
 	if( m_pFace )
 	{
 		m_pFace->SetParentEntity( NULL );
@@ -37,9 +44,6 @@ void CFaceEditor::Refresh()
 		delete m_pStage;
 		m_pStage = NULL;
 	}
-	m_pEditPanel->SetVisible( false );
-	m_pCreatePanel->SetVisible( false );
-	m_pFacePrefab = NULL;
 
 	if( m_pRes )
 	{
@@ -55,6 +59,9 @@ void CFaceEditor::Refresh()
 			m_pFace->SetParentEntity( m_pStage->GetRoot() );
 			m_pFace->LoadExtraData( m_pRes->GetData() );
 
+			m_subStage.pStage = m_pStage;
+			m_subStage.pFace = m_pFace;
+			m_pFaceView->OnFocused( true );
 			m_pEditPanel->SetVisible( true );
 		}
 		else
@@ -69,20 +76,21 @@ void CFaceEditor::OnInited()
 	Super::OnInited();
 
 	m_pCreatePanel = GetChildByName<CUIElement>( "create" );
-	m_pFileName = CFileNameEdit::Create( "Prefab Name:", ".pf" );
+	m_pFileName = CFileNameEdit::Create( "Prefab Name:", "pf" );
 	m_pFileName->Replace( m_pCreatePanel->GetChildByName<CUIElement>( "filename" ) );
 	m_pEditPanel = GetChildByName<CUIElement>( "edit" );
 	m_pToolView = m_pEditPanel->GetChildByName<CUITreeView>( "toolbox" );
 
 	m_onCreateOK.Set( this, &CFaceEditor::OnCreateOK );
 	m_pCreatePanel->GetChildByName<CUIElement>( "ok" )->Register( eEvent_Action, &m_onCreateOK );
-	m_onSave.Set( this, CFaceEditor::Save );
+	m_onSave.Set( this, &CFaceEditor::Save );
 	m_pToolView->GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
 }
 
 void CFaceEditor::CreateViewport()
 {
 	m_pFaceView = CFaceView::Create( GetChildByName<CUIViewport>( "viewport" ) );
+	m_pFaceView->SetSubStage( &m_subStage );
 	m_pFaceView->SetState( CFaceView::eState_Edit );
 	m_pViewport = m_pFaceView;
 }

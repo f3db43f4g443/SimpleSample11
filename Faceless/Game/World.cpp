@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "World.h"
 #include "Face.h"
+#include "ResourceManager.h"
 
 CWorld::CWorld()
 	: m_pCurStage( NULL )
@@ -110,12 +111,20 @@ uint32 CWorld::PlaySubStage( CCharacter* pCharacter )
 		pSubStage = &m_subStages.back();
 	}
 
+	const char* szFaceDataName = pCharacter->GetFaceDataName();
 	const char* szSubStageName = pCharacter->GetSubStageName();
+	CFaceData* pFaceData = NULL;
+	if( szFaceDataName[0] )
+	{
+		pFaceData = CResourceManager::Inst()->CreateResource<CFaceData>( szFaceDataName );
+	}
+
+	szSubStageName = pFaceData ? pFaceData->GetPrefabName() : szSubStageName;
 	auto itr = m_mapStageContexts.find( szSubStageName );
 	if( itr == m_mapStageContexts.end() )
 	{
 		auto& context = m_mapStageContexts[szSubStageName];
-		context.strName = szSubStageName;
+		context.strName = pFaceData ? pFaceData->GetPrefabName() : szSubStageName;
 		//Load
 		context.strSceneResName = context.strName;
 	}
@@ -129,6 +138,8 @@ uint32 CWorld::PlaySubStage( CCharacter* pCharacter )
 	pSubStage->bPaused = false;
 	pSubStage->pCharacter = pCharacter;
 	pSubStage->pFace = pStage->GetRoot()->GetChildByName_Fast<CFace>( "" );
+	if( pFaceData )
+		pFaceData->ApplyFaceData( pSubStage->pFace );
 	return nSlot;
 }
 
