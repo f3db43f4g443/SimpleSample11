@@ -32,6 +32,7 @@ protected:
 
 	CReference<CUITreeView> m_pToolView;
 
+	CReference<CUITreeView::CTreeViewContent> m_pCommonRoot;
 	CReference<CUITreeView::CTreeViewContent> m_pOrgansRoot;
 	CReference<CUITreeView::CTreeViewContent> m_pSkinsRoot;
 	CReference<CUITreeView::CTreeViewContent> m_pMasksRoot;

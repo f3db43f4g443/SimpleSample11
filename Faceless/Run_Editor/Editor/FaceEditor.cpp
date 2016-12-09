@@ -148,6 +148,8 @@ void CFaceEditor::OnViewportStopDrag( SUIMouseEvent * pEvent )
 
 void CFaceEditor::OnViewportChar( uint32 nChar )
 {
+	if( nChar == ' ' )
+		SetSelectedEditItem( NULL );
 }
 
 void CFaceEditor::OnCreateOK()
@@ -164,10 +166,17 @@ void CFaceEditor::OnCreateOK()
 
 void CFaceEditor::RefreshToolbox()
 {
+	m_pCommonRoot = CTreeFolder::Create( m_pToolView, NULL, "Common" );
 	m_pOrgansRoot = CTreeFolder::Create( m_pToolView, NULL, "Organs" );
 	m_pSkinsRoot = CTreeFolder::Create( m_pToolView, NULL, "Skins" );
 	m_pMasksRoot = CTreeFolder::Create( m_pToolView, NULL, "Masks" );
 
+	auto& commonItems = CFaceEditItem::GetAllCommonEditItems();
+	for( auto pFaceEditItem : commonItems )
+	{
+		auto pItem = CFaceEditItemUI::Create( this, pFaceEditItem );
+		m_pToolView->AddContentChild( pItem, m_pCommonRoot );
+	}
 	for( auto& item : CSkinNMaskCfg::Inst().mapSkins )
 	{
 		auto pItem = CFaceEditItemUI::Create( this, item.second );

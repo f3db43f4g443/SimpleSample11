@@ -1,3 +1,7 @@
 Name	Cost	Path
 Organ0	1	data/organs/orb1.pf
 Organ1	2	data/organs/orb3.pf
+Boss_Eye_L	5	data/organs/boss_eye_l.pf
+Boss_Eye_R	5	data/organs/boss_eye_r.pf
+Boss_Nose	5	data/organs/boss_nose.pf
+Boss_Mouth	10	data/organs/boss_mouth.pf

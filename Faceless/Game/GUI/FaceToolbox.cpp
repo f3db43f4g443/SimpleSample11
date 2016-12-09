@@ -35,6 +35,8 @@ void CFaceEditItemUI::OnInited()
 void CFaceToolbox::Refresh( CCharacter* pCharacter )
 {
 	m_pSelected = NULL;
+	if( m_pCommonRoot )
+		m_pToolView->RemoveContentTree( m_pCommonRoot );
 	if( m_pSkinsRoot )
 		m_pToolView->RemoveContentTree( m_pSkinsRoot );
 	if( m_pOrgansRoot )
@@ -42,15 +44,23 @@ void CFaceToolbox::Refresh( CCharacter* pCharacter )
 	if( m_pMasksRoot )
 		m_pToolView->RemoveContentTree( m_pMasksRoot );
 
+	m_pCommonRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Common" );
 	m_pOrgansRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Organs" );
 	m_pSkinsRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Skins" );
 	m_pMasksRoot = CGameTreeFolder::Create( m_pToolView, NULL, "Masks" );
 
-	auto& faceEditItems = pCharacter->GetFaceEditItems();
-	for( int i = 0; i < faceEditItems.size(); i++ )
+	auto& commonItems = CFaceEditItem::GetAllCommonEditItems();
+	for( auto pFaceEditItem : commonItems )
 	{
-		auto pItem = CFaceEditItemUI::Create( this, faceEditItems[i] );
-		switch( faceEditItems[i]->nType )
+		auto pItem = CFaceEditItemUI::Create( this, pFaceEditItem );
+		m_pToolView->AddContentChild( pItem, m_pCommonRoot );
+	}
+
+	auto& faceEditItems = pCharacter->GetFaceEditItems();
+	for( auto pFaceEditItem : faceEditItems )
+	{
+		auto pItem = CFaceEditItemUI::Create( this, pFaceEditItem );
+		switch( pFaceEditItem->nType )
 		{
 		case eFaceEditType_Skin:
 			m_pToolView->AddContentChild( pItem, m_pSkinsRoot );

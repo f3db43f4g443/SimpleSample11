@@ -147,15 +147,31 @@ void CScene2DManager::Flush( CRenderContext2D& context, CCamera2D* pCamera, CRen
 void CScene2DManager::_flush( CRenderContext2D& context, uint32 nGroup, CCamera2D* pCamera, CRenderObject2D* pRoot, SRenderGroup* pRenderGroup )
 {
 	context.rectScene = pCamera->GetViewArea();
-	if( context.eRenderPass == eRenderPass_Occlusion )
+	auto camViewport = pCamera->GetViewport();
+
+	if( !camViewport.width && !camViewport.height )
 	{
-		CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
-		context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
-		context.rectScene.SetSizeX( context.rectScene.width * vec.x );
-		context.rectScene.SetSizeY( context.rectScene.height * vec.y );
+		if( context.eRenderPass == eRenderPass_Occlusion )
+		{
+			CVector2 vec( context.lightMapRes.x / context.screenRes.x, context.lightMapRes.y / context.screenRes.y );
+			context.rectViewport = CRectangle( 0, 0, context.lightMapRes.x, context.lightMapRes.y );
+			context.rectScene.SetSizeX( context.rectScene.width * vec.x );
+			context.rectScene.SetSizeY( context.rectScene.height * vec.y );
+		}
+		else
+			context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
 	}
 	else
-		context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
+	{
+		if( context.eRenderPass == eRenderPass_Occlusion )
+		{
+			CVector2 screenAreaOfs( ( context.lightMapRes.x - context.screenRes.x ) * 0.5f, ( context.lightMapRes.y - context.screenRes.y ) * 0.5f );
+			context.rectViewport = camViewport.Offset( screenAreaOfs );
+		}
+		else
+			context.rectViewport = camViewport;
+	}
+
 
 	SViewport viewport = {
 		context.rectViewport.x,

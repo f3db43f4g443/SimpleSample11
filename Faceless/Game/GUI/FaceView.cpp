@@ -42,6 +42,8 @@ void CFaceView::OnFocused( bool bFocused )
 		return;
 	m_bFocused = bFocused;
 	auto pStage = GetSubStage();
+	if( !pStage )
+		return;
 	if( !m_bFocused )
 	{
 		switch( m_nState )
@@ -53,17 +55,17 @@ void CFaceView::OnFocused( bool bFocused )
 			{
 				for( int j = m_curSelectedRect.y; j < m_curSelectedRect.GetBottom(); j++ )
 				{
-					GetSubStage()->pFace->RefreshEditTile( i, j, 0 );
+					pStage->pFace->RefreshEditTile( i, j, 0 );
 				}
 			}
-			GetSubStage()->pFace->OnEndEdit();
+			pStage->pFace->OnEndEdit();
 			m_bGridMoved = false;
 			break;
 		case eState_SelectFaceTarget:
 			{
 				auto& actionContext = *CMyLevel::GetInst()->GetTurnBasedContext()->pActionContext;
 				actionContext.pOrganAction->OnEndFaceSelectTarget( actionContext );
-				GetSubStage()->pFace->OnEndSelectTarget();
+				pStage->pFace->OnEndSelectTarget();
 			}
 			break;
 		}
@@ -75,13 +77,13 @@ void CFaceView::OnFocused( bool bFocused )
 		case eState_None:
 			break;
 		case eState_Edit:
-			GetSubStage()->pFace->OnBeginEdit();
+			pStage->pFace->OnBeginEdit();
 			break;
 		case eState_SelectFaceTarget:
 			{
 				auto& actionContext = *CMyLevel::GetInst()->GetTurnBasedContext()->pActionContext;
-				GetSubStage()->pFace->OnBeginSelectTarget();
-				GetSubStage()->pFace->UpdateSelectGrid( TVector2<int32>( 0, 0 ) );
+				pStage->pFace->OnBeginSelectTarget();
+				pStage->pFace->UpdateSelectGrid( TVector2<int32>( 0, 0 ) );
 				actionContext.pOrganAction->OnBeginFaceSelectTarget( actionContext );
 			}
 			break;

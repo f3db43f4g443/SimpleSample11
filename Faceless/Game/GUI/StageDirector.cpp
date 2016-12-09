@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "StageDirector.h"
 #include "Common/ResourceManager.h"
+#include "Common/MathUtil.h"
 #include "UICommon/UIFactory.h"
 #include "MyGame.h"
 #include "World.h"
@@ -29,6 +30,8 @@ void CStageDirector::OnInited()
 	m_pSubStageViewport[0] = CFaceView::Create( GetChildByName<CUIViewport>( "sub0" ) );
 	m_pSubStageViewport[1] = CFaceView::Create( GetChildByName<CUIViewport>( "sub1" ) );
 	m_pSubStageViewport[0]->Register( eEvent_Clicked, &m_onClickPlayerStage );
+	m_pSubStageViewport[0]->ReserveTexSize( CVector2( Pow2Ceil( m_pMainStageViewport->GetSize().width ), Pow2Ceil( m_pMainStageViewport->GetSize().height ) ) );
+	m_pSubStageViewport[1]->ReserveTexSize( CVector2( Pow2Ceil( m_pMainStageViewport->GetSize().width ), Pow2Ceil( m_pMainStageViewport->GetSize().height ) ) );
 
 	m_pFaceToolbox = new CFaceToolbox;
 	CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/face_toolbox.xml" )->GetElement()->Clone( m_pFaceToolbox.GetPtr() );

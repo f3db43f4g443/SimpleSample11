@@ -109,6 +109,7 @@ public:
 	uint32 GetInnerWidth() const { return m_nInnerWidth; }
 	uint32 GetInnerHeight() const { return m_nInnerHeight; }
 	TVector2<int32> GetGridPos() const { return m_pos; }
+	COrganEditItem* GetEditItem() { return m_pEditItem; }
 
 	uint32 GetCurHp() const { return m_nHp; }
 	uint32 GetMaxHp() const { return m_nMaxHp; }

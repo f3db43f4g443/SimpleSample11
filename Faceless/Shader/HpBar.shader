@@ -19,11 +19,11 @@ void PSHpBarSmall( in float2 tex : TexCoord0,
 	
 	int nGrid1 = (int)floor( fGrid );
 	float2 l1;
-	l1.x = ( ( 1 << nGrid1 ) & (int)fCur ) > 0 ? 1 : 0;
+	l1.x = ( ( 1 << min( nGrid1, 31 ) ) & (int)fCur ) > 0 ? 1 : 0;
 	l1.y = nGrid1 < GridCount0 ? 0 : 1;
 	int nGrid2 = (int)floor( GridCount - fGrid );
 	float2 l2;
-	l2.x = ( ( 1 << nGrid2 ) & (int)fMax ) > 0 ? 1 : 0;
+	l2.x = ( ( 1 << min( nGrid2, 31 ) ) & (int)fMax ) > 0 ? 1 : 0;
 	l2.y = nGrid2 < GridCount0 ? 0 : 1;
 	float2 l = tex.y < 0.5f ? l1 : l2;
 	l.y = l.x > 0 ? 1 : l.y;

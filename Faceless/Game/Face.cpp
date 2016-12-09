@@ -151,7 +151,7 @@ bool CFace::SetSkin( CSkin* pSkin, uint32 x, uint32 y )
 void CFace::SetSkinHp( uint32 nHp, uint32 x, uint32 y )
 {
 	auto pGrid = GetGrid( x, y );
-	if( !pGrid || !pGrid->bEnabled )
+	if( !pGrid || !pGrid->bEnabled || !pGrid->pSkin )
 		return;
 
 	uint32 nRow = pGrid->nSkinHp ? ( pGrid->nSkinHp * ( pGrid->pSkin->nEffectRows + 1 ) - 1 ) / pGrid->nSkinMaxHp + 1 : 0;
@@ -404,12 +404,15 @@ void CFace::LoadOrgans( IBufReader & buf )
 	buf.Read( nCount );
 	for( int i = 0; i < nCount; i++ )
 	{
-		auto pos = TVector2<int32>( buf.Read<uint16>(), buf.Read<uint16>() );
+		uint16 x = buf.Read<uint16>();
+		uint16 y = buf.Read<uint16>();
+		auto pos = TVector2<int32>( x, y );
 		auto pEditItem = editItems[buf.Read<uint16>()];
+		uint32 nHp = buf.Read<uint32>();
 		if( pEditItem && IsEditValid( pEditItem, pos ) )
 		{
 			pEditItem->Edit( NULL, this, pos );
-			GetGrid( pos.x, pos.y )->pOrgan->SetHp( buf.Read<uint32>() );
+			GetGrid( pos.x, pos.y )->pOrgan->SetHp( nHp );
 		}
 	}
 }

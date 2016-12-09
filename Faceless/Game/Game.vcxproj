@@ -431,6 +431,7 @@
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Face.cpp" />
+    <ClCompile Include="FaceEditItem.cpp" />
     <ClCompile Include="GameUtil.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GUI\FaceToolbox.cpp" />

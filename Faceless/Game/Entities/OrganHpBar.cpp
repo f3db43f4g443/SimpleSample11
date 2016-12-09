@@ -17,15 +17,16 @@ void COrganHpBar::SetOrgan( COrgan * pOrgan )
 
 	uint32 nWidth = pOrgan->GetWidth();
 	uint32 nHeight = pOrgan->GetHeight();
+	float scale = nHeight <= 1 ? 1 : ( nWidth * nHeight <= 4 || nHeight <= 2 ? 2 : 4 );
 	
 	SetPosition( pOrgan->GetPosition() );
 	CRectangle rect( nWidth * -0.5f, nHeight * -0.5f, nWidth, nHeight );
 	rect = rect.Scale( pOrgan->GetFace()->GetGridScale() );
-	rect.SetTop( rect.GetBottom() - 2 );
+	rect.SetTop( rect.GetBottom() - 2 * scale );
 	rect.SetLeft( rect.GetLeft() + 4 );
 	rect.SetRight( rect.GetRight() - 4 );
 	pImage2D->SetRect( rect );
-	pImage2D->GetParam()[0].z = rect.width;
+	pImage2D->GetParam()[0].z = rect.width / scale;
 
 	pOrgan->Register_OnHpChanged( &m_onHpChanged );
 	OnOrganHpChanged( pOrgan );

@@ -128,14 +128,12 @@ void CMainUI::SetVisible( bool bVisible )
 	m_bVisible = bVisible;
 	if( bVisible )
 	{
-		m_guiCamera.SetViewport( 0, 0, 800, 600 );
 		m_guiCamera.SetPosition( 0, 0 );
 		m_guiCamera.SetSize( 800, 600 );
 		CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( this );
 		CScene2DManager::GetGlobalInst()->AddActiveCamera( &m_guiCamera, this );
 
 		CCamera2D& camInnerLayer = m_pCanvas->GetCamera();
-		camInnerLayer.SetViewport( 0, 0, 800, 600 );
 		camInnerLayer.SetPosition( 0, 0 );
 		camInnerLayer.SetSize( 800, 600 );
 		CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( m_pCanvas->GetRoot() );

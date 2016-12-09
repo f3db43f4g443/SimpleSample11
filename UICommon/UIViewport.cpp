@@ -12,6 +12,8 @@
 CUIViewport::CUIViewport()
 	: m_pRenderer( NULL )
 	, m_pExternalCamera( NULL )
+	, m_texSize( 0, 0 )
+	, m_bLight( false )
 {
 	m_elem.SetDrawable( this );
 }
@@ -40,11 +42,30 @@ void CUIViewport::ReleaseTexture()
 		m_pRenderer->ReleaseSubRendererTexture();
 }
 
+void CUIViewport::ReserveTexSize( const CVector2 & size )
+{
+	CVector2 newSize = CVector2( Max( size.x, m_texSize.x ), Max( size.y, m_texSize.y ) );
+	if( newSize == m_texSize )
+		return;
+
+	m_texSize = newSize;
+	if( m_pRenderer )
+		m_pRenderer->OnResize( IRenderSystem::Inst(), m_texSize );
+}
+
 void CUIViewport::Render( CRenderContext2D& context )
 {
 	if( m_pRenderer )
 	{
+		auto origRect = GetCamera().GetViewArea();
+		if( m_bLight )
+		{
+			GetCamera().SetViewArea( origRect.Offset( CVector2( m_texSize.x - m_localBound.width, m_texSize.y - m_localBound.height ) * 0.5f ) );
+			GetCamera().SetSize( m_texSize.x, m_texSize.y );
+		}
+
 		m_pRenderer->OnRender( context.pRenderSystem );
+		GetCamera().SetViewArea( origRect );
 		m_events.Trigger( eEvent_Action, context.pRenderSystem );
 		if( GetMgr() )
 			context.AddElement( &m_elem );
@@ -55,7 +76,7 @@ void CUIViewport::Flush( CRenderContext2D& context )
 {
 	CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), m_localBound.Offset( globalTransform.GetPosition() ),
 		CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
-		GetMgr()->GetSize().GetSize(), m_localBound.GetSize(), m_elem.depth * context.mat.m22 + context.mat.m23 );
+		GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
 	m_pRenderer->ReleaseSubRendererTexture();
 	m_elem.OnFlushed();
 }
@@ -106,10 +127,14 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 
 	m_pExternalRoot = pRoot;
 	m_pExternalCamera = pExternalCamera;
+	m_bLight = bLight;
 	
 	if( pRoot )
 	{
-		pExternalCamera->SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
+		if( !m_bLight )
+			pExternalCamera->SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
+		else
+			pExternalCamera->SetViewport( 0, 0, 0, 0 );
 		pExternalCamera->SetSize( m_localBound.width, m_localBound.height );
 		pExternalCamera->SetPosition( 0, 0 );
 
@@ -128,9 +153,8 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 			context.bInvertY = false;
 			m_pRenderer = new CSimpleRenderer( context );
 		}
-
 		m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
-		m_pRenderer->OnResize( IRenderSystem::Inst(), CVector2( m_localBound.width, m_localBound.height ) );
+		m_pRenderer->OnResize( IRenderSystem::Inst(), m_texSize );
 	}
 }
 
@@ -146,9 +170,12 @@ void CUIViewport::OnInited()
 	context.pRoot = pRoot;
 	m_pRenderer = new CLighted2DRenderer( context );
 	m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
-	m_pRenderer->OnResize( IRenderSystem::Inst(), CVector2( m_localBound.width, m_localBound.height ) );
+	ReserveTexSize( CVector2( m_localBound.width, m_localBound.height ) );
 
-	m_camera.SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
+	if( !m_bLight )
+		m_camera.SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
+	else
+		m_camera.SetViewport( 0, 0, 0, 0 );
 	m_camera.SetSize( m_localBound.width, m_localBound.height );
 	m_camera.SetPosition( 0, 0 );
 
@@ -168,8 +195,10 @@ void CUIViewport::OnInited()
 
 void CUIViewport::OnResize( const CRectangle& oldRect, const CRectangle& newRect )
 {
-	if( m_pRenderer )
-		m_pRenderer->OnResize( IRenderSystem::Inst(), CVector2( newRect.width, newRect.height ) );
-	GetCamera().SetViewport( CRectangle( 0, 0, newRect.width, newRect.height ) );
+	ReserveTexSize( CVector2( newRect.width, newRect.height ) );
+	if( !m_bLight )
+		GetCamera().SetViewport( CRectangle( 0, 0, newRect.width, newRect.height ) );
+	else
+		GetCamera().SetViewport( 0, 0, 0, 0 );
 	GetCamera().SetSize( newRect.width, newRect.height );
 }

@@ -51,7 +51,6 @@ void CGame::Start()
 	m_pUIMgr = pUIManager;
 	pUIManager->Resize( CRectangle( 0, 0, screenRes.x, screenRes.y ) );
 	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pUIManager );
-	m_camera.SetViewport( 0, 0, screenRes.x, screenRes.y );
 	m_camera.SetPosition( screenRes.x / 2, screenRes.y / 2 );
 	m_camera.SetSize( screenRes.x, screenRes.y );
 	CScene2DManager::GetGlobalInst()->AddActiveCamera( &m_camera, m_pUIMgr );
@@ -78,7 +77,7 @@ void CGame::Start()
 	//CMainUI::Inst()->SetVisible( true );
 
 	auto pLevel = CMyLevel::GetInst();
-	auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/man1.pf" );
+	auto pCharacterPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "data/lv0/boss.pf" );
 	auto pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
 	pLevel->AddCharacter( pCharacter, 12, 1 );
 	pCharacter = static_cast<CCharacter*>( pCharacterPrefab->GetRoot()->CreateInstance() );
@@ -151,7 +150,6 @@ void CGame::OnResize( const CVector2& size )
 	if( !m_pUIMgr )
 		return;
 	m_pUIMgr->Resize( CRectangle( 0, 0, size.x, size.y ) );
-	m_camera.SetViewport( 0, 0, size.x, size.y );
 	m_camera.SetPosition( size.x / 2, size.y / 2 );
 	m_camera.SetSize( size.x, size.y );
 }
