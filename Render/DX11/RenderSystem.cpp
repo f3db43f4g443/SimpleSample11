@@ -407,7 +407,7 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	DXUTSetCallbackD3D11FrameRender( OnD3D11FrameRender, this );
 	DXUTSetIsInGammaCorrectMode( false );
 
-	DXUTInit( true, true, NULL ); // Parse the command line, show msgboxes on error, no extra command line params
+	DXUTInit( true, false, NULL );
 	DXUTSetCursorSettings( true, true );
 	DXUTCreateWindow( L"SimpleSample11" );
 
@@ -575,8 +575,9 @@ bool CALLBACK CRenderSystem::ModifyDeviceSettings( DXUTDeviceSettings* pDeviceSe
 void CALLBACK CRenderSystem::OnFrameMove( double fTime, float fElapsedTime, void* pUserContext )
 {
 	CRenderSystem* pThis = (CRenderSystem*)pUserContext;
+	fElapsedTime = Min( fElapsedTime, 0.1f );
 	pThis->m_fElapsedTime = fElapsedTime;
-	pThis->m_dTime = fTime;
+	pThis->m_dTime = pThis->m_dLastTime + pThis->m_fElapsedTime;
 	pThis->m_pGame->Update();
 	pThis->m_pRenderer->OnUpdate( pThis );
 	
@@ -611,6 +612,17 @@ LRESULT CALLBACK CRenderSystem::MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LP
 			if( pThis->m_pGame )
 				pThis->m_pGame->OnMouseUp( CVector2( iMouseX, iMouseY ) );
             return TRUE;
+
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONDBLCLK:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnRightMouseDown( CVector2( iMouseX, iMouseY ) );
+			return TRUE;
+
+		case WM_RBUTTONUP:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnRightMouseUp( CVector2( iMouseX, iMouseY ) );
+			return TRUE;
 
         case WM_MOUSEMOVE:
 			if( pThis->m_pGame )

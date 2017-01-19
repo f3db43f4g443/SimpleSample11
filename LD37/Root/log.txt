@@ -1,0 +1,8 @@
+label	time	avgTime	count	avgCount	maxTime
+Update	0	-nan(ind)	0	-nan(ind)	0
+Tick1	0	-nan(ind)	0	-nan(ind)	0
+UpdateDirty1	0	-nan(ind)	0	-nan(ind)	0
+HitTest	0	-nan(ind)	0	-nan(ind)	0
+HitTest1	0	-nan(ind)	0	-nan(ind)	0
+Tick2	0	-nan(ind)	0	-nan(ind)	0
+UpdateDirty2	0	-nan(ind)	0	-nan(ind)	0

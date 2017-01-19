@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "UITextBox.h"
+#include "Common/SystemUtil.h"
+#include "Common/Utf8Util.h"
 
 void CUITextBox::OnStartDrag( const CVector2 & mousePos )
 {
@@ -34,15 +36,22 @@ void CUITextBox::OnChar( uint32 nChar )
 			m_pTextObject->Delete();
 			break;
 
-        case 24:        // Ctrl-X Cut
-		case VK_CANCEL: // Ctrl-C Copy
+        case 24:
 		{
+			SetClipboard( UnicodeToUtf8( m_pTextObject->GetSelectedText().c_str() ).c_str() );
+			m_pTextObject->Insert( L"" );
 			break;
 		}
-
-            // Ctrl-V Paste
+		case VK_CANCEL: // Ctrl-C Copy
+		{
+			SetClipboard( UnicodeToUtf8( m_pTextObject->GetSelectedText().c_str() ).c_str() );
+			break;
+		}
         case 22:
         {
+			string str = GetClipboard();
+			if( str.length() )
+				m_pTextObject->Insert( Utf8ToUnicode( str.c_str() ).c_str() );
 			break;
         }
 

@@ -20,6 +20,7 @@ public:
 	TVector2 operator/ ( const TVector2& vec ) const;
 
     T Length () const;
+	T Length2 () const;
     T Dot (const TVector2& vec) const;
     T Normalize ();
 

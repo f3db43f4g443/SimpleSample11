@@ -11,7 +11,7 @@ CSound::CSound( IDirectSound* pDSound, void* pData, uint32 nSize, const SWaveFor
 	dsbdesc.dwFlags = DSBCAPS_STATIC | DSBCAPS_CTRLVOLUME;
 	dsbdesc.dwBufferBytes = nSize;
 	dsbdesc.lpwfxFormat = (LPWAVEFORMATEX)&format;
-	pDSound->CreateSoundBuffer( &dsbdesc, m_pBuffer.AssignPtr(), NULL );
+	HRESULT hr = pDSound->CreateSoundBuffer( &dsbdesc, m_pBuffer.AssignPtr(), NULL );
 
 	void* pBufData;
 	DWORD nDataSize;

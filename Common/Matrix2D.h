@@ -18,14 +18,19 @@ public:
 	TMatrix2D operator- (const TMatrix2D& mat) const;
 	TMatrix2D operator* (T scalar) const;
 
+	bool operator== ( const TMatrix2D& mat );
+	bool operator!= ( const TMatrix2D& mat );
+
     TVector3<T> operator* (const TVector3<T>& vec) const;
     TMatrix2D operator* (const TMatrix2D& mat) const;
 
 	TVector2<T> MulVector2Pos(const TVector2<T>& vec) const;
 	TVector2<T> MulVector2Dir(const TVector2<T>& vec) const;
 	TVector2<T> MulTVector2PosNoScale(const TVector2<T>& vec) const;
+	TVector2<T> MulTVector2DirNoScale( const TVector2<T>& vec ) const;
 
 	TVector2<T> GetPosition() const;
+	void SetPosition( TVector2<T> pos );
 
 	T* GetMatrix() { return &m00; }
 

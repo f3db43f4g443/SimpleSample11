@@ -5,6 +5,7 @@
 
 CRenderObject2D::CRenderObject2D()
 {
+	SET_BASEOBJECT_ID( CRenderObject2D );
 	m_pParent = NULL;
 	m_pChildren = NULL;
 	m_depth = -1;

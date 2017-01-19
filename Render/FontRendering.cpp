@@ -405,6 +405,23 @@ void CFontObject::Backspace()
 	m_selectPos = m_cursorPos;
 }
 
+wstring CFontObject::GetSelectedText()
+{
+	if( !m_bEditMode )
+		return L"";
+	uint32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
+	uint32 nIndex1 = ( m_selectPos.y ? m_vecLineBeginIndex[m_selectPos.y - 1] : 0 ) + m_selectPos.x;
+	if( nIndex > nIndex1 )
+	{
+		uint32 temp = nIndex;
+		nIndex = nIndex1;
+		nIndex1 = temp;
+	}
+
+	wstring str = m_strText;
+	return str.substr( nIndex, nIndex1 - nIndex );
+}
+
 void CFontObject::Render( CRenderContext2D& context )
 {
 	m_pFont->UpdateTexture( context.pRenderSystem );

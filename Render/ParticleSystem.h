@@ -176,6 +176,12 @@ public:
 	virtual void RegisterEvent( uint32 nEvent, CTrigger* pTrigger ) override {}
 
 	SParticleInstanceData& GetData() { return m_data; }
+	void ClearData()
+	{
+		m_data.nBegin = m_data.nEnd = 0;
+		m_data.fTime = 0;
+		m_data.fEmitTime = 0;
+	}
 	IParticleEmitter* GetEmitter() { return m_pEmitter; }
 	void SetEmitter( IParticleEmitter* pEmitter )
 	{

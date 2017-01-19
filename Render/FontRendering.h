@@ -55,6 +55,8 @@ public:
 	void Delete();
 	void Backspace();
 
+	wstring GetSelectedText();
+
 	void SetColor( const CVector4& color ) { m_color = color; }
 	void SetSelectionColor( const CVector4& color ) { m_selectionColor = color; }
 

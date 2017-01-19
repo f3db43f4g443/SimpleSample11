@@ -114,6 +114,7 @@ bool CPrefabNode::SetResource( CResource* pResource )
 		}
 	}
 	SetRenderObject( pRenderObject );
+	return true;
 }
 
 void CPrefabNode::OnResourceRefreshBegin()
@@ -202,7 +203,8 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 		if( itr != mapInfo.end() )
 		{
 			auto pInfo = itr->second;
-			if( m_obj.GetClassData() && m_obj.GetClassData()->Is( pInfo->pMemberData->pTypeData ) >= 0 )
+			if( pInfo->pMemberData->pTypeData == CClassMetaDataMgr::Inst().GetClassData<CRenderObject2D>()
+				|| m_obj.GetClassData() && m_obj.GetClassData()->Is( pInfo->pMemberData->pTypeData ) )
 				pInfo->nChild = nIndex;
 		}
 	}

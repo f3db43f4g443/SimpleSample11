@@ -1,0 +1,13 @@
+﻿<root>
+  <gui_pass>
+    <blend type="transparent" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneTexturePixelShader">
+      <shader_resources>
+        <item name="Texture0" filename="EditorRes/Textures/transform.png" />
+      </shader_resources>
+      <samplers>
+        <item name="LinearSampler" />
+      </samplers>
+    </material>
+  </gui_pass>
+</root>

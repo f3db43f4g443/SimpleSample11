@@ -50,6 +50,20 @@ TMatrix2D<T> TMatrix2D<T>::operator* (T scalar) const
 }
 
 template <typename T>
+bool TMatrix2D<T>::operator== ( const TMatrix2D& mat )
+{
+	return m00 == mat.m00 && m01 == mat.m01 && m02 == mat.m02
+		&& m10 == mat.m10 && m11 == mat.m11 && m12 == mat.m12
+		&& m20 == mat.m20 && m21 == mat.m21 && m22 == mat.m22;
+}
+
+template <typename T>
+bool TMatrix2D<T>::operator!= ( const TMatrix2D& mat )
+{
+	return !( *this == mat );
+}
+
+template <typename T>
 TVector3<T> TMatrix2D<T>::operator* (const TVector3<T>& vec) const
 {
 	return TVector3<T>(vec.Dot(TVector3<T>(m00, m01, m02)),
@@ -93,9 +107,23 @@ TVector2<T> TMatrix2D<T>::MulTVector2PosNoScale(const TVector2<T>& vec) const
 }
 
 template <typename T>
+TVector2<T> TMatrix2D<T>::MulTVector2DirNoScale(const TVector2<T>& vec) const
+{
+	TVector2<T> vec2( vec.x, vec.y );
+	return TVector2<T>( vec2.Dot( TVector2<T>( m00, m10 ) ), vec2.Dot( TVector2<T>( m01, m11 ) ) );
+}
+
+template <typename T>
 TVector2<T> TMatrix2D<T>::GetPosition() const
 {
 	return TVector2<T>(m02, m12);
+}
+
+template <typename T>
+void TMatrix2D<T>::SetPosition( TVector2<T> pos )
+{
+	m02 = pos.x;
+	m12 = pos.y;
 }
 
 template <typename T>

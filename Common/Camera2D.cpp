@@ -7,8 +7,8 @@ void CCamera2D::GetDrawMatrix(CMatrix& trans, unsigned int nElemCount) const
 	trans.m00 = 2.0f / m_rectScene.width;
 	trans.m11 = 2.0f / m_rectScene.height;
 	trans.m22 = 1.0f / nElemCount;
-	trans.m03 = -m_rectScene.GetCenterX() * trans.m00;
-	trans.m13 = -m_rectScene.GetCenterY() * trans.m11;
+	trans.m03 = -( m_rectScene.GetCenterX() + m_extraOfs.x ) * trans.m00;
+	trans.m13 = -( m_rectScene.GetCenterY() + m_extraOfs.y ) * trans.m11;
 	trans.m23 = 0.5f / nElemCount;
 }
 

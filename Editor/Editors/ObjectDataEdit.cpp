@@ -229,7 +229,7 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 
 	for( auto& memberData : pMetaData->vecMemberData )
 	{
-		CObjectDataEditItem* pChild;
+		CObjectDataEditItem* pChild = NULL;
 		if( memberData.nType == SClassMetaData::SMemberData::eTypeClass )
 		{
 			if( memberData.pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() )
@@ -243,9 +243,10 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 			pChild = new CObjectDataVectorEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
 		else if( memberData.nType == SClassMetaData::SMemberData::eType_bool )
 			pChild = new CObjectDataBoolEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
-		else
+		else if( memberData.nType != SClassMetaData::SMemberData::eTypeTaggedPtr )
 			pChild = new CObjectDataCommonEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
-		Insert_Item( pChild );
+		if( pChild )
+			Insert_Item( pChild );
 	}
 
 	for( auto& baseClassData : pMetaData->vecBaseClassData )

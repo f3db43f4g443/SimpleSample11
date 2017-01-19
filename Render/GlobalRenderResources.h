@@ -11,33 +11,17 @@ class IRenderSystem;
 class CVertexBufferDesc;
 class CGlobalShader
 {
+	friend bool Compile( IRenderSystem* pRenderSystem, const char* szFileName );
+	friend void Compile( CGlobalShader* pShader, const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream );
 public:
 	class IInitor
 	{
+		friend bool Compile( IRenderSystem* pRenderSystem, const char* szFileName );
 	public:
 		virtual void Init() = 0;
-		virtual void Compile() = 0;
 		virtual const char* GetFileName() = 0;
-	};
-
-	template<class T>
-	class CInitor : public IInitor
-	{
-	public:
-		CInitor( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 )
-			: m_szShaderName( szShaderName ), m_szName( szName ), m_szFunctionName( szFunctionName ), m_szProfile( szProfile ), m_ppSOVertexBufferDesc( ppSOVertexBufferDesc ), m_nVertexBuffers( nVertexBuffers ), m_nRasterizedStream( nRasterizedStream )
-		{
-			m_pShader = new T;
-			CGlobalShader::GetShaderInitors().push_back( this );
-		}
-
-		T* GetShader() { return m_pShader; }
-		void Init() { m_pShader->Create( m_szShaderName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
-		void Compile() { m_pShader->Compile( m_szShaderName, m_szName, m_szFunctionName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
-
-		const char* GetFileName() { return m_szName; }
 	protected:
-		T* m_pShader;
+		CGlobalShader* m_pShader;
 		const char* m_szShaderName;
 		const char* m_szName;
 		const char* m_szFunctionName;
@@ -47,14 +31,36 @@ public:
 		uint32 m_nRasterizedStream;
 	};
 
+	template<class T>
+	class CInitor : public IInitor
+	{
+	public:
+		CInitor( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 )
+		{
+			m_szShaderName = szShaderName;
+			m_szName = szName;
+			m_szFunctionName = szFunctionName;
+			m_szProfile = szProfile;
+			m_ppSOVertexBufferDesc = ppSOVertexBufferDesc;
+			m_nVertexBuffers = nVertexBuffers;
+			m_nRasterizedStream = nRasterizedStream;
+			m_pShader = new T;
+			CGlobalShader::GetShaderInitors().push_back( this );
+		}
+
+		T* GetShader() { return static_cast<T*>( m_pShader ); }
+		void Init() { m_pShader->Create( m_szShaderName, m_szProfile, m_ppSOVertexBufferDesc, m_nVertexBuffers, m_nRasterizedStream ); }
+
+		const char* GetFileName() { return m_szName; }
+	protected:
+	};
+
 	virtual ~CGlobalShader() {}
 	void Create( const char* szShaderName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 );
-	void Compile( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 );
 	
 	IShader* GetShader() { return m_pShader; }
 
 	static void Init( IRenderSystem* pRenderSystem );
-	static bool Compile( IRenderSystem* pRenderSystem, const char* szFileName = NULL );
 	static map<string, IShader*>& GetShaders()
 	{
 		static map<string, IShader*> g_shaders;

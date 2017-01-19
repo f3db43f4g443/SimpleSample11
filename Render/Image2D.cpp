@@ -105,9 +105,9 @@ CMultiFrameImage2D::CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOc
 
 void CMultiFrameImage2D::SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPerSec )
 {
-	m_nFrameBegin = nBegin;
-	m_nFrameEnd = nEnd;
-	m_fFramesPerSec = fFramesPerSec;
+	m_nFrameBegin = Min( nBegin, m_pData->frames.size() );
+	m_nFrameEnd = Min( nEnd, m_pData->frames.size() );
+	m_fFramesPerSec = Max( fFramesPerSec, 0.0f );
 	m_fCurTime = 0;
 	m_nCurFrame = -1;
 	UpdateImage();

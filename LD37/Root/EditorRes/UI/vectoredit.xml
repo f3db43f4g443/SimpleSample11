@@ -1,0 +1,12 @@
+﻿<root type="element">
+  <template type="EditorRes/UI/textbox.xml" name="textbox0" rectX="0" rectY="-10" rectWidth="32" rectHeight="20" >
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="textbox1" rectX="32" rectY="-10" rectWidth="32" rectHeight="20" >
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="textbox2" rectX="64" rectY="-10" rectWidth="32" rectHeight="20" >
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="textbox3" rectX="96" rectY="-10" rectWidth="32" rectHeight="20" >
+  </template>
+  <element type="label" name="label" rectX="-128" rectY="-10" rectWidth="128" rectHeight="20" textAlignX="0" textAlignY="1">
+  </element>
+</root>

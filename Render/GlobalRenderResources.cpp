@@ -26,47 +26,11 @@ void CGlobalShader::Create( const char* szShaderName, const char* szProfile, con
 	GetShaders()[szShaderName] = m_pShader;
 }
 
-void CGlobalShader::Compile( const char* szShaderName, const char* szName, const char* szFunctionName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
-{
-	vector<char> content;
-	uint32 nLen = GetFileContent( content, szName, true );
-
-	SShaderMacroDef macroDef;
-	SetMacros( macroDef );
-
-	CBufFile buf;
-	string strPath = szName;
-	strPath = strPath.substr( 0, strPath.rfind( "/" ) + 1 );
-	bool bCreated = IRenderSystem::Inst()->CompileShader( buf, &content[0], nLen, szFunctionName, szProfile, &macroDef, strPath.c_str(), ppSOVertexBufferDesc, nVertexBuffers, nRasterizedStream );
-
-	if( bCreated )
-	{
-		string strFileName = "Root/Shader/";
-		strFileName += szShaderName;
-		strFileName += ".sb";
-		SaveFile( strFileName.c_str(), buf.GetBuffer(), buf.GetBufLen() );
-	}
-}
-
 void CGlobalShader::Init( IRenderSystem* pRenderSystem )
 {
 	auto shaders = GetShaderInitors();
 	for( auto item : shaders )
 		item->Init();
-}
-
-bool CGlobalShader::Compile( IRenderSystem* pRenderSystem, const char* szFileName )
-{
-	auto shaders = GetShaderInitors();
-	bool bCompile = false;
-	for( auto item : shaders )
-	{
-		if( szFileName && szFileName[0] && strcmp( szFileName, item->GetFileName() ) )
-			continue;
-		bCompile = true;
-		item->Compile();
-	}
-	return bCompile;
 }
 
 IShader* CGlobalShader::GetShaderByName( const char* szName )

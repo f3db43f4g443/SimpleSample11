@@ -73,6 +73,13 @@ T TVector2<T>::Length () const
 {
 	return sqrt(x * x + y * y);
 }
+
+template <typename T>
+T TVector2<T>::Length2() const
+{
+	return x * x + y * y;
+}
+
 template <typename T>
 T TVector2<T>::Dot (const TVector2<T>& vec) const
 {

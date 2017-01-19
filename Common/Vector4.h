@@ -15,6 +15,7 @@ public:
     TVector4 operator- (const TVector4& vec) const;
 	TVector4 operator* (T scalar) const;
 	TVector4 operator* (const TVector4& vec) const;
+	TVector4 operator/ ( T scalar ) const;
 	
     T Length () const;
     T Dot (const TVector4& vec) const;

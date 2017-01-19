@@ -20,6 +20,7 @@
     <ClCompile Include="Coroutine.cpp" />
     <ClCompile Include="DateTime.cpp" />
     <ClCompile Include="TabFile.cpp" />
+    <ClCompile Include="SystemUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitArray.h" />
@@ -59,6 +60,7 @@
     <ClInclude Include="DateTime.h" />
     <ClInclude Include="PriorityQueue.h" />
     <ClInclude Include="TabFile.h" />
+    <ClInclude Include="SystemUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BoundBox.inl" />

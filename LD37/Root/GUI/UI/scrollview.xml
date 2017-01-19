@@ -1,0 +1,17 @@
+﻿<root type="scrollview" rectX="-100" rectY="-100" rectWidth="200" rectHeight="200"
+      clipRectLeft="10" clipRectTop="10" clipRectRight="10" clipRectBottom="10" layout_type="0">
+  <imageLists>
+    <imageList>
+      <image9 drawable="GUI/Drawables/opaque.xml" rectX="-100" rectY="-100" rectWidth="200" rectHeight="200"
+              rectLeft="-96" rectTop="-96" rectRight="96" rectBottom="96"
+              texX="0" texY="0" texWidth="32" texHeight="32"
+              texLeft="4" texTop="4" texRight="28" texBottom="28" />
+    </imageList>
+  </imageLists>
+  <template name="barX" type="GUI/UI/scrollbar.xml" vertical="0" x="0" y="90" rectX="-64" rectY="-8" rectWidth="128" rectHeight="16" thumb_percent="0.1"
+            alignX="3" alignY="2">
+  </template>
+  <template name="barY" type="GUI/UI/scrollbar.xml" x="90" y="0" rectX="-8" rectY="-64" rectWidth="16" rectHeight="128" thumb_percent="0.1"
+            alignX="2" alignY="3">
+  </template>
+</root>

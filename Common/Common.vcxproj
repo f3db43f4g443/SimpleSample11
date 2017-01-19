@@ -55,6 +55,7 @@
       <PrecompiledHeaderFile>Common.h</PrecompiledHeaderFile>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir)../implib;$(ProjectDir)../implib/boost</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -72,6 +73,7 @@
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)../implib;$(ProjectDir)../implib/boost</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Common.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -101,6 +103,7 @@
     <ClCompile Include="Resource.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="StringUtil.cpp" />
+    <ClCompile Include="SystemUtil.cpp" />
     <ClCompile Include="TabFile.cpp" />
     <ClCompile Include="Trigger.cpp" />
     <ClCompile Include="Utf8Util.cpp" />
@@ -136,6 +139,7 @@
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="SortedList.h" />
     <ClInclude Include="StringUtil.h" />
+    <ClInclude Include="SystemUtil.h" />
     <ClInclude Include="TabFile.h" />
     <ClInclude Include="Transform2D.h" />
     <ClInclude Include="Trigger.h" />

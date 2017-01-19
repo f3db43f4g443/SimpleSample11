@@ -104,7 +104,7 @@ void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert
 CVector2 CUIViewport::GetScenePos( const CVector2& mousePos )
 {
 	CRectangle bound = m_localBound.Offset( globalTransform.GetPosition() );
-	CRectangle sceneBound = GetCamera().GetViewArea();
+	CRectangle sceneBound = GetCamera().GetOrigViewArea();
 	CVector2 vec;
 	vec.x = ( mousePos.x - bound.x ) / bound.width * sceneBound.width + sceneBound.x;
 	vec.y = ( bound.height - mousePos.y + bound.y ) / bound.height * sceneBound.height + sceneBound.y;

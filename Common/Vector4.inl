@@ -51,6 +51,11 @@ TVector4<T> TVector4<T>::operator* (const TVector4& vec) const
 {
 	return TVector4<T>(x * vec.x, y * vec.y, z * vec.z, w * vec.w);
 }
+template <typename T>
+TVector4<T> TVector4<T>::operator/ ( T scalar ) const
+{
+	return TVector4<T>( x / scalar, y / scalar, z / scalar, w / scalar );
+}
 
 template <typename T>
 T TVector4<T>::Length () const

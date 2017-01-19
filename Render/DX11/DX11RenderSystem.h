@@ -29,8 +29,6 @@ public:
 	virtual IDepthStencil* GetDefaultDepthStencil() override { return &m_defaultDepthStencil; }
 	
 	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) override;
-	virtual bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
-		const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) override;
 
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) override;
 	virtual void SetBlendState( IBlendState* pState, const CVector4& blendFactor = CVector4( 0, 0, 0, 0 ), uint32 nSampleMask = 0xffffffff ) override;

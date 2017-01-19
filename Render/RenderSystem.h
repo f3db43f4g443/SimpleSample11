@@ -48,8 +48,6 @@ public:
 	virtual IDepthStencil* GetDefaultDepthStencil() = 0;
 	
 	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) = 0;
-	virtual bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* szFunctionName, const char* szProfile, SShaderMacroDef* pMacros = NULL, const char* szInclude = NULL,
-		const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) = 0;
 
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) = 0;
 	virtual void SetBlendState( IBlendState* pState, const CVector4& blendFactor = CVector4( 0, 0, 0, 0 ), uint32 nSampleMask = 0xffffffff ) = 0;
