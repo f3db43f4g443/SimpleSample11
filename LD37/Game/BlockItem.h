@@ -65,3 +65,19 @@ protected:
 	CReference<CPrefab> m_pBulletPrefab;
 	CReference<CPrefab> m_pBulletPrefab1;
 };
+
+class CBlockItemTrigger2 : public CBlockItemTrigger
+{
+	friend void RegisterGameClasses();
+public:
+	CBlockItemTrigger2( const SClassCreateContext& context ) : CBlockItemTrigger( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CBlockItemTrigger2 ); }
+
+	virtual void OnAddedToStage() override;
+protected:
+	virtual void OnTrigged(CCharacter* pCharacter, const CVector2& dir) override;
+
+	CString m_strBullet;
+	CString m_strBullet1;
+	CReference<CPrefab> m_pBulletPrefab;
+	CReference<CPrefab> m_pBulletPrefab1;
+};
