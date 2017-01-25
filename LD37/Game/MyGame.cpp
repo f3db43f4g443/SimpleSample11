@@ -507,6 +507,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet1 )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CBlockItemTrigger2 )
+		REGISTER_BASE_CLASS( CBlockItemTrigger )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_strBullet1 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CEffectObject )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pStates[0], birth )

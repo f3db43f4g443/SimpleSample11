@@ -318,6 +318,15 @@ void SBulletContext::SetBulletMoveA( float fAngleV, float fAngleA )
 	nBeginFrame1 = pPage->pOwner->m_nCurFrame;	
 }
 
+void SBulletContext::MoveTowards( const CVector2 & p0, uint32 nTime )
+{
+	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / 60.0f;
+	this->p0 = this->p0 + this->v * t + this->a * ( t * t * 0.5f );
+	this->v = ( this->p0 - p0 ) * ( 60.0f / nTime );
+	this->a = CVector2( 0, 0 );
+	nBeginFrame = pPage->pOwner->m_nCurFrame;
+}
+
 bool SBulletContext::Reflect()
 {
 	if( !pEntity )

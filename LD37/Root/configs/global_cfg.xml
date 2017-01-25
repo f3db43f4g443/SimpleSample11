@@ -17,6 +17,7 @@
       <node name="e2" prefab="e2.pf" sizex="2" sizey="2" />
       <node name="item1" prefab="data/items/item1.pf" />
       <node name="item2" prefab="data/items/item2.pf" />
+      <node name="item3" prefab="data/items/item3.pf" sizex="2" sizey="2" />
     </attachs>
     <nodes>
       <node name="myroom" width="10" height="10" absorbshakestrength="0" isroom="1" prefab="myroom.pf">
@@ -34,6 +35,7 @@
         </types>
         <next_level>
           <node type="subregion">
+            <ref name="item3" x="0" y="8" w="2" h="2" />
             <node type="randomfill" x="4" y="9" w="2" h="1" >
               <ref name="item1" p="1" />
               <node type="empty" p="1" />
@@ -226,6 +228,7 @@
         </types>
         <next_level>
           <node type="subregion">
+            <ref name="item3" x="3" y="3" w="2" h="2" />
             <node type="randomfill" x="2" y="0" w="4" h="1" >
               <ref name="item1" p="1" />
               <node type="empty" p="1" />

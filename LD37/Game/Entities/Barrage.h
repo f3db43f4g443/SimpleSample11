@@ -28,8 +28,10 @@ struct SBulletContext
 	void SetBulletMove( const CVector2& v, const CVector2& a );
 	void SetBulletMoveA( float fAngle0, float fAngleV, float fAngleA );
 	void SetBulletMoveA( float fAngleV, float fAngleA );
+	void MoveTowards( const CVector2& p0, uint32 nTime );
 
 	bool Reflect();
+	bool IsValid() { return this && pPage; }
 
 	struct SBulletPage* pPage;
 };

@@ -181,7 +181,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 	{
 		uint32 nBullet = 0;
 
-		CPlayer* pPlayer = GetStage()->GetPlayer();
+		CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
 		CVector2 dPos = globalTransform.GetPosition() - pPlayer->globalTransform.GetPosition();
 		float fAngle0 = atan2( dPos.y, dPos.x );
 		pBarrage->InitBullet( nBullet++, -1, -1, CVector2( 0, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ), false, fAngle0, 0, 0 );
@@ -205,7 +205,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			uint32 nBullet0 = nBullet;
 			uint32 nParent = nParentBullet[i];
 
-			pPlayer = GetStage()->GetPlayer();
+			pPlayer = pBarrage->GetStage()->GetPlayer();
 			if( !pPlayer )
 				goto end;
 			CVector2 dPos = pBarrage->GetTransform( nParent ).MulTVector2PosNoScale( pPlayer->GetPosition() );
@@ -213,14 +213,19 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			dir.Normalize();
 			CVector2 norm( dir.y, -dir.x );
 
-			CVector2 keyPoints[5][8];
-			uint32 nKeyPoints[] = { 1, 2, 3, 5, 8 };
-			keyPoints[0][0] = CVector2( 0, 0 );
+
+			struct
+			{
+				CVector2 keyPoints[5][8];
+				uint32 nKeyPointsIndex[5][8];
+			} temp;
+			uint32 nKeyPoints[5] = { 1, 2, 3, 5, 8 };
+			temp.keyPoints[0][0] = CVector2( 0, 0 );
 			for( int i = 1; i < 5; i++ )
 			{
 				for( int j = 0; j < nKeyPoints[i]; j++ )
 				{
-					keyPoints[i][j] = dir * i * 64 + norm * ( j - ( nKeyPoints[i] - 1 ) * 0.5f ) * 32;
+					temp.keyPoints[i][j] = dir * i * 64 + norm * ( j - ( nKeyPoints[i] - 1 ) * 0.5f ) * 32;
 				}
 			}
 
@@ -239,11 +244,9 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 					nSplitIndex[i][a] = temp;
 				}
 			}
-
-			uint32 nKeyPointsIndex[5][8];
 			for( int j = 0; j < 8; j++ )
 			{
-				nKeyPointsIndex[4][j] = j;
+				temp.nKeyPointsIndex[4][j] = j;
 			}
 			for( int i = 4; i > 0; i-- )
 			{
@@ -254,7 +257,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 					nIndexMap[j1++] = j;
 					for( int k = 0; k < nKeyPoints[i] - nKeyPoints[i - 1]; k++ )
 					{
-						if( j == nSplitIndex[i][k] )
+						if( j == nSplitIndex[i - 1][k] )
 						{
 							nIndexMap[j1++] = j;
 							break;
@@ -263,38 +266,66 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 				}
 				for( int j = 0; j < 8; j++ )
 				{
-					nKeyPointsIndex[i - 1][j] = nIndexMap[ nKeyPointsIndex[i][j] ];
+					temp.nKeyPointsIndex[i - 1][j] = nIndexMap[temp.nKeyPointsIndex[i][j] ];
 				}
 			}
 
-			const uint32 nWave = 32;
+			const uint32 nWave = 16;
 			for( int i = 0; i < nWave; i++ )
 			{
-				pBarrage->InitBullet( nBullet0 + i * 8, 0, nParent, CVector2( 0, 0 ), dir * 128, CVector2( 0, 0 ), true );
+				uint32 nBaseBullet = nBullet0 + i * 8;
+				pBarrage->InitBullet( nBaseBullet, 0, nParent, CVector2( 0, 0 ), dir * 128, CVector2( 0, 0 ), true );
 
-				pBarrage->AddDelayAction( 1, []()
+				for( int i = 1; i <= 4; i++ )
 				{
-				} );
-			}
+					pBarrage->AddDelayAction( 15 * i - 3, [=]()
+					{
+						for( int iBullet = 0; iBullet < 8; iBullet++ )
+						{
+							uint32 nB = temp.nKeyPointsIndex[i - 1][iBullet];
+							uint32 nB1 = temp.nKeyPointsIndex[i][iBullet];
+							if( iBullet > 0 )
+							{
+								if( nB1 - temp.nKeyPointsIndex[i][iBullet - 1] > nB - temp.nKeyPointsIndex[i - 1][iBullet - 1] )
+								{
+									auto pContext0 = pBarrage->GetBulletContext( nBaseBullet + iBullet - 1 );
+									pBarrage->InitBullet( nBaseBullet + iBullet, pContext0->nNewBulletType, nParent, pContext0->p0,
+										CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+								}
+							}
+							else
+							{
+								SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
+								if( !pContext->pEntity )
+									pContext->nNewBulletType = -1;
+							}
+							SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
+							if( pContext->IsValid() )
+								pContext->MoveTowards( temp.keyPoints[i][iBullet], 3 );
+						}
+					} );
 
-			for( int i = 0; i < 8; i++ )
-			{
+					pBarrage->AddDelayAction( 15 * i, [=] ()
+					{
+						for( int iBullet = 0; iBullet < 8; iBullet++ )
+						{
+							SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
+							if( pContext->IsValid() )
+								pContext->SetBulletMove(  dir * 256, CVector2( 0, 0 ) );
+						}
+					} );
+
+				}
+				pBarrage->Yield( 8 );
 
 			}
+			nBullet += 16 * 8;
 		}
 
-		for( int i = 0; i < nAmmoCount; i++ )
-		{
-			for( int i = 0; i < nBulletCount; i++ )
-			{
-				float r = atan2( p.y, p.x )+( i-( nBulletCount-1 ) * 0.5f ) * fBulletAngle;
-				pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), CVector2( cos( r ), sin( r ) ) * fBulletSpeed, CVector2( 0, 0 ) );
-			}
-
-			pBarrage->Yield( nFireRate );
-		}
 		end:
-		pBarrage->Yield( 5 );
+		pBarrage->Yield( 8 );
+		for( int i = 1; i <= 5; i++ )
+			pBarrage->GetBulletContext( i )->nNewBulletType = -1;
 		pBarrage->StopNewBullet();
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( pEnemy ? CMyLevel::eBulletLevel_Enemy : CMyLevel::eBulletLevel_Player ) );
