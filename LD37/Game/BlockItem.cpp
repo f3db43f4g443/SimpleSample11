@@ -6,6 +6,7 @@
 #include "MyLevel.h"
 #include "Entities/Barrage.h"
 #include "Common/ResourceManager.h"
+#include "Common/Rand.h"
 
 void CBlockItemTrigger::OnAddedToStage()
 {
@@ -190,16 +191,96 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			pBarrage->InitBullet( nBullet++, 1, 0, CVector2( 0, 0 ), CVector2( cos( fAngle ), sin( fAngle ) ) * 400, CVector2( cos( fAngle ), sin( fAngle ) ) * -400, false );
 		}
 		pBarrage->Yield( 60 );
+
 		for( int i = 0; i < 5; i++ )
 		{
 			pBarrage->GetBulletContext( i + 1 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
 		}
 		pBarrage->Yield( 60 );
 
+		uint32 nParentBullet[5] = { 1, 2, 3, 4, 5 };
+		SRand::Inst().Shuffle( nParentBullet, ELEM_COUNT( nParentBullet ) );
 		for( int i = 0; i < 5; i++ )
 		{
 			uint32 nBullet0 = nBullet;
+			uint32 nParent = nParentBullet[i];
 
+			pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer )
+				goto end;
+			CVector2 dPos = pBarrage->GetTransform( nParent ).MulTVector2PosNoScale( pPlayer->GetPosition() );
+			CVector2 dir = dPos;
+			dir.Normalize();
+			CVector2 norm( dir.y, -dir.x );
+
+			CVector2 keyPoints[5][8];
+			uint32 nKeyPoints[] = { 1, 2, 3, 5, 8 };
+			keyPoints[0][0] = CVector2( 0, 0 );
+			for( int i = 1; i < 5; i++ )
+			{
+				for( int j = 0; j < nKeyPoints[i]; j++ )
+				{
+					keyPoints[i][j] = dir * i * 64 + norm * ( j - ( nKeyPoints[i] - 1 ) * 0.5f ) * 32;
+				}
+			}
+
+			uint32 nSplitIndex[4][5];
+			for( int i = 0; i < 4; i++ )
+			{
+				for( uint32 j = 0; j < nKeyPoints[i]; j++ )
+				{
+					nSplitIndex[i][j] = j;
+				}
+				for( uint32 j = 0; j < nKeyPoints[i + 1] - nKeyPoints[i]; j++ )
+				{
+					uint32 a = SRand::Inst().Rand( j, nKeyPoints[i] );
+					uint32 temp = nSplitIndex[i][j];
+					nSplitIndex[i][j] = nSplitIndex[i][a];
+					nSplitIndex[i][a] = temp;
+				}
+			}
+
+			uint32 nKeyPointsIndex[5][8];
+			for( int j = 0; j < 8; j++ )
+			{
+				nKeyPointsIndex[4][j] = j;
+			}
+			for( int i = 4; i > 0; i-- )
+			{
+				int j1 = 0;
+				uint32 nIndexMap[8];
+				for( int j = 0; j < nKeyPoints[i - 1]; j++ )
+				{
+					nIndexMap[j1++] = j;
+					for( int k = 0; k < nKeyPoints[i] - nKeyPoints[i - 1]; k++ )
+					{
+						if( j == nSplitIndex[i][k] )
+						{
+							nIndexMap[j1++] = j;
+							break;
+						}
+					}
+				}
+				for( int j = 0; j < 8; j++ )
+				{
+					nKeyPointsIndex[i - 1][j] = nIndexMap[ nKeyPointsIndex[i][j] ];
+				}
+			}
+
+			const uint32 nWave = 32;
+			for( int i = 0; i < nWave; i++ )
+			{
+				pBarrage->InitBullet( nBullet0 + i * 8, 0, nParent, CVector2( 0, 0 ), dir * 128, CVector2( 0, 0 ), true );
+
+				pBarrage->AddDelayAction( 1, []()
+				{
+				} );
+			}
+
+			for( int i = 0; i < 8; i++ )
+			{
+
+			}
 		}
 
 		for( int i = 0; i < nAmmoCount; i++ )
@@ -212,6 +293,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 
 			pBarrage->Yield( nFireRate );
 		}
+		end:
 		pBarrage->Yield( 5 );
 		pBarrage->StopNewBullet();
 	} );
