@@ -84,6 +84,7 @@
       <Filter>Entities</Filter>
     </ClCompile>
     <ClCompile Include="BlockItem.cpp" />
+    <ClCompile Include="Lightning.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -169,6 +170,7 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="BlockItem.h" />
+    <ClInclude Include="Lightning.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

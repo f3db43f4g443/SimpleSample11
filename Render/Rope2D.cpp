@@ -291,7 +291,7 @@ void SRopeData::Update( const CMatrix2D& globalTransform )
 {
 	for( auto& data : data )
 	{
-		const CMatrix2D& worldMat = data.pRefObj? data.pRefObj->globalTransform: globalTransform;
+		const CMatrix2D& worldMat = data.pRefObj ? ( data.nRefTransformIndex >= 0 ? data.pRefObj->GetTransform( data.nRefTransformIndex ) : data.pRefObj->globalTransform ) : globalTransform;
 		data.worldCenter = worldMat.MulVector2Pos( data.center );
 	}
 }

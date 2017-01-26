@@ -443,6 +443,7 @@
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
+    <ClCompile Include="Lightning.cpp" />
     <ClCompile Include="MyGame.cpp" />
     <ClCompile Include="MyLevel.cpp" />
     <ClCompile Include="Physics\HitProxy.cpp" />
@@ -490,6 +491,7 @@
     <ClInclude Include="GUI\MainUI.h" />
     <ClInclude Include="GUI\UIUtils.h" />
     <ClInclude Include="LevelGenerate.h" />
+    <ClInclude Include="Lightning.h" />
     <ClInclude Include="MyGame.h" />
     <ClInclude Include="MyLevel.h" />
     <ClInclude Include="Physics\HitProxy.h" />

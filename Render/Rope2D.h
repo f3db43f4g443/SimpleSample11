@@ -10,7 +10,7 @@ struct SRopeData
 	SRopeData() : pParticleInstData( NULL ), nSegmentsPerData( 1 ), pExtraData( NULL ) {}
 	struct SData
 	{
-		SData() : center( 0, 0 ), fWidth( 1 ), tex0( 0, 0 ), tex1( 0, 0 ), pRefObj( NULL ) {}
+		SData() : center( 0, 0 ), fWidth( 1 ), tex0( 0, 0 ), tex1( 0, 0 ), pRefObj( NULL ), nRefTransformIndex( -1 ) {}
 		~SData() { if( pRefObj ) pRefObj->RemoveThis(); }
 		CVector2 center;
 		CVector2 worldCenter;
@@ -18,6 +18,7 @@ struct SRopeData
 		CVector2 tex0;
 		CVector2 tex1;
 		CRenderObject2D* pRefObj;
+		int16 nRefTransformIndex;
 	};
 
 	void SetDataCount( uint32 nCount );

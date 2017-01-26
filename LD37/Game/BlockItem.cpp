@@ -167,8 +167,8 @@ void CBlockItemTrigger2::OnAddedToStage()
 void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & dir )
 {
 	auto pEnemy = SafeCast<CEnemy>( pCharacter );
-	if( !pEnemy )
-		return;
+	//if( !pEnemy )
+	//	return;
 
 	SBarrageContext context;
 	context.nBulletPageSize = 100;
@@ -200,6 +200,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 
 		uint32 nParentBullet[5] = { 1, 2, 3, 4, 5 };
 		SRand::Inst().Shuffle( nParentBullet, ELEM_COUNT( nParentBullet ) );
+		const uint32 nWave = 12;
 		for( int i = 0; i < 5; i++ )
 		{
 			uint32 nBullet0 = nBullet;
@@ -213,7 +214,6 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			dir.Normalize();
 			CVector2 norm( dir.y, -dir.x );
 
-
 			struct
 			{
 				CVector2 keyPoints[5][8];
@@ -221,11 +221,13 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			} temp;
 			uint32 nKeyPoints[5] = { 1, 2, 3, 5, 8 };
 			temp.keyPoints[0][0] = CVector2( 0, 0 );
+			float fKeyPointsDist[5] = { 0, 80, 60, 40, 28 };
+			const float fSpeed = 256;
 			for( int i = 1; i < 5; i++ )
 			{
 				for( int j = 0; j < nKeyPoints[i]; j++ )
 				{
-					temp.keyPoints[i][j] = dir * i * 64 + norm * ( j - ( nKeyPoints[i] - 1 ) * 0.5f ) * 32;
+					temp.keyPoints[i][j] = dir * i * ( fSpeed / 4 ) + norm * ( j - ( nKeyPoints[i] - 1 ) * 0.5f ) * fKeyPointsDist[i];
 				}
 			}
 
@@ -269,52 +271,74 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 					temp.nKeyPointsIndex[i - 1][j] = nIndexMap[temp.nKeyPointsIndex[i][j] ];
 				}
 			}
-
-			const uint32 nWave = 16;
+			
+			struct
+			{
+				float r[8];
+			} temp1;
+			for( int i = 0; i < 8; i++ )
+				temp1.r[i] = SRand::Inst().Rand( 0.0f, 2.0f );
 			for( int i = 0; i < nWave; i++ )
 			{
 				uint32 nBaseBullet = nBullet0 + i * 8;
-				pBarrage->InitBullet( nBaseBullet, 0, nParent, CVector2( 0, 0 ), dir * 128, CVector2( 0, 0 ), true );
+				pBarrage->InitBullet( nBaseBullet, 0, nParent, CVector2( 0, 0 ), dir * fSpeed, CVector2( 0, 0 ), true );
 
 				for( int i = 1; i <= 4; i++ )
 				{
-					pBarrage->AddDelayAction( 15 * i - 3, [=]()
+					pBarrage->AddDelayAction( 15 * i - 9, [=]()
 					{
+						uint32 nLastValid = 0;
 						for( int iBullet = 0; iBullet < 8; iBullet++ )
 						{
 							uint32 nB = temp.nKeyPointsIndex[i - 1][iBullet];
 							uint32 nB1 = temp.nKeyPointsIndex[i][iBullet];
-							if( iBullet > 0 )
+							if( iBullet > 0 && nB1 - temp.nKeyPointsIndex[i][iBullet - 1] > nB - temp.nKeyPointsIndex[i - 1][iBullet - 1] )
 							{
-								if( nB1 - temp.nKeyPointsIndex[i][iBullet - 1] > nB - temp.nKeyPointsIndex[i - 1][iBullet - 1] )
-								{
-									auto pContext0 = pBarrage->GetBulletContext( nBaseBullet + iBullet - 1 );
-									pBarrage->InitBullet( nBaseBullet + iBullet, pContext0->nNewBulletType, nParent, pContext0->p0,
-										CVector2( 0, 0 ), CVector2( 0, 0 ), true );
-								}
+								auto pContext0 = pBarrage->GetBulletContext( nBaseBullet + nLastValid );
+								pBarrage->InitBullet( nBaseBullet + iBullet, pContext0->nNewBulletType, nParent, pContext0->p0,
+									CVector2( 0, 0 ), CVector2( 0, 0 ), true );
 							}
 							else
 							{
 								SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
-								if( !pContext->pEntity )
+								if( pContext->IsValid() && !pContext->pEntity )
 									pContext->nNewBulletType = -1;
 							}
 							SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
 							if( pContext->IsValid() )
-								pContext->MoveTowards( temp.keyPoints[i][iBullet], 3 );
+							{
+								nLastValid = iBullet;
+								pContext->MoveTowards( temp.keyPoints[i][nB1], 9 );
+							}
 						}
 					} );
 
-					pBarrage->AddDelayAction( 15 * i, [=] ()
+					if( i < 4 )
 					{
-						for( int iBullet = 0; iBullet < 8; iBullet++ )
+						pBarrage->AddDelayAction( 15 * i, [=] ()
 						{
-							SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
-							if( pContext->IsValid() )
-								pContext->SetBulletMove(  dir * 256, CVector2( 0, 0 ) );
-						}
-					} );
-
+							for( int iBullet = 0; iBullet < 8; iBullet++ )
+							{
+								SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
+								if( pContext->IsValid() )
+									pContext->SetBulletMove( dir * fSpeed, CVector2( 0, 0 ) );
+							}
+						} );
+					}
+					else
+					{
+						pBarrage->AddDelayAction( 15 * i, [=]()
+						{
+							for( int iBullet = 0; iBullet < 8; iBullet++ )
+							{
+								SBulletContext* pContext = pBarrage->GetBulletContext( nBaseBullet + iBullet );
+								if( pContext->IsValid() )
+								{
+									pContext->SetBulletMove( pContext->v * temp1.r[iBullet] + dir * fSpeed * ( 1 - temp1.r[iBullet] ), CVector2( 0, 0 ) );
+								}
+							}
+						} );
+					}
 				}
 				pBarrage->Yield( 8 );
 
@@ -323,7 +347,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 		}
 
 		end:
-		pBarrage->Yield( 8 );
+		pBarrage->Yield( 8 * nWave );
 		for( int i = 1; i <= 5; i++ )
 			pBarrage->GetBulletContext( i )->nNewBulletType = -1;
 		pBarrage->StopNewBullet();
