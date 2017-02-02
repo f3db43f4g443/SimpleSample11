@@ -1412,6 +1412,16 @@ void CHitTestMgr::Update()
 	}
 }
 
+void CHitTestMgr::CalcBound( SHitProxy* pProxy, const CMatrix2D& transform )
+{
+	CRectangle rect;
+	pProxy->CalcBound( transform, rect );
+	TRectangle<int32> newRect( floor( rect.x / nGridSize ), floor( rect.y / nGridSize ), ceil( ( rect.x + rect.width ) / nGridSize ), ceil( ( rect.y + rect.height ) / nGridSize ) );
+	newRect.width -= newRect.x;
+	newRect.height -= newRect.y;
+	pProxy->bound = newRect;
+}
+
 void CHitTestMgr::HitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CHitProxy*>& vecResult, vector<SHitTestResult>* pResult )
 {
 	CRectangle rect;

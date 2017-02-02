@@ -66,9 +66,9 @@ public:
 	bool operator >= ( const CReference& r ) const {
 		return m_ptr >= r.m_ptr;
 	}
-	bool operator != ( const CReference& r ) const {
+	/*bool operator != ( const CReference& r ) const {
 		return m_ptr != r.m_ptr;
-	}
+	}*/
 
 	T* GetPtr() { return m_ptr; }
 	T** AssignPtr() { SAFE_RELEASE( m_ptr ); return &m_ptr; }

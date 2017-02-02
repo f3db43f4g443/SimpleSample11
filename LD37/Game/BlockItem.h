@@ -70,7 +70,8 @@ class CBlockItemTrigger2 : public CBlockItemTrigger
 {
 	friend void RegisterGameClasses();
 public:
-	CBlockItemTrigger2( const SClassCreateContext& context ) : CBlockItemTrigger( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CBlockItemTrigger2 ); }
+	CBlockItemTrigger2( const SClassCreateContext& context ) : CBlockItemTrigger( context ), m_strBullet( context ), m_strBullet1( context ), m_strLightning( context )
+	{ SET_BASEOBJECT_ID( CBlockItemTrigger2 ); }
 
 	virtual void OnAddedToStage() override;
 protected:
@@ -78,6 +79,8 @@ protected:
 
 	CString m_strBullet;
 	CString m_strBullet1;
+	CString m_strLightning;
 	CReference<CPrefab> m_pBulletPrefab;
 	CReference<CPrefab> m_pBulletPrefab1;
+	CReference<CPrefab> m_pLightningPrefab;
 };

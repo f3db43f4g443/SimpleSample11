@@ -11,7 +11,7 @@ struct SRopeData
 	struct SData
 	{
 		SData() : center( 0, 0 ), fWidth( 1 ), tex0( 0, 0 ), tex1( 0, 0 ), pRefObj( NULL ), nRefTransformIndex( -1 ) {}
-		~SData() { if( pRefObj ) pRefObj->RemoveThis(); }
+		~SData() {}
 		CVector2 center;
 		CVector2 worldCenter;
 		float fWidth;
@@ -23,7 +23,7 @@ struct SRopeData
 
 	void SetDataCount( uint32 nCount );
 	void SetData( uint32 nData, const CVector2& center, float fWidth, const CVector2& tex0, const CVector2& tex1 );
-	void CalcLocalBound( CRectangle& rect );
+	bool CalcAABB( CRectangle& rect );
 	void Update( const CMatrix2D& globalTransform );
 	
 	SParticleInstanceData* pParticleInstData;
@@ -67,11 +67,11 @@ public:
 	void SetDataCount( uint32 nCount ) { m_data.SetDataCount( nCount ); }
 	void SetData( uint32 nData, const CVector2& center, float fWidth, const CVector2& tex0, const CVector2& tex1, uint16 nTransformIndex = INVALID_16BITID );
 	void SetExtraData( void* pData ) { m_data.pExtraData = pData; }
-	void CalcLocalBound();
 
-	virtual void UpdateRendered( double dTime ) override { m_data.Update( globalTransform ); }
+	virtual bool CalcAABB() override;
 	virtual void Render( CRenderContext2D& context ) override;
 protected:
+	virtual void OnTransformUpdated() override { m_data.Update( globalTransform ); }
 	SRopeData m_data;
 	CRectangle m_boundExt;
 };

@@ -164,6 +164,7 @@ public:
 		vector<CHitProxy*> vecOverlaps;
 		Update( pHitProxy, &vecOverlaps );
 	}
+	void CalcBound( SHitProxy* pProxy, const CMatrix2D& transform );
 	void HitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CHitProxy*>& vecResult, vector<SHitTestResult>* pResult = NULL );
 	void Raycast( const CVector2& begin, const CVector2& end, vector<SRaycastResult>& vecResult );
 	void SweepTest( SHitProxy* pProxy, const CMatrix2D& transform, const CVector2& sweepOfs, vector<SRaycastResult>& vecResult );

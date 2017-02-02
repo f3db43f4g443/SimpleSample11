@@ -156,6 +156,7 @@ void CPrefabNode::OnResourceRefreshEnd()
 		else if( pPreRope && pCurRope )
 		{
 			uint32 nData = pPreRope->GetData().data.size();
+			pCurRope->SetTransformDirty();
 			pCurRope->SetDataCount( nData );
 			pCurRope->SetSegmentsPerData( pPreRope->GetData().nSegmentsPerData );
 			for( int i = 0; i < nData; i++ )
@@ -163,7 +164,6 @@ void CPrefabNode::OnResourceRefreshEnd()
 				auto& data = pPreRope->GetData().data[i];
 				pCurRope->SetData( i, data.center, data.fWidth, data.tex0, data.tex1 );
 			}
-			pCurRope->CalcLocalBound();
 		}
 		else if( pPreMultiImage && pCurMultiImage )
 		{
@@ -262,6 +262,7 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 				CRopeObject2D* pRope = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
 				CRopeObject2D* pRope1 = static_cast<CRopeObject2D*>( pRenderObject );
 				uint32 nData = pRope->GetData().data.size();
+				pRope1->SetTransformDirty();
 				pRope1->SetDataCount( nData );
 				pRope1->SetSegmentsPerData( pRope->GetData().nSegmentsPerData );
 				for( int i = 0; i < nData; i++ )
@@ -269,7 +270,6 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 					auto& data = pRope->GetData().data[i];
 					pRope1->SetData( i, data.center, data.fWidth, data.tex0, data.tex1 );
 				}
-				pRope1->CalcLocalBound();
 			}
 			else if( nType == CDrawableGroup::eType_MultiFrame )
 			{
@@ -423,6 +423,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 				CRopeObject2D* pRenderObject = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
 				CRopeObject2D* pRenderObject1 = static_cast<CRopeObject2D*>( pPrefabNode->m_pRenderObject.GetPtr() );
 				uint32 nData = pRenderObject->GetData().data.size();
+				pRenderObject1->SetTransformDirty();
 				pRenderObject1->SetDataCount( nData );
 				pRenderObject1->SetSegmentsPerData( pRenderObject->GetData().nSegmentsPerData );
 				for( int i = 0; i < nData; i++ )
@@ -430,7 +431,6 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 					auto& data = pRenderObject->GetData().data[i];
 					pRenderObject1->SetData( i, data.center, data.fWidth, data.tex0, data.tex1 );
 				}
-				pRenderObject1->CalcLocalBound();
 			}
 			else if( nType == CDrawableGroup::eType_MultiFrame )
 			{
@@ -532,17 +532,17 @@ void CPrefabNode::Load( IBufReader& buf )
 				{
 					CRopeObject2D* pRope = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
 					uint32 nCount = extraData.Read<uint32>();
+					pRope->SetTransformDirty();
 					pRope->SetDataCount( nCount );
 					pRope->SetSegmentsPerData( extraData.Read<uint32>() );
 					for( int i = 0; i < nCount; i++ )
 					{
-						pRope->SetData( i,
-							extraData.Read<CVector2>(),
-							extraData.Read<float>(),
-							extraData.Read<CVector2>(),
-							extraData.Read<CVector2>() );
+						CVector2 center = extraData.Read<CVector2>();
+						float fWidth = extraData.Read<float>();
+						CVector2 tex0 = extraData.Read<CVector2>();
+						CVector2 tex1 = extraData.Read<CVector2>();
+						pRope->SetData( i, center, fWidth, tex0, tex1 );
 					}
-					pRope->CalcLocalBound();
 				}
 				else if( nType == CDrawableGroup::eType_MultiFrame )
 				{

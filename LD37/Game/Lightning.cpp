@@ -12,28 +12,33 @@ void CLightning::OnAddedToStage()
 
 void CLightning::OnRemovedFromStage()
 {
-	Set( NULL, NULL, CVector2( 0, 0 ), CVector2( 0, 0 ), -1, -1, 0 );
+	m_pCreator = NULL;
+	Set( NULL, NULL, CVector2( 0, 0 ), CVector2( 0, 0 ), -1, -1 );
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
 }
 
-void CLightning::Set( CEntity * pBegin, CEntity * pEnd, const CVector2 & begin, const CVector2 & end, int16 nBeginTransIndex, int16 nEndTransIndex, float fWidth )
+void CLightning::Set( CEntity * pBegin, CEntity * pEnd, const CVector2 & begin, const CVector2 & end, int16 nBeginTransIndex, int16 nEndTransIndex )
 {
-	if( m_onBeginRemoved.IsRegistered() )
-		m_onBeginRemoved.Unregister();
-	if( m_onEndRemoved.IsRegistered() )
-		m_onEndRemoved.Unregister();
-
-	m_pBegin = pBegin;
-	m_pEnd = pEnd;
+	if( m_pBegin != pBegin )
+	{
+		if( m_onBeginRemoved.IsRegistered() )
+			m_onBeginRemoved.Unregister();
+		m_pBegin = pBegin;
+		if( m_pBegin )
+			m_pBegin->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onBeginRemoved );
+	}
+	if( m_pEnd != pEnd )
+	{
+		if( m_onEndRemoved.IsRegistered() )
+			m_onEndRemoved.Unregister();
+		m_pEnd = pEnd;
+		if( m_pEnd )
+			m_pEnd->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onEndRemoved );
+	}
 	m_begin = begin;
 	m_end = end;
-	m_fWidth = fWidth;
 	m_bSet = true;
-	if( m_pBegin )
-		m_pBegin->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onBeginRemoved );
-	if( m_pEnd )
-		m_pEnd->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onEndRemoved );
 	UpdateRenderObject();
 }
 
@@ -44,7 +49,7 @@ void CLightning::OnTick()
 	UpdateRenderObject();
 
 	CPlayer* pPlayer = GetStage()->GetPlayer();
-	if( pPlayer )
+	if( pPlayer && pPlayer->CanBeHit() )
 	{
 		CVector2 beginCenter, endCenter;
 		{
@@ -60,18 +65,21 @@ void CLightning::OnTick()
 		polygon.nVertices = 4;
 		auto dCenter = endCenter - beginCenter;
 		dCenter.Normalize();
-		dCenter = CVector2( dCenter.y, -dCenter.x ) * m_fWidth * 0.5f;
+		dCenter = CVector2( dCenter.y, -dCenter.x ) * m_fHitWidth * 0.5f;
 
 		polygon.vertices[0] = beginCenter - dCenter;
 		polygon.vertices[1] = beginCenter + dCenter;
 		polygon.vertices[2] = endCenter + dCenter;
 		polygon.vertices[3] = endCenter - dCenter;
 		polygon.CalcNormals();
-		polygon.CalcBound();
 
 		CMatrix2D mat;
 		mat.Identity();
-		pPlayer->HitTest( &polygon, mat );
+		GetStage()->GetHitTestMgr().CalcBound( &polygon, mat );
+		if( pPlayer->GetCore()->HitTest( &polygon, mat ) )
+		{
+			pPlayer->Damage();
+		}
 	}
 }
 
@@ -86,14 +94,18 @@ void CLightning::UpdateRenderObject()
 		return;
 	}
 
-	auto data = pRope->GetData();
+	pRope->bVisible = true;
+	pRope->SetTransformDirty();
+	auto& data = pRope->GetData();
 	data.SetDataCount( 2 );
 	auto& begin = data.data[0];
 	auto& end = data.data[1];
 	begin.center = m_begin;
+	begin.fWidth = m_fWidth;
 	begin.pRefObj = m_pBegin;
 	begin.nRefTransformIndex = m_nBeginTransIndex;
 	end.center = m_end;
+	end.fWidth = m_fWidth;
 	end.pRefObj = m_pEnd;
 	end.nRefTransformIndex = m_nEndTransIndex;
 }
@@ -101,19 +113,25 @@ void CLightning::UpdateRenderObject()
 void CLightning::OnBeginRemoved()
 {
 	m_begin = m_pBegin->globalTransform.MulVector2Pos( m_begin );
-	m_begin = globalTransform.MulVector2Pos( m_begin );
+	m_begin = globalTransform.MulTVector2PosNoScale( m_begin );
 	if( m_onBeginRemoved.IsRegistered() )
 		m_onBeginRemoved.Unregister();
 	m_pBegin = NULL;
 	UpdateRenderObject();
+
+	if( m_bAutoRemove )
+		SetParentEntity( NULL );
 }
 
 void CLightning::OnEndRemoved()
 {
 	m_end = m_pEnd->globalTransform.MulVector2Pos( m_end );
-	m_end = globalTransform.MulVector2Pos( m_end );
+	m_end = globalTransform.MulTVector2PosNoScale( m_end );
 	if( m_onEndRemoved.IsRegistered() )
 		m_onEndRemoved.Unregister();
 	m_pEnd = NULL;
 	UpdateRenderObject();
+
+	if( m_bAutoRemove )
+		SetParentEntity( NULL );
 }

@@ -5,7 +5,9 @@ struct SBarrageContext
 {
 	CReference<CEntity> pCreator;
 	vector<CReference<CPrefab> > vecBulletTypes;
+	vector<CReference<CPrefab> > vecLightningTypes;
 	uint32 nBulletPageSize;
+	uint32 nLightningPageSize;
 };
 
 struct SBulletContext
@@ -36,6 +38,22 @@ struct SBulletContext
 	struct SBulletPage* pPage;
 };
 
+struct SLightningContext
+{
+	CReference<CEntity> pEntity;
+	int32 nLightningType;
+	int32 nNewLightningType;
+	int32 nBullet1;
+	int32 nBullet2;
+	CVector2 ofs1;
+	CVector2 ofs2;
+	bool bAttachToBullet;
+	bool bDirty;
+
+	bool IsValid() { return this && pPage; }
+	struct SLightningPage* pPage;
+};
+
 struct SBulletPage
 {
 	SBulletPage( class CBarrage* pOwner, uint32 nPage ) : pOwner( pOwner ), nPage( nPage ), nAliveBulletCount( 0 ) {}
@@ -48,6 +66,18 @@ struct SBulletPage
 	SBulletContext pBullets[1];
 };
 
+struct SLightningPage
+{
+	SLightningPage( class CBarrage* pOwner, uint32 nPage ) {}
+	class CBarrage* pOwner;
+	uint32 nPage;
+	uint32 nAliveLightningCount;
+
+	LINK_LIST( SLightningPage, LightningPage )
+
+	SLightningContext pLightnings[1];
+};
+
 class CBarrage : public CEntity, protected SBarrageContext
 {
 	friend struct SBulletContext;
@@ -55,6 +85,7 @@ public:
 	CBarrage( const SBarrageContext& context )
 		: SBarrageContext( context )
 		, m_pBulletPages( NULL )
+		, m_pLightningPages( NULL )
 		, m_pFuncs( NULL )
 		, m_pDelayActions( NULL )
 		, m_pCurRunningCoroutine( NULL )
@@ -80,12 +111,17 @@ public:
 
 	uint32 GetCurFrame() { return m_nCurFrame; }
 	SBulletPage* CreatePage( uint32 nPage );
+	SLightningPage* CreateLightningPage( uint32 nPage );
 	SBulletContext* GetBulletContext( uint32 i );
+	SLightningContext* GetLightningContext( uint32 i );
 	void InitBullet( uint32 i, int32 nType, int32 nParent, CVector2 p0, CVector2 v, CVector2 a, bool bTangentAngle = true,
 		float fAngle0 = 0, float fAngleV = 0, float fAngleA = 0 );
 	void SetBulletType( uint32 i, int32 nType );
 	void SetBulletParent( uint32 i, int32 nParent );
 	void DestroyBullet( uint32 i );
+
+	void InitLightning( uint32 i, int32 nType, int32 nBullet1, int32 nBullet2, CVector2 ofs1, CVector2 ofs2, bool bAttachToBullet );
+	void DestroyLightning( uint32 i );
 
 	virtual const CMatrix2D& GetTransform( uint16 nIndex ) override;
 
@@ -133,6 +169,7 @@ private:
 	
 	CTimedTrigger<997> m_timer;
 	LINK_LIST_HEAD( m_pBulletPages, SBulletPage, Page )
+	LINK_LIST_HEAD( m_pLightningPages, SLightningPage, LightningPage )
 	LINK_LIST_HEAD( m_pFuncs, SFunc, Func )
 	LINK_LIST_HEAD( m_pDelayActions, SDelayAction, DelayAction )
 };

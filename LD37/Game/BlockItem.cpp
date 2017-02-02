@@ -162,6 +162,7 @@ void CBlockItemTrigger2::OnAddedToStage()
 	CBlockItemTrigger::OnAddedToStage();
 	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_pBulletPrefab1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1.c_str() );
+	m_pLightningPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strLightning.c_str() );
 }
 
 void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & dir )
@@ -172,14 +173,17 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 
 	SBarrageContext context;
 	context.nBulletPageSize = 100;
+	context.nLightningPageSize = 100;
 	context.vecBulletTypes.push_back( m_pBulletPrefab );
 	context.vecBulletTypes.push_back( m_pBulletPrefab1 );
+	context.vecLightningTypes.push_back( m_pLightningPrefab );
 	context.pCreator = SafeCast<CChunkObject>( GetParentEntity() );
 
 	CBarrage* pBarrage = new CBarrage( context );
 	pBarrage->AddFunc( [=] ( CBarrage* pBarrage )
 	{
 		uint32 nBullet = 0;
+		uint32 nLightning = 0;
 
 		CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
 		CVector2 dPos = globalTransform.GetPosition() - pPlayer->globalTransform.GetPosition();
@@ -204,6 +208,7 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 		for( int i = 0; i < 5; i++ )
 		{
 			uint32 nBullet0 = nBullet;
+			uint32 nLightning0 = nLightning;
 			uint32 nParent = nParentBullet[i];
 
 			pPlayer = pBarrage->GetStage()->GetPlayer();
@@ -278,10 +283,15 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 			} temp1;
 			for( int i = 0; i < 8; i++ )
 				temp1.r[i] = SRand::Inst().Rand( 0.0f, 2.0f );
-			for( int i = 0; i < nWave; i++ )
+			for( int iWave = 0; iWave < nWave; iWave++ )
 			{
-				uint32 nBaseBullet = nBullet0 + i * 8;
+				uint32 nBaseBullet = nBullet0 + iWave * 8;
+				uint32 nBaseLightning = nLightning0 + iWave * 8;
 				pBarrage->InitBullet( nBaseBullet, 0, nParent, CVector2( 0, 0 ), dir * fSpeed, CVector2( 0, 0 ), true );
+				if( iWave > 0 )
+					pBarrage->InitLightning( nBaseLightning - 8, 0, nBaseBullet, nBaseBullet - 8, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+				if( iWave < nWave - 1 )
+					pBarrage->InitLightning( nBaseLightning, 0, nParent, nBaseBullet, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
 
 				for( int i = 1; i <= 4; i++ )
 				{
@@ -297,6 +307,10 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 								auto pContext0 = pBarrage->GetBulletContext( nBaseBullet + nLastValid );
 								pBarrage->InitBullet( nBaseBullet + iBullet, pContext0->nNewBulletType, nParent, pContext0->p0,
 									CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+								if( iWave > 0 )
+									pBarrage->InitLightning( nBaseLightning + iBullet - 8, 0, nBaseBullet + iBullet, nBaseBullet + iBullet - 8, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+								if( iWave < nWave - 1 )
+									pBarrage->InitLightning( nBaseLightning + iBullet, 0, nBaseBullet + nLastValid + 8, nBaseBullet + iBullet, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
 							}
 							else
 							{
@@ -340,10 +354,11 @@ void CBlockItemTrigger2::OnTrigged( CCharacter * pCharacter, const CVector2 & di
 						} );
 					}
 				}
-				pBarrage->Yield( 8 );
+				pBarrage->Yield( 5 );
 
 			}
-			nBullet += 16 * 8;
+			nBullet += nWave * 8;
+			nLightning += nWave * 8;
 		}
 
 		end:

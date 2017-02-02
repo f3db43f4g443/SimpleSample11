@@ -27,6 +27,7 @@
 #include "GUI/ChunkUI.h"
 
 #include "Bullet.h"
+#include "Lightning.h"
 #include "Weapons.h"
 
 #include "Effects/ParticleTimeoutEmitter.h"
@@ -400,6 +401,12 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CBullet )
 		REGISTER_MEMBER( m_nDmg )
 	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CLightning )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_fWidth )
+		REGISTER_MEMBER( m_fHitWidth )
+	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPlayerWeapon )
 		REGISTER_BASE_CLASS( CEntity )
@@ -511,6 +518,7 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CBlockItemTrigger )
 		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_strBullet1 )
+		REGISTER_MEMBER( m_strLightning )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

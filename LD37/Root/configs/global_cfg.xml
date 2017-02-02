@@ -35,7 +35,7 @@
         </types>
         <next_level>
           <node type="subregion">
-            <ref name="item3" x="0" y="8" w="2" h="2" />
+            <!--ref name="item3" x="0" y="8" w="2" h="2" /-->
             <node type="randomfill" x="4" y="9" w="2" h="1" >
               <ref name="item1" p="1" />
               <node type="empty" p="1" />

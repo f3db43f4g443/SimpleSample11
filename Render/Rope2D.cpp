@@ -31,23 +31,24 @@ void CRopeDrawable2D::Flush( CRenderContext2D& context )
 	void* pContextInstData[2] = { fRopeInstData, pParticleInst };
 	context.pInstanceDataSize = nContextInstDataSize;
 	context.ppInstanceData = pContextInstData;
-	while( m_pElement )
-	{
-		SRopeData* pRopeData = (SRopeData*)m_pElement->pInstData;
-		uint32 nRopeData = pRopeData->data.size();
-		if( nRopeData <= 1 )
-		{
-			m_pElement->OnFlushed();
-			continue;
-		}
-		uint32 nSegmentsPerData = Min( pRopeData->nSegmentsPerData, CGlobalRenderResources::nStripInstanceCount - 1 );
-		uint32 nRopeMaxInst = Min( m_nRopeMaxInst, ( CGlobalRenderResources::nStripInstanceCount - 1 ) / nSegmentsPerData + 1 );
-		context.pCurElement = m_pElement;
-		OnFlushElement( context, m_pElement );
 
-		uint32 nParticleCount = 0;
-		if( pParticleInst )
+	if( pParticleInst )
+	{
+		while( m_pElement )
 		{
+			SRopeData* pRopeData = (SRopeData*)m_pElement->pInstData;
+			uint32 nRopeData = pRopeData->data.size();
+			if( nRopeData <= 1 )
+			{
+				m_pElement->OnFlushed();
+				continue;
+			}
+			uint32 nSegmentsPerData = Min( pRopeData->nSegmentsPerData, CGlobalRenderResources::nStripInstanceCount - 1 );
+			uint32 nRopeMaxInst = Min( m_nRopeMaxInst, ( CGlobalRenderResources::nStripInstanceCount - 1 ) / nSegmentsPerData + 1 );
+			context.pCurElement = m_pElement;
+			OnFlushElement( context, m_pElement );
+
+			uint32 nParticleCount = 0;
 			uint32 i1;
 			SParticleInstanceData* pParticleInstanceData = pRopeData->pParticleInstData;
 			if( !pParticleInstanceData )
@@ -82,53 +83,50 @@ void CRopeDrawable2D::Flush( CRenderContext2D& context )
 				}
 			}
 			nParticleCount = i1;
-		}
-		if( m_paramSegmentsPerData.bIsBound )
-		{
-			float fSegmentsPerData = nSegmentsPerData;
-			m_paramSegmentsPerData.Set( pRenderSystem, &fSegmentsPerData );
-		}
-
-		int iData = 0;
-		while( iData < nRopeData )
-		{
-			uint32 i;
-			uint32 nOfs = 0;
-			for( i = 0; i < nRopeMaxInst && iData < nRopeData; i++, iData++ )
+			if( m_paramSegmentsPerData.bIsBound )
 			{
-				auto& data = pRopeData->data[iData];
-				float* pData = fRopeInstData + nOfs;
-
-				CVector2& center = data.worldCenter;
-				*pData++ = center.x;
-				*pData++ = center.y;
-
-				CVector2 dir;
-				if( iData == 0 )
-					dir = pRopeData->data[iData + 1].worldCenter - data.worldCenter;
-				else if( iData == nRopeData - 1 )
-					dir = data.worldCenter - pRopeData->data[iData - 1].worldCenter;
-				else
-					dir = pRopeData->data[iData + 1].worldCenter - pRopeData->data[iData - 1].worldCenter;
-				dir.Normalize();
-				dir = CVector2( -dir.y, dir.x ) * data.fWidth * 0.5f;
-				*pData++ = dir.x;
-				*pData++ = dir.y;
-				
-				*pData++ = data.tex0.x;
-				*pData++ = data.tex0.y;
-				*pData++ = data.tex1.x;
-				*pData++ = data.tex1.y;
-
-				nOfs += 4 * ( 2 + nRopeExtraInstData );
+				float fSegmentsPerData = nSegmentsPerData;
+				m_paramSegmentsPerData.Set( pRenderSystem, &fSegmentsPerData );
 			}
 
-			uint32 nInstanceDataSize = i * nRopeInstStride;
-			nContextInstDataSize[0] = nInstanceDataSize;
-			uint32 nVertexCount = ( ( i - 1 ) * nSegmentsPerData + 1 ) * 2;
-
-			if( pParticleInst )
+			int iData = 0;
+			while( iData < nRopeData )
 			{
+				uint32 i;
+				uint32 nOfs = 0;
+				for( i = 0; i < nRopeMaxInst && iData < nRopeData; i++, iData++ )
+				{
+					auto& data = pRopeData->data[iData];
+					float* pData = fRopeInstData + nOfs;
+
+					CVector2& center = data.worldCenter;
+					*pData++ = center.x;
+					*pData++ = center.y;
+
+					CVector2 dir;
+					if( iData == 0 )
+						dir = pRopeData->data[iData + 1].worldCenter - data.worldCenter;
+					else if( iData == nRopeData - 1 )
+						dir = data.worldCenter - pRopeData->data[iData - 1].worldCenter;
+					else
+						dir = pRopeData->data[iData + 1].worldCenter - pRopeData->data[iData - 1].worldCenter;
+					dir.Normalize();
+					dir = CVector2( -dir.y, dir.x ) * data.fWidth * 0.5f;
+					*pData++ = dir.x;
+					*pData++ = dir.y;
+
+					*pData++ = data.tex0.x;
+					*pData++ = data.tex1.x;
+					*pData++ = data.tex0.y;
+					*pData++ = m_pElement->depth;
+
+					nOfs += 4 * ( 2 + nRopeExtraInstData );
+				}
+
+				uint32 nInstanceDataSize = i * nRopeInstStride;
+				nContextInstDataSize[0] = nInstanceDataSize;
+				uint32 nVertexCount = ( ( i - 1 ) * nSegmentsPerData + 1 ) * 2;
+
 				for( uint32 i1 = 0; i1 < nParticleCount; i1 += nParticleMaxInst )
 				{
 					uint32 i2 = Min( nParticleMaxInst, nParticleCount - i1 );
@@ -138,19 +136,96 @@ void CRopeDrawable2D::Flush( CRenderContext2D& context )
 					m_material.ApplyPerInstance( context );
 					pRenderSystem->DrawInstanced( nVertexCount, i2, 0, 0 );
 				}
-			}
-			else
-			{
-				m_material.ApplyPerInstance( context );
-				pRenderSystem->Draw( nVertexCount, 0 );
+
+				if( iData < nRopeData )
+					iData--;
 			}
 
-
-			if( iData < nRopeData )
-				iData--;
+			m_pElement->OnFlushed();
 		}
+	}
+	else
+	{
+		uint32 nLastElemRenderedCount = 0;
+		while( m_pElement )
+		{
+			uint32 i;
+			uint32 nOfs = 0;
+			uint32 nSegmentsPerData = 0;
+			for( i = 0; i < m_nRopeMaxInst && m_pElement; )
+			{
+				while( m_pElement && i < m_nRopeMaxInst )
+				{
+					SRopeData* pRopeData = (SRopeData*)m_pElement->pInstData;
+					uint32 nRopeData = pRopeData->data.size();
+					if( nRopeData <= 1 )
+					{
+						m_pElement->OnFlushed();
+						continue;
+					}
+					nSegmentsPerData = Max( Min( pRopeData->nSegmentsPerData, CGlobalRenderResources::nStripInstanceCount - 1 ), nSegmentsPerData );
+					context.pCurElement = m_pElement;
 
-		m_pElement->OnFlushed();
+					if( m_paramSegmentsPerData.bIsBound )
+					{
+						float fSegmentsPerData = nSegmentsPerData;
+						m_paramSegmentsPerData.Set( pRenderSystem, &fSegmentsPerData );
+					}
+
+					uint32 iData = nLastElemRenderedCount;
+					uint32 iDataEnd = Min( nRopeData, m_nRopeMaxInst - i );
+
+					for( ; iData < iDataEnd; iData++, i++ )
+					{
+						auto& data = pRopeData->data[iData];
+						float* pData = fRopeInstData + nOfs;
+
+						CVector2& center = data.worldCenter;
+						*pData++ = center.x;
+						*pData++ = center.y;
+
+						CVector2 dir;
+						if( iData == 0 )
+							dir = pRopeData->data[iData + 1].worldCenter - data.worldCenter;
+						else if( iData == nRopeData - 1 )
+							dir = data.worldCenter - pRopeData->data[iData - 1].worldCenter;
+						else
+							dir = pRopeData->data[iData + 1].worldCenter - pRopeData->data[iData - 1].worldCenter;
+						dir.Normalize();
+						dir = CVector2( -dir.y, dir.x ) * data.fWidth * 0.5f;
+						*pData++ = dir.x;
+						*pData++ = dir.y;
+
+						*pData++ = data.tex0.x;
+						*pData++ = data.tex1.x;
+						*pData++ = data.tex0.y;
+						*pData++ = iData == nRopeData - 1 ? -1 : m_pElement->depth;
+
+						nOfs += 4 * ( 2 + nRopeExtraInstData );
+					}
+
+					if( iData == nRopeData )
+					{
+						m_pElement->OnFlushed();
+						nLastElemRenderedCount = 0;
+					}
+					else
+					{
+						nLastElemRenderedCount = iData - 1;
+					}
+
+				}
+			}
+
+			if( i > 1 )
+			{
+				uint32 nInstanceDataSize = i * nRopeInstStride;
+				nContextInstDataSize[0] = nInstanceDataSize;
+
+				m_material.ApplyPerInstance( context );
+				pRenderSystem->DrawInstanced( ( nSegmentsPerData + 1 ) * 2, i - 1, 0, 0 );
+			}
+		}
 	}
 	pRenderSystem->SetPrimitiveType( EPrimitiveType::TriangleList );
 
@@ -270,21 +345,22 @@ void CRopeObject2D::SetData( uint32 nData, const CVector2& center, float fWidth,
 	}
 }
 
-void SRopeData::CalcLocalBound( CRectangle& rect )
+bool SRopeData::CalcAABB( CRectangle & rect )
 {
-	rect = CRectangle( 0, 0, 0, 0 );
-	for( auto& ropeData : data )
+	bool bFirst = false;
+	for( auto& data : data )
 	{
-		if( !ropeData.pRefObj )
+		float fHalfWidth = data.fWidth * 0.5f;
+		CRectangle rect1( data.worldCenter.x - fHalfWidth, data.worldCenter.y - fHalfWidth, fHalfWidth * 2, fHalfWidth * 2 );
+		if( !bFirst )
 		{
-			float fHalfWidth = ropeData.fWidth * 0.5f;
-			CRectangle rect1( ropeData.center.x - fHalfWidth, ropeData.center.y - fHalfWidth, ropeData.center.x + fHalfWidth, ropeData.center.y + fHalfWidth );
-			if( rect.width > 0 )
-				rect = rect + rect1;
-			else
-				rect = rect1;
+			rect = rect1;
+			bFirst = true;
 		}
+		else
+			rect = rect + rect1;
 	}
+	return bFirst;
 }
 
 void SRopeData::Update( const CMatrix2D& globalTransform )
@@ -296,14 +372,24 @@ void SRopeData::Update( const CMatrix2D& globalTransform )
 	}
 }
 
-void CRopeObject2D::CalcLocalBound()
+bool CRopeObject2D::CalcAABB()
 {
-	m_data.CalcLocalBound( m_localBound );
-	m_localBound.x += m_boundExt.x;
-	m_localBound.y += m_boundExt.y;
-	m_localBound.width += m_boundExt.width;
-	m_localBound.height += m_boundExt.height;
-	SetBoundDirty();
+	CRectangle orig = globalAABB;
+
+	if( !m_data.CalcAABB( globalAABB ) )
+		globalAABB = CRectangle( globalTransform.GetPosition().x, globalTransform.GetPosition().y, 0, 0 );
+	else
+	{
+		globalAABB.x += m_boundExt.x;
+		globalAABB.y += m_boundExt.y;
+		globalAABB.width += m_boundExt.width;
+		globalAABB.height += m_boundExt.height;
+	}
+
+	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
+		globalAABB = globalAABB + pChild->globalAABB;
+	}
+	return !( orig == globalAABB );
 }
 
 void CRopeObject2D::Render( CRenderContext2D& context )

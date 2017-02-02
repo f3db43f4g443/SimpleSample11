@@ -287,7 +287,7 @@ void CPrefabEditor::OnZOrderChanged()
 {
 	int32 nZOrder = m_pZOrder->GetValue<int32>();
 
-	if( m_pCurNode != m_pClonedPrefab )
+	if( m_pCurNode.GetPtr() != m_pClonedPrefab.GetPtr() )
 	{
 		CPrefabNode* pNode = static_cast<CPrefabNode*>( m_pCurNode->GetParent() );
 
@@ -474,7 +474,7 @@ public:
 		void Refresh()
 		{
 			m_pObject->SetData( m_nIndex, m_pCenter->GetFloat2(), m_pWidth->GetValue<float>(), m_pTex0->GetFloat2(), m_pTex1->GetFloat2() );
-			m_pObject->CalcLocalBound();
+			m_pObject->SetTransformDirty();
 		}
 
 		void RefreshData()
@@ -547,7 +547,7 @@ protected:
 		{
 			m_items[i] = new SDataItem( m_pView, m_pResRoot, pRopeObject, i );
 		}
-		pRopeObject->CalcLocalBound();
+		pRopeObject->SetTransformDirty();
 	}
 	void OnSegmentsPerDataChanged()
 	{

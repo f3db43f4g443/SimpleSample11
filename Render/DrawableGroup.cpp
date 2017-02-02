@@ -26,7 +26,6 @@ CRenderObject2D* CDrawableGroup::CreateInstance()
 		pRopeObject2D->SetDataCount( 2 );
 		pRopeObject2D->SetData( 0, CVector2( 0, 0 ), 64, CVector2( 0, 0 ), CVector2( 1, 0 ) );
 		pRopeObject2D->SetData( 1, CVector2( 128, 0 ), 64, CVector2( 0, 1 ), CVector2( 1, 1 ) );
-		pRopeObject2D->CalcLocalBound();
 		return pRopeObject2D;
 	}
 	else if( m_nType == eType_MultiFrame )

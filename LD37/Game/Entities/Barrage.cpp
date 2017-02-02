@@ -3,6 +3,7 @@
 #include "Stage.h"
 #include "Player.h"
 #include "Bullet.h"
+#include "Lightning.h"
 #include "Common/Coroutine.h"
 
 #define STACK_SIZE 0x10000
@@ -117,6 +118,8 @@ uint32 CBarrage::SFunc::Resume()
 void CBarrage::OnTickBeforeHitTest()
 {
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
+
+	bool bDeletedBulletPage = false;
 	for( auto pBulletPage = m_pBulletPages; pBulletPage;  )
 	{
 		if( pBulletPage->nAliveBulletCount )
@@ -125,60 +128,175 @@ void CBarrage::OnTickBeforeHitTest()
 		pBulletPage->RemoveFrom_Page();
 		delete pBulletPage;
 		pBulletPage = pBulletPage1;
+		bDeletedBulletPage = true;
+	}
+
+	for( auto pLightningPage = m_pLightningPages; pLightningPage; )
+	{
+		if( pLightningPage->nAliveLightningCount )
+			break;
+		auto pLightningPage1 = pLightningPage->NextLightningPage();
+		pLightningPage->RemoveFrom_LightningPage();
+		delete pLightningPage;
+		pLightningPage = pLightningPage1;
 	}
 	
-	if( !m_pBulletPages )
+	if( !m_pBulletPages && !m_pLightningPages )
 	{
 		if( m_bStopNewBullet )
 			SetParentEntity( NULL );
 		return;
 	}
-	uint32 nIndex = 0;
-	uint32 nPageCount = 0;
-	for( auto pBulletPage = m_pBulletPages; pBulletPage; pBulletPage = pBulletPage->NextPage() )
-		nPageCount++;
-	uint32 nTransformCount = nPageCount * nBulletPageSize;
-	if( m_vecTransforms.size() < nTransformCount )
-		m_vecTransforms.resize( nTransformCount );
-	
-	bool bEntity = false;
-	for( auto pBulletPage = m_pBulletPages; pBulletPage; pBulletPage = pBulletPage->NextPage() )
-	{
-		for( int i = 0; i < nBulletPageSize; i++, nIndex++ )
-		{
-			auto& bullet = pBulletPage->pBullets[i];
-			if( !bullet.pPage )
-				continue;
 
-			if( bullet.pEntity && bullet.pEntity->GetParentEntity() != this )
+	bool bEntity = false;
+
+	{
+		uint32 nIndex = 0;
+		uint32 nPageCount = 0;
+		for( auto pBulletPage = m_pBulletPages; pBulletPage; pBulletPage = pBulletPage->NextPage() )
+			nPageCount++;
+		uint32 nTransformCount = nPageCount * nBulletPageSize;
+		if( m_vecTransforms.size() < nTransformCount )
+			m_vecTransforms.resize( nTransformCount );
+
+		for( auto pBulletPage = m_pBulletPages; pBulletPage; pBulletPage = pBulletPage->NextPage() )
+		{
+			for( int i = 0; i < nBulletPageSize; i++, nIndex++ )
 			{
-				bullet.pEntity = NULL;
-				if( bullet.nNewBulletType == bullet.nBulletType )
-					bullet.nNewBulletType = -1;
-				bullet.nBulletType = -1;
-			}
-			if( bullet.nNewBulletType != bullet.nBulletType )
-			{
-				if( bullet.pEntity )
+				auto& bullet = pBulletPage->pBullets[i];
+				if( !bullet.pPage )
+					continue;
+
+				if( bullet.pEntity && bullet.pEntity->GetParentEntity() != this )
 				{
-					bullet.pEntity->SetParentEntity( NULL );
 					bullet.pEntity = NULL;
+					if( bullet.nNewBulletType == bullet.nBulletType )
+						bullet.nNewBulletType = -1;
+					bullet.nBulletType = -1;
 				}
-				bullet.nBulletType = bullet.nNewBulletType;
-				if( bullet.nBulletType >= 0 && !m_bStopNewBullet )
-					bullet.pEntity = static_cast<CEntity*>( vecBulletTypes[bullet.nBulletType]->GetRoot()->CreateInstance() );
+				if( bullet.nNewBulletType != bullet.nBulletType )
+				{
+					if( bullet.pEntity )
+					{
+						bullet.pEntity->SetParentEntity( NULL );
+						bullet.pEntity = NULL;
+					}
+					bullet.nBulletType = bullet.nNewBulletType;
+					if( bullet.nBulletType >= 0 && !m_bStopNewBullet )
+						bullet.pEntity = static_cast<CEntity*>( vecBulletTypes[bullet.nBulletType]->GetRoot()->CreateInstance() );
+					if( bullet.pEntity )
+					{
+						bullet.pEntity->SetParentEntity( this );
+						auto pBullet = SafeCast<CBullet>( bullet.pEntity.GetPtr() );
+						if( pBullet )
+							pBullet->SetCreator( pCreator );
+					}
+				}
 				if( bullet.pEntity )
 				{
-					bullet.pEntity->SetParentEntity( this );
-					auto pBullet = SafeCast<CBullet>( bullet.pEntity.GetPtr() );
-					if( pBullet )
-						pBullet->SetCreator( pCreator );
+					bullet.pEntity->SetTransformIndex( nIndex );
+					bEntity = true;
 				}
 			}
-			if( bullet.pEntity )
+		}
+	}
+	
+	{
+		uint32 nBulletBeginIndex = m_pBulletPages ? m_pBulletPages->nPage * nBulletPageSize : 0;
+		uint32 nIndex = 0;
+		uint32 nPageCount = 0;
+		for( auto pLightningPage = m_pLightningPages; pLightningPage; pLightningPage = pLightningPage->NextLightningPage() )
+			nPageCount++;
+
+		for( auto pLightningPage = m_pLightningPages; pLightningPage; pLightningPage = pLightningPage->NextLightningPage() )
+		{
+			for( int i = 0; i < nLightningPageSize; i++, nIndex++ )
 			{
-				bullet.pEntity->SetTransformIndex( nIndex );
-				bEntity = true;
+				auto& lightning = pLightningPage->pLightnings[i];
+				if( !lightning.pPage )
+					continue;
+
+				if( lightning.pEntity && lightning.pEntity->GetParentEntity() != this )
+				{
+					lightning.pEntity = NULL;
+					if( lightning.nNewLightningType == lightning.nLightningType )
+						lightning.nNewLightningType = -1;
+					lightning.nLightningType = -1;
+				}
+				if( lightning.nNewLightningType != lightning.nLightningType )
+				{
+					if( lightning.pEntity )
+					{
+						lightning.pEntity->SetParentEntity( NULL );
+						lightning.pEntity = NULL;
+					}
+					lightning.nLightningType = lightning.nNewLightningType;
+					if( lightning.nLightningType >= 0 && !m_bStopNewBullet )
+						lightning.pEntity = static_cast<CEntity*>( vecLightningTypes[lightning.nLightningType]->GetRoot()->CreateInstance() );
+					if( lightning.pEntity )
+					{
+						lightning.pEntity->SetParentEntity( this );
+						auto pLightning = SafeCast<CLightning>( lightning.pEntity.GetPtr() );
+						if( pLightning )
+						{
+							pLightning->SetCreator( pCreator );
+							pLightning->SetAutoRemove( true );
+						}
+					}
+					lightning.bDirty = true;
+				}
+				if( lightning.pEntity )
+				{
+					if( lightning.bDirty || bDeletedBulletPage )
+					{
+						auto pLightning = SafeCast<CLightning>( lightning.pEntity.GetPtr() );
+						if( pLightning )
+						{
+							if( lightning.bAttachToBullet )
+							{
+								CEntity* pBullet1 = NULL;
+								CEntity* pBullet2 = NULL;
+								bool bValid = true;
+								if( lightning.nBullet1 >= 0 )
+								{
+									auto pContext = GetBulletContext( lightning.nBullet1 );
+									if (!pContext->IsValid() || !pContext->pEntity)
+									{
+										bValid = false;
+										pBullet1 = NULL;
+									}
+									else
+										pBullet1 = pContext->pEntity;
+								}
+								if( lightning.nBullet2 >= 0 )
+								{
+									auto pContext = GetBulletContext( lightning.nBullet2 );
+									if (!pContext->IsValid() || !pContext->pEntity)
+									{
+										bValid = false;
+										pBullet2 = NULL;
+									}
+									else
+										pBullet2 = pContext->pEntity;
+								}
+
+								if( bValid )
+									pLightning->Set( pBullet1 ? pBullet1 : this, pBullet2 ? pBullet2 : this, lightning.ofs1, lightning.ofs2,
+										pBullet1 ? -1 : lightning.nBullet1 - nBulletBeginIndex, pBullet2 ? -1 : lightning.nBullet2 - nBulletBeginIndex );
+								else
+								{
+									lightning.pEntity = NULL;
+									lightning.nLightningType = lightning.nNewLightningType = -1;
+									pLightning->SetParentEntity( NULL );
+								}
+							}
+							else
+								pLightning->Set( this, this, lightning.ofs1, lightning.ofs2, lightning.nBullet1 - nBulletBeginIndex, lightning.nBullet2 - nBulletBeginIndex );
+						}
+						lightning.bDirty = false;
+					}
+					bEntity = true;
+				}
 			}
 		}
 	}
@@ -371,10 +489,29 @@ SBulletContext* CBarrage::GetBulletContext( uint32 i )
 	return NULL;
 }
 
+SLightningContext * CBarrage::GetLightningContext( uint32 i )
+{
+	for( auto pPage = m_pLightningPages; pPage; pPage = pPage->NextLightningPage() )
+	{
+		uint32 nIndex = i - pPage->nPage * nLightningPageSize;
+		if( nIndex < nLightningPageSize )
+			return &pPage->pLightnings[nIndex];
+	}
+	return NULL;
+}
+
 SBulletPage* CBarrage::CreatePage( uint32 nPage )
 {
 	auto pPage = new ( malloc( sizeof(SBulletPage) + ( nBulletPageSize - 1 ) * sizeof(SBulletContext) ) ) SBulletPage( this, nPage );
 	memset( pPage->pBullets, 0, sizeof( SBulletContext ) * nBulletPageSize );
+	pPage->nPage = nPage;
+	return pPage;
+}
+
+SLightningPage * CBarrage::CreateLightningPage( uint32 nPage )
+{
+	auto pPage = new ( malloc( sizeof( SLightningPage ) + ( nBulletPageSize - 1 ) * sizeof( SLightningContext ) ) ) SLightningPage( this, nPage );
+	memset( pPage->pLightnings, 0, sizeof( SLightningContext ) * nBulletPageSize );
 	pPage->nPage = nPage;
 	return pPage;
 }
@@ -459,6 +596,73 @@ void CBarrage::DestroyBullet( uint32 i )
 	if( !pContext || !pContext->pPage )
 		return;
 	pContext->pPage->nAliveBulletCount--;
+	pContext->pPage = NULL;
+	if( pContext->pEntity )
+	{
+		pContext->pEntity->SetParentEntity( NULL );
+		pContext->pEntity = NULL;
+	}
+}
+
+void CBarrage::InitLightning( uint32 i, int32 nType, int32 nBullet1, int32 nBullet2, CVector2 ofs1, CVector2 ofs2, bool bAttachToBullet )
+{
+	SLightningContext* pLightning = NULL;
+	SLightningPage* pPage = NULL;
+	uint32 nPage = i / nLightningPageSize;
+	uint32 nIndex = i - nPage * nLightningPageSize;
+	if( !m_pLightningPages )
+	{
+		pPage = CreateLightningPage( nPage );
+		Insert_LightningPage( pPage );
+	}
+	else
+	{
+		if( nPage < m_pLightningPages->nPage )
+			return;
+		auto* ppPage = &m_pLightningPages;
+		uint32 iPage = m_pLightningPages->nPage;
+		for( ; *ppPage; ppPage = &( *ppPage )->NextLightningPage(), iPage++ )
+		{
+			if( nPage == iPage )
+			{
+				pPage = *ppPage;
+				break;
+			}
+		}
+
+		if( !pPage )
+		{
+			for( ; iPage <= nPage; iPage++ )
+			{
+				pPage = CreateLightningPage( nPage );
+				pPage->InsertTo_LightningPage( *ppPage );
+				ppPage = &pPage->NextLightningPage();
+			}
+		}
+	}
+
+	pLightning = pPage->pLightnings + nIndex;
+	if( !pLightning->pPage )
+	{
+		pPage->nAliveLightningCount++;
+		pLightning->pPage = pPage;
+		pLightning->nLightningType = -1;
+	}
+	pLightning->nNewLightningType = nType;
+	pLightning->nBullet1 = nBullet1;
+	pLightning->nBullet2 = nBullet2;
+	pLightning->ofs1 = ofs1;
+	pLightning->ofs2 = ofs2;
+	pLightning->bDirty = true;
+	pLightning->bAttachToBullet = bAttachToBullet;
+}
+
+void CBarrage::DestroyLightning( uint32 i )
+{
+	auto pContext = GetLightningContext( i );
+	if( !pContext || !pContext->pPage )
+		return;
+	pContext->pPage->nAliveLightningCount--;
 	pContext->pPage = NULL;
 	if( pContext->pEntity )
 	{
