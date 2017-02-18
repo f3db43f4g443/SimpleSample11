@@ -298,6 +298,19 @@ void CRenderObject2D::Dispose()
 	OnDispose();
 }
 
+bool CRenderObject2D::ForceUpdateTransform()
+{
+	bool bParentUpdated = false;
+	if( m_depth > 0 )
+		bParentUpdated = GetParent()->ForceUpdateTransform();
+	if( bParentUpdated || m_isTransformDirty )
+	{
+		CalcGlobalTransform();
+		return true;
+	}
+	return false;
+}
+
 void CRenderObject2D::_setDepth(int depth)
 {
 	if( m_depth == depth )

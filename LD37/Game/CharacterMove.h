@@ -34,11 +34,21 @@ struct SCharacterFlyData : public SCharacterMovementData
 	float fRollMaxTime;
 	float fRollMaxSpeed;
 
+	void Knockback( float fTime, const CVector2& dir )
+	{
+		fKnockbackTime = fTime;
+		vecKnockback = dir;
+		nState = eState_Normal;
+		bRollingAcrossWall = false;
+	}
+
 	void Reset()
 	{
 		nState = eState_Normal;
 		bRollingAcrossWall = false;
 		pLandedEntity = NULL;
+		fKnockbackTime = false;
+		vecKnockback = CVector2( 0, 0 );
 	}
 
 	enum
@@ -54,6 +64,9 @@ struct SCharacterFlyData : public SCharacterMovementData
 	CVector2 finalMoveAxis;
 	CReference<CEntity> pLandedEntity;
 	CMatrix2D lastLandedEntityTransform;
+
+	float fKnockbackTime;
+	CVector2 vecKnockback;
 };
 
 struct SCharacterSimpleWalkData : public SCharacterMovementData
@@ -67,15 +80,26 @@ struct SCharacterSimpleWalkData : public SCharacterMovementData
 	float fMaxFallSpeed;
 	float fJumpSpeed;
 
+	void Knockback( float fTime, const CVector2& dir )
+	{
+		fKnockbackTime = fTime;
+		vecKnockback = dir;
+	}
+
 	void Reset()
 	{
 		fFallSpeed = 0;
 		bLanded = false;
+		fKnockbackTime = false;
+		vecKnockback = CVector2( 0, 0 );
 	}
 
 	SRaycastResult hits[3];
 	float fFallSpeed;
 	bool bLanded;
+
+	float fKnockbackTime;
+	CVector2 vecKnockback;
 };
 
 struct SCharacterWalkData : public SCharacterMovementData
@@ -87,6 +111,16 @@ struct SCharacterWalkData : public SCharacterMovementData
 	void Jump( CCharacter* pCharacter );
 	void ReleaseJump( CCharacter* pCharacter );
 	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
+
+	void Knockback( float fTime, const CVector2& dir )
+	{
+		fKnockbackTime = fTime;
+		vecKnockback = dir;
+		velocity = dir;
+		nState = eState_Normal;
+		fJumpHoldingTime = 0;
+		bRollingAcrossWall = false;
+	}
 
 	float fMoveSpeed;
 	float fMoveAcc;
@@ -115,6 +149,8 @@ struct SCharacterWalkData : public SCharacterMovementData
 		fJumpHoldingTime = 0;
 		bRollingAcrossWall = false;
 		pLandedEntity = NULL;
+		fKnockbackTime = false;
+		vecKnockback = CVector2( 0, 0 );
 	}
 	uint8 nState;
 	bool bRollingAcrossWall;
@@ -127,6 +163,9 @@ struct SCharacterWalkData : public SCharacterMovementData
 	CReference<CEntity> pLandedEntity;
 	CMatrix2D lastLandedEntityTransform;
 	CVector2 groundNorm;
+
+	float fKnockbackTime;
+	CVector2 vecKnockback;
 protected:
 	void HandleNormal( CCharacter* pCharacter, const CVector2& moveAxis );
 	void HandleRoll( CCharacter* pCharacter, const CVector2& moveAxis );

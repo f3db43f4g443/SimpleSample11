@@ -25,7 +25,8 @@ public:
 	int32 GetHp() { return m_hp; }
 	int32 GetMaxHp() { return m_hp.GetMaxValue(); }
 	CEntity* GetCore() { return m_pCore; }
-	bool IsHiding() { return m_bIsHiding; }
+	bool IsHiding() { return m_fHidingCurTime >= m_fHidingTime; }
+	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
 	float GetRepairPercent() { return ( m_nRepairTime - m_nRepairTimeLeft ) * 1.0f / m_nRepairTime; }
 
 	void Move( float fXAxis, float fYAxis )
@@ -39,16 +40,20 @@ public:
 	const CVector2& GetCam() { return m_cam; }
 	void DelayChangeStage( const char* szName, const char* szStartPoint = "" );
 
+	bool IsRolling();
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
 	void Damage( int32 nValue = 1 );
+	void RestoreHp( int32 nValue );
 	virtual void Crush() override { Damage( 1000 ); }
+	virtual bool Knockback( const CVector2& vec ) override;
 	void BeginFire();
 	void EndFire();
-	void BeginHide();
-	void EndHide();
+	void BeginRepair();
+	void EndRepair();
 
 	CChunkObject* GetCurRoom() { return m_pCurRoom; }
 	void SetWeapon( CPlayerWeapon* pWeapon );
+	void RefreshCurRoomUI() { m_pCurRoomChunkUI->SetChunkObject( m_pCurRoom ); }
 
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
@@ -58,6 +63,7 @@ public:
 private:
 	void UpdateMove();
 	void UpdateFiring();
+	void UpdateRoom();
 	void UpdateRepair();
 
 	SAttribute m_hp;
@@ -76,10 +82,14 @@ private:
 	bool m_bIsWalkOrFly;
 	bool m_bRoll;
 	bool m_bFiringDown;
-	bool m_bIsHiding;
+	bool m_bIsRepairing;
+
+	float m_fHidingTime;
+	float m_fHidingCurTime;
 
 	uint32 m_nRepairTime;
 	uint32 m_nRepairInterval;
+	uint32 m_nRepairShake;
 	uint32 m_nRepairHp;
 	uint32 m_nRepairTimeLeft;
 	uint32 m_nRepairIntervalLeft;

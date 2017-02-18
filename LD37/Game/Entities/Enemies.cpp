@@ -20,12 +20,18 @@ void CEnemy1::OnAddedToStage()
 void CEnemy1::AIFunc()
 {
 	m_pAI->Yield( 0, true );
-	
-	while( globalTransform.GetPosition().y > ENTER_SIGHT_HEIGHT )
-		m_pAI->Yield( 0.5f, true );
 
 	for( ;; )
 	{
+		while( true )
+		{
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( pPlayer && ( pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition() ).Length2() < m_fSight * m_fSight )
+				break;
+
+			m_pAI->Yield( 0.5f, true );
+		}
+
 		for( int i = 0; i < m_nAmmoCount; i++ )
 		{
 			CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -42,6 +48,7 @@ void CEnemy1::AIFunc()
 				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 			}
 
+			CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
 			m_pAI->Yield( m_fFireRate, true );
 		}
 
@@ -59,15 +66,21 @@ void CEnemy2::AIFunc()
 {
 	m_pAI->Yield( 0, true );
 
-	while( globalTransform.GetPosition().y > ENTER_SIGHT_HEIGHT )
-		m_pAI->Yield( 0.5f, true );
-
 	SBarrageContext context;
 	context.vecBulletTypes.push_back( m_pBulletPrefab );
 	context.nBulletPageSize = 12;
 
 	for( ;; )
 	{
+		while( true )
+		{
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( pPlayer && ( pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition() ).Length2() < m_fSight * m_fSight )
+				break;
+
+			m_pAI->Yield( 0.5f, true );
+		}
+
 		CBarrageAutoStopHolder pBarrage = new CBarrage( context );
 		pBarrage->AddFunc( []( CBarrage* pBarrage )
 		{
@@ -87,6 +100,7 @@ void CEnemy2::AIFunc()
 				pBarrage->InitBullet( i * 2 + 1, 0, -1, CVector2( 0, 0 ), vel, vel * -0.5f, true );
 			}
 
+			CMyLevel::GetInst()->AddShakeStrength( 10 );
 			pBarrage->Yield( 120 );
 
 			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
@@ -97,6 +111,7 @@ void CEnemy2::AIFunc()
 				pBarrage->GetBulletContext( i )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
 				pBarrage->GetBulletContext( i )->SetBulletMove( CVector2( 0, 0 ), ( pPlayer->GetPosition() - pBarrage->GetPosition() - pBarrage->GetBulletContext( i )->p0 ) * 2 );
 			}
+			CMyLevel::GetInst()->AddShakeStrength( 10 );
 		} );
 		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		pBarrage->SetPosition( globalTransform.GetPosition() );

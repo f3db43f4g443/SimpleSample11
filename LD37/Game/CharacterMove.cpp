@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CharacterMove.h"
 #include "Stage.h"
+#include "GameUtil.h"
 
 void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& ofs, SRaycastResult* pHit )
 {
@@ -20,7 +21,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 			if( pHit )
 				pHit[0] = result;
 			CVector2 ofs1 = moveOfs * result.fDist;
-			CVector2 ofs2 = ofs - moveOfs;
+			CVector2 ofs2 = ofs - ofs1;
 			ofs2 = ofs2 - result.normal * ( result.normal.Dot( ofs2 ) );
 			CMatrix2D mat1 = pCharacter->globalTransform;
 			mat1.SetPosition( mat1.GetPosition() + ofs1 );
@@ -81,7 +82,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 				pHit[0] = result;
 			velocity = velocity - result.normal * ( result.normal.Dot( velocity ) );
 			CVector2 ofs1 = moveOfs * result.fDist;
-			CVector2 ofs2 = ofs - moveOfs;
+			CVector2 ofs2 = ofs - ofs1;
 			ofs2 = ofs2 - result.normal * ( result.normal.Dot( ofs2 ) );
 			CMatrix2D mat1 = pCharacter->globalTransform;
 			mat1.SetPosition( mat1.GetPosition() + ofs1 );
@@ -192,21 +193,27 @@ bool SCharacterMovementData::TryMoveAcrossWall( CCharacter * pCharacter, const C
 		{
 			moveOfs.Normalize();
 			moveOfs = moveOfs * fDistLeft;
+
+			bIsMovingAcrossWall = false;
+			trans.SetPosition( pCharacter->globalTransform.GetPosition() + moveOfs );
 		}
-		trans.SetPosition( pCharacter->globalTransform.GetPosition() + moveOfs );
-		hitResult.clear();
-		pCharacter->GetStage()->GetHitTestMgr().HitTest( pCharacter->Get_HitProxy(), trans, hitResult );
-		bHit = false;
-		for( auto pHitProxy : hitResult )
+		else
 		{
-			auto eHitType = static_cast<CEntity*>( pHitProxy )->GetHitType();
-			if( bHitChannel[eHitType] )
+			trans.SetPosition( pCharacter->globalTransform.GetPosition() + moveOfs );
+			hitResult.clear();
+			pCharacter->GetStage()->GetHitTestMgr().HitTest( pCharacter->Get_HitProxy(), trans, hitResult );
+			bHit = false;
+			for( auto pHitProxy : hitResult )
 			{
-				bHit = true;
-				break;
+				auto eHitType = static_cast<CEntity*>( pHitProxy )->GetHitType();
+				if( bHitChannel[eHitType] )
+				{
+					bHit = true;
+					break;
+				}
 			}
+			bIsMovingAcrossWall = bHit;
 		}
-		bIsMovingAcrossWall = bHit;
 		pCharacter->SetPosition( trans.GetPosition() );
 	}
 	return bIsMovingAcrossWall;
@@ -232,8 +239,24 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 		{
 			SPenetration penetration;
 			penetration.pEntity = pEntity;
-			penetration.normal = pManifold->normal;
-			penetration.fNormalLength = penetration.normal.Length();
+			CVector2 entityOfs = pEntity->globalTransform.GetPosition() - pEntity->GetLastPos();
+			float fLength = entityOfs.Length();
+			if( fLength == 0 )
+			{
+				entityOfs = pManifold->normal * -1;
+				fLength = pManifold->normal.Length();
+				if( fLength == 0 )
+					continue;
+			}
+
+			CMatrix2D trans = pEntity->globalTransform;
+			trans.SetPosition( trans.GetPosition() - entityOfs );
+			SRaycastResult result;
+			if( !pCharacter->SweepTest( pEntity->Get_HitProxy(), trans, entityOfs, &result ) )
+				continue;
+
+			penetration.fNormalLength = fLength - result.fDist;
+			penetration.normal = entityOfs * ( penetration.fNormalLength / fLength * -1 );
 			penetration.fInitialNormalLength = penetration.fNormalLength;
 			vecPenetrations.push_back( penetration );
 		}
@@ -326,25 +349,38 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 			CVector2 localPos = lastLandedEntityTransform.MulTVector2PosNoScale( oldPos );
 			CVector2 newPos = pLandedEntity->globalTransform.MulVector2Pos( localPos );
 
-			pCharacter->globalTransform.SetPosition( newPos );
 			pCharacter->SetPosition( newPos );
+			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 			lastLandedEntityTransform = pLandedEntity->globalTransform;
 			bSleep = false;
 		}
 	}
 
+	if( !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+
+	CVector2 moveOfs;
 	if( nState == eState_Normal )
 	{
-		if( !ResolvePenetration( pCharacter ) )
-		{
-			pCharacter->Crush();
-			return;
-		}
-
 		if( moveAxis.Length2() > 0 )
 		{
-			CVector2 moveOfs = ( moveAxis * fMoveSpeed ) * pCharacter->GetStage()->GetElapsedTimePerTick();
+			float fDeltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+			moveOfs = ( moveAxis * fMoveSpeed ) * fDeltaTime;
+
+			if( fKnockbackTime > 0 )
+			{
+				float fKnockbackTime0 = fKnockbackTime;
+				fKnockbackTime = Max( 0.0f, fKnockbackTime - fDeltaTime );
+				vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
+				moveOfs = vecKnockback * fDeltaTime;
+			}
+
 			CVector2 velocity = moveOfs;
 			TryMove( pCharacter, moveOfs, velocity );
 			finalMoveAxis = velocity;
@@ -361,21 +397,41 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 		CVector2 moveOfs = rollDir * ( fDist1 - fDist0 );
 		fRollTime = fNewRollTime;
 
-		if( !bRollingAcrossWall )
+		TryMove( pCharacter, moveOfs );
+
+		/*if( bRollingAcrossWall )
+		{
+			bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+			if( !bRollingAcrossWall )
+			{
+				pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+				pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+				if( !ResolvePenetration( pCharacter ) )
+				{
+					pCharacter->Crush();
+					return;
+				}
+			}
+		}
+		else
 		{
 			if( !ResolvePenetration( pCharacter ) )
 			{
 				pCharacter->Crush();
 				return;
 			}
-		}
-		bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+			bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+		}*/
 
 		if( fRollTime >= fRollMaxTime )
 		{
 			Reset();
 		}
 	}
+
+	pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
 }
 
 void SCharacterFlyData::UpdateMoveNoBlocking( CCharacter * pCharacter, const CVector2 & moveAxis )
@@ -410,7 +466,7 @@ void SCharacterFlyData::UpdateMoveNoBlocking( CCharacter * pCharacter, const CVe
 
 void SCharacterFlyData::Roll( CCharacter* pCharacter, const CVector2& moveAxis )
 {
-	if( nState != eState_Rolling )
+	if( nState != eState_Rolling && fKnockbackTime <= 0 )
 	{
 		nState = eState_Rolling;
 		fRollTime = 0;
@@ -427,6 +483,7 @@ void SCharacterWalkData::UpdateMove( CCharacter * pCharacter, const CVector2& mo
 	else
 		HandleNormal( pCharacter, moveAxis );
 
+	pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
 }
 
 void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& moveAxis )
@@ -448,6 +505,13 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	const CVector2 oldPos = oldTransform.GetPosition();
 	CVector2 curPos = oldPos;
 	float fDeltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+	if( fKnockbackTime > 0 )
+	{
+		float fKnockbackTime0 = fKnockbackTime;
+		fKnockbackTime = Max( 0.0f, fKnockbackTime - fDeltaTime );
+		nDir = 0;
+		vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
+	}
 
 	if( pLandedEntity )
 	{
@@ -460,6 +524,8 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		else if( lastLandedEntityTransform != pLandedEntity->globalTransform )
 		{
 			OnLandedEntityMoved( pCharacter, lastLandedEntityTransform, pLandedEntity->globalTransform );
+			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 			bSleep = false;
 		}
 	}
@@ -542,6 +608,8 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		}
 	}
 
+	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 	TryMove( pCharacter, dPos, velocity );
 	FindFloor( pCharacter );
 }
@@ -556,15 +624,40 @@ void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& mov
 	CVector2 moveOfs = rollDir * ( fDist1 - fDist0 );
 	fRollTime = fNewRollTime;
 
-	if( !bRollingAcrossWall )
+	if( !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+	TryMove( pCharacter, moveOfs );
+
+	/*if( bRollingAcrossWall )
+	{
+		bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+		if( !bRollingAcrossWall )
+		{
+			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+			if( !ResolvePenetration( pCharacter ) )
+			{
+				pCharacter->Crush();
+				return;
+			}
+		}
+	}
+	else
 	{
 		if( !ResolvePenetration( pCharacter ) )
 		{
 			pCharacter->Crush();
 			return;
 		}
-	}
-	bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+		pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+		pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+		bRollingAcrossWall = TryMoveAcrossWall( pCharacter, moveOfs, rollOfsLeft );
+	}*/
 
 	if( fRollTime >= fRollMaxTime )
 	{
@@ -574,7 +667,7 @@ void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& mov
 
 void SCharacterWalkData::Jump( CCharacter * pCharacter )
 {
-	if( pLandedEntity && nState == eState_Normal )
+	if( pLandedEntity && nState == eState_Normal && fKnockbackTime <= 0 )
 	{
 		nState = eState_JumpHolding;
 		fJumpHoldingTime = 0;
@@ -596,7 +689,7 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 
 void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxis )
 {
-	if( nState != eState_Rolling && nRollCount )
+	if( nState != eState_Rolling && nRollCount && fKnockbackTime <= 0 )
 	{
 		nState = eState_Rolling;
 		fRollTime = 0;
@@ -647,7 +740,7 @@ void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
 	CVector2 ofs = dir * fFindFloorDist;
 	SRaycastResult result;
 	auto pNewLandedEntity = pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), trans, ofs, bHitChannel, &result );
-	if( pNewLandedEntity && velocity.Dot( result.normal ) < 1.0f )
+	if( pNewLandedEntity && velocity.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.5f )
 	{
 		pLandedEntity = pNewLandedEntity;
 		pCharacter->SetPosition( pCharacter->GetPosition() + dir * result.fDist );
@@ -680,8 +773,19 @@ CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, int8 nDi
 	float dX = nDir * fMoveSpeed * fTime;
 	CVector2 dPos( dX, dY );
 	CVector2 velocity( nDir * fMoveSpeed, -fFallSpeed1 );
+
+	if( fKnockbackTime > 0 )
+	{
+		float fKnockbackTime0 = fKnockbackTime;
+		fKnockbackTime = Max( 0.0f, fKnockbackTime - fTime );
+		nDir = 0;
+		vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
+		velocity = vecKnockback;
+	}
+
 	CVector2 fixedVelocity = velocity;
 	TryMove( pCharacter, dPos, fixedVelocity, hits );
+	pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
 
 	bLanded = false;
 	if( fixedVelocity.y > velocity.y )

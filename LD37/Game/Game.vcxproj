@@ -428,11 +428,13 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
+    <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Enemies.cpp" />
     <ClCompile Include="Entities\EnemyCharacters.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
     <ClCompile Include="Entities\Neutral.cpp" />
+    <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="GameUtil.cpp" />
@@ -448,6 +450,7 @@
     <ClCompile Include="MyLevel.cpp" />
     <ClCompile Include="Physics\HitProxy.cpp" />
     <ClCompile Include="Physics\HitProxyData.cpp" />
+    <ClCompile Include="Pickup.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayerWeapon.cpp" />
     <ClCompile Include="PostEffects.cpp" />
@@ -476,11 +479,13 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Entities\AIObject.h" />
     <ClInclude Include="Entities\Barrage.h" />
+    <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Enemies.h" />
     <ClInclude Include="Entities\EnemyCharacters.h" />
     <ClInclude Include="Entities\GlitchEffect.h" />
     <ClInclude Include="Entities\Neutral.h" />
+    <ClInclude Include="Entities\FallingObj.h" />
     <ClInclude Include="Entities\StartPoint.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="GameUtil.h" />
@@ -496,6 +501,7 @@
     <ClInclude Include="MyLevel.h" />
     <ClInclude Include="Physics\HitProxy.h" />
     <ClInclude Include="Physics\HitProxyData.h" />
+    <ClInclude Include="Pickup.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayerWeapon.h" />
     <ClInclude Include="PostEffects.h" />

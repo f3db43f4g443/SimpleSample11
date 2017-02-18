@@ -9,7 +9,8 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel ) : pLevel( pLevel )
 {
 	blocks.resize( pLevel->m_nWidth * pLevel->m_nHeight );
 	chunks.resize( pLevel->m_nWidth * pLevel->m_nHeight );
-	attachedPrefabs.resize( pLevel->m_nWidth * pLevel->m_nHeight );
+	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
+		attachedPrefabs[i].resize( pLevel->m_nWidth * pLevel->m_nHeight );
 }
 
 SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region )
@@ -40,23 +41,26 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 	return pChunk;
 }
 
-void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect )
+void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nType )
 {
-	for( int j = rect.y; j < rect.GetBottom(); j++ )
+	auto r = rect;
+	if( nType > 0 )
+		r.width = r.height = 1;
+	for( int j = r.y; j < r.GetBottom(); j++ )
 	{
-		for( int i = rect.x; i < rect.GetRight(); i++ )
+		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			if( attachedPrefabs[i + j * pLevel->m_nWidth].first )
+			if( attachedPrefabs[nType][i + j * pLevel->m_nWidth].first )
 				return;
 		}
 	}
 
-	for( int j = rect.y; j < rect.GetBottom(); j++ )
+	for( int j = r.y; j < r.GetBottom(); j++ )
 	{
-		for( int i = rect.x; i < rect.GetRight(); i++ )
+		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			attachedPrefabs[i + j * pLevel->m_nWidth].first = pPrefab;
-			attachedPrefabs[i + j * pLevel->m_nWidth].second = rect;
+			attachedPrefabs[nType][i + j * pLevel->m_nWidth].first = pPrefab;
+			attachedPrefabs[nType][i + j * pLevel->m_nWidth].second = rect;
 		}
 	}
 }
@@ -134,15 +138,45 @@ void SLevelBuildContext::Build()
 			auto pBlock = blocks[i + j * pLevel->m_nWidth];
 			if( pBlock )
 			{
-				auto attachedPrefab = attachedPrefabs[i + j * pLevel->m_nWidth];
-				if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
+				for( int k = 0; k < ELEM_COUNT( attachedPrefabs ); k++ )
 				{
-					pBlock->pAttachedPrefab = attachedPrefab.first;
-					pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
+					if( k == SBlock::eAttachedPrefab_Lower )
+					{
+						if( j <= 0 )
+							continue;
+						auto pLowerBlock = blocks[i + ( j - 1 ) * pLevel->m_nWidth];
+						if( pLowerBlock && pLowerBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+							continue;
+					}
+					if( k == SBlock::eAttachedPrefab_Upper )
+					{
+						if( j >= pLevel->m_nHeight - 1 )
+							continue;
+						auto pUpperBlock = blocks[i + ( j + 1 ) * pLevel->m_nWidth];
+						if( pUpperBlock && pUpperBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+							continue;
+					}
+
+					auto attachedPrefab = attachedPrefabs[k][i + j * pLevel->m_nWidth];
+					if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
+					{
+						pBlock->pAttachedPrefab[k] = attachedPrefab.first;
+						if( k == SBlock::eAttachedPrefab_Center )
+							pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
+						else if( k == SBlock::eAttachedPrefab_Lower )
+							pBlock->nLowerMargin = attachedPrefab.second.height;
+						else
+							pBlock->nUpperMargin = attachedPrefab.second.height;
+					}
 				}
 			}
 		}
 	}
+}
+
+SBlock* SLevelBuildContext::GetBlock( uint32 x, uint32 y )
+{
+	return blocks[x + y * pLevel->m_nWidth];
 }
 
 void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
@@ -179,8 +213,10 @@ public:
 		chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
 		chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
 		chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
+		chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
 		chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
 		chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
+		chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );
 		chunk.fWeightPerWidth = XmlGetAttr( pXml, "weightperwidth", 0.0f );
 		chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
 		chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
@@ -289,6 +325,7 @@ public:
 		m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
 		m_size.x = XmlGetAttr( pXml, "sizex", 1 );
 		m_size.y = XmlGetAttr( pXml, "sizey", 1 );
+		m_nType = Min<uint8>( SBlock::eAttachedPrefab_Count, XmlGetAttr( pXml, "attach_type", 0 ) );
 
 		CLevelGenerateNode::Load( pXml, context );
 	}
@@ -298,7 +335,7 @@ public:
 		{
 			for( int i = region.x; i < region.GetRight(); i += m_size.x )
 			{
-				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ) );
+				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nType );
 			}
 		}
 		CLevelGenerateNode::Generate( context, region );
@@ -306,6 +343,7 @@ public:
 protected:
 	CReference<CPrefab> m_pPrefab;
 	TVector2<int32> m_size;
+	uint8 m_nType;
 };
 
 class CLevelGenerateTileNode : public CLevelGenerateNode
@@ -570,6 +608,7 @@ public:
 			item.sizeMax.y = XmlGetAttr( pChild, "sizemaxy", item.sizeMin.y );
 			item.fWeight = XmlGetAttr( pChild, "p", 1.0f );
 		}
+		m_bCheckBlock = XmlGetAttr( pXml, "check_block", 0 );
 
 		float fTotalWeight = 0;
 		for( int i = m_infos.size() - 1; i >= 0; i-- )
@@ -584,6 +623,7 @@ public:
 	{
 		auto size = region.GetSize();
 
+		SSubNodeInfo dummy;
 		vector<pair<SSubNodeInfo*, TRectangle<int32> > > genResult;
 		genResult.resize( size.x * size.y );
 
@@ -591,6 +631,22 @@ public:
 		gridExt.resize( size.x * size.y );
 		vector<int32> gridOk;
 		gridOk.resize( size.x * size.y );
+
+		//Randomly flip
+		bool bFlipX = SRand::Inst().Rand() & 1;
+		bool bFlipY = SRand::Inst().Rand() & 1;
+		if( m_bCheckBlock )
+		{
+			for( int j = 0; j < size.y; j++ )
+			{
+				for( int i = 0; i < size.x; i++ )
+				{
+					int32 x = ( bFlipX ? size.x - 1 - i : i ) + region.x;
+					int32 y = ( bFlipY ? size.y - 1 - j : j ) + region.y;
+					GET_GRID( genResult, i, j ).first = context.GetBlock( x, y ) ? &dummy : NULL;
+				}
+			}
+		}
 
 		for( auto& subNodeInfo : m_infos )
 		{
@@ -810,17 +866,13 @@ public:
 			}
 		}
 
-		//Randomly flip
-		bool bFlipX = SRand::Inst().Rand() & 1;
-		bool bFlipY = SRand::Inst().Rand() & 1;
-
 		//Gen children
 		for( int j = 0; j < size.y; j++ )
 		{
 			for( int i = 0; i < size.x; i++ )
 			{
 				auto& result = GET_GRID( genResult, i, j );
-				if( i == result.second.x && j == result.second.y )
+				if( result.first && result.first != &dummy && i == result.second.x && j == result.second.y )
 				{
 					auto rect = result.second;
 					if( bFlipX )
@@ -837,6 +889,7 @@ public:
 		CLevelGenerateNode::Generate( context, region );
 	}
 protected:
+	bool m_bCheckBlock;
 	vector<SSubNodeInfo> m_infos;
 };
 

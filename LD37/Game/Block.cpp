@@ -6,6 +6,7 @@
 #include "Entities/Barrage.h"
 #include "Entities/EffectObject.h"
 #include "Stage.h"
+#include "BlockItem.h"
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	: m_pBlock( pBlock )
@@ -13,10 +14,15 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	SET_BASEOBJECT_ID( CBlockObject );
 
 	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * pLevel->GetBlockSize() );
-	if( pBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+	if( pBlock->pBaseInfo->eBlockType == eBlockType_Block )
 	{
 		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
-		SetHitType( pBlock->pBaseInfo->eBlockType == eBlockType_Block ? eEntityHitType_WorldStatic : eEntityHitType_Platform );
+		SetHitType( eEntityHitType_WorldStatic );
+	}
+	else if( pBlock->pBaseInfo->eBlockType == eBlockType_Door )
+	{
+		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
+		SetHitType( eEntityHitType_Sensor );
 	}
 	SetParentEntity( pParent );
 }
@@ -28,6 +34,8 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fDestroyWeight( baseInfo.fDestroyWeight + baseInfo.fDestroyWeightPerWidth * ( size.x - baseInfo.nWidth ) )
 	, fDestroyBalance( baseInfo.fDestroyBalance )
 	, fImbalanceTime( baseInfo.fImbalanceTime )
+	, fShakeDmg( baseInfo.fShakeDmg )
+	, nShakeDmgThreshold( baseInfo.nShakeDmgThreshold )
 	, nAbsorbShakeStrength( baseInfo.nAbsorbShakeStrength + baseInfo.fAbsorbShakeStrengthPerHeight * ( size.y - baseInfo.nHeight ) )
 	, nDestroyShake( baseInfo.nDestroyShake )
 	, pos( pos )
@@ -38,6 +46,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fAppliedWeight( 0 )
 	, fBalance( 0 )
 	, fCurImbalanceTime( 0 )
+	, nCurShakeStrength( 0 )
 	, bIsRoom( baseInfo.bIsRoom )
 	, bIsLevelBarrier( false )
 	, bStopMove( false )
@@ -45,7 +54,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, bSpawned( false )
 	, bIsSubChunk( false )
 	, bMovedLastFrame( false )
-	, bAbsorbedShake( false )
+	, bIsBeingRepaired( false )
 	, nVisitFlag( 0 )
 	, m_pSubChunks( NULL )
 	, m_pSpawnInfos( NULL )
@@ -59,8 +68,8 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 			block.nX = i;
 			block.nY = j;
 			block.pOwner = this;
-			int x = i == size.x - 1 ? baseInfo.nWidth - 1 : Min<int32>( i, baseInfo.nWidth - 2 );
-			int y = j == size.y - 1 ? baseInfo.nHeight - 1 : Min<int32>( j, baseInfo.nHeight - 2 );
+			int x = i == size.x - 1 ? baseInfo.nWidth - 1 : Max<int32>( 0, Min<int32>( i, baseInfo.nWidth - 2 ) );
+			int y = j == size.y - 1 ? baseInfo.nHeight - 1 : Max<int32>( 0, Min<int32>( j, baseInfo.nHeight - 2 ) );
 			block.pBaseInfo = &baseInfo.blockInfos[x + y * baseInfo.nWidth];
 		}
 	}
@@ -99,6 +108,11 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel )
 	}
 }
 
+float SChunk::GetFallSpeed()
+{
+	return nFallSpeed * CMyLevel::GetInst()->GetFallDistPerSpeedFrame() * 60;
+}
+
 void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 {
 	m_pChunk = pChunk;
@@ -123,10 +137,27 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		{
 			block.pEntity = new CBlockObject( &block, this, pLevel );
 		}
-		if( block.pAttachedPrefab )
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
 		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab->GetRoot()->CreateInstance() );
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * pLevel->GetBlockSize() );
+			pEntity->SetZOrder( 1 );
+			pEntity->SetParentEntity( this );
+		}
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * pLevel->GetBlockSize() );
+			pEntity->SetZOrder( 1 );
+			pEntity->SetParentEntity( this );
+		}
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * pLevel->GetBlockSize() );
 			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
@@ -172,13 +203,13 @@ void CChunkObject::OnKilled()
 	}
 }
 
-void CChunkObject::Damage( uint32 nDmg, uint8 nType )
+void CChunkObject::Damage( float fDmg, uint8 nType )
 {
 	if( !m_nMaxHp )
 		return;
-	uint32 nLastDamageFrame = Max<int32>( ( m_nHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 );
-	m_nHp = Max( m_nHp - (int32)nDmg, 0 );
-	uint32 nDamageFrame = Max<int32>( ( m_nHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 );
+	uint32 nLastDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
+	m_fHp = Max<float>( m_fHp - (float)fDmg, 0 );
+	uint32 nDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	if( nLastDamageFrame != nDamageFrame )
 	{
 		if( nLastDamageFrame < m_nDamagedEffectsCount )
@@ -187,9 +218,9 @@ void CChunkObject::Damage( uint32 nDmg, uint8 nType )
 			m_pDamagedEffects[nDamageFrame]->bVisible = true;
 	}
 
-	if( m_nHp <= 0 )
+	if( m_fHp <= 0 )
 	{
-		m_nHp = 0;
+		m_fHp = 0;
 		if( nType == 1 )
 			Crush();
 		else
@@ -197,12 +228,12 @@ void CChunkObject::Damage( uint32 nDmg, uint8 nType )
 	}
 }
 
-uint32 CChunkObject::Repair( uint32 nAmount )
+float CChunkObject::Repair( float fAmount )
 {
-	uint32 nLastDamageFrame = Max<int32>( ( m_nHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 );
-	int32 nLastHp = m_nHp;
-	m_nHp = Min( m_nHp + (int32)nAmount, m_nMaxHp );
-	uint32 nDamageFrame = Max<int32>( ( m_nHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 );
+	uint32 nLastDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
+	float fLastHp = m_fHp;
+	m_fHp = Min<float>( m_fHp + fAmount, m_nMaxHp );
+	uint32 nDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	if( nLastDamageFrame != nDamageFrame )
 	{
 		if( nLastDamageFrame < m_nDamagedEffectsCount )
@@ -210,11 +241,12 @@ uint32 CChunkObject::Repair( uint32 nAmount )
 		if( nDamageFrame < m_nDamagedEffectsCount )
 			m_pDamagedEffects[nDamageFrame]->bVisible = true;
 	}
-	return m_nHp - nLastHp;
+	return m_fHp - fLastHp;
 }
 
 void CChunkObject::Kill()
 {
+	m_triggerKilled.Trigger( 0, this );
 	OnKilled();
 	CMyLevel::GetInst()->pHitSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
@@ -362,25 +394,26 @@ void CSpecialChunk3::Trigger()
 	pBarrage->Start();
 }
 
-void CExplosiveChunk::Damage( uint32 nDmg, uint8 nType )
+void CExplosiveChunk::Damage( float fDmg, uint8 nType )
 {
 	if( m_bKilled )
 	{
-		m_nHp -= nDmg;
-		if( -m_nHp >= m_nMaxKillHp )
+		m_fHp -= fDmg;
+		if( -m_fHp >= m_nMaxKillHp )
 			Explode();
 		return;
 	}
 	else
-		CChunkObject::Damage( nDmg, nType );
+		CChunkObject::Damage( m_fHp, nType );
 }
 
 void CExplosiveChunk::Kill()
 {
 	if( m_bKilled )
 		return;
+	m_triggerKilled.Trigger( 0, this );
 	m_bKilled = true;
-	m_nHp = 0;
+	m_fHp = 0;
 	m_nDeathDamageCDLeft = 0;
 	AddHitShake( CVector2( 8, 0 ) );
 	Tick();
@@ -431,17 +464,17 @@ void CBarrel::OnAddedToStage()
 	CExplosiveChunk::OnAddedToStage();
 }
 
-void CBarrel::Damage( uint32 nDmg, uint8 nType )
+void CBarrel::Damage( float fDmg, uint8 nType )
 {
 	if( m_bKilled )
 	{
 		CReference<CBarrel> temp = this;
 		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetInst()->GetBlockSize() * 0.5f;
-		int32 nPreHp = -m_nHp;
-		CExplosiveChunk::Damage( nDmg );
+		int32 nPreHp = -m_fHp;
+		CExplosiveChunk::Damage( fDmg );
 		if( !GetParentEntity() )
 			return;
-		int32 nCurHp = -m_nHp;
+		int32 nCurHp = -m_fHp;
 		int32 nFireCount = ( nCurHp / m_nDeathDamage ) - ( nPreHp / m_nDeathDamage );
 		if( nFireCount > 0 )
 		{
@@ -481,7 +514,7 @@ void CBarrel::Damage( uint32 nDmg, uint8 nType )
 		}
 	}
 	else
-		CExplosiveChunk::Damage( nDmg );
+		CExplosiveChunk::Damage( fDmg );
 }
 
 void CBarrel::Explode()
@@ -534,6 +567,7 @@ void CRandomEnemyRoom::SetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 
 	CDrawableGroup* pDrawableGroup = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strRes.c_str() );
 	CDrawableGroup* pDamageEftDrawableGroups[4];
+
 	CRectangle damageEftTexRects[4];
 	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 	{
@@ -547,92 +581,102 @@ void CRandomEnemyRoom::SetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 		for( int j = 0; j < pChunk->nHeight; j++ )
 		{
 			uint32 nTileX, nTileY;
-			if( i == 0 && j == 0 )
-			{
-				nTileX = 10;
-				nTileY = 5;
-			}
-			else if( i == 1 && j == 0 )
-			{
-				nTileX = 11;
-				nTileY = 5;
-			}
-			else if( i == 0 && j == 1 )
-			{
-				nTileX = 10;
-				nTileY = 4;
-			}
-			else if( i == pChunk->nWidth - 1 && j == 0 )
-			{
-				nTileX = 13;
-				nTileY = 5;
-			}
-			else if( i == pChunk->nWidth - 2 && j == 0 )
-			{
-				nTileX = 12;
-				nTileY = 5;
-			}
-			else if( i == pChunk->nWidth - 1 && j == 1 )
-			{
-				nTileX = 13;
-				nTileY = 4;
-			}
-
-			else if( i == 0 && j == pChunk->nHeight - 1 )
-			{
-				nTileX = 10;
-				nTileY = 2;
-			}
-			else if( i == 1 && j == pChunk->nHeight - 1 )
-			{
-				nTileX = 11;
-				nTileY = 2;
-			}
-			else if( i == 0 && j == pChunk->nHeight - 2 )
-			{
-				nTileX = 10;
-				nTileY = 3;
-			}
-			else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 1 )
-			{
-				nTileX = 13;
-				nTileY = 2;
-			}
-			else if( i == pChunk->nWidth - 2 && j == pChunk->nHeight - 1 )
-			{
-				nTileX = 12;
-				nTileY = 2;
-			}
-			else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 2 )
-			{
-				nTileX = 13;
-				nTileY = 3;
-			}
-
-			else if( i == 0 )
-			{
-				nTileX = 14 + ( SRand::Inst().Rand() & 1 );
-				nTileY = 3;
-			}
-			else if( i == pChunk->nWidth - 1 )
-			{
-				nTileX = 14 + ( SRand::Inst().Rand() & 1 );
-				nTileY = 5;
-			}
-			else if( j == 0 )
-			{
-				nTileX = 14 + ( SRand::Inst().Rand() & 1 );
-				nTileY = 4;
-			}
-			else if( j == pChunk->nHeight - 1 )
-			{
-				nTileX = 14 + ( SRand::Inst().Rand() & 1 );
-				nTileY = 2;
-			}
-			else
+			bool bDoor = ( i == 0 || i == pChunk->nWidth - 1 ) && ( j == pChunk->nHeight / 2 - 1 || j == pChunk->nHeight / 2 )
+				|| ( j == 0 || j == pChunk->nHeight - 1 ) && ( i == pChunk->nWidth / 2 - 1 || i == pChunk->nWidth / 2 );
+			if( bDoor )
 			{
 				nTileX = 11 + ( SRand::Inst().Rand() & 1 );
 				nTileY = 3 + ( SRand::Inst().Rand() & 1 );
+			}
+			else
+			{
+				if( i == 0 && j == 0 )
+				{
+					nTileX = 10;
+					nTileY = 5;
+				}
+				else if( i == 1 && j == 0 )
+				{
+					nTileX = 11;
+					nTileY = 5;
+				}
+				else if( i == 0 && j == 1 )
+				{
+					nTileX = 10;
+					nTileY = 4;
+				}
+				else if( i == pChunk->nWidth - 1 && j == 0 )
+				{
+					nTileX = 13;
+					nTileY = 5;
+				}
+				else if( i == pChunk->nWidth - 2 && j == 0 )
+				{
+					nTileX = 12;
+					nTileY = 5;
+				}
+				else if( i == pChunk->nWidth - 1 && j == 1 )
+				{
+					nTileX = 13;
+					nTileY = 4;
+				}
+
+				else if( i == 0 && j == pChunk->nHeight - 1 )
+				{
+					nTileX = 10;
+					nTileY = 2;
+				}
+				else if( i == 1 && j == pChunk->nHeight - 1 )
+				{
+					nTileX = 11;
+					nTileY = 2;
+				}
+				else if( i == 0 && j == pChunk->nHeight - 2 )
+				{
+					nTileX = 10;
+					nTileY = 3;
+				}
+				else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 1 )
+				{
+					nTileX = 13;
+					nTileY = 2;
+				}
+				else if( i == pChunk->nWidth - 2 && j == pChunk->nHeight - 1 )
+				{
+					nTileX = 12;
+					nTileY = 2;
+				}
+				else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 2 )
+				{
+					nTileX = 13;
+					nTileY = 3;
+				}
+
+				else if( i == 0 )
+				{
+					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileY = 3;
+				}
+				else if( i == pChunk->nWidth - 1 )
+				{
+					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileY = 5;
+				}
+				else if( j == 0 )
+				{
+					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileY = 4;
+				}
+				else if( j == pChunk->nHeight - 1 )
+				{
+					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileY = 2;
+				}
+				else
+				{
+					nTileX = 11 + ( SRand::Inst().Rand() & 1 );
+					nTileY = 3 + ( SRand::Inst().Rand() & 1 );
+				}
 			}
 
 			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
@@ -652,6 +696,23 @@ void CRandomEnemyRoom::SetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 			}
 		}
 	}
+
+	auto pDoorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strDoor.c_str() );
+	auto pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, 0.5f ) * pLevel->GetBlockSize() );
+	pDoor->SetParentEntity( this );
+	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, pChunk->nHeight - 0.5f ) * pLevel->GetBlockSize() );
+	pDoor->SetRotation( PI );
+	pDoor->SetParentEntity( this );
+	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
+	pDoor->SetPosition( CVector2( 0.5f, pChunk->nHeight / 2 ) * pLevel->GetBlockSize() );
+	pDoor->SetRotation( PI * 1.5f );
+	pDoor->SetParentEntity( this );
+	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth - 0.5f, pChunk->nHeight / 2 ) * pLevel->GetBlockSize() );
+	pDoor->SetRotation( PI * 0.5f );
+	pDoor->SetParentEntity( this );
 }
 
 void CRandomEnemyRoom::OnKilled()
@@ -765,6 +826,7 @@ void CRandomChunk::OnChunkDataGenerated( SChunk * pChunk, const SChunkBaseInfo &
 				int32 nRand = SRand::Inst().Rand( 0, nTile0 );
 				nIndex = GET_TILE_INDEX( nRand % ( nMaxX - 2 ) + 1, nRand / ( nMaxX - 2 ) + 1 );
 			}
+#undef GET_TILE_INDEX
 
 			pChunk->Insert_SubChunk( new SChunk( *baseInfo.subInfos[nIndex].first, TVector2<int32>( i, j ), TVector2<int32>( baseInfo.subInfos[nIndex].first->nWidth, baseInfo.subInfos[nIndex].first->nHeight ) ) );
 		}
@@ -801,6 +863,8 @@ void CRandomChunk::SetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			m_pDamagedEffects[i]->AddChild( pImage2D );
 		}
 	}
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
 }
 
 void CRandomChunk::OnKilled()
@@ -820,8 +884,86 @@ void CRandomChunk::OnKilled()
 	}
 }
 
+void CRandomChunk1::OnChunkDataGenerated( SChunk * pChunk, const SChunkBaseInfo & baseInfo ) const
+{
+	uint32 nWidth = pChunk->nWidth;
+	uint32 nHeight = pChunk->nHeight;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			uint32 nIndex = SRand::Inst().Rand<uint32>( 0, baseInfo.subInfos.size() );
+			pChunk->Insert_SubChunk( new SChunk( *baseInfo.subInfos[nIndex].first, TVector2<int32>( i, j ),
+				TVector2<int32>( baseInfo.subInfos[nIndex].first->nWidth, baseInfo.subInfos[nIndex].first->nHeight ) ) );
+		}
+	}
+}
+
+void CRandomChunk1::SetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CChunkObject::SetChunk( pChunk, pLevel );
+
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+
+	auto rect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+	uint32 nTileX = rect.width / 32;
+	uint32 nTileY = rect.height / 32;
+	texRect.width /= nTileX;
+	texRect.height /= nTileY;
+
+	SetRenderObject( new CRenderObject2D );
+	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+	{
+		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
+
+		uint32 tX = pSubChunk->pos.x == 0 ? 0 : ( pSubChunk->pos.x == pChunk->nWidth - 1 ? nTileX - 1 : SRand::Inst().Rand( 1u, nTileX - 1 ) );
+		uint32 tY = pSubChunk->pos.y == 0 ? 0 : ( pSubChunk->pos.y == pChunk->nHeight - 1 ? nTileY - 1 : SRand::Inst().Rand( 1u, nTileY - 1 ) );
+
+		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * tX, texRect.height * ( nTileY - 1 - tY ) ) ) );
+		GetRenderObject()->AddChild( pImage2D );
+
+		for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
+			pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
+			pImage2D->SetTexRect( pDamageEftTex[i] );
+			m_pDamagedEffects[i]->AddChild( pImage2D );
+		}
+	}
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CRandomChunk1::OnKilled()
+{
+	if( m_pEffect )
+	{
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+}
+
 void CCharacterChunk::Crush()
 {
+	m_triggerCrushed.Trigger( 0, this );
 	ClearHitShake();
 	if( m_pCharacter )
 	{

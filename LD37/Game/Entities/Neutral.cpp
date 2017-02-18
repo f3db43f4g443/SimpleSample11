@@ -5,8 +5,41 @@
 #include "MyLevel.h"
 #include "EffectObject.h"
 #include "Stage.h"
+#include "Player.h"
 #include "Bullet.h"
 #include "Barrage.h"
+#include "EnemyCharacters.h"
+
+void CSpike::OnAddedToStage()
+{
+	GetStage()->RegisterStageEvent( eStageEvent_PostHitTest, &m_onTick );
+}
+
+void CSpike::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CSpike::OnTick()
+{
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pPlayer = SafeCast<CPlayer>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pPlayer )
+		{
+			pPlayer->Crush();
+			continue;
+		}
+
+		auto pEnemyChar = SafeCast<CEnemyCharacter>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pEnemyChar )
+		{
+			pEnemyChar->Crush();
+			continue;
+		}
+	}
+}
 
 void CFuelTank::OnAddedToStage()
 {

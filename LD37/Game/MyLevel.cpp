@@ -29,7 +29,7 @@ void CMyLevel::OnAddedToStage()
 		pLeft->SetParentEntity( pBorder );
 
 		CEntity* pRight = new CEntity;
-		rect.SetLeft( GetBound().GetRight() );
+		rect.x = GetBound().GetRight();
 		pRight->AddRect( rect );
 		pRight->SetHitType( eEntityHitType_Platform );
 		pRight->SetParentEntity( pBorder );
@@ -45,9 +45,40 @@ void CMyLevel::OnAddedToStage()
 		pTop->SetParentEntity( pBorder );
 
 		CEntity* pBottom = new CEntity;
-		rect.SetTop( GetBound().GetBottom() );
+		rect.y = GetBound().GetBottom();
 		pBottom->AddRect( rect );
 		pBottom->SetHitType( eEntityHitType_Platform );
+		pBottom->SetParentEntity( pBorder );
+	}
+	{
+		CEntity* pLeft = new CEntity;
+		CRectangle rect = GetBound();
+		rect.SetLeft( rect.GetLeft() - 1024 );
+		rect.width = 256;
+		pLeft->AddRect( rect );
+		pLeft->SetHitType( eEntityHitType_WorldStatic );
+		pLeft->SetParentEntity( pBorder );
+
+		CEntity* pRight = new CEntity;
+		rect.x = GetBound().GetRight() + 768;
+		pRight->AddRect( rect );
+		pRight->SetHitType( eEntityHitType_WorldStatic );
+		pRight->SetParentEntity( pBorder );
+
+		CEntity* pTop = new CEntity;
+		rect = GetBound();
+		rect.SetLeft( rect.GetLeft() - 1024 );
+		rect.SetRight( rect.GetRight() + 1024 );
+		rect.SetTop( rect.GetTop() - 1024 );
+		rect.height = 256;
+		pTop->AddRect( rect );
+		pTop->SetHitType( eEntityHitType_WorldStatic );
+		pTop->SetParentEntity( pBorder );
+
+		CEntity* pBottom = new CEntity;
+		rect.y = GetBound().GetBottom() + 768;
+		pBottom->AddRect( rect );
+		pBottom->SetHitType( eEntityHitType_WorldStatic );
 		pBottom->SetParentEntity( pBorder );
 	}
 
@@ -281,6 +312,15 @@ void CMyLevel::AddShakeStrength( float fShakeStrength )
 
 void CMyLevel::UpdateBlocksMovement()
 {
+	uint32 nPlayerHeight = 0;
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer )
+	{
+		if( pPlayer->GetHp() <= 0 )
+			return;
+		nPlayerHeight = pPlayer->GetCurRoom() && pPlayer->GetCurRoom()->GetChunk() ? pPlayer->GetCurRoom()->GetChunk()->pos.y : floor( pPlayer->GetPosition().y - 16 );
+	}
+
 	int8 nTileTypes[] = { 0, 1, 1, 2, 3 };
 	auto pMainUI = CMainUI::GetInst();
 	vector<SBlock*> vecUpdatedBlocks;
@@ -302,25 +342,17 @@ void CMyLevel::UpdateBlocksMovement()
 	{
 		auto pBlock = vecUpdatedBlocks[nUpdatedBlock++];
 		auto pChunk = pBlock->pOwner;
-		auto& basement = m_basements[pBlock->nX + pChunk->pos.x / m_nBlockSize];
 		pChunk->nUpdateCount++;
-
-		int32& shakeStrength = basement.nCurShakeStrength;
-		if( shakeStrength || !pChunk->nAbsorbShakeStrength )
-		{
-			shakeStrength -= pChunk->nAbsorbShakeStrength;
-			if( shakeStrength < 0 )
-				shakeStrength = 0;
-			pChunk->bAbsorbedShake = true;
-		}
-		else if( basement.nShakeHeight < 0 )
-		{
-			basement.nShakeHeight = pBlock->pPreBlock ? pBlock->pPreBlock->pOwner->nHeight + pBlock->pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
-		}
 
 		if( pChunk->nUpdateCount == pChunk->nWidth )
 		{
 			float fBalance = 1;
+			bool bHit = false;
+			bool b1 = false;
+			bool bIsCurRoom = false;
+			if( pChunk->pChunkObject )
+				bIsCurRoom = pChunk->pChunkObject == GetStage()->GetPlayer()->GetCurRoom();
+
 			if( pChunk->bForceStop )
 			{
 				pChunk->nFallSpeed = 0;
@@ -335,9 +367,16 @@ void CMyLevel::UpdateBlocksMovement()
 				for( int i = 0; i < pChunk->nWidth; i++ )
 				{
 					auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
+					int32 nPreY;
 					if( pPreBlock )
 					{
-						int32 nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
+						nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
+						if( pBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+						{
+							auto pLowerBlock = pPreBlock->pOwner->GetBlock( pPreBlock->nX, pPreBlock->pOwner->nHeight - 1 );
+							if( pLowerBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+								nPreY += Max( pLowerBlock->nUpperMargin, pBlock->nLowerMargin );
+						}
 
 						if( nPreY >= preY && !pPreBlock->pOwner->bMovedLastFrame )
 						{
@@ -354,9 +393,12 @@ void CMyLevel::UpdateBlocksMovement()
 							nMaxFallSpeed = Min( nMaxFallSpeed, pPreBlock->pOwner->nFallSpeed );
 						}
 					}
+					else
+						nMinY = Max<int32>( nMinY, pBlock->nLowerMargin );
 				}
 
-				pChunk->nFallSpeed++;
+				if( pChunk->nFallSpeed < 60 )
+					pChunk->nFallSpeed++;
 				int32 nFallDist = floor( pChunk->nFallSpeed * m_fFallDistPerSpeedFrame );
 				pChunk->pos.y -= nFallDist;
 				if( pChunk->pos.y < nMinY )
@@ -404,6 +446,19 @@ void CMyLevel::UpdateBlocksMovement()
 					int32 nRightmost = -1;
 					for( int i = 0; i < pChunk->nWidth; i++ )
 					{
+						auto& basement = m_basements[pChunk->pos.x / m_nBlockSize + i];
+						int32& shakeStrength = basement.nCurShakeStrength;
+						int32 nCurShakeStrength = shakeStrength;
+						if( shakeStrength )
+						{
+							uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+							shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+								Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+							if( shakeStrength < 0 )
+								shakeStrength = 0;
+						}
+
+						bool bHit = false;
 						auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
 						if( pPreBlock )
 						{
@@ -415,12 +470,53 @@ void CMyLevel::UpdateBlocksMovement()
 									nLeftmost = i;
 								if( i > nRightmost )
 									nRightmost = i;
-								if( pChunk->bAbsorbedShake )
+								if( pChunk->pChunkObject )
 									pPreBlock->pOwner->fAppliedWeight += fAppliedWeight;
+								bHit = true;
 							}
+						}
+						if( !bHit )
+						{
+							nCurShakeStrength = shakeStrength = 0;
+						}
+						pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, nCurShakeStrength );
+
+						if( !shakeStrength && basement.nShakeHeight < 0 )
+						{
+							basement.nShakeHeight = pPreBlock ? pPreBlock->pOwner->nHeight + pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
 						}
 					}
 					fBalance = Min( pChunk->nWidth - nLeftmost * 1.0f, ( nRightmost + 1 ) * 1.0f ) / pChunk->nWidth;
+					b1 = true;
+				}
+				else
+				{
+					bHit = pChunk->pos.y == nMinY && pChunk->nFallSpeed == 0;
+				}
+			}
+			if( !b1 )
+			{
+				for( int i = 0; i < pChunk->nWidth; i++ )
+				{
+					auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
+					auto& basement = m_basements[pChunk->pos.x / m_nBlockSize + i];
+					int32& shakeStrength = basement.nCurShakeStrength;
+					if( !bHit )
+						shakeStrength = 0;
+
+					if( shakeStrength )
+					{
+						pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, shakeStrength );
+						uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+						shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+							Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+						if( shakeStrength < 0 )
+							shakeStrength = 0;
+					}
+					else if( basement.nShakeHeight < 0 )
+					{
+						basement.nShakeHeight = pPreBlock ? pPreBlock->pOwner->nHeight + pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
+					}
 				}
 			}
 
@@ -452,7 +548,7 @@ void CMyLevel::UpdateBlocksMovement()
 			pChunk->nUpdateCount++;
 			if( basement.nShakeHeight < 0 )
 			{
-				basement.nShakeHeight = pBlock->pPreBlock ? pBlock->pPreBlock->pOwner->nHeight + pBlock->pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
+				basement.nShakeHeight = pBlock->pPreBlock ? pBlock->pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
 			}
 
 			if( pChunk->nUpdateCount == pChunk->nWidth )
@@ -522,7 +618,7 @@ void CMyLevel::UpdateBlocksMovement()
 				if( !pBlock->pOwner->bMovedLastFrame )
 				{
 					pBlock->pOwner->fCurImbalanceTime += GetStage()->GetElapsedTimePerTick();
-					if( pBlock->pOwner->bAbsorbedShake && pBlock->pOwner->fCurImbalanceTime > pBlock->pOwner->fImbalanceTime )
+					if( pBlock->pOwner->pChunkObject && pBlock->pOwner->fCurImbalanceTime > pBlock->pOwner->fImbalanceTime )
 					{
 						KillChunk( pBlock->pOwner );
 						continue;
@@ -533,14 +629,28 @@ void CMyLevel::UpdateBlocksMovement()
 			{
 				pBlock->pOwner->fCurImbalanceTime = 0;
 			}
+
 			if( pBlock->pOwner->fDestroyWeight > 0 && pBlock->pOwner->fAppliedWeight >= pBlock->pOwner->fDestroyWeight )
 			{
 				KillChunk( pBlock->pOwner, true );
 				continue;
 			}
 
-			pBlock->pOwner->fAppliedWeight = 0;
-			pBlock->pOwner->bAbsorbedShake = false;
+			int32 nShakeDmg = pBlock->pOwner->nCurShakeStrength - pBlock->pOwner->nShakeDmgThreshold;
+			if( nShakeDmg > 0 && pBlock->pOwner->pChunkObject )
+			{
+				pBlock->pOwner->fAppliedWeight = 0;
+				pBlock->pOwner->nCurShakeStrength = 0;
+				float fDmg = pBlock->pOwner->fShakeDmg * Min( nShakeDmg, 64 ) * GetStage()->GetElapsedTimePerTick();
+				if( pBlock->pOwner->bIsBeingRepaired )
+					fDmg *= 0.2f;
+				pBlock->pOwner->pChunkObject->Damage( fDmg );
+			}
+			else
+			{
+				pBlock->pOwner->fAppliedWeight = 0;
+				pBlock->pOwner->nCurShakeStrength = 0;
+			}
 		}
 	}
 

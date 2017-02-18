@@ -46,6 +46,7 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 		CVector2 velocity = GetGlobalTransform().MulVector2Dir( CVector2( m_fSpeed, 0 ) );
 		pPlayerBullet->SetVelocity( velocity );
 		pPlayerBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+		pPlayerBullet->SetLife( m_nBulletLife );
 		pPlayerBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		pPlayerBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
 		CMyLevel::GetInst()->AddShakeStrength( 5 );

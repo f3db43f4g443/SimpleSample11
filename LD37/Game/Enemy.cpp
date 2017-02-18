@@ -12,7 +12,19 @@ void CEnemy::Damage( uint32 nDmg )
 	}
 }
 
-void CEnemy::OnHitPlayer( class CPlayer* pPlayer )
+void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 {
-	Kill();
+	CVector2 vec = normal;
+	if( vec.Normalize() == 0 )
+	{
+		vec = pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition();
+		vec.Normalize();
+	}
+	if( pPlayer->IsRolling() )
+	{
+		if( !Knockback( vec ) )
+			pPlayer->Knockback( vec * -1 );
+	}
+	else
+		pPlayer->Knockback( vec * -1 );
 }

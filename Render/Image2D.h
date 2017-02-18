@@ -61,13 +61,17 @@ public:
 	uint32 GetFrameEnd() { return m_nFrameEnd; }
 	float GetFramesPerSec() { return m_fFramesPerSec; }
 
+	void SetPlaySpeed( float fPlaySpeed, bool bLoop );
+
 	virtual void OnTransformUpdated() override;
 protected:
 	void UpdateImage();
 	SImage2DFrameData* m_pData;
-	float m_fCurTime;
+	float m_fCurFrame;
 	uint32 m_nCurFrame;
 	uint32 m_nFrameBegin;
 	uint32 m_nFrameEnd;
 	float m_fFramesPerSec;
+	float m_fPlaySpeed;
+	bool m_bLoop;
 };

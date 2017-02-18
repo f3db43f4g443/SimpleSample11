@@ -513,6 +513,10 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 	CVector2 edge0( 0, -1 );
 	float sMin = FLT_MAX;
 	uint32 a1, b1, a2, b2;
+
+	bool bar = false;
+	float foo = 0;
+
 	for( int i1 = 0, i2 = 0;; )
 	{
 		uint32 l1 = n1;
@@ -571,12 +575,43 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 		}
 
 		CVector2 p1 = p0 + edge;
-		if( s < 0 && fMaxDist > 0 )
+		if( s <= 0 && fMaxDist > 0 )
 		{
-			if( ( dir.x * p0.y - dir.y * p0.x ) * ( dir.x * p1.y - dir.y * p1.x ) <= 0 )
+			float f0 = dir.x * p0.y - dir.y * p0.x;
+			float f1 = dir.x * p1.y - dir.y * p1.x;
+			bool bIntersect;
+
+			if( f0 == 0 && f1 == 0 )
+				bIntersect = false;
+			else if( f0 == 0 )
+			{
+				if( !bar )
+				{
+					bar = true;
+					foo = f1;
+					bIntersect = false;
+				}
+				else
+					bIntersect = foo * f1 < 0;
+			}
+			else if( f1 == 0 )
+			{
+				if( !bar )
+				{
+					bar = true;
+					foo = f0;
+					bIntersect = false;
+				}
+				else
+					bIntersect = f0 * foo < 0;
+			}
+			else
+				bIntersect = f0 * f1 < 0;
+
+			if( bIntersect )
 			{
 				float s1 = ( p0 + sweepOfs ).Dot( norm );
-				if( s1 < 0 )
+				if( s1 <= 0 )
 					return false;
 				if( pResult )
 				{
@@ -604,7 +639,7 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 		edge0 = edge;
 	}
 
-	if( sMin >= 0 )
+	if( sMin > 0 )
 	{
 		if( pResult )
 		{
@@ -696,6 +731,8 @@ bool SHitProxyPolygon::Raycast( const CVector2& begin, const CVector2& end, cons
 
 	int32 normalIndex = 0;
 	float separation = FLT_MAX;
+	bool bar = false;
+	float foo = 0;
 	for( int i = 0; i < nVertices; i++ )
 	{
 		CVector2 vert1 = vertices[i] - p0;
@@ -710,7 +747,38 @@ bool SHitProxyPolygon::Raycast( const CVector2& begin, const CVector2& end, cons
 
 		if( s < 0 && fMaxDist > 0 )
 		{
-			if( ( dir.x * vert1.y - dir.y * vert1.x ) * ( dir.x * vert2.y - dir.y * vert2.x ) > 0 )
+			float f0 = dir.x * p0.y - dir.y * p0.x;
+			float f1 = dir.x * p1.y - dir.y * p1.x;
+			bool bIntersect;
+
+			if( f0 == 0 && f1 == 0 )
+				bIntersect = false;
+			else if( f0 == 0 )
+			{
+				if( !bar )
+				{
+					bar = true;
+					foo = f1;
+					bIntersect = false;
+				}
+				else
+					bIntersect = foo * f1 < 0;
+			}
+			else if( f1 == 0 )
+			{
+				if( !bar )
+				{
+					bar = true;
+					foo = f0;
+					bIntersect = false;
+				}
+				else
+					bIntersect = f0 * foo < 0;
+			}
+			else
+				bIntersect = f0 * f1 < 0;
+
+			if( !bIntersect )
 				continue;
 
 			float s1 = normals[i].Dot( vertices[i] - p1 );
@@ -1208,6 +1276,7 @@ void CHitTestMgr::Add( CHitProxy* pProxy )
 		pProxy->InsertTo_HitProxy( m_pHitProxyBulletMode );
 	else
 		Insert_HitProxy( pProxy );
+	pProxy->m_bLastPosValid = false;
 	pProxy->m_pMgr = this;
 }
 
@@ -1395,6 +1464,16 @@ void CHitTestMgr::Update( CHitProxy* pHitProxy, vector<CHitProxy*>* pVecOverlaps
 		vecOverlaps.resize( 0 );
 	}
 	pHitProxy->m_bDirty = false;
+	if( !pHitProxy->m_bLastPosValid )
+	{
+		pHitProxy->m_bLastPosValid = true;
+		pHitProxy->m_lastPos = pHitProxy->m_curPos = transform.GetPosition();
+	}
+	else
+	{
+		pHitProxy->m_lastPos = pHitProxy->m_curPos;
+		pHitProxy->m_curPos = transform.GetPosition();
+	}
 }
 
 void CHitTestMgr::Update()
@@ -1405,6 +1484,8 @@ void CHitTestMgr::Update()
 	{
 		if( pHitProxy->m_bDirty )
 			Update( pHitProxy, &vecOverlaps );
+		else
+			pHitProxy->m_lastPos = pHitProxy->m_curPos;
 	}
 	for( CHitProxy* pHitProxy = m_pHitProxyBulletMode; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
 	{

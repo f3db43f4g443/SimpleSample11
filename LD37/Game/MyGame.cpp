@@ -19,6 +19,8 @@
 #include "Entities/Enemies.h"
 #include "Entities/EnemyCharacters.h"
 #include "Entities/Neutral.h"
+#include "Entities/Door.h"
+#include "Entities/FallingObj.h"
 #include "Entities/StartPoint.h"
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
@@ -29,6 +31,7 @@
 #include "Bullet.h"
 #include "Lightning.h"
 #include "Weapons.h"
+#include "Pickup.h"
 
 #include "Effects/ParticleTimeoutEmitter.h"
 #include "Effects/ParticleSubEmitter.h"
@@ -125,9 +128,9 @@ void CGame::Update()
 			pPlayer->EndFire();
 
 		if( m_keyDown.GetBit( ' ' ) )
-			pPlayer->BeginHide();
+			pPlayer->BeginRepair();
 		if( m_keyUp.GetBit( ' ' ) )
-			pPlayer->EndHide();
+			pPlayer->EndRepair();
 
 		if( m_bIsRightMouseDown )
 		{
@@ -311,11 +314,14 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nBulletCount )
 		REGISTER_MEMBER( m_fBulletSpeed )
 		REGISTER_MEMBER( m_fBulletAngle )
+		REGISTER_MEMBER( m_fSight )
+		REGISTER_MEMBER( m_fShakePerFire )
 		REGISTER_MEMBER( m_strPrefab )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEnemy2 )
 		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_fSight )
 		REGISTER_MEMBER( m_strPrefab )
 	REGISTER_CLASS_END()
 
@@ -332,6 +338,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_walkData )
 		REGISTER_MEMBER( m_flyData )
 		REGISTER_MEMBER( m_fClimbSpeed )
+		REGISTER_MEMBER( m_nFireCD )
+		REGISTER_MEMBER( m_nFireStopTime )
+		REGISTER_MEMBER( m_nFireInterval )
+		REGISTER_MEMBER( m_nAmmoCount )
+		REGISTER_MEMBER( m_nBulletCount )
+		REGISTER_MEMBER( m_fBulletSpeed )
+		REGISTER_MEMBER( m_fBulletAngle )
+		REGISTER_MEMBER( m_fSight )
+		REGISTER_MEMBER( m_fShakePerFire )
+		REGISTER_MEMBER( m_strPrefab )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CFuelTank )
@@ -393,6 +409,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
 	REGISTER_CLASS_END()
 	
+	REGISTER_CLASS_BEGIN( CPickUp )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
+	REGISTER_CLASS_END()
+	
+	REGISTER_CLASS_BEGIN( CPickUpCommon )
+		REGISTER_BASE_CLASS( CPickUp )
+		REGISTER_MEMBER( m_nHpRestore )
+	REGISTER_CLASS_END()
+	
 	REGISTER_CLASS_BEGIN( CEnemyBullet )
 		REGISTER_BASE_CLASS( CBullet )
 	REGISTER_CLASS_END()
@@ -420,6 +446,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fSpeed )
 		REGISTER_MEMBER( m_nFireRate )
 		REGISTER_MEMBER( m_fireOfs )
+		REGISTER_MEMBER( m_nBulletLife )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockObject )
@@ -476,6 +503,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CRandomEnemyRoom )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_strRes )
+		REGISTER_MEMBER( m_strDoor )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CRandomChunk )
@@ -484,6 +512,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_texOfs )
 		REGISTER_MEMBER( m_dmgTexScale )
 		REGISTER_MEMBER( m_dmgTexOfs )
+		REGISTER_MEMBER( m_nHpPerSize )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomChunk1 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockItem )
@@ -519,6 +553,31 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_strBullet1 )
 		REGISTER_MEMBER( m_strLightning )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSpike )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDoor )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CFallingObj )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_fGravity )
+		REGISTER_MEMBER( m_fMaxSpeed )
+		REGISTER_MEMBER( m_nHitDmg )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CFallingObjHolder )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFallingObj, falling )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CFallingSpike )
+		REGISTER_BASE_CLASS( CFallingObj )
+		REGISTER_MEMBER( m_strBullet )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

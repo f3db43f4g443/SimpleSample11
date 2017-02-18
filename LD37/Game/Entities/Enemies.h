@@ -34,6 +34,8 @@ protected:
 	uint32 m_nBulletCount;
 	float m_fBulletSpeed;
 	float m_fBulletAngle;
+	float m_fSight;
+	float m_fShakePerFire;
 	CString m_strPrefab;
 	CReference<CPrefab> m_pBulletPrefab;
 };
@@ -48,6 +50,7 @@ public:
 protected:
 	virtual void AIFunc() override;
 
+	float m_fSight;
 	CString m_strPrefab;
 	CReference<CPrefab> m_pBulletPrefab;
 };

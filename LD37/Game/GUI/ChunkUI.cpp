@@ -3,6 +3,7 @@
 #include "MyLevel.h"
 #include "Stage.h"
 #include "Player.h"
+#include "Entities/Door.h"
 
 void CChunkUI::OnAddedToStage()
 {
@@ -22,6 +23,7 @@ void CChunkUI::OnRemovedFromStage()
 
 void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 {
+	bool bIsReset = m_pChunkObject == pChunkObject;
 	m_pChunkObject = pChunkObject;
 	if( !pChunkObject )
 	{
@@ -54,11 +56,31 @@ void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 
 	uint32 nBlockSize = CMyLevel::GetInst()->GetBlockSize();
 	auto pChunk = pChunkObject->GetChunk();
+
 	for( int i = 0; i < pChunk->nWidth; i++ )
 	{
 		for( int j = 0; j < pChunk->nHeight; j++ )
 		{
-			if( pChunk->GetBlock( i, j )->pBaseInfo->eBlockType == eBlockType_Block )
+			bool bBlock = false;
+			auto eBlockType = pChunk->GetBlock( i, j )->pBaseInfo->eBlockType;
+			if( eBlockType == eBlockType_Block )
+			{
+				bBlock = true;
+			}
+			else if( eBlockType == eBlockType_Door )
+			{
+				for( auto pManifold = pChunk->GetBlock( i, j )->pEntity->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+				{
+					auto pDoor = SafeCast<CDoor>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+					if( pDoor && pDoor->GetParentEntity() == pChunkObject && !pDoor->IsOpen() )
+					{
+						bBlock = true;
+						break;
+					}
+				}
+			}
+
+			if( bBlock )
 			{
 				if( m_nUsingEftCount >= m_vecBlockBulletEfts.size() )
 				{
@@ -140,8 +162,9 @@ void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 	static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 0, pChunk->nHeight * nBlockSize, pChunk->nWidth * nBlockSize, 8 ) );
 	static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( pChunk->nWidth * nBlockSize, pChunk->nHeight * nBlockSize, 8, 8 ) );
 
-	m_fBlockBulletEftAlpha = 0;
+	m_fBlockBulletEftAlpha = -1;
 	SetParentBeforeEntity( pChunkObject->GetParentEntity() );
+	UpdateEft();
 }
 
 void CChunkUI::ShowRepairEffect()
@@ -154,20 +177,7 @@ void CChunkUI::ShowRepairEffect()
 
 void CChunkUI::OnTick()
 {
-	float fAlpha = 0;
 	auto pPlayer = GetStage()->GetPlayer();
-	if( pPlayer && pPlayer->IsHiding() && pPlayer->GetCurRoom() == m_pChunkObject )
-	{
-		fAlpha = 1;
-	}
-	if( fAlpha != m_fBlockBulletEftAlpha )
-	{
-		if( fAlpha > m_fBlockBulletEftAlpha )
-			m_fBlockBulletEftAlpha = Min( fAlpha, m_fBlockBulletEftAlpha + GetStage()->GetElapsedTimePerTick() * 4 );
-		else
-			m_fBlockBulletEftAlpha = Max( fAlpha, m_fBlockBulletEftAlpha - GetStage()->GetElapsedTimePerTick() * 4 );
-		UpdateEft();
-	}
 	float fRepair = 0;
 	if( pPlayer && pPlayer->GetCurRoom() == m_pChunkObject )
 	{
@@ -179,6 +189,7 @@ void CChunkUI::OnTick()
 		UpdateRepair();
 	}
 
+	UpdateEft();
 	UpdateHp();
 
 	SetPosition( m_pChunkObject->GetPosition() );
@@ -203,6 +214,16 @@ void CChunkUI::UpdateHp()
 
 void CChunkUI::UpdateEft()
 {
+	float fAlpha = 0;
+	auto pPlayer = GetStage()->GetPlayer();
+	if( pPlayer && pPlayer->GetCurRoom() == m_pChunkObject )
+	{
+		fAlpha = pPlayer->GetHidingPercent();
+	}
+	if( fAlpha == m_fBlockBulletEftAlpha )
+		return;
+	m_fBlockBulletEftAlpha = fAlpha;
+
 	m_pBlockBulletEffect->bVisible = m_fBlockBulletEftAlpha > 0;
 	if( m_fBlockBulletEftAlpha > 0 )
 	{

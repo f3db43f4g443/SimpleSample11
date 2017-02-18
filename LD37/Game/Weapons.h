@@ -17,6 +17,7 @@ private:
 	CString m_strBulletName;
 	float m_fSpeed;
 	uint32 m_nFireRate;
+	uint32 m_nBulletLife;
 	CVector2 m_fireOfs;
 
 	bool m_bIsFiring;

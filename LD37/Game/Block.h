@@ -7,7 +7,7 @@ enum EBlockType
 	eBlockType_Wall,
 	eBlockType_Ladder,
 	eBlockType_Platform,
-	eBlockType_BulletTransparent,
+	eBlockType_Door,
 	eBlockType_Block,
 
 	eBlockType_Count,
@@ -21,13 +21,24 @@ struct SBlockBaseInfo
 
 struct SBlock
 {
-	SBlock() : pBaseInfo( NULL ), pOwner( NULL ), nX( 0 ), nY( 0 ), pPreBlock( NULL ) {}
+	SBlock() : pBaseInfo( NULL ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), pPreBlock( NULL ) {}
 	const SBlockBaseInfo* pBaseInfo;
 	struct SChunk* pOwner;
-	uint32 nX, nY;
+	uint8 nX, nY;
+	uint8 nUpperMargin, nLowerMargin;
 	SBlock* pPreBlock;
 	CReference<CEntity> pEntity;
-	CReference<CPrefab> pAttachedPrefab;
+
+	enum
+	{
+		eAttachedPrefab_Center,
+		eAttachedPrefab_Lower,
+		eAttachedPrefab_Upper,
+
+		eAttachedPrefab_Count
+	};
+
+	CReference<CPrefab> pAttachedPrefab[eAttachedPrefab_Count];
 	TVector2<int32> attachedPrefabSize;
 	LINK_LIST( SBlock, Block );
 
@@ -52,6 +63,8 @@ struct SChunkBaseInfo
 	float fDestroyWeight;
 	float fDestroyBalance;
 	float fImbalanceTime;
+	float fShakeDmg;
+	uint32 nShakeDmgThreshold;
 	uint32 nAbsorbShakeStrength;
 	uint32 nDestroyShake;
 
@@ -87,6 +100,8 @@ struct SChunk
 	float fDestroyWeight;
 	float fDestroyBalance;
 	float fImbalanceTime;
+	float fShakeDmg;
+	uint32 nShakeDmgThreshold;
 	uint32 nAbsorbShakeStrength;
 	uint32 nDestroyShake;
 
@@ -100,20 +115,21 @@ struct SChunk
 	float fAppliedWeight;
 	float fBalance;
 	float fCurImbalanceTime;
-
-	bool bIsRoom;
-	bool bIsLevelBarrier;
+	uint32 nCurShakeStrength;
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
 	void CreateChunkObject( class CMyLevel* pLevel );
+	float GetFallSpeed();
 
-	bool bStopMove;
-	bool bForceStop;
+	uint8 bIsRoom : 1;
+	uint8 bIsLevelBarrier : 1;
+	uint8 bStopMove : 1;
+	uint8 bForceStop : 1;
 
-	bool bSpawned;
-	bool bIsSubChunk;
-	bool bMovedLastFrame;
-	bool bAbsorbedShake;
+	uint8 bSpawned : 1;
+	uint8 bIsSubChunk : 1;
+	uint8 bMovedLastFrame : 1;
+	uint8 bIsBeingRepaired : 1;
 
 	uint8 nVisitFlag;
 	LINK_LIST( SChunk, SubChunk )
@@ -133,24 +149,28 @@ public:
 	};
 
 	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
-		m_strEffect( context ), m_nHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
+		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
 	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 
 	virtual void OnChunkDataGenerated( SChunk* pChunk, const SChunkBaseInfo& baseInfo ) const;
 
-	int32 GetHp() { return m_nHp; }
+	float GetHp() { return m_fHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
 
 	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) {}
-	virtual void Damage( uint32 nDmg, uint8 nType = 0 );
-	uint32 Repair( uint32 nAmount );
+	virtual void Damage( float nDmg, uint8 nType = 0 );
+	float Repair( float fAmount );
 	void AddHitShake( CVector2 shakeVector );
 	void ClearHitShake();
 	virtual void Kill();
-	virtual void Crush() { Kill(); }
+	virtual void Crush() { m_triggerCrushed.Trigger( 0, this ); Kill(); }
 	void RemoveChunk();
+
+	void RegisterKilledEvent( CTrigger* pTrigger ) { m_triggerKilled.Register( 0, pTrigger ); }
+	void RegisterCrushedEvent( CTrigger* pTrigger ) { m_triggerCrushed.Register( 0, pTrigger ); }
+
 	virtual void OnRemovedFromStage() override { ClearHitShake(); RemoveChunk(); }
 protected:
 	void HitShakeTick();
@@ -168,12 +188,15 @@ protected:
 	CReference<CPrefab> m_pEffect;
 
 	SChunk* m_pChunk;
-	int32 m_nHp;
+	float m_fHp;
 	int32 m_nMaxHp;
 
 	CVector2 m_hitShakeVector;
 	int32 m_nHitShakeFrame;
 	TClassTrigger<CChunkObject> m_onHitShakeTick;
+
+	CEventTrigger<1> m_triggerKilled;
+	CEventTrigger<1> m_triggerCrushed;
 };
 
 class CSpecialChunk : public CChunkObject
@@ -243,9 +266,9 @@ public:
 	CExplosiveChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_strKillEffect( context ), m_bKilled( false ), m_deathTick( this, &CExplosiveChunk::Tick )
 	{ SET_BASEOBJECT_ID( CExplosiveChunk ); }
 
-	virtual void Damage( uint32 nDmg, uint8 nType = 0 ) override;
+	virtual void Damage( float nDmg, uint8 nType = 0 ) override;
 	virtual void Kill() override;
-	virtual void Crush() override { Explode(); }
+	virtual void Crush() override { m_triggerCrushed.Trigger( 0, this ); Explode(); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override
 	{
@@ -276,7 +299,7 @@ class CBarrel : public CExplosiveChunk
 public:
 	CBarrel( const SClassCreateContext& context ) : CExplosiveChunk( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CBarrel ); }
 	virtual void OnAddedToStage() override;
-	virtual void Damage( uint32 nDmg, uint8 nType = 0 ) override;
+	virtual void Damage( float nDmg, uint8 nType = 0 ) override;
 protected:
 	CString m_strBullet;
 	CReference<CPrefab> m_pBulletPrefab;
@@ -302,16 +325,32 @@ private:
 	CVector2 m_texOfs;
 	CVector2 m_dmgTexScale[4];
 	CVector2 m_dmgTexOfs[4];
+	uint32 m_nHpPerSize;
+};
+
+class CRandomChunk1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRandomChunk1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunk1 ); }
+
+	virtual void OnChunkDataGenerated( SChunk* pChunk, const SChunkBaseInfo& baseInfo ) const override;
+	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint32 m_nHpPerSize;
 };
 
 class CRandomEnemyRoom : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CRandomEnemyRoom( const SClassCreateContext& context ) : CChunkObject( context ), m_strRes( context ) { SET_BASEOBJECT_ID( CRandomEnemyRoom ); }
+	CRandomEnemyRoom( const SClassCreateContext& context ) : CChunkObject( context ), m_strRes( context ), m_strDoor( context ) { SET_BASEOBJECT_ID( CRandomEnemyRoom ); }
 	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 protected:
 	virtual void OnKilled() override;
 private:
 	CString m_strRes;
+	CString m_strDoor;
 };

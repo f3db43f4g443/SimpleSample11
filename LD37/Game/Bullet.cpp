@@ -8,6 +8,7 @@
 #include "MyLevel.h"
 #include "Entities/Barrage.h"
 #include "Block.h"
+#include "Entities/Door.h"
 
 void CBullet::SetVelocity( const CVector2& velocity )
 {
@@ -52,9 +53,15 @@ void CBullet::OnAddedToStage()
 
 void CBullet::OnTickBeforeHitTest()
 {
+	CCharacter::OnTickBeforeHitTest();
 	if( !m_bKilled )
 		SetPosition( GetPosition() + m_velocity * GetStage()->GetElapsedTimePerTick() );
-	CCharacter::OnTickBeforeHitTest();
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( !m_nLife )
+			Kill();
+	}
 }
 
 void CBullet::OnTickAfterHitTest()
@@ -77,7 +84,7 @@ void CEnemyBullet::OnTickAfterHitTest()
 		return;
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 
-	if( !CMyLevel::GetInst()->GetBound().Contains( globalTransform.GetPosition() ) )
+	if( !CMyLevel::GetInst()->GetLargeBound().Contains( globalTransform.GetPosition() ) )
 	{
 		Kill();
 		return;
@@ -89,22 +96,36 @@ void CEnemyBullet::OnTickAfterHitTest()
 		if( pEntity == m_pCreator )
 			continue;
 
-		CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
-		if( pBlockObject )
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 		{
-			auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
-			if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
+			CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject )
 			{
-				pChunk->Damage( 1 );
+				auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
+				if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
+				{
+					pChunk->Damage( 1 );
+					Kill();
+					return;
+				}
+			}
+			else
+			{
 				Kill();
 				return;
 			}
 		}
 
-		if( pEntity->GetHitType() == eEntityHitType_WorldStatic && !pBlockObject )
+		CDoor* pDoor = SafeCast<CDoor>( pEntity );
+		if( pDoor && !pDoor->IsOpen() )
 		{
-			Kill();
-			return;
+			auto pChunk = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+			if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
+			{
+				pChunk->Damage( 5 );
+				Kill();
+				return;
+			}
 		}
 
 		if( pEntity && pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
@@ -126,7 +147,7 @@ void CPlayerBullet::OnTickAfterHitTest()
 	CBullet::OnTickAfterHitTest();
 	if( m_bKilled )
 		return;
-	if( !CMyLevel::GetInst()->GetBound().Contains( globalTransform.GetPosition() ) )
+	if( !CMyLevel::GetInst()->GetLargeBound().Contains( globalTransform.GetPosition() ) )
 	{
 		Kill();
 		return;
@@ -168,6 +189,23 @@ void CPlayerBullet::OnHit( CEntity* pEntity )
 	}
 	else if( pEntity == m_pCreator )
 		return;
+
+	CDoor* pDoor = SafeCast<CDoor>( pEntity );
+	if( pDoor && !pDoor->IsOpen() )
+	{
+		auto pChunkObject = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+		if( pChunkObject )
+		{
+			if( pChunkObject == m_pCreator )
+				return;
+			CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+			hitDir.Normalize();
+			pChunkObject->AddHitShake( hitDir * 8 );
+			pChunkObject->Damage( m_nDmg );
+			Kill();
+			return;
+		}
+	}
 
 	if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 	{

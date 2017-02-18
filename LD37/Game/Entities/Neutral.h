@@ -2,6 +2,18 @@
 #include "Enemy.h"
 #include "Common/StringUtil.h"
 
+class CSpike : public CEntity
+{
+public:
+	CSpike( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CSpike::OnTick ) { SET_BASEOBJECT_ID( CSpike ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+protected:
+	void OnTick();
+private:
+	TClassTrigger<CSpike> m_onTick;
+};
+
 class CFuelTank : public CEnemy
 {
 	friend void RegisterGameClasses();

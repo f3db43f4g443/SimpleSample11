@@ -23,6 +23,7 @@ public:
 	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > > newChunks );
 
 	uint32 GetBlockSize() { return m_nBlockSize; }
+	float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
 	float GetShakeStrength() { return m_basements[0].fShakeStrength; }
 	void AddShakeStrength( float fShakeStrength );
 
@@ -43,6 +44,7 @@ public:
 	static CMyLevel* GetInst() { return s_pLevel; }
 
 	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, m_nSpawnHeight * m_nBlockSize ); }
+	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
 	CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
 	CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }

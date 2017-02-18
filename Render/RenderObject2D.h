@@ -55,6 +55,8 @@ public:
 	bool IsUpdated() { return m_bUpdated; }
 	void SetUpdated( bool bUpdated ) { m_bUpdated = bUpdated; }
 
+	bool ForceUpdateTransform();
+
 	template <typename T>
 	void SortChildren( T t )
 	{

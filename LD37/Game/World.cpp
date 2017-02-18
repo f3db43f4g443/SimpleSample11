@@ -73,11 +73,11 @@ void CWorld::Update()
 	}
 
 	m_bUpdating = true;
-	if( m_pCurStage )
-		m_pCurStage->Update();
 
 	if( CMyLevel::GetInst() )
 		CMyLevel::GetInst()->UpdateBlocksMovement();
+	if( m_pCurStage )
+		m_pCurStage->Update();
 
 	for( int i = 0; i < m_subStages.size(); i++ )
 	{

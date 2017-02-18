@@ -7,13 +7,15 @@ struct SLevelBuildContext
 {
 	SLevelBuildContext( CMyLevel* pLevel );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
-	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect );
+	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nType );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32> ofs );
 	void Build();
 
+	SBlock* GetBlock( uint32 x, uint32 y );
+
 	vector<SBlock*> blocks;
 	vector<SChunk*> chunks;
-	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs;
+	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs[SBlock::eAttachedPrefab_Count];
 	CMyLevel* pLevel;
 };
 

@@ -108,13 +108,15 @@ class CHitProxy
 		eVersion_Cur = 0,
 	};
 public:
-	CHitProxy() : m_pMgr( NULL ), m_pHitProxies( NULL ), m_pManifolds( NULL ), m_bDirty( false ), m_bBulletMode( false ), m_bTransparent( false ) {}
-	CHitProxy( const struct SClassCreateContext& context ) : m_pMgr( NULL ), m_pManifolds( NULL ), m_bDirty( false ) {}
+	CHitProxy() : m_pMgr( NULL ), m_pHitProxies( NULL ), m_pManifolds( NULL ), m_bLastPosValid( false ), m_bDirty( false ), m_bBulletMode( false ), m_bTransparent( false ) {}
+	CHitProxy( const struct SClassCreateContext& context ) : m_pMgr( NULL ), m_pManifolds( NULL ), m_bLastPosValid( false ), m_bDirty( false ) {}
 	virtual ~CHitProxy();
 	void SetDirty() { m_bDirty = true; }
 	void SetBulletMode( bool bBulletMode );
 	bool IsTransparent() { return m_bTransparent; }
 	void SetTransparent( bool bTransparent );
+
+	const CVector2& GetLastPos() { return m_lastPos; }
 
 	SHitProxyCircle* AddCircle( float fRadius, const CVector2 &center );
 	SHitProxyPolygon* AddRect( const CRectangle& rect );
@@ -132,8 +134,13 @@ public:
 	bool Raycast( const CVector2& begin, const CVector2& end, SRaycastResult* pResult = NULL );
 	bool SweepTest( SHitProxy* pProxy1, const CMatrix2D& transform, const CVector2& sweepOfs, SRaycastResult* pResult = NULL );
 	virtual const CMatrix2D& GetGlobalTransform() = 0;
-protected:
+private:
 	CHitTestMgr* m_pMgr;
+
+	CVector2 m_lastPos;
+	CVector2 m_curPos;
+	bool m_bLastPosValid;
+protected:
 	bool m_bDirty;
 	bool m_bBulletMode;
 	bool m_bTransparent;

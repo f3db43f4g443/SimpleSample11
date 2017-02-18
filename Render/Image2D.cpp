@@ -94,11 +94,13 @@ void CImage2D::Render( CRenderContext2D& context )
 CMultiFrameImage2D::CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, SImage2DFrameData* pData, bool bGUI )
 	: CImage2D( pDrawable, pOcclusionDrawable, CRectangle( 0, 0, 0, 0 ), CRectangle( 0, 0, 0, 0 ), bGUI )
 	, m_pData( pData )
-	, m_fCurTime( 0 )
+	, m_fCurFrame( 0 )
 	, m_nCurFrame( -1 )
 	, m_nFrameBegin( 0 )
 	, m_nFrameEnd( pData->frames.size() )
 	, m_fFramesPerSec( pData->fFramesPerSec )
+	, m_fPlaySpeed( 1 )
+	, m_bLoop( true )
 {
 	m_localBound = pData->bound;
 }
@@ -108,23 +110,43 @@ void CMultiFrameImage2D::SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPer
 	m_nFrameBegin = Min( nBegin, m_pData->frames.size() );
 	m_nFrameEnd = Min( nEnd, m_pData->frames.size() );
 	m_fFramesPerSec = Max( fFramesPerSec, 0.0f );
-	m_fCurTime = 0;
+	m_fCurFrame = 0;
 	m_nCurFrame = -1;
 	UpdateImage();
 }
 
+void CMultiFrameImage2D::SetPlaySpeed( float fPlaySpeed, bool bLoop )
+{
+	m_fPlaySpeed = fPlaySpeed;
+	m_bLoop = bLoop;
+}
+
 void CMultiFrameImage2D::UpdateImage()
 {
-	float fFrame = m_fCurTime * m_fFramesPerSec;
+	float& fFrame = m_fCurFrame;
 	uint32 nFrame = floor( fFrame );
 	int32 dFrame = m_nFrameEnd - m_nFrameBegin;
 	if( dFrame <= 0 )
 		return;
-	while( nFrame >= dFrame )
+	if( m_bLoop )
 	{
-		nFrame -= dFrame;
-		m_fCurTime -= dFrame / m_fFramesPerSec;
+		while( nFrame >= dFrame )
+		{
+			nFrame -= dFrame;
+			fFrame -= dFrame;
+		}
+		while( nFrame < 0 )
+		{
+			nFrame += dFrame;
+			fFrame += dFrame;
+		}
 	}
+	else
+	{
+		nFrame = Max<int32>( 0, Min<int32>( dFrame - 1, nFrame ) );
+		fFrame = Max<float>( 0, Min<float>( dFrame - 1, fFrame ) );
+	}
+
 	nFrame += m_nFrameBegin;
 
 	if( m_nCurFrame != nFrame )
@@ -141,6 +163,6 @@ void CMultiFrameImage2D::UpdateImage()
 void CMultiFrameImage2D::OnTransformUpdated()
 {
 	float fTime = GetAnimController()->GetUpdateTime();
-	m_fCurTime += fTime;
+	m_fCurFrame += fTime * m_fFramesPerSec * m_fPlaySpeed;
 	UpdateImage();
 }

@@ -15,6 +15,7 @@ public:
 	virtual void Awake() {}
 	virtual void Kill() { SetParentEntity( NULL ); }
 	virtual void Crush() { Kill(); }
+	virtual bool Knockback( const CVector2& vec ) { return false; }
 	const CVector2& GetVelocity() { return m_velocity; }
 protected:
 	virtual void OnTickBeforeHitTest();

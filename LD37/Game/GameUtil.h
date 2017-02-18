@@ -15,3 +15,5 @@ bool IsInRange( ERangeType eRangeType, uint32 nRange, uint32 nRange1, const TVec
 const TVector2<int32>& GetDirOfs( uint8 nDir );
 TVector2<int32> RotateDir( const TVector2<int32>& dir, uint8 nCharDir );
 TVector2<int32> RotateDirInv( const TVector2<int32>& dir, uint8 nCharDir );
+
+CVector2 PosTrunc( const CVector2& pos );

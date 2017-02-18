@@ -54,3 +54,35 @@ TVector2<int32> RotateDirInv( const TVector2<int32>& dir, uint8 nCharDir )
 	TVector2<int32> dirs[4] = { { -dir.y, dir.x },{ dir.x, dir.y },{ dir.y, -dir.x },{ -dir.x, -dir.y } };
 	return dirs[nCharDir & 3];
 }
+
+CVector2 PosTrunc( const CVector2& pos )
+{
+	const uint32 nReservedBits = 17;
+	CVector2 res = pos;
+	struct SFloat
+	{
+		uint32 base : 23;
+		uint32 exp : 8;
+		uint32 sgn : 1;
+	};
+
+	SFloat& x = *( SFloat* )&res.x;
+	uint32 base = ( x.base & ~0x3f ) + ( x.base & 0x20 ? 0x40 : 0 );
+	if( base >= ( 1 << 23 ) )
+	{
+		x.exp++;
+		base = 0;
+	}
+	x.base = base;
+
+	SFloat& y = *(SFloat*)&res.y;
+	base = ( y.base & ~0x3f ) + ( y.base & 0x20 ? 0x40 : 0 );
+	if( base >= ( 1 << 23 ) )
+	{
+		y.exp++;
+		base = 0;
+	}
+	y.base = base;
+
+	return res;
+}

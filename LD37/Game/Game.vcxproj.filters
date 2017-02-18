@@ -85,6 +85,13 @@
     </ClCompile>
     <ClCompile Include="BlockItem.cpp" />
     <ClCompile Include="Lightning.cpp" />
+    <ClCompile Include="Entities\Door.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\FallingObj.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Pickup.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -171,6 +178,13 @@
     </ClInclude>
     <ClInclude Include="BlockItem.h" />
     <ClInclude Include="Lightning.h" />
+    <ClInclude Include="Entities\Door.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\FallingObj.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Pickup.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

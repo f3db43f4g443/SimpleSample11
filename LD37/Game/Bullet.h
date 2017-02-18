@@ -11,10 +11,11 @@ class CBullet : public CCharacter
 {
 	friend void RegisterGameClasses();
 public:
-	CBullet( const SClassCreateContext& context ) : CCharacter( context ), m_pContext( NULL ), m_bKilled( false ) { SET_BASEOBJECT_ID( CBullet ); }
+	CBullet( const SClassCreateContext& context ) : CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ) { SET_BASEOBJECT_ID( CBullet ); }
 	void SetVelocity( const CVector2& velocity );
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
 	virtual void Kill();
+	void SetLife( uint32 nLife ) { m_nLife = nLife; }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override { m_pCreator = NULL; SetBulletContext( NULL ); CCharacter::OnRemovedFromStage(); }
@@ -31,6 +32,8 @@ protected:
 	uint32 m_nDeathFrameEnd;
 	float m_fDeathFramesPerSec;
 	float m_fDeathTime;
+
+	uint32 m_nLife;
 
 	CReference<CEffectObject> m_pDeathEffect;
 };

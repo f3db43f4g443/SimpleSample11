@@ -8,6 +8,8 @@
 #include "Bullet.h"
 #include "MyLevel.h"
 #include "CharacterMove.h"
+#include "Entities/Door.h"
+#include "Pickup.h"
 
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
@@ -18,12 +20,15 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_aimAt( 0, 0 )
 	, m_bRoll( false )
 	, m_bFiringDown( false )
-	, m_bIsHiding( false )
+	, m_bIsRepairing( false )
 	, m_bIsWalkOrFly( false )
-	, m_hp( 50 )
-	, m_nRepairTime( 60 )
+	, m_hp( 20 )
+	, m_fHidingTime( 1 )
+	, m_fHidingCurTime( 0 )
+	, m_nRepairTime( 40 )
 	, m_nRepairInterval( 10 )
-	, m_nRepairHp( 25 )
+	, m_nRepairShake( 8 )
+	, m_nRepairHp( 16 )
 	, m_nRepairTimeLeft( 0 )
 	, m_nRepairIntervalLeft( 0 )
 	, m_fCrackEffectTime( 0 )
@@ -39,6 +44,14 @@ void CPlayer::DelayChangeStage( const char* szName, const char* szStartPoint )
 	m_fChangeStageTime = 2.0f;
 	m_strChangeStage = szName;
 	m_strChangeStageStartPoint = szStartPoint;
+}
+
+bool CPlayer::IsRolling()
+{
+	if( m_bIsWalkOrFly )
+		return m_walkData.nState == SCharacterWalkData::eState_Rolling;
+	else
+		return m_flyData.nState == SCharacterFlyData::eState_Rolling;
 }
 
 void CPlayer::Damage( int32 nValue )
@@ -61,6 +74,23 @@ void CPlayer::Damage( int32 nValue )
 	}
 }
 
+void CPlayer::RestoreHp( int32 nValue )
+{
+	CMainUI* pMainUI = CMainUI::GetInst();
+	m_hp.ModifyCurValue( nValue );
+	if( pMainUI )
+		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
+}
+
+bool CPlayer::Knockback( const CVector2& vec )
+{
+	if( m_bIsWalkOrFly )
+		m_walkData.Knockback( 0.25f, vec * 400 );
+	else
+		m_flyData.Knockback( 0.25f, vec * 400 );
+	return true;
+}
+
 void CPlayer::BeginFire()
 {
 	m_bFiringDown = true;
@@ -71,15 +101,15 @@ void CPlayer::EndFire()
 	m_bFiringDown = false;
 }
 
-void CPlayer::BeginHide()
+void CPlayer::BeginRepair()
 {
-	m_bIsHiding = true;
+	m_bIsRepairing = true;
 	m_walkData.Jump( this );
 }
 
-void CPlayer::EndHide()
+void CPlayer::EndRepair()
 {
-	m_bIsHiding = false;
+	m_bIsRepairing = false;
 	m_walkData.ReleaseJump( this );
 }
 
@@ -149,11 +179,23 @@ void CPlayer::UpdateMove()
 		if( moveAxis.Length2() > 0 )
 		{
 			if( m_bIsWalkOrFly )
-				m_walkData.Roll( this, moveAxis );
+			{
+				CVector2 axis;
+				if( moveAxis.x > 0 )
+					axis = CVector2( 1, 0 );
+				else if( moveAxis.x < 0 )
+					axis = CVector2( -1, 0 );
+				else if( m_aimAt.x > x )
+					axis = CVector2( 1, 0 );
+				else
+					axis = CVector2( -1, 0 );
+
+				m_walkData.Roll( this, axis );
+			}
 			else
 				m_flyData.Roll( this, moveAxis );
-			m_bRoll = false;
 		}
+		m_bRoll = false;
 	}
 
 	if( m_bIsWalkOrFly )
@@ -170,7 +212,7 @@ void CPlayer::UpdateFiring()
 	bool bIsFiring = m_bFiringDown
 		&& m_strChangeStage == ""
 		&& m_hp > 0
-		&& !m_bIsHiding
+		&& ( m_bIsWalkOrFly || !m_bIsRepairing )
 		&& ( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Rolling : m_flyData.nState != SCharacterFlyData::eState_Rolling );
 	if( m_pCurWeapon )
 	{
@@ -179,13 +221,99 @@ void CPlayer::UpdateFiring()
 	}
 }
 
+void CPlayer::UpdateRoom()
+{
+	bool bIsRolling = m_bIsWalkOrFly ? m_walkData.nState == SCharacterWalkData::eState_Rolling : m_flyData.nState == SCharacterFlyData::eState_Rolling;
+
+	if( m_pCurRoom )
+	{
+		bool bCanHiding = !m_bIsRepairing && !m_bFiringDown;
+		if( !bCanHiding )
+			m_fHidingCurTime = 0;
+		else
+			m_fHidingCurTime = Min( m_fHidingCurTime + GetStage()->GetElapsedTimePerTick(), m_fHidingTime );
+	}
+
+	CChunkObject* pCurRoom = NULL;
+	bool bDoor = false;
+	LINK_LIST_FOR_EACH_BEGIN( pManifold, m_pManifolds, SHitProxyManifold, Manifold )
+		CEnemy* pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pEnemy )
+		{
+			pEnemy->OnHitPlayer( this, pManifold->normal );
+			continue;
+		}
+
+		CPickUp* pPickUp = SafeCast<CPickUp>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pPickUp )
+		{
+			pPickUp->PickUp( this );
+			continue;
+		}
+
+		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
+		{
+			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
+				pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
+				pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+			if( rect.Contains( GetPosition() ) )
+				pCurRoom = pChunkObject;
+		}
+
+		CDoor* pDoor = SafeCast<CDoor>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pDoor )
+			bDoor = true;
+	LINK_LIST_FOR_EACH_END( pManifold, m_pManifolds, SHitProxyManifold, Manifold )
+
+	if( pCurRoom != m_pCurRoom && ( !m_pCurRoom || !bDoor ) )
+	{
+		if( m_pCurRoom && m_pCurRoom->GetChunk() )
+		{
+			m_pCurRoom->GetChunk()->bIsBeingRepaired = false;
+		}
+		m_pCurRoom = pCurRoom;
+		m_fHidingCurTime = 0;
+		if( pCurRoom )
+		{
+			if( !m_pCurRoomChunkUI )
+				m_pCurRoomChunkUI = SafeCast<CChunkUI>( CMyLevel::GetInst()->pChunkUIPrefeb->GetRoot()->CreateInstance() );
+		}
+		if( m_pCurRoomChunkUI )
+			m_pCurRoomChunkUI->SetChunkObject( pCurRoom );
+	}
+
+	if( !bIsRolling )
+	{
+		bool bIsWalkOrFlyNew = m_pCurRoom == NULL;
+		if( bIsWalkOrFlyNew != m_bIsWalkOrFly )
+		{
+			m_bIsWalkOrFly = bIsWalkOrFlyNew;
+			if( m_bIsWalkOrFly )
+			{
+				m_walkData.Reset();
+				m_walkData.velocity = m_velocity;
+				m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
+				m_walkData.vecKnockback = m_flyData.vecKnockback;
+			}
+			else
+			{
+				m_flyData.Reset();
+				m_flyData.fKnockbackTime = m_walkData.fKnockbackTime;
+				m_flyData.vecKnockback = m_walkData.vecKnockback;
+			}
+		}
+	}
+}
+
 void CPlayer::UpdateRepair()
 {
 	bool bRepair = m_pCurRoom
-		&& !m_bIsHiding
-		&& !m_bFiringDown
+		&& m_bIsRepairing
 		&& m_fMoveXAxis == 0 && m_fMoveYAxis == 0
 		&& m_flyData.nState != SCharacterFlyData::eState_Rolling;
+	if( m_pCurRoom && m_pCurRoom->GetChunk() )
+		m_pCurRoom->GetChunk()->bIsBeingRepaired = bRepair;
 	if( !bRepair )
 	{
 		m_nRepairTimeLeft = m_nRepairTime;
@@ -204,8 +332,12 @@ void CPlayer::UpdateRepair()
 				uint32 nAmount = m_pCurRoom->Repair( m_nRepairHp );
 				m_nRepairIntervalLeft = m_nRepairInterval;
 
-				if( nAmount && m_pCurRoomChunkUI )
-					m_pCurRoomChunkUI->ShowRepairEffect();
+				if( nAmount )
+				{
+					CMyLevel::GetInst()->AddShakeStrength( m_nRepairShake );
+					if( m_pCurRoomChunkUI )
+						m_pCurRoomChunkUI->ShowRepairEffect();
+				}
 			}
 		}
 	}
@@ -215,7 +347,9 @@ void CPlayer::OnTickAfterHitTest()
 {
 	if( m_hp > 0 )
 	{
-		bool bIsRolling = m_bIsWalkOrFly ? m_walkData.nState == SCharacterWalkData::eState_Rolling : m_flyData.nState == SCharacterFlyData::eState_Rolling;
+		UpdateMove();
+		if( !GetStage() )
+			return;
 
 		float fSelfPosWeight = 0.1f;
 		float fAimAtPosWeight = 0.05f;
@@ -223,58 +357,7 @@ void CPlayer::OnTickAfterHitTest()
 		CVector2 dPos2 = m_aimAt - m_cam;
 		m_cam = m_cam + dPos1 * fSelfPosWeight + dPos2 * fAimAtPosWeight;
 
-		UpdateMove();
-		if( !GetStage() )
-			return;
-
-		CChunkObject* pCurRoom = NULL;
-		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
-		{
-			CEnemy* pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-			if( pEnemy )
-			{
-				pEnemy->OnHitPlayer( this );
-				continue;
-			}
-
-			CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-			if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
-			{
-				CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
-					pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
-					pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
-				if( rect.Contains( GetPosition() ) )
-					pCurRoom = pChunkObject;
-			}
-		}
-		if( pCurRoom != m_pCurRoom )
-		{
-			if( m_pCurRoom )
-			{
-
-			}
-			m_pCurRoom = pCurRoom;
-			if( pCurRoom )
-			{
-				if( !m_pCurRoomChunkUI )
-					m_pCurRoomChunkUI = SafeCast<CChunkUI>( CMyLevel::GetInst()->pChunkUIPrefeb->GetRoot()->CreateInstance() );
-			}
-			if( m_pCurRoomChunkUI )
-				m_pCurRoomChunkUI->SetChunkObject( pCurRoom );
-		}
-
-		if( !bIsRolling )
-		{
-			bool bIsWalkOrFlyNew = m_pCurRoom == NULL;
-			if( bIsWalkOrFlyNew != m_bIsWalkOrFly )
-			{
-				m_bIsWalkOrFly = bIsWalkOrFlyNew;
-				if( m_bIsWalkOrFly )
-					m_walkData.Reset();
-				else
-					m_flyData.Reset();
-			}
-		}
+		UpdateRoom();
 		UpdateRepair();
 
 		uint8 newAnimState = 0;
@@ -340,7 +423,7 @@ void CPlayer::OnAddedToStage()
 	m_walkData.Reset();
 	m_flyData.Reset();
 	m_pCurRoom = NULL;
-	m_bIsHiding = false;
+	m_bIsRepairing = false;
 	m_nRepairTimeLeft = 0;
 	m_nRepairIntervalLeft = 0;
 
