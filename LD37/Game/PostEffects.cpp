@@ -12,19 +12,16 @@ class CInvertColorShader : public CGlobalShader
 protected:
 	virtual void OnCreated() override
 	{
-		GetShader()->GetShaderInfo().Bind( m_paramPercent, "fPercent" );
 		GetShader()->GetShaderInfo().Bind( m_tex, "Texture0" );
 		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTex, float fPercent )
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTex )
 	{
-		m_paramPercent.Set( pRenderSystem, &fPercent );
 		m_tex.Set( pRenderSystem, pTex );
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
 private:
-	CShaderParam m_paramPercent;
 	CShaderParamShaderResource m_tex;
 	CShaderParamSampler m_paramLinearSampler;
 };
@@ -48,6 +45,14 @@ void CPostProcessInvertColor::Process( CPostProcessPass* pPass, IRenderTarget* p
 	
 	CVector2 size( src->GetDesc().nDim1, src->GetDesc().nDim2 );
 	SViewport viewport = { 0, 0, size.x, size.y, 0, 1 };
+	if( pPass->IsFinalViewport() )
+	{
+		auto rect = pPass->GetFinalViewport();
+		viewport.fX = rect.x;
+		viewport.fY = rect.y;
+		viewport.fWidth = rect.width;
+		viewport.fHeight = rect.height;
+	}
 	pSystem->SetViewports( &viewport, 1 );
 
 	pSystem->SetBlendState( IBlendState::Get<>() );
@@ -65,7 +70,7 @@ void CPostProcessInvertColor::Process( CPostProcessPass* pPass, IRenderTarget* p
 
 	CRectangle rect( 0, 0, size.x, size.y );
 	pVertexShader->SetParams( pSystem, rect, rect, size, size );
-	pPixelShader->SetParams( pSystem, src->GetShaderResource(), m_fPercent );
+	pPixelShader->SetParams( pSystem, src->GetShaderResource() );
 
 	pSystem->DrawInput();
 

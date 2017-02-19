@@ -14,7 +14,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->SetGame( &CGame::Inst() );
 	SDeviceCreateContext context;
-	context.resolution = CVector2( 800, 600 );
+	context.resolution = CGame::Inst().GetScreenResolution();
 	pRenderSystem->CreateDevice( context );
 	pRenderSystem->Start();
 	exit( 0 );

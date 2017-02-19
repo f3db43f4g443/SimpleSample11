@@ -1,6 +1,7 @@
 #pragma once
 #include "UIElement.h"
 #include "Render/Drawable2D.h"
+#include "Render/PostProcess.h"
 #include "Common/Camera2D.h"
 
 class CUIViewport : public CUIElement, public CDrawable2D
@@ -19,6 +20,8 @@ public:
 	void ReserveTexSize( const CVector2& size );
 
 	void Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight );
+	void SetCustomRender( const CVector2& customRes );
+	void RegisterOnPostProcess( CTrigger* pTrigger ) { m_customRender.RegisterOnPostProcess( pTrigger ); }
 
 	void DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& begin, const CVector2& end, const CVector4& color );
 	void DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color );
@@ -37,4 +40,9 @@ private:
 	CVector2 m_texSize;
 	CElement2D m_elem;
 	bool m_bLight;
+
+	bool m_bCustomRender;
+	CPostProcessPass m_customRender;
+	CVector2 m_customRes;
+	CReference<ITexture> m_pCustomTarget;
 };

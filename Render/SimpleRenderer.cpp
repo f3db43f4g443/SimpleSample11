@@ -114,3 +114,10 @@ void CSimpleRenderer::OnRender( IRenderSystem* pSystem )
 	}
 	m_nUpdateFrames = 0;
 }
+
+void CSimpleRenderer::FetchSubRendererTexture( ITexture** ppTex )
+{
+	*ppTex = m_pSubRendererTexture;
+	( *ppTex )->AddRef();
+	m_pSubRendererTexture = NULL;
+}

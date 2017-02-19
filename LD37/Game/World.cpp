@@ -62,6 +62,7 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 	pStage->Create( &context );
 	enterContext.pViewport = CStageDirector::Inst()->OnPlayMainStage( pStage );
 	pStage->Start( m_pCurPlayer, enterContext );
+	CStageDirector::Inst()->AfterPlayMainStage();
 }
 
 void CWorld::Update()

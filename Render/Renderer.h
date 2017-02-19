@@ -18,7 +18,10 @@ public:
 
 	virtual bool IsSubRenderer() { return false; }
 	virtual class ITexture* GetSubRendererTexture() { return NULL; }
+	virtual void FetchSubRendererTexture( class ITexture** ppTex ) { *ppTex = NULL; }
 	virtual void ReleaseSubRendererTexture() {}
+
+	virtual class CRenderTargetPool* GetRenderTargetPool() { return NULL; }
 
 	void DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color );
 	void DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color );

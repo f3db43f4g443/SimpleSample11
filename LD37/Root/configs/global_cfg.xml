@@ -675,6 +675,24 @@
         </node>
         <ref name="1f" x="0" y="124" w="32" h="4" />
       </node>
+
+      <node type="subregion" name="lv2_enemyroom_small">
+        <ref name="enemyroom_small" x="0" y="0" w="6" h="6" />
+        <next_level p="0.1">
+          <node type="subregion">
+            <ref name="hppack" x="2" y="2" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="subregion" name="lv2_enemyroom_large">
+        <ref name="enemyroom_large" x="0" y="0" w="8" h="8" />
+        <next_level p="0.1">
+          <node type="subregion">
+            <ref name="hppack" x="3" y="3" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
       
       <node type="subregion" name="lv2">
         <node type="tile" x="0" y="0" w="32" h="12">
@@ -685,14 +703,14 @@
           <node type="empty" p="0.8" />
         </node>
         <node type="randomfill" check_block="true" x="0" y="40" w="32" h="40" >
-          <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="2" />
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="2" />
           <ref name="hbar_small" sizeminx="8" sizeminy="1" sizemaxx="15" p="0.05" />
           <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="0.2" />
           <node type="empty" p="0.8" />
         </node>
         <node type="randomfill" check_block="true" x="0" y="80" w="32" h="44" >
-          <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
-          <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+          <ref name="lv2_enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
           <ref name="hbar_small" sizeminx="8" sizeminy="1" sizemaxx="15" p="0.075" />
           <ref name="hbar_large" sizeminx="16" sizeminy="1" sizemaxx="32" p="0.075" />
           <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="0.15" />
@@ -731,8 +749,8 @@
         </node>
         <node type="randomfill" x="0" y="12" w="32" h="112" >
           <ref name="room_small" sizeminx="10" sizeminy="8" sizemaxx="22" sizemaxy="10" p="3" />
-          <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
-          <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+          <ref name="lv2_enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
           <ref name="barrel" sizeminx="2" sizeminy="3" p="0.05" />
           <node type="block1" p="0.5" />
           <node type="empty" p="0.5" />
@@ -758,7 +776,7 @@
             <node type="frame" sizeminx="8" sizeminy="32" sizemaxy="40" p="1">
               <center>
                 <node type="randomfill">
-                  <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+                  <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
                   <ref name="barrel" sizeminx="2" sizeminy="3" p="0.01" />
                   <ref name="fueltank_d" sizeminx="2" sizeminy="4" p="0.01" />
                   <ref name="fueltank_l" sizeminx="4" sizeminy="2" p="0.01" />
@@ -777,7 +795,7 @@
                 <ref name="hbar_small" x="0" y="0" w="8" h="1" />
               </top>
               <bottom size="8">
-                <ref name="enemyroom_large" x="0" y="1" w="8" h="8" />
+                <ref name="lv2_enemyroom_large" x="0" y="1" w="8" h="8" />
               </bottom>
             </node>
             <ref name="block1" p="0.1" />
@@ -794,8 +812,8 @@
         <node type="randomfill" x="0" y="12" w="32" h="108" >
           <ref name="room_large" sizeminx="18" sizeminy="18" sizemaxx="32" sizemaxy="32" p="2" />
           <ref name="room_small" sizeminx="10" sizeminy="10" sizemaxx="17" sizemaxy="17" p="2" />
-          <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="0.5" />
-          <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="0.5" />
+          <ref name="lv2_enemyroom_large" sizeminx="8" sizeminy="8" p="0.5" />
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="0.5" />
           <ref name="fueltank_d" sizeminx="2" sizeminy="4" p="0.02" />
           <ref name="fueltank_l" sizeminx="4" sizeminy="2" p="0.02" />
           <ref name="fueltank_r" sizeminx="4" sizeminy="2" p="0.02" />

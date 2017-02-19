@@ -116,7 +116,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 			: m_pRenderer( pRenderer ), m_pSystem( pSystem ) {}
 		virtual void Process( CPostProcessPass* pPass, IRenderTarget* pFinalTarget ) override
 		{
-			auto& sizeDependentPool = m_pRenderer->m_bIsSubRenderer ? m_pRenderer->m_sizeDependentPool : CRenderTargetPool::GetSizeDependentPool();
+			auto& sizeDependentPool = pPass->GetRenderTargetPool();
 			IRenderTarget* pTarget = pFinalTarget;
 			if( !pTarget )
 			{
@@ -141,6 +141,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 	CPostProcessRenderScene renderScenePass( this, pSystem );
 	CReference<ITexture> pTempTarget;
 	pPostProcessPass->Register( &renderScenePass );
+	pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
 	pPostProcessPass->Process( pSystem, pTempTarget, m_pSubRendererTexture ? m_pSubRendererTexture->GetRenderTarget() : pSystem->GetDefaultRenderTarget() );
 	sizeDependentPool.Release( pTempTarget );
 

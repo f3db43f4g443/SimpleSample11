@@ -48,6 +48,7 @@ public:
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
 	CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
 	CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }
+	CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
 
 	void UpdateBlocksMovement();
 
@@ -82,6 +83,8 @@ private:
 	void CheckSpawn();
 
 	TClassTrigger<CMyLevel> m_onTick;
+
+	CReference<CRenderObject2D> m_pCrosshair;
 
 	CReference<CEntity> m_pChunkRoot;
 	CReference<CEntity> m_pChunkEffectRoot;

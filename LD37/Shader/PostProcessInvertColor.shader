@@ -1,11 +1,12 @@
 Texture2D Texture0;
 SamplerState LinearSampler;
-float fPercent;
 
 void PSMain( in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
-	float4 texColor = Texture0.Sample( LinearSampler, tex );
-	float4 invTexColor = 1.0f - texColor;
-	outColor = lerp( texColor, invTexColor, fPercent );
+	float2 vTex = ( tex - 0.5f ) * 2;
+	float l = length( vTex ) * 0.5;
+	vTex = vTex / l * asin( l );
+	float4 texColor = Texture0.Sample( LinearSampler, vTex * 0.5f + 0.5f );
+	outColor = texColor;
 }

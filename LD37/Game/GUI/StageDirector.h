@@ -13,12 +13,14 @@ public:
 	void OnWorldCreated( CWorld* pWorld );
 
 	CUIViewport* OnPlayMainStage( CStage* pStage ) { return m_pMainStageViewport; }
+	void AfterPlayMainStage();
 	void OnStopMainStage( CStage* pStage ) {}
 
 	CUIViewport* GetSubStageView() { return m_pSubStageViewport; }
 	
 	void OnClickMainStage( CVector2* mousePos );
 	void OnMainStageMouseMove( SUIMouseEvent* pEvent );
+	void OnPostProcess( class CPostProcessPass* pPass );
 
 	enum
 	{
@@ -37,4 +39,5 @@ protected:
 	TClassTrigger1<CStageDirector, CVector2*> m_onClickMainStage;
 	TClassTrigger1<CStageDirector, SUIMouseEvent*> m_onMouseMove;
 	TClassTrigger<CStageDirector> m_onTick;
+	TClassTrigger1<CStageDirector, CPostProcessPass*> m_onPostProcess;
 };

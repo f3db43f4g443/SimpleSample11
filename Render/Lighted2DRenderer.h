@@ -28,7 +28,9 @@ public:
 	const CVector2& GetLightMapRes() { return m_lightMapRes; }
 
 	virtual ITexture* GetSubRendererTexture() override { return m_pSubRendererTexture; }
+	virtual void FetchSubRendererTexture( ITexture** ppTex ) override;
 	virtual void ReleaseSubRendererTexture() override { if( m_bIsSubRenderer ) m_sizeDependentPool.Release( m_pSubRendererTexture ); }
+	virtual CRenderTargetPool* GetRenderTargetPool() override { return &m_sizeDependentPool; }
 private:
 	void RenderScene( IRenderSystem* pSystem, IRenderTarget* pTarget );
 

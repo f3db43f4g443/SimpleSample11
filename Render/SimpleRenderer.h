@@ -26,8 +26,9 @@ public:
 
 	virtual bool IsSubRenderer() override { return m_bIsSubRenderer; }
 	virtual ITexture* GetSubRendererTexture() override { return m_pSubRendererTexture; }
+	virtual void FetchSubRendererTexture( ITexture** ppTex ) override;
 	virtual void ReleaseSubRendererTexture() override { if( m_bIsSubRenderer ) m_sizeDependentPool.Release( m_pSubRendererTexture ); }
-
+	virtual CRenderTargetPool* GetRenderTargetPool() override { return &m_sizeDependentPool; }
 	const CVector2& GetScreenRes() { return m_screenRes; }
 private:
 	CVector2 m_screenRes;

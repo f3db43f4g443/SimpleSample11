@@ -34,7 +34,7 @@ public:
 		m_fMoveXAxis = fXAxis;
 		m_fMoveYAxis = fYAxis;
 	}
-	void AimAt( const CVector2& pos ) { m_aimAt = pos; }
+	void AimAt( const CVector2& pos );
 	void Roll() { m_bRoll = true; }
 	const CVector2& GetAimAt() { return m_aimAt; }
 	const CVector2& GetCam() { return m_cam; }
@@ -42,10 +42,12 @@ public:
 
 	bool IsRolling();
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
+	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
 	void Damage( int32 nValue = 1 );
 	void RestoreHp( int32 nValue );
 	virtual void Crush() override { Damage( 1000 ); }
 	virtual bool Knockback( const CVector2& vec ) override;
+	CVector2 GetKnockback();
 	void BeginFire();
 	void EndFire();
 	void BeginRepair();

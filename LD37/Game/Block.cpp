@@ -683,16 +683,13 @@ void CRandomEnemyRoom::SetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
 			pImage2D->SetTexRect( CRectangle( nTileX / 16.0f, nTileY / 16.0f, 1 / 16.0f, 1 / 16.0f ) );
 			GetRenderObject()->AddChild( pImage2D );
-			
-			if( i == 0 || i == pChunk->nWidth - 1 || j == 0 || j == pChunk->nHeight - 1 )
+
+			for( int k = 0; k < m_nDamagedEffectsCount; k++ )
 			{
-				for( int k = 0; k < m_nDamagedEffectsCount; k++ )
-				{
-					CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[k]->CreateInstance() );
-					pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
-					pImage2D->SetTexRect( damageEftTexRects[k] );
-					m_pDamagedEffects[k]->AddChild( pImage2D );
-				}
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[k]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
+				pImage2D->SetTexRect( damageEftTexRects[k] );
+				m_pDamagedEffects[k]->AddChild( pImage2D );
 			}
 		}
 	}

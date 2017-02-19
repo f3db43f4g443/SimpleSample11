@@ -2,6 +2,7 @@
 #include "Texture.h"
 #include "Trigger.h"
 #include <vector>
+#include "Math3D.h"
 using namespace std;
 
 class CPostProcessPass;
@@ -33,12 +34,18 @@ class IRenderSystem;
 class CPostProcessPass
 {
 public:
+	CPostProcessPass() : m_pSystem( NULL ), m_pRenderTargetPool( NULL ), m_bFinalViewport( false ) {}
 	void Register( CPostProcess* pPostProcess ) { m_vecPasses.push_back( pPostProcess ); }
 	void RegisterOnPostProcess( CTrigger* pTrigger ) { m_onPostProcess.Register( 0, pTrigger ); }
 
 	void Process( IRenderSystem* pSystem, CReference<ITexture>& pTarget, IRenderTarget* pFinalTarget );
 	IRenderSystem* GetRenderSystem() { return m_pSystem; }
 	CReference<ITexture>& GetTarget() { return m_pTarget; }
+	CRenderTargetPool& GetRenderTargetPool() { return m_pRenderTargetPool ? *m_pRenderTargetPool : CRenderTargetPool::GetSizeDependentPool(); }
+	void SetRenderTargetPool( CRenderTargetPool* pPool ) { m_pRenderTargetPool = pPool; }
+	bool IsFinalViewport() { return m_bFinalViewport; }
+	TRectangle<int32>& GetFinalViewport() { return m_finalViewport; }
+	void SetFinalViewport( const TRectangle<int32>& rect ) { m_finalViewport = rect; m_bFinalViewport = true; }
 
 	static CPostProcessPass* GetPostProcessPass( EPostProcessPass ePass )
 	{
@@ -51,6 +58,9 @@ private:
 	IRenderSystem* m_pSystem;
 	vector<CPostProcess*> m_vecPasses;
 	CReference<ITexture> m_pTarget;
+	CRenderTargetPool* m_pRenderTargetPool;
+	bool m_bFinalViewport;
+	TRectangle<int32> m_finalViewport;
 
 	CEventTrigger<1> m_onPostProcess;
 };

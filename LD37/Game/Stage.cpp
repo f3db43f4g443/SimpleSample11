@@ -343,19 +343,45 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 	CMyLevel* pLevel = CMyLevel::GetInst();
 	if( m_pPlayer && pLevel )
 	{
-		CVector2 camShake = CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) )
-			* Min( pLevel->GetShakeStrength() / 64.0f, 1.0f );
+		float fHurt = Min( 1.0f, m_pPlayer->GetInvicibleTimeLeft() / 0.25f );
+		CVector2 vecKnockback = m_pPlayer->GetKnockback();
+		float fKnockbackLen = vecKnockback.Length();
 
 		CVector4 texOfs[5];
 		CVector4 weights[5] =
 		{
 			{ 0.0f, 1, 0, 0.2f },
 			{ 0.0f, 0, 1, 0.2f },
-			{ 1.0f, 0, 0, 0 },
+			{ 1.0f, 0, 0, 0.2f },
+			{ 0.0f, 0, 0, 0.2f },
+			{ 0.0f, 0, 0, 0.2f }
+		};
+		CVector4 weights1[5] =
+		{
+			{ 0.0f, 0.25f, 0, 0.2f },
+			{ 0.0f, 0, 0, 0.2f },
+			{ 1.0f, 0, 0, 0.2f },
+			{ 0.0f, 0, 0, 0.2f },
+			{ 0.0f, 0, 0.25f, 0.2f }
+		};
+		CVector4 weights2[5] =
+		{
+			{ 0.5f, 0.5f, 0.5f, 0.2f },
+			{ 0.5f, 0.5f, 0.5f, 0.2f },
+			{ 0.5f, 0.5f, 0.5f, 0.2f },
 			{ 0.0f, 0, 0, 0.2f },
 			{ 0.0f, 0.0f, 0, 0.2f }
 		};
+		for( int i = 0; i < 5; i++ )
+		{
+			weights[i] = weights[i] * ( 1 - fHurt ) * ( 1 - fKnockbackLen ) + weights1[i] * fHurt + weights2[i] * ( 1 - fHurt ) * fKnockbackLen;
+		}
+
+		CVector2 camShake = CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) )
+			* ( Min( pLevel->GetShakeStrength() / 64.0f, 1.0f ) + fHurt );
+		camShake = camShake + vecKnockback * 5;
 		CVector2 ofs = camShake;
+
 		CVector2 ofs1 = CVector2( ofs.y, -ofs.x );
 		for( int i = 0; i < 5; i++ )
 		{

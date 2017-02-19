@@ -14,6 +14,7 @@ CUIViewport::CUIViewport()
 	, m_pExternalCamera( NULL )
 	, m_texSize( 0, 0 )
 	, m_bLight( false )
+	, m_bCustomRender( false )
 {
 	m_elem.SetDrawable( this );
 }
@@ -60,11 +61,27 @@ void CUIViewport::Render( CRenderContext2D& context )
 		auto origRect = GetCamera().GetViewArea();
 		if( m_bLight )
 		{
-			GetCamera().SetViewArea( origRect.Offset( CVector2( m_texSize.x - m_localBound.width, m_texSize.y - m_localBound.height ) * 0.5f ) );
-			GetCamera().SetSize( m_texSize.x, m_texSize.y );
+			CVector2 size = m_bCustomRender ? m_customRes : m_texSize;
+			GetCamera().SetViewArea( origRect.Offset( CVector2( size.x - m_localBound.width, size.y - m_localBound.height ) * 0.5f ) );
+			GetCamera().SetSize( size.x, size.y );
 		}
 
 		m_pRenderer->OnRender( context.pRenderSystem );
+
+		if( m_bCustomRender )
+		{
+			auto pPostProcessPass = &m_customRender;
+			auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
+			sizeDependentPool.AllocRenderTarget( m_pCustomTarget, ETextureType::Tex2D,
+				m_texSize.x, m_texSize.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+			CReference<ITexture> pTempTarget;
+			m_pRenderer->FetchSubRendererTexture( pTempTarget.AssignPtr() );
+			pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
+			pPostProcessPass->SetFinalViewport( TRectangle<int32>( 0, 0, m_texSize.x, m_texSize.y ) );
+			pPostProcessPass->Process( context.pRenderSystem, pTempTarget, m_pCustomTarget->GetRenderTarget() );
+			sizeDependentPool.Release( pTempTarget );
+		}
+
 		GetCamera().SetViewArea( origRect );
 		m_events.Trigger( eEvent_Action, context.pRenderSystem );
 		if( GetMgr() )
@@ -74,10 +91,22 @@ void CUIViewport::Render( CRenderContext2D& context )
 
 void CUIViewport::Flush( CRenderContext2D& context )
 {
-	CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), m_localBound.Offset( globalTransform.GetPosition() ),
-		CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
-		GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
-	m_pRenderer->ReleaseSubRendererTexture();
+	if( m_bCustomRender )
+	{
+		CopyToRenderTarget( context.pRenderSystem, NULL, m_pCustomTarget, m_localBound.Offset( globalTransform.GetPosition() ),
+			CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
+			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
+
+		auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
+		sizeDependentPool.Release( m_pCustomTarget );
+	}
+	else
+	{
+		CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), m_localBound.Offset( globalTransform.GetPosition() ),
+			CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
+			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
+		m_pRenderer->ReleaseSubRendererTexture();
+	}
 	m_elem.OnFlushed();
 }
 
@@ -156,6 +185,14 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 		m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
 		m_pRenderer->OnResize( IRenderSystem::Inst(), m_texSize );
 	}
+}
+
+void CUIViewport::SetCustomRender( const CVector2& customRes )
+{
+	m_bCustomRender = true;
+	m_customRes = customRes;
+	if( m_pRenderer )
+		m_pRenderer->OnResize( IRenderSystem::Inst(), m_customRes );
 }
 
 void CUIViewport::OnInited()

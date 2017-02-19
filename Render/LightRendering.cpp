@@ -569,6 +569,13 @@ private:
 
 IMPLEMENT_GLOBAL_SHADER( CLightScenePixelShader, "Shader/Light2D.shader", "PSScene", "ps_5_0" );
 
+void CLighted2DRenderer::FetchSubRendererTexture( ITexture** ppTex )
+{
+	*ppTex = m_pSubRendererTexture;
+	(*ppTex)->AddRef();
+	m_pSubRendererTexture = NULL;
+}
+
 void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTarget )
 {
 	pSystem->SetRenderTarget( pTarget, NULL );

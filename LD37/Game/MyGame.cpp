@@ -51,7 +51,7 @@ CGame::CGame()
 	, m_bIsRightMouseUp( false )
 	, m_beforeRender( this, &CGame::BeforeRender )
 {
-	m_screenResolution = CVector2( 800, 600 );
+	m_screenResolution = CVector2( 1280, 960 );
 }
 
 void CGame::Start()
@@ -63,16 +63,18 @@ void CGame::Start()
 	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
 	CUIManager* pUIManager = new CUIManager;
 	m_pUIMgr = pUIManager;
-	pUIManager->Resize( CRectangle( 0, 0, screenRes.x, screenRes.y ) );
+	pUIManager->Resize( CRectangle( 0, 0, 800, 600 ) );
 	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pUIManager );
-	m_camera.SetPosition( screenRes.x / 2, screenRes.y / 2 );
-	m_camera.SetSize( screenRes.x, screenRes.y );
-	CScene2DManager::GetGlobalInst()->AddActiveCamera( &m_camera, m_pUIMgr );
-	CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
 	CStageDirector* pStageDirector = CStageDirector::Inst();
 	CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/stage_director.xml" )->GetElement()->Clone( pStageDirector );
 	m_pUIMgr->AddChild( pStageDirector );
+	pUIManager->Resize( CRectangle( 0, 0, screenRes.x, screenRes.y ) );
+
+	m_camera.SetPosition( screenRes.x / 2, screenRes.y / 2 );
+	m_camera.SetSize( screenRes.x, screenRes.y );
+	CScene2DManager::GetGlobalInst()->AddActiveCamera( &m_camera, m_pUIMgr );
+	CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
 	m_pWorld = new CWorld;
 
@@ -372,6 +374,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
 		REGISTER_MEMBER_TAGGED_PTR( m_pClickToStart, start/clicktostart );
+		REGISTER_MEMBER_TAGGED_PTR( m_pCrosshair, crosshair );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMainUI )

@@ -368,7 +368,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 	CVector2 moveOfs;
 	if( nState == eState_Normal )
 	{
-		if( moveAxis.Length2() > 0 )
+		if( moveAxis.Length2() > 0 || fKnockbackTime > 0 )
 		{
 			float fDeltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
 			moveOfs = ( moveAxis * fMoveSpeed ) * fDeltaTime;

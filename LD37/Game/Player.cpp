@@ -39,6 +39,15 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	SET_BASEOBJECT_ID( CPlayer );
 }
 
+void CPlayer::AimAt( const CVector2& pos )
+{
+	CVector2 pos1 = pos - GetPosition();
+	float l = pos1.Normalize();
+	pos1 = pos1 * Min( l, 400.0f ) + GetPosition();
+	CMyLevel::GetInst()->GetCrosshair()->SetPosition( pos );
+	m_aimAt = pos;
+}
+
 void CPlayer::DelayChangeStage( const char* szName, const char* szStartPoint )
 {
 	m_fChangeStageTime = 2.0f;
@@ -89,6 +98,16 @@ bool CPlayer::Knockback( const CVector2& vec )
 	else
 		m_flyData.Knockback( 0.25f, vec * 400 );
 	return true;
+}
+
+CVector2 CPlayer::GetKnockback()
+{
+	if( m_hp <= 0 )
+		return CVector2( 0, 0 );
+	if( m_bIsWalkOrFly )
+		return m_walkData.vecKnockback / 400;
+	else
+		return m_flyData.vecKnockback / 400;
 }
 
 void CPlayer::BeginFire()
@@ -311,7 +330,8 @@ void CPlayer::UpdateRepair()
 	bool bRepair = m_pCurRoom
 		&& m_bIsRepairing
 		&& m_fMoveXAxis == 0 && m_fMoveYAxis == 0
-		&& m_flyData.nState != SCharacterFlyData::eState_Rolling;
+		&& m_flyData.nState != SCharacterFlyData::eState_Rolling
+		&& ( m_bIsWalkOrFly ? m_walkData.fKnockbackTime <= 0 : m_flyData.fKnockbackTime <= 0 );
 	if( m_pCurRoom && m_pCurRoom->GetChunk() )
 		m_pCurRoom->GetChunk()->bIsBeingRepaired = bRepair;
 	if( !bRepair )
@@ -427,6 +447,7 @@ void CPlayer::OnAddedToStage()
 	m_nRepairTimeLeft = 0;
 	m_nRepairIntervalLeft = 0;
 
+	m_aimAt = GetPosition();
 	m_cam = GetPosition();
 	m_hp.add2 = 0;
 

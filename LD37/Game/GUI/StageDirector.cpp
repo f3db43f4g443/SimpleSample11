@@ -6,11 +6,13 @@
 #include "MyGame.h"
 #include "World.h"
 #include "MyLevel.h"
+#include "PostEffects.h"
 
 CStageDirector::CStageDirector()
 	: m_onClickMainStage( this, &CStageDirector::OnClickMainStage )
 	, m_onMouseMove( this, &CStageDirector::OnMainStageMouseMove )
 	, m_onTick( this, &CStageDirector::OnTick )
+	, m_onPostProcess( this, &CStageDirector::OnPostProcess )
 	, m_pWorld( NULL )
 {
 
@@ -31,6 +33,14 @@ void CStageDirector::OnWorldCreated( CWorld* pWorld )
 	m_pWorld = pWorld;
 }
 
+void CStageDirector::AfterPlayMainStage()
+{
+	/*auto size = m_pMainStageViewport->GetSize();
+	float fScale = 640.0f / size.height;
+	m_pMainStageViewport->SetCustomRender( CVector2( floor( size.width * fScale + 0.5f ), 640.0f ) );
+	m_pMainStageViewport->RegisterOnPostProcess( &m_onPostProcess );*/
+}
+
 void CStageDirector::OnClickMainStage( CVector2* mousePos )
 {
 }
@@ -47,4 +57,11 @@ void CStageDirector::OnMainStageMouseMove( SUIMouseEvent * pEvent )
 void CStageDirector::OnTick()
 {
 	CGame::Inst().Register( 1, &m_onTick );
+}
+
+void CStageDirector::OnPostProcess( class CPostProcessPass* pPass )
+{
+	static CPostProcessInvertColor effect;
+	effect.SetPriority( 1 );
+	pPass->Register( &effect );
 }

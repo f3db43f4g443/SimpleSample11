@@ -6,10 +6,7 @@ class CPostProcessInvertColor : public CPostProcess
 {
 public:
 	virtual void Process( CPostProcessPass* pPass, IRenderTarget* pFinalTarget ) override;
-
-	void SetPercent( float fPercent ) { m_fPercent = fPercent; }
 private:
-	float m_fPercent;
 };
 
 class CPostProcessDizzyEffect : public CPostProcess
