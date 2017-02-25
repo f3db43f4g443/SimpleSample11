@@ -62,7 +62,7 @@ void CUIViewport::Render( CRenderContext2D& context )
 		if( m_bLight )
 		{
 			CVector2 size = m_bCustomRender ? m_customRes : m_texSize;
-			GetCamera().SetViewArea( origRect.Offset( CVector2( size.x - m_localBound.width, size.y - m_localBound.height ) * 0.5f ) );
+			GetCamera().SetViewArea( origRect.Offset( CVector2( m_texSize.x - m_localBound.width, m_texSize.y - m_localBound.height ) * 0.5f ) );
 			GetCamera().SetSize( size.x, size.y );
 		}
 
