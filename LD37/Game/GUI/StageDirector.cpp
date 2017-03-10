@@ -35,10 +35,10 @@ void CStageDirector::OnWorldCreated( CWorld* pWorld )
 
 void CStageDirector::AfterPlayMainStage()
 {
-	auto size = m_pMainStageViewport->GetSize();
+	/*auto size = m_pMainStageViewport->GetSize();
 	float fScale = 800.0f / size.height;
 	m_pMainStageViewport->SetCustomRender( CVector2( floor( size.width * fScale + 0.5f ), 800.0f ) );
-	m_pMainStageViewport->RegisterOnPostProcess( &m_onPostProcess );
+	m_pMainStageViewport->RegisterOnPostProcess( &m_onPostProcess );*/
 }
 
 void CStageDirector::OnClickMainStage( CVector2* mousePos )

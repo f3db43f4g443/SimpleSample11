@@ -1,0 +1,450 @@
+﻿<root>
+  <includes>
+    <item name="common" public="1" />
+  </includes>
+  <level_gen>
+    <nodes>
+      <node name="block0" width="1" height="1" weight="1" destroyweight="1.5" prefab="data/blocks/lv1/block0.pf">
+        <types>0</types>
+      </node>
+      <node name="block1a" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1a.pf">
+        <types>4</types>
+      </node>
+      <node name="block1ax" width="2" height="1" weight="1.25" destroyweight="2.6" prefab="data/blocks/lv1/block1ax.pf">
+        <types>4</types>
+      </node>
+      <node name="block1ay" width="1" height="2" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1ay.pf">
+        <types>4</types>
+      </node>
+      <node name="block1b" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1b.pf">
+        <types>4</types>
+      </node>
+      <node name="block1bx" width="2" height="1" weight="1.25" destroyweight="2.6" prefab="data/blocks/lv1/block1bx.pf">
+        <types>4</types>
+      </node>
+      <node name="block1by" width="1" height="2" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1by.pf">
+        <types>4</types>
+      </node>
+
+      <node name="block0_1" width="1" height="1" weight="1" destroyweight="1.5" prefab="data/blocks/lv1/block0.pf">
+        <types>0</types>
+        <next_level>
+          <node type="randompick" total_p="80">
+            <ref name="e10" p="4" />
+            <ref name="e11" p="1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="block1a_1" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1a.pf">
+        <types>4</types>
+        <next_level>
+          <node type="randompick">
+            <ref name="e10" p="4" />
+            <ref name="e11" p="1" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="sblock1" width="1" height="1" weight="1" destroyweight="2" prefab="sblock1.pf">
+        <types>4</types>
+      </node>
+      <node name="sblock1a" width="1" height="1" weight="1" destroyweight="2" prefab="sblock1a.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock1" width="1" height="1" weight="1" destroyweight="2" prefab="eblock1.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock1a" width="1" height="1" weight="1" destroyweight="2" prefab="eblock1a.pf">
+        <types>4</types>
+      </node>
+      <node name="sblock2" width="1" height="1" weight="1" destroyweight="2" prefab="sblock2.pf">
+        <types>4</types>
+      </node>
+      <node name="sblock2a" width="1" height="1" weight="1" destroyweight="2" prefab="sblock2a.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock2" width="1" height="1" weight="1" destroyweight="2" prefab="eblock2.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock2a" width="1" height="1" weight="1" destroyweight="2" prefab="eblock2a.pf">
+        <types>4</types>
+      </node>
+      <node name="sblock3" width="1" height="1" weight="1" destroyweight="2" prefab="sblock3.pf">
+        <types>4</types>
+      </node>
+      <node name="sblock3a" width="1" height="1" weight="1" destroyweight="2" prefab="sblock3a.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock3" width="1" height="1" weight="1" destroyweight="2" prefab="eblock3.pf">
+        <types>4</types>
+      </node>
+      <node name="eblock3a" width="1" height="1" weight="1" destroyweight="2" prefab="eblock3a.pf">
+        <types>4</types>
+      </node>
+      <node name="barrel" width="2" height="3" weight="2" destroyweight="14" destroyshake="30" shakedmg="0.25" prefab="data/explosive/barrel.pf">
+        <types>4,4,4,4,4,4</types>
+      </node>
+      <node name="fueltank" width="2" height="4" weight="2" destroyweight="14" destroyshake="10" shakedmg="0.25" prefab="data/explosive/fueltank.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="fueltank_d" width="2" height="4" weight="2" destroyweight="14" destroyshake="10" shakedmg="0.25" prefab="data/explosive/fueltank_d.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="fueltank_l" width="4" height="2" weight="4" destroyweight="20" destroyshake="10" shakedmg="0.25" prefab="data/explosive/fueltank_l.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="fueltank_r" width="4" height="2" weight="4" destroyweight="20" destroyshake="10" shakedmg="0.25" prefab="data/explosive/fueltank_r.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+
+      <node name="stone_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/stone_broken.pf">
+        <types>4</types>
+      </node>
+      <node name="stonebar_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/stonebar_broken.pf">
+        <types>4</types>
+      </node>
+      <node name="woodenbar_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/woodenbar_broken.pf">
+        <types>4</types>
+      </node>
+      <node name="wood_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/wood_broken.pf">
+        <types>0</types>
+      </node>
+      <node name="wall_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/wall_broken.pf">
+        <types>0</types>
+      </node>
+      <node name="wall_room_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/wall_room_broken.pf">
+        <types>0</types>
+      </node>
+      <node name="stonebar_room_broken" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/lv1/stonebar_room_broken.pf">
+        <types>4</types>
+      </node>
+      
+      <node name="stone" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="2" absorbshakestrengthperheight="2"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="4" prefab="data/blocks/lv1/stone.pf">
+        <types>4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stone_broken" />
+          </node>
+        </subitem>
+      </node>
+      
+      <node name="stonebar" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv1/stonebar.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stonebar_broken" />
+          </node>
+        </subitem>
+      </node>
+      <node name="stonebar2" width="8" height="2" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv1/stonebar2.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4
+        </types>
+        <subitem>
+          <node type="tile">
+            <ref name="woodenbar_broken" />
+          </node>
+        </subitem>
+      </node>
+
+      <node name="woodenbar_h" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/woodenbar_h.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="woodenbar_broken" />
+          </node>
+        </subitem>
+      </node>
+      <node name="woodenbar_v" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
+            absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/woodenbar_v.pf">
+        <types>4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="woodenbar_broken" />
+          </node>
+        </subitem>
+      </node>
+
+      <node name="stonebar_room_corner" width="1" height="1" weight="1" destroyweight="1.3" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_corner.pf">
+        <types>4</types>
+      </node>
+      <node name="stonebar_room_h" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_h.pf">
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stonebar_room_broken" />
+          </node>
+        </subitem>
+      </node>
+      <node name="stonebar_room_v" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
+            absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_v.pf">
+        <types>4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stonebar_room_broken" />
+          </node>
+        </subitem>
+      </node>
+
+      <!--node name="vbar_0" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_0.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_1" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_1.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_2" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_2.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_3" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_3.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_4" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_4.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_5" width="1" height="1" weight="1" destroyweight="1.2" prefab="data/blocks/block_vbar/block_vbar_5.pf">
+        <types>4</types>
+      </node>
+      <node name="vbar_small" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
+            absorbshakestrengthperheight="0.25" shakedmg="5" prefab="data/blocks/block_vbar/block_vbar.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="vbar_large" width="1" height="16" weight="1" destroyweight="12" absorbshakestrength="10000"
+            absorbshakestrengthperheight="0.25" shakedmg="5" prefab="data/blocks/block_vbar/block_vbar.pf">
+        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
+      </node-->
+
+      <node name="enemyroom_small" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wood.pf">
+        <types>
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="woodenbar_h" x="0" y="0" w="0" h="1" />
+            <ref name="woodenbar_h" x="0" y="-1" w="0" h="1" />
+            <ref name="woodenbar_v" x="0" y="3" w="1" h="-1" />
+            <ref name="woodenbar_v" x="-1" y="3" w="1" h="-1" />
+            <ref name="door0_3" x="0" y="1" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="1" w="1" h="2" />
+            <node type="tile" x="1" y="1" w="-1" h="-1">
+              <ref name="wood_broken" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <!--node type="randomfill" x="2" y="0" w="2" h="1" >
+              <ref name="item1" p="1" />
+              <node type="empty" p="1" />
+            </node>
+            <node type="randomfill" x="2" y="2" w="2" h="2" >
+              <ref name="item2" p="1" />
+              <node type="empty" p="3" />
+            </node-->
+            <ref name="enemycharacter" x="1" y="1" w="4" h="4" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="enemyroom_large" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+        <types>
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="stonebar_room_corner" x="0" y="0" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="0" y="-1" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="-1" y="0" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="-1" y="-1" w="1" h="1" />
+            
+            <ref name="stonebar_room_h" x="1" y="0" w="2" h="1" />
+            <ref name="stonebar_room_h" x="5" y="0" w="2" h="1" />
+            <ref name="stonebar_room_h" x="1" y="-1" w="2" h="1" />
+            <ref name="stonebar_room_h" x="5" y="-1" w="2" h="1" />
+            
+            <ref name="stonebar_room_v" x="0" y="1" w="1" h="2" />
+            <ref name="stonebar_room_v" x="0" y="5" w="1" h="2" />
+            <ref name="stonebar_room_v" x="-1" y="1" w="1" h="2" />
+            <ref name="stonebar_room_v" x="-1" y="5" w="1" h="2" />
+
+            <ref name="door0_0" x="3" y="0" w="2" h="1" />
+            <ref name="door0_2" x="3" y="-1" w="2" h="1" />
+            <ref name="door0_3" x="0" y="3" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="3" w="1" h="2" />
+            <node type="tile" x="1" y="1" w="-1" h="-1">
+              <ref name="wall_room_broken" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <!--ref name="item3" x="3" y="3" w="2" h="2" />
+            <node type="randomfill" x="2" y="0" w="4" h="1" >
+              <ref name="item1" p="1" />
+              <node type="empty" p="1" />
+            </node>
+            <node type="randomfill" x="1" y="3" w="2" h="2" >
+              <ref name="item2" p="1" />
+              <node type="empty" p="3" />
+            </node>
+            <node type="randomfill" x="3" y="1" w="2" h="2" >
+              <ref name="item2" p="1" />
+              <node type="empty" p="3" />
+            </node>
+            <node type="randomfill" x="5" y="3" w="2" h="2" >
+              <ref name="item2" p="1" />
+              <node type="empty" p="3" />
+            </node>
+            <node type="randomfill" x="3" y="5" w="2" h="2" >
+              <ref name="item2" p="1" />
+              <node type="empty" p="3" />
+            </node-->
+            <ref name="enemycharacter" x="1" y="1" w="6" h="6" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">
+        <types>0</types>
+      </node>
+      <node name="1f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/1f.pf" islevelbarrier="1">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
+        <next_level>
+          <node type="randomfill">
+            <ref name="e10" p="1" />
+            <ref name="e11" p="1" />
+            <node type="empty" p="40" />
+          </node>
+        </next_level>
+      </node>
+      <node name="2f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/2f.pf" islevelbarrier="1">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
+        <next_level>
+          <node type="randomfill">
+            <ref name="e10" p="1" />
+            <ref name="e11" p="1" />
+            <node type="empty" p="20" />
+          </node>
+        </next_level>
+      </node>
+      <node name="3f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/3f.pf" islevelbarrier="1">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
+        <next_level>
+          <node type="subregion">
+            <ref name="e2" x="15" y="1" w="2" h="2" />
+            <node type="randomfill" x="0" y="0" w="-1" h="-1">
+              <ref name="e10" p="1" />
+              <ref name="e11" p="1" />
+              <node type="empty" p="25" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      <node name="4f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/4f.pf" islevelbarrier="1">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
+        <next_level>
+          <node type="subregion">
+            <ref name="e2" x="11" y="1" w="2" h="2" />
+            <ref name="e2" x="19" y="1" w="2" h="2" />
+            <node type="randomfill" x="0" y="0" w="-1" h="-1">
+              <ref name="e10" p="1" />
+              <ref name="e11" p="1" />
+              <node type="empty" p="25" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      <node name="bossroom" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="bossroom.pf" islevelbarrier="1">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+        </types>
+      </node>
+      
+      <node type="randompick" name="fill1">
+        <ref name="eblock1" p="2" />
+        <ref name="eblock2" p="2" />
+        <ref name="eblock3" p="2" />
+
+        <ref name="block0" p="150" />
+      </node>
+        
+      <node type="randompick" name="fill2">
+        <ref name="sblock1" p="1" />
+        <ref name="sblock1a" p="1" />
+        <ref name="sblock2" p="1" />
+        <ref name="sblock2a" p="1" />
+        <ref name="sblock3" p="1" />
+        <ref name="sblock3a" p="1" />
+        <ref name="eblock1" p="1" />
+        <ref name="eblock1a" p="1" />
+        <ref name="eblock2" p="1" />
+        <ref name="eblock3" p="1" />
+
+        <ref name="block0" p="200" />
+      </node>
+      
+      <node type="randompick" name="fill3">
+        <ref name="sblock1" p="1" />
+        <ref name="sblock1a" p="1" />
+        <ref name="sblock2" p="1" />
+        <ref name="sblock2a" p="1" />
+        <ref name="sblock3" p="1" />
+        <ref name="sblock3a" p="1" />
+        <ref name="eblock1" p="1" />
+        <ref name="eblock1a" p="1" />
+        <ref name="eblock2" p="1" />
+        <ref name="eblock3" p="1" />
+
+        <ref name="block0" p="100" />
+      </node>
+    </nodes>
+  </level_gen>
+</root>

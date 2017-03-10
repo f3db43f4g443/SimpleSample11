@@ -106,7 +106,7 @@ void CMyLevel::OnRemovedFromStage()
 		s_pLevel = NULL;
 }
 
-const char* g_levels[] = { "lv1", "lv2", "lv3", "lv4", "lv5" };
+const char* g_levels[] = { "lv1", "lv1", "lv1", "lv1", "lv1" };
 
 void CMyLevel::CreateGrids( bool bNeedInit )
 {
@@ -115,11 +115,11 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 
 	if( bNeedInit )
 	{
-		CLevelGenerateNode* pNode = cfg.levelGenerateNodeContext.mapNamedNodes["init"];
+		CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( "init" );
 		pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	}
 
-	CLevelGenerateNode* pNode = cfg.levelGenerateNodeContext.mapNamedNodes[g_levels[m_nCurLevel]];
+	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( g_levels[m_nCurLevel] );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
 }
@@ -131,6 +131,15 @@ void CMyLevel::CacheNextLevel()
 		m_nCurLevel++;
 		if( m_nCurLevel < ELEM_COUNT( g_levels ) )
 			CreateGrids( false );
+	}
+}
+
+void CMyLevel::Clear()
+{
+	for( auto basement : m_basements )
+	{
+		while( basement.Get_Block() )
+			RemoveChunk( basement.Get_Block()->pOwner );
 	}
 }
 
@@ -163,20 +172,21 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 		item.first = pChunk->Get_SubChunk();
 		item.second = item.first->pos;
 		item.first->RemoveFrom_SubChunk();
+		item.first->bIsSubChunk = false;
 	}
 	SplitChunks( pChunk, newChunks );
 }
 
 void CMyLevel::RemoveChunk( SChunk* pChunk )
 {
+	if( pChunk->pChunkObject )
+	{
+		pChunk->pChunkObject->SetParentEntity( NULL );
+		return;
+	}
+
 	if( !pChunk->bIsSubChunk )
 	{
-		if( pChunk->pChunkObject )
-		{
-			pChunk->pChunkObject->SetParentEntity( NULL );
-			return;
-		}
-
 		auto pMainUI = CMainUI::GetInst();
 		if( pMainUI )
 		{
@@ -214,12 +224,13 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 			basement.fShakeStrength += pChunk->nDestroyShake;
 		}
 	}
+	else
+		pChunk->RemoveFrom_SubChunk();
 
 	while( pChunk->Get_SubChunk() )
 	{
 		auto pSubChunk = pChunk->Get_SubChunk();
 		pSubChunk->bIsSubChunk = true;
-		pSubChunk->RemoveFrom_SubChunk();
 		RemoveChunk( pSubChunk );
 	}
 
@@ -248,8 +259,8 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 
 	for( auto& item : newChunks )
 	{
-		int32 minX = item.second.x;
-		int32 minY = item.second.y;
+		int32 minX = item.second.x / m_nBlockSize;
+		int32 minY = item.second.y / m_nBlockSize;
 		int32 maxX = minX + item.first->nWidth;
 		int32 maxY = minY + item.first->nHeight;
 		if( minX < 0 || minY < 0 || maxX > nWidth || maxY > nHeight )
@@ -271,7 +282,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 			pInsertAfter->InsertAfter_Block( item.first->GetBlock( i - minX, 0 ) );
 			pInsertAfter = item.first->GetBlock( i - minX, 0 );
 		}
-		item.first->pos = pOldChunk->pos + item.second * m_nBlockSize;
+		item.first->pos = pOldChunk->pos + item.second;
 	}
 
 	bool bSpawned = pOldChunk->bSpawned;
@@ -279,7 +290,6 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 	{
 		ppInsertAfter[i] = pOldChunk->GetBlock( i, 0 )->NextBlock();
 	}
-	RemoveChunk( pOldChunk );
 
 	auto pMainUI = CMainUI::GetInst();
 	for( int i = 0; i < nWidth; i++ )
@@ -288,7 +298,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 		{
 			if( pMainUI )
 				pMainUI->UpdateMinimap( pNewBlock->nX + pNewBlock->pOwner->pos.x / m_nBlockSize, pNewBlock->nY + pNewBlock->pOwner->pos.y / m_nBlockSize,
-					s_nTypes[pNewBlock->pBaseInfo->eBlockType] );
+					s_nTypes[pNewBlock->eBlockType] );
 
 			if( bSpawned )
 			{
@@ -300,6 +310,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 			}
 		}
 	}
+	RemoveChunk( pOldChunk );
 }
 
 void CMyLevel::AddShakeStrength( float fShakeStrength )
@@ -371,10 +382,10 @@ void CMyLevel::UpdateBlocksMovement()
 					if( pPreBlock )
 					{
 						nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
-						if( pBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+						if( pBlock->eBlockType != eBlockType_Wall )
 						{
 							auto pLowerBlock = pPreBlock->pOwner->GetBlock( pPreBlock->nX, pPreBlock->pOwner->nHeight - 1 );
-							if( pLowerBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+							if( pLowerBlock->eBlockType != eBlockType_Wall )
 								nPreY += Max( pLowerBlock->nUpperMargin, pBlock->nLowerMargin );
 						}
 
@@ -426,7 +437,7 @@ void CMyLevel::UpdateBlocksMovement()
 								for( int i = 0; i < pChunk->nWidth; i++ )
 								{
 									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y0 + j, -1 );
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->pBaseInfo->eBlockType] );
+									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
 								}
 							}
 						}
@@ -581,7 +592,7 @@ void CMyLevel::UpdateBlocksMovement()
 								for( int i = 0; i < pChunk->nWidth; i++ )
 								{
 									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y0 + j, -1 );
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->pBaseInfo->eBlockType] );
+									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
 								}
 							}
 						}

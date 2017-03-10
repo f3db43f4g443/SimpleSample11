@@ -92,6 +92,9 @@
       <Filter>Entities</Filter>
     </ClCompile>
     <ClCompile Include="Pickup.cpp" />
+    <ClCompile Include="Entities\Blocks\RandomBlocks.cpp">
+      <Filter>Entities\Blocks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -185,6 +188,9 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="Pickup.h" />
+    <ClInclude Include="Entities\Blocks\RandomBlocks.h">
+      <Filter>Entities\Blocks</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -272,6 +278,9 @@
     </Filter>
     <Filter Include="Utils">
       <UniqueIdentifier>{473e2210-87f4-49ee-b6e3-21bc91dfa7f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\Blocks">
+      <UniqueIdentifier>{838b08c3-ba18-4692-a0c9-9cd4a248de9a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

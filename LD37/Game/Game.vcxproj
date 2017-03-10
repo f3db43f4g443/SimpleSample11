@@ -428,6 +428,7 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
+    <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Enemies.cpp" />
@@ -479,6 +480,7 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Entities\AIObject.h" />
     <ClInclude Include="Entities\Barrage.h" />
+    <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Enemies.h" />

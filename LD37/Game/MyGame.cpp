@@ -25,6 +25,7 @@
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
 #include "Entities/Barrage.h"
+#include "Entities/Blocks/RandomBlocks.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
 
@@ -518,9 +519,48 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nHpPerSize )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CRandomChunk0 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nWidth )
+		REGISTER_MEMBER( m_nHeight )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomChunkTiled )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_bBlockTypeMask )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CRandomChunk1 )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_nAltX )
+		REGISTER_MEMBER( m_nAltY )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomChunk2 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerLength )
+		REGISTER_MEMBER( m_bVertical )
+		REGISTER_MEMBER( m_nWidth )
+		REGISTER_MEMBER( m_texRect1 )
+		REGISTER_MEMBER( m_nTexRect1X )
+		REGISTER_MEMBER( m_nTexRect1Y )
+		REGISTER_MEMBER( m_texRect1End )
+		REGISTER_MEMBER( m_nTexRect1EndX )
+		REGISTER_MEMBER( m_nTexRect1EndY )
+		REGISTER_MEMBER( m_texRect2 )
+		REGISTER_MEMBER( m_nTexRect2X )
+		REGISTER_MEMBER( m_nTexRect2Y )
+		REGISTER_MEMBER( m_texRect2End )
+		REGISTER_MEMBER( m_nTexRect2EndX )
+		REGISTER_MEMBER( m_nTexRect2EndY )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomChunk3 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_bBlockTypeMask )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockItem )

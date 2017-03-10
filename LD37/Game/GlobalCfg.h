@@ -10,6 +10,7 @@ public:
 	map<string, string> mapPrefabPath;
 	map<string, string> mapSoundPath;
 	SLevelGenerateNodeLoadContext levelGenerateNodeContext;
+	SLevelGenerateFileContext* pRootGenerateFile;
 
 	void Load();
 

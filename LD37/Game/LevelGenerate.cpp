@@ -4,26 +4,29 @@
 #include "Common/Rand.h"
 #include "GUI/MainUI.h"
 #include "Common/ResourceManager.h"
+#include "Common/FileUtil.h"
 
-SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel ) : pLevel( pLevel )
+SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk )
 {
-	blocks.resize( pLevel->m_nWidth * pLevel->m_nHeight );
-	chunks.resize( pLevel->m_nWidth * pLevel->m_nHeight );
+	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
+	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
+	blocks.resize( nWidth * nHeight );
+	chunks.resize( nWidth * nHeight );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
-		attachedPrefabs[i].resize( pLevel->m_nWidth * pLevel->m_nHeight );
+		attachedPrefabs[i].resize( nWidth * nHeight );
 }
 
 SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region )
 {
-	if( region.x < 0 || region.GetRight() > pLevel->m_nWidth )
+	if( region.x < 0 || region.GetRight() > nWidth )
 		return NULL;
-	if( region.y < 0 || region.GetBottom() > pLevel->m_nHeight )
+	if( region.y < 0 || region.GetBottom() > nHeight )
 		return NULL;
 	for( int j = region.y; j < region.GetBottom(); j++ )
 	{
 		for( int i = region.x; i < region.GetRight(); i++ )
 		{
-			if( blocks[i + j * pLevel->m_nWidth] )
+			if( blocks[i + j * nWidth] )
 				return NULL;
 		}
 	}
@@ -34,7 +37,7 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 	{
 		for( int i = 0; i < pChunk->nWidth; i++ )
 		{
-			blocks[i + region.x + ( j + region.y ) * pLevel->m_nWidth] = &pChunk->blocks[i + j * pChunk->nWidth];
+			blocks[i + region.x + ( j + region.y ) * nWidth] = &pChunk->blocks[i + j * pChunk->nWidth];
 		}
 	}
 
@@ -50,7 +53,7 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			if( attachedPrefabs[nType][i + j * pLevel->m_nWidth].first )
+			if( attachedPrefabs[nType][i + j * nWidth].first )
 				return;
 		}
 	}
@@ -59,15 +62,15 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			attachedPrefabs[nType][i + j * pLevel->m_nWidth].first = pPrefab;
-			attachedPrefabs[nType][i + j * pLevel->m_nWidth].second = rect;
+			attachedPrefabs[nType][i + j * nWidth].first = pPrefab;
+			attachedPrefabs[nType][i + j * nWidth].second = rect;
 		}
 	}
 }
 
 void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<int32> ofs )
 {
-	auto pBlock = blocks[ofs.x + ofs.y * pLevel->m_nWidth];
+	auto pBlock = blocks[ofs.x + ofs.y * nWidth];
 	if( !pBlock )
 	{
 		delete pInfo;
@@ -79,63 +82,91 @@ void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<i
 
 void SLevelBuildContext::Build()
 {
-	vector<SBlock*> pPreBlocks;
-	pPreBlocks.resize( pLevel->m_nWidth );
-
-	SChunk* pLevelBarrier = NULL;
-	for( auto pBlock = pLevel->m_basements[0].Get_Block(); pBlock; pBlock = pBlock->NextBlock() )
+	if( pParentChunk )
 	{
-		if( pBlock->pOwner->bIsLevelBarrier )
+		for( int j = 0; j < nHeight; j++ )
 		{
-			pLevelBarrier = pBlock->pOwner;
-			break;
-		}
-	}
-	int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * pLevel->GetBlockSize() : 0;
-	int32 nGridOfs = nYOfs / pLevel->GetBlockSize();
-	if( pLevelBarrier )
-	{
-		for( int i = 0; i < pLevel->m_nWidth; i++ )
-		{
-			pPreBlocks[i] = pLevelBarrier->GetBlock( i, 0 );
-		}
-	}
-
-	auto pMainUI = CMainUI::GetInst();
-
-	for( int j = 0; j < pLevel->m_nHeight; j++ )
-	{
-		for( int i = 0; i < pLevel->m_nWidth; i++ )
-		{
-			auto pBlock = blocks[i + j * pLevel->m_nWidth];
-			if( pBlock )
+			for( int i = 0; i < nWidth; i++ )
 			{
-				if( pMainUI )
-					pMainUI->UpdateMinimap( i, j + nGridOfs, CMyLevel::s_nTypes[pBlock->pBaseInfo->eBlockType] );
-			}
-			if( pBlock && pBlock->nY == 0 )
-			{
-				pBlock->pOwner->pos.y += nYOfs;
-				uint32 nBasement = i;
-				auto pPreBlock = pPreBlocks[nBasement];
-				if( pPreBlock )
+				auto pBlock = blocks[i + j * nWidth];
+				if( pBlock )
 				{
-					pPreBlock->InsertAfter_Block( pBlock );
+					if( pBlock->pOwner->nSubChunkType )
+					{
+						pParentChunk->GetBlock( i, j )->eBlockType = pBlock->eBlockType;
+						pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->fDmgPercent;
+					}
+					if( pBlock->nX == 0 && pBlock->nY == 0 && pBlock->pOwner->pPrefab )
+					{
+						pParentChunk->Insert_SubChunk( pBlock->pOwner );
+					}
 				}
-				else
-				{
-					pLevel->m_basements[nBasement].Insert_Block( pBlock );
-				}
-				pPreBlocks[nBasement] = pBlock;
 			}
 		}
 	}
-
-	for( int j = 0; j < pLevel->m_nHeight; j++ )
+	else
 	{
-		for( int i = 0; i < pLevel->m_nWidth; i++ )
+		vector<SBlock*> pPreBlocks;
+		pPreBlocks.resize( nWidth );
+
+		SChunk* pLevelBarrier = NULL;
+		for( auto pBlock = pLevel->m_basements[0].Get_Block(); pBlock; pBlock = pBlock->NextBlock() )
 		{
-			auto pBlock = blocks[i + j * pLevel->m_nWidth];
+			if( pBlock->pOwner->bIsLevelBarrier )
+			{
+				pLevelBarrier = pBlock->pOwner;
+				break;
+			}
+		}
+		int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * pLevel->GetBlockSize() : 0;
+		int32 nGridOfs = nYOfs / pLevel->GetBlockSize();
+		if( pLevelBarrier )
+		{
+			for( int i = 0; i < nWidth; i++ )
+			{
+				pPreBlocks[i] = pLevelBarrier->GetBlock( i, 0 );
+			}
+		}
+
+		auto pMainUI = CMainUI::GetInst();
+
+		for( int j = 0; j < nHeight; j++ )
+		{
+			for( int i = 0; i < nWidth; i++ )
+			{
+				auto pBlock = blocks[i + j * nWidth];
+				if( pBlock )
+				{
+					if( !pBlock->pOwner->pPrefab )
+						continue;
+					if( pMainUI )
+						pMainUI->UpdateMinimap( i, j + nGridOfs, CMyLevel::s_nTypes[pBlock->eBlockType] );
+
+					if( pBlock->nY == 0 )
+					{
+						pBlock->pOwner->pos.y += nYOfs;
+						uint32 nBasement = i;
+						auto pPreBlock = pPreBlocks[nBasement];
+						if( pPreBlock )
+						{
+							pPreBlock->InsertAfter_Block( pBlock );
+						}
+						else
+						{
+							pLevel->m_basements[nBasement].Insert_Block( pBlock );
+						}
+						pPreBlocks[nBasement] = pBlock;
+					}
+				}
+			}
+		}
+	}
+
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			auto pBlock = blocks[i + j * nWidth];
 			if( pBlock )
 			{
 				for( int k = 0; k < ELEM_COUNT( attachedPrefabs ); k++ )
@@ -144,22 +175,29 @@ void SLevelBuildContext::Build()
 					{
 						if( j <= 0 )
 							continue;
-						auto pLowerBlock = blocks[i + ( j - 1 ) * pLevel->m_nWidth];
-						if( pLowerBlock && pLowerBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+						auto pLowerBlock = blocks[i + ( j - 1 ) * nWidth];
+						if( pLowerBlock && pLowerBlock->eBlockType != eBlockType_Wall )
 							continue;
 					}
 					if( k == SBlock::eAttachedPrefab_Upper )
 					{
-						if( j >= pLevel->m_nHeight - 1 )
+						if( j >= nHeight - 1 )
 							continue;
-						auto pUpperBlock = blocks[i + ( j + 1 ) * pLevel->m_nWidth];
-						if( pUpperBlock && pUpperBlock->pBaseInfo->eBlockType != eBlockType_Wall )
+						auto pUpperBlock = blocks[i + ( j + 1 ) * nWidth];
+						if( pUpperBlock && pUpperBlock->eBlockType != eBlockType_Wall )
 							continue;
 					}
 
-					auto attachedPrefab = attachedPrefabs[k][i + j * pLevel->m_nWidth];
+					auto attachedPrefab = attachedPrefabs[k][i + j * nWidth];
 					if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
 					{
+						if( !pBlock->pOwner->pPrefab )
+						{
+							if( !pParentChunk )
+								continue;
+							pBlock = pParentChunk->GetBlock( i, j );
+						}
+
 						pBlock->pAttachedPrefab[k] = attachedPrefab.first;
 						if( k == SBlock::eAttachedPrefab_Center )
 							pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
@@ -172,11 +210,23 @@ void SLevelBuildContext::Build()
 			}
 		}
 	}
+
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			auto pBlock = blocks[i + j * nWidth];
+			if( pBlock && !pBlock->pOwner->pPrefab && pBlock->nX == pBlock->pOwner->nWidth && pBlock->nY == pBlock->pOwner->nHeight )
+			{
+				delete pBlock->pOwner;
+			}
+		}
+	}
 }
 
 SBlock* SLevelBuildContext::GetBlock( uint32 x, uint32 y )
 {
-	return blocks[x + y * pLevel->m_nWidth];
+	return blocks[x + y * nWidth];
 }
 
 void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
@@ -205,7 +255,7 @@ class CLevelGenerateSimpleNode : public CLevelGenerateNode
 public:
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
-		auto& chunk = context.mapChunkBaseInfo[XmlGetAttr( pXml, "name", "" )];
+		auto& chunk = context.pCurFileContext->mapChunkBaseInfo[XmlGetAttr( pXml, "name", "" )];
 		m_pChunkBaseInfo = &chunk;
 		chunk.nWidth = XmlGetAttr( pXml, "width", 1 );
 		chunk.nHeight = XmlGetAttr( pXml, "height", 1 );
@@ -222,6 +272,7 @@ public:
 		chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
 		m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
 		chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
+		chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
 		chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
 		chunk.blockInfos.resize( chunk.nWidth * chunk.nHeight );
 
@@ -242,24 +293,9 @@ public:
 			c++;
 		}
 
-		for( auto pSubItem = pXml->FirstChildElement( "subitem" ); pSubItem; pSubItem = pSubItem->NextSiblingElement( "subitem" ) )
-		{
-			const char* szName = XmlGetAttr( pSubItem, "name", "" );
-			auto itr = context.mapChunkBaseInfo.find( szName );
-			if( itr == context.mapChunkBaseInfo.end() )
-				continue;
-			int32 x = XmlGetAttr( pSubItem, "x", 0 );
-			int32 y = XmlGetAttr( pSubItem, "y", 0 );
-			int32 arrayx = XmlGetAttr( pSubItem, "arrayx", 1 );
-			int32 arrayy = XmlGetAttr( pSubItem, "arrayy", 1 );
-			for( int i = 0; i < arrayx; i += itr->second.nWidth )
-			{
-				for( int j = 0; j < arrayy; j += itr->second.nHeight )
-				{
-					chunk.subInfos.push_back( pair<SChunkBaseInfo*, TVector2<int32> >( &itr->second, TVector2<int32>( x + i, y + j ) ) );
-				}
-			}
-		}
+		auto pSubItem = pXml->FirstChildElement( "subitem" );
+		if( pSubItem && pSubItem->FirstChildElement() )
+			m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
 
 		CLevelGenerateNode::Load( pXml, context );
 	}
@@ -270,11 +306,20 @@ public:
 		{
 			pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
 			CLevelGenerateNode::Generate( context, region );
+
+			if( m_pSubChunk )
+			{
+				SLevelBuildContext tempContext( context.pLevel, pChunk );
+				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+				tempContext.Build();
+			}
 		}
 	}
 protected:
 	SChunkBaseInfo* m_pChunkBaseInfo;
 	bool m_bIsLevelBarrier;
+
+	CReference<CLevelGenerateNode> m_pSubChunk;
 };
 
 class CLevelGenerateSpawnNode : public CLevelGenerateNode
@@ -322,7 +367,11 @@ class CLevelGenerateAttachNode : public CLevelGenerateNode
 public:
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
-		m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
+		const char* szPrefab = XmlGetAttr( pXml, "prefab", "" );
+		if( szPrefab[0] )
+		{
+			m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		}
 		m_size.x = XmlGetAttr( pXml, "sizex", 1 );
 		m_size.y = XmlGetAttr( pXml, "sizey", 1 );
 		m_nType = Min<uint8>( SBlock::eAttachedPrefab_Count, XmlGetAttr( pXml, "attach_type", 0 ) );
@@ -413,17 +462,17 @@ public:
 				{
 					subRegion.x = region.width + subRegion.x;
 				}
-				if( subRegion.width == -1 )
+				if( subRegion.width <= 0 )
 				{
-					subRegion.width = Max( region.width - subRegion.x, 0 );
+					subRegion.width = Max( region.width + subRegion.width - subRegion.x, 0 );
 				}
 				if( subRegion.y < 0 )
 				{
 					subRegion.y = region.height + subRegion.y;
 				}
-				if( subRegion.height == -1 )
+				if( subRegion.height <= 0 )
 				{
-					subRegion.height = Max( region.height - subRegion.y, 0 );
+					subRegion.height = Max( region.height + subRegion.height - subRegion.y, 0 );
 				}
 				subRegion = subRegion.Offset( TVector2<int32>( region.x, region.y ) );
 				item.pNode->Generate( context, subRegion );
@@ -923,10 +972,9 @@ CLevelGenerateNode* CLevelGenerateNode::CreateNode( TiXmlElement* pXml, SLevelGe
 {
 	if( !strcmp( pXml->Value(), "ref" ) )
 	{
-		auto itr = context.mapNamedNodes.find( XmlGetAttr( pXml, "name", "" ) );
-		if( itr != context.mapNamedNodes.end() )
-			return itr->second;
-		return NULL;
+		const char* szName = XmlGetAttr( pXml, "name", "" );
+		auto pNode = context.pCurFileContext->FindNode( szName );
+		return pNode;
 	}
 	else if( !strcmp( pXml->Value(), "node" ) )
 	{
@@ -935,8 +983,140 @@ CLevelGenerateNode* CLevelGenerateNode::CreateNode( TiXmlElement* pXml, SLevelGe
 			return NULL;
 		const char* szName = XmlGetAttr( pXml, "name", "" );
 		if( szName[0] )
-			context.mapNamedNodes[szName] = pNode;
+			context.pCurFileContext->mapNamedNodes[szName] = pNode;
 		return pNode;
 	}
 	return NULL;
+}
+
+void SLevelGenerateFileContext::AddInclude( SLevelGenerateFileContext* pContext, bool bPublic )
+{
+	auto& pFile = mapIncludeFiles[pContext->strFullPath];
+	if( pFile )
+		return;
+	pFile = pContext;
+	vecIncludeFiles.push_back( pair<SLevelGenerateFileContext*, bool>( pContext, bPublic ) );
+	for( auto& item : pContext->vecIncludeFiles )
+	{
+		if( item.second )
+			AddInclude( item.first, bPublic );
+	}
+}
+
+CLevelGenerateNode* SLevelGenerateFileContext::FindNode( const char* szNode )
+{
+	auto itr = mapNamedNodes.find( szNode );
+	if( itr != mapNamedNodes.end() )
+		return itr->second;
+
+	for( auto item : vecIncludeFiles )
+	{
+		itr = item.first->mapNamedNodes.find( szNode );
+		if( itr != item.first->mapNamedNodes.end() )
+			return itr->second;
+	}
+	return NULL;
+}
+
+SLevelGenerateFileContext* SLevelGenerateNodeLoadContext::FindFile( const char* szFileName )
+{
+	string strPath = "";
+	strPath = strPath + szFileName + ".xml";
+	auto itr = mapFiles.find( strPath );
+	if( itr != mapFiles.end() )
+		return &itr->second;
+
+	for( auto& path : vecPaths )
+	{
+		strPath = path;
+		strPath = strPath + szFileName + ".xml";
+		auto itr = mapFiles.find( strPath );
+		if( itr != mapFiles.end() )
+			return &itr->second;
+	}
+	
+	return NULL;
+}
+
+SLevelGenerateFileContext* SLevelGenerateNodeLoadContext::LoadFile( const char* szFileName, const char* szPath )
+{
+	string strPath = szPath;
+	strPath = strPath + szFileName + ".xml";
+
+	if( mapFiles.find( strPath ) == mapFiles.end() && !IsFileExist( strPath.c_str() ) )
+	{
+		bool bFound = false;
+		for( auto& path : vecPaths )
+		{
+			strPath = path;
+			strPath = strPath + szFileName + ".xml";
+			if( mapFiles.find( strPath ) != mapFiles.end() || IsFileExist( strPath.c_str() ) )
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if( !bFound )
+			return NULL;
+	}
+
+	auto& fileContext = mapFiles[strPath];
+	if( fileContext.bValid )
+		return &fileContext;
+	fileContext.bValid = true;
+	fileContext.strFileName = szFileName;
+	fileContext.strFullPath = strPath;
+
+	vector<char> content;
+	GetFileContent( content, strPath.c_str(), true );
+	TiXmlDocument doc;
+	doc.LoadFromBuffer( &content[0] );
+
+	strPath = strPath.substr( 0, strPath.rfind( '/' ) + 1 );
+	auto pIncludeRoot = doc.RootElement()->FirstChildElement( "includes" );
+	if( pIncludeRoot )
+	{
+		for( auto pItem = pIncludeRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			const char* szFileName = XmlGetAttr( pItem, "name", "" );
+			bool bPublic = XmlGetAttr( pItem, "public", 0 );
+			auto pInc = LoadFile( szFileName, strPath.c_str() );
+			if( pInc )
+				fileContext.AddInclude( pInc, bPublic );
+		}
+	}
+
+	pCurFileContext = &fileContext;
+	auto pLevelGenRoot = doc.RootElement()->FirstChildElement( "level_gen" );
+	if( pLevelGenRoot )
+	{
+		szDefaultType = "simple_spawn";
+		auto pSpawnRoot = pLevelGenRoot->FirstChildElement( "spawns" );
+		if( pSpawnRoot )
+		{
+			for( auto pItem = pSpawnRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				CLevelGenerateNode::CreateNode( pItem, *this );
+			}
+		}
+		szDefaultType = "simple_attach";
+		auto pAttachRoot = pLevelGenRoot->FirstChildElement( "attachs" );
+		if( pAttachRoot )
+		{
+			for( auto pItem = pAttachRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				CLevelGenerateNode::CreateNode( pItem, *this );
+			}
+		}
+		szDefaultType = "simple";
+		auto pNodeRoot = pLevelGenRoot->FirstChildElement( "nodes" );
+		if( pNodeRoot )
+		{
+			for( auto pItem = pNodeRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				CLevelGenerateNode::CreateNode( pItem, *this );
+			}
+		}
+	}
+	return &fileContext;
 }

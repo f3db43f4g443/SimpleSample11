@@ -1,0 +1,42 @@
+﻿<root>
+  <level_gen>
+    <spawns>
+      <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.125" />
+    </spawns>
+    <attachs>
+      <node name="e10" prefab="e10.pf" />
+      <node name="e11" prefab="e11.pf" />
+      <node name="e2" prefab="e2.pf" sizex="2" sizey="2" />
+      <node name="item1" prefab="data/items/item1.pf" />
+      <node name="item2" prefab="data/items/item2.pf" />
+      <node name="item3" prefab="data/items/item3.pf" sizex="2" sizey="2" />
+      <node name="fallspike" prefab="data/misc/fallspike.pf" sizey="16" attach_type="1" />
+      <node name="hppack" prefab="data/pickups/hppack.pf" sizex="2" sizey="2" />
+      <node name="door0_0_a" prefab="data/misc/door0_0.pf" sizex="2" sizey="1" />
+      <node name="door0_1_a" prefab="data/misc/door0_1.pf" sizex="1" sizey="2" />
+      <node name="door0_2_a" prefab="data/misc/door0_2.pf" sizex="2" sizey="1" />
+      <node name="door0_3_a" prefab="data/misc/door0_3.pf" sizex="1" sizey="2" />
+    </attachs>
+    <nodes>
+      <node name="vblock" width="1" height="1" destroyweight="1.5" destroyshake="0" prefab="vblock.pf">
+        <types>4</types>
+      </node>
+      <node name="door0_0" width="2" height="1" subchunk_type="1">
+        <types>3,3</types>
+        <ref name="door0_0_a" />
+      </node>
+      <node name="door0_1" width="1" height="2" subchunk_type="1">
+        <types>3,3</types>
+        <ref name="door0_1_a" />
+      </node>
+      <node name="door0_2" width="2" height="1" subchunk_type="1">
+        <types>3,3</types>
+        <ref name="door0_2_a" />
+      </node>
+      <node name="door0_3" width="1" height="2" subchunk_type="1">
+        <types>3,3</types>
+        <ref name="door0_3_a" />
+      </node>
+    </nodes>
+  </level_gen>
+</root>

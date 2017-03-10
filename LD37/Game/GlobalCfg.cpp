@@ -28,22 +28,10 @@ void CGlobalCfg::Load()
 			const char* szPath = XmlGetAttr( pItem, "path", "" );
 			mapSoundPath[szName] = szPath;
 		}
+	}
 
-		auto pLevelGenRoot = doc.RootElement()->FirstChildElement( "level_gen" );
-		levelGenerateNodeContext.szDefaultType = "simple_spawn";
-		for( auto pItem = pLevelGenRoot->FirstChildElement( "spawns" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
-		{
-			CLevelGenerateNode::CreateNode( pItem, levelGenerateNodeContext );
-		}
-		levelGenerateNodeContext.szDefaultType = "simple_attach";
-		for( auto pItem = pLevelGenRoot->FirstChildElement( "attachs" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
-		{
-			CLevelGenerateNode::CreateNode( pItem, levelGenerateNodeContext );
-		}
-		levelGenerateNodeContext.szDefaultType = "simple";
-		for( auto pItem = pLevelGenRoot->FirstChildElement( "nodes" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
-		{
-			CLevelGenerateNode::CreateNode( pItem, levelGenerateNodeContext );
-		}
+	{
+		levelGenerateNodeContext.vecPaths.push_back( "configs/generate/" );
+		pRootGenerateFile = levelGenerateNodeContext.LoadFile( "root", "configs/generate/" );
 	}
 }

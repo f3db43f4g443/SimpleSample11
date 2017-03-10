@@ -1,0 +1,75 @@
+﻿<root>
+  <includes>
+    <item name="common" />
+  </includes>
+  <level_gen>
+    <nodes>
+      <node type="subregion" name="lv2_enemyroom_small">
+        <ref name="enemyroom_small" x="0" y="0" w="6" h="6" />
+        <next_level p="0.1">
+          <node type="subregion">
+            <ref name="hppack" x="2" y="2" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="subregion" name="lv2_enemyroom_large">
+        <ref name="enemyroom_large" x="0" y="0" w="8" h="8" />
+        <next_level p="0.1">
+          <node type="subregion">
+            <ref name="hppack" x="3" y="3" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="subregion" name="lv2">
+        <node type="tile" x="0" y="0" w="32" h="12">
+          <ref name="vblock" />
+        </node>
+        <node type="randomfill" check_block="true" x="0" y="12" w="32" h="28" >
+          <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="0.2" />
+          <node type="empty" p="0.8" />
+        </node>
+        <node type="randomfill" check_block="true" x="0" y="40" w="32" h="40" >
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="2" />
+          <ref name="hbar_small" sizeminx="8" sizeminy="1" sizemaxx="15" p="0.05" />
+          <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="0.2" />
+          <node type="empty" p="0.8" />
+        </node>
+        <node type="randomfill" check_block="true" x="0" y="80" w="32" h="44" >
+          <ref name="lv2_enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
+          <ref name="lv2_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+          <ref name="hbar_small" sizeminx="8" sizeminy="1" sizemaxx="15" p="0.075" />
+          <ref name="hbar_large" sizeminx="16" sizeminy="1" sizemaxx="32" p="0.075" />
+          <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="0.15" />
+          <node type="empty" p="0.6" />
+        </node>
+        
+        <node type="tile" x="0" y="12" w="32" h="48">
+          <node type="randompick">
+            <ref name="eblock1" p="2" />
+            <ref name="eblock2" p="2" />
+            <ref name="eblock3" p="2" />
+            <ref name="block0" p="150" />
+          </node>
+        </node>
+        <node type="tile" x="0" y="60" w="32" h="64">
+          <node type="randompick">
+            <ref name="sblock1" p="1" />
+            <ref name="sblock1a" p="1" />
+            <ref name="sblock2" p="1" />
+            <ref name="sblock2a" p="1" />
+            <ref name="sblock3" p="1" />
+            <ref name="sblock3a" p="1" />
+            <ref name="eblock1" p="1" />
+            <ref name="eblock1a" p="1" />
+            <ref name="eblock2" p="1" />
+            <ref name="eblock3" p="1" />
+            <ref name="block0" p="150" />
+          </node>
+        </node>
+        <ref name="2f" x="0" y="124" w="32" h="4" />
+      </node>
+    </nodes>
+  </level_gen>
+</root>

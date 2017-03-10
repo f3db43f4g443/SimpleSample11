@@ -175,7 +175,7 @@ void CPlayerBullet::OnHit( CEntity* pEntity )
 	}
 
 	CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
-	if( pBlockObject && pBlockObject->GetBlock()->pBaseInfo->eBlockType == eBlockType_Block )
+	if( pBlockObject && pBlockObject->GetBlock()->eBlockType == eBlockType_Block )
 	{
 		auto pChunkObject = pBlockObject->GetBlock()->pOwner->pChunkObject;
 		if( pChunkObject == m_pCreator )

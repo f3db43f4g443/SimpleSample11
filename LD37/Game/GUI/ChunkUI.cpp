@@ -62,7 +62,7 @@ void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 		for( int j = 0; j < pChunk->nHeight; j++ )
 		{
 			bool bBlock = false;
-			auto eBlockType = pChunk->GetBlock( i, j )->pBaseInfo->eBlockType;
+			auto eBlockType = pChunk->GetBlock( i, j )->eBlockType;
 			if( eBlockType == eBlockType_Block )
 			{
 				bBlock = true;

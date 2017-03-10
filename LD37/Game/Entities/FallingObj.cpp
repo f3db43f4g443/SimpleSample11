@@ -107,6 +107,9 @@ void CFallingObjHolder::OnKilled()
 		fInitFallSpeed = pChunkObject->GetChunk()->GetFallSpeed();
 	}
 
+	auto pParentEntity = GetParentEntity();
+	while( SafeCast<CBlockObject>( pParentEntity->GetParentEntity() ) )
+		pParentEntity = pParentEntity->GetParentEntity();
 	m_pFallingObj->ForceUpdateTransform();
 	m_pFallingObj->SetParentAfterEntity( GetParentEntity() );
 	m_pFallingObj->globalTransform.Decompose( m_pFallingObj->x, m_pFallingObj->y, m_pFallingObj->r, m_pFallingObj->s );

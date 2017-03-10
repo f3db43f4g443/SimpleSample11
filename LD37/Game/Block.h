@@ -21,8 +21,9 @@ struct SBlockBaseInfo
 
 struct SBlock
 {
-	SBlock() : pBaseInfo( NULL ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), pPreBlock( NULL ) {}
-	const SBlockBaseInfo* pBaseInfo;
+	SBlock() : eBlockType( eBlockType_Wall ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), pPreBlock( NULL ) {}
+	EBlockType eBlockType;
+	float fDmgPercent;
 	struct SChunk* pOwner;
 	uint8 nX, nY;
 	uint8 nUpperMargin, nLowerMargin;
@@ -73,11 +74,10 @@ struct SChunkBaseInfo
 	float fAbsorbShakeStrengthPerHeight;
 
 	bool bIsRoom;
+	uint8 nSubChunkType;
 
 	vector<SBlockBaseInfo> blockInfos;
 	CReference<CPrefab> pPrefab;
-
-	vector< pair<SChunkBaseInfo*, TVector2<int32> > > subInfos;
 };
 
 struct SChunkSpawnInfo
@@ -118,7 +118,7 @@ struct SChunk
 	uint32 nCurShakeStrength;
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
-	void CreateChunkObject( class CMyLevel* pLevel );
+	void CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
 	float GetFallSpeed();
 
 	uint8 bIsRoom : 1;
@@ -131,7 +131,10 @@ struct SChunk
 	uint8 bMovedLastFrame : 1;
 	uint8 bIsBeingRepaired : 1;
 
-	uint8 nVisitFlag;
+	uint8 nSubChunkType : 1;
+	uint8 nVisitFlag : 1;
+
+	SChunk* pParentChunk;
 	LINK_LIST( SChunk, SubChunk )
 	LINK_LIST_HEAD( m_pSpawnInfos, SChunkSpawnInfo, SpawnInfo )
 	LINK_LIST_HEAD( m_pSubChunks, SChunk, SubChunk )
@@ -152,9 +155,8 @@ public:
 		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
-	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
-
-	virtual void OnChunkDataGenerated( SChunk* pChunk, const SChunkBaseInfo& baseInfo ) const;
+	void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) {}
 
 	float GetHp() { return m_fHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
@@ -316,8 +318,7 @@ class CRandomChunk : public CChunkObject
 public:
 	CRandomChunk( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunk ); }
 
-	virtual void OnChunkDataGenerated( SChunk* pChunk, const SChunkBaseInfo& baseInfo ) const override;
-	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 protected:
 	virtual void OnKilled() override;
 private:
@@ -328,26 +329,12 @@ private:
 	uint32 m_nHpPerSize;
 };
 
-class CRandomChunk1 : public CChunkObject
-{
-	friend void RegisterGameClasses();
-public:
-	CRandomChunk1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunk1 ); }
-
-	virtual void OnChunkDataGenerated( SChunk* pChunk, const SChunkBaseInfo& baseInfo ) const override;
-	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
-protected:
-	virtual void OnKilled() override;
-private:
-	uint32 m_nHpPerSize;
-};
-
 class CRandomEnemyRoom : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
 	CRandomEnemyRoom( const SClassCreateContext& context ) : CChunkObject( context ), m_strRes( context ), m_strDoor( context ) { SET_BASEOBJECT_ID( CRandomEnemyRoom ); }
-	virtual void SetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 protected:
 	virtual void OnKilled() override;
 private:

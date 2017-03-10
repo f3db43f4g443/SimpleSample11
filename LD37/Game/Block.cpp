@@ -14,12 +14,12 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	SET_BASEOBJECT_ID( CBlockObject );
 
 	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * pLevel->GetBlockSize() );
-	if( pBlock->pBaseInfo->eBlockType == eBlockType_Block )
+	if( pBlock->eBlockType == eBlockType_Block )
 	{
 		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
 		SetHitType( eEntityHitType_WorldStatic );
 	}
-	else if( pBlock->pBaseInfo->eBlockType == eBlockType_Door )
+	else if( pBlock->eBlockType == eBlockType_Door )
 	{
 		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
 		SetHitType( eEntityHitType_Sensor );
@@ -55,7 +55,9 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, bIsSubChunk( false )
 	, bMovedLastFrame( false )
 	, bIsBeingRepaired( false )
+	, nSubChunkType( baseInfo.nSubChunkType )
 	, nVisitFlag( 0 )
+	, pParentChunk( NULL )
 	, m_pSubChunks( NULL )
 	, m_pSpawnInfos( NULL )
 {
@@ -70,13 +72,11 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 			block.pOwner = this;
 			int x = i == size.x - 1 ? baseInfo.nWidth - 1 : Max<int32>( 0, Min<int32>( i, baseInfo.nWidth - 2 ) );
 			int y = j == size.y - 1 ? baseInfo.nHeight - 1 : Max<int32>( 0, Min<int32>( j, baseInfo.nHeight - 2 ) );
-			block.pBaseInfo = &baseInfo.blockInfos[x + y * baseInfo.nWidth];
+			auto& blockInfo = baseInfo.blockInfos[x + y * baseInfo.nWidth];
+			block.eBlockType = blockInfo.eBlockType;
+			block.fDmgPercent = blockInfo.fDmgPercent;
 		}
 	}
-
-	auto pChunkObject = baseInfo.pPrefab->GetRoot()->GetStaticData<CChunkObject>();
-	if( pChunkObject )
-		pChunkObject->OnChunkDataGenerated( this, baseInfo );
 }
 
 SChunk::~SChunk()
@@ -89,22 +89,43 @@ SChunk::~SChunk()
 	}
 }
 
-void SChunk::CreateChunkObject( CMyLevel* pLevel )
+void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 {
-	if( pChunkObject )
+	if( pParent && pChunkObject )
 		return;
-	pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
-	pChunkObject->SetChunk( this, pLevel );
 
-	while( Get_SpawnInfo() )
+	if( !pChunkObject )
 	{
-		auto pSpawnInfo = Get_SpawnInfo();
-		auto pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
-		pEntity->SetPosition( pSpawnInfo->pos + pChunkObject->GetPosition() );
-		pEntity->SetRotation( pSpawnInfo->r );
-		pEntity->SetParentBeforeEntity( pChunkObject->GetParentEntity() );
-		pSpawnInfo->RemoveFrom_SpawnInfo();
-		delete pSpawnInfo;
+		pParentChunk = pParent;
+		pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
+		pChunkObject->SetChunk( this, pLevel );
+
+		while( Get_SpawnInfo() )
+		{
+			auto pSpawnInfo = Get_SpawnInfo();
+			auto pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( pSpawnInfo->pos + pChunkObject->GetPosition() );
+			pEntity->SetRotation( pSpawnInfo->r );
+			pEntity->SetParentBeforeEntity( pChunkObject->GetParentEntity() );
+			pSpawnInfo->RemoveFrom_SpawnInfo();
+			delete pSpawnInfo;
+		}
+	}
+	else
+	{
+		if( !pParentChunk )
+			return;
+		pParentChunk = NULL;
+		pChunkObject->SetChunk( this, pLevel );
+	}
+
+	for( auto pSubChunk = Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+	{
+		if( pSubChunk->nSubChunkType == 1 )
+		{
+			pSubChunk->bIsSubChunk = true;
+			pSubChunk->CreateChunkObject( pLevel, this );
+		}
 	}
 }
 
@@ -115,16 +136,38 @@ float SChunk::GetFallSpeed()
 
 void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 {
-	m_pChunk = pChunk;
-	pChunk->bSpawned = true;
-	pChunk->pChunkObject = this;
-	SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
-	if( pChunk->bIsRoom )
+	if( !m_pChunk )
 	{
-		AddRect( CRectangle( 0, 0, pChunk->nWidth * pLevel->GetBlockSize(), pChunk->nHeight * pLevel->GetBlockSize() ) );
-		SetHitType( eEntityHitType_Sensor );
+		m_pChunk = pChunk;
+		pChunk->bSpawned = true;
+		pChunk->pChunkObject = this;
+		SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
+		if( pChunk->bIsRoom )
+		{
+			AddRect( CRectangle( 0, 0, pChunk->nWidth * pLevel->GetBlockSize(), pChunk->nHeight * pLevel->GetBlockSize() ) );
+			SetHitType( eEntityHitType_Sensor );
+		}
+		SetParentEntity( pChunk->pParentChunk ? pChunk->pParentChunk->pChunkObject : pLevel->GetChunkRoot() );
+
+		if( m_pDamagedEffectsRoot )
+		{
+			for( auto pChild = m_pDamagedEffectsRoot->Get_Child(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextChild() )
+			{
+				pChild->bVisible = false;
+				m_pDamagedEffects[m_nDamagedEffectsCount++] = pChild;
+			}
+		}
+
+		OnSetChunk( pChunk, pLevel );
 	}
-	SetParentEntity( pLevel->GetChunkRoot() );
+	else if( GetParentEntity() != pLevel->GetChunkRoot() )
+	{
+		SetPosition( GetPosition() + GetParentEntity()->GetPosition() );
+		SetParentEntity( pLevel->GetChunkRoot() );
+	}
+
+	if( pChunk->pParentChunk )
+		return;
 
 	if( m_strEffect.length() > 0 )
 	{
@@ -133,7 +176,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 
 	for( auto& block : pChunk->blocks )
 	{
-		if( block.pBaseInfo->eBlockType != eBlockType_Wall )
+		if( block.eBlockType != eBlockType_Wall )
 		{
 			block.pEntity = new CBlockObject( &block, this, pLevel );
 		}
@@ -162,23 +205,6 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 			pEntity->SetParentEntity( this );
 		}
 	}
-
-	if( m_pDamagedEffectsRoot )
-	{
-		for( auto pChild = m_pDamagedEffectsRoot->Get_Child(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextChild() )
-		{
-			pChild->bVisible = false;
-			m_pDamagedEffects[m_nDamagedEffectsCount++] = pChild;
-		}
-	}
-}
-
-void CChunkObject::OnChunkDataGenerated( SChunk * pChunk, const SChunkBaseInfo& baseInfo ) const
-{
-	for( auto& item : baseInfo.subInfos )
-	{
-		pChunk->Insert_SubChunk( new SChunk( *item.first, item.second, TVector2<int32>( item.first->nWidth, item.first->nHeight ) ) );
-	}
 }
 
 void CChunkObject::RemoveChunk()
@@ -197,8 +223,9 @@ void CChunkObject::OnKilled()
 	if( m_pEffect )
 	{
 		auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+		ForceUpdateTransform();
 		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-		pEffect->SetPosition( GetPosition() );
+		pEffect->SetPosition( globalTransform.GetPosition() );
 		pEffect->SetState( 2 );
 	}
 }
@@ -341,7 +368,7 @@ void CSpecialChunk1::Trigger()
 		pBarrage->StopNewBullet();
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( GetPosition() );
+	pBarrage->SetPosition( globalTransform.GetPosition() );
 	pBarrage->Start();
 }
 
@@ -366,7 +393,7 @@ void CSpecialChunk2::Trigger()
 		pBarrage->StopNewBullet();
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( GetPosition() );
+	pBarrage->SetPosition( globalTransform.GetPosition() );
 	pBarrage->Start();
 }
 
@@ -390,7 +417,7 @@ void CSpecialChunk3::Trigger()
 		pBarrage->StopNewBullet();
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( GetPosition() );
+	pBarrage->SetPosition( globalTransform.GetPosition() );
 	pBarrage->Start();
 }
 
@@ -509,7 +536,7 @@ void CBarrel::Damage( float fDmg, uint8 nType )
 				pBarrage->StopNewBullet();
 			} );
 			pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-			pBarrage->SetPosition( GetPosition() + center );
+			pBarrage->SetPosition( globalTransform.GetPosition() + center );
 			pBarrage->Start();
 		}
 	}
@@ -555,16 +582,14 @@ void CBarrel::Explode()
 		pBarrage->StopNewBullet();
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( GetPosition() + center );
+	pBarrage->SetPosition( globalTransform.GetPosition() + center );
 	pBarrage->Start();
 
 	CExplosiveChunk::Explode();
 }
 
-void CRandomEnemyRoom::SetChunk( SChunk* pChunk, class CMyLevel* pLevel )
+void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 {
-	CChunkObject::SetChunk( pChunk, pLevel );
-
 	CDrawableGroup* pDrawableGroup = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strRes.c_str() );
 	CDrawableGroup* pDamageEftDrawableGroups[4];
 
@@ -716,124 +741,22 @@ void CRandomEnemyRoom::OnKilled()
 {
 	if( m_pEffect )
 	{
+		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
 				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
 				pEffect->SetState( 2 );
 			}
 		}
 	}
 }
 
-void CRandomChunk::OnChunkDataGenerated( SChunk * pChunk, const SChunkBaseInfo & baseInfo ) const
+void CRandomChunk::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 {
-	int32 nMaxX = 0, nMaxY = 0;
-	for( int i = 0; i < baseInfo.subInfos.size(); i++ )
-	{
-		nMaxX = Max( nMaxX, baseInfo.subInfos[i].second.x );
-		nMaxY = Max( nMaxY, baseInfo.subInfos[i].second.y );
-	}
-	nMaxX++;
-	nMaxY++;
-	int32 nTilex0 = 0, nTilex1 = 0, nTiley0 = 0, nTiley1 = 0;
-	int32 nTile0 = 0;
-	vector<uint32> tiles;
-#define GET_TILE_INDEX( x, y ) ( tiles[(x) + (y) * nMaxX] )
-	tiles.resize( nMaxX * nMaxY );
-	for( int i = 0; i < baseInfo.subInfos.size(); i++ )
-	{
-		auto& pos = baseInfo.subInfos[i].second;
-		if( pos.x == 0 && pos.y == 0 )
-			GET_TILE_INDEX( 0, 0 ) = i;
-		else if( pos.x == nMaxX - 1 && pos.y == 0 )
-			GET_TILE_INDEX( nMaxX - 1, 0 ) = i;
-		else if( pos.x == 0 && pos.y == nMaxY - 1 )
-			GET_TILE_INDEX( 0, nMaxY - 1 ) = i;
-		else if( pos.x == nMaxX - 1 && pos.y == nMaxY - 1 )
-			GET_TILE_INDEX( nMaxX - 1, nMaxY - 1 ) = i;
-		else if( pos.x == 0 )
-		{
-			if( nTilex0 < nMaxY - 2 )
-				GET_TILE_INDEX( 0, nTilex0 + 1 ) = i;
-			nTilex0++;
-		}
-		else if( pos.x == nMaxX - 1 )
-		{
-			if( nTilex1 < nMaxY - 2 )
-				GET_TILE_INDEX( nMaxX - 1, nTilex1 + 1 ) = i;
-			nTilex1++;
-		}
-		else if( pos.y == 0 )
-		{
-			if( nTiley0 < nMaxX - 2 )
-				GET_TILE_INDEX( nTiley0 + 1, 0 ) = i;
-			nTiley0++;
-		}
-		else if( pos.y == nMaxY - 1 )
-		{
-			if( nTiley1 < nMaxX - 2 )
-				GET_TILE_INDEX( nTiley1 + 1, nMaxY - 1 ) = i;
-			nTiley1++;
-		}
-		else
-		{
-			if( nTile0 < ( nMaxX - 2 ) * ( nMaxY - 2 ) )
-				GET_TILE_INDEX( nTile0 % ( nMaxX - 2 ) + 1, nTile0 / ( nMaxX - 2 ) + 1 ) = i;
-			nTile0++;
-		}
-	}
-
-	uint32 nWidth = pChunk->nWidth;
-	uint32 nHeight = pChunk->nHeight;
-	for( int i = 0; i < nWidth; i++ )
-	{
-		for( int j = 0; j < nHeight; j++ )
-		{
-			uint32 nIndex;
-			if( i == 0 && j == 0 )
-				nIndex = GET_TILE_INDEX( 0, 0 );
-			else if( i == nWidth - 1 && j == 0 )
-				nIndex = GET_TILE_INDEX( nMaxX - 1, 0 );
-			else if( i == 0 && j == nHeight - 1 )
-				nIndex = GET_TILE_INDEX( 0, nMaxY - 1 );
-			else if( i == nWidth - 1 && j == nHeight - 1 )
-				nIndex = GET_TILE_INDEX( nMaxX - 1, nMaxY - 1 );
-			else if( i == 0 )
-			{
-				nIndex = GET_TILE_INDEX( 0, SRand::Inst().Rand( 0, nTilex0 ) + 1 );
-			}
-			else if( i == nWidth - 1 )
-			{
-				nIndex = GET_TILE_INDEX( nMaxX - 1, SRand::Inst().Rand( 0, nTilex1 ) + 1 );
-			}
-			else if( j == 0 )
-			{
-				nIndex = GET_TILE_INDEX( SRand::Inst().Rand( 0, nTiley0 ) + 1, 0 );
-			}
-			else if( j == nHeight - 1 )
-			{
-				nIndex = GET_TILE_INDEX( SRand::Inst().Rand( 0, nTiley1 ) + 1, nMaxY - 1 );
-			}
-			else
-			{
-				int32 nRand = SRand::Inst().Rand( 0, nTile0 );
-				nIndex = GET_TILE_INDEX( nRand % ( nMaxX - 2 ) + 1, nRand / ( nMaxX - 2 ) + 1 );
-			}
-#undef GET_TILE_INDEX
-
-			pChunk->Insert_SubChunk( new SChunk( *baseInfo.subInfos[nIndex].first, TVector2<int32>( i, j ), TVector2<int32>( baseInfo.subInfos[nIndex].first->nWidth, baseInfo.subInfos[nIndex].first->nHeight ) ) );
-		}
-	}
-}
-
-void CRandomChunk::SetChunk( SChunk * pChunk, CMyLevel * pLevel )
-{
-	CChunkObject::SetChunk( pChunk, pLevel );
-
 	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
 	CDrawableGroup* pDamageEftDrawableGroups[4];
 	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
@@ -848,18 +771,21 @@ void CRandomChunk::SetChunk( SChunk * pChunk, CMyLevel * pLevel )
 		auto texRect = static_cast<CImage2D*>( pSubChunk->pPrefab->GetRoot()->GetRenderObject() )->GetElem().texRect;
 
 		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-		pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
+		pImage2D->SetRect( CRectangle( pSubChunk->pos.x, pSubChunk->pos.y, 32, 32 ) );
 		pImage2D->SetTexRect( ( texRect * m_texScale ).Offset( m_texOfs ) );
 		GetRenderObject()->AddChild( pImage2D );
 
 		for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 		{
 			CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
-			pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
+			pImage2D->SetRect( CRectangle( pSubChunk->pos.x, pSubChunk->pos.y, 32, 32 ) );
 			pImage2D->SetTexRect( ( texRect * m_dmgTexScale[m_nDamagedEffectsCount - i - 1] ).Offset( m_dmgTexOfs[m_nDamagedEffectsCount - i - 1] ) );
 			m_pDamagedEffects[i]->AddChild( pImage2D );
 		}
 	}
+
+	if( pChunk->pParentChunk )
+		return;
 	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
 	m_fHp = m_nMaxHp;
 }
@@ -868,83 +794,7 @@ void CRandomChunk::OnKilled()
 {
 	if( m_pEffect )
 	{
-		for( int i = 0; i < m_pChunk->nWidth; i++ )
-		{
-			for( int j = 0; j < m_pChunk->nHeight; j++ )
-			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
-				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
-				pEffect->SetState( 2 );
-			}
-		}
-	}
-}
-
-void CRandomChunk1::OnChunkDataGenerated( SChunk * pChunk, const SChunkBaseInfo & baseInfo ) const
-{
-	uint32 nWidth = pChunk->nWidth;
-	uint32 nHeight = pChunk->nHeight;
-	for( int i = 0; i < nWidth; i++ )
-	{
-		for( int j = 0; j < nHeight; j++ )
-		{
-			uint32 nIndex = SRand::Inst().Rand<uint32>( 0, baseInfo.subInfos.size() );
-			pChunk->Insert_SubChunk( new SChunk( *baseInfo.subInfos[nIndex].first, TVector2<int32>( i, j ),
-				TVector2<int32>( baseInfo.subInfos[nIndex].first->nWidth, baseInfo.subInfos[nIndex].first->nHeight ) ) );
-		}
-	}
-}
-
-void CRandomChunk1::SetChunk( SChunk * pChunk, CMyLevel * pLevel )
-{
-	CChunkObject::SetChunk( pChunk, pLevel );
-
-	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
-	CDrawableGroup* pDamageEftDrawableGroups[4];
-	CRectangle pDamageEftTex[4];
-	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
-	{
-		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
-		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
-		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
-	}
-
-	auto rect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
-	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
-	uint32 nTileX = rect.width / 32;
-	uint32 nTileY = rect.height / 32;
-	texRect.width /= nTileX;
-	texRect.height /= nTileY;
-
-	SetRenderObject( new CRenderObject2D );
-	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
-	{
-		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-		pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
-
-		uint32 tX = pSubChunk->pos.x == 0 ? 0 : ( pSubChunk->pos.x == pChunk->nWidth - 1 ? nTileX - 1 : SRand::Inst().Rand( 1u, nTileX - 1 ) );
-		uint32 tY = pSubChunk->pos.y == 0 ? 0 : ( pSubChunk->pos.y == pChunk->nHeight - 1 ? nTileY - 1 : SRand::Inst().Rand( 1u, nTileY - 1 ) );
-
-		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * tX, texRect.height * ( nTileY - 1 - tY ) ) ) );
-		GetRenderObject()->AddChild( pImage2D );
-
-		for( int i = 0; i < m_nDamagedEffectsCount; i++ )
-		{
-			CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
-			pImage2D->SetRect( CRectangle( pSubChunk->pos.x * 32, pSubChunk->pos.y * 32, 32, 32 ) );
-			pImage2D->SetTexRect( pDamageEftTex[i] );
-			m_pDamagedEffects[i]->AddChild( pImage2D );
-		}
-	}
-	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
-	m_fHp = m_nMaxHp;
-}
-
-void CRandomChunk1::OnKilled()
-{
-	if( m_pEffect )
-	{
+		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )

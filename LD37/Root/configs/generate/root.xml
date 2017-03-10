@@ -1,0 +1,19 @@
+﻿<root>
+  <includes>
+    <item name="lv1/main" />
+  </includes>
+  <level_gen>
+    <nodes>
+      <node name="block_test" width="1" height="1" weight="1" destroyweight="1.5" prefab="block0.pf">
+        <types>0</types>
+      </node>
+      
+      <node type="subregion" name="init">
+        <!--ref name="myroom" x="11" y="10" w="10" h="10" /-->
+        <node type="tile" x="11" y="0" w="10" h="10">
+          <ref name="block_test" />
+        </node>
+      </node>
+    </nodes>
+  </level_gen>
+</root>

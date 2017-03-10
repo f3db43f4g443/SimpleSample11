@@ -16,6 +16,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 
 	void Start() { if( m_bPending ) { m_bPending = false; m_pClickToStart->bVisible = false; } }
+	void Clear();
 
 	void KillChunk( SChunk* pChunk, bool bCrush = false );
 

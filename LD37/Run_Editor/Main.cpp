@@ -21,7 +21,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		virtual void Start() override
 		{
 			CEditor::Start();
-			CGlobalCfg::Inst().Load();
+			//CGlobalCfg::Inst().Load();
 		}
 	};
 	static CMyEditor g_editor;

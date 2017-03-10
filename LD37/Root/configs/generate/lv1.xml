@@ -1,0 +1,215 @@
+﻿<root>
+  <includes>
+    <item name="common" />
+  </includes>
+  <level_gen>
+    <nodes>
+      <node type="subregion" name="trap0">
+        <ref name="hbar_small" y="0" w="-1" h="1" />
+        <node type="tile" y="1" w="-1" h="1">
+          <node type="randompick">
+            <ref name="sblock1" p="1" />
+            <ref name="sblock2" p="1" />
+            <ref name="sblock3" p="1" />
+            <ref name="block1" p="30" />
+          </node>
+        </node>
+        <next_level>
+          <node type="subregion">
+            <node type="randompick" y="0" w="-1" h="1">
+              <ref name="fallspike" p="1" />
+              <node type="empty" p="1" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="subregion" name="trap1">
+        <ref name="hbar_large" y="0" w="-1" h="1" />
+        <node type="tile" y="1" w="-1" h="1">
+          <node type="randompick">
+            <ref name="sblock1" p="1" />
+            <ref name="sblock2" p="1" />
+            <ref name="sblock3" p="1" />
+            <ref name="sblock1a" p="1" />
+            <ref name="sblock2a" p="1" />
+            <ref name="sblock3a" p="1" />
+            <ref name="block1" p="40" />
+          </node>
+        </node>
+        <next_level>
+          <node type="subregion">
+            <node type="randompick" y="0" w="-1" h="1">
+              <ref name="fallspike" p="1" />
+              <node type="empty" p="1" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="randompick" name="lv1style1" >
+        <node type="subregion" p="1">
+          <ref name="trap0" x="0" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="4" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="8" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="12" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="16" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="20" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="24" y="0" w="8" h="8" />
+        </node>
+      </node>
+      
+      <node type="randompick" name="lv1style2" >
+        <node type="subregion" p="1">
+          <ref name="trap0" x="0" y="0" w="8" h="8" />
+          <ref name="trap0" x="24" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="4" y="0" w="8" h="8" />
+          <ref name="trap0" x="20" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="8" y="0" w="8" h="8" />
+          <ref name="trap0" x="16" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="0" y="0" w="8" h="8" />
+          <ref name="trap0" x="16" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="8" y="0" w="8" h="8" />
+          <ref name="trap0" x="24" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap1" x="0" y="0" w="16" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap1" x="16" y="0" w="16" h="8" />
+        </node>
+      </node>
+      
+      <node type="randompick" name="lv1style3" >
+        <node type="subregion" p="1">
+          <ref name="trap0" x="0" y="0" w="8" h="8" />
+          <ref name="trap0" x="12" y="0" w="8" h="8" />
+          <ref name="trap0" x="24" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap1" x="0" y="0" w="16" h="8" />
+          <ref name="trap0" x="24" y="0" w="8" h="8" />
+        </node>
+        <node type="subregion" p="1">
+          <ref name="trap0" x="0" y="0" w="8" h="8" />
+          <ref name="trap1" x="16" y="0" w="16" h="8" />
+        </node>
+      </node>
+      
+      <node type="randompick" name="lv1fill1">
+        <ref name="eblock1" p="1" />
+        <ref name="eblock2" p="1" />
+        <ref name="eblock3" p="1" />
+
+        <ref name="block11" p="2" />
+        <ref name="block00" p="200" />
+      </node>
+      <node type="randompick" name="lv1fill2">
+        <ref name="sblock1" p="1" />
+        <ref name="sblock1a" p="0.5" />
+        <ref name="sblock2" p="1" />
+        <ref name="sblock2a" p="0.5" />
+        <ref name="sblock3" p="1" />
+        <ref name="sblock3a" p="0.5" />
+        <ref name="eblock1" p="1" />
+        <ref name="eblock1a" p="1" />
+        <ref name="eblock2" p="1" />
+        <ref name="eblock3" p="1" />
+
+        <ref name="block11" p="4" />
+        <ref name="block00" p="200" />
+      </node>
+      
+      <node type="subregion" name="lv1_enemyroom_small">
+        <ref name="enemyroom_small" x="0" y="0" w="6" h="6" p="1" />
+        <next_level>
+          <node type="subregion">
+            <ref name="hppack" x="2" y="2" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node type="subregion" name="lv1">
+        <node type="tile" x="0" y="0" w="32" h="20">
+          <ref name="vblock" />
+        </node>
+        <node type="randomfill" x="0" y="20" w="32" h="8">
+          <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+          <ref name="block00" p="16" />
+        </node>
+        <node type="tile" x="0" y="28" w="32" h="32" tilex="32" tiley="8">
+          <node type="subregion">    
+            <node type="randompick" x="0" y="0" w="-1" h="-1" >
+              <ref name="lv1style1" p="1" />
+            </node>
+            <node type="randomfill" check_block="true" x="0" y="0" w="-1" h="-1">
+              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="lv1fill1" p="8" />
+            </node>
+          </node>
+        </node>
+        <node type="tile" x="0" y="60" w="32" h="32" tilex="32" tiley="8">
+          <node type="subregion">
+            <node type="randompick" x="0" y="0" w="-1" h="-1" >
+              <ref name="lv1style1" p="1" />
+              <ref name="lv1style2" p="1" />
+            </node>
+            <node type="randomfill" x="0" y="2" w="-1" h="-1">
+              <ref name="lv1_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+              <ref name="lv1fill2" p="1" />
+            </node>
+            <node type="randomfill" check_block="true" x="0" y="0" w="-1" h="-1">
+              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="lv1fill2" p="3" />
+            </node>
+          </node>
+        </node>
+        <node type="tile" x="0" y="92" w="32" h="24" tilex="32" tiley="8">
+          <node type="subregion">
+            <node type="randompick" x="0" y="0" w="-1" h="-1" >
+              <ref name="lv1style1" p="1" />
+              <ref name="lv1style2" p="1" />
+              <ref name="lv1style3" p="1" />
+            </node>
+            <node type="randomfill" x="0" y="0" w="-1" h="-1">
+              <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
+              <node type="empty" p="1" />
+            </node>
+            <node type="randomfill" x="0" y="2" w="-1" h="-1">
+              <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
+              <ref name="lv1fill2" p="1" />
+            </node>
+            <node type="randomfill" check_block="true" x="0" y="0" w="-1" h="-1">
+              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="lv1fill2" p="1" />
+            </node>
+          </node>
+        </node>
+        <node type="tile" x="0" y="116" w="32" h="8" tilex="8" tiley="8">
+          <ref name="enemyroom_large" />
+        </node>
+        <ref name="1f" x="0" y="124" w="32" h="4" />
+      </node>
+    </nodes>
+  </level_gen>
+</root>
