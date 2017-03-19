@@ -51,6 +51,7 @@ void CBlockBuff::OnRemovedFromStage()
 
 void CBlockBuff::OnTick()
 {
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTick );
 	UpdateAnim( GetStage()->GetElapsedTimePerTick() );
 	if( m_nLife )
 	{
@@ -61,16 +62,4 @@ void CBlockBuff::OnTick()
 			SetParentEntity( NULL );
 		}
 	}
-}
-
-void CBlockBuffAcid::OnTick()
-{
-}
-
-void CBlockBuffAcid::OnAdded( uint8 nReason, SContext * pContext )
-{
-}
-
-void CBlockBuffAcid::OnRemoved( uint8 nReason )
-{
 }

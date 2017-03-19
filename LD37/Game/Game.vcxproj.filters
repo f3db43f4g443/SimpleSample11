@@ -103,6 +103,9 @@
       <Filter>Entities\Blocks\Lv1</Filter>
     </ClCompile>
     <ClCompile Include="BlockBuff.cpp" />
+    <ClCompile Include="Entities\BlockBuffs.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -207,6 +210,9 @@
       <Filter>Entities\Blocks\Lv1</Filter>
     </ClInclude>
     <ClInclude Include="BlockBuff.h" />
+    <ClInclude Include="Entities\BlockBuffs.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

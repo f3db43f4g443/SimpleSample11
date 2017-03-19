@@ -429,6 +429,7 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
+    <ClCompile Include="Entities\BlockBuffs.cpp" />
     <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
@@ -485,6 +486,7 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Entities\AIObject.h" />
     <ClInclude Include="Entities\Barrage.h" />
+    <ClInclude Include="Entities\BlockBuffs.h" />
     <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />

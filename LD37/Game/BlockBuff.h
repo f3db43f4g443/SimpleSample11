@@ -48,14 +48,3 @@ private:
 	TClassTrigger<CBlockBuff> m_onParentRemoved;
 	TClassTrigger<CBlockBuff> m_onTick;
 };
-
-class CBlockBuffAcid : public CBlockBuff
-{
-	friend void RegisterGameClasses();
-public:
-	CBlockBuffAcid( const SClassCreateContext& context ) : CBlockBuff( context ) { SET_BASEOBJECT_ID( CBlockBuffAcid ) }
-protected:
-	virtual void OnTick() override;
-	virtual void OnAdded( uint8 nReason, SContext* pContext ) override;
-	virtual void OnRemoved( uint8 nReason ) override;
-};

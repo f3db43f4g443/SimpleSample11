@@ -74,7 +74,180 @@ void CBullet::OnTickAfterHitTest()
 		{
 			SetParentEntity( NULL );
 		}
+		return;
 	}
+
+	if( !CMyLevel::GetInst()->GetLargeBound().Contains( globalTransform.GetPosition() ) )
+	{
+		Kill();
+		return;
+	}
+
+	switch( m_nType )
+	{
+	case 0:
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+		{
+			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( pEntity == m_pCreator )
+				continue;
+
+			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			{
+				CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+				if( pBlockObject )
+				{
+					auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
+					if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
+					{
+						pChunk->Damage( m_nDamage1 );
+						Kill();
+						return;
+					}
+				}
+				else
+				{
+					Kill();
+					return;
+				}
+			}
+
+			CDoor* pDoor = SafeCast<CDoor>( pEntity );
+			if( pDoor && !pDoor->IsOpen() )
+			{
+				auto pChunk = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+				if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
+				{
+					pChunk->Damage( m_nDamage1 );
+					Kill();
+					return;
+				}
+			}
+
+			if( pEntity && pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
+			{
+				pPlayer->Damage( m_nDamage );
+				Kill();
+				return;
+			}
+		}
+	}
+	break;
+	case 1:
+	{
+		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+		{
+			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( pEntity == m_pCreator )
+				continue;
+
+			CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
+			if( pEnemy )
+			{
+				pEnemy->Damage( m_nDamage );
+				Kill();
+				return;
+			}
+
+			CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject && pBlockObject->GetBlock()->eBlockType == eBlockType_Block )
+			{
+				auto pChunkObject = pBlockObject->GetBlock()->pOwner->pChunkObject;
+				if( pChunkObject == m_pCreator )
+					continue;
+				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+				hitDir.Normalize();
+				pChunkObject->AddHitShake( hitDir * 8 );
+				pChunkObject->Damage( m_nDamage );
+				Kill();
+				return;
+			}
+
+			CDoor* pDoor = SafeCast<CDoor>( pEntity );
+			if( pDoor && !pDoor->IsOpen() )
+			{
+				auto pChunkObject = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+				if( pChunkObject )
+				{
+					if( pChunkObject == m_pCreator )
+						continue;
+					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+					hitDir.Normalize();
+					pChunkObject->AddHitShake( hitDir * 8 );
+					pChunkObject->Damage( m_nDamage );
+					Kill();
+					return;
+				}
+			}
+
+			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			{
+				Kill();
+				return;
+			}
+		}
+	}
+	break;
+	default:
+	{
+		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+		{
+			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( pEntity == m_pCreator )
+				continue;
+
+			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+			if( pCharacter )
+			{
+				pCharacter->Damage( m_nDamage );
+				Kill();
+				return;
+			}
+
+			CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject && pBlockObject->GetBlock()->eBlockType == eBlockType_Block )
+			{
+				auto pChunkObject = pBlockObject->GetBlock()->pOwner->pChunkObject;
+				if( pChunkObject == m_pCreator )
+					continue;
+				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+				hitDir.Normalize();
+				pChunkObject->AddHitShake( hitDir * 8 );
+				pChunkObject->Damage( m_nDamage );
+				Kill();
+				return;
+			}
+
+			CDoor* pDoor = SafeCast<CDoor>( pEntity );
+			if( pDoor && !pDoor->IsOpen() )
+			{
+				auto pChunkObject = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+				if( pChunkObject )
+				{
+					if( pChunkObject == m_pCreator )
+						continue;
+					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+					hitDir.Normalize();
+					pChunkObject->AddHitShake( hitDir * 8 );
+					pChunkObject->Damage( m_nDamage );
+					Kill();
+					return;
+				}
+			}
+
+			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			{
+				Kill();
+				return;
+			}
+		}
+	}
+		break;
+	}
+
+	
 }
 
 void CEnemyBullet::OnTickAfterHitTest()
