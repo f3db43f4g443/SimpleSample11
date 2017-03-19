@@ -415,6 +415,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Block.cpp" />
+    <ClCompile Include="BlockBuff.cpp" />
     <ClCompile Include="BlockItem.cpp" />
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="Character.cpp" />
@@ -470,6 +471,7 @@
   <ItemGroup>
     <ClInclude Include="Attribute.h" />
     <ClInclude Include="Block.h" />
+    <ClInclude Include="BlockBuff.h" />
     <ClInclude Include="BlockItem.h" />
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="Character.h" />
