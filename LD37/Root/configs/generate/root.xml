@@ -4,7 +4,7 @@
   </includes>
   <level_gen>
     <nodes>
-      <node name="block_test" width="1" height="1" weight="1" destroyweight="1.5" prefab="block0.pf">
+      <node name="block_test" width="1" height="1" weight="1" layer_type="1" destroyweight="1.5" prefab="block0.pf">
         <types>0</types>
       </node>
       

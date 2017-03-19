@@ -138,8 +138,11 @@ void CMyLevel::Clear()
 {
 	for( auto basement : m_basements )
 	{
-		while( basement.Get_Block() )
-			RemoveChunk( basement.Get_Block()->pOwner );
+		for( int i = 0; i < 2; i++ )
+		{
+			while( basement.layers[i].Get_BlockLayer() )
+				RemoveChunk( basement.layers[i].Get_BlockLayer()->pParent->pOwner );
+		}
 	}
 }
 
@@ -190,11 +193,16 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 		auto pMainUI = CMainUI::GetInst();
 		if( pMainUI )
 		{
-			for( int j = 0; j < pChunk->nHeight; j++ )
+			for( int iLayer = 0; iLayer < 2; iLayer++ )
 			{
-				for( int i = 0; i < pChunk->nWidth; i++ )
+				if( !pChunk->HasLayer( iLayer ) )
+					continue;
+				for( int j = 0; j < pChunk->nHeight; j++ )
 				{
-					pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, pChunk->pos.y / m_nBlockSize + j, -1 );
+					for( int i = 0; i < pChunk->nWidth; i++ )
+					{
+						pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, pChunk->pos.y / m_nBlockSize + j, iLayer, -1 );
+					}
 				}
 			}
 		}
@@ -203,13 +211,21 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 		{
 			auto pBlock = pChunk->GetBlock( i, 0 );
 			auto& basement = m_basements[i + pChunk->pos.x / m_nBlockSize];
-			if( pBlock == basement.pSpawnedBlock )
+			for( int j = 0; j < 2; j++ )
 			{
-				auto pPrev = pBlock->GetPrev( basement.pSpawnedBlock );
-				basement.pSpawnedBlock = pPrev;
+				if( !pChunk->HasLayer( j ) )
+					continue;
+				auto pBlockLayer = pBlock->layers + j;
+				auto& pSpawnedBlock = basement.layers[j].pSpawnedBlock;
+				if( pBlockLayer == pSpawnedBlock )
+				{
+					auto pPrev = pBlockLayer->GetPrev( pSpawnedBlock );
+					pSpawnedBlock = pPrev;
+				}
+				pBlockLayer->RemoveFrom_BlockLayer();
 			}
-			pBlock->RemoveFrom_Block();
 		}
+
 		for( auto& block : pChunk->blocks )
 		{
 			if( block.pEntity )
@@ -246,15 +262,22 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 	uint32 nY = pOldChunk->pos.y / m_nBlockSize;
 	uint32 nWidth = pOldChunk->nWidth;
 	uint32 nHeight = pOldChunk->nHeight;
+	uint8 nLayerType = pOldChunk->nLayerType;
 
-	vector<SBlock*> ppInsertAfter;
-	vector<SBlock*> ppInsertBefore;
-	ppInsertAfter.resize( nWidth );
-	ppInsertBefore.resize( nWidth );
-	for( int i = 0; i < nWidth; i++ )
+	vector<SBlockLayer*> ppInsertAfter[2];
+	vector<SBlockLayer*> ppInsertBefore[2];
+	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
-		ppInsertAfter[i] = pOldChunk->GetBlock( i, 0 );
-		ppInsertBefore[i] = ppInsertAfter[i]->NextBlock();
+		if( !pOldChunk->HasLayer( iLayer ) )
+			continue;
+		ppInsertAfter[iLayer].resize( nWidth );
+		ppInsertBefore[iLayer].resize( nWidth );
+
+		for( int i = 0; i < nWidth; i++ )
+		{
+			ppInsertAfter[iLayer][i] = pOldChunk->GetBlock( i, 0 )->layers + iLayer;
+			ppInsertBefore[iLayer][i] = ppInsertAfter[iLayer][i]->NextBlockLayer();
+		}
 	}
 
 	for( auto& item : newChunks )
@@ -263,50 +286,73 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 		int32 minY = item.second.y / m_nBlockSize;
 		int32 maxX = minX + item.first->nWidth;
 		int32 maxY = minY + item.first->nHeight;
-		if( minX < 0 || minY < 0 || maxX > nWidth || maxY > nHeight )
+		if( minX < 0 || minY < 0 || maxX > nWidth || maxY > nHeight || ( item.first->nLayerType & nLayerType ) != item.first->nLayerType )
 		{
 			return;
 		}
-		for( int i = minX; i < maxX; i++ )
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
-			auto pInsertAfter = ppInsertAfter[i];
-			if( minY * m_nBlockSize + pOldChunk->pos.y < pInsertAfter->pOwner->pos.y )
+			if( !item.first->HasLayer( iLayer ) )
+				continue;
+			for( int i = minX; i < maxX; i++ )
 			{
-				return;
+				auto pInsertAfter = ppInsertAfter[iLayer][i];
+				if( minY * m_nBlockSize + pOldChunk->pos.y < pInsertAfter->pParent->pOwner->pos.y )
+				{
+					return;
+				}
 			}
 		}
-
-		for( int i = minX; i < maxX; i++ )
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
-			auto& pInsertAfter = ppInsertAfter[i];
-			pInsertAfter->InsertAfter_Block( item.first->GetBlock( i - minX, 0 ) );
-			pInsertAfter = item.first->GetBlock( i - minX, 0 );
+			if( !item.first->HasLayer( iLayer ) )
+				continue;
+			for( int i = minX; i < maxX; i++ )
+			{
+				auto& pInsertAfter = ppInsertAfter[iLayer][i];
+				auto pNext = item.first->GetBlock( i - minX, 0 )->layers + iLayer;
+				pInsertAfter->InsertAfter_BlockLayer( pNext );
+				pInsertAfter = pNext;
+			}
 		}
 		item.first->pos = pOldChunk->pos + item.second;
 	}
 
 	bool bSpawned = pOldChunk->bSpawned;
-	for( int i = 0; i < nWidth; i++ )
+	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
-		ppInsertAfter[i] = pOldChunk->GetBlock( i, 0 )->NextBlock();
+		if( !pOldChunk->HasLayer( iLayer ) )
+			continue;
+
+		for( int i = 0; i < nWidth; i++ )
+		{
+			ppInsertAfter[iLayer][i] = pOldChunk->GetBlock( i, 0 )->layers + iLayer;
+		}
 	}
 
 	auto pMainUI = CMainUI::GetInst();
-	for( int i = 0; i < nWidth; i++ )
+	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
-		for( auto pNewBlock = ppInsertAfter[i]; pNewBlock != ppInsertBefore[i]; pNewBlock = pNewBlock->NextBlock() )
+		if( !pOldChunk->HasLayer( iLayer ) )
+			continue;
+		for( int i = 0; i < nWidth; i++ )
 		{
-			if( pMainUI )
-				pMainUI->UpdateMinimap( pNewBlock->nX + pNewBlock->pOwner->pos.x / m_nBlockSize, pNewBlock->nY + pNewBlock->pOwner->pos.y / m_nBlockSize,
-					s_nTypes[pNewBlock->eBlockType] );
-
-			if( bSpawned )
+			for( auto pNewBlockLayer = ppInsertAfter[iLayer][i]; pNewBlockLayer != ppInsertBefore[iLayer][i]; pNewBlockLayer = pNewBlockLayer->NextBlockLayer() )
 			{
-				auto basement = m_basements[i + nX];
-				pNewBlock->pOwner->CreateChunkObject( this );
-				auto pBlockToSpawn = ( basement.pSpawnedBlock ? basement.pSpawnedBlock->NextBlock() : basement.Get_Block() );
-				if( pBlockToSpawn == pNewBlock )
-					basement.pSpawnedBlock = pNewBlock;
+				auto pNewBlock = pNewBlockLayer->pParent;
+				if( pMainUI )
+					pMainUI->UpdateMinimap( pNewBlock->nX + pNewBlock->pOwner->pos.x / m_nBlockSize, pNewBlock->nY + pNewBlock->pOwner->pos.y / m_nBlockSize,
+						iLayer, s_nTypes[pNewBlock->eBlockType] );
+
+				if( bSpawned )
+				{
+					auto basement = m_basements[i + nX];
+					auto basementLayer = basement.layers[iLayer];
+					pNewBlock->pOwner->CreateChunkObject( this );
+					auto pBlockToSpawn = ( basementLayer.pSpawnedBlock ? basementLayer.pSpawnedBlock->NextBlockLayer() : basementLayer.Get_BlockLayer() );
+					if( pBlockToSpawn == pNewBlockLayer )
+						basementLayer.pSpawnedBlock = pNewBlockLayer;
+				}
 			}
 		}
 	}
@@ -334,28 +380,32 @@ void CMyLevel::UpdateBlocksMovement()
 
 	int8 nTileTypes[] = { 0, 1, 1, 2, 3 };
 	auto pMainUI = CMainUI::GetInst();
-	vector<SBlock*> vecUpdatedBlocks;
+	vector<SBlockLayer*> vecUpdatedBlocks;
 	uint32 nUpdatedBlock = 0;
 	for( auto& basement : m_basements )
 	{
-		basement.nCurShakeStrength = ceil( basement.fShakeStrength );
-		basement.nShakeHeight = -1;
-		auto pBlock = basement.Get_Block();
-		if( pBlock )
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
-			pBlock->pPreBlock = NULL;
-			vecUpdatedBlocks.push_back( pBlock );
+			auto pBlockLayer = basement.layers[iLayer].Get_BlockLayer();
+			if( pBlockLayer )
+			{
+				vecUpdatedBlocks.push_back( pBlockLayer );
+			}
+			basement.layers[iLayer].pVisitedBlock = NULL;
+			basement.layers[iLayer].nCurShakeStrength = ceil( basement.fShakeStrength );
+			basement.layers[iLayer].nShakeHeight = -1;
 		}
 	}
 
 	SChunk* pLevelBarrier = NULL;
 	while( nUpdatedBlock < vecUpdatedBlocks.size() )
 	{
-		auto pBlock = vecUpdatedBlocks[nUpdatedBlock++];
+		auto pBlockLayer = vecUpdatedBlocks[nUpdatedBlock++];
+		auto pBlock = pBlockLayer->pParent;
 		auto pChunk = pBlock->pOwner;
 		pChunk->nUpdateCount++;
 
-		if( pChunk->nUpdateCount == pChunk->nWidth )
+		if( pChunk->IsFullyUpdated() )
 		{
 			float fBalance = 1;
 			bool bHit = false;
@@ -363,6 +413,7 @@ void CMyLevel::UpdateBlocksMovement()
 			bool bIsCurRoom = false;
 			if( pChunk->pChunkObject )
 				bIsCurRoom = pChunk->pChunkObject == GetStage()->GetPlayer()->GetCurRoom();
+			int32 nBaseX = pChunk->pos.x / m_nBlockSize;
 
 			if( pChunk->bForceStop )
 			{
@@ -377,31 +428,61 @@ void CMyLevel::UpdateBlocksMovement()
 				int32 preY = pChunk->pos.y;
 				for( int i = 0; i < pChunk->nWidth; i++ )
 				{
-					auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
-					int32 nPreY;
-					if( pPreBlock )
+					auto& basement = m_basements[i + nBaseX];
+					pBlock = pChunk->GetBlock( i, 0 );
+					
+					SBlock* pPreBlock[2];
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
-						nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
-						if( pBlock->eBlockType != eBlockType_Wall )
+						auto p = basement.layers[iLayer].pVisitedBlock;
+						pPreBlock[iLayer] = p ? p->pParent : NULL;
+					}
+					if( pPreBlock[0] || pPreBlock[1] )
+					{
+						int32 nPreYs[2];
+						bool bCanApplyWeight = false;
+						for( int iLayer = 0; iLayer < 2; iLayer++ )
 						{
-							auto pLowerBlock = pPreBlock->pOwner->GetBlock( pPreBlock->nX, pPreBlock->pOwner->nHeight - 1 );
-							if( pLowerBlock->eBlockType != eBlockType_Wall )
-								nPreY += Max( pLowerBlock->nUpperMargin, pBlock->nLowerMargin );
-						}
+							if( !pChunk->HasLayer( iLayer ) )
+							{
+								nPreYs[iLayer] = 0;
+								continue;
+							}
 
-						if( nPreY >= preY && !pPreBlock->pOwner->bMovedLastFrame )
+							auto& layer = basement.layers[iLayer];
+							if( pPreBlock[iLayer] )
+							{
+								nPreYs[iLayer] = pPreBlock[iLayer]->pOwner->pos.y + pPreBlock[iLayer]->pOwner->nHeight * m_nBlockSize;
+								layer.nCurMargin = 0;
+								if( pBlock->eBlockType != eBlockType_Wall )
+								{
+									auto pLowerBlock = pPreBlock[iLayer]->pOwner->GetBlock( pPreBlock[iLayer]->nX, pPreBlock[iLayer]->pOwner->nHeight - 1 );
+									if( pLowerBlock->eBlockType != eBlockType_Wall )
+									{
+										layer.nCurMargin = Max( pLowerBlock->nUpperMargin, pBlock->nLowerMargin );
+										nPreYs[iLayer] += layer.nCurMargin;
+									}
+								}
+								bCanApplyWeight |= !pPreBlock[iLayer]->pOwner->bMovedLastFrame;
+							}
+							else
+								nPreYs[iLayer] = layer.nCurMargin = pBlock->nLowerMargin;
+
+							if( nPreYs[iLayer] > nMinY )
+							{
+								nMinY = nPreYs[iLayer];
+								nMaxFallSpeed = pPreBlock[iLayer] ? pPreBlock[iLayer]->pOwner->nFallSpeed : 0;
+							}
+							else if( nPreYs[iLayer] == nMinY )
+							{
+								nMaxFallSpeed = Min( nMaxFallSpeed, pPreBlock[iLayer] ? pPreBlock[iLayer]->pOwner->nFallSpeed : 0 );
+							}
+						}
+						int32 nPreY = Max( nPreYs[0], nPreYs[1] );
+
+						if( nPreY >= preY && bCanApplyWeight )
 						{
 							nApplyWeightCount++;
-						}
-
-						if( nPreY > nMinY )
-						{
-							nMinY = nPreY;
-							nMaxFallSpeed = pPreBlock->pOwner->nFallSpeed;
-						}
-						else if( nPreY == nMinY )
-						{
-							nMaxFallSpeed = Min( nMaxFallSpeed, pPreBlock->pOwner->nFallSpeed );
 						}
 					}
 					else
@@ -432,12 +513,17 @@ void CMyLevel::UpdateBlocksMovement()
 						uint32 y1 = pChunk->pos.y / m_nBlockSize;
 						if( y0 != y1 )
 						{
-							for( int j = 0; j < pChunk->nHeight; j++ )
+							for( int iLayer = 0; iLayer < 2; iLayer++ )
 							{
-								for( int i = 0; i < pChunk->nWidth; i++ )
+								if( !pChunk->HasLayer( iLayer ) )
+									continue;
+								for( int j = 0; j < pChunk->nHeight; j++ )
 								{
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y0 + j, -1 );
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
+									for( int i = 0; i < pChunk->nWidth; i++ )
+									{
+										pMainUI->UpdateMinimap( nBaseX + i, y0 + j, iLayer, -1 );
+										pMainUI->UpdateMinimap( nBaseX + i, y1 + j, iLayer, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
+									}
 								}
 							}
 						}
@@ -457,44 +543,58 @@ void CMyLevel::UpdateBlocksMovement()
 					int32 nRightmost = -1;
 					for( int i = 0; i < pChunk->nWidth; i++ )
 					{
-						auto& basement = m_basements[pChunk->pos.x / m_nBlockSize + i];
-						int32& shakeStrength = basement.nCurShakeStrength;
-						int32 nCurShakeStrength = shakeStrength;
-						if( shakeStrength )
+						auto& basement = m_basements[nBaseX + i];
+
+						SBlock* pPreBlock[2];
+						for( int iLayer = 0; iLayer < 2; iLayer++ )
 						{
-							uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
-							shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
-								Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
-							if( shakeStrength < 0 )
-								shakeStrength = 0;
+							auto p = basement.layers[iLayer].pVisitedBlock;
+							pPreBlock[iLayer] = p ? p->pParent : NULL;
 						}
-
-						bool bHit = false;
-						auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
-						if( pPreBlock )
+						for( int iLayer = 0; iLayer < 2; iLayer++ )
 						{
-							int32 nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
+							if( !pChunk->HasLayer( iLayer ) )
+								continue;
 
-							if( nPreY >= preY && !pPreBlock->pOwner->bMovedLastFrame )
+							bool bHit = false;
+							auto& basementLayer = basement.layers[iLayer];
+							int32& shakeStrength = basementLayer.nCurShakeStrength;
+							int32 nCurShakeStrength = shakeStrength;
+							if( shakeStrength )
 							{
-								if( i < nLeftmost )
-									nLeftmost = i;
-								if( i > nRightmost )
-									nRightmost = i;
-								if( pChunk->pChunkObject )
-									pPreBlock->pOwner->fAppliedWeight += fAppliedWeight;
-								bHit = true;
+								uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+								shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+									Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+								if( shakeStrength < 0 )
+									shakeStrength = 0;
 							}
-						}
-						if( !bHit )
-						{
-							nCurShakeStrength = shakeStrength = 0;
-						}
-						pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, nCurShakeStrength );
 
-						if( !shakeStrength && basement.nShakeHeight < 0 )
-						{
-							basement.nShakeHeight = pPreBlock ? pPreBlock->pOwner->nHeight + pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
+							if( pPreBlock[iLayer] )
+							{
+								int32 nPreY = pPreBlock[iLayer]->pOwner->pos.y + pPreBlock[iLayer]->pOwner->nHeight * m_nBlockSize;
+
+								if( nPreY >= preY - basementLayer.nCurMargin && !pPreBlock[iLayer]->pOwner->bMovedLastFrame )
+								{
+									if( i < nLeftmost )
+										nLeftmost = i;
+									if( i > nRightmost )
+										nRightmost = i;
+									if( !( iLayer == 1 && pPreBlock[0] == pPreBlock[1] ) && pChunk->pChunkObject )
+										pPreBlock[iLayer]->pOwner->fAppliedWeight += fAppliedWeight;
+									bHit = true;
+								}
+							}
+
+							if( !bHit )
+							{
+								nCurShakeStrength = shakeStrength = 0;
+							}
+							pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, nCurShakeStrength );
+
+							if( !shakeStrength && basementLayer.nShakeHeight < 0 )
+							{
+								basementLayer.nShakeHeight = pPreBlock[iLayer] ? pPreBlock[iLayer]->pOwner->nHeight + pPreBlock[iLayer]->pOwner->pos.y / m_nBlockSize : 0;
+							}
 						}
 					}
 					fBalance = Min( pChunk->nWidth - nLeftmost * 1.0f, ( nRightmost + 1 ) * 1.0f ) / pChunk->nWidth;
@@ -509,24 +609,36 @@ void CMyLevel::UpdateBlocksMovement()
 			{
 				for( int i = 0; i < pChunk->nWidth; i++ )
 				{
-					auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
-					auto& basement = m_basements[pChunk->pos.x / m_nBlockSize + i];
-					int32& shakeStrength = basement.nCurShakeStrength;
-					if( !bHit )
-						shakeStrength = 0;
+					auto& basement = m_basements[nBaseX + i];
 
-					if( shakeStrength )
+					SBlock* pPreBlock[2];
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
-						pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, shakeStrength );
-						uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
-						shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
-							Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
-						if( shakeStrength < 0 )
-							shakeStrength = 0;
+						auto p = basement.layers[iLayer].pVisitedBlock;
+						pPreBlock[iLayer] = p ? p->pParent : NULL;
 					}
-					else if( basement.nShakeHeight < 0 )
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
-						basement.nShakeHeight = pPreBlock ? pPreBlock->pOwner->nHeight + pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
+						if( !pChunk->HasLayer( iLayer ) )
+							continue;
+						auto& basementLayer = basement.layers[iLayer];
+						int32& shakeStrength = basementLayer.nCurShakeStrength;
+						if( !bHit )
+							shakeStrength = 0;
+
+						if( shakeStrength )
+						{
+							pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, shakeStrength );
+							uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+							shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+								Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+							if( shakeStrength < 0 )
+								shakeStrength = 0;
+						}
+						else if( basementLayer.nShakeHeight < 0 )
+						{
+							basementLayer.nShakeHeight = pPreBlock[iLayer] ? pPreBlock[iLayer]->pOwner->nHeight + pPreBlock[iLayer]->pOwner->pos.y / m_nBlockSize : 0;
+						}
 					}
 				}
 			}
@@ -534,11 +646,16 @@ void CMyLevel::UpdateBlocksMovement()
 			pChunk->fBalance = fBalance;
 			for( int i = 0; i < pChunk->nWidth; i++ )
 			{
-				auto pNextBlock = pChunk->GetBlock( i, 0 )->NextBlock();
-				if( pNextBlock )
+				for( int iLayer = 0; iLayer < 2; iLayer++ )
 				{
-					vecUpdatedBlocks.push_back( pNextBlock );
-					pNextBlock->pPreBlock = pBlock;
+					if( !pChunk->HasLayer( iLayer ) )
+						continue;
+
+					auto pLayer = &pChunk->GetBlock( i, 0 )->layers[iLayer];
+					auto pNextBlock = pLayer->NextBlockLayer();
+					if( pNextBlock )
+						vecUpdatedBlocks.push_back( pNextBlock );
+					m_basements[nBaseX + i].layers[iLayer].pVisitedBlock = pLayer;
 				}
 			}
 			if( pChunk->bIsLevelBarrier )
@@ -553,29 +670,46 @@ void CMyLevel::UpdateBlocksMovement()
 	{
 		while( nUpdatedBlock < vecUpdatedBlocks.size() )
 		{
-			auto pBlock = vecUpdatedBlocks[nUpdatedBlock++];
+			auto pBlockLayer = vecUpdatedBlocks[nUpdatedBlock++];
+			auto pBlock = pBlockLayer->pParent;
 			auto pChunk = pBlock->pOwner;
 			auto& basement = m_basements[pBlock->nX + pChunk->pos.x / m_nBlockSize];
 			pChunk->nUpdateCount++;
-			if( basement.nShakeHeight < 0 )
-			{
-				basement.nShakeHeight = pBlock->pPreBlock ? pBlock->pPreBlock->pOwner->pos.y / m_nBlockSize : 0;
-			}
 
-			if( pChunk->nUpdateCount == pChunk->nWidth )
+			if( pChunk->IsFullyUpdated() )
 			{
+				int32 nBaseX = pChunk->pos.x / m_nBlockSize;
 				pChunk->nFallSpeed = pLevelBarrier->nFallSpeed;
 
 				int32 nMinY = 0;
 				int32 preY = pChunk->pos.y;
 				for( int i = 0; i < pChunk->nWidth; i++ )
 				{
-					auto pPreBlock = pChunk->GetBlock( i, 0 )->pPreBlock;
-					if( pPreBlock )
+					auto& basement = m_basements[i + nBaseX];
+					SBlock* pPreBlock[2] = { basement.layers[0].pVisitedBlock->pParent, basement.layers[1].pVisitedBlock->pParent };
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
-						int32 nPreY = pPreBlock->pOwner->pos.y + pPreBlock->pOwner->nHeight * m_nBlockSize;
-						if( nPreY > nMinY )
-							nMinY = nPreY;
+						if( !pChunk->HasLayer( iLayer ) )
+							continue;
+						auto& basementLayer = basement.layers[iLayer];
+
+						if( pPreBlock[iLayer] )
+						{
+							int32 nPreY = pPreBlock[iLayer]->pOwner->pos.y + pPreBlock[iLayer]->pOwner->nHeight * m_nBlockSize;
+							if( nPreY > nMinY )
+								nMinY = nPreY;
+						}
+
+						if( basementLayer.nShakeHeight < 0 )
+						{
+							basementLayer.nShakeHeight = pPreBlock[iLayer] ? pPreBlock[iLayer]->pOwner->pos.y / m_nBlockSize : 0;
+						}
+
+						auto pLayer = &pChunk->GetBlock( i, 0 )->layers[iLayer];
+						auto pNextBlock = pLayer->NextBlockLayer();
+						if( pNextBlock )
+							vecUpdatedBlocks.push_back( pNextBlock );
+						basementLayer.pVisitedBlock = pLayer;
 					}
 				}
 				pChunk->pos.y = nMinY;
@@ -587,12 +721,17 @@ void CMyLevel::UpdateBlocksMovement()
 						uint32 y1 = pChunk->pos.y / m_nBlockSize;
 						if( y0 != y1 )
 						{
-							for( int j = 0; j < pChunk->nHeight; j++ )
+							for( int iLayer = 0; iLayer < 2; iLayer++ )
 							{
-								for( int i = 0; i < pChunk->nWidth; i++ )
+								if( !pChunk->HasLayer( iLayer ) )
+									continue;
+								for( int j = 0; j < pChunk->nHeight; j++ )
 								{
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y0 + j, -1 );
-									pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
+									for( int i = 0; i < pChunk->nWidth; i++ )
+									{
+										pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y0 + j, iLayer, -1 );
+										pMainUI->UpdateMinimap( pChunk->pos.x / m_nBlockSize + i, y1 + j, iLayer, nTileTypes[pChunk->GetBlock( i, j )->eBlockType] );
+									}
 								}
 							}
 						}
@@ -604,63 +743,55 @@ void CMyLevel::UpdateBlocksMovement()
 				}
 
 				pChunk->fBalance = 1;
-				for( int i = 0; i < pChunk->nWidth; i++ )
-				{
-					auto pNextBlock = pChunk->GetBlock( i, 0 )->NextBlock();
-					if( pNextBlock )
-					{
-						vecUpdatedBlocks.push_back( pNextBlock );
-						pNextBlock->pPreBlock = pBlock;
-					}
-				}
 			}
 		}
 	}
 
-	for( auto pBlock : vecUpdatedBlocks )
+	for( auto pBlockLayer : vecUpdatedBlocks )
 	{
-		pBlock->pPreBlock = NULL;
-		pBlock->pOwner->nUpdateCount--;
+		auto pBlock = pBlockLayer->pParent;
+		auto pChunk = pBlock->pOwner;
+		pChunk->nUpdateCount--;
 
-		if( !pBlock->pOwner->nUpdateCount )
+		if( !pChunk->nUpdateCount )
 		{
-			if( pBlock->pOwner->fDestroyBalance > 0 && pBlock->pOwner->fBalance < pBlock->pOwner->fDestroyBalance )
+			if( pChunk->fDestroyBalance > 0 && pChunk->fBalance < pChunk->fDestroyBalance )
 			{
-				if( !pBlock->pOwner->bMovedLastFrame )
+				if( !pChunk->bMovedLastFrame )
 				{
-					pBlock->pOwner->fCurImbalanceTime += GetStage()->GetElapsedTimePerTick();
-					if( pBlock->pOwner->pChunkObject && pBlock->pOwner->fCurImbalanceTime > pBlock->pOwner->fImbalanceTime )
+					pChunk->fCurImbalanceTime += GetStage()->GetElapsedTimePerTick();
+					if( pChunk->pChunkObject && pChunk->fCurImbalanceTime > pChunk->fImbalanceTime )
 					{
-						KillChunk( pBlock->pOwner );
+						KillChunk( pChunk );
 						continue;
 					}
 				}
 			}
 			else
 			{
-				pBlock->pOwner->fCurImbalanceTime = 0;
+				pChunk->fCurImbalanceTime = 0;
 			}
 
-			if( pBlock->pOwner->fDestroyWeight > 0 && pBlock->pOwner->fAppliedWeight >= pBlock->pOwner->fDestroyWeight )
+			if( pChunk->fDestroyWeight > 0 && pChunk->fAppliedWeight >= pChunk->fDestroyWeight )
 			{
-				KillChunk( pBlock->pOwner, true );
+				KillChunk( pChunk, true );
 				continue;
 			}
 
-			int32 nShakeDmg = pBlock->pOwner->nCurShakeStrength - pBlock->pOwner->nShakeDmgThreshold;
-			if( nShakeDmg > 0 && pBlock->pOwner->pChunkObject )
+			int32 nShakeDmg = pChunk->nCurShakeStrength - pChunk->nShakeDmgThreshold;
+			if( nShakeDmg > 0 && pChunk->pChunkObject )
 			{
-				pBlock->pOwner->fAppliedWeight = 0;
-				pBlock->pOwner->nCurShakeStrength = 0;
-				float fDmg = pBlock->pOwner->fShakeDmg * Min( nShakeDmg, 64 ) * GetStage()->GetElapsedTimePerTick();
-				if( pBlock->pOwner->bIsBeingRepaired )
+				pChunk->fAppliedWeight = 0;
+				pChunk->nCurShakeStrength = 0;
+				float fDmg = pChunk->fShakeDmg * Min( nShakeDmg, 64 ) * GetStage()->GetElapsedTimePerTick();
+				if( pChunk->bIsBeingRepaired )
 					fDmg *= 0.2f;
-				pBlock->pOwner->pChunkObject->Damage( fDmg );
+				pChunk->pChunkObject->Damage( fDmg );
 			}
 			else
 			{
-				pBlock->pOwner->fAppliedWeight = 0;
-				pBlock->pOwner->nCurShakeStrength = 0;
+				pChunk->fAppliedWeight = 0;
+				pChunk->nCurShakeStrength = 0;
 			}
 		}
 	}
@@ -668,9 +799,15 @@ void CMyLevel::UpdateBlocksMovement()
 	for( int i = 0; i < m_basements.size(); i++ )
 	{
 		auto& basement = m_basements[i];
+		int32 nShakeHeight = 0;
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
+		{
+			auto& basementLayer = basement.layers[iLayer];
+			basementLayer.nCurShakeStrength = 0;
+			nShakeHeight = Max( nShakeHeight, basementLayer.nShakeHeight );
+		}
 		basement.fShakeStrength = Max( 0.0f, basement.fShakeStrength * 0.95f - 0.02f );
-		basement.nCurShakeStrength = 0;
-		pMainUI->UpdateShakeSmallBar( i, basement.nShakeHeight >= 0 ? Min( basement.nShakeHeight, (int32)m_nHeight ) : (int32)m_nHeight );
+		pMainUI->UpdateShakeSmallBar( i, nShakeHeight >= 0 ? Min( nShakeHeight, (int32)m_nHeight ) : (int32)m_nHeight );
 	}
 
 	CheckSpawn();
@@ -680,12 +817,16 @@ void CMyLevel::CheckSpawn()
 {
 	for( auto& basement : m_basements )
 	{
-		auto pBlockToSpawn = ( basement.pSpawnedBlock ? basement.pSpawnedBlock->NextBlock() : basement.Get_Block() );
-		while( pBlockToSpawn && pBlockToSpawn->pOwner->pos.y <= m_nSpawnHeight * m_nBlockSize )
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
-			pBlockToSpawn->pOwner->CreateChunkObject( this );
-			basement.pSpawnedBlock = pBlockToSpawn;
-			pBlockToSpawn = pBlockToSpawn->NextBlock();
+			auto& basementLayer = basement.layers[iLayer];
+			auto pBlockToSpawn = ( basement.layers[iLayer].pSpawnedBlock ? basementLayer.pSpawnedBlock->NextBlockLayer() : basementLayer.Get_BlockLayer() );
+			while( pBlockToSpawn && pBlockToSpawn->pParent->pOwner->pos.y <= m_nSpawnHeight * m_nBlockSize )
+			{
+				pBlockToSpawn->pParent->pOwner->CreateChunkObject( this );
+				basementLayer.pSpawnedBlock = pBlockToSpawn;
+				pBlockToSpawn = pBlockToSpawn->NextBlockLayer();
+			}
 		}
 	}
 }

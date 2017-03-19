@@ -16,11 +16,12 @@ struct SStageContext
 	void Save( CBufFile& buf );
 };
 
+class CUIViewport;
 struct SStageEnterContext
 {
 	SStageEnterContext() : pViewport( NULL ) {}
 	string strStartPointName;
-	class CUIViewport* pViewport;
+	CUIViewport* pViewport;
 };
 
 enum
@@ -31,6 +32,13 @@ enum
 	eStageEvent_PostHitTest,
 
 	eStageEvent_Count,
+};
+
+enum
+{
+	eStageUpdatePhase_BeforeHitTest,
+	eStageUpdatePhase_HitTest,
+	eStageUpdatePhase_AfterHitTest,
 };
 
 enum
@@ -61,6 +69,7 @@ public:
 
 	CEntity* Pick( const CVector2& pos );
 	void MultiPick( const CVector2& pos, vector<CReference<CEntity> >& result );
+	void MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult = NULL );
 	CEntity* Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL );
 	void MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
 	CEntity* SweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL );
@@ -74,6 +83,7 @@ public:
 	void Update();
 	void OnPostProcess( class CPostProcessPass* pPass );
 
+	uint8 GetUpdatePhase() { return m_nUpdatePhase; }
 	CEntity* GetRoot() { return m_pEntityRoot; }
 	CPlayer* GetPlayer() { return m_pPlayer; }
 	CCamera2D& GetCamera() { return m_camera; }
@@ -97,6 +107,7 @@ private:
 	CWorld* m_pWorld;
 	SStageContext* m_pContext;
 	bool m_bStarted;
+	uint8 m_nUpdatePhase;
 	CHitTestMgr m_hitTestMgr;
 	CReference<CEntity> m_pEntityRoot;
 	CPlayer* m_pPlayer;

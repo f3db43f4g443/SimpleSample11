@@ -43,7 +43,7 @@ public:
 	bool IsRolling();
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
-	void Damage( int32 nValue = 1 );
+	virtual void Damage( int32 nValue ) override;
 	void RestoreHp( int32 nValue );
 	virtual void Crush() override { Damage( 1000 ); }
 	virtual bool Knockback( const CVector2& vec ) override;

@@ -64,7 +64,7 @@ void CFallingObj::OnTick1()
 		CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
 		if( pPlayer )
 		{
-			pPlayer->Damage();
+			pPlayer->Damage( 1 );
 			Destroy();
 			return;
 		}

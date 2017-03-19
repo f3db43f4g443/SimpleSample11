@@ -23,19 +23,27 @@
       </node>
       <node name="door0_0" width="2" height="1" subchunk_type="1">
         <types>3,3</types>
-        <ref name="door0_0_a" />
+        <next_level>
+          <ref name="door0_0_a" />
+        </next_level>
       </node>
       <node name="door0_1" width="1" height="2" subchunk_type="1">
         <types>3,3</types>
-        <ref name="door0_1_a" />
+        <next_level>
+          <ref name="door0_1_a" />
+        </next_level>
       </node>
       <node name="door0_2" width="2" height="1" subchunk_type="1">
         <types>3,3</types>
-        <ref name="door0_2_a" />
+        <next_level>
+          <ref name="door0_2_a" />
+        </next_level>
       </node>
       <node name="door0_3" width="1" height="2" subchunk_type="1">
         <types>3,3</types>
-        <ref name="door0_3_a" />
+        <next_level>
+          <ref name="door0_3_a" />
+        </next_level>
       </node>
     </nodes>
   </level_gen>

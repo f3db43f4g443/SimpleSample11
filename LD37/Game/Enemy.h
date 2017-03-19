@@ -7,7 +7,7 @@ class CEnemy : public CCharacter
 public:
 	CEnemy( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CEnemy ); }
 
-	void Damage( uint32 nDmg );
+	virtual void Damage( int32 nDmg ) override;
 	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal );
 private:
 	int32 m_nHp;

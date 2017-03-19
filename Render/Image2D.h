@@ -60,6 +60,8 @@ public:
 	uint32 GetFrameBegin() { return m_nFrameBegin; }
 	uint32 GetFrameEnd() { return m_nFrameEnd; }
 	float GetFramesPerSec() { return m_fFramesPerSec; }
+	float GetPlaySpeed() { return m_fPlaySpeed; }
+	bool IsLoop() { return m_bLoop; }
 
 	void SetPlaySpeed( float fPlaySpeed, bool bLoop );
 

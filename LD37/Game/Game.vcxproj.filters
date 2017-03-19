@@ -95,6 +95,13 @@
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp">
       <Filter>Entities\Blocks</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp">
+      <Filter>Entities\Blocks</Filter>
+    </ClCompile>
+    <ClCompile Include="Explosion.cpp" />
+    <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp">
+      <Filter>Entities\Blocks\Lv1</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -191,6 +198,13 @@
     <ClInclude Include="Entities\Blocks\RandomBlocks.h">
       <Filter>Entities\Blocks</Filter>
     </ClInclude>
+    <ClInclude Include="Entities\Blocks\SpecialBlocks.h">
+      <Filter>Entities\Blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="Explosion.h" />
+    <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h">
+      <Filter>Entities\Blocks\Lv1</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -281,6 +295,9 @@
     </Filter>
     <Filter Include="Entities\Blocks">
       <UniqueIdentifier>{838b08c3-ba18-4692-a0c9-9cd4a248de9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\Blocks\Lv1">
+      <UniqueIdentifier>{004627d5-ee6d-475d-9bfa-ae860e3fb14d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

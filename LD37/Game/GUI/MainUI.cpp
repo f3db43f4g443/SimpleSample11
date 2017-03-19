@@ -25,6 +25,10 @@ void CMainUI::OnAddedToStage()
 	m_shakeBarOrigHeight = static_cast<CImage2D*>( m_pShake.GetPtr() )->GetElem().rect.height;
 	m_shakeBarOrigTexRect = static_cast<CImage2D*>( m_pShake.GetPtr() )->GetElem().texRect;
 
+	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
+	m_blockTypes.resize( pMinimap->GetWidth() * pMinimap->GetHeight() * 2 );
+	memset( &m_blockTypes[0], -1, m_blockTypes.size() );
+
 	auto pShakeSmallBar = static_cast<CImage2D*>( m_pShakeSmallBars[0].GetPtr() );
 	for( int i = 1; i < ELEM_COUNT( m_pShakeSmallBars ); i++ )
 	{
@@ -59,14 +63,20 @@ void CMainUI::OnModifyHp( float fHp, float fMaxHp )
 	pHp->SetRect( rect );
 }
 
-void CMainUI::UpdateMinimap( uint32 x, uint32 y, int8 nType )
+void CMainUI::UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType )
 {
 	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
 	if( x >= pMinimap->GetWidth() || y >= pMinimap->GetHeight() )
 		return;
-	if( nType >= 0 )
+	m_blockTypes[z + ( x + y * pMinimap->GetWidth() ) * 2] = nType;
+
+	int8 nType1 = m_blockTypes[1 + ( x + y * pMinimap->GetWidth() ) * 2];
+	if( nType1 < 0 )
+		nType1 = m_blockTypes[0 + ( x + y * pMinimap->GetWidth() ) * 2];
+
+	if( nType1 >= 0 )
 	{
-		uint16 nTypes = nType;
+		uint16 nTypes = nType1;
 		pMinimap->SetTile( x, y, 1, &nTypes );
 	}
 	else

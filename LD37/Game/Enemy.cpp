@@ -2,7 +2,7 @@
 #include "Enemy.h"
 #include "Player.h"
 
-void CEnemy::Damage( uint32 nDmg )
+void CEnemy::Damage( int32 nDmg )
 {
 	m_nHp -= nDmg;
 	if( m_nHp <= 0 )

@@ -139,7 +139,7 @@ void CEnemyBullet::OnTickAfterHitTest()
 
 void CEnemyBullet::OnHitPlayer( CPlayer* pPlayer )
 {
-	pPlayer->Damage();
+	pPlayer->Damage( 1 );
 }
 
 void CPlayerBullet::OnTickAfterHitTest()

@@ -27,6 +27,13 @@ uint32 IBufReader::Read(string& t, uint32 nMaxLen)
 		t.push_back( pBuffer[m_nCurPos++] );
 	return m_nCurPos - nPos;
 }
+uint32 IBufReader::Read(CString& t, uint32 nMaxLen)
+{
+	string str;
+	uint32 n = Read( t, nMaxLen );
+	t = str.c_str();
+	return n;
+}
 void CBufFile::Write( const void* pBuf, uint32 nBufLen )
 {
 	if( !nBufLen )

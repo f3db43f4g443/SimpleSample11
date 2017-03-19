@@ -71,11 +71,21 @@ private:
 	struct SBasement
 	{
 		SBasement() { memset( this, 0, sizeof( SBasement ) ); }
-		SBlock* pSpawnedBlock;
+
+		struct SBasementLayer
+		{
+			SBlockLayer* pSpawnedBlock;
+
+			SBlockLayer* pVisitedBlock;
+			int32 nCurMargin;
+			int32 nCurShakeStrength;
+			int32 nShakeHeight;
+
+			LINK_LIST_HEAD( pBlock, SBlockLayer, BlockLayer )
+		};
+
 		float fShakeStrength;
-		int32 nCurShakeStrength;
-		int32 nShakeHeight;
-		LINK_LIST_HEAD( pBlock, SBlock, Block )
+		SBasementLayer layers[2];
 	};
 	vector<SBasement> m_basements;
 	uint32 m_nBlockSize;

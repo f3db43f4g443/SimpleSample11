@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "StringUtil.h"
 using namespace std;
 
 class IBufReader
@@ -11,6 +12,7 @@ public:
 
 	uint32 Read( void* pBuf, uint32 nMaxLen );
 	uint32 Read( string& t, uint32 nMaxLen );
+	uint32 Read( CString& t, uint32 nMaxLen );
 	template <typename T>
 	uint32 Read( T& t )
 	{
@@ -69,7 +71,23 @@ inline uint32 IBufReader::Read( string& t )
 }
 
 template <>
+inline uint32 IBufReader::Read( CString& t )
+{
+	string str;
+	uint32 n = Read( str );
+	uint32 nPos = m_nCurPos;
+	t = str.c_str();
+	return n;
+}
+
+template <>
 inline bool IBufReader::CheckedRead( string& t )
+{
+	return Read( t ) >= sizeof( uint32 );
+}
+
+template <>
+inline bool IBufReader::CheckedRead( CString& t )
 {
 	return Read( t ) >= sizeof( uint32 );
 }
@@ -116,6 +134,12 @@ inline bool IBufReader::CheckedRead( CBufFile& t )
 
 template <>
 inline void CBufFile::Write( const string& t )
+{
+	Write( t.c_str(), t.length() + 1 );
+}
+
+template <>
+inline void CBufFile::Write( const CString& t )
 {
 	Write( t.c_str(), t.length() + 1 );
 }

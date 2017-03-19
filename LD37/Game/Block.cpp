@@ -19,7 +19,7 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
 		SetHitType( eEntityHitType_WorldStatic );
 	}
-	else if( pBlock->eBlockType == eBlockType_Door )
+	else
 	{
 		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
 		SetHitType( eEntityHitType_Sensor );
@@ -30,13 +30,13 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )
 	: nWidth( size.x )
 	, nHeight( size.y )
-	, fWeight( baseInfo.fWeight + baseInfo.fWeightPerWidth * ( size.x - baseInfo.nWidth ) )
-	, fDestroyWeight( baseInfo.fDestroyWeight + baseInfo.fDestroyWeightPerWidth * ( size.x - baseInfo.nWidth ) )
+	, fWeight( baseInfo.fWeight + baseInfo.fWeightPerWidth * (int32)( size.x - baseInfo.nWidth ) )
+	, fDestroyWeight( baseInfo.fDestroyWeight + baseInfo.fDestroyWeightPerWidth * (int32)( size.x - baseInfo.nWidth ) )
 	, fDestroyBalance( baseInfo.fDestroyBalance )
 	, fImbalanceTime( baseInfo.fImbalanceTime )
 	, fShakeDmg( baseInfo.fShakeDmg )
 	, nShakeDmgThreshold( baseInfo.nShakeDmgThreshold )
-	, nAbsorbShakeStrength( baseInfo.nAbsorbShakeStrength + baseInfo.fAbsorbShakeStrengthPerHeight * ( size.y - baseInfo.nHeight ) )
+	, nAbsorbShakeStrength( baseInfo.nAbsorbShakeStrength + baseInfo.fAbsorbShakeStrengthPerHeight * (int32)( size.y - baseInfo.nHeight ) )
 	, nDestroyShake( baseInfo.nDestroyShake )
 	, pos( pos )
 	, nFallSpeed( 0 )
@@ -47,6 +47,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fBalance( 0 )
 	, fCurImbalanceTime( 0 )
 	, nCurShakeStrength( 0 )
+	, nLayerType( baseInfo.nLayerType )
 	, bIsRoom( baseInfo.bIsRoom )
 	, bIsLevelBarrier( false )
 	, bStopMove( false )
@@ -176,10 +177,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 
 	for( auto& block : pChunk->blocks )
 	{
-		if( block.eBlockType != eBlockType_Wall )
-		{
-			block.pEntity = new CBlockObject( &block, this, pLevel );
-		}
+		block.pEntity = new CBlockObject( &block, this, pLevel );
 
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
 		{
@@ -234,6 +232,9 @@ void CChunkObject::Damage( float fDmg, uint8 nType )
 {
 	if( !m_nMaxHp )
 		return;
+	if( m_fHp <= 0 )
+		return;
+
 	uint32 nLastDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	m_fHp = Max<float>( m_fHp - (float)fDmg, 0 );
 	uint32 nDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );

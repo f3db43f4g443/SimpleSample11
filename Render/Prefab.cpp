@@ -221,10 +221,6 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 
 CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst )
 {
-	if( !strcmp( m_pPrefab->GetName(), "data/bullets/bulletexp_eft.pf" ) )
-	{
-		int a = 0;
-	}
 	if( m_bTaggedNodePtrInfoDirty )
 	{
 		UpdateTaggedNodePtrInfo();
@@ -234,7 +230,7 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 	CPrefabBaseNode* pPrefabNode = m_obj.CreateObject();
 	if( pPrefabNode )
 	{
-		pPrefabNode->SetName( GetName() );
+		pPrefabNode->SetName( m_strName );
 		if( m_pResource )
 			pPrefabNode->SetResource( m_pResource );
 	}
@@ -551,6 +547,10 @@ void CPrefabNode::Load( IBufReader& buf )
 					uint16 nEnd = extraData.Read<uint16>();
 					float fFrame = extraData.Read<float>();
 					pMultiImage->SetFrames( nBegin, nEnd, fFrame );
+					float fPlaySpeed = 1.0f;
+					uint8 bLoop = 1;
+					extraData.Read( bLoop );
+					pMultiImage->SetPlaySpeed( fPlaySpeed, bLoop );
 				}
 				else if( nType == CDrawableGroup::eType_TileMap )
 				{
@@ -654,6 +654,8 @@ void CPrefabNode::Save( CBufFile& buf )
 					extraData.Write<uint16>( pMultiImage->GetFrameBegin() );
 					extraData.Write<uint16>( pMultiImage->GetFrameEnd() );
 					extraData.Write<float>( pMultiImage->GetFramesPerSec() );
+					extraData.Write<float>( pMultiImage->GetPlaySpeed() );
+					extraData.Write<uint8>( pMultiImage->IsLoop() );
 				}
 				else if( nType == CDrawableGroup::eType_TileMap )
 				{

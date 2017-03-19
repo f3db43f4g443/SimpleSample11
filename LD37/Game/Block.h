@@ -19,15 +19,23 @@ struct SBlockBaseInfo
 	float fDmgPercent;
 };
 
+struct SBlockLayer
+{
+	struct SBlock* pParent;
+	LINK_LIST( SBlockLayer, BlockLayer )
+
+	SBlockLayer* GetPrev( SBlockLayer* &pHead ) { return *__pPrevBlockLayer == pHead? (SBlockLayer*)( (uint8*)__pPrevBlockLayer - ( (uint8*)(&__pNextBlockLayer)- (uint8*)this ) ) : NULL; }
+};
+
 struct SBlock
 {
-	SBlock() : eBlockType( eBlockType_Wall ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), pPreBlock( NULL ) {}
-	EBlockType eBlockType;
+	SBlock() : eBlockType( eBlockType_Wall ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 )
+	{ layers[0].pParent = layers[1].pParent = this; }
+	uint8 eBlockType;
 	float fDmgPercent;
 	struct SChunk* pOwner;
 	uint8 nX, nY;
 	uint8 nUpperMargin, nLowerMargin;
-	SBlock* pPreBlock;
 	CReference<CEntity> pEntity;
 
 	enum
@@ -41,9 +49,7 @@ struct SBlock
 
 	CReference<CPrefab> pAttachedPrefab[eAttachedPrefab_Count];
 	TVector2<int32> attachedPrefabSize;
-	LINK_LIST( SBlock, Block );
-
-	SBlock* GetPrev( SBlock* &pHead ) { return *__pPrevBlock == pHead? ( SBlock* )( (uint8*)__pPrevBlock - ( (uint8*)(&__pNextBlock)- (uint8*)this ) ) : NULL; }
+	SBlockLayer layers[2];
 };
 
 class CBlockObject : public CEntity
@@ -73,11 +79,14 @@ struct SChunkBaseInfo
 	float fDestroyWeightPerWidth;
 	float fAbsorbShakeStrengthPerHeight;
 
+	uint8 nLayerType;
 	bool bIsRoom;
 	uint8 nSubChunkType;
 
 	vector<SBlockBaseInfo> blockInfos;
 	CReference<CPrefab> pPrefab;
+
+	bool HasLayer( uint8 i ) { return !!( nLayerType & ( 1 << i ) ); }
 };
 
 struct SChunkSpawnInfo
@@ -116,10 +125,16 @@ struct SChunk
 	float fBalance;
 	float fCurImbalanceTime;
 	uint32 nCurShakeStrength;
+	uint8 nLayerType : 2;
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
 	void CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
 	float GetFallSpeed();
+	bool HasLayer( uint8 i ) { return !!( nLayerType & ( 1 << i ) ); }
+	uint8 GetMinLayer() { return nLayerType == 2 ? 1 : 0; }
+	uint8 GetMaxLayer() { return nLayerType == 1 ? 0 : 2; }
+
+	bool IsFullyUpdated() { return nUpdateCount == ( nLayerType == 3 ? nWidth * 2 : nWidth ); }
 
 	uint8 bIsRoom : 1;
 	uint8 bIsLevelBarrier : 1;

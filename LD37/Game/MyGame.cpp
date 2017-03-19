@@ -26,10 +26,13 @@
 #include "Entities/EffectObject.h"
 #include "Entities/Barrage.h"
 #include "Entities/Blocks/RandomBlocks.h"
+#include "Entities/Blocks/SpecialBlocks.h"
+#include "Entities/Blocks/lv1/SpecialLv1.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
 
 #include "Bullet.h"
+#include "Explosion.h"
 #include "Lightning.h"
 #include "Weapons.h"
 #include "Pickup.h"
@@ -413,6 +416,26 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
 	REGISTER_CLASS_END()
 	
+	REGISTER_CLASS_BEGIN( CExplosion )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_nHitBeginFrame )
+		REGISTER_MEMBER( m_nHitFrameCount )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_nDeltaDamage )
+		REGISTER_MEMBER( m_fInitRange )
+		REGISTER_MEMBER( m_fDeltaRange )
+		REGISTER_MEMBER( m_bHitPlayer )
+		REGISTER_MEMBER( m_bHitEnemy )
+		REGISTER_MEMBER( m_bHitNeutral )
+		REGISTER_MEMBER( m_bHitBlock )
+		REGISTER_MEMBER( m_bHitWall )
+		REGISTER_MEMBER( m_bHitHidingPlayer )
+		REGISTER_MEMBER( m_bHitHidingEnemy )
+		REGISTER_MEMBER( m_bHitHidingNeutral )
+		REGISTER_MEMBER( m_bHitCreator )
+	REGISTER_CLASS_END()
+	
 	REGISTER_CLASS_BEGIN( CPickUp )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
@@ -561,6 +584,27 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
 		REGISTER_MEMBER( m_bBlockTypeMask )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTriggerChunk )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nTriggerType )
+		REGISTER_MEMBER( m_nTriggerImpact )
+		REGISTER_MEMBER( m_strPrefab )
+		REGISTER_MEMBER( m_strPrefab1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CGarbageBinRed )
+		REGISTER_BASE_CLASS( CTriggerChunk )
+		REGISTER_MEMBER( m_nBulletCount )
+		REGISTER_MEMBER( m_fMinSpeed )
+		REGISTER_MEMBER( m_fMaxSpeed )
+		REGISTER_MEMBER( m_fShake )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CGarbageBinYellow )
+		REGISTER_BASE_CLASS( CTriggerChunk )
+		REGISTER_MEMBER( m_fShake )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockItem )

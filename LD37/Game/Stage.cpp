@@ -163,12 +163,12 @@ void CStage::AddEntity( CEntity* pEntity )
 
 void CStage::RemoveEntity( CEntity* pEntity )
 {
+	pEntity->m_trigger.Trigger( eEntityEvent_RemovedFromStage, NULL );
+
 	for( CEntity* pChild = pEntity->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
 	{
 		RemoveEntity( pChild );
 	}
-
-	pEntity->m_trigger.Trigger( eEntityEvent_RemovedFromStage, NULL );
 
 	if( m_pPlayer == pEntity )
 		m_pPlayer = NULL;
@@ -220,6 +220,17 @@ void CStage::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& resul
 	for( int i = 0; i < vecResults.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( vecResults[i] );
+		result.push_back( pEntity );
+	}
+}
+
+void CStage::MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult )
+{
+	vector<CHitProxy*> tempResult;
+	m_hitTestMgr.HitTest( pProxy, transform, tempResult, pResult );
+	for( int i = 0; i < tempResult.size(); i++ )
+	{
+		CEntity* pEntity = static_cast<CEntity*>( tempResult[i] );
 		result.push_back( pEntity );
 	}
 }
@@ -303,6 +314,7 @@ void CStage::Update()
 {
 	PROFILE_BEGIN( Update )
 	PROFILE_BEGIN( Tick1 )
+	m_nUpdatePhase = eStageUpdatePhase_BeforeHitTest;
 	m_tickBeforeHitTest.UpdateTime();
 	PROFILE_END( Tick1 )
 	PROFILE_BEGIN( UpdateDirty1 )
@@ -310,6 +322,7 @@ void CStage::Update()
 	PROFILE_END( UpdateDirty1 )
 		
 	PROFILE_BEGIN( HitTest )
+	m_nUpdatePhase = eStageUpdatePhase_HitTest;
 	m_pEntityRoot->BeforeHitTest( 0 );
 	PROFILE_BEGIN( HitTest1 )
 	m_hitTestMgr.Update();
@@ -317,6 +330,7 @@ void CStage::Update()
 	PROFILE_END( HitTest )
 	PROFILE_BEGIN( Tick2 )
 	m_events.Trigger( eStageEvent_PostHitTest, NULL );
+	m_nUpdatePhase = eStageUpdatePhase_AfterHitTest;
 	m_tickAfterHitTest.UpdateTime();
 	PROFILE_END( Tick2 )
 	

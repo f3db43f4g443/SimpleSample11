@@ -1,14 +1,16 @@
 #pragma once
 #include "RenderObject2D.h"
 #include "ClassMetaData.h"
+#include "StringUtil.h"
 
 class CPrefabBaseNode : public CRenderObject2D
 {
 public:
-	CPrefabBaseNode() { SET_BASEOBJECT_ID( CPrefabBaseNode ); }
-	CPrefabBaseNode( const SClassCreateContext& context ) {}
-	const char* GetName() { return m_strName.c_str(); }
+	CPrefabBaseNode() : m_strName( "" ) { SET_BASEOBJECT_ID( CPrefabBaseNode ); }
+	CPrefabBaseNode( const SClassCreateContext& context ) : m_strName( "" ) {}
+	const char* GetName() const { return m_strName.c_str(); }
 	void SetName( const char* szName ) { m_strName = szName; }
+	void SetName( const CString& strName ) { m_strName = strName; }
 	CResource* GetResource() { return m_pResource; }
 	void SetResource( CResource* pResource ) { m_pResource = pResource; }
 	CRenderObject2D* GetRenderObject() { return m_pRenderObject; }
@@ -44,7 +46,7 @@ public:
 
 	static CRenderObject2D* CreateRenderObjectByResource( CResource* pResource, CRenderObject2D* pNode );
 protected:
-	string m_strName;
+	CString m_strName;
 	CReference<CRenderObject2D> m_pRenderObject;
 	CReference<CResource> m_pResource;
 };

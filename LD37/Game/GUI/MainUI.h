@@ -12,7 +12,7 @@ public:
 	virtual void OnRemovedFromStage();
 
 	void OnModifyHp( float fHp, float fMaxHp );
-	void UpdateMinimap( uint32 x, uint32 y, int8 nType );
+	void UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType );
 	void UpdateShakeSmallBar( uint32 x, uint32 nHeight );
 	void ClearMinimap();
 
@@ -24,6 +24,7 @@ private:
 	CReference<CRenderObject2D> m_pHpBar;
 	CReference<CRenderObject2D> m_pShake;
 	CReference<CRenderObject2D> m_pMinimap;
+	vector<uint8> m_blockTypes;
 
 	CReference<CRenderObject2D> m_pShakeSmallBars[32];
 

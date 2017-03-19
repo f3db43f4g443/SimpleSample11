@@ -428,7 +428,9 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
+    <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
+    <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
     <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Enemies.cpp" />
@@ -438,6 +440,7 @@
     <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="Explosion.cpp" />
     <ClCompile Include="GameUtil.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GUI\ChunkUI.cpp" />
@@ -480,7 +483,9 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Entities\AIObject.h" />
     <ClInclude Include="Entities\Barrage.h" />
+    <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
+    <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />
     <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Enemies.h" />
@@ -490,6 +495,7 @@
     <ClInclude Include="Entities\FallingObj.h" />
     <ClInclude Include="Entities\StartPoint.h" />
     <ClInclude Include="Entity.h" />
+    <ClInclude Include="Explosion.h" />
     <ClInclude Include="GameUtil.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GUI\ChunkUI.h" />

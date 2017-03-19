@@ -585,6 +585,14 @@ public:
 		pView->AddContentChild( m_pFramesPerSec, m_pResRoot );
 		m_onDataChanged[2].Set( this, &CMultiFrameNodeData::OnDataChanged );
 		m_pFramesPerSec->Register( CUIElement::eEvent_Action, &m_onDataChanged[2] );
+		m_pPlaySpeed = CCommonEdit::Create( "Play Speed" );
+		pView->AddContentChild( m_pPlaySpeed, m_pResRoot );
+		m_onDataChanged[3].Set( this, &CMultiFrameNodeData::OnDataChanged );
+		m_pPlaySpeed->Register( CUIElement::eEvent_Action, &m_onDataChanged[3] );
+		m_pLoop = CBoolEdit::Create( "Loop" );
+		pView->AddContentChild( m_pLoop, m_pResRoot );
+		m_onDataChanged[4].Set( this, &CMultiFrameNodeData::OnDataChanged );
+		m_pLoop->Register( CUIElement::eEvent_Action, &m_onDataChanged[4] );
 
 		RefreshData();
 	}
@@ -600,16 +608,19 @@ public:
 protected:
 	void RefreshData()
 	{
-		CMultiFrameImage2D* pRopeObject = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
-		m_pBeginFrame->SetValue( pRopeObject->GetFrameBegin() );
-		m_pEndFrame->SetValue( pRopeObject->GetFrameEnd() );
-		m_pFramesPerSec->SetValue( pRopeObject->GetFramesPerSec() );
+		CMultiFrameImage2D* pImage = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
+		m_pBeginFrame->SetValue( pImage->GetFrameBegin() );
+		m_pEndFrame->SetValue( pImage->GetFrameEnd() );
+		m_pFramesPerSec->SetValue( pImage->GetFramesPerSec() );
+		m_pPlaySpeed->SetValue( pImage->GetPlaySpeed() );
+		m_pLoop->SetChecked( pImage->IsLoop() );
 	}
 
 	void OnDataChanged()
 	{
-		CMultiFrameImage2D* pRopeObject = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
-		pRopeObject->SetFrames( m_pBeginFrame->GetValue<uint32>(), m_pEndFrame->GetValue<uint32>(), m_pFramesPerSec->GetValue<uint32>() );
+		CMultiFrameImage2D* pImage = static_cast<CMultiFrameImage2D*>( m_pNode->GetRenderObject() );
+		pImage->SetFrames( m_pBeginFrame->GetValue<uint32>(), m_pEndFrame->GetValue<uint32>(), m_pFramesPerSec->GetValue<float>() );
+		pImage->SetPlaySpeed( m_pPlaySpeed->GetValue<float>(), m_pLoop->IsChecked() );
 	}
 private:
 	CUITreeView* m_pView;
@@ -617,8 +628,10 @@ private:
 	CReference<CCommonEdit> m_pBeginFrame;
 	CReference<CCommonEdit> m_pEndFrame;
 	CReference<CCommonEdit> m_pFramesPerSec;
+	CReference<CCommonEdit> m_pPlaySpeed;
+	CReference<CBoolEdit> m_pLoop;
 
-	TClassTrigger<CMultiFrameNodeData> m_onDataChanged[3];
+	TClassTrigger<CMultiFrameNodeData> m_onDataChanged[5];
 };
 
 
@@ -1143,7 +1156,7 @@ void CPrefabEditor::MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewCon
 
 void CPrefabEditor::OnCurNodeNameChanged()
 {
-	m_pCurNode->m_strName = UnicodeToUtf8( m_pNodeName->GetText() );
+	m_pCurNode->m_strName = UnicodeToUtf8( m_pNodeName->GetText() ).c_str();
 	m_pCurNodeItem->pElement->GetChildByName<CUIButton>( "label" )->SetText( m_pCurNode->m_strName.c_str() );
 }
 

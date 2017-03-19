@@ -78,7 +78,7 @@ void CLightning::OnTick()
 		GetStage()->GetHitTestMgr().CalcBound( &polygon, mat );
 		if( pPlayer->GetCore()->HitTest( &polygon, mat ) )
 		{
-			pPlayer->Damage();
+			pPlayer->Damage( 1 );
 		}
 	}
 }

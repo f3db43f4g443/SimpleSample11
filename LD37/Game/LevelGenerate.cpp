@@ -10,10 +10,10 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
-	blocks.resize( nWidth * nHeight );
-	chunks.resize( nWidth * nHeight );
+	blocks.resize( nWidth * nHeight * 2 );
+	chunks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
-		attachedPrefabs[i].resize( nWidth * nHeight );
+		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 }
 
 SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region )
@@ -22,29 +22,41 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		return NULL;
 	if( region.y < 0 || region.GetBottom() > nHeight )
 		return NULL;
-	for( int j = region.y; j < region.GetBottom(); j++ )
+	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
-		for( int i = region.x; i < region.GetRight(); i++ )
+		if( !baseInfo.HasLayer( iLayer ) )
+			continue;
+		if( pParentChunk && !pParentChunk->HasLayer( iLayer ) )
+			return NULL;
+		for( int j = region.y; j < region.GetBottom(); j++ )
 		{
-			if( blocks[i + j * nWidth] )
-				return NULL;
+			for( int i = region.x; i < region.GetRight(); i++ )
+			{
+				if( GetBlock( i, j, iLayer ) )
+					return NULL;
+			}
 		}
 	}
 
 	auto pChunk = new SChunk( baseInfo, TVector2<int32>( region.x * pLevel->m_nBlockSize, region.y * pLevel->m_nBlockSize ), region.GetSize() );
 	chunks.push_back( pChunk );
-	for( int j = 0; j < pChunk->nHeight; j++ )
+	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
-		for( int i = 0; i < pChunk->nWidth; i++ )
+		if( !baseInfo.HasLayer( iLayer ) )
+			continue;
+		for( int j = 0; j < pChunk->nHeight; j++ )
 		{
-			blocks[i + region.x + ( j + region.y ) * nWidth] = &pChunk->blocks[i + j * pChunk->nWidth];
+			for( int i = 0; i < pChunk->nWidth; i++ )
+			{
+				GetBlock( i + region.x, j + region.y, iLayer ) = pChunk->blocks[i + j * pChunk->nWidth].layers + iLayer;
+			}
 		}
 	}
 
 	return pChunk;
 }
 
-void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nType )
+void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType )
 {
 	auto r = rect;
 	if( nType > 0 )
@@ -53,7 +65,7 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			if( attachedPrefabs[nType][i + j * nWidth].first )
+			if( attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].first )
 				return;
 		}
 	}
@@ -62,43 +74,51 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			attachedPrefabs[nType][i + j * nWidth].first = pPrefab;
-			attachedPrefabs[nType][i + j * nWidth].second = rect;
+			attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].first = pPrefab;
+			attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].second = rect;
 		}
 	}
 }
 
 void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<int32> ofs )
 {
-	auto pBlock = blocks[ofs.x + ofs.y * nWidth];
+	auto pBlock = GetBlock( ofs.x, ofs.y, 1 );
+	if( !pBlock )
+		pBlock = GetBlock( ofs.x, ofs.y, 0 );
 	if( !pBlock )
 	{
 		delete pInfo;
 		return;
 	}
 
-	pBlock->pOwner->Insert_SpawnInfo( pInfo );
+	pBlock->pParent->pOwner->Insert_SpawnInfo( pInfo );
 }
 
 void SLevelBuildContext::Build()
 {
 	if( pParentChunk )
 	{
-		for( int j = 0; j < nHeight; j++ )
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
-			for( int i = 0; i < nWidth; i++ )
+			if( !pParentChunk->HasLayer( iLayer ) )
+				continue;
+
+			for( int j = 0; j < nHeight; j++ )
 			{
-				auto pBlock = blocks[i + j * nWidth];
-				if( pBlock )
+				for( int i = 0; i < nWidth; i++ )
 				{
-					if( pBlock->pOwner->nSubChunkType )
+					auto pBlock = GetBlock( i, j, iLayer );
+					if( pBlock )
 					{
-						pParentChunk->GetBlock( i, j )->eBlockType = pBlock->eBlockType;
-						pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->fDmgPercent;
-					}
-					if( pBlock->nX == 0 && pBlock->nY == 0 && pBlock->pOwner->pPrefab )
-					{
-						pParentChunk->Insert_SubChunk( pBlock->pOwner );
+						if( pBlock->pParent->pOwner->nSubChunkType )
+						{
+							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
+							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
+						}
+						if( pBlock->pParent->nX == 0 && pBlock->pParent->nY == 0 && iLayer == pBlock->pParent->pOwner->GetMinLayer() && pBlock->pParent->pOwner->pPrefab )
+						{
+							pParentChunk->Insert_SubChunk( pBlock->pParent->pOwner );
+						}
 					}
 				}
 			}
@@ -106,15 +126,18 @@ void SLevelBuildContext::Build()
 	}
 	else
 	{
-		vector<SBlock*> pPreBlocks;
-		pPreBlocks.resize( nWidth );
+		vector<SBlockLayer*> pPreBlocks[2];
+		for( int iLayer = 0; iLayer < 2; iLayer++ )
+		{
+			pPreBlocks[iLayer].resize( nWidth );
+		}
 
 		SChunk* pLevelBarrier = NULL;
-		for( auto pBlock = pLevel->m_basements[0].Get_Block(); pBlock; pBlock = pBlock->NextBlock() )
+		for( auto pBlock = pLevel->m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
 		{
-			if( pBlock->pOwner->bIsLevelBarrier )
+			if( pBlock->pParent->pOwner->bIsLevelBarrier )
 			{
-				pLevelBarrier = pBlock->pOwner;
+				pLevelBarrier = pBlock->pParent->pOwner;
 				break;
 			}
 		}
@@ -122,9 +145,12 @@ void SLevelBuildContext::Build()
 		int32 nGridOfs = nYOfs / pLevel->GetBlockSize();
 		if( pLevelBarrier )
 		{
-			for( int i = 0; i < nWidth; i++ )
+			for( int iLayer = 0; iLayer < 2; iLayer++ )
 			{
-				pPreBlocks[i] = pLevelBarrier->GetBlock( i, 0 );
+				for( int i = 0; i < nWidth; i++ )
+				{
+					pPreBlocks[iLayer][i] = pLevelBarrier->GetBlock( i, 0 )->layers + iLayer;
+				}
 			}
 		}
 
@@ -134,28 +160,33 @@ void SLevelBuildContext::Build()
 		{
 			for( int i = 0; i < nWidth; i++ )
 			{
-				auto pBlock = blocks[i + j * nWidth];
-				if( pBlock )
+				for( int iLayer = 0; iLayer < 2; iLayer++ )
 				{
-					if( !pBlock->pOwner->pPrefab )
-						continue;
-					if( pMainUI )
-						pMainUI->UpdateMinimap( i, j + nGridOfs, CMyLevel::s_nTypes[pBlock->eBlockType] );
-
-					if( pBlock->nY == 0 )
+					auto pBlockLayer = GetBlock( i, j, iLayer );
+					if( pBlockLayer )
 					{
-						pBlock->pOwner->pos.y += nYOfs;
-						uint32 nBasement = i;
-						auto pPreBlock = pPreBlocks[nBasement];
-						if( pPreBlock )
+						auto pBlock = pBlockLayer->pParent;
+						if( !pBlock->pOwner->pPrefab )
+							continue;
+						if( pMainUI )
+							pMainUI->UpdateMinimap( i, j + nGridOfs, iLayer, CMyLevel::s_nTypes[pBlock->eBlockType] );
+
+						if( pBlock->nY == 0 )
 						{
-							pPreBlock->InsertAfter_Block( pBlock );
+							if( pBlock->nX == 0 && iLayer == pBlock->pOwner->GetMinLayer() )
+								pBlock->pOwner->pos.y += nYOfs;
+							uint32 nBasement = i;
+							auto pPreBlock = pPreBlocks[iLayer][nBasement];
+							if( pPreBlock )
+							{
+								pPreBlock->InsertAfter_BlockLayer( pBlockLayer );
+							}
+							else
+							{
+								pLevel->m_basements[nBasement].layers[iLayer].Insert_BlockLayer( pBlockLayer );
+							}
+							pPreBlocks[iLayer][nBasement] = pBlockLayer;
 						}
-						else
-						{
-							pLevel->m_basements[nBasement].Insert_Block( pBlock );
-						}
-						pPreBlocks[nBasement] = pBlock;
 					}
 				}
 			}
@@ -166,45 +197,95 @@ void SLevelBuildContext::Build()
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
-			auto pBlock = blocks[i + j * nWidth];
-			if( pBlock )
+			if( i == 22 && j == 68 )
 			{
+				int a = 0;
+			}
+			SBlockLayer* pBlockLayers[2] = { GetBlock( i, j, 0 ), GetBlock( i, j, 1 ) };
+			if( pParentChunk )
+			{
+				for( int iLayer = 0; iLayer < 2; iLayer++ )
+				{
+					if( !pParentChunk->HasLayer( iLayer ) )
+						pBlockLayers[iLayer] = NULL;
+				}
+			}
+
+			if( pBlockLayers[0] || pBlockLayers[1] )
+			{
+				bool bLayerValid[2];
+				if( pBlockLayers[1] && pBlockLayers[0] )
+				{
+					if( pBlockLayers[1]->pParent == pBlockLayers[0]->pParent )
+					{
+						bLayerValid[0] = false;
+						bLayerValid[1] = true;
+					}
+					else
+						bLayerValid[0] = bLayerValid[1] = true;
+				}
+				else if( pBlockLayers[1] )
+				{
+					bLayerValid[0] = false;
+					bLayerValid[1] = true;
+				}
+				else
+				{
+					bLayerValid[0] = true;
+					bLayerValid[1] = false;
+				}
+
 				for( int k = 0; k < ELEM_COUNT( attachedPrefabs ); k++ )
 				{
-					if( k == SBlock::eAttachedPrefab_Lower )
+					pair<CReference<CPrefab>, TRectangle<int32> > attachedPrefabLayers[2] = { attachedPrefabs[k][0 + ( i + j * nWidth ) * 2], attachedPrefabs[k][1 + ( i + j * nWidth ) * 2] };
+
+					if( bLayerValid[0] && !bLayerValid[1] && !attachedPrefabLayers[0].first && attachedPrefabLayers[1].first )
 					{
-						if( j <= 0 )
-							continue;
-						auto pLowerBlock = blocks[i + ( j - 1 ) * nWidth];
-						if( pLowerBlock && pLowerBlock->eBlockType != eBlockType_Wall )
-							continue;
-					}
-					if( k == SBlock::eAttachedPrefab_Upper )
-					{
-						if( j >= nHeight - 1 )
-							continue;
-						auto pUpperBlock = blocks[i + ( j + 1 ) * nWidth];
-						if( pUpperBlock && pUpperBlock->eBlockType != eBlockType_Wall )
-							continue;
+						attachedPrefabLayers[0] = attachedPrefabLayers[1];
+						attachedPrefabLayers[1].first = NULL;
 					}
 
-					auto attachedPrefab = attachedPrefabs[k][i + j * nWidth];
-					if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
-						if( !pBlock->pOwner->pPrefab )
+						if( !bLayerValid[iLayer] )
+							continue;
+
+						if( k == SBlock::eAttachedPrefab_Lower )
 						{
-							if( !pParentChunk )
+							if( j <= 0 )
 								continue;
-							pBlock = pParentChunk->GetBlock( i, j );
+							auto pLowerBlock = GetBlock( i, j - 1, iLayer );
+							if( pLowerBlock && pLowerBlock->pParent->eBlockType != eBlockType_Wall )
+								continue;
+						}
+						if( k == SBlock::eAttachedPrefab_Upper )
+						{
+							if( j >= nHeight - 1 )
+								continue;
+							auto pUpperBlock = GetBlock( i, j + 1, iLayer );
+							if( pUpperBlock && pUpperBlock->pParent->eBlockType != eBlockType_Wall )
+								continue;
 						}
 
-						pBlock->pAttachedPrefab[k] = attachedPrefab.first;
-						if( k == SBlock::eAttachedPrefab_Center )
-							pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
-						else if( k == SBlock::eAttachedPrefab_Lower )
-							pBlock->nLowerMargin = attachedPrefab.second.height;
-						else
-							pBlock->nUpperMargin = attachedPrefab.second.height;
+						auto& attachedPrefab = attachedPrefabLayers[iLayer];
+						auto pBlock = pBlockLayers[iLayer]->pParent;
+						if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
+						{
+							if( !pBlock->pOwner->pPrefab )
+							{
+								if( !pParentChunk )
+									continue;
+								pBlock = pParentChunk->GetBlock( i, j );
+							}
+
+							pBlock->pAttachedPrefab[k] = attachedPrefab.first;
+							if( k == SBlock::eAttachedPrefab_Center )
+								pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
+							else if( k == SBlock::eAttachedPrefab_Lower )
+								pBlock->nLowerMargin = attachedPrefab.second.height;
+							else
+								pBlock->nUpperMargin = attachedPrefab.second.height;
+						}
 					}
 				}
 			}
@@ -215,18 +296,22 @@ void SLevelBuildContext::Build()
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
-			auto pBlock = blocks[i + j * nWidth];
-			if( pBlock && !pBlock->pOwner->pPrefab && pBlock->nX == pBlock->pOwner->nWidth && pBlock->nY == pBlock->pOwner->nHeight )
+			for( int iLayer = 0; iLayer < 2; iLayer++ )
 			{
-				delete pBlock->pOwner;
+				auto pBlock = GetBlock( i, j, iLayer );
+				if( pBlock && !pBlock->pParent->pOwner->pPrefab && pBlock->pParent->nX == pBlock->pParent->pOwner->nWidth - 1 && pBlock->pParent->nY == pBlock->pParent->pOwner->nHeight - 1
+					&& iLayer == pBlock->pParent->pOwner->GetMaxLayer() )
+				{
+					delete pBlock->pParent->pOwner;
+				}
 			}
 		}
 	}
 }
 
-SBlock* SLevelBuildContext::GetBlock( uint32 x, uint32 y )
+SBlockLayer*& SLevelBuildContext::GetBlock( uint32 x, uint32 y, uint32 z )
 {
-	return blocks[x + y * nWidth];
+	return blocks[z + ( x + y * nWidth ) * 2];
 }
 
 void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
@@ -271,6 +356,7 @@ public:
 		chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
 		chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
 		m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
+		chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
 		chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
 		chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
 		chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
@@ -374,6 +460,7 @@ public:
 		}
 		m_size.x = XmlGetAttr( pXml, "sizex", 1 );
 		m_size.y = XmlGetAttr( pXml, "sizey", 1 );
+		m_nLayer = XmlGetAttr( pXml, "layer", 1 );
 		m_nType = Min<uint8>( SBlock::eAttachedPrefab_Count, XmlGetAttr( pXml, "attach_type", 0 ) );
 
 		CLevelGenerateNode::Load( pXml, context );
@@ -384,7 +471,7 @@ public:
 		{
 			for( int i = region.x; i < region.GetRight(); i += m_size.x )
 			{
-				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nType );
+				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nLayer, m_nType );
 			}
 		}
 		CLevelGenerateNode::Generate( context, region );
@@ -392,6 +479,7 @@ public:
 protected:
 	CReference<CPrefab> m_pPrefab;
 	TVector2<int32> m_size;
+	uint8 m_nLayer;
 	uint8 m_nType;
 };
 
@@ -657,7 +745,7 @@ public:
 			item.sizeMax.y = XmlGetAttr( pChild, "sizemaxy", item.sizeMin.y );
 			item.fWeight = XmlGetAttr( pChild, "p", 1.0f );
 		}
-		m_bCheckBlock = XmlGetAttr( pXml, "check_block", 0 );
+		m_nCheckBlockType = XmlGetAttr( pXml, "check_block", 0 );
 
 		float fTotalWeight = 0;
 		for( int i = m_infos.size() - 1; i >= 0; i-- )
@@ -684,7 +772,7 @@ public:
 		//Randomly flip
 		bool bFlipX = SRand::Inst().Rand() & 1;
 		bool bFlipY = SRand::Inst().Rand() & 1;
-		if( m_bCheckBlock )
+		if( m_nCheckBlockType )
 		{
 			for( int j = 0; j < size.y; j++ )
 			{
@@ -692,7 +780,13 @@ public:
 				{
 					int32 x = ( bFlipX ? size.x - 1 - i : i ) + region.x;
 					int32 y = ( bFlipY ? size.y - 1 - j : j ) + region.y;
-					GET_GRID( genResult, i, j ).first = context.GetBlock( x, y ) ? &dummy : NULL;
+					auto& grid = GET_GRID( genResult, i, j ).first;
+					grid = NULL;
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
+					{
+						if( !!( m_nCheckBlockType & ( 1 << iLayer ) ) && context.GetBlock( x, y, iLayer ) )
+							grid = &dummy;
+					}
 				}
 			}
 		}
@@ -938,7 +1032,7 @@ public:
 		CLevelGenerateNode::Generate( context, region );
 	}
 protected:
-	bool m_bCheckBlock;
+	uint8 m_nCheckBlockType;
 	vector<SSubNodeInfo> m_infos;
 };
 
