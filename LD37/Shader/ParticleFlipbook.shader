@@ -6,6 +6,7 @@ float2 g_specialOfs;
 
 float g_columns;
 float g_rows;
+float g_frames;
 
 cbuffer InstBuffer
 {
@@ -32,7 +33,7 @@ void VSParticle( in float2 tex : Position,
 	float2 a = instData2.xy;
 	pos = p0 + v * t + 0.5 * a * t * t + pos + g_specialOfs;
 
-	float frameCount = floor( min( t * ( g_columns * g_rows ), g_columns * g_rows - 0.01 ) );
+	float frameCount = floor( min( t * g_frames, g_frames - 0.01 ) );
 	float row = floor( frameCount / g_columns );
 	float column = frameCount - row * g_columns;
 	outTex = ( tex + float2( column, row ) ) / float2( g_columns, g_rows );

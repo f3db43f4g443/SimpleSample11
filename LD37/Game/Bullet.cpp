@@ -9,10 +9,16 @@
 #include "Entities/Barrage.h"
 #include "Block.h"
 #include "Entities/Door.h"
+#include "ParticleSystem.h"
 
 void CBullet::SetVelocity( const CVector2& velocity )
 {
 	m_velocity = velocity;
+}
+
+void CBullet::SetAcceleration( const CVector2& acc )
+{
+	m_acc = acc;
 }
 
 void CBullet::Kill()
@@ -26,6 +32,11 @@ void CBullet::Kill()
 		( mat1 * mat ).Decompose( m_pDeathEffect->x, m_pDeathEffect->y, m_pDeathEffect->r, m_pDeathEffect->s );
 		m_pDeathEffect->SetParentBeforeEntity( pParent ? (CEntity*)pParent : this );
 		m_pDeathEffect->SetState( 2 );
+	}
+
+	if( m_pParticle )
+	{
+		static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = false;
 	}
 
 	m_fDeathTime = m_fDeathFramesPerSec <= 0 ? 0 : ( m_nDeathFrameEnd - m_nDeathFrameBegin ) / m_fDeathFramesPerSec;
@@ -55,7 +66,11 @@ void CBullet::OnTickBeforeHitTest()
 {
 	CCharacter::OnTickBeforeHitTest();
 	if( !m_bKilled )
-		SetPosition( GetPosition() + m_velocity * GetStage()->GetElapsedTimePerTick() );
+	{
+		CVector2 newVelocity = m_velocity + m_acc * GetStage()->GetElapsedTimePerTick();
+		SetPosition( GetPosition() + ( m_velocity + newVelocity ) * ( GetStage()->GetElapsedTimePerTick() * 0.5f ) );
+		m_velocity = newVelocity;
+	}
 	if( m_nLife )
 	{
 		m_nLife--;
@@ -102,7 +117,9 @@ void CBullet::OnTickAfterHitTest()
 					auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
 					if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
 					{
+						CReference<CEntity> pTempRef = pEntity;
 						pChunk->Damage( m_nDamage1 );
+						OnHit( pBlockObject );
 						Kill();
 						return;
 					}
@@ -120,7 +137,9 @@ void CBullet::OnTickAfterHitTest()
 				auto pChunk = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
 				if( pPlayer && pPlayer->IsHiding() && pChunk == pPlayer->GetCurRoom() )
 				{
+					CReference<CEntity> pTempRef = pEntity;
 					pChunk->Damage( m_nDamage1 );
+					OnHit( pChunk );
 					Kill();
 					return;
 				}
@@ -128,7 +147,9 @@ void CBullet::OnTickAfterHitTest()
 
 			if( pEntity && pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
 			{
+				CReference<CEntity> pTempRef = pEntity;
 				pPlayer->Damage( m_nDamage );
+				OnHit( pPlayer );
 				Kill();
 				return;
 			}
@@ -142,11 +163,14 @@ void CBullet::OnTickAfterHitTest()
 			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 			if( pEntity == m_pCreator )
 				continue;
+			CReference<CEntity> pTempRef = pEntity;
 
 			CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 			if( pEnemy )
 			{
+				CReference<CEntity> pTempRef = pEntity;
 				pEnemy->Damage( m_nDamage );
+				OnHit( pEnemy );
 				Kill();
 				return;
 			}
@@ -159,8 +183,10 @@ void CBullet::OnTickAfterHitTest()
 					continue;
 				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 				hitDir.Normalize();
+				CReference<CEntity> pTempRef = pEntity;
 				pChunkObject->AddHitShake( hitDir * 8 );
 				pChunkObject->Damage( m_nDamage );
+				OnHit( pBlockObject );
 				Kill();
 				return;
 			}
@@ -175,8 +201,10 @@ void CBullet::OnTickAfterHitTest()
 						continue;
 					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 					hitDir.Normalize();
+					CReference<CEntity> pTempRef = pEntity;
 					pChunkObject->AddHitShake( hitDir * 8 );
 					pChunkObject->Damage( m_nDamage );
+					OnHit( pChunkObject );
 					Kill();
 					return;
 				}
@@ -197,11 +225,14 @@ void CBullet::OnTickAfterHitTest()
 			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 			if( pEntity == m_pCreator )
 				continue;
+			CReference<CEntity> pTempRef = pEntity;
 
 			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 			if( pCharacter )
 			{
+				CReference<CEntity> pTempRef = pEntity;
 				pCharacter->Damage( m_nDamage );
+				OnHit( pCharacter );
 				Kill();
 				return;
 			}
@@ -214,8 +245,10 @@ void CBullet::OnTickAfterHitTest()
 					continue;
 				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 				hitDir.Normalize();
+				CReference<CEntity> pTempRef = pEntity;
 				pChunkObject->AddHitShake( hitDir * 8 );
 				pChunkObject->Damage( m_nDamage );
+				OnHit( pBlockObject );
 				Kill();
 				return;
 			}
@@ -230,8 +263,10 @@ void CBullet::OnTickAfterHitTest()
 						continue;
 					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 					hitDir.Normalize();
+					CReference<CEntity> pTempRef = pEntity;
 					pChunkObject->AddHitShake( hitDir * 8 );
 					pChunkObject->Damage( m_nDamage );
+					OnHit( pChunkObject );
 					Kill();
 					return;
 				}

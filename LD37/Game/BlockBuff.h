@@ -23,7 +23,7 @@ public:
 		eRemovedReason_BlockDestroyed,
 	};
 
-	CBlockBuff( const SClassCreateContext& context ) : CEntity( context ), m_nLife( 0 ), m_bIsRemoving( false )
+	CBlockBuff( const SClassCreateContext& context ) : CEntity( context ), m_nLife( 0 ), m_nTotalLife( 0 ), m_bIsRemoving( false )
 		, m_onParentRemoved( this, &CBlockBuff::OnParentRemoved )
 		, m_onTick( this, &CBlockBuff::OnTick ) { SET_BASEOBJECT_ID( CBlockBuff ); }
 
@@ -35,12 +35,13 @@ protected:
 	virtual CBlockBuff* Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* pContext ) const;
 	virtual void OnTick();
 	
-	virtual void OnAdded( uint8 nReason, SContext* pContext ) { m_nLife = pContext->nLife; }
+	virtual void OnAdded( uint8 nReason, SContext* pContext ) { m_nTotalLife = m_nLife = pContext->nLife; }
 	virtual void OnRemoved( uint8 nReason ) { m_bIsRemoving = true; }
 
 	bool m_bMulti;
 	
 	uint32 m_nLife;
+	uint32 m_nTotalLife;
 private:
 	void OnParentRemoved() { OnRemoved( eRemovedReason_BlockDestroyed ); }
 	bool m_bIsRemoving;

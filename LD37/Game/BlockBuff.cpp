@@ -21,7 +21,7 @@ CBlockBuff* CBlockBuff::Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* p
 			if( pInst && pInst->GetName() == GetName() )
 			{
 				pInst->OnAdded( eAddedReason_Update, pContext );
-				return;
+				return pInst;
 			}
 		}
 	}

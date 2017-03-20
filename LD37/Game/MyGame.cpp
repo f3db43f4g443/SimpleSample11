@@ -28,6 +28,8 @@
 #include "Entities/Blocks/RandomBlocks.h"
 #include "Entities/Blocks/SpecialBlocks.h"
 #include "Entities/Blocks/lv1/SpecialLv1.h"
+#include "Entities/Bullets.h"
+#include "Entities/BlockBuffs.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
 
@@ -413,7 +415,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nDeathFrameBegin )
 		REGISTER_MEMBER( m_nDeathFrameEnd )
 		REGISTER_MEMBER( m_fDeathFramesPerSec )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_nDamage1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
+		REGISTER_MEMBER_TAGGED_PTR( m_pParticle, particle );
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CBulletWithBlockBuff )
+		REGISTER_BASE_CLASS( CBullet )
+		REGISTER_MEMBER( m_strBlockBuff )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CExplosion )
@@ -434,6 +445,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_bHitHidingEnemy )
 		REGISTER_MEMBER( m_bHitHidingNeutral )
 		REGISTER_MEMBER( m_bHitCreator )
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CExplosionWithBlockBuff )
+		REGISTER_BASE_CLASS( CExplosion )
+		REGISTER_MEMBER( m_strBlockBuff )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickUp )
@@ -605,6 +621,21 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CGarbageBinYellow )
 		REGISTER_BASE_CLASS( CTriggerChunk )
 		REGISTER_MEMBER( m_fShake )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBlockBuff )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_bMulti )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBlockBuffAcid )
+		REGISTER_BASE_CLASS( CBlockBuff )
+		REGISTER_MEMBER( m_strBulletPrefab )
+		REGISTER_MEMBER( m_fNewBulletLifePercent )
+		REGISTER_MEMBER( m_fLifePercentCostPerBullet )
+		REGISTER_MEMBER( m_fBulletVelocityMin )
+		REGISTER_MEMBER( m_fBulletVelocityMax )
+		REGISTER_MEMBER( m_fBulletGravity )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockItem )

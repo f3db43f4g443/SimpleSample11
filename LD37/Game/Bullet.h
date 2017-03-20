@@ -12,18 +12,19 @@ class CBullet : public CCharacter
 	friend void RegisterGameClasses();
 public:
 	CBullet( const SClassCreateContext& context )
-		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ), m_pGeneralContext( NULL ){ SET_BASEOBJECT_ID( CBullet ); }
+		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ) { SET_BASEOBJECT_ID( CBullet ); }
 	void SetVelocity( const CVector2& velocity );
+	void SetAcceleration( const CVector2& acc );
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
+	virtual void OnHit( CEntity* pEntity ) {}
 	virtual void Kill();
 	void SetLife( uint32 nLife ) { m_nLife = nLife; }
+	void SetDamage( uint32 nDamage, uint32 nDamage1 = 0 ) { m_nDamage = nDamage; m_nDamage1 = nDamage1; }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override { m_pCreator = NULL; SetBulletContext( NULL ); CCharacter::OnRemovedFromStage(); }
 
 	void SetBulletContext( SBulletContext* pContext ) { m_pContext = pContext; }
-	void* GetGeneralContext() { return m_pGeneralContext; }
-	void SetGeneralContext( void* pContext ) { m_pGeneralContext = pContext; }
 protected:
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
@@ -42,9 +43,10 @@ protected:
 	uint32 m_nDamage;
 	uint32 m_nDamage1;
 
-	void* m_pGeneralContext;
+	CVector2 m_acc;
 
 	CReference<CEffectObject> m_pDeathEffect;
+	CReference<CRenderObject2D> m_pParticle;
 };
 
 class CEnemyBullet : public CBullet

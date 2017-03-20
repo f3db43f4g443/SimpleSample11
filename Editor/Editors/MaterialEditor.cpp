@@ -247,6 +247,7 @@ void SDrawableEditItems::Create( CUITreeView::CTreeViewContent* pParent )
 		{ "multiply", (void*)4 },
 		{ "subtract", (void*)5 },
 		{ "exclude", (void*)6 },
+		{ "min", (void*)7 },
 	};
 	
 	pBlend = CDropDownBox::Create( "Blend", g_blendItems, ELEM_COUNT( g_blendItems ) );

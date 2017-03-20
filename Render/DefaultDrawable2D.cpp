@@ -23,6 +23,7 @@ namespace _DefaultDrawable2D_cpp
 		eDrawableBlend_Multiply,
 		eDrawableBlend_Subtract,
 		eDrawableBlend_Exclude,
+		eDrawableBlend_Min,
 
 		eDrawableBlend_Count,
 	};
@@ -38,6 +39,7 @@ namespace _DefaultDrawable2D_cpp
 			IBlendState::Get<false, false, 0xf, EBlendDestColor, EBlendZero, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
 			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendOne, EBlendOpRevSubtract, EBlendOne, EBlendOne, EBlendOpRevSubtract>(),
 			IBlendState::Get<false, false, 0xf, EBlendInvDestColor, EBlendInvSrcColor, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>(),
+			IBlendState::Get<false, false, 0xf, EBlendSrcColor, EBlendDestColor, EBlendOpMin, EBlendSrcAlpha, EBlendDestAlpha, EBlendOpMin>(),
 		};
 		return pBlendStates;
 	}

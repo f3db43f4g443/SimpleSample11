@@ -1,6 +1,16 @@
 #include "stdafx.h"
 #include "BlockBuffs.h"
 #include "Stage.h"
+#include "Bullets.h"
+#include "MyLevel.h"
+#include "Common/ResourceManager.h"
+#include "Common/Rand.h"
+
+void CBlockBuffAcid::OnAddedToStage()
+{
+	CBlockBuff::OnAddedToStage();
+	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBulletPrefab.c_str() );
+}
 
 void CBlockBuffAcid::OnTick()
 {
@@ -17,7 +27,7 @@ void CBlockBuffAcid::OnAdded( uint8 nReason, SContext * pContext )
 {
 	if( m_nLife * m_fDamage < pContext->nLife * pContext->fParams[0] )
 	{
-		m_nLife = pContext->nLife;
+		m_nTotalLife = m_nLife = pContext->nLife;
 		m_fDamage = pContext->fParams[0];
 	}
 }
@@ -26,6 +36,26 @@ void CBlockBuffAcid::OnRemoved( uint8 nReason )
 {
 	if( nReason == eRemovedReason_BlockDestroyed )
 	{
+		auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity()->GetParentEntity() );
+		uint32 nBulletCount = floor( m_nLife / m_fLifePercentCostPerBullet / m_nTotalLife );
+		if( !nBulletCount )
+			return;
 
+		CVector2 center = pChunkObject->GetPosition();
+		for( int i = 0; i < nBulletCount; i++ )
+		{
+			auto pBullet = SafeCast<CBulletWithBlockBuff>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			pBullet->SetCreator( this );
+			pBullet->SetPosition( globalTransform.GetPosition() );
+			float fAngle = SRand::Inst().Rand( -PI, PI );
+			pBullet->SetRotation( fAngle );
+			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fBulletVelocityMin, m_fBulletVelocityMax ) );
+			pBullet->SetAcceleration( CVector2( 0, -m_fBulletGravity ) );
+			CBlockBuff::SContext context;
+			context.nLife = m_nTotalLife * m_fNewBulletLifePercent;
+			context.fParams[0] = m_fDamage;
+			pBullet->Set( &context );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
 	}
 }

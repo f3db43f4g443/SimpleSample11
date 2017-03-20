@@ -67,6 +67,7 @@ void CExplosion::OnTick()
 			hitDir.Normalize();
 			pChunkObject->AddHitShake( hitDir * 8 );
 			pChunkObject->Damage( nDmg );
+			OnHit( pEntity );
 			if( pEntity->GetStage() )
 				m_hit.insert( pEntity );
 			continue;
@@ -81,6 +82,7 @@ void CExplosion::OnTick()
 			if( pPlayer->IsHiding() ? m_bHitHidingPlayer : m_bHitPlayer )
 			{
 				pPlayer->Damage( nDmg );
+				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
 			}
@@ -93,6 +95,7 @@ void CExplosion::OnTick()
 			if( pEnemy->IsHiding() ? m_bHitHidingEnemy : m_bHitEnemy )
 			{
 				pEnemy->Damage( nDmg );
+				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
 			}
@@ -105,6 +108,7 @@ void CExplosion::OnTick()
 			if( pCharacter->IsHiding() ? m_bHitHidingNeutral : m_bHitNeutral )
 			{
 				pCharacter->Damage( nDmg );
+				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
 			}

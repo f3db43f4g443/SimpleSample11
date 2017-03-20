@@ -18,6 +18,8 @@ public:
 	virtual void OnRemovedFromStage() override;
 
 	void SetCreator( CEntity* pEntity ) { m_pCreator = m_pCreator; }
+
+	virtual void OnHit( CEntity* pEntity ) {}
 private:
 	void OnTick();
 	void OnTick1() { SetParentEntity( NULL ); }
