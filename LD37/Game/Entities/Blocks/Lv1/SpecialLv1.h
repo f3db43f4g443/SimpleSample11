@@ -22,3 +22,18 @@ public:
 private:
 	float m_fShake;
 };
+
+class CGarbageBinGreen : public CTriggerChunk
+{
+	friend void RegisterGameClasses();
+public:
+	CGarbageBinGreen( const SClassCreateContext& context ) : CTriggerChunk( context ) { SET_BASEOBJECT_ID( CGarbageBinGreen ); }
+	virtual void Trigger() override;
+private:
+	uint32 m_nBulletCount;
+	float m_fMinSpeed, m_fMaxSpeed;
+	float m_fGravity;
+	uint32 m_nLife;
+	float m_fDamage;
+	float m_fShake;
+};

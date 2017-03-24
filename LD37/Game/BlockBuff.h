@@ -8,6 +8,7 @@ public:
 	struct SContext
 	{
 		uint32 nLife;
+		uint32 nTotalLife;
 		float fParams[4];
 	};
 
@@ -35,7 +36,7 @@ protected:
 	virtual CBlockBuff* Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* pContext ) const;
 	virtual void OnTick();
 	
-	virtual void OnAdded( uint8 nReason, SContext* pContext ) { m_nTotalLife = m_nLife = pContext->nLife; }
+	virtual void OnAdded( uint8 nReason, SContext* pContext ) { m_nLife = pContext->nLife; m_nTotalLife = pContext->nTotalLife; }
 	virtual void OnRemoved( uint8 nReason ) { m_bIsRemoving = true; }
 
 	bool m_bMulti;

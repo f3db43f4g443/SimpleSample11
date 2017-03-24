@@ -148,7 +148,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 			AddRect( CRectangle( 0, 0, pChunk->nWidth * pLevel->GetBlockSize(), pChunk->nHeight * pLevel->GetBlockSize() ) );
 			SetHitType( eEntityHitType_Sensor );
 		}
-		SetParentEntity( pChunk->pParentChunk ? pChunk->pParentChunk->pChunkObject : pLevel->GetChunkRoot() );
+		SetParentEntity( pChunk->pParentChunk ? pChunk->pParentChunk->pChunkObject : ( pChunk->nLayerType > 1? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() ) );
 
 		if( m_pDamagedEffectsRoot )
 		{
@@ -161,10 +161,10 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 
 		OnSetChunk( pChunk, pLevel );
 	}
-	else if( GetParentEntity() != pLevel->GetChunkRoot() )
+	else if( GetParentEntity() != pLevel->GetChunkRoot() && GetParentEntity() != pLevel->GetChunkRoot1() )
 	{
 		SetPosition( GetPosition() + GetParentEntity()->GetPosition() );
-		SetParentEntity( pLevel->GetChunkRoot() );
+		SetParentEntity( pChunk->nLayerType > 1 ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
 	}
 
 	if( pChunk->pParentChunk )

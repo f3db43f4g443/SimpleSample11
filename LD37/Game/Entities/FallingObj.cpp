@@ -139,7 +139,7 @@ void CFallingSpike::Destroy()
 	float fAngle0 = SRand::Inst().Rand( -PI, PI );
 	for( int i = 0; i < 6; i++ )
 	{
-		auto pBullet = SafeCast<CEnemyBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+		auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
 		pBullet->SetPosition( globalTransform.GetPosition() );
 		float r = fAngle0 + i * PI / 3;
 		pBullet->SetRotation( r );

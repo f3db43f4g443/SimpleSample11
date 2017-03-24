@@ -27,7 +27,8 @@ void CBlockBuffAcid::OnAdded( uint8 nReason, SContext * pContext )
 {
 	if( m_nLife * m_fDamage < pContext->nLife * pContext->fParams[0] )
 	{
-		m_nTotalLife = m_nLife = pContext->nLife;
+		m_nTotalLife = Max( m_nTotalLife, pContext->nLife );
+		m_nLife = pContext->nLife;
 		m_fDamage = pContext->fParams[0];
 	}
 }

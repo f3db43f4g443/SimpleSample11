@@ -378,6 +378,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nBlockSize )
 		REGISTER_MEMBER( m_fFallDistPerSpeedFrame )
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
 		REGISTER_MEMBER_TAGGED_PTR( m_pClickToStart, start/clicktostart );
 		REGISTER_MEMBER_TAGGED_PTR( m_pCrosshair, crosshair );
@@ -620,6 +621,17 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CGarbageBinYellow )
 		REGISTER_BASE_CLASS( CTriggerChunk )
+		REGISTER_MEMBER( m_fShake )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CGarbageBinGreen )
+		REGISTER_BASE_CLASS( CTriggerChunk )
+		REGISTER_MEMBER( m_nBulletCount )
+		REGISTER_MEMBER( m_fMinSpeed )
+		REGISTER_MEMBER( m_fMaxSpeed )
+		REGISTER_MEMBER( m_fGravity )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_fDamage )
 		REGISTER_MEMBER( m_fShake )
 	REGISTER_CLASS_END()
 

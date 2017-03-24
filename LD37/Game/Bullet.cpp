@@ -47,7 +47,10 @@ void CBullet::Kill()
 	}
 
 	m_bKilled = true;
-	static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nDeathFrameBegin, m_nDeathFrameEnd, m_fDeathFramesPerSec );
+	if( m_nDeathFrameEnd > m_nDeathFrameBegin )
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nDeathFrameBegin, m_nDeathFrameEnd, m_fDeathFramesPerSec );
+	else
+		GetRenderObject()->bVisible = false;
 	if( pParent )
 	{
 		globalTransform.Decompose( x, y, r, s );

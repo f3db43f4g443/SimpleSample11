@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "BlockBuff.h"
 #include "Stage.h"
+#include "MyLevel.h"
 
 CBlockBuff* CBlockBuff::AddBuff( CPrefab* pPrefab, CBlockObject* pBlock, SContext* pContext )
 {
@@ -27,6 +28,7 @@ CBlockBuff* CBlockBuff::Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* p
 	}
 
 	auto pInst = SafeCast<CBlockBuff>( pPrefab->GetRoot()->CreateInstance() );
+	pInst->SetPosition( CVector2( 0.5f, 0.5f ) * CMyLevel::GetInst()->GetBlockSize() );
 	pInst->SetZOrder( -1 );
 	pInst->SetParentEntity( pBlock );
 	pInst->OnAdded( eAddedReason_New, pContext );

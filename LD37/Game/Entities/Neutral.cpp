@@ -219,11 +219,11 @@ void CFuelTank::OnTickAfterHitTest()
 				dir1 = CVector2( dir1.x * dir0.x - dir1.y * dir0.y, dir1.x * dir0.y + dir1.y * dir0.x );
 				for( int i = 0; i < 4; i++ )
 				{
-					auto pBullet = SafeCast<CEnemyBullet>( m_pBullet->GetRoot()->CreateInstance() );
+					auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( globalTransform.MulVector2Pos( dir0 * ( i - 1.5f ) * 24 ) );
 					pBullet->SetVelocity( globalTransform.MulVector2Dir( dir * 200 ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-					pBullet = SafeCast<CEnemyBullet>( m_pBullet->GetRoot()->CreateInstance() );
+					pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( globalTransform.MulVector2Pos( dir0 * ( i - 1.5f ) * 24 ) );
 					pBullet->SetVelocity( globalTransform.MulVector2Dir( dir1 * 200 ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );

@@ -40,7 +40,7 @@ void CEnemy1::AIFunc()
 			CVector2 p = pPlayer->GetPosition() - globalTransform.GetPosition();
 			for( int i = 0; i < m_nBulletCount; i++ )
 			{
-				auto pBullet = SafeCast<CEnemyBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
 				pBullet->SetPosition( globalTransform.GetPosition() );
 				float r = atan2( p.y, p.x ) + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
 				pBullet->SetRotation( atan2( p.y, p.x ) );

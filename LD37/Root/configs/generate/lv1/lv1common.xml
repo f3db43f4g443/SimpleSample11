@@ -58,6 +58,12 @@
       <node name="garbage_heap_yellow" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/garbage_heap_yellow.pf">
         <types>4</types>
       </node>
+      <node name="garbage_bin_green" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/garbage_bin_green.pf">
+        <types>4</types>
+      </node>
+      <node name="garbage_heap_green" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/garbage_heap_green.pf">
+        <types>4</types>
+      </node>
       
       <node name="barrel" width="2" height="3" weight="2" destroyweight="14" destroyshake="30" shakedmg="0.25" prefab="data/explosive/barrel.pf">
         <types>4,4,4,4,4,4</types>
@@ -196,7 +202,7 @@
             absorbshakestrengthperheight="0.25" shakedmg="5" prefab="data/blocks/block_vbar/block_vbar.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
       </node-->
-
+      
       <node name="enemyroom_small" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wood.pf">
         <types>
           0,0,0,0,0,0,
@@ -212,11 +218,11 @@
             <ref name="woodenbar_h" x="0" y="-1" w="0" h="1" />
             <ref name="woodenbar_v" x="0" y="3" w="1" h="-1" />
             <ref name="woodenbar_v" x="-1" y="3" w="1" h="-1" />
-            <ref name="door0_3" x="0" y="1" w="1" h="2" />
-            <ref name="door0_1" x="-1" y="1" w="1" h="2" />
-            <node type="tile" x="1" y="1" w="-1" h="-1">
+            <node type="tile" x="0" y="0" w="0" h="0">
               <ref name="wood_broken" />
             </node>
+            <ref name="door0_3" x="0" y="1" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="1" w="1" h="2" />
           </node>
         </subitem>
         <next_level>
@@ -262,13 +268,13 @@
             <ref name="stonebar_room_v" x="-1" y="1" w="1" h="2" />
             <ref name="stonebar_room_v" x="-1" y="5" w="1" h="2" />
 
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall_room_broken" />
+            </node>
             <ref name="door0_0" x="3" y="0" w="2" h="1" />
             <ref name="door0_2" x="3" y="-1" w="2" h="1" />
             <ref name="door0_3" x="0" y="3" w="1" h="2" />
             <ref name="door0_1" x="-1" y="3" w="1" h="2" />
-            <node type="tile" x="1" y="1" w="-1" h="-1">
-              <ref name="wall_room_broken" />
-            </node>
           </node>
         </subitem>
         <next_level>

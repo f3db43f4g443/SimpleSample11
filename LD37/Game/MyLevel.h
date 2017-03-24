@@ -47,6 +47,7 @@ public:
 	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, m_nSpawnHeight * m_nBlockSize ); }
 	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
+	CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
 	CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
 	CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }
 	CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
@@ -98,6 +99,7 @@ private:
 	CReference<CRenderObject2D> m_pCrosshair;
 
 	CReference<CEntity> m_pChunkRoot;
+	CReference<CEntity> m_pChunkRoot1;
 	CReference<CEntity> m_pChunkEffectRoot;
 	CReference<CRenderObject2D> m_pClickToStart;
 	CReference<CEntity> m_pBulletRoot[eBulletLevel_Count];

@@ -10,13 +10,17 @@
           <node type="randompick">
             <node type="subregion" p="1">
               <ref name="garbage_bin_red" />
-              <ref name="block1a" />
+              <ref name="block0" />
             </node>
             <node type="subregion" p="1">
               <ref name="garbage_bin_yellow" />
-              <ref name="block1a" />
+              <ref name="block0" />
             </node>
-            <ref name="block1a" p="20" />
+            <node type="subregion" p="1">
+              <ref name="garbage_bin_green" />
+              <ref name="block0" />
+            </node>
+            <ref name="block1a" p="30" />
           </node>
         </node>
         <next_level>
@@ -35,19 +39,27 @@
           <node type="randompick">
             <node type="subregion" p="1">
               <ref name="garbage_bin_red" />
-              <ref name="block1a" />
+              <ref name="block0" />
             </node>
             <node type="subregion" p="1">
               <ref name="garbage_bin_yellow" />
-              <ref name="block1a" />
+              <ref name="block0" />
+            </node>
+            <node type="subregion" p="1">
+              <ref name="garbage_bin_green" />
+              <ref name="block0" />
             </node>
             <node type="subregion" p="1">
               <ref name="garbage_heap_red" />
-              <ref name="block1a" />
+              <ref name="block0" />
             </node>
             <node type="subregion" p="1">
               <ref name="garbage_heap_yellow" />
-              <ref name="block1a" />
+              <ref name="block0" />
+            </node>
+            <node type="subregion" p="1">
+              <ref name="garbage_heap_green" />
+              <ref name="block0" />
             </node>
             <ref name="block1a" p="30" />
           </node>
