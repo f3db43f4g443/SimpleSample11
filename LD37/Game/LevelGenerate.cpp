@@ -6,10 +6,14 @@
 #include "Common/ResourceManager.h"
 #include "Common/FileUtil.h"
 
+#include "LevelGenerating/LvGenCommon.h"
+#include "LevelGenerating/LvGen1.h"
+
 SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
+	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
 	chunks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
@@ -335,78 +339,70 @@ void CLevelGenerateNode::Generate( SLevelBuildContext& context, const TRectangle
 
 #define GET_GRID( g, i, j ) ( g[(i) + (j) * size.x] )
 
-class CLevelGenerateSimpleNode : public CLevelGenerateNode
+void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )
 {
-public:
-	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
-	{
-		auto& chunk = context.pCurFileContext->mapChunkBaseInfo[XmlGetAttr( pXml, "name", "" )];
-		m_pChunkBaseInfo = &chunk;
-		chunk.nWidth = XmlGetAttr( pXml, "width", 1 );
-		chunk.nHeight = XmlGetAttr( pXml, "height", 1 );
-		chunk.fWeight = XmlGetAttr( pXml, "weight", 0.0f );
-		chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
-		chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
-		chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
-		chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
-		chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
-		chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
-		chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );
-		chunk.fWeightPerWidth = XmlGetAttr( pXml, "weightperwidth", 0.0f );
-		chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
-		chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
-		m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
-		chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
-		chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
-		chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
-		chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
-		chunk.blockInfos.resize( chunk.nWidth * chunk.nHeight );
+	auto& chunk = context.pCurFileContext->mapChunkBaseInfo[XmlGetAttr( pXml, "name", "" )];
+	m_pChunkBaseInfo = &chunk;
+	chunk.nWidth = XmlGetAttr( pXml, "width", 1 );
+	chunk.nHeight = XmlGetAttr( pXml, "height", 1 );
+	chunk.fWeight = XmlGetAttr( pXml, "weight", 0.0f );
+	chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
+	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
+	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
+	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
+	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
+	chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
+	chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );
+	chunk.fWeightPerWidth = XmlGetAttr( pXml, "weightperwidth", 0.0f );
+	chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
+	chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
+	m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
+	chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
+	chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
+	chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
+	chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
+	chunk.blockInfos.resize( chunk.nWidth * chunk.nHeight );
 
-		const char* szType = XmlGetValue( pXml, "types", "" );
-		const char* c = szType;
-		int i = 0;
-		while( c && i < chunk.nWidth * chunk.nHeight )
+	const char* szType = XmlGetValue( pXml, "types", "" );
+	const char* c = szType;
+	int i = 0;
+	while( c && i < chunk.nWidth * chunk.nHeight )
+	{
+		if( *c >= '0' && *c <= '9' )
 		{
-			if( *c >= '0' && *c <= '9' )
-			{
-				int y = i / chunk.nWidth;
-				int x = i % chunk.nWidth;
-				auto& blockInfo = chunk.blockInfos[x + ( chunk.nHeight - y - 1 ) * chunk.nWidth];
-				blockInfo.eBlockType = (EBlockType)( *c - '0' );
-				blockInfo.fDmgPercent = 1;
-				i++;
-			}
-			c++;
+			int y = i / chunk.nWidth;
+			int x = i % chunk.nWidth;
+			auto& blockInfo = chunk.blockInfos[x + ( chunk.nHeight - y - 1 ) * chunk.nWidth];
+			blockInfo.eBlockType = (EBlockType)( *c - '0' );
+			blockInfo.fDmgPercent = 1;
+			i++;
 		}
-
-		auto pSubItem = pXml->FirstChildElement( "subitem" );
-		if( pSubItem && pSubItem->FirstChildElement() )
-			m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
-
-		CLevelGenerateNode::Load( pXml, context );
+		c++;
 	}
-	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
-	{
-		auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
-		if( pChunk )
-		{
-			pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
-			CLevelGenerateNode::Generate( context, region );
 
-			if( m_pSubChunk )
-			{
-				SLevelBuildContext tempContext( context.pLevel, pChunk );
-				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
-				tempContext.Build();
-			}
+	auto pSubItem = pXml->FirstChildElement( "subitem" );
+	if( pSubItem && pSubItem->FirstChildElement() )
+		m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
+
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		CLevelGenerateNode::Generate( context, region );
+
+		if( m_pSubChunk )
+		{
+			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			tempContext.Build();
 		}
 	}
-protected:
-	SChunkBaseInfo* m_pChunkBaseInfo;
-	bool m_bIsLevelBarrier;
-
-	CReference<CLevelGenerateNode> m_pSubChunk;
-};
+}
 
 class CLevelGenerateSpawnNode : public CLevelGenerateNode
 {
@@ -1048,6 +1044,11 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "randompick", CLevelGenerateRandomPickNode );
 	REGISTER_GENERATE_NODE( "frame", CLevelGenerateFrameNode );
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
+
+	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
+	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
+	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
+	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
 }
 
 CLevelGenerateNode* CLevelGenerateFactory::LoadNode( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )

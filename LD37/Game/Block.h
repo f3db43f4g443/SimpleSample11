@@ -125,7 +125,6 @@ struct SChunk
 	float fBalance;
 	float fCurImbalanceTime;
 	uint32 nCurShakeStrength;
-	uint8 nLayerType : 2;
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
 	void CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
@@ -146,6 +145,7 @@ struct SChunk
 	uint8 bMovedLastFrame : 1;
 	uint8 bIsBeingRepaired : 1;
 
+	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 1;
 	uint8 nVisitFlag : 1;
 

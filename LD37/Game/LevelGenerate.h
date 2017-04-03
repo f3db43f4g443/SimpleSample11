@@ -19,6 +19,9 @@ struct SLevelBuildContext
 	vector<SChunk*> chunks;
 	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs[SBlock::eAttachedPrefab_Count];
 
+	vector<int8> blueprint;
+	map<string, int8> mapTags;
+
 	CMyLevel* pLevel;
 	SChunk* pParentChunk;
 };
@@ -71,4 +74,17 @@ public:
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelGenerateFactory )
 private:
 	map<string, function<CLevelGenerateNode*( TiXmlElement* pXml )> > m_mapCreateFuncs;
+};
+
+
+class CLevelGenerateSimpleNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+protected:
+	SChunkBaseInfo* m_pChunkBaseInfo;
+	bool m_bIsLevelBarrier;
+
+	CReference<CLevelGenerateNode> m_pSubChunk;
 };

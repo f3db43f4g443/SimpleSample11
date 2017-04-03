@@ -281,6 +281,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( fRollMaxTime )
 		REGISTER_MEMBER( fRollMaxSpeed )
 		REGISTER_MEMBER( fFindFloorDist )
+		REGISTER_MEMBER( fSlideDownSpeed )
 	REGISTER_CLASS_END()
 	
 	REGISTER_ENUM_BEGIN( EEntityHitType )

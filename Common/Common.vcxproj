@@ -83,6 +83,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Algorithm.cpp" />
     <ClCompile Include="BitArray.cpp" />
     <ClCompile Include="BufFile.cpp" />
     <ClCompile Include="Camera2D.cpp" />
@@ -110,6 +111,7 @@
     <ClCompile Include="xml.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithm.h" />
     <ClInclude Include="BitArray.h" />
     <ClInclude Include="BoundBox.h" />
     <ClInclude Include="BufFile.h" />

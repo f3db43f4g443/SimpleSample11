@@ -452,6 +452,8 @@
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
+    <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
+    <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
     <ClCompile Include="Lightning.cpp" />
     <ClCompile Include="MyGame.cpp" />
     <ClCompile Include="MyLevel.cpp" />
@@ -510,6 +512,8 @@
     <ClInclude Include="GUI\MainUI.h" />
     <ClInclude Include="GUI\UIUtils.h" />
     <ClInclude Include="LevelGenerate.h" />
+    <ClInclude Include="LevelGenerating\LvGen1.h" />
+    <ClInclude Include="LevelGenerating\LvGenCommon.h" />
     <ClInclude Include="Lightning.h" />
     <ClInclude Include="MyGame.h" />
     <ClInclude Include="MyLevel.h" />

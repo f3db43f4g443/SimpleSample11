@@ -1,59 +1,108 @@
-#include "Common/Common.h"
-#include "Common/Math3D.h"
+#include "stdafx.h"
+#include "LvGen1.h"
+#include "Common/Algorithm.h"
 #include "Common/Rand.h"
-#include "DevIL/il.h"
-#include "Common/DateTime.h"
-#include <vector>
 #include <algorithm>
-using namespace std;
 
-const int32 nWidth = 32;
-const int32 nHeight = 128;
-int8 gendata[nWidth * nHeight];
-int8 gendataTemp[nWidth * nHeight];
-CVector4 color[nWidth * nHeight];
-CVector4 colorTable[] = { CVector4( 0, 0, 0, 1 ), CVector4( 0.35, 0.3, 0.3, 1 ), CVector4( 0.3, 0.3, 0.35, 1 ), CVector4( 0.5, 0.7, 0.5, 1 ), CVector4( 0.5, 0.5, 0.7, 1 ), CVector4( 0.5, 0.5, 0.5, 1 ), CVector4( 0.5, 0.5, 0, 1 ), CVector4( 1, 1, 0, 1 ), CVector4( 1, 0, 0, 1 ) };
-
-struct SRoom
+void CLevelGenNode1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
-	uint8 nType;
-	TRectangle<int32> rect;
-};
+	m_pWallNode = CreateNode( pXml->FirstChildElement( "wall" )->FirstChildElement(), context );
+	m_pBlock1Node = CreateNode( pXml->FirstChildElement( "block1" )->FirstChildElement(), context );
+	m_pBlock2Node = CreateNode( pXml->FirstChildElement( "block2" )->FirstChildElement(), context );
+	m_pRoom1Node = CreateNode( pXml->FirstChildElement( "room1" )->FirstChildElement(), context );
+	m_pRoom2Node = CreateNode( pXml->FirstChildElement( "room2" )->FirstChildElement(), context );
+	m_pBar1Node = CreateNode( pXml->FirstChildElement( "bar1" )->FirstChildElement(), context );
+	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
+	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
 
-vector<SRoom> rooms;
+	CLevelGenerateNode::Load( pXml, context );
+}
 
-enum
+void CLevelGenNode1_1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	eType_None,
-	eType_BlockRed,
-	eType_BlockBlue,
-	eType_Room1,
-	eType_Room2,
-	eType_Bar,
-	eType_Door,
-	eType_Path,
-	eType_Object,
+	m_pContext = &context;
+	m_region = region;
+	m_gendata.resize( region.width * region.height );
 
-	eType_Count,
-};
+	GenRooms();
+	PutHBars();
+	ConnRooms();
+	GenConnAreas();
+	GenDoors();
+	GenEmptyArea();
+	FillBlockArea();
+	GenObjects();
 
-void GenRooms()
+	for( int i = 0; i < region.width; i++ )
+	{
+		for( int j = 0; j < region.height; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData;
+
+			if( genData == eType_Path )
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			else if( genData == eType_Object )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+		}
+	}
+
+	context.mapTags["mask"] = eType_BlockRed;
+	m_pBlock1Node->Generate( context, region );
+	context.mapTags["mask"] = eType_BlockBlue;
+	m_pBlock2Node->Generate( context, region );
+
+	for( auto& bar : m_bars )
+	{
+		auto rect = bar.rect.Offset( TVector2<int32>( region.x, region.y ) );
+		if( bar.nType == 1 )
+			m_pBar2Node->Generate( context, rect );
+		else
+			m_pBar1Node->Generate( context, rect );
+	}
+
+	context.mapTags["door"] = eType_Door;
+	for( auto& room : m_rooms )
+	{
+		auto rect = room.rect.Offset( TVector2<int32>( region.x, region.y ) );
+		if( room.nType == 1 )
+			m_pRoom2Node->Generate( context, rect );
+		else
+			m_pRoom1Node->Generate( context, rect );
+	}
+
+	m_gendata.clear();
+	m_rooms.clear();
+	m_bars.clear();
+}
+
+void CLevelGenNode1_1::GenRooms()
 {
 	const uint32 nMinWidth = 6;
 	const uint32 nMinHeight = 6;
 	const uint32 nMaxWidth = 12;
 	const uint32 nMaxHeight = 12;
+	const uint32 nRoom2Size = 15;
 
 	const uint32 nMaxWidthPlusHeight = 20;
 	const uint32 nIterationCount = 200;
 	const uint32 nMaxSpace = 1;
+
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
 
 	vector<TVector2<int32> > vecPossibleGenPoints;
 	vector<uint8> vecGenPointValid;
 	vecGenPointValid.resize( nWidth * nHeight );
 	for( int i = 0; i < nWidth - nMinWidth; i++ )
 	{
-		for( int j = 0; j < nHeight - nMinHeight; j++ )
+		for( int j = 0; j <  nHeight - nMinHeight; j++ )
 		{
 			vecPossibleGenPoints.push_back( TVector2<int32>( i, j ) );
 			vecGenPointValid[i + j * nWidth] = 1;
@@ -159,9 +208,9 @@ void GenRooms()
 		}
 
 		SRoom room;
-		room.nType = roomRect.width + roomRect.height <= 15 ? 0 : 1;
+		room.nType = roomRect.width + roomRect.height <= nRoom2Size ? 0 : 1;
 		room.rect = roomRect;
-		rooms.push_back( room );
+		m_rooms.push_back( room );
 
 		for( int iX = roomRect.x; iX < roomRect.GetRight(); iX++ )
 		{
@@ -208,10 +257,10 @@ void GenRooms()
 			return left.rect.y < right.rect.y;
 		}
 	};
-	std::sort( rooms.begin(), rooms.end(), SLess() );
+	std::sort( m_rooms.begin(), m_rooms.end(), SLess() );
 }
 
-void PutHBars()
+void CLevelGenNode1_1::PutHBars()
 {
 	float fHasBarChance = 0.5f;
 	uint32 nMinBarLen = 6;
@@ -220,10 +269,14 @@ void PutHBars()
 	float fWideBarPercent = 0.35f;
 	float fExtendDownPercent = 0.1f;
 
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
+
 	uint32 nBars = 0;
-	for( int i = 0; i < rooms.size(); i++ )
+	for( int i = 0; i < m_rooms.size(); i++ )
 	{
-		auto& room = rooms[i];
+		auto& room = m_rooms[i];
 		int iY = room.rect.y - 1;
 		if( iY < 0 )
 			continue;
@@ -354,6 +407,11 @@ void PutHBars()
 			if( rect.height >= 2 && SRand::Inst().Rand( 0.0f, 1.0f ) < fWideBarPercent )
 				barRect.height = 2;
 
+			SBar bar;
+			bar.rect = barRect;
+			bar.nType = barRect.height > 1 ? 1 : 0;
+			m_bars.push_back( bar );
+
 			for( int iX = barRect.x; iX < barRect.GetRight(); iX++ )
 			{
 				for( int iY = barRect.y; iY < barRect.GetBottom(); iY++ )
@@ -366,53 +424,7 @@ void PutHBars()
 	}
 }
 
-class CGrouper
-{
-public:
-	void Init( uint32 nCount )
-	{
-		vecGroups.resize( nCount );
-		for( int i = 0; i < nCount; i++ )
-			vecGroups[i] = i;
-	}
-
-	bool Combine( uint32 a, uint32 b )
-	{
-		a = GetGroup( a );
-		b = GetGroup( b );
-		if( a != b )
-		{
-			vecGroups[b] = a;
-			return true;
-		}
-		return false;
-	}
-
-	uint32 GetGroup( uint32 a )
-	{
-		uint32 a0 = a;
-		uint32 a1 = vecGroups[a];
-		while( a1 != a )
-		{
-			a = a1;
-			a1 = vecGroups[a];
-		}
-
-		a = a0;
-		a0 = vecGroups[a];
-		while( a0 != a )
-		{
-			a = a0;
-			a0 = vecGroups[a];
-			vecGroups[a] = a1;
-		}
-		return a1;
-	}
-private:
-	vector<uint32> vecGroups;
-};
-
-void ConnRooms()
+void CLevelGenNode1_1::ConnRooms()
 {
 	const float fLoopPercent = 0.1f;
 	const float fLoopChance = 0.3f;
@@ -420,6 +432,10 @@ void ConnRooms()
 	vector<uint8> vecFlags;
 	vector<int32> vecPars;
 	vector<int32> vecGroups;
+
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
 
 	vector<TVector2<int32> > q;
 	vector<bool> vecIsConn;
@@ -430,19 +446,19 @@ void ConnRooms()
 
 	memset( &vecPars[0], -1, sizeof( int32 ) * nWidth * nHeight );
 	memset( &vecGroups[0], -1, sizeof( int32 ) * nWidth * nHeight );
-	CGrouper g;
-	g.Init( rooms.size() );
-	uint32 nLoopCount = fLoopPercent * rooms.size();
-	vecIsConn.resize( rooms.size() * rooms.size() );
+	CUnionFind g;
+	g.Init( m_rooms.size() );
+	uint32 nLoopCount = fLoopPercent * m_rooms.size();
+	vecIsConn.resize( m_rooms.size() * m_rooms.size() );
 
 	for( int i = 0; i < nWidth * nHeight; i++ )
 	{
 		if( gendata[i] )
 			vecFlags[i] = -1;
 	}
-	for( int i = 0; i < rooms.size(); i++ )
+	for( int i = 0; i < m_rooms.size(); i++ )
 	{
-		auto& room = rooms[i];
+		auto& room = m_rooms[i];
 		for( int iX = room.rect.x; iX < room.rect.GetRight(); iX++ )
 		{
 			for( int iY = room.rect.y; iY < room.rect.GetBottom(); iY++ )
@@ -486,9 +502,10 @@ void ConnRooms()
 		}
 	}
 
-	SRand::Inst().Shuffle( &q[0], q.size() );
+	if( q.size() )
+		SRand::Inst().Shuffle( &q[0], q.size() );
 
-	TVector2<int32> ofs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
+	TVector2<int32> ofs[4] = { { -1, 0 },{ 0, -1 },{ 1, 0 },{ 0, 1 } };
 	for( int i = 0; i < q.size(); i++ )
 	{
 		TVector2<int32> pos = q[i];
@@ -496,7 +513,7 @@ void ConnRooms()
 		int y = q[i].y;
 		vecFlags[pos.x + pos.y * nWidth] = 1;
 		int32 nGroup = vecGroups[pos.x + pos.y * nWidth];
-		
+
 		SRand::Inst().Shuffle( ofs, 4 );
 		for( int k = 0; k < 4; k++ )
 		{
@@ -513,10 +530,10 @@ void ConnRooms()
 
 				if( nGroup1 >= 0 && nGroup1 != nGroup )
 				{
-					if( vecIsConn[nGroup1 + nGroup * rooms.size()] )
+					if( vecIsConn[nGroup1 + nGroup * m_rooms.size()] )
 						continue;
-					vecIsConn[nGroup1 + nGroup * rooms.size()] = vecIsConn[nGroup + nGroup1 * rooms.size()] = true;
-					if( !g.Combine( nGroup1, nGroup ) )
+					vecIsConn[nGroup1 + nGroup * m_rooms.size()] = vecIsConn[nGroup + nGroup1 * m_rooms.size()] = true;
+					if( !g.Union( nGroup1, nGroup ) )
 					{
 						if( !nLoopCount )
 							continue;
@@ -569,7 +586,7 @@ void ConnRooms()
 		}
 	}
 
-	for( auto& room : rooms )
+	for( auto& room : m_rooms )
 	{
 		auto& rect = room.rect;
 
@@ -776,9 +793,15 @@ void ConnRooms()
 	}
 }
 
-void GenConnAreas()
+void CLevelGenNode1_1::GenConnAreas()
 {
 	const uint32 nMaxDist = 2;
+
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
+	vector<int8> gendataTemp;
+	gendataTemp.resize( nWidth * nHeight );
 
 	for( int i = 0; i < nWidth * nHeight; i++ )
 		gendataTemp[i] = gendata[i] == eType_Path ? 1 : 0;
@@ -791,7 +814,7 @@ void GenConnAreas()
 			if( dst )
 				continue;
 
-			const TVector2<int32> ofs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
+			const TVector2<int32> ofs[4] = { { -1, 0 },{ 0, -1 },{ 1, 0 },{ 0, 1 } };
 			bool bConn[4] = { false };
 			for( int k = 0; k < 4; k++ )
 			{
@@ -842,7 +865,8 @@ void GenConnAreas()
 		}
 	}
 
-	SRand::Inst().Shuffle( &q[0], q.size() );
+	if( q.size() )
+		SRand::Inst().Shuffle( &q[0], q.size() );
 	for( iq = 0; iq < q.size(); iq++ )
 	{
 		TVector2<int32> pos = q[iq];
@@ -890,11 +914,15 @@ void GenConnAreas()
 	}
 }
 
-void GenDoors()
+void CLevelGenNode1_1::GenDoors()
 {
 	const float fDoorWidth2Chance = 0.8f;
 
-	for( auto& room : rooms )
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
+
+	for( auto& room : m_rooms )
 	{
 		auto& rect = room.rect;
 
@@ -1190,93 +1218,14 @@ void GenDoors()
 	}
 }
 
-void GenObjects()
-{
-	vector<TVector2<int32> > vecResults;
-
-	int8 patterns[][9] =
-	{
-		{
-			2, 2, 2,
-			0, 4, 0,
-			1, 1, 1
-		},
-		{
-			2, 0, 0,
-			1, 3, 0,
-			1, 1, 2
-		},
-		{
-			0, 0, 2,
-			0, 3, 1,
-			2, 1, 1
-		},
-		{
-			1, 1, 0,
-			1, 0, 0,
-			1, 1, 2
-		},
-		{
-			0, 1, 1,
-			0, 0, 1,
-			2, 1, 1
-		},
-	};
-	bool bPatternOk[5][eType_Count] =
-	{
-		{ false, false, false, false, false, false, false, true, false },
-		{ true, true, true, true, true, true, false, false, false },
-		{ true, true, true, true, true, true, false, true, false },
-		{ true, true, true, false, false, false, false, false, false },
-		{ true, true, true, false, false, false, false, true, false },
-	};
-	float fPatternPercent[] = { 0.4f, 0.8f, 0.8f, 1.0f, 1.0f };
-
-	TVector2<int32> ofs[9] = { { -1, 1 }, { 0, 1 }, { 1, 1 }, { -1, 0 }, { 0, 0 }, { 1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 } };
-
-	for( int i = 1; i < nWidth - 1; i++ )
-	{
-		for( int j = 1; j < nHeight - 1; j++ )
-		{
-			TVector2<int32> pos( i, j );
-			for( int iPattern = 0; iPattern < 5; iPattern++ )
-			{
-				if( SRand::Inst().Rand( 0.0f, 1.0f ) >= fPatternPercent[iPattern] )
-					continue;
-
-				bool bSucceed = true;
-				for( int k = 0; k < 9; k++ )
-				{
-					TVector2<int32> pos1 = pos + ofs[k];
-					int8 nType = gendata[pos1.x + pos1.y * nWidth];
-					int8 nPatternType = patterns[iPattern][k];
-					
-					if( !bPatternOk[nPatternType][nType] )
-					{
-						bSucceed = false;
-						break;
-					}
-				}
-
-				if( bSucceed )
-				{
-					vecResults.push_back( pos );
-					break;
-				}
-			}
-		}
-	}
-
-	for( int i = 0; i < vecResults.size(); i++ )
-	{
-		gendata[vecResults[i].x + vecResults[i].y * nWidth] = eType_Object;
-	}
-}
-
-void GenEmptyArea()
+void CLevelGenNode1_1::GenEmptyArea()
 {
 	const int32 nMaxDist = 9;
 	const float fChance = 0.5f;
+
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
 
 	vector<int32> vecDist;
 	vecDist.resize( nWidth * nHeight );
@@ -1327,10 +1276,14 @@ void GenEmptyArea()
 	}
 }
 
-void FillBlockArea()
+void CLevelGenNode1_1::FillBlockArea()
 {
 	const int32 nMin = 60;
 	const int32 nMax = 150;
+
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
 
 	vector<TVector2<int32> > black;
 	for( int i = 0; i < nWidth; i++ )
@@ -1341,7 +1294,8 @@ void FillBlockArea()
 				black.push_back( TVector2<int32>( i, j ) );
 		}
 	}
-	SRand::Inst().Shuffle( &black[0], black.size() );
+	if( black.size() )
+		SRand::Inst().Shuffle( &black[0], black.size() );
 
 	for( int32 i = 0; i < black.size(); i++ )
 	{
@@ -1353,7 +1307,7 @@ void FillBlockArea()
 		vector<TVector2<int32> > q;
 		q.push_back( p );
 		int8 nType = SRand::Inst().Rand( 0, 2 ) + eType_BlockRed;
-		
+
 		for( int32 iq = 0; iq < q.size(); iq++ )
 		{
 			TVector2<int32> pos = q[iq];
@@ -1372,31 +1326,89 @@ void FillBlockArea()
 	}
 }
 
-void main()
+void CLevelGenNode1_1::GenObjects()
 {
-	ilInit();
-	SRand::Inst().nSeed = (uint32)GetLocalTime();
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	auto& gendata = m_gendata;
 
-	uint32 img = ilGenImage();
-	ilBindImage( img );
-	ilEnable( IL_ORIGIN_SET );
-	ilOriginFunc( IL_ORIGIN_UPPER_LEFT );
+	vector<TVector2<int32> > vecResults;
 
-	GenRooms();
-	PutHBars();
-	ConnRooms();
-	GenConnAreas();
-	GenDoors();
-	GenEmptyArea();
-	FillBlockArea();
-	GenObjects();
-
-	for( int i = 0; i < nWidth * nHeight; i++ )
+	int8 patterns[][9] =
 	{
-		color[i] = colorTable[gendata[i]];
+		{
+			2, 2, 2,
+			0, 4, 0,
+			1, 1, 1
+		},
+		{
+			2, 0, 0,
+			1, 3, 0,
+			1, 1, 2
+		},
+		{
+			0, 0, 2,
+			0, 3, 1,
+			2, 1, 1
+		},
+		{
+			1, 1, 0,
+			1, 0, 0,
+			1, 1, 2
+		},
+		{
+			0, 1, 1,
+			0, 0, 1,
+			2, 1, 1
+		},
+	};
+	bool bPatternOk[5][eType_Count] =
+	{
+		{ false, false, false, false, false, false, false, true, false },
+		{ true, true, true, true, true, true, false, false, false },
+		{ true, true, true, true, true, true, false, true, false },
+		{ true, true, true, false, false, false, false, false, false },
+		{ true, true, true, false, false, false, false, true, false },
+	};
+	float fPatternPercent[] = { 0.4f, 0.8f, 0.8f, 1.0f, 1.0f };
+
+	TVector2<int32> ofs[9] = { { -1, 1 },{ 0, 1 },{ 1, 1 },{ -1, 0 },{ 0, 0 },{ 1, 0 },{ -1, -1 },{ 0, -1 },{ 1, -1 } };
+
+	for( int i = 1; i < nWidth - 1; i++ )
+	{
+		for( int j = 1; j < nHeight - 1; j++ )
+		{
+			TVector2<int32> pos( i, j );
+			for( int iPattern = 0; iPattern < 5; iPattern++ )
+			{
+				if( SRand::Inst().Rand( 0.0f, 1.0f ) >= fPatternPercent[iPattern] )
+					continue;
+
+				bool bSucceed = true;
+				for( int k = 0; k < 9; k++ )
+				{
+					TVector2<int32> pos1 = pos + ofs[k];
+					int8 nType = gendata[pos1.x + pos1.y * nWidth];
+					int8 nPatternType = patterns[iPattern][k];
+
+					if( !bPatternOk[nPatternType][nType] )
+					{
+						bSucceed = false;
+						break;
+					}
+				}
+
+				if( bSucceed )
+				{
+					vecResults.push_back( pos );
+					break;
+				}
+			}
+		}
 	}
 
-	ilTexImage( nWidth, nHeight, 1, 4, IL_RGBA, IL_FLOAT, color );
-	//ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE );
-	ilSaveImage( L"a.tga" );
+	for( int i = 0; i < vecResults.size(); i++ )
+	{
+		gendata[vecResults[i].x + vecResults[i].y * nWidth] = eType_Object;
+	}
 }

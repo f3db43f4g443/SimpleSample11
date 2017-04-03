@@ -21,6 +21,7 @@
     <ClCompile Include="DateTime.cpp" />
     <ClCompile Include="TabFile.cpp" />
     <ClCompile Include="SystemUtil.cpp" />
+    <ClCompile Include="Algorithm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitArray.h" />
@@ -61,6 +62,7 @@
     <ClInclude Include="PriorityQueue.h" />
     <ClInclude Include="TabFile.h" />
     <ClInclude Include="SystemUtil.h" />
+    <ClInclude Include="Algorithm.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BoundBox.inl" />

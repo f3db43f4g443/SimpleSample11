@@ -109,6 +109,12 @@
     <ClCompile Include="Entities\Bullets.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen1_1.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGenCommon.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -219,6 +225,12 @@
     <ClInclude Include="Entities\Bullets.h">
       <Filter>Entities</Filter>
     </ClInclude>
+    <ClInclude Include="LevelGenerating\LvGen1.h">
+      <Filter>LevelGenerating</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelGenerating\LvGenCommon.h">
+      <Filter>LevelGenerating</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -312,6 +324,9 @@
     </Filter>
     <Filter Include="Entities\Blocks\Lv1">
       <UniqueIdentifier>{004627d5-ee6d-475d-9bfa-ae860e3fb14d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LevelGenerating">
+      <UniqueIdentifier>{84db6396-9dda-46cb-8615-6c25a5533e61}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

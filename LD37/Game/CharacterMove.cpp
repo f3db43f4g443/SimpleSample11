@@ -548,6 +548,16 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 
 	}
 
+	if( nState == eState_JumpHolding )
+	{
+		fJumpHoldingTime += pCharacter->GetStage()->GetElapsedTimePerTick();
+		if( fJumpHoldingTime >= fJumpMaxHoldTime )
+		{
+			fJumpHoldingTime = fJumpMaxHoldTime;
+			ReleaseJump( pCharacter );
+		}
+	}
+
 	CVector2 dVelocity = CVector2( 0, 0 );
 	CVector2 dPos = velocity * fDeltaTime;
 	CVector2 moveDir;
@@ -593,25 +603,31 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		t1 = fDeltaTime - t0;
 		dVelocity = dVelocity + gravityDir * ( fAcc * t0 );
 		dPos = dPos + gravityDir * ( fAcc * t0 * t0 * 0.5f );
-		if( nState == eState_JumpHolding )
-			nState = eState_Normal;
+
+		if( !nIsSlidingDownWall )
+		{
+			if( nState == eState_JumpHolding )
+				nState = eState_Normal;
+		}
 	}
 	velocity = velocity + dVelocity;
 
-	if( nState == eState_JumpHolding )
-	{
-		fJumpHoldingTime += pCharacter->GetStage()->GetElapsedTimePerTick();
-		if( fJumpHoldingTime >= fJumpMaxHoldTime )
-		{
-			fJumpHoldingTime = fJumpMaxHoldTime;
-			ReleaseJump( pCharacter );
-		}
-	}
-
 	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+	CVector2 v0 = velocity;
 	TryMove( pCharacter, dPos, velocity );
 	FindFloor( pCharacter );
+
+	nIsSlidingDownWall = 0;
+	if( !pLandedEntity && fKnockbackTime <= 0 )
+	{
+		if( moveAxis.x > 0 && v0.x > velocity.x )
+			nIsSlidingDownWall = 1;
+		else if( moveAxis.x < 0 && v0.x < velocity.x )
+			nIsSlidingDownWall = -1;
+		if( nIsSlidingDownWall )
+			velocity.y = Max( velocity.y, -fSlideDownSpeed );
+	}
 }
 
 void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& moveAxis )
@@ -667,7 +683,7 @@ void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& mov
 
 void SCharacterWalkData::Jump( CCharacter * pCharacter )
 {
-	if( pLandedEntity && nState == eState_Normal && fKnockbackTime <= 0 )
+	if( ( pLandedEntity || nIsSlidingDownWall ) && nState == eState_Normal && fKnockbackTime <= 0 )
 	{
 		nState = eState_JumpHolding;
 		fJumpHoldingTime = 0;
@@ -678,9 +694,20 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 {
 	if( nState == eState_JumpHolding )
 	{
-		CVector2 dVelocity = gravity;
-		dVelocity.Normalize();
-		dVelocity = dVelocity * ( -fJumpHoldingTime / fJumpMaxHoldTime * fJumpMaxSpeed );
+		CVector2 dVelocity;
+		if( nIsSlidingDownWall > 0 )
+		{
+			dVelocity = CVector2( -0.5f, 0.732f );
+			velocity.y = 0;
+		}
+		else if( nIsSlidingDownWall < 0 )
+		{
+			dVelocity = CVector2( 0.5f, 0.732f );
+			velocity.y = 0;
+		}
+		else
+			dVelocity = CVector2( 0, 1 );
+		dVelocity = dVelocity * ( fJumpHoldingTime / fJumpMaxHoldTime * fJumpMaxSpeed );
 		velocity = velocity + dVelocity;
 		bSleep = false;
 		nState = eState_Normal;

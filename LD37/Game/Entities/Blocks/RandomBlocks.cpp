@@ -197,81 +197,98 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	SetRenderObject( new CRenderObject2D );
 
 	int32 nLength = !m_bVertical ? pChunk->nWidth : pChunk->nHeight;
-	uint32 nSeg2Count = SRand::Inst().Rand( 0, nLength / 2 );
-	uint32 nTotalSegCount = nLength - nSeg2Count;
-	bool* bSeg2 = (bool*)alloca( nTotalSegCount );
-	memset( bSeg2, 0, nTotalSegCount );
-	if( m_nTexRect2X && m_nTexRect2Y )
+	if( nLength >= 2 )
 	{
-		for( int i = 0; i < nSeg2Count; i++ )
+		uint32 nSeg2Count = SRand::Inst().Rand( 0, nLength / 2 );
+		uint32 nTotalSegCount = nLength - nSeg2Count;
+		bool* bSeg2 = (bool*)alloca( nTotalSegCount );
+		memset( bSeg2, 0, nTotalSegCount );
+		if( m_nTexRect2X && m_nTexRect2Y )
 		{
-			bSeg2[i] = true;
+			for( int i = 0; i < nSeg2Count; i++ )
+			{
+				bSeg2[i] = true;
+			}
+		}
+		SRand::Inst().Shuffle( bSeg2, nTotalSegCount );
+
+		int nCurLen = 0;
+		for( int i = 0; i < nTotalSegCount; i++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			bool b2 = bSeg2[i];
+			pImage2D->SetRect( !m_bVertical ? CRectangle( nCurLen * 32, 0, b2 ? 64 : 32, m_nWidth * 32 )
+				: CRectangle( 0, nCurLen * 32, m_nWidth * 32, b2 ? 64 : 32 ) );
+			nCurLen += b2 ? 2 : 1;
+
+			CRectangle texRect;
+			if( i == 0 || i == nTotalSegCount - 1 )
+			{
+				if( b2 )
+				{
+					texRect = m_texRect2End;
+					texRect.width /= m_nTexRect2EndX;
+					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2EndX );
+					texRect.height /= m_nTexRect2EndY;
+					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2EndY );
+				}
+				else
+				{
+					texRect = m_texRect1End;
+					texRect.width /= m_nTexRect1EndX;
+					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1EndX );
+					texRect.height /= m_nTexRect1EndY;
+					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1EndY );
+				}
+
+				if( !m_bVertical )
+				{
+					texRect.width *= 0.5f;
+					if( i == nTotalSegCount - 1 )
+						texRect.x += texRect.width;
+				}
+				else
+				{
+					texRect.height *= 0.5f;
+					if( i == nTotalSegCount - 1 )
+						texRect.y += texRect.height;
+				}
+			}
+			else
+			{
+				if( b2 )
+				{
+					texRect = m_texRect2;
+					texRect.width /= m_nTexRect2X;
+					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2X );
+					texRect.height /= m_nTexRect2Y;
+					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2Y );
+				}
+				else
+				{
+					texRect = m_texRect1;
+					texRect.width /= m_nTexRect1X;
+					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1X );
+					texRect.height /= m_nTexRect1Y;
+					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1Y );
+				}
+			}
+
+			pImage2D->SetTexRect( texRect );
+			GetRenderObject()->AddChild( pImage2D );
 		}
 	}
-	SRand::Inst().Shuffle( bSeg2, nTotalSegCount );
-
-	int nCurLen = 0;
-	for( int i = 0; i < nTotalSegCount; i++ )
+	else
 	{
 		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-		bool b2 = bSeg2[i];
-		pImage2D->SetRect( !m_bVertical ? CRectangle( nCurLen * 32, 0, b2 ? 64 : 32, m_nWidth * 32 )
-			: CRectangle( 0, nCurLen * 32, m_nWidth * 32, b2 ? 64 : 32 ) );
-		nCurLen += b2 ? 2 : 1;
-
+		pImage2D->SetRect( !m_bVertical ? CRectangle( 0, 0, 32, m_nWidth * 32 )
+			: CRectangle( 0, 0, m_nWidth * 32, 32 ) );
 		CRectangle texRect;
-		if( i == 0 || i == nTotalSegCount - 1 )
-		{
-			if( b2 )
-			{
-				texRect = m_texRect2End;
-				texRect.width /= m_nTexRect2EndX;
-				texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2EndX );
-				texRect.height /= m_nTexRect2EndY;
-				texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2EndY );
-			}
-			else
-			{
-				texRect = m_texRect1End;
-				texRect.width /= m_nTexRect1EndX;
-				texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1EndX );
-				texRect.height /= m_nTexRect1EndY;
-				texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1EndY );
-			}
-
-			if( !m_bVertical )
-			{
-				texRect.width *= 0.5f;
-				if( i == nTotalSegCount - 1 )
-					texRect.x += texRect.width;
-			}
-			else
-			{
-				texRect.height *= 0.5f;
-				if( i == nTotalSegCount - 1 )
-					texRect.y += texRect.height;
-			}
-		}
-		else
-		{
-			if( b2 )
-			{
-				texRect = m_texRect2;
-				texRect.width /= m_nTexRect2X;
-				texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2X );
-				texRect.height /= m_nTexRect2Y;
-				texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2Y );
-			}
-			else
-			{
-				texRect = m_texRect1;
-				texRect.width /= m_nTexRect1X;
-				texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1X );
-				texRect.height /= m_nTexRect1Y;
-				texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1Y );
-			}
-		}
-
+		texRect = m_texRect1;
+		texRect.width /= m_nTexRect1X;
+		texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1X );
+		texRect.height /= m_nTexRect1Y;
+		texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1Y );
 		pImage2D->SetTexRect( texRect );
 		GetRenderObject()->AddChild( pImage2D );
 	}

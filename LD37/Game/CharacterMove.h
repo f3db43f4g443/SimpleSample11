@@ -135,6 +135,7 @@ struct SCharacterWalkData : public SCharacterMovementData
 	float fRollMaxTime;
 	float fRollMaxSpeed;
 	float fFindFloorDist;
+	float fSlideDownSpeed;
 
 	enum
 	{
@@ -148,17 +149,19 @@ struct SCharacterWalkData : public SCharacterMovementData
 		nState = eState_Normal;
 		fJumpHoldingTime = 0;
 		bRollingAcrossWall = false;
+		nIsSlidingDownWall = 0;
 		pLandedEntity = NULL;
-		fKnockbackTime = false;
+		fKnockbackTime = 0;
 		vecKnockback = CVector2( 0, 0 );
 	}
 	uint8 nState;
 	bool bRollingAcrossWall;
+	uint8 nRollCount;
+	int8 nIsSlidingDownWall;
 	CVector2 velocity;
 	float fJumpHoldingTime;
 	float fRollTime;
 	CVector2 rollDir;
-	uint8 nRollCount;
 
 	CReference<CEntity> pLandedEntity;
 	CMatrix2D lastLandedEntityTransform;

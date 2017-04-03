@@ -161,7 +161,7 @@
         </next_level>
       </node>
       
-      <node type="subregion" name="lv1">
+      <node type="subregion" name="lv1_1">
         <node type="tile" x="0" y="0" w="32" h="20">
           <ref name="vblock" />
         </node>
@@ -221,6 +221,43 @@
           <ref name="enemyroom_large" />
         </node>
         <ref name="1f" x="0" y="124" w="32" h="4" />
+      </node>
+
+      <node type="subregion" name="lv1_2">
+        <node type="tile" x="0" y="0" w="32" h="12">
+          <ref name="vblock" />
+        </node>
+        <node type="lv1type1" x="0" y="12" w="32" h="112">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <room1>
+            <ref name="enemyroom1" />
+          </room1>
+          <room2>
+            <ref name="enemyroom2" />
+          </room2>
+          <bar1>
+            <ref name="stonebar" />
+          </bar1>
+          <bar2>
+            <ref name="stonebar2" />
+          </bar2>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+            </node>
+          </obj>
+        </node>
+        <ref name="2f" x="0" y="124" w="32" h="4" />
       </node>
     </nodes>
   </level_gen>
