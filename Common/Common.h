@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 #ifdef _DEBUG
 #include <stdio.h>
 #endif

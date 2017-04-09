@@ -115,6 +115,12 @@
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvBarrierGen.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Blocks\LvBarriers.cpp">
+      <Filter>Entities\Blocks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -230,6 +236,9 @@
     </ClInclude>
     <ClInclude Include="LevelGenerating\LvGenCommon.h">
       <Filter>LevelGenerating</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Blocks\LvBarriers.h">
+      <Filter>Entities\Blocks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

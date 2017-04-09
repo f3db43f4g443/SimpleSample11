@@ -202,6 +202,13 @@
             absorbshakestrengthperheight="0.25" shakedmg="5" prefab="data/blocks/block_vbar/block_vbar.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
       </node-->
+
+      <node name="unbreakable" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/unbreakable.pf">
+        <types>4</types>
+      </node>
+      <node name="core" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/core.pf">
+        <types>4</types>
+      </node>
       
       <node name="enemyroom_small" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wood.pf">
         <types>
@@ -426,22 +433,6 @@
       
       <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">
         <types>0</types>
-      </node>
-      <node name="1f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/1f.pf" islevelbarrier="1">
-        <types>
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-        </types>
-        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
-        <next_level>
-          <node type="randomfill">
-            <ref name="e10" p="1" />
-            <ref name="e11" p="1" />
-            <node type="empty" p="40" />
-          </node>
-        </next_level>
       </node>
       <node name="2f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/2f.pf" islevelbarrier="1">
         <types>

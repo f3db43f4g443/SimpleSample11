@@ -101,15 +101,29 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 		pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
 		pChunkObject->SetChunk( this, pLevel );
 
-		while( Get_SpawnInfo() )
+		if( Get_SpawnInfo() )
 		{
-			auto pSpawnInfo = Get_SpawnInfo();
-			auto pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( pSpawnInfo->pos + pChunkObject->GetPosition() );
-			pEntity->SetRotation( pSpawnInfo->r );
-			pEntity->SetParentBeforeEntity( pChunkObject->GetParentEntity() );
-			pSpawnInfo->RemoveFrom_SpawnInfo();
-			delete pSpawnInfo;
+			CVector2 spawnPos = pChunkObject->GetPosition();
+			CChunkObject* pChunkObject1 = pChunkObject;
+			while( true )
+			{
+				CChunkObject* pChunkObject2 = SafeCast<CChunkObject>( pChunkObject1->GetParentEntity() );
+				if( !pChunkObject2 )
+					break;
+				spawnPos = spawnPos + pChunkObject2->GetPosition();
+				pChunkObject1 = pChunkObject2;
+			}
+
+			while( Get_SpawnInfo() )
+			{
+				auto pSpawnInfo = Get_SpawnInfo();
+				auto pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( pSpawnInfo->pos + spawnPos );
+				pEntity->SetRotation( pSpawnInfo->r );
+				pEntity->SetParentBeforeEntity( pChunkObject1->GetParentEntity() );
+				pSpawnInfo->RemoveFrom_SpawnInfo();
+				delete pSpawnInfo;
+			}
 		}
 	}
 	else
@@ -120,14 +134,21 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 		pChunkObject->SetChunk( this, pLevel );
 	}
 
-	for( auto pSubChunk = Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+	for( auto pSubChunk = Get_SubChunk(); pSubChunk; )
 	{
-		if( pSubChunk->nSubChunkType == 1 )
+		if( pSubChunk->nSubChunkType >= 1 )
 		{
 			pSubChunk->bIsSubChunk = true;
 			pSubChunk->CreateChunkObject( pLevel, this );
 		}
+		auto pNext = pSubChunk->NextSubChunk();
+		if( pSubChunk->nSubChunkType == 2 )
+		{
+			pSubChunk->RemoveFrom_SubChunk();
+		}
+		pSubChunk = pNext;
 	}
+	pChunkObject->OnCreateComplete( pLevel );
 }
 
 float SChunk::GetFallSpeed()
@@ -167,7 +188,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		SetParentEntity( pChunk->nLayerType > 1 ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
 	}
 
-	if( pChunk->pParentChunk )
+	if( pChunk->nSubChunkType == 1 && pChunk->pParentChunk )
 		return;
 
 	if( m_strEffect.length() > 0 )
@@ -212,7 +233,10 @@ void CChunkObject::RemoveChunk()
 		auto pChunk = m_pChunk;
 		m_pChunk = NULL;
 		pChunk->pChunkObject = NULL;
-		CMyLevel::GetInst()->RemoveChunk( pChunk );
+		if( pChunk->nSubChunkType == 2 )
+			delete pChunk;
+		else
+			CMyLevel::GetInst()->RemoveChunk( pChunk );
 	}
 }
 
@@ -279,9 +303,15 @@ void CChunkObject::Kill()
 	CMyLevel::GetInst()->pHitSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 	auto pChunk = m_pChunk;
-	m_pChunk = NULL;
-	pChunk->pChunkObject = NULL;
-	CMyLevel::GetInst()->KillChunk( pChunk );
+	if( pChunk )
+	{
+		m_pChunk = NULL;
+		pChunk->pChunkObject = NULL;
+		if( pChunk->nSubChunkType == 2 )
+			delete pChunk;
+		else
+			CMyLevel::GetInst()->KillChunk( pChunk );
+	}
 	SetParentEntity( NULL );
 }
 

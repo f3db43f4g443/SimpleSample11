@@ -271,7 +271,7 @@ void CPlayer::UpdateRoom()
 		}
 
 		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
+		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom == 1 )
 		{
 			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
 				pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),

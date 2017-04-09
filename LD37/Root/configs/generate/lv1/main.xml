@@ -1,6 +1,7 @@
 ﻿<root>
   <includes>
     <item name="lv1common" />
+    <item name="1f" />
   </includes>
   <level_gen>
     <nodes>
@@ -162,14 +163,14 @@
       </node>
       
       <node type="subregion" name="lv1_1">
-        <node type="tile" x="0" y="0" w="32" h="20">
+        <node type="tile" x="0" y="0" w="32" h="16">
           <ref name="vblock" />
         </node>
-        <node type="randomfill" x="0" y="20" w="32" h="8">
+        <!--node type="randomfill" x="0" y="16" w="32" h="8">
           <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
           <ref name="block0" p="16" />
         </node>
-        <node type="tile" x="0" y="28" w="32" h="32" tilex="32" tiley="8">
+        <node type="tile" x="0" y="24" w="32" h="32" tilex="32" tiley="8">
           <node type="subregion">    
             <node type="randompick" x="0" y="0" w="0" h="0" >
               <ref name="lv1style1" p="1" />
@@ -180,7 +181,7 @@
             </node>
           </node>
         </node>
-        <node type="tile" x="0" y="60" w="32" h="32" tilex="32" tiley="8">
+        <node type="tile" x="0" y="56" w="32" h="32" tilex="32" tiley="8">
           <node type="subregion">
             <node type="randompick" x="0" y="0" w="0" h="0" >
               <ref name="lv1style1" p="1" />
@@ -196,7 +197,7 @@
             </node>
           </node>
         </node>
-        <node type="tile" x="0" y="92" w="32" h="24" tilex="32" tiley="8">
+        <node type="tile" x="0" y="88" w="32" h="24" tilex="32" tiley="8">
           <node type="subregion">
             <node type="randompick" x="0" y="0" w="0" h="0" >
               <ref name="lv1style1" p="1" />
@@ -217,17 +218,17 @@
             </node>
           </node>
         </node>
-        <node type="tile" x="0" y="116" w="32" h="8" tilex="8" tiley="8">
+        <node type="tile" x="0" y="112" w="32" h="8" tilex="8" tiley="8">
           <ref name="enemyroom_large" />
-        </node>
-        <ref name="1f" x="0" y="124" w="32" h="4" />
+        </node-->
+        <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>
 
       <node type="subregion" name="lv1_2">
         <node type="tile" x="0" y="0" w="32" h="12">
           <ref name="vblock" />
         </node>
-        <node type="lv1type1" x="0" y="12" w="32" h="112">
+        <node type="lv1type1" x="0" y="12" w="32" h="108">
           <wall>
             <ref name="block0" />
           </wall>
@@ -257,7 +258,7 @@
             </node>
           </obj>
         </node>
-        <ref name="2f" x="0" y="124" w="32" h="4" />
+        <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>
     </nodes>
   </level_gen>

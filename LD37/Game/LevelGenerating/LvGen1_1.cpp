@@ -170,7 +170,7 @@ void CLevelGenNode1_1::GenRooms()
 				newPointsRect = TRectangle<int32>( roomRect.GetRight(), roomRect.y, 1, roomRect.height );
 				break;
 			case 3:
-				if( roomRect.height >= nMaxHeight || roomRect.GetBottom() >= nWidth )
+				if( roomRect.height >= nMaxHeight || roomRect.GetBottom() >= nHeight )
 				{
 					bSucceed = false;
 					break;

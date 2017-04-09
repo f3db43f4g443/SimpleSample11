@@ -114,7 +114,7 @@ void SLevelBuildContext::Build()
 					auto pBlock = GetBlock( i, j, iLayer );
 					if( pBlock )
 					{
-						if( pBlock->pParent->pOwner->nSubChunkType )
+						if( pBlock->pParent->pOwner->nSubChunkType == 1 )
 						{
 							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
 							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
@@ -432,7 +432,7 @@ public:
 		for( int i = 0; i < nCount; i++ )
 		{
 			SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-			pSpawnInfo->pos = CVector2( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetRight(), rect.GetBottom() ) );
+			pSpawnInfo->pos = CVector2( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ) );
 			pSpawnInfo->pPrefab = m_pPrefab;
 			pSpawnInfo->r = 0;
 			context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
@@ -1049,6 +1049,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
 	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
+	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
 }
 
 CLevelGenerateNode* CLevelGenerateFactory::LoadNode( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )

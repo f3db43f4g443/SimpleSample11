@@ -192,7 +192,7 @@ void CPrefabNode::UpdateTaggedNodePtrInfo()
 	}
 
 	uint32 nIndex = 0;
-	UpdateTaggedNodePtrInfo( nIndex, GetName(), mapInfo );
+	UpdateTaggedNodePtrInfo( nIndex, "", mapInfo );
 }
 
 void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo )

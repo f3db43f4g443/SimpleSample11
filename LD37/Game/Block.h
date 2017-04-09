@@ -135,19 +135,18 @@ struct SChunk
 
 	bool IsFullyUpdated() { return nUpdateCount == ( nLayerType == 3 ? nWidth * 2 : nWidth ); }
 
-	uint8 bIsRoom : 1;
 	uint8 bIsLevelBarrier : 1;
 	uint8 bStopMove : 1;
 	uint8 bForceStop : 1;
-
 	uint8 bSpawned : 1;
 	uint8 bIsSubChunk : 1;
 	uint8 bMovedLastFrame : 1;
 	uint8 bIsBeingRepaired : 1;
-
-	uint8 nLayerType : 2;
-	uint8 nSubChunkType : 1;
 	uint8 nVisitFlag : 1;
+
+	uint8 bIsRoom : 2;
+	uint8 nLayerType : 2;
+	uint8 nSubChunkType : 2;
 
 	SChunk* pParentChunk;
 	LINK_LIST( SChunk, SubChunk )
@@ -166,12 +165,13 @@ public:
 		eDamage_Crush
 	};
 
-	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
+	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_pChunk( NULL ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
 		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
 	void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) {}
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
 
 	float GetHp() { return m_fHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }

@@ -106,7 +106,7 @@ void CMyLevel::OnRemovedFromStage()
 		s_pLevel = NULL;
 }
 
-const char* g_levels[] = { "lv1_2", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
+const char* g_levels[] = { "lv1_1", "lv1_1", "lv1_1", "lv1_1", "lv1_1" };
 
 void CMyLevel::CreateGrids( bool bNeedInit )
 {
@@ -166,16 +166,26 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 	uint32 nChunks = 0;
 	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
 	{
-		nChunks++;
+		if( pChunk->nSubChunkType != 2 )
+			nChunks++;
 	}
 	newChunks.resize( nChunks );
 	while( pChunk->Get_SubChunk() )
 	{
-		auto& item = newChunks[--nChunks];
-		item.first = pChunk->Get_SubChunk();
-		item.second = item.first->pos;
-		item.first->RemoveFrom_SubChunk();
-		item.first->bIsSubChunk = false;
+		auto pSubChunk = pChunk->Get_SubChunk();
+		if( pSubChunk->nSubChunkType == 2 )
+		{
+			pSubChunk->RemoveFrom_SubChunk();
+			delete pSubChunk;
+		}
+		else
+		{
+			auto& item = newChunks[--nChunks];
+			item.first = pSubChunk;
+			item.second = item.first->pos;
+			item.first->RemoveFrom_SubChunk();
+			item.first->bIsSubChunk = false;
+		}
 	}
 	SplitChunks( pChunk, newChunks );
 }

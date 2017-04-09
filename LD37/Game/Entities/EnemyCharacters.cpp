@@ -97,7 +97,7 @@ void CEnemyCharacter::UpdateMove()
 			CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
 			if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
 			{
-				CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
+				CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
 					pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
 					pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
 				if( rect.Contains( GetPosition() ) )
@@ -114,7 +114,8 @@ void CEnemyCharacter::UpdateMove()
 			m_nState = 0;
 
 			auto pChunk = pCurRoom->GetChunk();
-			CRectangle roomBound( pChunk->pos.x, pChunk->pos.y, pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+			CRectangle roomBound( pCurRoom->globalTransform.GetPosition().x, pCurRoom->globalTransform.GetPosition().y,
+				pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
 			CVector2 dir1 = m_velocity;
 			CVector2 dir2 = roomBound.GetCenter() - GetPosition();
 			dir1.Normalize();
@@ -166,7 +167,8 @@ void CEnemyCharacter::UpdateMove()
 			if( !m_nFireStopTimeLeft )
 			{
 				auto pChunk = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() )->GetChunk();
-				CRectangle roomBound( pChunk->pos.x, pChunk->pos.y, pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+				CRectangle roomBound( m_flyData.pLandedEntity->globalTransform.GetPosition().x, m_flyData.pLandedEntity->globalTransform.GetPosition().y,
+					pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
 				CRectangle selfBound;
 				CMatrix2D mat;
 				mat.Identity();
@@ -211,7 +213,7 @@ void CEnemyCharacter::UpdateMove()
 		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
 		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
 		{
-			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
+			CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
 				pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
 				pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
 			if( rect.Contains( GetPosition() ) )

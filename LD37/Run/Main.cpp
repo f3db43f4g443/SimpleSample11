@@ -7,7 +7,7 @@
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
-	SRand::Inst().nSeed = (uint32)GetLocalTime();
+	SRand::Inst().nSeed = 0;// (uint32)GetLocalTime();
 
 	InitGame();
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();

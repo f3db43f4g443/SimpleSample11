@@ -31,6 +31,27 @@ struct SRand
 		}
 	}
 
+	void C( uint32 a, uint32 b, int8* result )
+	{
+		memset( result, 1, a );
+		memset( result + a, 0, b - a );
+		Shuffle( result, b );
+	}
+
+	void C1( uint32 a, uint32 b, uint32* result )
+	{
+		int8* arr = (int8*)alloca( b );
+		memset( arr, 1, a );
+		memset( arr + a, 0, b - a );
+		Shuffle( arr, b );
+		int iRes = 0;
+		for( int i = 0; i < b; i++ )
+		{
+			if( arr[i] )
+				result[iRes++] = i;
+		}
+	}
+
 	static SRand& Inst()
 	{
 		static SRand g_inst;

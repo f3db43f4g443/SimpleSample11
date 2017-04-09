@@ -55,3 +55,40 @@ private:
 	};
 	vector<SBar> m_bars;
 };
+
+class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenBase();
+	void GenRooms();
+	void GenWalls();
+
+	CReference<CLevelGenerateNode> m_pLabelNode;
+	CReference<CLevelGenerateNode> m_pFillNode;
+	CReference<CLevelGenerateNode> m_pBaseNode;
+	CReference<CLevelGenerateNode> m_pCoreNode;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pWallHNode;
+	CReference<CLevelGenerateNode> m_pWallVNode;
+
+	enum
+	{
+		eType_None,
+		eType_Base,
+		eType_Core,
+		eType_Room,
+		eType_Wall,
+		eType_WallH,
+		eType_WallV,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	TRectangle<int32> m_labelRect;
+	vector<TRectangle<int32> > m_rooms;
+	vector<TRectangle<int32> > m_walls;
+};

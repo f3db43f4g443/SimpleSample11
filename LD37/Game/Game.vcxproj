@@ -431,6 +431,7 @@
     <ClCompile Include="Entities\Barrage.cpp" />
     <ClCompile Include="Entities\BlockBuffs.cpp" />
     <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
+    <ClCompile Include="Entities\Blocks\LvBarriers.cpp" />
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
     <ClCompile Include="Entities\Bullets.cpp" />
@@ -452,6 +453,7 @@
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
+    <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
     <ClCompile Include="Lightning.cpp" />
@@ -491,6 +493,7 @@
     <ClInclude Include="Entities\Barrage.h" />
     <ClInclude Include="Entities\BlockBuffs.h" />
     <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
+    <ClInclude Include="Entities\Blocks\LvBarriers.h" />
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />
     <ClInclude Include="Entities\Bullets.h" />

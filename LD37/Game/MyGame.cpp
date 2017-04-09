@@ -27,6 +27,7 @@
 #include "Entities/Barrage.h"
 #include "Entities/Blocks/RandomBlocks.h"
 #include "Entities/Blocks/SpecialBlocks.h"
+#include "Entities/Blocks/LvBarriers.h"
 #include "Entities/Blocks/lv1/SpecialLv1.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
@@ -610,6 +611,15 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nTriggerImpact )
 		REGISTER_MEMBER( m_strPrefab )
 		REGISTER_MEMBER( m_strPrefab1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CLvBarrier1 )
+		REGISTER_BASE_CLASS( CRandomChunkTiled )
+		REGISTER_MEMBER( m_strCore )
+		REGISTER_MEMBER( m_strWall )
+		REGISTER_MEMBER( m_strKillEffect )
+		REGISTER_MEMBER( m_nKillEffectInterval )
+		REGISTER_MEMBER( m_nDeathTime )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CGarbageBinRed )
