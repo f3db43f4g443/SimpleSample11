@@ -3,6 +3,9 @@
     <item name="common" public="1" />
   </includes>
   <level_gen>
+    <attachs>
+      <node name="pipe0" prefab="data/blockitems/pipe0.pf" sizey="16" attach_type="1" />
+    </attachs>
     <nodes>
       <node name="block0" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv1/block0.pf">
         <types>0</types>

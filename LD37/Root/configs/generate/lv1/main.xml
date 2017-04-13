@@ -257,6 +257,9 @@
               <ref name="garbage_bin_green" p="1" />
             </node>
           </obj>
+          <pipe>
+            <ref name="pipe0" />
+          </pipe>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>

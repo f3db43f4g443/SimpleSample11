@@ -430,6 +430,8 @@
     <ClCompile Include="Entities\AIObject.cpp" />
     <ClCompile Include="Entities\Barrage.cpp" />
     <ClCompile Include="Entities\BlockBuffs.cpp" />
+    <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp" />
+    <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp" />
     <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
     <ClCompile Include="Entities\Blocks\LvBarriers.cpp" />
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
@@ -492,6 +494,8 @@
     <ClInclude Include="Entities\AIObject.h" />
     <ClInclude Include="Entities\Barrage.h" />
     <ClInclude Include="Entities\BlockBuffs.h" />
+    <ClInclude Include="Entities\BlockItems\BlockItemsLv1.h" />
+    <ClInclude Include="Entities\BlockItems\CommonBlockItems.h" />
     <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
     <ClInclude Include="Entities\Blocks\LvBarriers.h" />
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />

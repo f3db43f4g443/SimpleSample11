@@ -1,6 +1,6 @@
 #pragma once
-#include "Entity.h"
 #include "Common/StringUtil.h"
+#include "Character.h"
 
 class CBlockItem : public CEntity
 {

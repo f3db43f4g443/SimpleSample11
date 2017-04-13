@@ -29,6 +29,7 @@
 #include "Entities/Blocks/SpecialBlocks.h"
 #include "Entities/Blocks/LvBarriers.h"
 #include "Entities/Blocks/lv1/SpecialLv1.h"
+#include "Entities/BlockItems/BlockItemsLv1.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
 #include "GUI/MainUI.h"
@@ -719,6 +720,18 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CFallingSpike )
 		REGISTER_BASE_CLASS( CFallingObj )
 		REGISTER_MEMBER( m_strBullet )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDetectTrigger )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_detectRect )
+		REGISTER_MEMBER( m_detectRect1 )
+		REGISTER_MEMBER( m_nCD )
+		REGISTER_MEMBER( m_strPrefab )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPipe0 )
+		REGISTER_BASE_CLASS( CDetectTrigger )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

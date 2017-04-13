@@ -127,11 +127,11 @@ void CBullet::OnTickAfterHitTest()
 						return;
 					}
 				}
-				else
+				/*else
 				{
 					Kill();
 					return;
-				}
+				}*/
 			}
 
 			CDoor* pDoor = SafeCast<CDoor>( pEntity );
@@ -213,11 +213,11 @@ void CBullet::OnTickAfterHitTest()
 				}
 			}
 
-			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			/*if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 			{
 				Kill();
 				return;
-			}
+			}*/
 		}
 	}
 	break;
@@ -275,11 +275,11 @@ void CBullet::OnTickAfterHitTest()
 				}
 			}
 
-			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			/*if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 			{
 				Kill();
 				return;
-			}
+			}*/
 		}
 	}
 		break;

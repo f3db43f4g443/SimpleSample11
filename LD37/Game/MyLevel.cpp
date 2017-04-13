@@ -106,7 +106,7 @@ void CMyLevel::OnRemovedFromStage()
 		s_pLevel = NULL;
 }
 
-const char* g_levels[] = { "lv1_1", "lv1_1", "lv1_1", "lv1_1", "lv1_1" };
+const char* g_levels[] = { "lv1_2", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
 
 void CMyLevel::CreateGrids( bool bNeedInit )
 {

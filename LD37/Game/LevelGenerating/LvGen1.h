@@ -24,6 +24,7 @@ private:
 	CReference<CLevelGenerateNode> m_pBar1Node;
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pPipeNode;
 
 	enum
 	{
@@ -36,6 +37,7 @@ private:
 		eType_Door,
 		eType_Path,
 		eType_Object,
+		eType_Pipe,
 
 		eType_Count,
 	};

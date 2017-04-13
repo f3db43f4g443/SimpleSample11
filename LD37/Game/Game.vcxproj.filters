@@ -121,6 +121,13 @@
     <ClCompile Include="Entities\Blocks\LvBarriers.cpp">
       <Filter>Entities\Blocks</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp">
+      <Filter>Entities\BlockItems</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\BlockItems\CommonBlockItem.cpp" />
+    <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp">
+      <Filter>Entities\BlockItems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -240,6 +247,12 @@
     <ClInclude Include="Entities\Blocks\LvBarriers.h">
       <Filter>Entities\Blocks</Filter>
     </ClInclude>
+    <ClInclude Include="Entities\BlockItems\BlockItemsLv1.h">
+      <Filter>Entities\BlockItems</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\BlockItems\CommonBlockItems.h">
+      <Filter>Entities\BlockItems</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -336,6 +349,9 @@
     </Filter>
     <Filter Include="LevelGenerating">
       <UniqueIdentifier>{84db6396-9dda-46cb-8615-6c25a5533e61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\BlockItems">
+      <UniqueIdentifier>{a3941e78-2856-46ae-888e-26754d4a1fcf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

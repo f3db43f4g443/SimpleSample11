@@ -14,6 +14,7 @@ void CLevelGenNode1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext 
 	m_pBar1Node = CreateNode( pXml->FirstChildElement( "bar1" )->FirstChildElement(), context );
 	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pPipeNode = CreateNode( pXml->FirstChildElement( "pipe" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -48,6 +49,11 @@ void CLevelGenNode1_1::Generate( SLevelBuildContext & context, const TRectangle<
 			{
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+			else if( genData == eType_Pipe )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pPipeNode->Generate( context, TRectangle<int32>( x, y + 1, 1, 1 ) );
 			}
 		}
 	}
@@ -1292,6 +1298,13 @@ void CLevelGenNode1_1::FillBlockArea()
 		{
 			if( gendata[i + j * nWidth] == eType_None )
 				black.push_back( TVector2<int32>( i, j ) );
+			else if( j < nHeight - 1 && gendata[i + j * nWidth] == eType_Path )
+			{
+				if( gendata[i + ( j + 1 ) * nWidth] == eType_Room2 && SRand::Inst().Rand( 0.0f, 1.0f ) < 0.3f )
+				{
+					gendata[i + j * nWidth] = eType_Pipe;
+				}
+			}
 		}
 	}
 	if( black.size() )
@@ -1303,6 +1316,7 @@ void CLevelGenNode1_1::FillBlockArea()
 		if( gendata[p.x + p.y * nWidth] )
 			continue;
 
+		bool bCreatedPipe = false;
 		int32 n = SRand::Inst().Rand( nMin, nMax );
 		vector<TVector2<int32> > q;
 		q.push_back( p );
@@ -1312,6 +1326,12 @@ void CLevelGenNode1_1::FillBlockArea()
 		{
 			TVector2<int32> pos = q[iq];
 			gendata[pos.x + pos.y * nWidth] = nType;
+
+			if( !bCreatedPipe && pos.y > 0 && gendata[pos.x + ( pos.y - 1 ) * nWidth] == eType_Path )
+			{
+				gendata[pos.x + ( pos.y - 1 ) * nWidth] = eType_Pipe;
+				bCreatedPipe = true;
+			}
 
 			TVector2<int32> ofs[4] = { { -1, 0 },{ 0, -1 },{ 1, 0 },{ 0, 1 } };
 			SRand::Inst().Shuffle( ofs, 4 );
