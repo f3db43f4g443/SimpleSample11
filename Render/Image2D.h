@@ -57,6 +57,7 @@ public:
 	CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, SImage2DFrameData* pData, bool bGUI = false );
 	SImage2DFrameData* GetData() { return m_pData; }
 	void SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPerSec );
+	void SetPlayPercent( float fPlayPercent );
 	uint32 GetFrameBegin() { return m_nFrameBegin; }
 	uint32 GetFrameEnd() { return m_nFrameEnd; }
 	float GetFramesPerSec() { return m_fFramesPerSec; }

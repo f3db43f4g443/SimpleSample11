@@ -19,6 +19,7 @@ public:
 	virtual void Damage( int32 nDmg ) {}
 	virtual bool IsHiding() { return false; }
 	const CVector2& GetVelocity() { return m_velocity; }
+	void SetVelocity( const CVector2& velocity ) { m_velocity = velocity; }
 protected:
 	virtual void OnTickBeforeHitTest();
 	virtual void OnTickAfterHitTest();

@@ -166,9 +166,10 @@
         <node type="tile" x="0" y="0" w="32" h="16">
           <ref name="vblock" />
         </node>
-        <!--node type="randomfill" x="0" y="16" w="32" h="8">
+        <node type="randomfill" x="0" y="16" w="32" h="8">
           <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-          <ref name="block0" p="16" />
+          <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
+          <ref name="block0" p="32" />
         </node>
         <node type="tile" x="0" y="24" w="32" h="32" tilex="32" tiley="8">
           <node type="subregion">    
@@ -177,6 +178,7 @@
             </node>
             <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
               <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
               <ref name="lv1fill1" p="8" />
             </node>
           </node>
@@ -189,10 +191,11 @@
             </node>
             <node type="randomfill" x="0" y="2" w="0" h="0">
               <ref name="lv1_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
-              <ref name="lv1fill2" p="1" />
+              <ref name="lv1fill2" p="2" />
             </node>
             <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
               <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
               <ref name="lv1fill2" p="3" />
             </node>
           </node>
@@ -206,21 +209,22 @@
             </node>
             <node type="randomfill" x="0" y="0" w="0" h="0">
               <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
-              <node type="empty" p="1" />
+              <node type="empty" p="2" />
             </node>
             <node type="randomfill" x="0" y="2" w="0" h="0">
               <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
-              <ref name="lv1fill2" p="1" />
+              <ref name="lv1fill2" p="2" />
             </node>
             <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
               <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
+              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
               <ref name="lv1fill2" p="1" />
             </node>
           </node>
         </node>
         <node type="tile" x="0" y="112" w="32" h="8" tilex="8" tiley="8">
           <ref name="enemyroom_large" />
-        </node-->
+        </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>
 

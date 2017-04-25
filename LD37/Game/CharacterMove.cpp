@@ -333,6 +333,16 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 	return true;
 }
 
+bool SCharacterMovementData::HasAnyCollision()
+{
+	for( int i = 0; i < ELEM_COUNT( bHitChannel ); i++ )
+	{
+		if( bHitChannel[i] )
+			return true;
+	}
+	return false;
+}
+
 
 void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis )
 {
@@ -529,7 +539,6 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 			bSleep = false;
 		}
 	}
-
 
 	if( !ResolvePenetration( pCharacter ) )
 	{
@@ -827,4 +836,38 @@ CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, int8 nDi
 
 	fFallSpeed = -fixedVelocity.y;
 	return fixedVelocity;
+}
+
+void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVector2 & moveTarget )
+{
+	bool bHasAnyCollision = HasAnyCollision();
+
+	if( bHasAnyCollision && !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+
+	CVector2 lastVelocity = pCharacter->GetVelocity();
+	float fLastSpeed = lastVelocity.Length();
+	float fStopTime = fLastSpeed / fMaxAcc;
+	CVector2 stopPos = pCharacter->GetPosition() + lastVelocity * fStopTime * fStablity;
+
+	CVector2 acc( 0, 0 );
+	CVector2 d = moveTarget - stopPos;
+	float l = d.Normalize();
+	if( l > 1.0f )
+		acc = d * fMaxAcc;
+
+	float fTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+	CVector2 curVelocity = lastVelocity + acc * fTime;
+	CVector2 dPos = ( lastVelocity + curVelocity ) * ( fTime / 2 );
+	if( bHasAnyCollision )
+	{
+		TryMove( pCharacter, dPos, curVelocity );
+		pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
+	}
+	else
+		pCharacter->SetPosition( pCharacter->GetPosition() + dPos );
+	pCharacter->SetVelocity( curVelocity );
 }

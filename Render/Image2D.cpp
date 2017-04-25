@@ -115,6 +115,11 @@ void CMultiFrameImage2D::SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPer
 	UpdateImage();
 }
 
+void CMultiFrameImage2D::SetPlayPercent( float fPlayPercent )
+{
+	m_fCurFrame = ( m_nFrameEnd - m_nFrameBegin ) * fPlayPercent;
+}
+
 void CMultiFrameImage2D::SetPlaySpeed( float fPlaySpeed, bool bLoop )
 {
 	m_fPlaySpeed = fPlaySpeed;

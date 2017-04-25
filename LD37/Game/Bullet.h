@@ -15,11 +15,14 @@ public:
 		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ) { SET_BASEOBJECT_ID( CBullet ); }
 	void SetVelocity( const CVector2& velocity );
 	void SetAcceleration( const CVector2& acc );
+	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
-	virtual void OnHit( CEntity* pEntity ) {}
+	virtual void OnHit( CEntity* pEntity ) { if( m_onHit ) m_onHit( this, pEntity ); }
 	virtual void Kill();
 	void SetLife( uint32 nLife ) { m_nLife = nLife; }
 	void SetDamage( uint32 nDamage, uint32 nDamage1 = 0 ) { m_nDamage = nDamage; m_nDamage1 = nDamage1; }
+
+	void SetOnHit( function<void( CBullet*, CEntity* )> onHit ) { m_onHit = onHit; }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override { m_pCreator = NULL; SetBulletContext( NULL ); CCharacter::OnRemovedFromStage(); }
@@ -44,6 +47,9 @@ protected:
 	uint32 m_nDamage1;
 
 	CVector2 m_acc;
+	float m_fAngularVelocity;
+
+	function<void( CBullet*, CEntity* )> m_onHit;
 
 	CReference<CEffectObject> m_pDeathEffect;
 	CReference<CRenderObject2D> m_pParticle;

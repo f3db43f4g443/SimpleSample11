@@ -124,9 +124,11 @@
     <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp">
       <Filter>Entities\BlockItems</Filter>
     </ClCompile>
-    <ClCompile Include="Entities\BlockItems\CommonBlockItem.cpp" />
     <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp">
       <Filter>Entities\BlockItems</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Enemies\Lv1Enemies.cpp">
+      <Filter>Entities\Enemies</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -253,6 +255,9 @@
     <ClInclude Include="Entities\BlockItems\CommonBlockItems.h">
       <Filter>Entities\BlockItems</Filter>
     </ClInclude>
+    <ClInclude Include="Entities\Enemies\Lv1Enemies.h">
+      <Filter>Entities\Enemies</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -352,6 +357,9 @@
     </Filter>
     <Filter Include="Entities\BlockItems">
       <UniqueIdentifier>{a3941e78-2856-46ae-888e-26754d4a1fcf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\Enemies">
+      <UniqueIdentifier>{80fac333-5553-4881-a29a-1f94eb78819f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

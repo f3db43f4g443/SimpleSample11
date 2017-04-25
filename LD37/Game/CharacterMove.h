@@ -9,6 +9,7 @@ struct SCharacterMovementData
 	bool TryMoveAcrossWall( CCharacter* pCharacter, const CVector2& ofs, const CVector2& ofsLeft );
 
 	bool ResolvePenetration( CCharacter* pCharacter );
+	bool HasAnyCollision();
 
 	bool bSleep;
 	bool bHitChannel[eEntityHitType_Count];
@@ -176,4 +177,13 @@ protected:
 	void FallOff();
 	void OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D& oldTrans, const CMatrix2D& newTrans );
 	void FindFloor( CCharacter* pCharacter );
+};
+
+struct SCharacterPhysicsFlyData : public SCharacterMovementData
+{
+	SCharacterPhysicsFlyData( const SClassCreateContext& context ) {}
+	void UpdateMove( CCharacter* pCharacter, const CVector2& moveTarget );
+
+	float fMaxAcc;
+	float fStablity;
 };

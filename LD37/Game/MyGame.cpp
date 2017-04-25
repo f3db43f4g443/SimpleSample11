@@ -32,6 +32,7 @@
 #include "Entities/BlockItems/BlockItemsLv1.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
+#include "Entities/Enemies/Lv1Enemies.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
 
@@ -284,6 +285,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( fRollMaxSpeed )
 		REGISTER_MEMBER( fFindFloorDist )
 		REGISTER_MEMBER( fSlideDownSpeed )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SCharacterPhysicsFlyData )
+		REGISTER_MEMBER( fMaxAcc )
+		REGISTER_MEMBER( fStablity )
 	REGISTER_CLASS_END()
 	
 	REGISTER_ENUM_BEGIN( EEntityHitType )
@@ -732,6 +738,23 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CPipe0 )
 		REGISTER_BASE_CLASS( CDetectTrigger )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CWindow )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_openRect )
+		REGISTER_MEMBER( m_closeRect )
+		REGISTER_MEMBER_TAGGED_PTR( m_pWindow, window )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMan, man )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_strBullet1 )
+		REGISTER_MEMBER( m_strHead )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CManHead1 )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_flyData )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

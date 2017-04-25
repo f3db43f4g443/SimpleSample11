@@ -122,7 +122,7 @@ void CPlayer::EndFire()
 
 void CPlayer::BeginRepair()
 {
-	m_bIsRepairing = true;
+	//m_bIsRepairing = true;
 	m_walkData.Jump( this );
 }
 
