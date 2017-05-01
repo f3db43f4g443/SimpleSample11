@@ -145,11 +145,11 @@
       </node>
 
       <node type="randompick" name="lv1fill1">
-        <ref name="block1a_1" p="2" />
+        <ref name="block1a" p="2" />
         <ref name="block0" p="100" />
       </node>
       <node type="randompick" name="lv1fill2">
-        <ref name="block1a_1" p="4" />
+        <ref name="block1a" p="4" />
         <ref name="block0" p="100" />
       </node>
       
