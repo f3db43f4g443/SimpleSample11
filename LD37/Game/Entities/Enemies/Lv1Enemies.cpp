@@ -112,9 +112,54 @@ void CManHead2::OnTickAfterHitTest()
 	CEnemyTemplate::OnTickAfterHitTest();
 }
 
+void CManHead3::Kill()
+{
+	SBarrageContext context;
+	context.vecBulletTypes.push_back( m_pBullet );
+	context.nBulletPageSize = 120;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	CVector2 pos = GetPosition();
+	pBarrage->AddFunc( [] ( CBarrage* pBarrage )
+	{
+		float fAngle0 = SRand::Inst().Rand( -PI, PI );
+		uint32 nBullet = 0;
+		for( int i = 0; i < 4; i++ )
+		{
+			float fAngle10 = fAngle0 + ( i - 0.5f ) * PI / 10;
+			float fAngle11 = fAngle0 - ( i - 0.5f ) * PI / 10;
+			for( int j = 0; j < 3; j++ )
+			{
+				float fAngle20 = fAngle10 + j * 0.025f;
+				float fAngle21 = fAngle11 - j * 0.025f;
+				float fSpeed = 165 + j * 35;
+				float fOfs = ( j - 1 ) * 16.0f;
+
+				for( int k = 0; k < 5; k++ )
+				{
+					float fAngle30 = fAngle20 + k * PI * 2 / 5;
+					float fAngle31 = fAngle21 + k * PI * 2 / 5;
+					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( fOfs * -sin( fAngle30 ), fOfs * cos( fAngle30 ) ), CVector2( fSpeed * cos( fAngle30 ), fSpeed * sin( fAngle30 ) ), CVector2( 0, 0 ) );
+					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( fOfs * sin( fAngle31 ), fOfs * -cos( fAngle31 ) ), CVector2( fSpeed * cos( fAngle31 ), fSpeed * sin( fAngle31 ) ), CVector2( 0, 0 ) );
+				}
+
+				pBarrage->Yield( 4 );
+			}
+		}
+
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->SetPosition( pos );
+	pBarrage->Start();
+
+	CEnemyTemplate::Kill();
+}
+
 void CManHead3::AIFunc()
 {
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
+	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = true;
 	m_flyData.fStablity = 0.45f;
 
 	m_moveTarget = GetPosition();
@@ -125,44 +170,10 @@ void CManHead3::AIFunc()
 			m_moveTarget = pPlayer->GetPosition();
 
 		CVector2 dPos = m_moveTarget - GetPosition();
-		if( dPos.Length2() < 32.0f * 32.0f )
+		if( dPos.Length2() < 64.0f * 64.0f )
 		{
-			SBarrageContext context;
-			context.vecBulletTypes.push_back( m_pBullet );
-			context.nBulletPageSize = 21;
-
-			CBarrage* pBarrage = new CBarrage( context );
-			CVector2 pos = GetPosition();
-			pBarrage->AddFunc( []( CBarrage* pBarrage )
-			{
-				float fAngle0 = SRand::Inst().Rand( -PI, PI );
-				uint32 nBullet = 0;
-				for( int i = 0; i < 4; i++ )
-				{
-					float fAngle10 = fAngle0 + ( i - 0.5f ) * PI / 20;
-					float fAngle11 = fAngle0 - ( i - 0.5f ) * PI / 20;
-					for( int j = 0; j < 3; j++ )
-					{
-						float fAngle20 = fAngle10 + j * 0.03f;
-						float fAngle21 = fAngle11 - j * 0.03f;
-						float fSpeed = 175 + j * 25;
-						float fOfs = ( j - 1 ) * 8.0f;
-
-						for( int k = 0; k < 10; k++ )
-						{
-							pBarrage->InitBullet( nBullet++, 0, -1, CVector2( fOfs * sin( fAngle20 ), fOfs * -cos( fAngle20 ) ), CVector2( fSpeed * cos( fAngle20 ), fSpeed * sin( fAngle20 ) ), CVector2( 0, 0 ) );
-							pBarrage->InitBullet( nBullet++, 0, -1, CVector2( fOfs * -sin( fAngle21 ), fOfs * cos( fAngle21 ) ), CVector2( fSpeed * cos( fAngle21 ), fSpeed * sin( fAngle21 ) ), CVector2( 0, 0 ) );
-						}
-
-						pBarrage->Yield( j == 2 ? 6 : 2 );
-					}
-				}
-
-				pBarrage->StopNewBullet();
-			} );
-			pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-			pBarrage->SetPosition( pos );
-			pBarrage->Start();
+			Kill();
+			return;
 		}
 
 		m_pAI->Yield( 0, false );
@@ -171,7 +182,10 @@ void CManHead3::AIFunc()
 
 void CManHead3::OnTickAfterHitTest()
 {
+	CReference<CManHead3> pTemp = this;
 	m_flyData.UpdateMove( this, m_moveTarget );
+	if( !GetStage() )
+		return;
 	SetRotation( atan2( -m_velocity.x, m_velocity.y ) );
 	CEnemyTemplate::OnTickAfterHitTest();
 }

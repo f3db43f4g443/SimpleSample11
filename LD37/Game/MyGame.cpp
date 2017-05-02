@@ -763,6 +763,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_flyData )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CManHead3 )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_flyData )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CEffectObject )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pStates[0], birth )

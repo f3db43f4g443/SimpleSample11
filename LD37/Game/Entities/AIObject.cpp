@@ -110,9 +110,11 @@ void CAIObject::ResumeThrow()
 		m_resumeFunc();
 	else
 	{
+		auto pStage = GetStage();
 		CReference<CAIObject> temp = this;
 		uint32 nRet = m_pCoroutine->Resume();
-		OnResumeRet( nRet );
+		if( pStage )
+			OnResumeRet( nRet );
 	}
 }
 

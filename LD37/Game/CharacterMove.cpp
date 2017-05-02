@@ -864,8 +864,9 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 	CVector2 dPos = ( lastVelocity + curVelocity ) * ( fTime / 2 );
 	if( bHasAnyCollision )
 	{
+		CVector2 curVelocity0 = curVelocity;
 		TryMove( pCharacter, dPos, curVelocity );
-		pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
+		curVelocity = curVelocity * 2 - curVelocity0;
 	}
 	else
 		pCharacter->SetPosition( pCharacter->GetPosition() + dPos );

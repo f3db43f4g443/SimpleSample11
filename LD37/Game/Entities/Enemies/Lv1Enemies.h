@@ -39,6 +39,8 @@ class CManHead3 : public CEnemyTemplate
 	friend void RegisterGameClasses();
 public:
 	CManHead3( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_flyData( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CManHead3 ); }
+
+	virtual void Kill() override;
 protected:
 	virtual void AIFunc() override;
 	virtual void OnTickAfterHitTest() override;
