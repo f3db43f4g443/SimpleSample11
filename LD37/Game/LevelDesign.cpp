@@ -12,6 +12,10 @@ void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& re
 {
 	Clear();
 
+	if( pNode->GetMetadata().minSize.x > region.width || pNode->GetMetadata().minSize.y > region.height
+		|| pNode->GetMetadata().maxSize.x < region.width || pNode->GetMetadata().maxSize.y < region.height )
+		return;
+
 	SLevelBuildContext context( region.width, region.height );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, region.width, region.height ) );
 	context.Build();
@@ -144,6 +148,15 @@ void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region 
 	pChunkEdit->SetParentEntity( m_pChunkEditRoot );
 	pChunkEdit->Set( pNode, region );
 	pItem->pEntity = pChunkEdit;
+}
+
+SLevelDesignItem * CDesignLevel::GetItemByWorldPos( const CVector2 & worldPos )
+{
+	CVector2 localPos = globalTransform.MulTVector2PosNoScale( worldPos );
+	TVector2<int32> pos( floor( localPos.x / 32 ), floor( localPos.y / 32 ) );
+	if( pos.x < 0 || pos.y < 0 || pos.x >= nWidth || pos.y >= 128 )
+		return NULL;
+	return items[pos.x + pos.y * nWidth];
 }
 
 CLevelGenerateNode * CDesignLevel::FindNode( const char * szFullName )
@@ -298,6 +311,8 @@ protected:
 class CDesignViewport : public CUIViewport
 {
 public:
+	CDesignViewport( CDesignView * pOwner ) : m_bStartDrag( false ), m_pOwner( pOwner ) {}
+
 	void Start()
 	{
 		CDesignLevel::GetInst()->GetStage()->SetViewport( this );
@@ -308,26 +323,43 @@ public:
 		CDesignLevel::GetInst()->GetStage()->SetViewport( NULL );
 	}
 protected:
-	virtual void OnClick( const CVector2& mousePos ) override
-	{
-
-	}
 	virtual void OnMouseMove( const CVector2& mousePos ) override
 	{
 
 	}
 	virtual void OnStartDrag( const CVector2& mousePos ) override
 	{
+		m_startDragPos = m_lastDragPos = GetScenePos( mousePos );
 
+		auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos );
+		if( pItem )
+			m_nDragType = 0;
+		else
+			m_nDragType = 1;
+
+		m_bStartDrag = true;
 	}
 	virtual void OnDragged( const CVector2& mousePos ) override
 	{
-
+		if( m_bStartDrag )
+		{
+			CVector2 dPos = GetScenePos( mousePos ) - m_startDragPos;
+			CVector2 camPos = GetCamera().GetViewArea().GetCenter() - dPos;
+			if( m_nDragType == 0 )
+				GetCamera().SetPosition( camPos.x, camPos.y );
+			m_startDragPos = GetScenePos( mousePos );
+		}
 	}
 	virtual void OnStopDrag( const CVector2& mousePos ) override
 	{
-
+		m_bStartDrag = false;
 	}
+
+	CDesignView* m_pOwner;
+	bool m_bStartDrag;
+	uint8 m_nDragType;
+	CVector2 m_startDragPos;
+	CVector2 m_lastDragPos;
 };
 
 void CDesignView::SelectFile( CDesignViewFileElem * pItem )
@@ -362,7 +394,7 @@ void CDesignView::OnInited()
 {
 	auto& cfg = CGlobalCfg::Inst();
 
-	m_pMainViewport = new CDesignViewport;
+	m_pMainViewport = new CDesignViewport( this );
 	m_pMainViewport->Replace( GetChildByName<CUITreeView>( "viewport" ) );
 	m_pFileView = GetChildByName<CUITreeView>( "fileview" );
 	m_pNodeView = GetChildByName<CUIScrollView>( "nodeview" );

@@ -68,6 +68,8 @@ public:
 	void Add( const char* szFullName, const TRectangle<int32>& region );
 	void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
 
+	SLevelDesignItem* GetItemByWorldPos( const CVector2& worldPos );
+
 	CLevelGenerateNode* FindNode( const char* szFullName );
 	void GenerateLevel( class CMyLevel* pLevel );
 
