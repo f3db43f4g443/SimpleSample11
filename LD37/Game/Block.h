@@ -57,6 +57,7 @@ class CBlockObject : public CEntity
 public:
 	CBlockObject( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CBlockObject ); }
 	CBlockObject( SBlock* pBlock, CEntity* pParent, class CMyLevel* pLevel );
+	CBlockObject( SBlock* pBlock, CEntity* pParent, uint32 nSize );
 	SBlock* GetBlock() { return m_pBlock; }
 private:
 	SBlock* m_pBlock;
@@ -128,12 +129,15 @@ struct SChunk
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
 	void CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
+	void CreateChunkObjectPreview( CEntity* pRootEntity, SChunk* pParent = NULL );
 	float GetFallSpeed();
 	bool HasLayer( uint8 i ) { return !!( nLayerType & ( 1 << i ) ); }
 	uint8 GetMinLayer() { return nLayerType == 2 ? 1 : 0; }
 	uint8 GetMaxLayer() { return nLayerType == 1 ? 0 : 2; }
 
 	bool IsFullyUpdated() { return nUpdateCount == ( nLayerType == 3 ? nWidth * 2 : nWidth ); }
+
+	void ForceDestroy();
 
 	uint8 bIsLevelBarrier : 1;
 	uint8 bStopMove : 1;
@@ -170,6 +174,7 @@ public:
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
 	void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
+	void Preview( SChunk* pChunk, CEntity* pParent );
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) {}
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
 

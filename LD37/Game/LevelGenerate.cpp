@@ -13,6 +13,16 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
+	nBlockSize = pLevel->GetBlockSize();
+	blueprint.resize( nWidth * nHeight );
+	blocks.resize( nWidth * nHeight * 2 );
+	chunks.resize( nWidth * nHeight * 2 );
+	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
+		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
+}
+
+SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight ) : pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 )
+{
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
 	chunks.resize( nWidth * nHeight * 2 );
@@ -42,7 +52,7 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		}
 	}
 
-	auto pChunk = new SChunk( baseInfo, TVector2<int32>( region.x * pLevel->m_nBlockSize, region.y * pLevel->m_nBlockSize ), region.GetSize() );
+	auto pChunk = new SChunk( baseInfo, TVector2<int32>( region.x * nBlockSize, region.y * nBlockSize ), region.GetSize() );
 	chunks.push_back( pChunk );
 	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
@@ -137,16 +147,19 @@ void SLevelBuildContext::Build()
 		}
 
 		SChunk* pLevelBarrier = NULL;
-		for( auto pBlock = pLevel->m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
+		if( pLevel )
 		{
-			if( pBlock->pParent->pOwner->bIsLevelBarrier )
+			for( auto pBlock = pLevel->m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
 			{
-				pLevelBarrier = pBlock->pParent->pOwner;
-				break;
+				if( pBlock->pParent->pOwner->bIsLevelBarrier )
+				{
+					pLevelBarrier = pBlock->pParent->pOwner;
+					break;
+				}
 			}
 		}
-		int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * pLevel->GetBlockSize() : 0;
-		int32 nGridOfs = nYOfs / pLevel->GetBlockSize();
+		int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * nBlockSize : 0;
+		int32 nGridOfs = nYOfs / nBlockSize;
 		if( pLevelBarrier )
 		{
 			for( int iLayer = 0; iLayer < 2; iLayer++ )
@@ -185,7 +198,7 @@ void SLevelBuildContext::Build()
 							{
 								pPreBlock->InsertAfter_BlockLayer( pBlockLayer );
 							}
-							else
+							else if( pLevel )
 							{
 								pLevel->m_basements[nBasement].layers[iLayer].Insert_BlockLayer( pBlockLayer );
 							}
@@ -320,6 +333,16 @@ SBlockLayer*& SLevelBuildContext::GetBlock( uint32 x, uint32 y, uint32 z )
 
 void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
 {
+	auto pMetadata = pXml->FirstChildElement( "metadata" );
+	if( pMetadata )
+	{
+		m_metadata.bIsDesignValid = XmlGetAttr<int32>( pMetadata, "isdesignvalid", m_metadata.bIsDesignValid );
+		m_metadata.minSize.x = XmlGetAttr<int32>( pMetadata, "minx", m_metadata.minSize.x );
+		m_metadata.minSize.y = XmlGetAttr<int32>( pMetadata, "miny", m_metadata.minSize.y );
+		m_metadata.maxSize.x = XmlGetAttr<int32>( pMetadata, "maxx", m_metadata.maxSize.x );
+		m_metadata.maxSize.y = XmlGetAttr<int32>( pMetadata, "maxy", m_metadata.maxSize.y );
+	}
+	
 	auto pNextLevel = pXml->FirstChildElement( "next_level" );
 	if( pNextLevel )
 	{
@@ -384,6 +407,8 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	if( pSubItem && pSubItem->FirstChildElement() )
 		m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
 
+	m_metadata.bIsDesignValid = true;
+	m_metadata.maxSize = m_metadata.minSize = TVector2<int32>( chunk.nWidth, chunk.nHeight );
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -421,7 +446,7 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
 		CRectangle rect( 0, 0, region.width, region.height );
-		rect = rect * context.pLevel->GetBlockSize();
+		rect = rect * context.nBlockSize;
 		rect.SetLeft( rect.x - m_rectSize.x );
 		rect.SetTop( rect.y - m_rectSize.y );
 		rect.SetRight( rect.GetRight() - m_rectSize.GetRight() );

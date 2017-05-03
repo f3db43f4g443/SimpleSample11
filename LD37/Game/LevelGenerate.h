@@ -6,6 +6,7 @@ class CMyLevel;
 struct SLevelBuildContext
 {
 	SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk = NULL );
+	SLevelBuildContext( uint32 nWidth, uint32 nHeight );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32> ofs );
@@ -24,6 +25,7 @@ struct SLevelBuildContext
 
 	CMyLevel* pLevel;
 	SChunk* pParentChunk;
+	uint32 nBlockSize;
 };
 
 class CLevelGenerateNode : public CReferenceObject
@@ -33,9 +35,20 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region );
 
 	static CLevelGenerateNode* CreateNode( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context );
+
+	struct SMetadata
+	{
+		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ) {}
+		bool bIsDesignValid;
+		TVector2<int32> minSize;
+		TVector2<int32> maxSize;
+	};
+	const SMetadata& GetMetadata() { return m_metadata; }
+
 protected:
 	CReference<CLevelGenerateNode> m_pNextLevel;
 	float m_fNextLevelChance;
+	SMetadata m_metadata;
 };
 
 struct SLevelGenerateFileContext

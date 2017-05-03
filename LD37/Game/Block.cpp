@@ -27,6 +27,15 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	SetParentEntity( pParent );
 }
 
+CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, uint32 nSize )
+	: m_pBlock( pBlock )
+{
+	SET_BASEOBJECT_ID( CBlockObject );
+
+	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * nSize );
+	SetParentEntity( pParent );
+}
+
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )
 	: nWidth( size.x )
 	, nHeight( size.y )
@@ -151,9 +160,36 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 	pChunkObject->OnCreateComplete( pLevel );
 }
 
+void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )
+{
+	pParentChunk = pParent;
+	pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
+	pChunkObject->Preview( this, pRootEntity );
+
+	for( auto pSubChunk = Get_SubChunk(); pSubChunk; )
+	{
+		if( pSubChunk->nSubChunkType >= 1 )
+		{
+			pSubChunk->bIsSubChunk = true;
+			pSubChunk->CreateChunkObjectPreview( pRootEntity, this );
+		}
+		pSubChunk = pSubChunk->NextSubChunk();
+	}
+	pChunkObject->OnCreateComplete( NULL );
+}
+
 float SChunk::GetFallSpeed()
 {
 	return nFallSpeed * CMyLevel::GetInst()->GetFallDistPerSpeedFrame() * 60;
+}
+
+void SChunk::ForceDestroy()
+{
+	for( auto pChunk = m_pSubChunks; pChunk; pChunk = pChunk->NextSubChunk() )
+	{
+		m_pSubChunks->ForceDestroy();
+	}
+	delete this;
 }
 
 void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
@@ -226,9 +262,61 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 	}
 }
 
+void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
+{
+	m_pChunk = pChunk;
+	pChunk->bSpawned = true;
+	pChunk->pChunkObject = this;
+	SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
+	SetParentEntity( pParent );
+
+	if( m_pDamagedEffectsRoot )
+	{
+		for( auto pChild = m_pDamagedEffectsRoot->Get_Child(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextChild() )
+		{
+			pChild->bVisible = false;
+			m_pDamagedEffects[m_nDamagedEffectsCount++] = pChild;
+		}
+	}
+
+	OnSetChunk( pChunk, NULL );
+
+	if( pChunk->nSubChunkType == 1 && pChunk->pParentChunk )
+		return;
+
+	for( auto& block : pChunk->blocks )
+	{
+		block.pEntity = new CBlockObject( &block, this, 32 );
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * 32 );
+			pEntity->SetZOrder( 1 );
+			pEntity->SetParentEntity( this );
+		}
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * 32 );
+			pEntity->SetZOrder( 1 );
+			pEntity->SetParentEntity( this );
+		}
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * 32 );
+			pEntity->SetZOrder( 1 );
+			pEntity->SetParentEntity( this );
+		}
+	}
+}
+
 void CChunkObject::RemoveChunk()
 {
-	if( m_pChunk )
+	if( m_pChunk && CMyLevel::GetInst() )
 	{
 		auto pChunk = m_pChunk;
 		m_pChunk = NULL;

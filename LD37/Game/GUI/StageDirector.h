@@ -21,12 +21,6 @@ public:
 	void OnClickMainStage( CVector2* mousePos );
 	void OnMainStageMouseMove( SUIMouseEvent* pEvent );
 	void OnPostProcess( class CPostProcessPass* pPass );
-
-	enum
-	{
-		eState_Normal,
-		eState_FaceEdit,
-	};
 protected:
 	virtual void OnInited() override;
 
