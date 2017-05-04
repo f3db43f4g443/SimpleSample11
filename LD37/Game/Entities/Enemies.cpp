@@ -11,6 +11,15 @@
 
 #define ENTER_SIGHT_HEIGHT 600
 
+void CEnemyTemplate::OnAddedToStage()
+{
+	if( !CMyLevel::GetInst() )
+		return;
+	CEnemy::OnAddedToStage();
+	m_pAI = new AI();
+	m_pAI->SetParentEntity( this );
+}
+
 void CEnemy1::OnAddedToStage()
 {
 	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab.c_str() );

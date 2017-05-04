@@ -11,6 +11,11 @@
 #include "Render/Scene2DManager.h"
 #include "MyGame.h"
 
+CEntity * CChunkPreview::GetPreviewRoot()
+{
+	return this;
+}
+
 void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region )
 {
 	Clear();
@@ -34,8 +39,7 @@ void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& re
 	pChunk->pos.y = region.y * 32;
 	m_pChunk = pChunk;
 
-	auto pDesignLevel = SafeCast<CDesignLevel>( GetParentEntity() );
-	m_pChunk->CreateChunkObjectPreview( pDesignLevel ? ( pChunk->nLayerType > 1 ? pDesignLevel->GetChunkRoot1() : pDesignLevel->GetChunkRoot() ) : this );
+	m_pChunk->CreateChunkObjectPreview( GetPreviewRoot() );
 	m_pChunkObject = m_pChunk->pChunkObject;
 }
 
@@ -57,15 +61,15 @@ void CChunkEdit::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& regio
 
 	uint32 nBlockSize = 32;
 	SetPosition( CVector2( region.x, region.y ) * nBlockSize );
-	CRectangle chunkRect( 0, 0, m_pChunk->nWidth * nBlockSize, m_pChunk->nHeight * nBlockSize );
+	CRectangle chunkRect( 0, 0, region.width * nBlockSize, region.height * nBlockSize );
 	static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, 0, 8, 8 ) );
-	static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 8, 0, m_pChunk->nWidth * nBlockSize - 16, 8 ) );
-	static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( m_pChunk->nWidth * nBlockSize - 8, 0, 8, 8 ) );
-	static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 8, 8, m_pChunk->nHeight * nBlockSize - 16 ) );
-	static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( m_pChunk->nWidth * nBlockSize - 8, 8, 8, m_pChunk->nHeight * nBlockSize - 16 ) );
-	static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, m_pChunk->nHeight * nBlockSize - 8, 8, 8 ) );
-	static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 8, m_pChunk->nHeight * nBlockSize - 8, m_pChunk->nWidth * nBlockSize - 16, 8 ) );
-	static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( m_pChunk->nWidth * nBlockSize - 8, m_pChunk->nHeight * nBlockSize - 8, 8, 8 ) );
+	static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 8, 0, region.width * nBlockSize - 16, 8 ) );
+	static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 8, 0, 8, 8 ) );
+	static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 8, 8, region.height * nBlockSize - 16 ) );
+	static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 8, 8, 8, region.height * nBlockSize - 16 ) );
+	static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, region.height * nBlockSize - 8, 8, 8 ) );
+	static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 8, region.height * nBlockSize - 8, region.width * nBlockSize - 16, 8 ) );
+	static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 8, region.height * nBlockSize - 8, 8, 8 ) );
 	Check();
 }
 
@@ -75,8 +79,16 @@ void CChunkEdit::SetTempEdit( bool bTempEdit )
 	Check();
 }
 
+CEntity * CChunkEdit::GetPreviewRoot()
+{
+	auto pDesignLevel = CDesignLevel::GetInst();
+	return m_pChunk->nLayerType > 1 ? pDesignLevel->GetChunkRoot1() : pDesignLevel->GetChunkRoot();
+}
+
 void CChunkEdit::Check()
 {
+	if( !m_pNode )
+		return;
 	CVector4 color( 0, 0, 0, 0.5f );
 
 	if( m_bTempEdit && CDesignLevel::GetInst() )
@@ -90,7 +102,7 @@ void CChunkEdit::Check()
 		{
 			for( int i = m_region.x; i < m_region.GetRight(); i++ )
 			{
-				if( m_bEditValid )
+				if( !m_bEditValid )
 					break;
 				for( int j = m_region.y; j < m_region.GetBottom(); j++ )
 				{
@@ -273,6 +285,7 @@ bool CDesignLevel::BeginEdit( const char * szNode, const CVector2 & worldPos )
 	m_editBeginPos = worldPos;
 	m_pTempChunkEdit = SafeCast<CChunkEdit>( m_pChunkEditPrefab->GetRoot()->CreateInstance() );
 	m_pTempChunkEdit->SetParentEntity( this );
+	m_pTempChunkEdit->SetTempEdit( true );
 	m_pTempChunkEdit->Set( pNode, TRectangle<int32>( pos.x, pos.y, 1, 1 ) );
 	m_strEditNodeName = szNode;
 }
@@ -298,10 +311,9 @@ void CDesignLevel::UpdateEdit( const CVector2 & worldPos )
 
 void CDesignLevel::EndEdit()
 {
-	if( !m_pTempChunkEdit || !m_pTempChunkEdit->IsEditValid() )
-		return;
+	if( m_pTempChunkEdit && m_pTempChunkEdit->IsEditValid() )
+		Add( m_strEditNodeName.c_str(), m_pTempChunkEdit->GetRegion() );
 
-	Add( m_strEditNodeName.c_str(), m_pTempChunkEdit->GetRegion() );
 	m_pTempChunkEdit->SetParentEntity( NULL );
 	m_pTempChunkEdit = NULL;
 }
@@ -577,7 +589,9 @@ void CDesignView::OnInited()
 	auto& cfg = CGlobalCfg::Inst();
 
 	m_pMainViewport = new CDesignViewport( this );
-	m_pMainViewport->Replace( GetChildByName<CUIViewport>( "viewport" ) );
+	auto pViewport = GetChildByName<CUIViewport>( "viewport" );
+	pViewport->Clone( m_pMainViewport, true );
+	m_pMainViewport->Replace( pViewport );
 	m_pFileView = GetChildByName<CUITreeView>( "fileview" );
 	m_pNodeView = GetChildByName<CUIScrollView>( "nodeview" );
 
@@ -647,16 +661,20 @@ void CDesignView::OnChar( uint32 nChar )
 
 CLevelDesignGameState::CLevelDesignGameState() : m_pDesignStage( NULL )
 {
-	auto pDesignView = CDesignView::Inst();
-	CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/lvdesign.xml" )->GetElement()->Clone( pDesignView );
-	m_pUIMgr->AddChild( pDesignView );
-
-	CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "designlevel.pf" );
-	m_pDesignLevel = SafeCast<CDesignLevel>( pPrefab->GetRoot()->CreateInstance() );
 }
 
 void CLevelDesignGameState::EnterState()
 {
+	if( !m_pDesignLevel )
+	{
+		auto pDesignView = CDesignView::Inst();
+		CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/lvdesign.xml" )->GetElement()->Clone( pDesignView );
+		m_pUIMgr->AddChild( pDesignView );
+
+		CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( "designlevel.pf" );
+		m_pDesignLevel = SafeCast<CDesignLevel>( pPrefab->GetRoot()->CreateInstance() );
+	}
+
 	CUIMgrGameState::EnterState();
 
 	m_pDesignStage = new CStage( NULL );

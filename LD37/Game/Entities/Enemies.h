@@ -7,7 +7,7 @@ class CEnemyTemplate : public CEnemy
 {
 public:
 	CEnemyTemplate( const SClassCreateContext& context ) : CEnemy( context ) {}
-	virtual void OnAddedToStage() override { CEnemy::OnAddedToStage(); m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
+	virtual void OnAddedToStage() override;
 protected:
 	virtual void AIFunc() {}
 	class AI : public CAIObject

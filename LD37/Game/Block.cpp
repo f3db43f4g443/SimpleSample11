@@ -185,9 +185,11 @@ float SChunk::GetFallSpeed()
 
 void SChunk::ForceDestroy()
 {
-	for( auto pChunk = m_pSubChunks; pChunk; pChunk = pChunk->NextSubChunk() )
+	while( m_pSubChunks )
 	{
-		m_pSubChunks->ForceDestroy();
+		auto pChunk = m_pSubChunks;
+		pChunk->RemoveFrom_SubChunk();
+		pChunk->ForceDestroy();
 	}
 	delete this;
 }

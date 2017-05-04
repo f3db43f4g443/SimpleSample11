@@ -339,6 +339,7 @@
       </node>
 
       <node name="enemyroom1" type="room1" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" isroom="1" prefab="data/blocks/lv1/wood.pf">
+        <metadata isdesignvalid="0" />
         <types>
           0,0,0,0,0,0,
           0,0,0,0,0,0,
@@ -387,6 +388,7 @@
         </next_level>
       </node>
       <node name="enemyroom2" type="room2" width="8" height="8" weight="3" weightperwidth="1" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="20" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+        <metadata isdesignvalid="0" />
         <types>
           0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,

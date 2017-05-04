@@ -11,6 +11,7 @@ public:
 	virtual void OnRemovedFromStage() override { Clear(); }
 	CLevelGenerateNode* GetNode() { return m_pNode; }
 	const TRectangle<int32>& GetRegion() { return m_region; }
+	virtual CEntity* GetPreviewRoot();
 	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region );
 	virtual void Clear();
 protected:
@@ -28,6 +29,7 @@ public:
 	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region ) override;
 	void SetTempEdit( bool bTempEdit );
 
+	virtual CEntity* GetPreviewRoot() override;
 	bool IsEditValid() { return m_bEditValid; }
 private:
 	void Check();

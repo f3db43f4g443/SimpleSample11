@@ -13,10 +13,9 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
-	nBlockSize = pLevel->GetBlockSize();
+	nBlockSize = pLevel ? pLevel->GetBlockSize() : 32;
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
-	chunks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 }
@@ -25,7 +24,6 @@ SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight ) : pLevel
 {
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
-	chunks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 }
@@ -409,22 +407,25 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	if( pSubItem && pSubItem->FirstChildElement() )
 		m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
 
-	m_metadata.bIsDesignValid = true;
-	m_metadata.maxSize = m_metadata.minSize = TVector2<int32>( chunk.nWidth, chunk.nHeight );
-	switch( chunk.nLayerType )
+	if( chunk.pPrefab )
 	{
-	case 1:
-		m_metadata.nMinLevel = 0;
-		m_metadata.nMaxLevel = 0;
-		break;
-	case 2:
-		m_metadata.nMinLevel = 1;
-		m_metadata.nMaxLevel = 1;
-		break;
-	case 3:
-		m_metadata.nMinLevel = 0;
-		m_metadata.nMaxLevel = 1;
-		break;
+		m_metadata.bIsDesignValid = true;
+		m_metadata.maxSize = m_metadata.minSize = TVector2<int32>( chunk.nWidth, chunk.nHeight );
+		switch( chunk.nLayerType )
+		{
+		case 1:
+			m_metadata.nMinLevel = 0;
+			m_metadata.nMaxLevel = 0;
+			break;
+		case 2:
+			m_metadata.nMinLevel = 1;
+			m_metadata.nMaxLevel = 1;
+			break;
+		case 3:
+			m_metadata.nMinLevel = 0;
+			m_metadata.nMaxLevel = 1;
+			break;
+		}
 	}
 	CLevelGenerateNode::Load( pXml, context );
 }
