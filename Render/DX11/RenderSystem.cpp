@@ -472,7 +472,8 @@ HRESULT CALLBACK CRenderSystem::OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevic
 	pThis->m_stateMgr.OnSwapChainResized( NULL, NULL, &viewport );
 	pThis->m_screenRes = CVector2( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height );
 	pThis->m_pRenderer->OnResize( pThis, pThis->m_screenRes );
-	pThis->m_pGame->OnResize( pThis->m_screenRes );
+	if( pThis->m_pGame )
+		pThis->m_pGame->OnResize( pThis->m_screenRes );
 	return S_OK;
 }
 

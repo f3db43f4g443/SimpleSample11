@@ -16,7 +16,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	pRenderSystem->CreateDevice( context );
 
 	InitGame();
-	CGame::Inst().SetCurState( &CMainGameState::Inst() );
+	CGame::Inst().SetCurState( &CLevelDesignGameState::Inst() );
 	pRenderSystem->SetGame( &CGame::Inst() );
 	pRenderSystem->Start();
 	exit( 0 );

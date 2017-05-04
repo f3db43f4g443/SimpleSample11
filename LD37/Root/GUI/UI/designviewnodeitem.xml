@@ -1,0 +1,6 @@
+﻿<root type="button" rectX="-4" rectY="-4" rectWidth="168" rectHeight="136" >
+  <element type="element" name="preview" rectX="0" rectY="0" rectWidth="160" rectHeight="128" textAlignX="0" textAlignY="1">
+  </element>
+  <element type="label" name="name" rectX="0" rectY="28" rectWidth="128" rectHeight="20" textAlignX="1" textAlignY="1">
+  </element>
+</root>

@@ -7,9 +7,13 @@
 #include "GUI/MainUI.h"
 #include "GlobalCfg.h"
 #include "Rand.h"
+#include "GameState.h"
+#include "LevelDesign.h"
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
+const char* g_levels[] = { "lv1_1", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
+
 void CMyLevel::OnAddedToStage()
 {
 	m_basements.resize( m_nWidth );
@@ -82,8 +86,17 @@ void CMyLevel::OnAddedToStage()
 		pBottom->SetParentEntity( pBorder );
 	}
 
-	CreateGrids( true );
-	CacheNextLevel();
+	if( m_bIsLevelDesignTest )
+	{
+		auto pLevel = SafeCast<CDesignLevel>( CLevelDesignGameState::Inst().GetDesignLevel() );
+		pLevel->GenerateLevel( this );
+		m_nCurLevel = ELEM_COUNT( g_levels );
+	}
+	else
+	{
+		CreateGrids( true );
+		CacheNextLevel();
+	}
 	CheckSpawn();
 	s_pLevel = this;
 
@@ -105,8 +118,6 @@ void CMyLevel::OnRemovedFromStage()
 	if( s_pLevel == this )
 		s_pLevel = NULL;
 }
-
-const char* g_levels[] = { "lv1_1", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
 
 void CMyLevel::CreateGrids( bool bNeedInit )
 {

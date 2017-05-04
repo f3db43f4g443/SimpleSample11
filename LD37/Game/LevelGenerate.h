@@ -38,10 +38,11 @@ public:
 
 	struct SMetadata
 	{
-		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ) {}
+		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ) {}
 		bool bIsDesignValid;
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
+		int8 nMinLevel, nMaxLevel;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

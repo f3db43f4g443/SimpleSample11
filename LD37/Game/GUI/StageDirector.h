@@ -11,6 +11,7 @@ public:
 
 	CStageDirector();
 	void OnWorldCreated( CWorld* pWorld );
+	void OnWorldDestroyed( CWorld* pWorld );
 
 	CUIViewport* OnPlayMainStage( CStage* pStage ) { return m_pMainStageViewport; }
 	void AfterPlayMainStage();

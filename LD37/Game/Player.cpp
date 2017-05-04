@@ -10,6 +10,7 @@
 #include "CharacterMove.h"
 #include "Entities/Door.h"
 #include "Pickup.h"
+#include "GameState.h"
 
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
@@ -78,8 +79,7 @@ void CPlayer::Damage( int32 nValue )
 	{
 		m_walkData.Reset();
 		m_flyData.Reset();
-		DelayChangeStage( "scene0.pf", "start" );
-		//CMainUI::Inst()->SetVignetteColorFixedTime( CVector4( 1, 0, 0, 80 ), 2.0f );
+		CMainGameState::Inst().DelayResetStage();
 	}
 }
 

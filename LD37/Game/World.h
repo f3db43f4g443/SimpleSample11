@@ -14,6 +14,7 @@ class CWorld
 {
 public:
 	CWorld();
+	~CWorld();
 
 	CPlayer* GetPlayer() { return m_pCurPlayer; }
 	void SetPlayer( CPlayer* pPlayer ) { m_pCurPlayer = pPlayer; }

@@ -33,6 +33,11 @@ void CStageDirector::OnWorldCreated( CWorld* pWorld )
 	m_pWorld = pWorld;
 }
 
+void CStageDirector::OnWorldDestroyed( CWorld * pWorld )
+{
+	m_pWorld = NULL;
+}
+
 void CStageDirector::AfterPlayMainStage()
 {
 	/*auto size = m_pMainStageViewport->GetSize();
@@ -47,10 +52,13 @@ void CStageDirector::OnClickMainStage( CVector2* mousePos )
 
 void CStageDirector::OnMainStageMouseMove( SUIMouseEvent * pEvent )
 {
-	CPlayer* pPlayer = m_pWorld->GetPlayer();
-	if( pPlayer )
+	if( m_pWorld )
 	{
-		pPlayer->AimAt( m_pMainStageViewport->GetScenePos( pEvent->mousePos ) );
+		CPlayer* pPlayer = m_pWorld->GetPlayer();
+		if( pPlayer )
+		{
+			pPlayer->AimAt( m_pMainStageViewport->GetScenePos( pEvent->mousePos ) );
+		}
 	}
 }
 

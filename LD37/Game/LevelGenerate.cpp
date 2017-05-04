@@ -341,6 +341,8 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.minSize.y = XmlGetAttr<int32>( pMetadata, "miny", m_metadata.minSize.y );
 		m_metadata.maxSize.x = XmlGetAttr<int32>( pMetadata, "maxx", m_metadata.maxSize.x );
 		m_metadata.maxSize.y = XmlGetAttr<int32>( pMetadata, "maxy", m_metadata.maxSize.y );
+		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
+		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
 	}
 	
 	auto pNextLevel = pXml->FirstChildElement( "next_level" );
@@ -409,6 +411,21 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 
 	m_metadata.bIsDesignValid = true;
 	m_metadata.maxSize = m_metadata.minSize = TVector2<int32>( chunk.nWidth, chunk.nHeight );
+	switch( chunk.nLayerType )
+	{
+	case 1:
+		m_metadata.nMinLevel = 0;
+		m_metadata.nMaxLevel = 0;
+		break;
+	case 2:
+		m_metadata.nMinLevel = 1;
+		m_metadata.nMaxLevel = 1;
+		break;
+	case 3:
+		m_metadata.nMinLevel = 0;
+		m_metadata.nMaxLevel = 1;
+		break;
+	}
 	CLevelGenerateNode::Load( pXml, context );
 }
 

@@ -1,10 +1,9 @@
 #pragma once
 #include "Game.h"
-#include "World.h"
 #include "Stage.h"
 #include "Common/BitArray.h"
 #include "Common/Trigger.h"
-#include "UICommon/UIManager.h"
+#include "GameState.h"
 
 class CGame : public IGame
 {
@@ -13,6 +12,7 @@ public:
 	virtual void Start() override;
 	virtual void Stop() override;
 	virtual void Update() override;
+	void SetCurState( IGameState* pGameState );
 	
 	virtual void OnResize( const CVector2& size ) override;
 	virtual void OnMouseDown( const CVector2& pos ) override;
@@ -23,19 +23,29 @@ public:
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) override;
 	virtual void OnChar( uint32 nChar ) override;
 
-	CWorld* GetWorld() { return m_pWorld; }
-	const CVector2& GetScreenResolution() { return m_screenResolution; }
 	float GetElapsedTimePerTick() { return 1.0f / 60; }
 	double GetTotalTime() { return m_dTotalTime; }
 	int32 GetTimeStamp() { return m_trigger.GetTimeStamp(); }
 
+	bool IsKey( uint32 nKey ) { return m_key.GetBit( nKey ); }
+	bool IsKeyUp( uint32 nKey ) { return m_keyUp.GetBit( nKey ); }
+	bool IsKeyDown( uint32 nKey ) { return m_keyDown.GetBit( nKey ); }
+	bool IsMouse() { return m_bIsMouse; }
+	bool IsMouseUp() { return m_bIsMouseUp; }
+	bool IsMouseDown() { return m_bIsMouseDown; }
+	bool IsRightMouse() { return m_bIsRightMouse; }
+	bool IsRightMouseUp() { return m_bIsRightMouseUp; }
+	bool IsRightMouseDown() { return m_bIsRightMouseDown; }
+
 	void Register( uint32 nTime, CTrigger* pTrigger ) { m_trigger.Register( nTime, pTrigger ); }
 	
-	void BeforeRender() { m_pUIMgr->UpdateLayout(); }
+	void BeforeRender() { if( m_pCurGameState ) m_pCurGameState->BeforeRender(); }
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGame )
 private:
-	CWorld* m_pWorld;
+	bool m_bStarted;
+	IGameState* m_pCurGameState;
+
 	CBitArray m_key;
 	CBitArray m_keyUp;
 	CBitArray m_keyDown;
@@ -46,10 +56,6 @@ private:
 	bool m_bIsRightMouseDown;
 	bool m_bIsRightMouseUp;
 
-	CVector2 m_screenResolution;
-
-	CReference<CUIManager> m_pUIMgr;
-	CCamera2D m_camera;
 	TClassTrigger<CGame> m_beforeRender;
 
 	double m_dTotalTime;

@@ -15,6 +15,7 @@
 #include "Common/Rand.h"
 #include "MyLevel.h"
 #include "GlobalCfg.h"
+#include "LevelDesign.h"
 
 #include "Entities/Enemies.h"
 #include "Entities/EnemyCharacters.h"
@@ -48,7 +49,8 @@
 
 
 CGame::CGame()
-	: m_pWorld( NULL )
+	: m_bStarted( false )
+	, m_pCurGameState( NULL )
 	, m_key( 128 )
 	, m_keyDown( 128 )
 	, m_keyUp( 128 )
@@ -60,49 +62,23 @@ CGame::CGame()
 	, m_bIsRightMouseUp( false )
 	, m_beforeRender( this, &CGame::BeforeRender )
 {
-	m_screenResolution = CVector2( 1280, 960 );
 }
 
 void CGame::Start()
 {
-	CResourceManager::Inst()->Register( new TResourceFactory<CUIResource>() );
-
-	CGlobalCfg::Inst().Load();
-
-	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
-	CUIManager* pUIManager = new CUIManager;
-	m_pUIMgr = pUIManager;
-	pUIManager->Resize( CRectangle( 0, 0, 800, 600 ) );
-	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pUIManager );
-
-	CStageDirector* pStageDirector = CStageDirector::Inst();
-	CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/stage_director.xml" )->GetElement()->Clone( pStageDirector );
-	m_pUIMgr->AddChild( pStageDirector );
-	pUIManager->Resize( CRectangle( 0, 0, screenRes.x, screenRes.y ) );
-
-	m_camera.SetPosition( screenRes.x / 2, screenRes.y / 2 );
-	m_camera.SetSize( screenRes.x, screenRes.y );
-	CScene2DManager::GetGlobalInst()->AddActiveCamera( &m_camera, m_pUIMgr );
 	CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
-	m_pWorld = new CWorld;
-
-	//CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
-	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
-	m_pWorld->SetPlayer( pPlayer );
-	auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
-	pPlayer->SetWeapon( pWeapon );
-
-	SStageEnterContext context;
-	context.strStartPointName = "start";
-	m_pWorld->EnterStage( "scene0.pf", context );
+	CGlobalCfg::Inst().Load();
+	m_bStarted = true;
+	if( m_pCurGameState )
+		m_pCurGameState->EnterState();
 }
 
 void CGame::Stop()
 {
-	m_pWorld->Stop();
+	SetCurState( NULL );
 	m_trigger.Clear();
-	delete m_pWorld;
+	m_bStarted = false;
 }
 
 #include "Profile.h"
@@ -121,33 +97,8 @@ void CGame::Update()
 	const float fInvFPS = 1.0f / nFPS;
 	uint32 nFrames = floor( dTotalTime * nFPS ) - floor( dLastTime * nFPS );
 
-	CPlayer* pPlayer = m_pWorld->GetPlayer();
-	if( pPlayer )
-	{
-		CVector2 moveAxis;
-		moveAxis.x = (int)m_key.GetBit( 'D' ) - (int)m_key.GetBit( 'A' );
-		moveAxis.y = (int)m_key.GetBit( 'W' ) - (int)m_key.GetBit( 'S' );
-		moveAxis.Normalize();
-		pPlayer->Move( moveAxis.x, moveAxis.y );
-
-		if( m_bIsMouseDown )
-		{
-			CMyLevel::GetInst()->Start();
-			pPlayer->BeginFire();
-		}
-		if( m_bIsMouseUp )
-			pPlayer->EndFire();
-
-		if( m_keyDown.GetBit( ' ' ) )
-			pPlayer->BeginRepair();
-		if( m_keyUp.GetBit( ' ' ) )
-			pPlayer->EndRepair();
-
-		if( m_bIsRightMouseDown )
-		{
-			pPlayer->Roll();
-		}
-	}
+	if( m_pCurGameState )
+		m_pCurGameState->UpdateInput();
 
 	for( int i = 0; i < nFrames; i++ )
 	{
@@ -156,7 +107,8 @@ void CGame::Update()
 		{
 			pObj->UpdateAnim( fInvFPS );
 		}
-		m_pWorld->Update();
+		if( m_pCurGameState )
+			m_pCurGameState->UpdateFrame();
 	}
 
 	m_keyDown.Clear();
@@ -165,13 +117,21 @@ void CGame::Update()
 	m_bIsRightMouseDown = m_bIsRightMouseUp = false;
 }
 
+void CGame::SetCurState( IGameState * pGameState )
+{
+	if( pGameState == m_pCurGameState )
+		return;
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->ExitState();
+	m_pCurGameState = pGameState;
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->EnterState();
+}
+
 void CGame::OnResize( const CVector2& size )
 {
-	if( !m_pUIMgr )
-		return;
-	m_pUIMgr->Resize( CRectangle( 0, 0, size.x, size.y ) );
-	m_camera.SetPosition( size.x / 2, size.y / 2 );
-	m_camera.SetSize( size.x, size.y );
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->HandleResize( size );
 }
 
 void CGame::OnMouseDown( const CVector2& pos )
@@ -181,7 +141,8 @@ void CGame::OnMouseDown( const CVector2& pos )
 		m_bIsMouse = true;
 		m_bIsMouseDown = true;
 	}
-	m_pUIMgr->HandleMouseDown( pos );
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->HandleMouseDown( pos );
 }
 
 void CGame::OnMouseUp( const CVector2& pos )
@@ -191,7 +152,8 @@ void CGame::OnMouseUp( const CVector2& pos )
 		m_bIsMouse = false;
 		m_bIsMouseUp = true;
 	}
-	m_pUIMgr->HandleMouseUp( pos );
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->HandleMouseUp( pos );
 }
 
 void CGame::OnRightMouseDown( const CVector2& pos )
@@ -214,13 +176,17 @@ void CGame::OnRightMouseUp( const CVector2& pos )
 
 void CGame::OnMouseMove( const CVector2& pos )
 {
-	m_pUIMgr->HandleMouseMove( pos );
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->HandleMouseMove( pos );
 }
 
 void CGame::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 {
 	if( nChar == VK_DELETE && bKeyDown )
-		m_pUIMgr->HandleChar( 127 );
+	{
+		if( m_pCurGameState && m_bStarted )
+			m_pCurGameState->HandleChar( 127 );
+	}
 	if( nChar >= 128 )
 		return;
 	if( nChar >= 'a' && nChar <= 'z' )
@@ -234,7 +200,8 @@ void CGame::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 
 void CGame::OnChar( uint32 nChar )
 {
-	m_pUIMgr->HandleChar( nChar );
+	if( m_pCurGameState && m_bStarted )
+		m_pCurGameState->HandleChar( nChar );
 }
 
 void Game_ShaderImplement_Dummy();
@@ -381,6 +348,7 @@ void RegisterGameClasses()
 	
 	REGISTER_CLASS_BEGIN( CMyLevel )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_bIsLevelDesignTest )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nSpawnHeight )
@@ -830,10 +798,38 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_ofs )
 		REGISTER_MEMBER( m_bIgnoreGlobalTransform )
 	REGISTER_CLASS_END()
+
+			
+	REGISTER_CLASS_BEGIN( CChunkPreview )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CChunkEdit )
+		REGISTER_BASE_CLASS( CChunkPreview )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[0], frame/00 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[1], frame/01 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[2], frame/02 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[3], frame/10 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[4], frame/12 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[5], frame/20 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[6], frame/21 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[7], frame/22 );
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDesignLevel )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_strChunkEditPrefab )
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot, chunkedit );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot1, chunkedit1 );
+	REGISTER_CLASS_END()
 }
 
 void InitGame()
 {
 	Game_ShaderImplement_Dummy();
 	RegisterGameClasses();
+
+	CResourceManager::Inst()->Register( new TResourceFactory<CUIResource>() );
 }

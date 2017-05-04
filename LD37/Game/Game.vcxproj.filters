@@ -131,6 +131,7 @@
       <Filter>Entities\Enemies</Filter>
     </ClCompile>
     <ClCompile Include="LevelDesign.cpp" />
+    <ClCompile Include="GameState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -260,6 +261,7 @@
       <Filter>Entities\Enemies</Filter>
     </ClInclude>
     <ClInclude Include="LevelDesign.h" />
+    <ClInclude Include="GameState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

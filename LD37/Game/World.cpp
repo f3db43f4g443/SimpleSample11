@@ -7,25 +7,12 @@ CWorld::CWorld()
 	: m_pCurStage( NULL )
 	, m_bUpdating( false )
 {
-	//test
-	/*SStageContext& createContext = m_mapStageContexts["test"];
-	createContext.strName = "test";
-	createContext.mapDependentRes["growl1.wav"] = NULL;
-	createContext.mapDependentRes["growl2.wav"] = NULL;
-	createContext.mapDependentRes["growl3.wav"] = NULL;
-	createContext.mapDependentRes["atk1.wav"] = NULL;
-	createContext.mapDependentRes["atk2.wav"] = NULL;
-	createContext.mapDependentRes["atk3.wav"] = NULL;
-	createContext.mapDependentRes["death1.wav"] = NULL;
-	createContext.mapDependentRes["death2.wav"] = NULL;
-	createContext.mapDependentRes["death3.wav"] = NULL;
-	createContext.mapDependentRes["a.wav"] = NULL;
-	createContext.mapDependentRes["b1.wav"] = NULL;
-	createContext.mapDependentRes["b2.wav"] = NULL;
-	createContext.mapDependentRes["b3.wav"] = NULL;
-	createContext.mapDependentRes["c.wav"] = NULL;*/
-
 	CStageDirector::Inst()->OnWorldCreated( this );
+}
+
+CWorld::~CWorld()
+{
+	CStageDirector::Inst()->OnWorldDestroyed( this );
 }
 
 void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterContext )
@@ -90,6 +77,8 @@ void CWorld::Update()
 
 void CWorld::Stop()
 {
+	for( int i = 0; i < m_subStages.size(); i++ )
+		StopSubStage( i );
 	if( m_pCurStage )
 	{
 		CStageDirector::Inst()->OnStopMainStage( m_pCurStage );

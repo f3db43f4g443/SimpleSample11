@@ -15,6 +15,12 @@ void InitEditor()
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
+	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
+	SDeviceCreateContext context;
+	context.resolution = CVector2( 1200, 600 );
+	pRenderSystem->SetRenderer( new CSimpleRenderer );
+	pRenderSystem->CreateDevice( context );
+
 	class CMyEditor : public CEditor
 	{
 	public:
@@ -29,12 +35,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	InitGame();
 	InitEditor();
 
-	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
-	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->SetGame( &CEditor::Inst() );
-	SDeviceCreateContext context;
-	context.resolution = CVector2( 1200, 600 );
-	pRenderSystem->CreateDevice( context );
 	pRenderSystem->Start();
 	exit( 0 );
 }

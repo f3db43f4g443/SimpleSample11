@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -35,31 +35,31 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>Game</ProjectName>
-    <ProjectGuid>{8D876467-DFA8-4B68-B861-A2E31895D0CB}</ProjectGuid>
+    <ProjectName>Run_LevelDesign</ProjectName>
+    <ProjectGuid>{8ADF6412-6B26-42F8-86CD-907E0C3C58D0}</ProjectGuid>
     <RootNamespace>SimpleSample11</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|X64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140_xp</PlatformToolset>
@@ -68,13 +68,13 @@
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|X64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -86,7 +86,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -185,12 +185,12 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>./;../;../../;../../Common;../../UICommon;../../Render;../../Editor;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../../;../../Common;../../Render;../Game;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_DEBUG;DEBUG;PROFILE;_WINDOWS;D3DXFX_LARGEADDRESS_HANDLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -204,6 +204,8 @@
       <TargetMachine>MachineX86</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -268,10 +270,10 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>./;../;../../;../../Common;../../UICommon;../../Render;../../Editor;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../../;../../Common;../../Render;../Game;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;D3DXFX_LARGEADDRESS_HANDLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -287,6 +289,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -311,10 +314,10 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>./;../;../../;../../Common;../../UICommon;../../Render;../../Editor;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;../../;../../Common;../../Render;../Game;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;D3DXFX_LARGEADDRESS_HANDLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -330,6 +333,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -438,10 +442,10 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <AdditionalIncludeDirectories>./;../;../../;../../Common;../../UICommon;../../Render;../../Editor;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./Common;./Render;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;NDEBUG;PROFILE;_WINDOWS;D3DXFX_LARGEADDRESS_HANDLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -457,6 +461,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
@@ -514,170 +519,20 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="..\Shader\Blood.shader">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\Shader\CrackEffect.shader" />
-    <None Include="..\Shader\Effect.shader" />
-    <None Include="..\Shader\Footprint.shader" />
-    <None Include="..\Shader\FootprintLiquid.shader" />
-    <None Include="..\Shader\ParticleFlipbook1.shader" />
-    <None Include="..\Shader\SelectArea.shader" />
-    <None Include="..\Shader\Slime.shader" />
-    <None Include="..\Shader\GSWrapTex.shader" />
-    <None Include="..\Shader\HpBar.shader" />
-    <None Include="..\Shader\HUDCircle.shader" />
-    <None Include="..\Shader\Laser.shader" />
-    <None Include="..\Shader\MainUI.shader" />
-    <None Include="..\Shader\Particle.shader" />
-    <None Include="..\Shader\Particle1.shader" />
-    <None Include="..\Shader\ParticleFlipbook.shader" />
-    <None Include="..\Shader\PostProcessDizzyEffect.shader" />
-    <None Include="..\Shader\PostProcessInvertColor.shader" />
-    <None Include="..\Shader\SpiderWebSilk.shader" />
-    <None Include="..\Shader\TutorialGame.shader" />
-    <None Include="..\Shader\ParticleCommon.shader" />
-    <None Include="..\Shader\TutorialGame_Particle.shader" />
-    <None Include="..\Shader\Water.shader" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Block.cpp" />
-    <ClCompile Include="BlockBuff.cpp" />
-    <ClCompile Include="BlockItem.cpp" />
-    <ClCompile Include="Bullet.cpp" />
-    <ClCompile Include="Character.cpp" />
-    <ClCompile Include="CharacterMove.cpp" />
-    <ClCompile Include="Effects\CrackMeshGenerator.cpp" />
-    <ClCompile Include="Effects\DynamicTextures.cpp" />
-    <ClCompile Include="Effects\ParticleArrayEmitter.cpp" />
-    <ClCompile Include="Effects\ParticleSubEmitter.cpp" />
-    <ClCompile Include="Effects\ParticleTimeoutEmitter.cpp" />
-    <ClCompile Include="Effects\ParticleWebEmitter.cpp" />
-    <ClCompile Include="Enemy.cpp" />
-    <ClCompile Include="Entities\AIObject.cpp" />
-    <ClCompile Include="Entities\Barrage.cpp" />
-    <ClCompile Include="Entities\BlockBuffs.cpp" />
-    <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp" />
-    <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp" />
-    <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
-    <ClCompile Include="Entities\Blocks\LvBarriers.cpp" />
-    <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
-    <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
-    <ClCompile Include="Entities\Bullets.cpp" />
-    <ClCompile Include="Entities\Door.cpp" />
-    <ClCompile Include="Entities\EffectObject.cpp" />
-    <ClCompile Include="Entities\Enemies.cpp" />
-    <ClCompile Include="Entities\Enemies\Lv1Enemies.cpp" />
-    <ClCompile Include="Entities\EnemyCharacters.cpp" />
-    <ClCompile Include="Entities\GlitchEffect.cpp" />
-    <ClCompile Include="Entities\Neutral.cpp" />
-    <ClCompile Include="Entities\FallingObj.cpp" />
-    <ClCompile Include="Entities\StartPoint.cpp" />
-    <ClCompile Include="Entity.cpp" />
-    <ClCompile Include="Explosion.cpp" />
-    <ClCompile Include="GameState.cpp" />
-    <ClCompile Include="GameUtil.cpp" />
-    <ClCompile Include="GlobalCfg.cpp" />
-    <ClCompile Include="GUI\ChunkUI.cpp" />
-    <ClCompile Include="GUI\HpBar.cpp" />
-    <ClCompile Include="GUI\MainUI.cpp" />
-    <ClCompile Include="GUI\StageDirector.cpp" />
-    <ClCompile Include="GUI\UIUtils.cpp" />
-    <ClCompile Include="LevelDesign.cpp" />
-    <ClCompile Include="LevelGenerate.cpp" />
-    <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
-    <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
-    <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
-    <ClCompile Include="Lightning.cpp" />
-    <ClCompile Include="MyGame.cpp" />
-    <ClCompile Include="MyLevel.cpp" />
-    <ClCompile Include="Physics\HitProxy.cpp" />
-    <ClCompile Include="Physics\HitProxyData.cpp" />
-    <ClCompile Include="Pickup.cpp" />
-    <ClCompile Include="Player.cpp" />
-    <ClCompile Include="PlayerWeapon.cpp" />
-    <ClCompile Include="PostEffects.cpp" />
-    <ClCompile Include="MaterialShadersImplement.cpp" />
-    <ClCompile Include="Stage.cpp" />
-    <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Weapons.cpp" />
-    <ClCompile Include="World.cpp" />
+    <Image Include="directx.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Attribute.h" />
-    <ClInclude Include="Block.h" />
-    <ClInclude Include="BlockBuff.h" />
-    <ClInclude Include="BlockItem.h" />
-    <ClInclude Include="Bullet.h" />
-    <ClInclude Include="Character.h" />
-    <ClInclude Include="CharacterMove.h" />
-    <ClInclude Include="Effects\CrackMeshGenerator.h" />
-    <ClInclude Include="Effects\DynamicTextures.h" />
-    <ClInclude Include="Effects\ParticleArrayEmitter.h" />
-    <ClInclude Include="Effects\ParticleSubEmitter.h" />
-    <ClInclude Include="Effects\ParticleTimeoutEmitter.h" />
-    <ClInclude Include="Effects\ParticleWebEmitter.h" />
-    <ClInclude Include="Enemy.h" />
-    <ClInclude Include="Entities\AIObject.h" />
-    <ClInclude Include="Entities\Barrage.h" />
-    <ClInclude Include="Entities\BlockBuffs.h" />
-    <ClInclude Include="Entities\BlockItems\BlockItemsLv1.h" />
-    <ClInclude Include="Entities\BlockItems\CommonBlockItems.h" />
-    <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
-    <ClInclude Include="Entities\Blocks\LvBarriers.h" />
-    <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
-    <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />
-    <ClInclude Include="Entities\Bullets.h" />
-    <ClInclude Include="Entities\Door.h" />
-    <ClInclude Include="Entities\EffectObject.h" />
-    <ClInclude Include="Entities\Enemies.h" />
-    <ClInclude Include="Entities\Enemies\Lv1Enemies.h" />
-    <ClInclude Include="Entities\EnemyCharacters.h" />
-    <ClInclude Include="Entities\GlitchEffect.h" />
-    <ClInclude Include="Entities\Neutral.h" />
-    <ClInclude Include="Entities\FallingObj.h" />
-    <ClInclude Include="Entities\StartPoint.h" />
-    <ClInclude Include="Entity.h" />
-    <ClInclude Include="Explosion.h" />
-    <ClInclude Include="GameState.h" />
-    <ClInclude Include="GameUtil.h" />
-    <ClInclude Include="GlobalCfg.h" />
-    <ClInclude Include="GUI\ChunkUI.h" />
-    <ClInclude Include="GUI\StageDirector.h" />
-    <ClInclude Include="GUI\HpBar.h" />
-    <ClInclude Include="GUI\MainUI.h" />
-    <ClInclude Include="GUI\UIUtils.h" />
-    <ClInclude Include="LevelDesign.h" />
-    <ClInclude Include="LevelGenerate.h" />
-    <ClInclude Include="LevelGenerating\LvGen1.h" />
-    <ClInclude Include="LevelGenerating\LvGenCommon.h" />
-    <ClInclude Include="Lightning.h" />
-    <ClInclude Include="MyGame.h" />
-    <ClInclude Include="MyLevel.h" />
-    <ClInclude Include="Physics\HitProxy.h" />
-    <ClInclude Include="Physics\HitProxyData.h" />
-    <ClInclude Include="Pickup.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayerWeapon.h" />
-    <ClInclude Include="PostEffects.h" />
-    <ClInclude Include="Stage.h" />
-    <ClInclude Include="stdafx.h" />
-    <ClInclude Include="Weapons.h" />
-    <ClInclude Include="World.h" />
+    <ResourceCompile Include="Run_LevelDesign.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\Common.vcxproj">
-      <Project>{46042c07-7662-4bc3-b922-adb1ee83a8a7}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Render\Render.vcxproj">
-      <Project>{6cd527ef-a036-428c-9eb3-741c9acef674}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\UICommon\UICommon.vcxproj">
-      <Project>{4a6e68f9-9d21-414b-8adb-b33c8c5639b5}</Project>
+    <ClInclude Include="winresource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Game\Game.vcxproj">
+      <Project>{8d876467-dfa8-4b68-b861-a2e31895d0cb}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

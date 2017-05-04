@@ -164,7 +164,7 @@ void CMainUI::Tick()
 void CMainUI::OnNewHpBarShake()
 {
 	float fPercent = 0;
-	CPlayer* pPlayer = CGame::Inst().GetWorld()->GetPlayer();
+	CPlayer* pPlayer = GetStage()->GetWorld()->GetPlayer();
 	if( pPlayer )
 	{
 		CVector3 hpPercent;

@@ -386,4 +386,7 @@ void CUIElement::OnSetFocused( bool bFocused )
 void CUIElement::OnChar( uint32 nChar )
 {
 	m_events.Trigger( eEvent_Char, (void*)nChar );
+	CUIElement* pParent = dynamic_cast<CUIElement*>( GetParent() );
+	if( pParent && pParent != m_pMgr )
+		pParent->OnChar( nChar );
 }
