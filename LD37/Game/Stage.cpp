@@ -9,7 +9,7 @@
 #include "MyLevel.h"
 #include "Entities/StartPoint.h"
 
-CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_pPlayer( NULL ), m_onPostProcess( this, &CStage::OnPostProcess )
+CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_bLight( false ), m_pPlayer( NULL ), m_onPostProcess( this, &CStage::OnPostProcess )
 {
 	m_pEntityRoot = new CEntity;
 	m_pFootprintMgr = NULL;
@@ -25,6 +25,7 @@ CStage::~CStage()
 void CStage::Create( SStageContext* pContext )
 {
 	m_pContext = pContext;
+	m_bLight = m_pContext->bLight;
 	if( pContext )
 	{
 		if( !pContext->nStageInsts )
@@ -61,7 +62,7 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 
 	m_enterContext = context;
 	if( m_enterContext.pViewport )
-		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, pPlayer ? true : false );
+		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, m_bLight );
 
 	if( m_pFootprintMgr && m_pFootprintMgr->GetFootprintRoot() )
 	{
@@ -136,7 +137,7 @@ void CStage::SetViewport( CUIViewport* pViewport )
 	
 	m_enterContext.pViewport = pViewport;
 	if( pViewport )
-		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, m_pPlayer ? true : false );
+		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, m_bLight );
 }
 
 void CStage::AddEntity( CEntity* pEntity )

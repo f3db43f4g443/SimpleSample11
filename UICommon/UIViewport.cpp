@@ -58,6 +58,12 @@ void CUIViewport::Render( CRenderContext2D& context )
 {
 	if( m_pRenderer )
 	{
+		CRectangle dstRect = m_localBound.Offset( globalTransform.GetPosition() );
+		CRectangle srcRect = CRectangle( 0, 0, m_localBound.width, m_localBound.height );
+		CRectangle clipRect = dstRect * globalClip;
+		if( clipRect.width <= 0 || clipRect.height <= 0 )
+			return;
+
 		auto origRect = GetCamera().GetViewArea();
 		if( m_bLight )
 		{
@@ -91,10 +97,18 @@ void CUIViewport::Render( CRenderContext2D& context )
 
 void CUIViewport::Flush( CRenderContext2D& context )
 {
+	CRectangle dstRect = m_localBound.Offset( globalTransform.GetPosition() );
+	CRectangle srcRect = CRectangle( 0, 0, m_localBound.width, m_localBound.height );
+	CRectangle clipRect = dstRect * globalClip;
+	srcRect.x += clipRect.x - dstRect.x;
+	srcRect.y += clipRect.y - dstRect.y;
+	srcRect.width += clipRect.width - dstRect.width;
+	srcRect.height += clipRect.height - dstRect.height;
+	dstRect = clipRect;
+
 	if( m_bCustomRender )
 	{
-		CopyToRenderTarget( context.pRenderSystem, NULL, m_pCustomTarget, m_localBound.Offset( globalTransform.GetPosition() ),
-			CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
+		CopyToRenderTarget( context.pRenderSystem, NULL, m_pCustomTarget, dstRect, srcRect,
 			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
 
 		auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
@@ -102,8 +116,7 @@ void CUIViewport::Flush( CRenderContext2D& context )
 	}
 	else
 	{
-		CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), m_localBound.Offset( globalTransform.GetPosition() ),
-			CRectangle( 0, 0, m_localBound.width, m_localBound.height ),
+		CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), dstRect, srcRect,
 			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
 		m_pRenderer->ReleaseSubRendererTexture();
 	}

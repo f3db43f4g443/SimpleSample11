@@ -37,8 +37,8 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 			if( pChunk->nSubChunkType != 2 )
 				continue;
 
-			int32 chunkX = pChunk->pos.x / pLevel->GetBlockSize();
-			int32 chunkY = pChunk->pos.y / pLevel->GetBlockSize();
+			int32 chunkX = pChunk->pos.x / ( pLevel ? pLevel->GetBlockSize() : 32 );
+			int32 chunkY = pChunk->pos.y / ( pLevel ? pLevel->GetBlockSize() : 32 );
 			for( int i = chunkX; i < chunkX + pChunk->nWidth; i++ )
 			{
 				for( int j = chunkY; j < chunkY + pChunk->nHeight; j++ )
@@ -80,8 +80,8 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 			if( pChunk->bIsRoom )
 			{
 				m_vecRooms.push_back( pChunkObject );
-				int32 chunkX = pChunk->pos.x / pLevel->GetBlockSize();
-				int32 chunkY = pChunk->pos.y / pLevel->GetBlockSize();
+				int32 chunkX = pChunk->pos.x / ( pLevel ? pLevel->GetBlockSize() : 32 );
+				int32 chunkY = pChunk->pos.y / ( pLevel ? pLevel->GetBlockSize() : 32 );
 
 				if( chunkY > 0 )
 				{

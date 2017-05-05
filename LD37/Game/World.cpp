@@ -36,6 +36,7 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 	{
 		auto& context = m_mapStageContexts[szStageName];
 		context.strName = szStageName;
+		context.bLight = true;
 		//Load
 		context.strSceneResName = context.strName;
 	}
@@ -130,7 +131,7 @@ uint32 CWorld::PlaySubStage( const char* szSubStageName, CUIViewport* pViewport 
 
 void CWorld::StopSubStage( uint32 nSlot )
 {
-	if( nSlot <= m_subStages.size() )
+	if( nSlot >= m_subStages.size() )
 		return;
 	auto& subStage = m_subStages[nSlot];
 	if( !subStage.pStage )

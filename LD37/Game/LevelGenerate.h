@@ -36,13 +36,31 @@ public:
 
 	static CLevelGenerateNode* CreateNode( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context );
 
+
+	enum
+	{
+		eEditType_Brush,
+		eEditType_Fence,
+	};
 	struct SMetadata
 	{
-		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ) {}
+		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ), nEditType( eEditType_Brush ) {}
+		uint8 GetLayerType() const
+		{
+			if( nMinLevel == 0 && nMaxLevel == 0 )
+				return 1;
+			else if( nMinLevel == 1 && nMaxLevel == 1 )
+				return 2;
+			else if( nMinLevel == 0 && nMaxLevel == 1 )
+				return 3;
+			else
+				return 0;
+		}
 		bool bIsDesignValid;
+		int8 nMinLevel, nMaxLevel;
+		int8 nEditType;
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
-		int8 nMinLevel, nMaxLevel;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

@@ -258,6 +258,7 @@ void CUILabel::LoadXml( TiXmlElement* pRoot )
 		| ( XmlGetAttr( pRoot, "textAlignY", (uint32)m_pTextObject->GetAlignY() ) << 2 );
 	m_pTextObject->SetAlignment( nAlignment );
 
+	m_pTextObject->SetMultiLine( XmlGetAttr( pRoot, "multiline", 0 ) );
 	wstring strText;
 	const char* szText = XmlGetAttr( pRoot, "text", "" );
 	Utf8ToUnicode( szText, strText );

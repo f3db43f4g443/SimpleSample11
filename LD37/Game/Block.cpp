@@ -270,7 +270,7 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 	pChunk->bSpawned = true;
 	pChunk->pChunkObject = this;
 	SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
-	SetParentEntity( pParent );
+	SetParentEntity( pChunk->pParentChunk ? pChunk->pParentChunk->pChunkObject : pParent );
 
 	if( m_pDamagedEffectsRoot )
 	{

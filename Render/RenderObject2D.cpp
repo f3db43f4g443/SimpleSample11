@@ -255,8 +255,12 @@ bool CRenderObject2D::CalcAABB()
 	CRectangle orig = globalAABB;
 	globalAABB = m_localBound * globalTransform;
 
-	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
-		globalAABB = globalAABB + pChild->globalAABB;
+	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() )
+	{
+		if( globalAABB.width <= 0 || globalAABB.height <= 0 )
+			globalAABB = pChild->globalAABB;
+		else if( pChild->globalAABB.width > 0 && pChild->globalAABB.height > 0 )
+			globalAABB = globalAABB + pChild->globalAABB;
 	}
 	return !( orig == globalAABB );
 }

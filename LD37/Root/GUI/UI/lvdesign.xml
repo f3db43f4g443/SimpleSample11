@@ -1,5 +1,6 @@
 ﻿<root type="element" alignX="3" alignY="3" >
   <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="600" rectHeight="600" alignX="3" alignY="3" enableMouseEvent="1">
+    <element name="state_text" type="label" rectX="20" rectY="20" rectWidth="560" rectHeight="560" alignX="3" alignY="3" multiline="1" />
   </element>
   <template type="GUI/UI/treeview.xml" name="fileview" rectX="600" rectY="0" rectWidth="200" rectHeight="200" alignX="2" alignY="1" enableMouseEvent="1" >
   </template>

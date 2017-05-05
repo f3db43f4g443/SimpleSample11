@@ -51,6 +51,7 @@ CFontObject* CFontObject::Clone()
 	bool bGUI = m_pGUIDrawable ? true : false;
 	CFontObject* pFontObject = new CFontObject( m_pFontFile, m_pFont->GetSize(),
 		!bGUI ? m_pColorDrawable : m_pGUIDrawable, !bGUI ? m_pOcclusionDrawable : NULL, m_localBound, m_nAlignment, bGUI, m_bInvertY );
+	pFontObject->SetMultiLine( m_bMultiLine );
 	pFontObject->SetText( m_strText.c_str() );
 	pFontObject->SetColor( m_color );
 	pFontObject->SetSelectionColor( m_selectionColor );

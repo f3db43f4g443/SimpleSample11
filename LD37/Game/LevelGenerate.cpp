@@ -342,6 +342,10 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
 		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
 	}
+	if( m_metadata.maxSize == m_metadata.minSize )
+		m_metadata.nEditType = eEditType_Brush;
+	else
+		m_metadata.nEditType = eEditType_Fence;
 	
 	auto pNextLevel = pXml->FirstChildElement( "next_level" );
 	if( pNextLevel )

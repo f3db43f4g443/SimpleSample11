@@ -819,10 +819,12 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CDesignLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strChunkEditPrefab )
-		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
-		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot, chunkedit );
-		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot1, chunkedit1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[0], chunks );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[1], chunks1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[2], chunks2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[0], chunkedit );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[1], chunkedit1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[2], chunkedit2 );
 	REGISTER_CLASS_END()
 }
 

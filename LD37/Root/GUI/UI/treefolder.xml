@@ -24,6 +24,6 @@
     <imageList>
     </imageList>
   </imageLists>
-  <element type="label" name="label" rectX="16" rectY="-10" rectWidth="200" rectHeight="20" textAlignX="0" textAlignY="1">
+  <element type="label" name="label" rectX="16" rectY="-10" rectWidth="200" rectHeight="20" alignX="1" alignY="3" textAlignX="0" textAlignY="1">
   </element>
 </root>

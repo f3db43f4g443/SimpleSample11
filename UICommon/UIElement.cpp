@@ -286,11 +286,20 @@ bool CUIElement::CalcAABB()
 	globalAABB = m_localBound.Offset( globalTransform.GetPosition() );
 
 	if( m_bClipChildren )
-		globalAABB = globalAABB + m_localClip.Offset( globalTransform.GetPosition() );
+	{
+		if( globalAABB.width <= 0 || globalAABB.height <= 0 )
+			globalAABB = m_localClip.Offset( globalTransform.GetPosition() );
+		else
+			globalAABB = globalAABB + m_localClip.Offset( globalTransform.GetPosition() );
+	}
 	else
 	{
-		for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
-			globalAABB = globalAABB + pChild->globalAABB;
+		for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() )
+		{
+			if( globalAABB.width <= 0 || globalAABB.height <= 0 )
+				globalAABB = pChild->globalAABB;
+			else if( pChild->globalAABB.width > 0 && pChild->globalAABB.height > 0 )
+				globalAABB = globalAABB + pChild->globalAABB;
 		}
 	}
 	return !( orig == globalAABB );
