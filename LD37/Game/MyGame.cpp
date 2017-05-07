@@ -189,8 +189,6 @@ void CGame::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 	}
 	if( nChar >= 128 )
 		return;
-	if( nChar >= 'a' && nChar <= 'z' )
-		nChar -= 'a' - 'A';
 	if( bKeyDown && !m_key.GetBit( nChar ) )
 		m_keyDown.SetBit( nChar, true );
 	if( !bKeyDown && m_key.GetBit( nChar ) )
@@ -717,6 +715,9 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_strBullet1 )
 		REGISTER_MEMBER( m_strHead )
+		REGISTER_MEMBER( m_strHead1 )
+		REGISTER_MEMBER( m_strHead2 )
+		REGISTER_MEMBER( m_strHead3 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CManHead1 )
@@ -735,6 +736,11 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEnemy )
 		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_flyData )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CManHead4 )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_strBullet )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

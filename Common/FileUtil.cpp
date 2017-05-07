@@ -3,6 +3,7 @@
 
 #ifdef _WIN32
 #include <io.h>
+#include <direct.h>
 
 bool IsFileExist( const char* szFileName )
 {
@@ -85,7 +86,23 @@ const char* GetFileContent( const char* szFileName, bool bText, uint32& nLen )
 
 void SaveFile( const char* szFileName, const void* pData, uint32 nLen )
 {
+	char* c = (char*)alloca( strlen( szFileName ) + 1 );
+	strcpy( c, szFileName );
+
+	for( char* c1 = c; *c1; c1++ )
+	{
+		if( *c1 == '/' )
+		{
+			*c1 = 0;
+			if( access( c, 6 ) == -1 )
+				mkdir( c );
+			*c1 = '/';
+		}
+	}
+
 	FILE* f = fopen( szFileName, "wb" );
+	if( !f )
+		return;
 	fwrite( pData, nLen, 1, f );
 	fclose( f );
 }

@@ -192,7 +192,7 @@ void CLighted2DRenderer::RenderOcclusionBuffer( CRenderContext2D& context )
 
 	IRenderSystem* pSystem = context.pRenderSystem;
 	pSystem->SetRenderTarget( m_pOcclusionBuffer->GetRenderTarget(), m_pDepthStencilHighRes->GetDepthStencil() );
-	pSystem->ClearRenderTarget( CVector4( 0, 0, 0, 1 ) );
+	pSystem->ClearRenderTarget( CVector4( 1, 1, 1, 0 ) );
 	pSystem->ClearDepthStencil( true, 1.0f, true, 0 );
 	SViewport viewport = { 0, 0, m_lightMapRes.x, m_lightMapRes.y, 0, 1 };
 	pSystem->SetViewports( &viewport, 1 );

@@ -1,0 +1,13 @@
+﻿<root type="element" x="200" y="200" visible="0" >
+  <template type="GUI/UI/panel.xml" rectX="0" rectY="0" rectWidth="400" rectHeight="300" >
+  </template>
+  <template type="GUI/UI/scrollview.xml" name="files" rectX="0" rectY="0" rectWidth="400" rectHeight="250" >
+  </template>
+  <template type="GUI/UI/textbox.xml" name="filename" rectX="4" rectY="254" rectWidth="392" rectHeight="20"
+             textLeft="4" textRight="4" textAlignX="0" textAlignY="1">
+  </template>
+  <template type="GUI/UI/button.xml" name="ok" rectX="200" rectY="275" rectWidth="50" rectHeight="20" text="OK" >
+  </template>
+  <template type="GUI/UI/button.xml" name="cancel" rectX="300" rectY="275" rectWidth="50" rectHeight="20" text="Cancel" >
+  </template>
+</root>

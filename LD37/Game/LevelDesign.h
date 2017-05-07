@@ -75,7 +75,9 @@ class CDesignLevel : public CEntity, public SLevelDesignContext
 	friend class CDesignView;
 	friend void RegisterGameClasses();
 public:
-	CDesignLevel( const SClassCreateContext& context ) : CEntity( context ), m_bInited( false ), m_bBeginEdit( false ), m_bAutoErase( false ), m_nShowLevelType( 3 ), SLevelDesignContext( 32, 128 ), m_strChunkEditPrefab( context ), m_curEditPos( 0, 0 ) { SET_BASEOBJECT_ID( CDesignLevel ); }
+	CDesignLevel( const SClassCreateContext& context ) : CEntity( context ), m_bInited( false )
+		, m_bBeginEdit( false ), m_bAutoErase( false ), m_nBrushSize( 1 ), m_brushDims( 0, 0 ), m_nShowLevelType( 3 )
+		, SLevelDesignContext( 32, 128 ), m_strChunkEditPrefab( context ), m_curEditPos( 0, 0 ) { SET_BASEOBJECT_ID( CDesignLevel ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
@@ -86,16 +88,23 @@ public:
 	void SetShowLevelType( uint8 nType );
 	void ToggloShowEditLevel();
 	bool IsAutoErase() { return m_bAutoErase; }
-	void SetAutoErase( bool bAutoErase ) { m_bAutoErase = bAutoErase; if( m_pTempChunkEdit && m_pTempChunkEdit->bVisible ) m_pTempChunkEdit->Check(); }
+	void SetAutoErase( bool bAutoErase );
 
 	SLevelDesignItem* GetItemByGrid( uint8 nLevel, const TVector2<int32> grid );
 	SLevelDesignItem* GetItemByGrid( const TVector2<int32> grid, bool bPick = false );
 	SLevelDesignItem* GetItemByWorldPos( uint8 nLevel, const CVector2& worldPos );
 	SLevelDesignItem* GetItemByWorldPos( const CVector2& worldPos, bool bPick = false );
 	CRectangle GetBrushRect();
+	uint8 GetBrushSize() { return m_nBrushSize; }
+	void SetBrushSize( uint8 nSize );
 
+	TVector2<int32> CalcBrushDims( CLevelGenerateNode* pNode );
 	TRectangle<int32> CalcEditRegion( CLevelGenerateNode* pNode, CVector2 begin, CVector2 end );
 	bool SetEditNode( const char* szNode );
+	void RefreshBrush();
+	void RefreshBrushEditingFence();
+	bool IsEditValid();
+	void ApplyBrush();
 	bool BeginEdit( const CVector2& worldPos );
 	void UpdateEdit( const CVector2& worldPos );
 	void EndEdit();
@@ -105,6 +114,7 @@ public:
 	CLevelGenerateNode* FindNode( const char* szFullName );
 	void GenerateLevel( class CMyLevel* pLevel );
 
+	void New();
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );
 
@@ -125,12 +135,15 @@ private:
 
 	CVector2 m_curEditPos;
 	bool m_bBeginEdit;
+	uint8 m_nBrushSize;
+	bool m_bAutoErase;
+	TVector2<int32> m_brushDims;
+	vector<CReference<CChunkEdit> > m_vecTempChunkEdits;
 	string m_strEditNodeName;
-	CReference<CChunkEdit> m_pTempChunkEdit;
+	CReference<CLevelGenerateNode> m_pEditNode;
 	string m_strPendingEditNodeName;
 	CReference<CLevelGenerateNode> m_pPendingEditNode;
 	CVector2 m_editBeginPos;
-	bool m_bAutoErase;
 	vector<CReference<SLevelDesignItem> > m_vecLockedItems;
 
 	static CDesignLevel* s_pLevel;
@@ -141,7 +154,15 @@ class CDesignView : public CUIElement
 public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CDesignView )
 
-	CDesignView() : m_pSelectedFile( NULL ), m_pSelectedNode( NULL ), m_bIsDeleteMode( false ) {}
+	CDesignView() : m_pSelectedFile( NULL ), m_pSelectedNode( NULL ), m_bIsDeleteMode( false ), m_bHelp( false ) {}
+
+	void OnHelp();
+	void OnNew() { CDesignLevel::GetInst()->New(); }
+	void OnLoad();
+	void OnSave();
+
+	void Load( const char* szFileName );
+	void Save( const char* szFileName );
 
 	void SelectFile( class CDesignViewFileElem* pItem );
 	void SelectNode( class CDesignViewNodeElem* pItem );
@@ -157,6 +178,7 @@ protected:
 
 	void FormatStateText();
 private:
+	bool m_bHelp;
 	bool m_bIsDeleteMode;
 
 	CReference<CUIViewport> m_pMainViewport;
@@ -165,6 +187,13 @@ private:
 
 	CReference<CUILabel> m_pStateText;
 
+	CReference<CUIElement> m_pLoadDialog;
+	CReference<CUIElement> m_pSaveDialog;
+
 	class CDesignViewFileElem* m_pSelectedFile;
 	class CDesignViewNodeElem* m_pSelectedNode;
+
+	TClassTrigger<CDesignView> m_onNew;
+	TClassTrigger<CDesignView> m_onLoad;
+	TClassTrigger<CDesignView> m_onSave;
 };

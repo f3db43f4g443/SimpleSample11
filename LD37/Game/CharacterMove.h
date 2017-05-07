@@ -181,9 +181,10 @@ protected:
 
 struct SCharacterPhysicsFlyData : public SCharacterMovementData
 {
-	SCharacterPhysicsFlyData( const SClassCreateContext& context ) { bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = false; }
+	SCharacterPhysicsFlyData( const SClassCreateContext& context ) : bHit( false ){ bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = false; }
 	void UpdateMove( CCharacter* pCharacter, const CVector2& moveTarget );
 
 	float fMaxAcc;
 	float fStablity;
+	bool bHit;
 };

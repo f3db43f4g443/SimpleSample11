@@ -862,11 +862,19 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 	float fTime = pCharacter->GetStage()->GetElapsedTimePerTick();
 	CVector2 curVelocity = lastVelocity + acc * fTime;
 	CVector2 dPos = ( lastVelocity + curVelocity ) * ( fTime / 2 );
+	bHit = false;
 	if( bHasAnyCollision )
 	{
 		CVector2 curVelocity0 = curVelocity;
-		TryMove( pCharacter, dPos, curVelocity );
-		curVelocity = curVelocity * 2 - curVelocity0;
+		CVector2 prePos = pCharacter->GetPosition();
+		SRaycastResult hits[3];
+		TryMove( pCharacter, dPos, curVelocity, hits );
+		if( hits[0].pHitProxy )
+		{
+			bHit = true;
+			curVelocity = curVelocity * 2 - curVelocity0;
+			pCharacter->SetPosition( pCharacter->GetPosition() * 2 - ( prePos + dPos ) );
+		}
 	}
 	else
 		pCharacter->SetPosition( pCharacter->GetPosition() + dPos );

@@ -16,7 +16,8 @@ class CWindow : public CEntity
 	friend void RegisterGameClasses();
 public:
 	CWindow( const SClassCreateContext& context ) : CEntity( context ), m_pAI( NULL ),
-		m_strBullet( context ), m_strBullet1( context ), m_strHead( context ) { SET_BASEOBJECT_ID( CWindow ); }
+		m_strBullet( context ), m_strBullet1( context )
+		, m_strHead( context ), m_strHead1( context ), m_strHead2( context ), m_strHead3( context ) { SET_BASEOBJECT_ID( CWindow ); }
 	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
 protected:
 	virtual void AIFunc();
@@ -35,7 +36,10 @@ protected:
 	CString m_strBullet;
 	CString m_strBullet1;
 	CString m_strHead;
+	CString m_strHead1;
+	CString m_strHead2;
+	CString m_strHead3;
 	CReference<CPrefab> m_pBullet;
 	CReference<CPrefab> m_pBullet1;
-	CReference<CPrefab> m_pHead;
+	CReference<CPrefab> m_pHead[4];
 };

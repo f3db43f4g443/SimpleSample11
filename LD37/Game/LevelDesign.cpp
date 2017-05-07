@@ -10,6 +10,8 @@
 #include "GameState.h"
 #include "Render/Scene2DManager.h"
 #include "MyGame.h"
+#include "Common/FileUtil.h"
+#include "Common/Utf8Util.h"
 
 CEntity * CChunkPreview::GetPreviewRoot()
 {
@@ -283,6 +285,7 @@ void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region 
 	auto pItem = AddItem( pNode, region, m_bAutoErase );
 	if( !pItem )
 		return;
+	pItem->strFullName = szFullName;
 
 	CreatePreviewForItem( pItem );
 	if( m_bBeginEdit )
@@ -328,6 +331,13 @@ void CDesignLevel::ToggloShowEditLevel()
 	}
 }
 
+void CDesignLevel::SetAutoErase( bool bAutoErase )
+{
+	m_bAutoErase = bAutoErase;
+	for( int i = 0; i < m_brushDims.x * m_brushDims.y; i++ )
+		m_vecTempChunkEdits[i]->Check();
+}
+
 SLevelDesignItem* CDesignLevel::GetItemByGrid( uint8 nLevel, const TVector2<int32> grid )
 {
 	if( grid.x < 0 || grid.y < 0 || grid.x >= nWidth || grid.y >= nHeight )
@@ -368,13 +378,36 @@ SLevelDesignItem* CDesignLevel::GetItemByWorldPos( const CVector2 & worldPos, bo
 
 CRectangle CDesignLevel::GetBrushRect()
 {
-	if( !m_pTempChunkEdit || !m_pTempChunkEdit->bVisible )
+	if( !m_pEditNode )
 		return CRectangle( -32, -32, 64, 64 );
 	else
 	{
-		auto size = m_pTempChunkEdit->GetNode()->GetMetadata().minSize;
-		return CRectangle( ( size.x + 1 ) * -0.5f * 32, ( size.y + 1 ) * -0.5f * 32, ( size.x + 1 ) * 32, ( size.y + 1 ) * 32 );
+		auto size = m_pEditNode->GetMetadata().minSize;
+		float fWidth = Max( m_nBrushSize * 32, ( size.x + 1 ) * 32 );
+		float fHeight = Max( m_nBrushSize * 32, ( size.y + 1 ) * 32 );
+		return CRectangle( fWidth * -0.5f, fHeight * -0.5f, fWidth, fHeight );
 	}
+}
+
+void CDesignLevel::SetBrushSize( uint8 nSize )
+{
+	nSize = Min<uint8>( Max<uint8>( nSize, 1 ), 9 );
+	if( nSize == m_nBrushSize )
+		return;
+	m_nBrushSize = nSize;
+
+	if( m_bBeginEdit && m_pEditNode && m_pEditNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Fence )
+		return;
+	RefreshBrush();
+}
+
+TVector2<int32> CDesignLevel::CalcBrushDims( CLevelGenerateNode * pNode )
+{
+	if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Fence )
+		return TVector2<int32>( 1, 1 );
+
+	TVector2<int32> minSize = pNode->GetMetadata().minSize;
+	return TVector2<int32>( ( m_nBrushSize - 1 ) / minSize.x + 1, ( m_nBrushSize - 1 ) / minSize.y + 1 );
 }
 
 TRectangle<int32> CDesignLevel::CalcEditRegion( CLevelGenerateNode* pNode, CVector2 begin, CVector2 end )
@@ -411,42 +444,103 @@ bool CDesignLevel::SetEditNode( const char* szNode )
 	}
 
 	m_strEditNodeName = szNode;
-	if( pNode )
+	m_pEditNode = pNode;
+	RefreshBrush();
+	return true;
+}
+
+void CDesignLevel::RefreshBrush()
+{
+	if( m_pEditNode )
 	{
-		if( !m_pTempChunkEdit )
+		uint32 nPreCount = m_brushDims.x * m_brushDims.y;
+		m_brushDims = CalcBrushDims( m_pEditNode );
+		uint32 nCurCount = m_brushDims.x * m_brushDims.y;
+		if( m_vecTempChunkEdits.size() < nCurCount )
+			m_vecTempChunkEdits.resize( nCurCount );
+
+		TVector2<int32> offsetSize = ( m_brushDims - TVector2<int32>( 1, 1 ) ) * m_pEditNode->GetMetadata().minSize;
+		CVector2 ofs( offsetSize.x * 0.5f * 32, offsetSize.y * 0.5f * 32 );
+		TRectangle<int32> baseEditRegion = CalcEditRegion( m_pEditNode, m_curEditPos - ofs, m_curEditPos - ofs );
+
+		nCurCount = 0;
+		for( int i = 0; i < m_brushDims.x; i++ )
 		{
-			m_pTempChunkEdit = SafeCast<CChunkEdit>( m_pChunkEditPrefab->GetRoot()->CreateInstance() );
-			m_pTempChunkEdit->SetParentEntity( this );
-			m_pTempChunkEdit->SetTempEdit( true );
+			for( int j = 0; j < m_brushDims.y; j++ )
+			{
+				auto& pEdit = m_vecTempChunkEdits[nCurCount++];
+				if( !pEdit )
+				{
+					pEdit = SafeCast<CChunkEdit>( m_pChunkEditPrefab->GetRoot()->CreateInstance() );
+					pEdit->SetParentEntity( this );
+					pEdit->SetTempEdit( true );
+				}
+
+				pEdit->Set( m_pEditNode, baseEditRegion.Offset( m_pEditNode->GetMetadata().minSize * TVector2<int32>( i, j ) ) );
+			}
 		}
-		m_pTempChunkEdit->Set( pNode, CalcEditRegion( pNode, m_curEditPos, m_curEditPos ) );
+
+		for( int i = nCurCount; i < nPreCount; i++ )
+		{
+			auto& pEdit = m_vecTempChunkEdits[i];
+			pEdit->Set( NULL, TRectangle<int32>( 0, 0, 0, 0 ) );
+		}
 	}
 	else
 	{
-		if( m_pTempChunkEdit )
-			m_pTempChunkEdit->Set( NULL, TRectangle<int32>( 0, 0, 0, 0 ) );
+		for( int i = 0; i < m_brushDims.x * m_brushDims.y; i++ )
+		{
+			m_vecTempChunkEdits[i]->Set( NULL, TRectangle<int32>( 0, 0, 0, 0 ) );
+		}
+		m_brushDims = TVector2<int32>( 0, 0 );
 	}
-	return true;
+}
+
+void CDesignLevel::RefreshBrushEditingFence()
+{
+	assert( m_brushDims.x == 1 && m_brushDims.y == 1 );
+	m_vecTempChunkEdits[0]->Set( m_pEditNode, CalcEditRegion( m_pEditNode, m_editBeginPos, m_curEditPos ) );
+}
+
+bool CDesignLevel::IsEditValid()
+{
+	bool bEditValid = false;
+	for( int i = 0; i < m_brushDims.x * m_brushDims.y; i++ )
+	{
+		if( m_vecTempChunkEdits[i]->IsEditValid() )
+		{
+			bEditValid = true;
+			break;
+		}
+	}
+	return bEditValid;
+}
+
+void CDesignLevel::ApplyBrush()
+{
+	for( int i = 0; i < m_brushDims.x * m_brushDims.y; i++ )
+	{
+		if( m_vecTempChunkEdits[i]->IsEditValid() )
+			Add( m_strEditNodeName.c_str(), m_vecTempChunkEdits[i]->GetRegion() );
+	}
 }
 
 bool CDesignLevel::BeginEdit( const CVector2 & worldPos )
 {
-	if( !m_pTempChunkEdit || !m_pTempChunkEdit->bVisible )
+	if( !m_pEditNode )
 		return false;
 
-	m_pTempChunkEdit->Set( m_pTempChunkEdit->GetNode(), CalcEditRegion( m_pTempChunkEdit->GetNode(), worldPos, worldPos ) );
-	if( !m_pTempChunkEdit->IsEditValid() )
+	RefreshBrush();
+	if( !IsEditValid() )
 		return false;
 
 	m_bBeginEdit = true;
 	m_editBeginPos = worldPos;
-	m_pPendingEditNode = m_pTempChunkEdit->GetNode();
+	m_pPendingEditNode = m_pEditNode;
 
-	int8 nEditType = m_pTempChunkEdit->GetNode()->GetMetadata().nEditType;
+	int8 nEditType = m_pEditNode->GetMetadata().nEditType;
 	if( nEditType == CLevelGenerateNode::eEditType_Brush )
-	{
-		Add( m_strEditNodeName.c_str(), m_pTempChunkEdit->GetRegion() );
-	}
+		ApplyBrush();
 	return true;
 }
 
@@ -455,22 +549,20 @@ void CDesignLevel::UpdateEdit( const CVector2 & worldPos )
 	m_curEditPos = worldPos;
 	if( !m_bBeginEdit )
 	{
-		if( m_pTempChunkEdit && m_pTempChunkEdit->bVisible )
-			m_pTempChunkEdit->Set( m_pTempChunkEdit->GetNode(), CalcEditRegion( m_pTempChunkEdit->GetNode(), m_curEditPos, m_curEditPos ) );
+		if( m_pEditNode )
+			RefreshBrush();
 		return;
 	}
 
-	int8 nEditType = m_pTempChunkEdit->GetNode()->GetMetadata().nEditType;
+	int8 nEditType = m_pEditNode->GetMetadata().nEditType;
 	if( nEditType == CLevelGenerateNode::eEditType_Fence )
 	{
-		m_pTempChunkEdit->Set( m_pTempChunkEdit->GetNode(), CalcEditRegion( m_pTempChunkEdit->GetNode(), m_editBeginPos, m_curEditPos ) );
+		RefreshBrushEditingFence();
 	}
 	else
 	{
-		m_pTempChunkEdit->Set( m_pTempChunkEdit->GetNode(), CalcEditRegion( m_pTempChunkEdit->GetNode(), m_curEditPos, m_curEditPos ) );
-
-		if( m_pTempChunkEdit->IsEditValid() )
-			Add( m_strEditNodeName.c_str(), m_pTempChunkEdit->GetRegion() );
+		RefreshBrush();
+		ApplyBrush();
 	}
 }
 
@@ -478,28 +570,31 @@ void CDesignLevel::EndEdit()
 {
 	if( m_bBeginEdit )
 	{
-		int8 nEditType = m_pTempChunkEdit->GetNode()->GetMetadata().nEditType;
+		int8 nEditType = m_pEditNode->GetMetadata().nEditType;
 		if( nEditType == CLevelGenerateNode::eEditType_Fence )
-		{
-			if( m_pTempChunkEdit->IsEditValid() )
-				Add( m_strEditNodeName.c_str(), m_pTempChunkEdit->GetRegion() );
-		}
+			ApplyBrush();
 		m_bBeginEdit = false;
 	}
 	ClearLockedItems();
 
-	if( m_pTempChunkEdit && m_pTempChunkEdit->GetNode() != m_pPendingEditNode )
+	if( m_pEditNode != m_pPendingEditNode.GetPtr() )
 		SetEditNode( m_strPendingEditNodeName.c_str() );
 }
 
 void CDesignLevel::StopEdit()
 {
 	ClearLockedItems();
-	if( m_pTempChunkEdit )
+	m_pEditNode = m_pPendingEditNode = NULL;
+
+	for( int i = 0; i < m_vecTempChunkEdits.size(); i++ )
 	{
-		m_pTempChunkEdit->SetParentEntity( NULL );
-		m_pTempChunkEdit = NULL;
+		if( m_vecTempChunkEdits[i] )
+		{
+			m_vecTempChunkEdits[i]->SetParentEntity( NULL );
+			m_vecTempChunkEdits[i] = NULL;
+		}
 	}
+	m_vecTempChunkEdits.clear();
 }
 
 void CDesignLevel::ClearLockedItems()
@@ -539,8 +634,21 @@ void CDesignLevel::GenerateLevel( CMyLevel * pLevel )
 	context.Build();
 }
 
+void CDesignLevel::New()
+{
+	for( int k = 0; k < 2; k++ )
+	{
+		for( auto& pItem : items[k] )
+		{
+			if( pItem )
+				Remove( pItem );
+		}
+	}
+}
+
 void CDesignLevel::Load( IBufReader & buf )
 {
+	New();
 	for( ;; )
 	{
 		string strFullName;
@@ -552,6 +660,8 @@ void CDesignLevel::Load( IBufReader & buf )
 		buf.Read( region );
 
 		Add( strFullName.c_str(), region );
+
+		CBufReader extraData( buf );
 	}
 }
 
@@ -564,16 +674,130 @@ void CDesignLevel::Save( CBufFile & buf )
 			for( int j = 0; j < nHeight; j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
-				if( pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
 				{
 					buf.Write( pItem->strFullName );
 					buf.Write( pItem->region );
+
+					CBufFile extraData;
+					buf.Write( extraData );
 				}
 			}
 		}
 	}
 	buf.Write( (int8)0 );
 }
+
+class CDesignViewFileDialog : public CUIElement
+{
+public:
+protected:
+	class CFileSelectItem : public CUIButton
+	{
+	public:
+		static void Create( CDesignViewFileDialog* pFileView, CUIScrollView* pView, const char* szName )
+		{
+			static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/fileselect_item.xml" );
+			auto pItem = new CFileSelectItem;
+			g_pRes->GetElement()->Clone( pItem );
+			pView->AddContent( pItem );
+			pItem->m_pFileView = pFileView;
+			pItem->m_name = szName;
+			pItem->SetText( szName );
+		}
+
+	protected:
+		virtual void OnInited() override
+		{
+			m_onSelect.Set( this, &CFileSelectItem::OnSelect );
+			Register( eEvent_Action, &m_onSelect );
+		}
+		void OnSelect()
+		{
+			m_pFileView->SelectFile( m_name.c_str() );
+		}
+	private:
+		CDesignViewFileDialog* m_pFileView;
+		string m_name;
+		TClassTrigger<CFileSelectItem> m_onSelect;
+	};
+
+	virtual void OnInited() override
+	{
+		m_pFileName = GetChildByName<CUILabel>( "filename" );
+		m_pFiles = GetChildByName<CUIScrollView>( "files" );
+		m_onOk.Set( this, &CDesignViewFileDialog::OnOk );
+		GetChildByName<CUIButton>( "ok" )->Register( eEvent_Action, &m_onOk );
+		m_onCancel.Set( this, &CDesignViewFileDialog::OnCancel );
+		GetChildByName<CUIButton>( "cancel" )->Register( eEvent_Action, &m_onCancel );
+	}
+	virtual void OnSetVisible( bool bVisible ) override
+	{
+		if( bVisible )
+		{
+			m_pFiles->ClearContent();
+			FindFiles( "Save/*", [this] ( const char* szFileName )
+			{
+				CFileSelectItem::Create( this, m_pFiles, szFileName );
+				return true;
+			}, true, false );
+		}
+	}
+	void SelectFile( const char* szFileName )
+	{
+		m_pFileName->SetText( szFileName );
+	}
+	virtual void OnOk() { GetMgr()->EndModal(); }
+	void OnCancel() { GetMgr()->EndModal(); }
+
+	CDesignView* m_pOwner;
+	CReference<CUILabel> m_pFileName;
+	CReference<CUIScrollView> m_pFiles;
+	TClassTrigger<CDesignViewFileDialog> m_onOk;
+	TClassTrigger<CDesignViewFileDialog> m_onCancel;
+};
+
+class CDesignViewLoadDialog : public CDesignViewFileDialog
+{
+public:
+	static CDesignViewLoadDialog* Create( CDesignView* pOwner )
+	{
+		static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/designview_load.xml" );
+		auto pElem = new CDesignViewLoadDialog;
+		g_pRes->GetElement()->Clone( pElem );
+		pElem->m_pOwner = pOwner;
+		return pElem;
+	}
+protected:
+	virtual void OnOk() override
+	{
+		string strName = "Save/";
+		strName += UnicodeToUtf8( m_pFileName->GetText() );
+		m_pOwner->Load( strName.c_str() );
+		CDesignViewFileDialog::OnOk();
+	}
+};
+
+class CDesignViewSaveDialog : public CDesignViewFileDialog
+{
+public:
+	static CDesignViewSaveDialog* Create( CDesignView* pOwner )
+	{
+		static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "GUI/UI/designview_save.xml" );
+		auto pElem = new CDesignViewSaveDialog;
+		g_pRes->GetElement()->Clone( pElem );
+		pElem->m_pOwner = pOwner;
+		return pElem;
+	}
+protected:
+	virtual void OnOk() override
+	{
+		string strName = "Save/";
+		strName += UnicodeToUtf8( m_pFileName->GetText() );
+		m_pOwner->Save( strName.c_str() );
+		CDesignViewFileDialog::OnOk();
+	}
+};
 
 class CDesignViewFileElem : public CUIButton
 {
@@ -759,6 +983,43 @@ protected:
 	CVector2 m_lastDragPos;
 };
 
+void CDesignView::OnHelp()
+{
+	m_bHelp = !m_bHelp;
+	FormatStateText();
+}
+
+void CDesignView::OnLoad()
+{
+	if( m_pLoadDialog->bVisible || m_pSaveDialog->bVisible )
+		return;
+	GetMgr()->DoModal( m_pLoadDialog );
+}
+
+void CDesignView::OnSave()
+{
+	if( m_pLoadDialog->bVisible || m_pSaveDialog->bVisible )
+		return;
+	GetMgr()->DoModal( m_pSaveDialog );
+}
+
+void CDesignView::Load( const char * szFileName )
+{
+	if( !IsFileExist( szFileName ) )
+		return;
+	vector<char> content;
+	uint32 nSize = GetFileContent( content, szFileName, false );
+	CBufReader buf( &content[0], nSize );
+	CDesignLevel::GetInst()->Load( buf );
+}
+
+void CDesignView::Save( const char * szFileName )
+{
+	CBufFile buf;
+	CDesignLevel::GetInst()->Save( buf );
+	SaveFile( szFileName, buf.GetBuffer(), buf.GetBufLen() );
+}
+
 void CDesignView::SelectFile( CDesignViewFileElem * pItem )
 {
 	if( pItem == m_pSelectedFile )
@@ -804,9 +1065,32 @@ void CDesignView::OnInited()
 	m_pNodeView = GetChildByName<CUIScrollView>( "nodeview" );
 	m_pStateText = m_pMainViewport->GetChildByName<CUILabel>( "state_text" );
 
+	m_onNew.Set( this, &CDesignView::OnNew );
+	GetChildByName<CUIButton>( "new" )->Register( eEvent_Action, &m_onNew );
+	m_onLoad.Set( this, &CDesignView::OnLoad );
+	GetChildByName<CUIButton>( "load" )->Register( eEvent_Action, &m_onLoad );
+	m_onSave.Set( this, &CDesignView::OnSave );
+	GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
+
+	m_pLoadDialog = CDesignViewLoadDialog::Create( this );
+	AddChild( m_pLoadDialog );
+	m_pSaveDialog = CDesignViewSaveDialog::Create( this );
+	AddChild( m_pSaveDialog );
+
 	map<string, CUITreeView::CTreeViewContent*> mapTreeViewContent;
 	for( auto& file : cfg.levelGenerateNodeContext.mapFiles )
 	{
+		bool bAny = false;
+		for( auto& node : file.second.mapNamedNodes )
+		{
+			if( !node.second->GetMetadata().bIsDesignValid )
+				continue;
+			bAny = true;
+			break;
+		}
+		if( !bAny )
+			continue;
+
 		const char * szFileName = file.first.c_str();
 		const char * c0 = szFileName;
 
@@ -878,25 +1162,46 @@ void CDesignView::OnChar( uint32 nChar )
 	case 'e':
 		CDesignLevel::GetInst()->SetAutoErase( !CDesignLevel::GetInst()->IsAutoErase() );
 		break;
+	case '-':
+		CDesignLevel::GetInst()->SetBrushSize( CDesignLevel::GetInst()->GetBrushSize() - 1 );
+		break;
+	case '=':
+		CDesignLevel::GetInst()->SetBrushSize( CDesignLevel::GetInst()->GetBrushSize() + 1 );
+		break;
 	}
 	FormatStateText();
 }
 
 void CDesignView::FormatStateText()
 {
-	stringstream ss;
-
-	if( m_pSelectedNode )
-		ss << "Selected: " <<  m_pSelectedNode->strFullName << "   Auto erase: " << CDesignLevel::GetInst()->m_bAutoErase;
-	else if( m_bIsDeleteMode )
-		ss << "Delete";
+	if( m_bHelp )
+	{
+		m_pStateText->SetText(
+			"Press F1 to hide hotkeys\n"
+			"F2: New   F3: Load   F4: Save\n"
+			"Del: Delete   Backspace: Clear operation\n"
+			"E: Auto erase   -: Decrease brush size   =: Increase brush size\n"
+			"1: Show level 0   2: Show level 1   3: Show both levels   `: Toggle show frames\n"
+		);
+	}
 	else
-		ss << "No operation";
-	ss << "\n";
+	{
+		stringstream ss;
+		ss << "Press F1 to show hotkeys\n";
 
-	ss << "Show level type: " << (int32)CDesignLevel::GetInst()->m_nShowLevelType;
+		if( m_pSelectedNode )
+			ss << "Selected: " << m_pSelectedNode->strFullName << "   Auto erase: " << CDesignLevel::GetInst()->m_bAutoErase
+			<< "   Brush size: " << (int32)CDesignLevel::GetInst()->GetBrushSize();
+		else if( m_bIsDeleteMode )
+			ss << "Delete";
+		else
+			ss << "No operation";
+		ss << "\n";
 
-	m_pStateText->SetText( ss.str().c_str() );
+		ss << "Show level type: " << (int32)CDesignLevel::GetInst()->m_nShowLevelType << "\n";
+
+		m_pStateText->SetText( ss.str().c_str() );
+	}
 }
 
 CLevelDesignGameState::CLevelDesignGameState() : m_pDesignStage( NULL )
@@ -945,6 +1250,22 @@ void CLevelDesignGameState::UpdateInput()
 	{
 		CMainGameState::Inst().SetStageName( "design_test.pf" );
 		CGame::Inst().SetCurState( &CMainGameState::Inst() );
+	}
+	else if( CGame::Inst().IsKeyUp( VK_F1 ) )
+	{
+		CDesignView::Inst()->OnHelp();
+	}
+	else if( CGame::Inst().IsKeyUp( VK_F2 ) )
+	{
+		CDesignView::Inst()->OnNew();
+	}
+	else if( CGame::Inst().IsKeyUp( VK_F3 ) )
+	{
+		CDesignView::Inst()->OnLoad();
+	}
+	else if( CGame::Inst().IsKeyUp( VK_F4 ) )
+	{
+		CDesignView::Inst()->OnSave();
 	}
 }
 

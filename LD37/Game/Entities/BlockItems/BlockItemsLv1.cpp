@@ -40,7 +40,10 @@ void CWindow::AIFunc()
 {
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_pBullet1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1.c_str() );
-	m_pHead = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead.c_str() );
+	m_pHead[0] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead.c_str() );
+	m_pHead[1] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead1.c_str() );
+	m_pHead[2] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead2.c_str() );
+	m_pHead[3] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead3.c_str() );
 	CReference<CPrefab> pBullet1 = m_pBullet1;
 
 	uint32 nAttackCount = 0;
@@ -176,7 +179,7 @@ void CWindow::AIFunc()
 dead:
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 8, 12, 2 );
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( 1, false );
-	auto pHead = SafeCast<CEntity>( m_pHead->GetRoot()->CreateInstance() );
+	auto pHead = SafeCast<CEntity>( m_pHead[SRand::Inst().Rand( 0, 4 )]->GetRoot()->CreateInstance() );
 	pHead->SetPosition( globalTransform.GetPosition() );
 	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 }

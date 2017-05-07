@@ -51,3 +51,18 @@ protected:
 	SCharacterPhysicsFlyData m_flyData;
 	CVector2 m_moveTarget;
 };
+
+class CManHead4 : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+public:
+	CManHead4( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CManHead3 ); }
+
+	virtual void Kill() override;
+protected:
+	virtual void AIFunc() override;
+	virtual void OnTickAfterHitTest() override;
+
+	CString m_strBullet;
+	CReference<CPrefab> m_pBullet;
+};
