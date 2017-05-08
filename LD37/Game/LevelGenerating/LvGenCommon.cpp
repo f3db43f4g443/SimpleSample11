@@ -75,6 +75,7 @@ void CRoom1Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 	if( pChunk )
 	{
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
@@ -238,6 +239,7 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 	if( pChunk )
 	{
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];

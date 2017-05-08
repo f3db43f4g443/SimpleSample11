@@ -56,6 +56,21 @@ void CWindow::AIFunc()
 		//closed
 		while( 1 )
 		{
+			m_pAI->Yield( 0.5f, true );
+			vector<CReference<CEntity> > hitEntities;
+			GetStage()->MultiHitTest(Get_HitProxy(), globalTransform, hitEntities );
+			bool bHit = false;
+			for( CEntity* pEntity : hitEntities )
+			{
+				if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+				{
+					bHit = true;
+					break;
+				}
+			}
+			if( bHit )
+				continue;
+
 			CPlayer* pPlayer = GetStage()->GetPlayer();
 			if( pPlayer )
 			{
@@ -63,7 +78,10 @@ void CWindow::AIFunc()
 				if( m_openRect.Contains( pos ) )
 					break;
 			}
-			m_pAI->Yield( 0.5f, true );
+
+			auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+			if( pChunkObject && pChunkObject->GetMaxHp() && pChunkObject->GetHp() / pChunkObject->GetMaxHp() < 0.5f )
+				break;
 		}
 
 		//opening
@@ -84,6 +102,9 @@ void CWindow::AIFunc()
 				break;
 
 			float fDeathChance = nAttackCount / ( nAttackCount + 1.0f );
+			auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+			if( pChunkObject && pChunkObject->GetMaxHp() )
+				fDeathChance = 1 - ( 1 - fDeathChance ) * ( pChunkObject->GetHp() / pChunkObject->GetMaxHp() );
 			if( SRand::Inst().Rand( 0.0f, 1.0f ) < fDeathChance )
 			{
 				goto dead;
@@ -179,7 +200,8 @@ void CWindow::AIFunc()
 dead:
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 8, 12, 2 );
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( 1, false );
-	auto pHead = SafeCast<CEntity>( m_pHead[SRand::Inst().Rand( 0, 4 )]->GetRoot()->CreateInstance() );
+	float fLevelHeight = CMyLevel::GetInst()->GetBoundWithLvBarrier().height;
+	auto pHead = SafeCast<CEntity>( m_pHead[SRand::Inst().Rand( 0, 2 ) * 2 + ( globalTransform.GetPosition().y < fLevelHeight * 0.5f ? 0 : 1 )]->GetRoot()->CreateInstance() );
 	pHead->SetPosition( globalTransform.GetPosition() );
 	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 }

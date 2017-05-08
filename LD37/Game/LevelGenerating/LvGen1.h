@@ -67,6 +67,7 @@ private:
 	void GenBase();
 	void GenRooms();
 	void GenWalls();
+	void GenWindows();
 
 	CReference<CLevelGenerateNode> m_pLabelNode;
 	CReference<CLevelGenerateNode> m_pFillNode;
@@ -75,6 +76,7 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pWallHNode;
 	CReference<CLevelGenerateNode> m_pWallVNode;
+	CReference<CLevelGenerateNode> m_pWindowNode;
 
 	enum
 	{
@@ -93,4 +95,5 @@ private:
 	TRectangle<int32> m_labelRect;
 	vector<TRectangle<int32> > m_rooms;
 	vector<TRectangle<int32> > m_walls;
+	vector<TRectangle<int32> > m_windows;
 };

@@ -1,6 +1,38 @@
 #pragma once
 #include "Block.h"
 #include "RandomBlocks.h"
+#include "Entities/AIObject.h"
+
+class CLvBarrier1Core : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrier1Core( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ), m_strBullet1( context ), m_nPhase( 0 ), m_nSpecialFires( 0 ) { SET_BASEOBJECT_ID( CLvBarrier1Core ); }
+
+	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
+	virtual void Damage( float nDmg, uint8 nType = 0 ) override { m_nSpecialFires = 1; CChunkObject::Damage( nDmg, nType ); }
+
+	void SetPhase( uint8 nPhase ) { m_nPhase = nPhase; }
+protected:
+	virtual void AIFunc();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CLvBarrier1Core*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+
+	CString m_strBullet;
+	CString m_strBullet1;
+	CReference<CPrefab> m_pBulletPrefab;
+	CReference<CPrefab> m_pBulletPrefab1;
+
+	float m_fOpenDist[4];
+	float m_fCloseDist[4];
+
+	uint8 m_nPhase;
+	uint8 m_nSpecialFires;
+};
 
 class CLvBarrier1 : public CRandomChunkTiled
 {
@@ -25,6 +57,7 @@ private:
 
 	bool m_bKilled;
 	vector<CReference<CChunkObject> > m_vecRooms;
+	vector<CReference<CChunkObject> > m_vecCores;
 	vector<CFunctionTrigger> m_triggers;
 	TClassTrigger<CLvBarrier1> m_deathTick;
 	CReference<CPrefab> m_pKillEffect;

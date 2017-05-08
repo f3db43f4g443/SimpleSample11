@@ -689,6 +689,8 @@ void CMyLevel::UpdateBlocksMovement()
 
 	if( pLevelBarrier )
 	{
+		m_fCurLvBarrierHeight = pLevelBarrier->pos.y + pLevelBarrier->nBarrierHeight * m_nBlockSize;
+
 		while( nUpdatedBlock < vecUpdatedBlocks.size() )
 		{
 			auto pBlockLayer = vecUpdatedBlocks[nUpdatedBlock++];

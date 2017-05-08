@@ -116,6 +116,7 @@ public:
 	SLightningContext* GetLightningContext( uint32 i );
 	void InitBullet( uint32 i, int32 nType, int32 nParent, CVector2 p0, CVector2 v, CVector2 a, bool bTangentAngle = true,
 		float fAngle0 = 0, float fAngleV = 0, float fAngleA = 0 );
+	bool IsBulletAlive(uint32 i );
 	void SetBulletType( uint32 i, int32 nType );
 	void SetBulletParent( uint32 i, int32 nParent );
 	void DestroyBullet( uint32 i );

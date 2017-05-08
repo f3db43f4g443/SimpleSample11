@@ -44,7 +44,7 @@
         </subitem>
       </node>
 
-      <node name="1f" type="barrier1" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1">
+      <node name="1f" type="barrier1" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -83,6 +83,9 @@
         <wall_v>
           <ref name="stonebar_room_v2" />
         </wall_v>
+        <window>
+          <ref name="window2x2" />
+        </window>
         
       </node>
       

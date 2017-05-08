@@ -112,9 +112,12 @@ void CAIObject::ResumeThrow()
 	{
 		auto pStage = GetStage();
 		CReference<CAIObject> temp = this;
-		uint32 nRet = m_pCoroutine->Resume();
-		if( pStage )
-			OnResumeRet( nRet );
+		if( m_pCoroutine->GetState() != ICoroutine::eState_Stopped )
+		{
+			uint32 nRet = m_pCoroutine->Resume();
+			if( pStage )
+				OnResumeRet( nRet );
+		}
 	}
 }
 

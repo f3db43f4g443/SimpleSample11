@@ -574,6 +574,16 @@ void CBarrage::InitBullet( uint32 i, int32 nType, int32 nParent, CVector2 p0, CV
 	pBullet->bTangentAngle = bTangentAngle;
 }
 
+bool CBarrage::IsBulletAlive( uint32 i )
+{
+	auto pBulletContext = GetBulletContext( i );
+	if( !pBulletContext )
+		return false;
+	if( pBulletContext->pEntity )
+		return true;
+	return false;
+}
+
 void CBarrage::SetBulletType( uint32 i, int32 nType )
 {
 	auto pContext = GetBulletContext( i );

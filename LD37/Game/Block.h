@@ -152,6 +152,8 @@ struct SChunk
 	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 2;
 
+	uint8 nBarrierHeight : 4;
+
 	SChunk* pParentChunk;
 	LINK_LIST( SChunk, SubChunk )
 	LINK_LIST_HEAD( m_pSpawnInfos, SChunkSpawnInfo, SpawnInfo )

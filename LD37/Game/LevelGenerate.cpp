@@ -103,6 +103,8 @@ void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<i
 		return;
 	}
 
+	pInfo->pos = pInfo->pos + CVector2( pBlock->pParent->nX * nBlockSize, pBlock->pParent->nY * nBlockSize );
+
 	pBlock->pParent->pOwner->Insert_SpawnInfo( pInfo );
 }
 
@@ -212,10 +214,6 @@ void SLevelBuildContext::Build()
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
-			if( i == 22 && j == 68 )
-			{
-				int a = 0;
-			}
 			SBlockLayer* pBlockLayers[2] = { GetBlock( i, j, 0 ), GetBlock( i, j, 1 ) };
 			if( pParentChunk )
 			{
@@ -384,6 +382,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
 	chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
 	m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
+	m_nLevelBarrierHeight = XmlGetAttr( pXml, "levelbarrierheight", 0 );
 	chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
 	chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
 	chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
@@ -440,6 +439,7 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 	if( pChunk )
 	{
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		if( m_pSubChunk )

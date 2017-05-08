@@ -46,6 +46,7 @@ public:
 	
 	bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
 	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, m_nSpawnHeight * m_nBlockSize ); }
+	CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * m_nBlockSize ) ); }
 	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
 	CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
@@ -71,6 +72,7 @@ private:
 	uint32 m_nWidth;
 	uint32 m_nHeight;
 	uint32 m_nSpawnHeight;
+	float m_fCurLvBarrierHeight;
 
 	struct SBasement
 	{

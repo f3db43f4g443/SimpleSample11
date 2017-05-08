@@ -12,6 +12,7 @@ void CLvBarrierNodeGen1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	m_pWallHNode = CreateNode( pXml->FirstChildElement( "wall_h" )->FirstChildElement(), context );
 	m_pWallVNode = CreateNode( pXml->FirstChildElement( "wall_v" )->FirstChildElement(), context );
+	m_pWindowNode = CreateNode( pXml->FirstChildElement( "window" )->FirstChildElement(), context );
 }
 
 void CLvBarrierNodeGen1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
@@ -26,14 +27,22 @@ void CLvBarrierNodeGen1::Generate( SLevelBuildContext & context, const TRectangl
 		GenBase();
 		GenRooms();
 		GenWalls();
+		GenWindows();
 
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
+
+		for( auto& rect : m_windows )
+		{
+			m_pWindowNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		}
 
 		if( m_pSubChunk )
 		{
 			SLevelBuildContext tempContext( context.pLevel, pChunk );
-			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			if( m_pSubChunk )
+				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 		}
 
@@ -70,6 +79,7 @@ void CLvBarrierNodeGen1::Generate( SLevelBuildContext & context, const TRectangl
 		m_gendata.clear();
 		m_rooms.clear();
 		m_walls.clear();
+		m_windows.clear();
 	}
 }
 
@@ -129,7 +139,7 @@ void CLvBarrierNodeGen1::GenBase()
 void CLvBarrierNodeGen1::GenRooms()
 {
 	const uint32 nMinSize = 2;
-	const uint32 nMaxSize = 6;
+	const uint32 nMaxSize = 5;
 	const uint32 nMaxWidthPlusHeight = 10;
 
 	vector<TVector2<int32> > vecCorners;
@@ -460,6 +470,47 @@ void CLvBarrierNodeGen1::GenWalls()
 		{
 			m_walls.push_back( TRectangle<int32>( i, nHeight - nCurLength, 1, nCurLength ) );
 			nCurLength = 0;
+		}
+	}
+}
+
+void CLvBarrierNodeGen1::GenWindows()
+{
+	uint32 nWidth = m_region.width;
+	uint32 nHeight = m_region.height;
+
+	uint32 nWindowCount = 6;
+	uint32 nWindowSegWidth = nWidth / nWindowCount;
+	uint32 nMod = nWidth - nWindowSegWidth * nWindowCount;
+
+	int8* pCResult = (int8*)alloca( nWindowCount + nMod );
+	SRand::Inst().C( nMod, nWindowCount + nMod, pCResult );
+
+	uint32* pWindowOfs = (uint32*)alloca( nWindowCount * sizeof( int32 ) );
+	for( int i = 0; i < nWindowCount; i++ )
+	{
+		pWindowOfs[i] = SRand::Inst().Rand( 1u, nWindowSegWidth - 2 );
+	}
+
+	uint32 iCurX = 0;
+	int32 iSeg = 0;
+	for( int i = 0; i < nWindowCount + nMod; i++ )
+	{
+		if( pCResult[i] )
+			iCurX++;
+		else
+		{
+			int32 nX = iCurX + pWindowOfs[iSeg++];
+			iCurX += nWindowSegWidth;
+
+			for( int j = 5; j >= 1; j-- )
+			{
+				if( m_gendata[nX + j * nWidth] != eType_Room || m_gendata[nX + 1 + j * nWidth] != eType_Room )
+				{
+					m_windows.push_back( TRectangle<int32>( nX, j - 1, 2, 2 ) );
+					break;
+				}
+			}
 		}
 	}
 }

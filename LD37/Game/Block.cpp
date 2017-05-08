@@ -242,7 +242,6 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * pLevel->GetBlockSize() );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 
@@ -250,7 +249,6 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * pLevel->GetBlockSize() );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 
@@ -258,7 +256,6 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * pLevel->GetBlockSize() );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 	}
@@ -294,7 +291,6 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * 32 );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 
@@ -302,7 +298,6 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * 32 );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 
@@ -310,7 +305,6 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * 32 );
-			pEntity->SetZOrder( 1 );
 			pEntity->SetParentEntity( this );
 		}
 	}
