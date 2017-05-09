@@ -38,6 +38,9 @@ void CPipe0::Trigger()
 
 void CWindow::AIFunc()
 {
+	if( m_pDeathEffect )
+		m_pDeathEffect->SetParentEntity( NULL );
+
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_pBullet1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1.c_str() );
 	m_pHead[0] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strHead.c_str() );
@@ -198,6 +201,12 @@ void CWindow::AIFunc()
 	
 	//dead
 dead:
+	if( m_pDeathEffect )
+	{
+		m_pDeathEffect->SetParentEntity( this );
+		m_pDeathEffect->SetState( 2 );
+	}
+
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 8, 12, 2 );
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( 1, false );
 	float fLevelHeight = CMyLevel::GetInst()->GetBoundWithLvBarrier().height;

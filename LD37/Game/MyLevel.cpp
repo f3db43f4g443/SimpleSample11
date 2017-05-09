@@ -583,9 +583,11 @@ void CMyLevel::UpdateBlocksMovement()
 							int32 nCurShakeStrength = shakeStrength;
 							if( shakeStrength )
 							{
-								uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
-								shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
-									Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+								uint32 nAbsorbShake = pChunk->nAbsorbShakeStrength;
+								shakeStrength -= nAbsorbShake;
+								//uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+								//shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+								//	Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
 								if( shakeStrength < 0 )
 									shakeStrength = 0;
 							}
@@ -650,9 +652,11 @@ void CMyLevel::UpdateBlocksMovement()
 						if( shakeStrength )
 						{
 							pChunk->nCurShakeStrength = Max<uint32>( pChunk->nCurShakeStrength, shakeStrength );
-							uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
-							shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
-								Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
+							uint32 nAbsorbShake = pChunk->nAbsorbShakeStrength;
+							shakeStrength -= nAbsorbShake;
+							//uint32 nAbsorbShake = bIsCurRoom ? 0 : pChunk->nAbsorbShakeStrength;
+							//shakeStrength -= Min<int32>( nAbsorbShake, nAbsorbShake *
+							//	Max<int32>( 0, pChunk->nHeight * m_nBlockSize - ( nPlayerHeight - pChunk->pos.y ) ) / (int32)( pChunk->nHeight * m_nBlockSize ) );
 							if( shakeStrength < 0 )
 								shakeStrength = 0;
 						}

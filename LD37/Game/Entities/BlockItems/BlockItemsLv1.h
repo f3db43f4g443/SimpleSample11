@@ -1,6 +1,7 @@
 #pragma once
 #include "CommonBlockItems.h"
 #include "Entities/AIObject.h"
+#include "Entities/EffectObject.h"
 
 class CPipe0 : public CDetectTrigger
 {
@@ -32,6 +33,7 @@ protected:
 	CRectangle m_closeRect;
 	CReference<CRenderObject2D> m_pWindow;
 	CReference<CRenderObject2D> m_pMan;
+	CReference<CEffectObject> m_pDeathEffect;
 	bool m_bHit;
 
 	CString m_strBullet;

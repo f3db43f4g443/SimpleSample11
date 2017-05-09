@@ -7,7 +7,7 @@ class CLvBarrier1Core : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CLvBarrier1Core( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ), m_strBullet1( context ), m_nPhase( 0 ), m_nSpecialFires( 0 ) { SET_BASEOBJECT_ID( CLvBarrier1Core ); }
+	CLvBarrier1Core( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_nPhase( 0 ), m_nSpecialFires( 0 ) { SET_BASEOBJECT_ID( CLvBarrier1Core ); }
 
 	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
 	virtual void Damage( float nDmg, uint8 nType = 0 ) override { m_nSpecialFires = 1; CChunkObject::Damage( nDmg, nType ); }
@@ -24,8 +24,10 @@ protected:
 
 	CString m_strBullet;
 	CString m_strBullet1;
+	CString m_strBullet2;
 	CReference<CPrefab> m_pBulletPrefab;
 	CReference<CPrefab> m_pBulletPrefab1;
+	CReference<CPrefab> m_pBulletPrefab2;
 
 	float m_fOpenDist[4];
 	float m_fCloseDist[4];

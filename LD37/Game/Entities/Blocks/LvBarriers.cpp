@@ -274,6 +274,7 @@ void CLvBarrier1Core::AIFunc()
 		return;
 	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_pBulletPrefab1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1.c_str() );
+	m_pBulletPrefab2 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet2.c_str() );
 
 	while( 1 )
 	{
@@ -301,7 +302,8 @@ void CLvBarrier1Core::AIFunc()
 			CVector2 playerPos = pPlayer->GetPosition();
 			CVector2 dPos = playerPos - center;
 			CVector2 dir = dPos;
-			dir.Normalize();
+			float l = dir.Normalize();
+			float fYield = 1.0f;
 
 			if( m_nSpecialFires )
 			{
@@ -319,15 +321,45 @@ void CLvBarrier1Core::AIFunc()
 						pBullet->SetVelocity( CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 200 );
 						pBullet->SetParentEntity( CMyLevel::GetInst() );
 					}
+					fYield = 1.0f;
 					break;
 				}
 				case 1:
-				case 2:
-				case 3:
 				{
 					SBarrageContext context;
 					context.pCreator = GetParentEntity();
 					context.vecBulletTypes.push_back( m_pBulletPrefab );
+					context.nBulletPageSize = 24;
+
+					float fAngle = atan2( dPos.y, dPos.x );
+					CBarrage* pBarrage = new CBarrage( context );
+					pBarrage->AddFunc( [fAngle]( CBarrage* pBarrage )
+					{
+						uint32 nBullet = 0;
+						
+						for( int i = 0; i < 8; i++ )
+						{
+							float fAngle1 = SRand::Inst().Rand( -0.3f, 0.3f ) + fAngle;
+
+							CVector2 dir( cos( fAngle1 ), sin( fAngle1 ) );
+							pBarrage->InitBullet( nBullet++, 0, -1, dir * -8 + CVector2( dir.y, -dir.x ) * 8, CVector2( cos( fAngle1 - 0.02f ), sin( fAngle1 - 0.02f ) ) * 175, CVector2( 0, 0 ), true );
+							pBarrage->InitBullet( nBullet++, 0, -1, dir * 8, dir * 175, CVector2( 0, 0 ), true );
+							pBarrage->InitBullet( nBullet++, 0, -1, dir * -8 + CVector2( -dir.y, dir.x ) * 8, CVector2( cos( fAngle1 + 0.02f ), sin( fAngle1 + 0.02f ) ) * 175, CVector2( 0, 0 ), true );
+							pBarrage->Yield( 5 );
+						}
+						pBarrage->StopNewBullet();
+					} );
+					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					pBarrage->SetPosition( center );
+					pBarrage->Start();
+					fYield = 1.5f;
+					break;
+				}
+				case 2:
+				{
+					SBarrageContext context;
+					context.pCreator = GetParentEntity();
+					context.vecBulletTypes.push_back( m_pBulletPrefab2 );
 					context.nBulletPageSize = 60;
 
 					float fAngle = atan2( dPos.y, dPos.x );
@@ -343,9 +375,9 @@ void CLvBarrier1Core::AIFunc()
 							{
 								float fAngle2 = ( j - 1 ) * 0.04f;
 								pBarrage->InitBullet( nBullet++, 0, -1, CVector2( sin( fAngle + fAngle1 + fAngle2 ), -cos( fAngle + fAngle1 + fAngle2 ) ) * 16,
-									CVector2( cos( fAngle + fAngle1 + fAngle2 ), sin( fAngle + fAngle1 + fAngle2 ) ) * ( 180 + j * 20 ), CVector2( 0, 0 ), true );
+									CVector2( cos( fAngle + fAngle1 + fAngle2 ), sin( fAngle + fAngle1 + fAngle2 ) ) * ( 135 + j * 20 ), CVector2( 0, 0 ), true );
 								pBarrage->InitBullet( nBullet++, 0, -1, CVector2( -sin( fAngle - fAngle1 - fAngle2 ), cos( fAngle - fAngle1 - fAngle2 ) ) * 16,
-									CVector2( cos( fAngle - fAngle1 - fAngle2 ), sin( fAngle - fAngle1 - fAngle2 ) ) * ( 180 + j * 20 ), CVector2( 0, 0 ), true );
+									CVector2( cos( fAngle - fAngle1 - fAngle2 ), sin( fAngle - fAngle1 - fAngle2 ) ) * ( 135 + j * 20 ), CVector2( 0, 0 ), true );
 								pBarrage->Yield( 2 );
 							}
 							pBarrage->Yield( 2 );
@@ -356,6 +388,72 @@ void CLvBarrier1Core::AIFunc()
 					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					pBarrage->SetPosition( center );
 					pBarrage->Start();
+					fYield = 2.5f;
+					break;
+				}
+				case 3:
+				{
+					SBarrageContext context;
+					context.pCreator = GetParentEntity();
+					context.vecBulletTypes.push_back( m_pBulletPrefab );
+					context.vecBulletTypes.push_back( m_pBulletPrefab2 );
+					context.nBulletPageSize = 52;
+
+					float fAngle = atan2( dPos.y, dPos.x );
+					float t = 1.0f;
+					CVector2 v1 = CVector2( dir.y, -dir.x ) * SRand::Inst().Rand( l + 120.0f, l + 140.0f ) + dir * SRand::Inst().Rand( -( l * 0.3f + 30.0f ), ( l * 0.3f + 30.0f ) );
+					CVector2 v2 = CVector2( -dir.y, dir.x ) * SRand::Inst().Rand( l + 120.0f, l + 140.0f ) + dir * SRand::Inst().Rand( -( l * 0.3f + 30.0f ), ( l * 0.3f + 30.0f ) );
+					CVector2 a1 = ( dPos - v1 * t ) / ( t * t * 0.5f );
+					CVector2 a2 = ( dPos - v2 * t ) / ( t * t * 0.5f );
+
+					CBarrage* pBarrage = new CBarrage( context );
+					pBarrage->AddFunc( [dPos, v1, v2, a1, a2]( CBarrage* pBarrage )
+					{
+						uint32 nBullet = 0;
+						pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), v1, a1, true );
+						pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), v2, a2, true );
+
+						for( int i = 0; i < 10; i++ )
+						{
+							pBarrage->Yield( 3 );
+
+							float t = ( i + 0.5f ) * 6.0f / 60;
+							pBarrage->InitBullet( nBullet++, 1, -1, v1 * t + a1 * ( 0.5f * t * t ), ( CVector2( v1.y, -v1.x ) + CVector2( a1.y, -a1.x ) * t ) * 0.3f, CVector2( 0, 0 ), true );
+							pBarrage->InitBullet( nBullet++, 1, -1, v1 * t + a1 * ( 0.5f * t * t ), ( CVector2( v1.y, -v1.x ) + CVector2( a1.y, -a1.x ) * t ) * -0.3f, CVector2( 0, 0 ), true );
+
+							pBarrage->InitBullet( nBullet++, 1, -1, v2 * t + a2 * ( 0.5f * t * t ), ( CVector2( v2.y, -v2.x ) + CVector2( a2.y, -a2.x ) * t ) * 0.3f, CVector2( 0, 0 ), true );
+							pBarrage->InitBullet( nBullet++, 1, -1, v2 * t + a2 * ( 0.5f * t * t ), ( CVector2( v2.y, -v2.x ) + CVector2( a2.y, -a2.x ) * t ) * -0.3f, CVector2( 0, 0 ), true );
+							pBarrage->Yield( 3 );
+						}
+
+						float t = 1.0f;
+						CVector2 v11 = v1 + a1 * t;
+						CVector2 v21 = v2 + a2 * t;
+						float fAngle1 = atan2( v11.y, v11.x );
+						float fAngle2 = atan2( v21.y, v21.x );
+						CMatrix2D mat1;
+						mat1.Rotate( fAngle1 );
+						CMatrix2D mat2;
+						mat2.Rotate( fAngle2 );
+						pBarrage->DestroyBullet( 0 );
+						pBarrage->DestroyBullet( 1 );
+						for( int i = 0; i < 12; i++ )
+						{
+							float fBaseAngle = i * PI / 6;
+							CVector2 vel0 = CVector2( cos( fBaseAngle ) * 250, sin( fBaseAngle ) * 100 );
+							CVector2 vel = mat1.MulVector2Dir( vel0 );
+							pBarrage->InitBullet( nBullet++, 0, -1, dPos, vel, CVector2( 0, 0 ), true );
+							vel = mat2.MulVector2Dir( vel0 );
+							pBarrage->InitBullet( nBullet++, 0, -1, dPos, vel, CVector2( 0, 0 ), true );
+						}
+
+						pBarrage->Yield( 2 );
+						pBarrage->StopNewBullet();
+					} );
+					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					pBarrage->SetPosition( center );
+					pBarrage->Start();
+					fYield = 1.25f;
 					break;
 				}
 				}
@@ -374,6 +472,7 @@ void CLvBarrier1Core::AIFunc()
 					pBullet->SetRotation( atan2( dir.y, dir.x ) );
 					pBullet->SetVelocity( dir * 200 );
 					pBullet->SetParentEntity( CMyLevel::GetInst() );
+					fYield = 1.0f;
 					break;
 				}
 				case 1:
@@ -388,6 +487,7 @@ void CLvBarrier1Core::AIFunc()
 						pBullet->SetVelocity( CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 185 );
 						pBullet->SetParentEntity( CMyLevel::GetInst() );
 					}
+					fYield = 1.0f;
 					break;
 				}
 				case 2:
@@ -395,7 +495,7 @@ void CLvBarrier1Core::AIFunc()
 					SBarrageContext context;
 					context.pCreator = GetParentEntity();
 					context.vecBulletTypes.push_back( m_pBulletPrefab );
-					context.nBulletPageSize = 7;
+					context.nBulletPageSize = 13;
 
 					float fAngle = atan2( dPos.y, dPos.x );
 					CBarrage* pBarrage = new CBarrage( context );
@@ -406,15 +506,16 @@ void CLvBarrier1Core::AIFunc()
 						for( int i = 0; i < 6; i++ )
 						{
 							float fAngle1 = i * PI / 3;
-							pBarrage->InitBullet( i * 2 + 1, -1, 0, CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 32, CVector2( 0, 0 ), CVector2( 0, 0 ), false, fAngle1, 8.0f );
-							pBarrage->InitBullet( i * 2 + 2, 0, i * 2 + 1, CVector2( 32, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+							pBarrage->InitBullet( i * 2 + 1, -1, 0, CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 28, CVector2( 0, 0 ), CVector2( 0, 0 ), false, fAngle1, 2.0f );
+							pBarrage->InitBullet( i * 2 + 2, 0, i * 2 + 1, CVector2( 28, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ), true );
 						}
-						pBarrage->Yield( 1 );
+						pBarrage->Yield( 2 );
 						pBarrage->StopNewBullet();
 					} );
 					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					pBarrage->SetPosition( center );
 					pBarrage->Start();
+					fYield = 1.5f;
 					break;
 				}
 				case 3:
@@ -423,7 +524,7 @@ void CLvBarrier1Core::AIFunc()
 					context.pCreator = GetParentEntity();
 					context.vecBulletTypes.push_back( m_pBulletPrefab );
 					context.vecBulletTypes.push_back( m_pBulletPrefab1 );
-					context.nBulletPageSize = 30;
+					context.nBulletPageSize = 25;
 
 					float fAngle = atan2( dPos.y, dPos.x );
 					CBarrage* pBarrage = new CBarrage( context );
@@ -445,25 +546,26 @@ void CLvBarrier1Core::AIFunc()
 							float fAngle = fAngle0 + nOrder[i] * PI * 2 / 5;
 							CVector2 ofs( cos( fAngle ), sin( fAngle ) );
 							CVector2 ofs1( ofs.y, -ofs.x );
-							for( int j = 0; j < 6; j++ )
+							for( int j = 0; j < 5; j++ )
 							{
-								pBarrage->InitBullet( nBullet++, 0, -1, targetPos, ofs * 180 + ofs1 * ( ( j - 2.5f ) / 3 * tan( PI / 5 ) * 180 ), CVector2( 0, 0 ), true );
+								pBarrage->InitBullet( nBullet++, 0, -1, targetPos, ofs * 180 + ofs1 * ( ( j - 2 ) / 2.5f * tan( PI / 5 ) * 180 ), CVector2( 0, 0 ), true );
 							}
-							pBarrage->Yield( 3 );
+							pBarrage->Yield( 4 );
 						}
 
-						pBarrage->Yield( 1 );
+						pBarrage->Yield( 2 );
 						pBarrage->StopNewBullet();
 					} );
 					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					pBarrage->SetPosition( center );
 					pBarrage->Start();
+					fYield = 1.5f;
 					break;
 				}
 				}
 			}
 
-			m_pAI->Yield( 1.0f, false );
+			m_pAI->Yield( fYield, false );
 		}
 	}
 }
