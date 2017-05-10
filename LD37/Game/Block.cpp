@@ -7,21 +7,22 @@
 #include "Entities/EffectObject.h"
 #include "Stage.h"
 #include "BlockItem.h"
+#include "Entities/Decorator.h"
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	: m_pBlock( pBlock )
 {
 	SET_BASEOBJECT_ID( CBlockObject );
 
-	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * pLevel->GetBlockSize() );
+	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * CMyLevel::GetBlockSize() );
 	if( pBlock->eBlockType == eBlockType_Block )
 	{
-		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
+		AddRect( CRectangle( 0, 0, CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
 		SetHitType( eEntityHitType_WorldStatic );
 	}
 	else
 	{
-		AddRect( CRectangle( 0, 0, pLevel->GetBlockSize(), pLevel->GetBlockSize() ) );
+		AddRect( CRectangle( 0, 0, CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
 		SetHitType( eEntityHitType_Sensor );
 	}
 	SetParentEntity( pParent );
@@ -126,10 +127,21 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 			while( Get_SpawnInfo() )
 			{
 				auto pSpawnInfo = Get_SpawnInfo();
-				auto pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
-				pEntity->SetPosition( pSpawnInfo->pos + spawnPos );
-				pEntity->SetRotation( pSpawnInfo->r );
-				pEntity->SetParentBeforeEntity( pChunkObject1->GetParentEntity() );
+				CReference<CEntity> pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
+
+				auto pDecorator = SafeCast<CDecorator>( pEntity.GetPtr() );
+				if( pDecorator )
+				{
+					pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
+					pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
+				}
+				else
+				{
+					pEntity->SetPosition( pSpawnInfo->pos + spawnPos );
+					pEntity->SetRotation( pSpawnInfo->r );
+					pEntity->SetParentBeforeEntity( pChunkObject1->GetParentEntity() );
+				}
+
 				pSpawnInfo->RemoveFrom_SpawnInfo();
 				delete pSpawnInfo;
 			}
@@ -165,6 +177,21 @@ void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )
 	pParentChunk = pParent;
 	pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
 	pChunkObject->Preview( this, pRootEntity );
+
+	for( auto pSpawnInfo = m_pSpawnInfos; pSpawnInfo; pSpawnInfo = pSpawnInfo->NextSpawnInfo() )
+	{
+		if( pSpawnInfo->pPrefab->GetRoot()->GetStaticDataSafe<CDecorator>() )
+		{
+			CReference<CEntity> pEntity = SafeCast<CEntity>( pSpawnInfo->pPrefab->GetRoot()->CreateInstance() );
+
+			auto pDecorator = SafeCast<CDecorator>( pEntity.GetPtr() );
+			if( pDecorator )
+			{
+				pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
+				pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
+			}
+		}
+	}
 
 	for( auto pSubChunk = Get_SubChunk(); pSubChunk; )
 	{
@@ -204,7 +231,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
 		if( pChunk->bIsRoom )
 		{
-			AddRect( CRectangle( 0, 0, pChunk->nWidth * pLevel->GetBlockSize(), pChunk->nHeight * pLevel->GetBlockSize() ) );
+			AddRect( CRectangle( 0, 0, pChunk->nWidth * CMyLevel::GetBlockSize(), pChunk->nHeight * CMyLevel::GetBlockSize() ) );
 			SetHitType( eEntityHitType_Sensor );
 		}
 		SetParentEntity( pChunk->pParentChunk ? pChunk->pParentChunk->pChunkObject : ( pChunk->nLayerType > 1? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() ) );
@@ -241,21 +268,21 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * pLevel->GetBlockSize() );
+			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * CMyLevel::GetBlockSize() );
 			pEntity->SetParentEntity( this );
 		}
 
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * pLevel->GetBlockSize() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * CMyLevel::GetBlockSize() );
 			pEntity->SetParentEntity( this );
 		}
 
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * pLevel->GetBlockSize() );
+			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * CMyLevel::GetBlockSize() );
 			pEntity->SetParentEntity( this );
 		}
 	}
@@ -581,7 +608,7 @@ void CExplosiveChunk::Tick()
 		if( !m_nKillEffectCDLeft )
 		{
 			CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
-			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() ) );
+			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
 			auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
 			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 			pEffect->SetPosition( GetPosition() + center );
@@ -611,7 +638,7 @@ void CBarrel::Damage( float fDmg, uint8 nType )
 	if( m_bKilled )
 	{
 		CReference<CBarrel> temp = this;
-		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetInst()->GetBlockSize() * 0.5f;
+		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 		int32 nPreHp = -m_fHp;
 		CExplosiveChunk::Damage( fDmg );
 		if( !GetParentEntity() )
@@ -662,7 +689,7 @@ void CBarrel::Damage( float fDmg, uint8 nType )
 void CBarrel::Explode()
 {
 	CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
-	CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetInst()->GetBlockSize() * 0.5f;
+	CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 
 	if( m_pEffect )
 	{
@@ -836,18 +863,18 @@ void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 
 	auto pDoorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strDoor.c_str() );
 	auto pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, 0.5f ) * pLevel->GetBlockSize() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, 0.5f ) * CMyLevel::GetBlockSize() );
 	pDoor->SetParentEntity( this );
 	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, pChunk->nHeight - 0.5f ) * pLevel->GetBlockSize() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, pChunk->nHeight - 0.5f ) * CMyLevel::GetBlockSize() );
 	pDoor->SetRotation( PI );
 	pDoor->SetParentEntity( this );
 	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( 0.5f, pChunk->nHeight / 2 ) * pLevel->GetBlockSize() );
+	pDoor->SetPosition( CVector2( 0.5f, pChunk->nHeight / 2 ) * CMyLevel::GetBlockSize() );
 	pDoor->SetRotation( PI * 1.5f );
 	pDoor->SetParentEntity( this );
 	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth - 0.5f, pChunk->nHeight / 2 ) * pLevel->GetBlockSize() );
+	pDoor->SetPosition( CVector2( pChunk->nWidth - 0.5f, pChunk->nHeight / 2 ) * CMyLevel::GetBlockSize() );
 	pDoor->SetRotation( PI * 0.5f );
 	pDoor->SetParentEntity( this );
 }
@@ -863,7 +890,7 @@ void CRandomEnemyRoom::OnKilled()
 			{
 				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
 			}
 		}
@@ -916,7 +943,7 @@ void CRandomChunk::OnKilled()
 			{
 				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
+				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
 			}
 		}

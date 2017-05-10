@@ -40,8 +40,8 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 			if( pChunk->nSubChunkType != 2 )
 				continue;
 
-			int32 chunkX = pChunk->pos.x / ( pLevel ? pLevel->GetBlockSize() : 32 );
-			int32 chunkY = pChunk->pos.y / ( pLevel ? pLevel->GetBlockSize() : 32 );
+			int32 chunkX = pChunk->pos.x / CMyLevel::GetBlockSize();
+			int32 chunkY = pChunk->pos.y / CMyLevel::GetBlockSize();
 			for( int i = chunkX; i < chunkX + pChunk->nWidth; i++ )
 			{
 				for( int j = chunkY; j < chunkY + pChunk->nHeight; j++ )
@@ -84,8 +84,8 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 			if( pChunk->bIsRoom )
 			{
 				m_vecRooms.push_back( pChunkObject );
-				int32 chunkX = pChunk->pos.x / ( pLevel ? pLevel->GetBlockSize() : 32 );
-				int32 chunkY = pChunk->pos.y / ( pLevel ? pLevel->GetBlockSize() : 32 );
+				int32 chunkX = pChunk->pos.x / CMyLevel::GetBlockSize();
+				int32 chunkY = pChunk->pos.y / CMyLevel::GetBlockSize();
 
 				if( chunkY > 0 )
 				{
@@ -227,7 +227,7 @@ void CLvBarrier1::Tick()
 		if( !m_nKillEffectCDLeft )
 		{
 			CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
-			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() ) );
+			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
 			auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
 			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 			pEffect->SetPosition( GetPosition() + center );
@@ -248,7 +248,7 @@ void CLvBarrier1::Tick()
 				{
 					auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
 					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-					pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetInst()->GetBlockSize() );
+					pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 					pEffect->SetState( 2 );
 				}
 			}

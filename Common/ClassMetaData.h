@@ -184,7 +184,7 @@ struct SClassMetaData
 class CBaseObject
 {
 public:
-	uint32 GetTypeID() { return m_nTypeID; }
+	uint32 GetTypeID() const { return m_nTypeID; }
 protected:
 	uint32 m_nTypeID;
 };
@@ -238,6 +238,16 @@ public:
 		return (T*)t;
 	}
 
+	template< typename T, typename T1 >
+	const T* SafeCast( const T1* t )
+	{
+		uint32 nDerived = t->GetTypeID();
+		uint32 nBase = CClassMetaDataMgr::Inst().GetClassID<T>();
+		if( !m_isDerivedClassArray.GetBit( GetIsDerivedClassIndex( nBase, nDerived ) ) )
+			return NULL;
+		return (const T*)t;
+	}
+
 	DECLARE_GLOBAL_INST_REFERENCE( CClassMetaDataMgr )
 private:
 	template <typename T>
@@ -261,7 +271,13 @@ private:
 	m_nTypeID = CClassMetaDataMgr::Inst().GetClassID<Type>();
 
 template< typename T, typename T1 >
-T* SafeCast( T1 t )
+T* SafeCast( T1* t )
+{
+	return t? CClassMetaDataMgr::Inst().SafeCast<T>( t ) : NULL;
+}
+
+template< typename T, typename T1 >
+const T* SafeCast( const T1* t )
 {
 	return t? CClassMetaDataMgr::Inst().SafeCast<T>( t ) : NULL;
 }

@@ -12,6 +12,21 @@ void Game_ShaderImplement_Dummy()
 	Game_ShaderImplement_Dummy_PostEffects();
 }
 
+template<uint32 InstCount>
+class CMyDefault2DVertexShaderExtraInstData : public CGlobalShader
+{
+protected:
+	virtual void SetMacros( SShaderMacroDef& macros ) override
+	{
+		char szBuf[32];
+		sprintf( szBuf, "%d", InstCount );
+		macros.Add( "EXTRA_INST_DATA", szBuf );
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER( Default2DWithOrigTexVertexShader, "Shader/Default2DWithOrigTex.shader", "VSDefault", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithOrigTexVertexShader1, CMyDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWithOrigTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
+
 IMPLEMENT_MATERIAL_SHADER( PSTwoColorLerp, "Shader/Effect.shader", "PSTwoColorLerp", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSSingleColorEmissionClearColorClip, "Shader/Effect.shader", "PSSingleColorEmissionClearColorClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSSingleColorEmissionClearColorNoClip, "Shader/Effect.shader", "PSSingleColorEmissionClearColorNoClip", "ps_5_0" );
@@ -45,8 +60,7 @@ IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle",
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticleOcclusion, "Shader/Laser.shader", "PSParticleOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( GSWrapTex, "Shader/GSWrapTex.shader", "GSMain", "gs_5_0" );
 
-IMPLEMENT_MATERIAL_SHADER( PSBlisterColor, "Shader/Slime.shader", "PSBlisterColor", "ps_5_0" );
-IMPLEMENT_MATERIAL_SHADER( PSBlisterOcclusion, "Shader/Slime.shader", "PSBlisterOcclusion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendVividLight, "Shader/Decorator.shader", "PSBlendVividLight", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSTutorialGame, "Shader/TutorialGame.shader", "PSMain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSScanLineBase, "Shader/TutorialGame.shader", "PSScanLineBase", "ps_5_0" );

@@ -98,8 +98,8 @@ void CEnemyCharacter::UpdateMove()
 			if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
 			{
 				CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
-					pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
-					pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+					pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
+					pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
 				if( rect.Contains( GetPosition() ) )
 					pCurRoom = pChunkObject;
 			}
@@ -115,7 +115,7 @@ void CEnemyCharacter::UpdateMove()
 
 			auto pChunk = pCurRoom->GetChunk();
 			CRectangle roomBound( pCurRoom->globalTransform.GetPosition().x, pCurRoom->globalTransform.GetPosition().y,
-				pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+				pChunk->nWidth * CMyLevel::GetBlockSize(), pChunk->nHeight * CMyLevel::GetBlockSize() );
 			CVector2 dir1 = m_velocity;
 			CVector2 dir2 = roomBound.GetCenter() - GetPosition();
 			dir1.Normalize();
@@ -168,15 +168,15 @@ void CEnemyCharacter::UpdateMove()
 			{
 				auto pChunk = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() )->GetChunk();
 				CRectangle roomBound( m_flyData.pLandedEntity->globalTransform.GetPosition().x, m_flyData.pLandedEntity->globalTransform.GetPosition().y,
-					pChunk->nWidth * CMyLevel::GetInst()->GetBlockSize(), pChunk->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+					pChunk->nWidth * CMyLevel::GetBlockSize(), pChunk->nHeight * CMyLevel::GetBlockSize() );
 				CRectangle selfBound;
 				CMatrix2D mat;
 				mat.Identity();
 				Get_HitProxy()->CalcBound( mat, selfBound );
-				roomBound.x -= selfBound.x - CMyLevel::GetInst()->GetBlockSize() *0.5f;
-				roomBound.y -= selfBound.y - CMyLevel::GetInst()->GetBlockSize() *0.5f;
-				roomBound.width -= selfBound.width + CMyLevel::GetInst()->GetBlockSize();
-				roomBound.height -= selfBound.height + CMyLevel::GetInst()->GetBlockSize();
+				roomBound.x -= selfBound.x - CMyLevel::GetBlockSize() *0.5f;
+				roomBound.y -= selfBound.y - CMyLevel::GetBlockSize() *0.5f;
+				roomBound.width -= selfBound.width + CMyLevel::GetBlockSize();
+				roomBound.height -= selfBound.height + CMyLevel::GetBlockSize();
 
 				m_flyData.UpdateMove( this, m_curMoveDir );
 				if( !GetStage() )
@@ -214,8 +214,8 @@ void CEnemyCharacter::UpdateMove()
 		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
 		{
 			CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
-				pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
-				pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+				pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
+				pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
 			if( rect.Contains( GetPosition() ) )
 				pCurRoom = pChunkObject;
 		}

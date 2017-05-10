@@ -518,6 +518,7 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\Shader\CrackEffect.shader" />
+    <None Include="..\Shader\Default2DWithOrigTex.shader" />
     <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
@@ -564,6 +565,7 @@
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
     <ClCompile Include="Entities\Bullets.cpp" />
+    <ClCompile Include="Entities\Decorator.cpp" />
     <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Enemies.cpp" />
@@ -632,6 +634,7 @@
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />
     <ClInclude Include="Entities\Bullets.h" />
+    <ClInclude Include="Entities\Decorator.h" />
     <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Enemies.h" />

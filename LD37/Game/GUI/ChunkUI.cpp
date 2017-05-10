@@ -54,7 +54,7 @@ void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 	m_nUsingEftCount = 0;
 	m_nParticleCount = 0;
 
-	uint32 nBlockSize = CMyLevel::GetInst()->GetBlockSize();
+	uint32 nBlockSize = CMyLevel::GetBlockSize();
 	auto pChunk = pChunkObject->GetChunk();
 
 	for( int i = 0; i < pChunk->nWidth; i++ )
@@ -242,7 +242,7 @@ void CChunkUI::UpdateRepair()
 		return;
 	}
 
-	uint32 nBlockSize = CMyLevel::GetInst()->GetBlockSize();
+	uint32 nBlockSize = CMyLevel::GetBlockSize();
 	uint32 nWidth = m_pChunkObject->GetChunk()->nWidth * nBlockSize;
 	uint32 nHeight = m_pChunkObject->GetChunk()->nHeight * nBlockSize;
 

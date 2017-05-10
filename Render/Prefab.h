@@ -78,6 +78,12 @@ public:
 	{
 		return (const T*)m_obj.GetObjData();
 	}
+
+	template<class T>
+	const T* GetStaticDataSafe()
+	{
+		return SafeCast<T>( GetStaticData<CPrefabBaseNode>() );
+	}
 	
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );

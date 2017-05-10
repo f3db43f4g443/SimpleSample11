@@ -4,6 +4,7 @@
 #include "Utf8Util.h"
 #include "DevIL/il.h"
 #include "RenderSystem.h"
+#include "xml.h"
 
 void CTextureFile::InitLoader()
 {
@@ -53,6 +54,16 @@ void CTextureFile::Create()
 	if( !success )
 		return;
 	ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE );
+
+	string fileName1 = fileName;
+	fileName1 += ".data";
+	vector<char> content;
+	if( GetFileContent( content, fileName1.c_str(), false ) != INVALID_32BITID )
+	{
+		TiXmlDocument doc;
+		doc.LoadFromBuffer( &content[0] );
+		bGenMips = XmlGetAttr( doc.RootElement(), "genmips", bGenMips ? 1 : 0 );
+	}
 
 	m_pTexture = IRenderSystem::Inst()->CreateTexture( ETextureType::Tex2D, ilGetInteger( IL_IMAGE_WIDTH ), ilGetInteger( IL_IMAGE_HEIGHT ), 1, bGenMips? 0: 1, EFormat::EFormatR8G8B8A8UNorm, ilGetData() );
 	ilDeleteImage( img );

@@ -30,7 +30,7 @@ void CEntity::OnRemoved()
 	}
 }
 
-void CEntity::_setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBefore )
+void CEntity::_setParentEntity( CEntity* pParent, CRenderObject2D* pAfter, CRenderObject2D* pBefore )
 {
 	if( pParent == GetParentEntity() )
 		return;

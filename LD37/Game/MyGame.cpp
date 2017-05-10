@@ -25,6 +25,7 @@
 #include "Entities/StartPoint.h"
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
+#include "Entities/Decorator.h"
 #include "Entities/Barrage.h"
 #include "Entities/Blocks/RandomBlocks.h"
 #include "Entities/Blocks/SpecialBlocks.h"
@@ -350,7 +351,6 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nSpawnHeight )
-		REGISTER_MEMBER( m_nBlockSize )
 		REGISTER_MEMBER( m_fFallDistPerSpeedFrame )
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
@@ -760,6 +760,21 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pStates[2], death )
 		REGISTER_MEMBER( m_fBirthTime )
 		REGISTER_MEMBER( m_fDeathTime )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDecorator )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDecoratorFiber )
+		REGISTER_BASE_CLASS( CDecorator )
+		REGISTER_MEMBER( m_texSize )
+		REGISTER_MEMBER( m_fTexelSize )
+		REGISTER_MEMBER( m_fWidth )
+		REGISTER_MEMBER( m_bVertical )
+		REGISTER_MEMBER( m_nAlignment )
+		REGISTER_MEMBER( m_fMaxHeightPercent )
+		REGISTER_MEMBER( m_fMinHeightPercent )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CStartPoint )

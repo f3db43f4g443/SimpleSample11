@@ -274,8 +274,8 @@ void CPlayer::UpdateRoom()
 		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom == 1 )
 		{
 			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
-				pChunkObject->GetChunk()->nWidth * CMyLevel::GetInst()->GetBlockSize(),
-				pChunkObject->GetChunk()->nHeight * CMyLevel::GetInst()->GetBlockSize() );
+				pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
+				pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
 			if( rect.Contains( GetPosition() ) )
 				pCurRoom = pChunkObject;
 		}

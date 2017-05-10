@@ -28,7 +28,7 @@ CBlockBuff* CBlockBuff::Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* p
 	}
 
 	auto pInst = SafeCast<CBlockBuff>( pPrefab->GetRoot()->CreateInstance() );
-	pInst->SetPosition( CVector2( 0.5f, 0.5f ) * CMyLevel::GetInst()->GetBlockSize() );
+	pInst->SetPosition( CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
 	pInst->SetZOrder( -1 );
 	pInst->SetParentEntity( pBlock );
 	pInst->OnAdded( eAddedReason_New, pContext );

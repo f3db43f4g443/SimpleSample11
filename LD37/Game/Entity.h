@@ -53,13 +53,13 @@ public:
 	{
 		_setParentEntity( pParent, NULL, NULL );
 	}
-	void SetParentAfterEntity( CEntity* pAfter )
+	void SetParentAfterEntity( CRenderObject2D* pAfter )
 	{
-		_setParentEntity( pAfter->GetParentEntity(), pAfter, NULL );
+		_setParentEntity( SafeCast<CEntity>( pAfter->GetParent() ), pAfter, NULL );
 	}
-	void SetParentBeforeEntity( CEntity* pBefore )
+	void SetParentBeforeEntity( CRenderObject2D* pBefore )
 	{
-		_setParentEntity( pBefore->GetParentEntity(), NULL, pBefore );
+		_setParentEntity( SafeCast<CEntity>( pBefore->GetParent() ), NULL, pBefore );
 	}
 
 	virtual void SetRenderObject( CRenderObject2D* pRenderObject ) override;
@@ -87,7 +87,7 @@ protected:
 	virtual void OnTransformUpdated() override;
 	CEventTrigger<eEntityEvent_Count> m_trigger;
 private:
-	void _setParentEntity( CEntity* pParent, CEntity* pAfter, CEntity* pBefore );
+	void _setParentEntity( CEntity* pParent, CRenderObject2D* pAfter, CRenderObject2D* pBefore );
 	CStage* m_pCurStage;
 	CEntity* m_pParent;
 	bool m_bIsChangingStage;

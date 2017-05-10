@@ -132,6 +132,9 @@
     </ClCompile>
     <ClCompile Include="LevelDesign.cpp" />
     <ClCompile Include="GameState.cpp" />
+    <ClCompile Include="Entities\Decorator.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -262,6 +265,9 @@
     </ClInclude>
     <ClInclude Include="LevelDesign.h" />
     <ClInclude Include="GameState.h" />
+    <ClInclude Include="Entities\Decorator.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -331,6 +337,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\ParticleFlipbook1.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Default2DWithOrigTex.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

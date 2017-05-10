@@ -251,6 +251,7 @@
     <Text Include="..\Shader\Light2D.shader" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\LD37\Shader\Decorator.shader" />
     <None Include="..\Shader\AlphaToOcclusion.shader" />
     <None Include="..\Shader\CommonMaterial.shader" />
     <None Include="..\Shader\Default2D.shader" />

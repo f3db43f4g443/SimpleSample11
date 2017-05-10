@@ -5,6 +5,7 @@
 #include "GUI/MainUI.h"
 #include "Common/ResourceManager.h"
 #include "Common/FileUtil.h"
+#include "Entities/Decorator.h"
 
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
@@ -13,7 +14,7 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
-	nBlockSize = pLevel ? pLevel->GetBlockSize() : 32;
+	nBlockSize = CMyLevel::GetBlockSize();
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
@@ -474,15 +475,26 @@ public:
 		rect.SetRight( rect.GetRight() - m_rectSize.GetRight() );
 		rect.SetBottom( rect.GetBottom() - m_rectSize.GetBottom() );
 
-		uint32 nCount = region.width * region.height * m_fCountPerGrid;
-
-		for( int i = 0; i < nCount; i++ )
+		if( m_pPrefab->GetRoot()->GetStaticDataSafe<CDecorator>() )
 		{
 			SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-			pSpawnInfo->pos = CVector2( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ) );
+			pSpawnInfo->pos = CVector2( 0, 0 );
 			pSpawnInfo->pPrefab = m_pPrefab;
 			pSpawnInfo->r = 0;
 			context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
+		}
+		else
+		{
+			uint32 nCount = region.width * region.height * m_fCountPerGrid;
+
+			for( int i = 0; i < nCount; i++ )
+			{
+				SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
+				pSpawnInfo->pos = CVector2( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ) );
+				pSpawnInfo->pPrefab = m_pPrefab;
+				pSpawnInfo->r = 0;
+				context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
+			}
 		}
 	}
 protected:

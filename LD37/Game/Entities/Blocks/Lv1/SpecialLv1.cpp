@@ -14,7 +14,7 @@ void CGarbageBinRed::Trigger()
 	{
 		auto pBullet = SafeCast<CBullet>( m_pPrefab->GetRoot()->CreateInstance() );
 		pBullet->SetCreator( this );
-		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetInst()->GetBlockSize() );
+		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
 		float fAngle = fBaseAngle + PI * 2 * i / m_nBulletCount;
 		pBullet->SetRotation( fAngle );
 		pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
@@ -27,7 +27,7 @@ void CGarbageBinRed::Trigger()
 void CGarbageBinYellow::Trigger()
 {
 	auto pExplosion = SafeCast<CExplosion>( m_pPrefab->GetRoot()->CreateInstance() );
-	pExplosion->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetInst()->GetBlockSize() );
+	pExplosion->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
 	pExplosion->SetCreator( this );
 	pExplosion->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 
@@ -41,7 +41,7 @@ void CGarbageBinGreen::Trigger()
 	{
 		auto pBullet = SafeCast<CBulletWithBlockBuff>( m_pPrefab->GetRoot()->CreateInstance() );
 		pBullet->SetCreator( this );
-		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetInst()->GetBlockSize() );
+		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
 		float fAngle = fBaseAngle + PI * 2 * i / m_nBulletCount;
 		pBullet->SetRotation( fAngle );
 		pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );

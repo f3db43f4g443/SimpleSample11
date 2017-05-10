@@ -23,7 +23,7 @@ public:
 	void RemoveChunk( SChunk* pChunk );
 	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > > newChunks );
 
-	uint32 GetBlockSize() { return m_nBlockSize; }
+	static uint32 GetBlockSize() { return 32; }
 	float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
 	float GetShakeStrength() { return m_basements[0].fShakeStrength; }
 	void AddShakeStrength( float fShakeStrength );
@@ -45,8 +45,8 @@ public:
 	static CMyLevel* GetInst() { return s_pLevel; }
 	
 	bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
-	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, m_nSpawnHeight * m_nBlockSize ); }
-	CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * m_nBlockSize, Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * m_nBlockSize ) ); }
+	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
+	CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
 	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
 	CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
@@ -94,7 +94,6 @@ private:
 		SBasementLayer layers[2];
 	};
 	vector<SBasement> m_basements;
-	uint32 m_nBlockSize;
 	float m_fFallDistPerSpeedFrame;
 
 	void CheckSpawn();
