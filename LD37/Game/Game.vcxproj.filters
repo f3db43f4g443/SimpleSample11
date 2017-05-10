@@ -342,6 +342,9 @@
     <None Include="..\Shader\Default2DWithOrigTex.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\Decorator.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">

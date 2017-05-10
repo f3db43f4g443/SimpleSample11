@@ -60,6 +60,7 @@ IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle",
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticleOcclusion, "Shader/Laser.shader", "PSParticleOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( GSWrapTex, "Shader/GSWrapTex.shader", "GSMain", "gs_5_0" );
 
+IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendMul, "Shader/Decorator.shader", "PSBlendMul", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendVividLight, "Shader/Decorator.shader", "PSBlendVividLight", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSTutorialGame, "Shader/TutorialGame.shader", "PSMain", "ps_5_0" );

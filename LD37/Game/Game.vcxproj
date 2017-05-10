@@ -518,6 +518,7 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\Shader\CrackEffect.shader" />
+    <None Include="..\Shader\Decorator.shader" />
     <None Include="..\Shader\Default2DWithOrigTex.shader" />
     <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\Footprint.shader" />
