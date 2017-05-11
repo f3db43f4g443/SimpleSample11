@@ -880,3 +880,9 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 		pCharacter->SetPosition( pCharacter->GetPosition() + dPos );
 	pCharacter->SetVelocity( curVelocity );
 }
+
+void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, uint8 nTurnDir )
+{
+	float fDir = pCharacter->GetRotation();
+
+}

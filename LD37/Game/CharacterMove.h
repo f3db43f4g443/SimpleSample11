@@ -188,3 +188,14 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 	float fStablity;
 	bool bHit;
 };
+
+struct SCharacterCreepData : public SCharacterMovementData
+{
+	SCharacterCreepData( const SClassCreateContext& context ) {}
+	void UpdateMove( CCharacter* pCharacter, uint8 nTurnDir );
+
+	float fSpeed;
+	float fTurnSpeed;
+	float fFallGravity;
+	float fMaxFallSpeed;
+};

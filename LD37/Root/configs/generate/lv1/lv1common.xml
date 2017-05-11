@@ -8,6 +8,7 @@
       <node name="window2x2" prefab="data/blockitems/window2x2.pf" sizex="2" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
+      <node name="wall_deco" prefab="data/misc/dirt0.pf" />
       <node name="wall_deco_upper" prefab="data/misc/fiber_0.pf" />
     </spawns>
     <nodes>
@@ -197,6 +198,7 @@
         </subitem>
         <next_level>
           <node type="subregion">
+            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
             <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
             <node type="randomfill" x="0" y="0" w="0" h="0" >
               <ref name="window2x2" sizeminx="2" sizeminy="2" p="1" />

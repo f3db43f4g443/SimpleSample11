@@ -63,7 +63,10 @@
         </subitem>
 
         <next_level>
-          <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
+          <node type="subregion">
+            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
+          </node>
         </next_level>
 
         <label>

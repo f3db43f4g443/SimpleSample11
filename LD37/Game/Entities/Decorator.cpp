@@ -52,3 +52,130 @@ void CDecoratorFiber::Init( const CVector2 & size )
 
 	SetRenderObject( NULL );
 }
+
+void CDecoratorDirt::Init( const CVector2 & size )
+{
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	TRectangle<int32> texelRect( 0, 0, floor( size.x / m_fTexelSize ), floor( size.y / m_fTexelSize ) );
+	TRectangle<int32> firstSplitRect( -m_nMaxTexelSize, -m_nMaxTexelSize, texelRect.width + m_nMaxTexelSize * 2, texelRect.height + m_nMaxTexelSize * 2 );
+
+	struct SSplit
+	{
+		SSplit( TRectangle<int32> rect, bool bSplit, int32 nParent ) : rect( rect ), bSplit( bSplit ), nParent( nParent ) {}
+		TRectangle<int32> rect;
+		bool bSplit;
+		int32 nParent;
+	};
+	vector<SSplit> splits;
+
+	splits.push_back( SSplit( firstSplitRect, false, -1 ) );
+	for( int i = 0; i < splits.size(); i++ )
+	{
+		auto& curSplit = splits[i];
+		auto& rect = curSplit.rect;
+
+		int32 r1 = rect.width - m_nMinTexelSize * 2 + 1;
+		int32 r2 = rect.height - m_nMinTexelSize * 2 + 1;
+		if( rect.width > m_nMaxTexelSize || rect.height > m_nMaxTexelSize )
+			splits[i].bSplit = true;
+		else
+		{
+			if( r1 > 0 && r2 > 0 )
+			{
+				float r = ( r1 + r2 ) * 1.0f / ( ( m_nMaxTexelSize - m_nMinTexelSize * 2 + 1 ) * 2 );
+				if( SRand::Inst().Rand( 0.0f, 1.0f ) < r )
+					splits[i].bSplit = true;
+			}
+		}
+
+		if( splits[i].bSplit )
+		{
+			int32 nSplitPos = SRand::Inst().Rand( 0, r1 + r2 );
+			bool bSplitY = false;
+			if( nSplitPos >= r1 )
+			{
+				nSplitPos -= r1;
+				bSplitY = true;
+			}
+			nSplitPos += m_nMinTexelSize;
+
+			TRectangle<int32> rect1 = rect, rect2 = rect;
+			if( !bSplitY )
+			{
+				rect1.width = nSplitPos;
+				rect2.SetLeft( nSplitPos + rect.x );
+			}
+			else
+			{
+				rect1.height = nSplitPos;
+				rect2.SetTop( nSplitPos + rect.y );
+			}
+
+			bool bLeftFirst = SRand::Inst().Rand() & 1;
+			if( bLeftFirst )
+			{
+				splits.push_back( SSplit( rect1, false, i ) );
+				splits.push_back( SSplit( rect2, false, i ) );
+			}
+			else
+			{
+				splits.push_back( SSplit( rect2, false, i ) );
+				splits.push_back( SSplit( rect1, false, i ) );
+			}
+		}
+	}
+
+	float fMin = Max( 0.0f, 2 * m_fPercent - 1 );
+	float fMax = Min( 2 * m_fPercent, 1.0f );
+	for( auto& split : splits )
+	{
+		if( split.bSplit )
+			continue;
+
+		auto rect = split.rect;
+		bool bY = SRand::Inst().Rand() & 1;
+		bool bLeft = SRand::Inst().Rand() & 1;
+		float fPercent = SRand::Inst().Rand( fMin, fMax );
+		if( !bY )
+		{
+			int32 nNewSize = Max( (uint32)floor( rect.width * fPercent ), m_nMinTexelSize );
+			if( bLeft )
+				rect.SetLeft( rect.GetRight() - nNewSize );
+			else
+				rect.width = nNewSize;
+		}
+		else
+		{
+			int32 nNewSize = Max( (uint32)floor( rect.height * fPercent ), m_nMinTexelSize );
+			if( bLeft )
+				rect.SetTop( rect.GetBottom() - nNewSize );
+			else
+				rect.height = nNewSize;
+		}
+
+		auto clippedRect = texelRect * rect;
+		if( clippedRect.width && clippedRect.height )
+		{
+			uint32 nMask = SRand::Inst().Rand( 0u, m_nMaskCols * m_nMaskRows );
+			int32 dx = m_texSize.x - clippedRect.width;
+			int32 dy = m_texSize.y - clippedRect.width;
+			TRectangle<int32> texRect( SRand::Inst().Rand( 0, dx + 1 ), SRand::Inst().Rand( 0, dy + 1 ), clippedRect.width, clippedRect.height );
+			CRectangle texRect1( ( nMask % m_nMaskCols ) * 1.0f / m_nMaskCols, ( nMask / m_nMaskCols ) * 1.0f / m_nMaskRows, 1.0f / m_nMaskCols, 1.0f / m_nMaskRows );
+			if( clippedRect != rect )
+			{
+				texRect1.x += texRect1.width * ( clippedRect.x - rect.x ) / rect.width;
+				texRect1.y += texRect1.height * ( rect.GetBottom() - clippedRect.GetBottom() ) / rect.height;
+				texRect1.width *= clippedRect.width * 1.0f / rect.width;
+				texRect1.height *= clippedRect.height * 1.0f / rect.height;
+			}
+
+			auto pImage2D = static_cast<CImage2D*>( pResource->CreateInstance() );
+			pImage2D->SetRect( CRectangle( clippedRect.x, clippedRect.y, clippedRect.width, clippedRect.height ) * m_fTexelSize );
+			pImage2D->SetTexRect( CRectangle( texRect.x / m_texSize.x, texRect.y / m_texSize.y, texRect.width / m_texSize.x, texRect.height / m_texSize.y ) );
+			pImage2D->GetParam()[0] = CVector4( texRect1.x, texRect1.y, texRect1.width, texRect1.height );
+			AddChild( pImage2D );
+		}
+	}
+
+	SetRenderObject( NULL );
+}
