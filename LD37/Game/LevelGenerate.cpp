@@ -781,11 +781,15 @@ public:
 		TVector2<int32> sizeMax;
 		float fWeight;
 		float fWeightRecalculated;
+		int32 nWeightGroup;
+		int32 nWeightGroupIndex;
+		float fWeightInWeightGroup;
 		CReference<CLevelGenerateNode> pNode;
 	};
 
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
+		m_nWeightGroupCount = 0;
 		for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
 		{
 			auto pNode = CreateNode( pChild, context );
@@ -799,20 +803,87 @@ public:
 			item.sizeMax.x = XmlGetAttr( pChild, "sizemaxx", item.sizeMin.x );
 			item.sizeMax.y = XmlGetAttr( pChild, "sizemaxy", item.sizeMin.y );
 			item.fWeight = XmlGetAttr( pChild, "p", 1.0f );
+			item.nWeightGroup = XmlGetAttr( pChild, "weight_group", -1 );
+			m_nWeightGroupCount = Max( m_nWeightGroupCount, item.nWeightGroup + 1 );
 		}
 		m_nCheckBlockType = XmlGetAttr( pXml, "check_block", 0 );
+		CLevelGenerateNode::Load( pXml, context );
+
+		if( m_nWeightGroupCount )
+		{
+			m_weightGroups.resize( m_nWeightGroupCount );
+			vector<float> vecWeightGroupsWeight;
+			vecWeightGroupsWeight.resize( m_nWeightGroupCount );
+
+			for( int i = 0; i < m_infos.size(); i++ )
+			{
+				auto& info = m_infos[i];
+				if( info.nWeightGroup >= 0 )
+				{
+					info.nWeightGroupIndex = m_weightGroups[info.nWeightGroup].size();
+					m_weightGroups[info.nWeightGroup].push_back( i );
+					vecWeightGroupsWeight[info.nWeightGroup] += info.fWeight;
+				}
+			}
+			for( auto& info : m_infos )
+			{
+				if( info.nWeightGroup >= 0 )
+				{
+					info.fWeightInWeightGroup = info.fWeight / vecWeightGroupsWeight[info.nWeightGroup];
+				}
+			}
+		}
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		if( m_nWeightGroupCount )
+		{
+			vector<float> vecWeightGroupsWeight;
+			vecWeightGroupsWeight.resize( m_nWeightGroupCount );
+			for( int i = 0; i < m_nWeightGroupCount; i++ )
+				vecWeightGroupsWeight[i] = 1;
+
+			for( auto& info : m_infos )
+			{
+				info.fWeightRecalculated = 0;
+			}
+
+			for( auto& info : m_infos )
+			{
+				if( info.nWeightGroup >= 0 )
+				{
+					float fAddWeight[2];
+					fAddWeight[0] = SRand::Inst().Rand( 0.0f, info.fWeight );
+					fAddWeight[1] = info.fWeight - fAddWeight[0];
+
+					for( int k = 0; k < 2; k++ )
+					{
+						float r = SRand::Inst().Rand( 0.0f, 1.0f );
+						auto& vecGroup = m_weightGroups[info.nWeightGroup];
+						int i = 0;
+						for( ; i < vecGroup.size() - 1; i++ )
+						{
+							float fWeightInWeightGroup = m_infos[vecGroup[i]].fWeightInWeightGroup;
+							if( r < fWeightInWeightGroup )
+								break;
+							r -= fWeightInWeightGroup;
+						}
+
+						m_infos[vecGroup[i]].fWeightRecalculated += fAddWeight[k];
+					}
+				}
+			}
+		}
 
 		float fTotalWeight = 0;
 		for( int i = m_infos.size() - 1; i >= 0; i-- )
 		{
 			auto& item = m_infos[i];
-			fTotalWeight += item.fWeight;
-			item.fWeightRecalculated = item.fWeight / fTotalWeight;
+			float fWeight = item.nWeightGroup >= 0 ? item.fWeightRecalculated : item.fWeight;
+			fTotalWeight += fWeight;
+			item.fWeightRecalculated = fWeight / fTotalWeight;
 		}
-		CLevelGenerateNode::Load( pXml, context );
-	}
-	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
-	{
+
 		auto size = region.GetSize();
 
 		SSubNodeInfo dummy;
@@ -848,6 +919,9 @@ public:
 
 		for( auto& subNodeInfo : m_infos )
 		{
+			if( subNodeInfo.fWeightRecalculated * region.width * region.height < 0.5f )
+				continue;
+
 			memset( &gridExt[0], 0, sizeof( int32 ) * size.x * size.y );
 			memset( &gridOk[0], 0, sizeof( int32 ) * size.x * size.y );
 			auto minSize = subNodeInfo.sizeMin;
@@ -1088,7 +1162,9 @@ public:
 	}
 protected:
 	uint8 m_nCheckBlockType;
+	int32 m_nWeightGroupCount;
 	vector<SSubNodeInfo> m_infos;
+	vector<vector<uint32> > m_weightGroups;
 };
 
 #define REGISTER_GENERATE_NODE( Name, Class ) m_mapCreateFuncs[Name] = [] ( TiXmlElement* pXml ) { return new Class; };

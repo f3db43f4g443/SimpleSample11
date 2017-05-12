@@ -6,6 +6,10 @@
     <attachs>
       <node name="pipe0" prefab="data/blockitems/pipe0.pf" sizey="16" attach_type="1" />
       <node name="window2x2" prefab="data/blockitems/window2x2.pf" sizex="2" sizey="2" attach_type="0" />
+      <node name="crack_wall_0" prefab="data/blockitems/crack_wall_0.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="crack_wall_1x" prefab="data/blockitems/crack_wall_1x.pf" sizex="4" sizey="1" attach_type="0" />
+      <node name="crack_wall_1y" prefab="data/blockitems/crack_wall_1y.pf" sizex="1" sizey="4" attach_type="0" />
+      <node name="crack_wall_2" prefab="data/blockitems/crack_wall_2.pf" sizex="2" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />
@@ -201,7 +205,11 @@
             <ref name="wall_deco" x="0" y="0" w="0" h="0" />
             <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
             <node type="randomfill" x="0" y="0" w="0" h="0" >
-              <ref name="window2x2" sizeminx="2" sizeminy="2" p="1" />
+              <ref name="window2x2" sizeminx="2" sizeminy="2" p="0.6" />
+              <ref name="crack_wall_0" sizeminx="1" sizeminy="1" p="0.1" weight_group="0" />
+              <ref name="crack_wall_1x" sizeminx="4" sizeminy="1" p="0.1" weight_group="0" />
+              <ref name="crack_wall_1y" sizeminx="1" sizeminy="4" p="0.1" weight_group="0" />
+              <ref name="crack_wall_2" sizeminx="2" sizeminy="2" p="0.1" weight_group="0" />
               <node type="empty" p="3" />
             </node>
           </node>

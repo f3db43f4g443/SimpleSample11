@@ -6,7 +6,6 @@ struct SCharacterMovementData
 	SCharacterMovementData() : bSleep( false ) { memset( bHitChannel, 0, sizeof( bHitChannel ) ); bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = true; }
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, SRaycastResult* pHit = NULL );
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, CVector2& velocity, SRaycastResult* pHit = NULL );
-	bool TryMoveAcrossWall( CCharacter* pCharacter, const CVector2& ofs, const CVector2& ofsLeft );
 
 	bool ResolvePenetration( CCharacter* pCharacter );
 	bool HasAnyCollision();
@@ -191,11 +190,13 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 
 struct SCharacterCreepData : public SCharacterMovementData
 {
-	SCharacterCreepData( const SClassCreateContext& context ) {}
-	void UpdateMove( CCharacter* pCharacter, uint8 nTurnDir );
+	SCharacterCreepData( const SClassCreateContext& context ) : bHitWall( false ) {}
+	void UpdateMove( CCharacter* pCharacter, int8 nTurnDir );
 
 	float fSpeed;
 	float fTurnSpeed;
 	float fFallGravity;
 	float fMaxFallSpeed;
+
+	bool bHitWall;
 };

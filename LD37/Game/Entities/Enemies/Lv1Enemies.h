@@ -56,7 +56,7 @@ class CManHead4 : public CEnemyTemplate
 {
 	friend void RegisterGameClasses();
 public:
-	CManHead4( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CManHead3 ); }
+	CManHead4( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CManHead4 ); }
 
 	virtual void Kill() override;
 protected:
@@ -65,4 +65,23 @@ protected:
 
 	CString m_strBullet;
 	CReference<CPrefab> m_pBullet;
+};
+
+class CRoach : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+public:
+	CRoach( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_creepData( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CRoach ); }
+protected:
+	virtual void AIFunc() override;
+	virtual void OnTickAfterHitTest() override;
+
+	CString m_strBullet;
+	CReference<CPrefab> m_pBullet;
+
+	float m_fAIStepTimeMin;
+	float m_fAIStepTimeMax;
+	uint32 m_nFireRate;
+	SCharacterCreepData m_creepData;
+	int8 m_nDir;
 };

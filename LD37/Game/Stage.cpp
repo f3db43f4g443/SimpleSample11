@@ -265,7 +265,7 @@ void CStage::MultiRaycast( const CVector2& begin, const CVector2& end, vector<CR
 	}
 }
 
-CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, EEntityHitType hitType, SRaycastResult * pResult )
+CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, EEntityHitType hitType, SRaycastResult * pResult, bool bIgnoreInverseNormal )
 {
 	vector<SRaycastResult> result;
 	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
@@ -274,6 +274,8 @@ CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, con
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
 		if( hitType != eEntityEvent_Count && pEntity->GetHitType() != hitType )
 			continue;
+		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
+			continue;
 		if( pResult )
 			*pResult = result[i];
 		return pEntity;
@@ -281,7 +283,7 @@ CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, con
 	return NULL;
 }
 
-CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult )
+CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
 {
 	vector<SRaycastResult> result;
 	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
@@ -289,6 +291,8 @@ CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, con
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
 		if( !hitTypeFilter[pEntity->GetHitType()] )
+			continue;
+		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
 			continue;
 		if( pResult )
 			*pResult = result[i];

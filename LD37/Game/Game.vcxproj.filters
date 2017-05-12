@@ -135,6 +135,9 @@
     <ClCompile Include="Entities\Decorator.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\UtilEnitites.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -266,6 +269,9 @@
     <ClInclude Include="LevelDesign.h" />
     <ClInclude Include="GameState.h" />
     <ClInclude Include="Entities\Decorator.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\UtilEntities.h">
       <Filter>Entities</Filter>
     </ClInclude>
   </ItemGroup>

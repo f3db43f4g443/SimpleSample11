@@ -286,3 +286,47 @@ void CManHead4::OnTickAfterHitTest()
 
 	CEnemyTemplate::OnTickAfterHitTest();
 }
+
+void CRoach::AIFunc()
+{
+	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
+	m_nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
+
+	uint32 nStep = SRand::Inst().Rand( 0u, m_nFireRate );
+
+	while( 1 )
+	{
+		do
+		{
+			m_pAI->Yield( SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ), false );
+		} while( !m_creepData.bHitWall );
+
+		m_nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
+
+		nStep++;
+		if( nStep == m_nFireRate )
+		{
+			nStep = 0;
+
+			CVector2 dir( cos( GetRotation() ), sin( GetRotation() ) );
+			CVector2 ofs[3] = { CVector2( 0, -8 ), CVector2( 8, 0 ), CVector2( 0, 8 ) };
+			for( int i = 0; i < 3; i++ )
+			{
+				auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+				pBullet->SetPosition( globalTransform.GetPosition() + dir * ofs[i].x + CVector2( dir.y, -dir.x ) * ofs[i].y );
+				pBullet->SetRotation( atan2( dir.y, dir.x ) );
+				pBullet->SetVelocity( CVector2( dir ) * 150 );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			}
+		}
+	}
+}
+
+void CRoach::OnTickAfterHitTest()
+{
+	CReference<CRoach> pTemp = this;
+	m_creepData.UpdateMove( this, m_nDir );
+	if( !GetStage() )
+		return;
+	CEnemyTemplate::OnTickAfterHitTest();
+}

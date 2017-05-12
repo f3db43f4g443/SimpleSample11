@@ -26,6 +26,7 @@
 #include "Entities/GlitchEffect.h"
 #include "Entities/EffectObject.h"
 #include "Entities/Decorator.h"
+#include "Entities/UtilEntities.h"
 #include "Entities/Barrage.h"
 #include "Entities/Blocks/RandomBlocks.h"
 #include "Entities/Blocks/SpecialBlocks.h"
@@ -256,6 +257,13 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( SCharacterPhysicsFlyData )
 		REGISTER_MEMBER( fMaxAcc )
 		REGISTER_MEMBER( fStablity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SCharacterCreepData )
+		REGISTER_MEMBER( fSpeed )
+		REGISTER_MEMBER( fTurnSpeed )
+		REGISTER_MEMBER( fFallGravity )
+		REGISTER_MEMBER( fMaxFallSpeed )
 	REGISTER_CLASS_END()
 	
 	REGISTER_ENUM_BEGIN( EEntityHitType )
@@ -711,6 +719,15 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strPrefab )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CSpawner )
+		REGISTER_BASE_CLASS( CDetectTrigger )
+		REGISTER_MEMBER( m_nMaxCount )
+		REGISTER_MEMBER( m_nTotalCount )
+		REGISTER_MEMBER( m_nSpawnCount )
+		REGISTER_MEMBER( m_bRandomRotate )
+		REGISTER_MEMBER( m_rectSpawn )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CPipe0 )
 		REGISTER_BASE_CLASS( CDetectTrigger )
 	REGISTER_CLASS_END()
@@ -753,6 +770,15 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CRoach )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_creepData )
+		REGISTER_MEMBER( m_fAIStepTimeMin )
+		REGISTER_MEMBER( m_fAIStepTimeMax )
+		REGISTER_MEMBER( m_nFireRate )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CEffectObject )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pStates[0], birth )
@@ -786,6 +812,14 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fPercent )
 		REGISTER_MEMBER( m_nMaskCols )
 		REGISTER_MEMBER( m_nMaskRows )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTexRectRandomModifier )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nCols )
+		REGISTER_MEMBER( m_nRows )
+		REGISTER_MEMBER( m_fWidth )
+		REGISTER_MEMBER( m_fHeight )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CStartPoint )
