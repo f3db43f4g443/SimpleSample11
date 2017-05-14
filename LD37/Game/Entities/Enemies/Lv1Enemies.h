@@ -85,3 +85,23 @@ protected:
 	SCharacterCreepData m_creepData;
 	int8 m_nDir;
 };
+
+class CMaggot : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CMaggot( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ), m_nAnimState( 0 ) { SET_BASEOBJECT_ID( CMaggot ); }
+
+	virtual void OnAddedToStage() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+private:
+	SCharacterSurfaceWalkData m_moveData;
+	float m_fAIStepTimeMin;
+	float m_fAIStepTimeMax;
+	float m_fFallChance;
+
+	uint32 m_nAIStepTimeLeft;
+	int8 m_nDir;
+	uint8 m_nAnimState;
+};

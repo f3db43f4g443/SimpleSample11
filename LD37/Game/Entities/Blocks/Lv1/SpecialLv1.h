@@ -37,3 +37,15 @@ private:
 	float m_fDamage;
 	float m_fShake;
 };
+
+class CGarbageBinBlack : public CTriggerChunk
+{
+	friend void RegisterGameClasses();
+public:
+	CGarbageBinBlack( const SClassCreateContext& context ) : CTriggerChunk( context ) { SET_BASEOBJECT_ID( CGarbageBinBlack ); }
+	virtual void Trigger() override;
+private:
+	uint32 m_nCount;
+	float m_fMinSpeed, m_fMaxSpeed;
+	float m_fShake;
+};

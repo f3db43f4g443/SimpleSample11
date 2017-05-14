@@ -175,8 +175,8 @@ bool SweepTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const C
 	// Vertices that subtend the incident face.
 	int32 vertIndex1 = normalIndex;
 	int32 vertIndex2 = vertIndex1 + 1 < nVertices ? vertIndex1 + 1 : 0;
-	CVector2 v1 = vertices[vertIndex1] + normals[normalIndex];
-	CVector2 v2 = vertices[vertIndex2] + normals[normalIndex];
+	CVector2 v1 = vertices[vertIndex1] + normals[normalIndex] * fRadius;
+	CVector2 v2 = vertices[vertIndex2] + normals[normalIndex] * fRadius;
 
 	// If the center is inside the polygon ...
 	if( separation <= 0 )
@@ -681,13 +681,13 @@ bool HitTestPolygonAndEdge( SHitProxyPolygon* a, SHitProxyEdge* b, const CMatrix
 bool SHitProxyCircle::Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult )
 {
 	CVector2 c = trans.MulVector2Pos( center );
-	CVector2 dCenter = begin - c;
+	CVector2 dCenter = c - begin;
 	if( dCenter.Dot( dCenter ) <= fRadius * fRadius )
 	{
 		if( pResult )
 		{
 			pResult->hitPoint = begin;
-			pResult->normal = pResult->hitPoint - center;
+			pResult->normal = pResult->hitPoint - c;
 			if( pResult->normal.Normalize() <= 0 )
 				pResult->normal = CVector2( 1, 0 );
 			pResult->fDist = 0;
@@ -712,7 +712,7 @@ bool SHitProxyCircle::Raycast( const CVector2& begin, const CVector2& end, const
 	{
 		pResult->fDist = l;
 		pResult->hitPoint = dir * l + begin;
-		pResult->normal = pResult->hitPoint - center;
+		pResult->normal = pResult->hitPoint - c;
 		pResult->normal.Normalize();
 	}
 	return true;

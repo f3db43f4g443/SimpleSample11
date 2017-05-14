@@ -330,3 +330,112 @@ void CRoach::OnTickAfterHitTest()
 		return;
 	CEnemyTemplate::OnTickAfterHitTest();
 }
+
+void CMaggot::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	m_nDir = SRand::Inst().Rand( -1, 2 );
+	m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
+}
+
+void CMaggot::OnTickAfterHitTest()
+{
+	DEFINE_TEMP_REF_THIS();
+	m_moveData.UpdateMove( this, m_nDir );
+	if( !GetStage() )
+		return;
+
+	if( !m_nAIStepTimeLeft )
+	{
+		if( m_moveData.bHitSurface )
+		{
+			float fDir = 0;
+			for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+			{
+				auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+				if( SafeCast<CMaggot>( pEntity ) )
+				{
+					fDir += CVector2( -m_moveData.normal.y, m_moveData.normal.x ).Dot( pManifold->normal );
+				}
+			}
+
+			if( fDir > 0 )
+				m_nDir = 1;
+			else if( fDir < 0 )
+				m_nDir = -1;
+			else
+				m_nDir = SRand::Inst().Rand( -1, 2 );
+
+			if( m_moveData.normal.y < -0.8f && SRand::Inst().Rand( 0.0f, 1.0f ) < m_fFallChance )
+			{
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( pPlayer )
+				{
+					CVector2 dPos = pPlayer->GetPosition() - globalTransform.GetPosition();
+					if( dPos.y < 0 )
+					{
+						float t = sqrt( -dPos.y * m_moveData.fGravity );
+						float vx = dPos.x / t;
+						if( abs( vx ) < m_moveData.fFallInitSpeed )
+						{
+							m_moveData.Fall( this, CVector2( 0, vx ) );
+						}
+					}
+				}
+
+			}
+		}
+
+		m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
+	}
+
+	uint8 newAnimState = 0;
+	if( m_moveData.bHitSurface )
+	{
+		GetRenderObject()->SetRotation( atan2( -m_moveData.normal.x, m_moveData.normal.y ) );
+		if( m_nDir == 1 )
+			newAnimState = 1;
+		else if( m_nDir == -1 )
+			newAnimState = 2;
+		else
+			newAnimState = 0;
+	}
+	else
+	{
+		GetRenderObject()->SetRotation( 0 );
+		if( GetVelocity().x > 0 )
+			newAnimState = 3;
+		else
+			newAnimState = 4;
+	}
+
+	if( newAnimState != m_nAnimState )
+	{
+		auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+		switch( newAnimState )
+		{
+		case 0:
+			pImage->SetFrames( 0, 1, 0 );
+			break;
+		case 1:
+			pImage->SetFrames( 0, 4, 6 );
+			break;
+		case 2:
+			pImage->SetFrames( 4, 8, 6 );
+			break;
+		case 3:
+			pImage->SetFrames( 8, 12, 6 );
+			break;
+		case 4:
+			pImage->SetFrames( 12, 16, 6 );
+			break;
+		default:
+			break;
+		}
+		m_nAnimState = newAnimState;
+	}
+
+	if( m_nAIStepTimeLeft )
+		m_nAIStepTimeLeft--;
+	CEnemy::OnTickAfterHitTest();
+}

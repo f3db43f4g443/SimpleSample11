@@ -806,3 +806,75 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 		pCharacter->SetVelocity( vel );
 	}
 }
+
+void SCharacterSurfaceWalkData::UpdateMove( CCharacter * pCharacter, int8 nDir )
+{
+	if( !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+
+	float fTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+
+	if( bHitSurface )
+	{
+		CVector2 moveDir = CVector2( normal.y, -normal.x ) * nDir;
+
+		CVector2 vel = moveDir * fSpeed;
+		CVector2 ofs = vel * fTime;
+		SRaycastResult result[6];
+		TryMove( pCharacter, ofs, vel, result );
+		CVector2 vel1 = normal * -fSpeed;
+		CVector2 ofs1 = vel1 * fTime;
+		pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
+		TryMove( pCharacter, ofs1, vel1, result + 3 );
+
+		float fMaxDot = -2.0f;
+		int32 nMaxSurface = -1;
+		for( int i = 0; i < 6; i++ )
+		{
+			if( !result[i].pHitProxy )
+				continue;
+			float fDot = -result[i].normal.Dot( normal );
+			if( fDot > fMaxDot )
+			{
+				fMaxDot = fDot;
+				nMaxSurface = i;
+			}
+		}
+		
+		if( nMaxSurface >= 0 )
+		{
+			bHitSurface = true;
+			normal = result[nMaxSurface].normal;
+			pCharacter->SetVelocity( vel + vel1 );
+		}
+		else
+		{
+			Fall( pCharacter, CVector2( normal.x * fFallInitSpeed, 0 ) );
+		}
+	}
+	else
+	{
+		CVector2 vel = pCharacter->GetVelocity();
+		CVector2 vel0 = vel;
+		vel.y = Max( -fMaxFallSpeed, vel.y - fGravity * fTime );
+		CVector2 ofs = ( vel0 + vel ) * 0.5f * fTime;
+
+		SRaycastResult result[3];
+		TryMove( pCharacter, ofs, vel, result );
+		pCharacter->SetVelocity( vel );
+		for( int i = 0; i < 3 && result[i].pHitProxy; i++ )
+		{
+			bHitSurface = true;
+			normal = result[i].normal;
+		}
+	}
+}
+
+void SCharacterSurfaceWalkData::Fall( CCharacter* pCharacter, const CVector2 & vel )
+{
+	bHitSurface = false;
+	pCharacter->SetVelocity( vel );
+}

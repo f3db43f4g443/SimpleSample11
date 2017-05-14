@@ -200,3 +200,18 @@ struct SCharacterCreepData : public SCharacterMovementData
 
 	bool bHitWall;
 };
+
+struct SCharacterSurfaceWalkData : public SCharacterMovementData
+{
+	SCharacterSurfaceWalkData( const SClassCreateContext& context ) {}
+	void UpdateMove( CCharacter* pCharacter, int8 nDir );
+	void Fall( CCharacter* pCharacter, const CVector2& vel );
+
+	float fSpeed;
+	float fFallInitSpeed;
+	float fGravity;
+	float fMaxFallSpeed;
+
+	bool bHitSurface;
+	CVector2 normal;
+};

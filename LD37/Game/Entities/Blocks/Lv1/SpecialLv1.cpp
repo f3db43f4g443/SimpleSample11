@@ -56,3 +56,18 @@ void CGarbageBinGreen::Trigger()
 
 	CMyLevel::GetInst()->AddShakeStrength( m_fShake );
 }
+
+void CGarbageBinBlack::Trigger()
+{
+	float fBaseAngle = SRand::Inst().Rand( -PI, PI );
+	for( int i = 0; i < m_nCount; i++ )
+	{
+		auto pCharacter = SafeCast<CCharacter>( m_pPrefab->GetRoot()->CreateInstance() );
+		float fAngle = fBaseAngle + PI * 2 * i / m_nCount;
+		pCharacter->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
+		pCharacter->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+		pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+	}
+
+	CMyLevel::GetInst()->AddShakeStrength( m_fShake );
+}
