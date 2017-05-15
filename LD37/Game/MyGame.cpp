@@ -208,6 +208,10 @@ void Game_ShaderImplement_Dummy();
 
 void RegisterGameClasses()
 {
+	REGISTER_CLASS_BEGIN( SAttribute )
+		REGISTER_MEMBER( base )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( SHitProxyCircle )
 		REGISTER_MEMBER( fRadius )
 		REGISTER_MEMBER( center )
@@ -294,6 +298,11 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CPlayer )
 		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_hp )
+		REGISTER_MEMBER( m_sp )
+		REGISTER_MEMBER( m_nSpRegenPerFrame )
+		REGISTER_MEMBER( m_nSpRegenPerFrameSlidingDown )
+		REGISTER_MEMBER( m_nRollSpCost )
 		REGISTER_MEMBER( m_walkData )
 		REGISTER_MEMBER( m_flyData )
 		REGISTER_MEMBER_TAGGED_PTR( m_pCore, core );
@@ -302,6 +311,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CEnemy )
 		REGISTER_BASE_CLASS( CCharacter )
 		REGISTER_MEMBER( m_nHp )
+		REGISTER_MEMBER( m_nKnockbackCostSp )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEnemy1 )
@@ -377,6 +387,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CMainUI )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar, hp );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, sp );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShake, shake );
 		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, minimap );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShakeSmallBars[0], minimap/shake );
@@ -646,6 +657,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CGarbageBinBlack )
 		REGISTER_BASE_CLASS( CTriggerChunk )
 		REGISTER_MEMBER( m_nCount )
+		REGISTER_MEMBER( m_bSetAngle )
 		REGISTER_MEMBER( m_fMinSpeed )
 		REGISTER_MEMBER( m_fMaxSpeed )
 		REGISTER_MEMBER( m_fShake )
@@ -800,6 +812,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fAIStepTimeMin )
 		REGISTER_MEMBER( m_fAIStepTimeMax )
 		REGISTER_MEMBER( m_fFallChance )
+		REGISTER_MEMBER( m_nKnockbackTime )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

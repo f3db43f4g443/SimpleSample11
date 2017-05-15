@@ -12,4 +12,5 @@ public:
 private:
 	int32 m_nHp;
 	int32 m_nMaxHp;
+	int32 m_nKnockbackCostSp;
 };

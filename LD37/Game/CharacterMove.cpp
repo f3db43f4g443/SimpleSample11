@@ -581,13 +581,12 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 
 void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxis )
 {
-	if( nState != eState_Rolling && nRollCount && fKnockbackTime <= 0 )
+	if( nState != eState_Rolling && fKnockbackTime <= 0 )
 	{
 		nState = eState_Rolling;
 		fRollTime = 0;
 		rollDir = moveAxis;
 		bRollingAcrossWall = false;
-		nRollCount--;
 		pLandedEntity = NULL;
 		return;
 	}
@@ -639,7 +638,6 @@ void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
 		groundNorm = result.normal;
 		velocity = velocity - groundNorm * velocity.Dot( groundNorm );
 		lastLandedEntityTransform = pLandedEntity->globalTransform;
-		nRollCount = 1;
 	}
 	else
 		pLandedEntity = NULL;

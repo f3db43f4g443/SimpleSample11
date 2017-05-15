@@ -17,6 +17,7 @@ public:
 	virtual bool IsHiding() override { return m_pCurRoom != NULL; }
 
 	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
 
 	virtual bool CanTriggerItem() override;
 protected:

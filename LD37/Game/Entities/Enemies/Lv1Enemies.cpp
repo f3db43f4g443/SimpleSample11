@@ -338,6 +338,25 @@ void CMaggot::OnAddedToStage()
 	m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
 }
 
+bool CMaggot::Knockback( const CVector2 & vec )
+{
+	if( !m_moveData.bHitSurface )
+		return false;
+	CVector2 tangent( m_moveData.normal.y, -m_moveData.normal.x );
+	float fTangent = tangent.Dot( vec );
+	CVector2 vecKnockback = tangent * fTangent + m_moveData.normal;
+	m_moveData.Fall( this, vecKnockback * m_moveData.fFallInitSpeed * 5 );
+
+	m_nKnockBackTimeLeft = m_nKnockbackTime;
+
+	return true;
+}
+
+bool CMaggot::IsKnockback()
+{
+	return m_nKnockBackTimeLeft > 0;
+}
+
 void CMaggot::OnTickAfterHitTest()
 {
 	DEFINE_TEMP_REF_THIS();
@@ -374,11 +393,11 @@ void CMaggot::OnTickAfterHitTest()
 					CVector2 dPos = pPlayer->GetPosition() - globalTransform.GetPosition();
 					if( dPos.y < 0 )
 					{
-						float t = sqrt( -dPos.y * m_moveData.fGravity );
+						float t = sqrt( -2 * dPos.y / m_moveData.fGravity );
 						float vx = dPos.x / t;
-						if( abs( vx ) < m_moveData.fFallInitSpeed )
+						if( abs( vx ) < m_moveData.fFallInitSpeed * 2 )
 						{
-							m_moveData.Fall( this, CVector2( 0, vx ) );
+							m_moveData.Fall( this, CVector2( vx, 0 ) );
 						}
 					}
 				}
@@ -437,5 +456,7 @@ void CMaggot::OnTickAfterHitTest()
 
 	if( m_nAIStepTimeLeft )
 		m_nAIStepTimeLeft--;
+	if( m_nKnockBackTimeLeft )
+		m_nKnockBackTimeLeft--;
 	CEnemy::OnTickAfterHitTest();
 }

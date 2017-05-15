@@ -23,7 +23,8 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_bFiringDown( false )
 	, m_bIsRepairing( false )
 	, m_bIsWalkOrFly( false )
-	, m_hp( 20 )
+	, m_hp( context )
+	, m_sp( context )
 	, m_fHidingTime( 1 )
 	, m_fHidingCurTime( 0 )
 	, m_nRepairTime( 40 )
@@ -35,6 +36,7 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_fCrackEffectTime( 0 )
 	, m_fChangeStageTime( 0 )
 	, m_fHurtInvincibleTime( 0 )
+	, m_fKnockbackInvincibleTime( 0 )
 	, m_nAnimState( 0 )
 {
 	SET_BASEOBJECT_ID( CPlayer );
@@ -91,12 +93,29 @@ void CPlayer::RestoreHp( int32 nValue )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 }
 
+void CPlayer::CostSp( int32 nValue )
+{
+	CMainUI* pMainUI = CMainUI::GetInst();
+	m_sp.ModifyCurValue( -nValue );
+	if( pMainUI )
+		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+}
+
+void CPlayer::RestoreSp( int32 nValue )
+{
+	CMainUI* pMainUI = CMainUI::GetInst();
+	m_sp.ModifyCurValue( nValue );
+	if( pMainUI )
+		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+}
+
 bool CPlayer::Knockback( const CVector2& vec )
 {
 	if( m_bIsWalkOrFly )
 		m_walkData.Knockback( 0.25f, vec * 400 );
 	else
 		m_flyData.Knockback( 0.25f, vec * 400 );
+	m_fKnockbackInvincibleTime = 0.2f;
 	return true;
 }
 
@@ -179,6 +198,7 @@ void CPlayer::OnTickBeforeHitTest()
 	UpdateFiring();
 
 	m_fHurtInvincibleTime = Max( m_fHurtInvincibleTime - fTime, 0.0f );
+	m_fKnockbackInvincibleTime = Max( m_fKnockbackInvincibleTime - fTime, 0.0f );
 	bool bVisible = m_fHurtInvincibleTime * 10 - floor( m_fHurtInvincibleTime * 10 ) < 0.5f;
 	GetRenderObject()->bVisible = bVisible;
 	if( m_pCurWeapon )
@@ -195,8 +215,9 @@ void CPlayer::UpdateMove()
 
 	if( m_bRoll )
 	{
-		if( moveAxis.Length2() > 0 )
+		if( m_sp >= m_nRollSpCost && moveAxis.Length2() > 0 )
 		{
+			CostSp( m_nRollSpCost );
 			if( m_bIsWalkOrFly )
 			{
 				CVector2 axis;
@@ -218,9 +239,18 @@ void CPlayer::UpdateMove()
 	}
 
 	if( m_bIsWalkOrFly )
+	{
 		m_walkData.UpdateMove( this, moveAxis );
+		if( m_walkData.pLandedEntity )
+			RestoreSp( m_nSpRegenPerFrame );
+		else if( m_walkData.nIsSlidingDownWall )
+			RestoreSp( m_nSpRegenPerFrameSlidingDown );
+	}
 	else
+	{
 		m_flyData.UpdateMove( this, moveAxis );
+		RestoreSp( m_nSpRegenPerFrame );
+	}
 
 	CVector2 curPos = GetPosition();
 	m_velocity = ( curPos - prePos ) / GetStage()->GetElapsedTimePerTick();

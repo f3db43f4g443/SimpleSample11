@@ -24,6 +24,8 @@ public:
 
 	int32 GetHp() { return m_hp; }
 	int32 GetMaxHp() { return m_hp.GetMaxValue(); }
+	int32 GetSp() { return m_sp; }
+	int32 GetMaxSp() { return m_sp.GetMaxValue(); }
 	CEntity* GetCore() { return m_pCore; }
 	bool IsHiding() { return m_fHidingCurTime >= m_fHidingTime; }
 	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
@@ -43,8 +45,11 @@ public:
 	bool IsRolling();
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
+	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
 	virtual void Damage( int32 nValue ) override;
 	void RestoreHp( int32 nValue );
+	void CostSp( int32 nValue );
+	void RestoreSp( int32 nValue );
 	virtual void Crush() override { Damage( 1000 ); }
 	virtual bool Knockback( const CVector2& vec ) override;
 	CVector2 GetKnockback();
@@ -69,6 +74,10 @@ private:
 	void UpdateRepair();
 
 	SAttribute m_hp;
+	SAttribute m_sp;
+	int32 m_nSpRegenPerFrame;
+	int32 m_nSpRegenPerFrameSlidingDown;
+	int32 m_nRollSpCost;
 
 	CReference<CEntity> m_pCore;
 	CReference<CPlayerWeapon> m_pCurWeapon;
@@ -77,6 +86,7 @@ private:
 
 	float m_fCrackEffectTime;
 	float m_fHurtInvincibleTime;
+	float m_fKnockbackInvincibleTime;
 	float m_fMoveXAxis, m_fMoveYAxis;
 
 	SCharacterWalkData m_walkData;

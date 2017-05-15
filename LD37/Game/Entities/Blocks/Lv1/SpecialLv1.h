@@ -46,6 +46,7 @@ public:
 	virtual void Trigger() override;
 private:
 	uint32 m_nCount;
+	bool m_bSetAngle;
 	float m_fMinSpeed, m_fMaxSpeed;
 	float m_fShake;
 };

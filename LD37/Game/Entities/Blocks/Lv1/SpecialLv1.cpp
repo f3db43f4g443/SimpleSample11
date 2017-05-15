@@ -66,6 +66,8 @@ void CGarbageBinBlack::Trigger()
 		float fAngle = fBaseAngle + PI * 2 * i / m_nCount;
 		pCharacter->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
 		pCharacter->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+		if( m_bSetAngle )
+			pCharacter->SetRotation( fAngle );
 		pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 	}
 

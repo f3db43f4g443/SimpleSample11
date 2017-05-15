@@ -1,6 +1,6 @@
 #pragma once
 
-enum EAttributeModifyType	//属性修改类型，最终值=(Base*Mul1+Add1)*Mul2+Add2
+enum EAttributeModifyType
 {
 	eAttrModifyType_Base,
 	eAttrModifyType_Mul1,
@@ -14,6 +14,7 @@ enum EAttributeModifyType	//属性修改类型，最终值=(Base*Mul1+Add1)*Mul2+Add2
 struct SAttribute
 {
 	SAttribute( int32 base = 0 ) : base( base ), mul1( 0 ), add1( 0 ), mul2( 0 ), add2( 0 ) {}
+	SAttribute( const class SClassCreateContext& context ) {}
 
 	operator int32 () const {
 		return ( base * ( mul1 + 10000LL ) / 10000 + add1 ) * ( mul2 + 10000 ) / 10000 + add2;

@@ -20,11 +20,22 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 		vec = pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition();
 		vec.Normalize();
 	}
-	if( pPlayer->IsRolling() )
+
+	if( !IsKnockback() && pPlayer->CanKnockback() )
 	{
-		if( !Knockback( vec ) )
+		if( pPlayer->IsRolling() )
+		{
+			if( !Knockback( vec ) )
+				pPlayer->Knockback( vec * -1 );
+		}
+		else if( pPlayer->GetSp() >= m_nKnockbackCostSp )
+		{
+			if( !Knockback( vec ) )
+				pPlayer->Knockback( vec * -1 );
+			else
+				pPlayer->CostSp( m_nKnockbackCostSp );
+		}
+		else
 			pPlayer->Knockback( vec * -1 );
 	}
-	else
-		pPlayer->Knockback( vec * -1 );
 }

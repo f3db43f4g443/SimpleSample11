@@ -62,3 +62,8 @@ static className* Inst() \
 	static CReference<className> g_inst = new className; \
 	return g_inst; \
 }
+
+#define __DEFINE_TEMP_REF( p, a ) CReference<CReferenceObject> __temp##a = p;
+#define _DEFINE_TEMP_REF( p, a ) __DEFINE_TEMP_REF( p, a )
+#define DEFINE_TEMP_REF( p ) _DEFINE_TEMP_REF( p, __LINE__ )
+#define DEFINE_TEMP_REF_THIS( p ) DEFINE_TEMP_REF( this )

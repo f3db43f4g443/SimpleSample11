@@ -90,9 +90,11 @@ class CMaggot : public CEnemy
 {
 	friend void RegisterGameClasses();
 public:
-	CMaggot( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ), m_nAnimState( 0 ) { SET_BASEOBJECT_ID( CMaggot ); }
+	CMaggot( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ), m_nAnimState( 0 ), m_nKnockBackTimeLeft( 0 ) { SET_BASEOBJECT_ID( CMaggot ); }
 
 	virtual void OnAddedToStage() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
 protected:
 	virtual void OnTickAfterHitTest() override;
 private:
@@ -100,8 +102,10 @@ private:
 	float m_fAIStepTimeMin;
 	float m_fAIStepTimeMax;
 	float m_fFallChance;
+	uint32 m_nKnockbackTime;
 
 	uint32 m_nAIStepTimeLeft;
 	int8 m_nDir;
 	uint8 m_nAnimState;
+	uint32 m_nKnockBackTimeLeft;
 };

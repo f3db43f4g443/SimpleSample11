@@ -303,6 +303,21 @@ bool CEnemyCharacter::Knockback( const CVector2& vec )
 	return true;
 }
 
+bool CEnemyCharacter::IsKnockback()
+{
+	if( m_nState == 1 )
+	{
+		if( m_walkData.fKnockbackTime > 0 )
+			return true;
+	}
+	else
+	{
+		if( m_flyData.fKnockbackTime > 0 )
+			return true;
+	}
+	return false;
+}
+
 bool CEnemyCharacter::CanTriggerItem()
 {
 	return m_nState == 0;

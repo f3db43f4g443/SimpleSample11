@@ -63,6 +63,16 @@ void CMainUI::OnModifyHp( float fHp, float fMaxHp )
 	pHp->SetRect( rect );
 }
 
+void CMainUI::OnModifySp( float fSp, float fMaxSp )
+{
+	float fPercent = fMaxSp > 0? fSp / fMaxSp: 0;
+	fPercent = Max( Min( fPercent, 1.0f ), 0.0f );
+	auto pSp = static_cast<CImage2D*>( m_pSpBar.GetPtr() );
+	auto rect = pSp->GetElem().rect;
+	rect.height = m_hpBarOrigHeight * fPercent;
+	pSp->SetRect( rect );
+}
+
 void CMainUI::UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType )
 {
 	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
