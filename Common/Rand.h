@@ -38,17 +38,19 @@ struct SRand
 		Shuffle( result, b );
 	}
 
-	void C1( uint32 a, uint32 b, uint32* result )
+	void A( uint32 a, uint32 b, uint32* result )
 	{
-		int8* arr = (int8*)alloca( b );
-		memset( arr, 1, a );
-		memset( arr + a, 0, b - a );
-		Shuffle( arr, b );
-		int iRes = 0;
+		int32* arr = (int32*)alloca( b * sizeof( int32 ) );
 		for( int i = 0; i < b; i++ )
 		{
-			if( arr[i] )
-				result[iRes++] = i;
+			arr[i] = i;
+		}
+		for( uint32 i = 0; i < a; i++ )
+		{
+			uint32 m = i;
+			uint32 n = Rand<uint32>( i, b );
+			result[i] = arr[n];
+			arr[n] = arr[m];
 		}
 	}
 

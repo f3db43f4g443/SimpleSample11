@@ -225,16 +225,110 @@
           0,0,0,0,0,0,
           0,0,0,0,0,0,
         </types>
-        <subitem>
-          <node type="tile">
-            <ref name="wall_broken" />
+        <subitem copy_blueprint="1">
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall_broken" />
+            </node>
+            <node type="pipes" x="0" y="0" w="0" h="0">
+              <pipe0>
+                <node name="pipe0" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe0.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe0>
+              <pipe1>
+                <node name="pipe1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe1.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe1>
+              <pipe2>
+                <node name="pipe2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe2.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe2>
+              <pipe3>
+                <node name="pipe3" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe3.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe3>
+              <pipe4>
+                <node name="pipe4" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe4.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe4>
+              <pipe5>
+                <node name="pipe5" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe5.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe5>
+              <pipe6>
+                <node name="pipe6" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe6.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe6>
+              <pipe7>
+                <node name="pipe7" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe7.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe7>
+              <pipe8>
+                <node name="pipe8" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe8.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe8>
+              <pipe9>
+                <node name="pipe9" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe9.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe9>
+              <pipe10>
+                <node name="pipe10" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe10.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe10>
+              <pipe11>
+                <node name="pipe11" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe11.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe11>
+              <pipe12>
+                <node name="pipe12" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe12.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe12>
+              <pipe13>
+                <node name="pipe13" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe13.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe13>
+              <pipe14>
+                <node name="pipe14" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe14.pf">
+                  <metadata isdesignvalid="0" />
+                  <types>4</types>
+                </node>
+              </pipe14>
+            </node>
           </node>
         </subitem>
         <next_level>
           <node type="subregion">
             <ref name="wall1_deco" x="0" y="0" w="0" h="0" />
             <ref name="wall1_deco_lower" x="0" y="0" w="0" h="0" />
-            <node type="randomfill" x="0" y="0" w="0" h="0" >
+            <node type="randomfill" x="0" y="0" w="0" h="0" check_gen_data="0" >
               <ref name="window2x2" sizeminx="2" sizeminy="2" p="0.6" />
               <ref name="crack_wall_0" sizeminx="1" sizeminy="1" p="0.1" weight_group="0" />
               <ref name="crack_wall_1x" sizeminx="4" sizeminy="1" p="0.1" weight_group="0" />
@@ -299,6 +393,10 @@
       </node-->
 
       <node name="unbreakable" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/unbreakable.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="wall1block" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/wall1block.pf">
         <metadata isdesignvalid="0" />
         <types>4</types>
       </node>

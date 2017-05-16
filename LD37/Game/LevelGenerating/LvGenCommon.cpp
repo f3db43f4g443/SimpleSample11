@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LvGenCommon.h"
+#include "Common/Rand.h"
 
 void CBrickTileNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
@@ -383,4 +384,168 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 		tempContext.Build();
 	}
 
+}
+
+void CPipeNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+	m_fBeginPointCountPercent = XmlGetAttr( pXml, "begin_percent", 0.2f );
+	m_fBeginPointHeightPercent = XmlGetAttr( pXml, "begin_height_percent", 0.75f );
+	m_fEndPointHeightPercent = XmlGetAttr( pXml, "end_height_percent", 0.25f );
+	m_nBeginClipLen = XmlGetAttr( pXml, "begin_clip_len", 1 );
+	m_nMinHLength = XmlGetAttr( pXml, "min_h_len", 1 );
+	m_nMaxHLength = XmlGetAttr( pXml, "max_h_len", 8 );
+	m_nMinVLength = XmlGetAttr( pXml, "min_v_len", 5 );
+	m_nMaxVLength = XmlGetAttr( pXml, "max_v_len", 10 );
+	m_fIntersectStopChance = XmlGetAttr( pXml, "intersect_stop", 0.5f );
+
+	for( int i = 0; i < ELEM_COUNT( m_pPipes ); i++ )
+	{
+		char buf[32];
+		sprintf( buf, "pipe%d", i );
+		m_pPipes[i] = CreateNode( pXml->FirstChildElement( buf )->FirstChildElement(), context );
+	}
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CPipeNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	m_pContext = &context;
+	m_region = region;
+	uint32 nWidth = region.width;
+	uint32 nHeight = region.height;
+	m_gendata.resize( nWidth * nHeight );
+
+	float fBeginPointCount = nWidth * m_fBeginPointCountPercent;
+	uint32 nBeginPointCount = floor( fBeginPointCount );
+	float r = fBeginPointCount - nBeginPointCount;
+	if( SRand::Inst().Rand( 0.0f, 1.0f ) < r )
+		nBeginPointCount++;
+
+	uint32* beginPoints = (uint32*)alloca( nBeginPointCount * sizeof( uint32 ) );
+	SRand::Inst().A( nBeginPointCount, nWidth, beginPoints );
+	for( int i = 0; i < nBeginPointCount; i++ )
+	{
+		int32 x = beginPoints[i];
+		int32 y = SRand::Inst().Rand( Min( (uint32)floor( m_fBeginPointHeightPercent * nHeight ), nHeight - 1 ), nHeight );
+		for( int32 y1 = y; y1 >= y - m_nBeginClipLen && y1 > 0; y1-- )
+		{
+			if( context.GetBlock( region.x + x, region.y + y1, 1 ) );
+			{
+				y = y1;
+				break;
+			}
+		}
+
+		GenPipe( TVector2<int32>( x, y ) );
+	}
+
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData & 1;
+
+			if( m_gendata[i + j * nWidth] & 1 )
+			{
+				uint8 n0 = !( m_gendata[i + j * nWidth] & 2 );
+				uint8 n1 = !( m_gendata[i + j * nWidth] & 4 );
+				uint8 n2 = i < nWidth - 1 ? !( m_gendata[i + 1 + j * nWidth] & 2 ) : 1;
+				uint8 n3 = j < nHeight - 1 ? !( m_gendata[i + ( j + 1 ) * nWidth] & 4 ) : 1;
+				uint32 n = n0 + ( n1 << 1 ) + ( n2 << 2 ) + ( n3 << 3 );
+				if( n < ELEM_COUNT( m_pPipes ) )
+					m_pPipes[n]->Generate( context, TRectangle<int32>( i + region.x, j + region.y, 1, 1 ) );
+			}
+		}
+	}
+
+	m_gendata.clear();
+	m_pContext = NULL;
+}
+
+void CPipeNode::GenPipe( TVector2<int32> beginPoint )
+{
+	TVector2<int32> p = beginPoint;
+	uint32 nWidth = m_region.width;
+	uint32 nHeight = m_region.height;
+	float fEndHeight = SRand::Inst().Rand( 0.0f, m_fEndPointHeightPercent ) * nHeight;
+	int32 nEndHeight = floor( fEndHeight );
+	float rHeight = fEndHeight - nEndHeight;
+	if( SRand::Inst().Rand( 0.0f, 1.0f ) < rHeight )
+		nEndHeight++;
+
+	uint8 nPrevDir = 0;	//0 = down, 1 = left, 2 = right
+	uint32 nLen = SRand::Inst().Rand( m_nMinVLength, m_nMaxVLength - 1 );
+	for( ;; )
+	{
+		bool bIntersect = m_gendata[p.x + p.y * nWidth] & 1;
+		bool bCanMoveLeft = nPrevDir != 2 && p.x > 0;
+		bool bCanMoveRight = nPrevDir != 1 && p.x < nWidth - 1;
+		if( bIntersect )
+		{
+			if( SRand::Inst().Rand( 0.0f, 1.0f ) < m_fIntersectStopChance )
+				break;
+			bCanMoveLeft = bCanMoveLeft && ( m_gendata[p.x + p.y * nWidth] & 2 );
+			bCanMoveRight = bCanMoveRight && ( m_gendata[( p.x + 1 ) + p.y * nWidth] & 2 );
+		}
+		else
+		{
+			m_gendata[p.x + p.y * nWidth] |= 1;
+		}
+
+		if( nPrevDir == 0 )
+		{
+			if( ( bCanMoveLeft || bCanMoveRight ) && !nLen )
+			{
+				if( bCanMoveLeft && bCanMoveRight )
+					nPrevDir = SRand::Inst().Rand( 1, 3 );
+				else if( bCanMoveLeft )
+					nPrevDir = 1;
+				else
+					nPrevDir = 2;
+				nLen = SRand::Inst().Rand( m_nMinHLength, m_nMaxHLength - 1 );
+			}
+			else if( nLen )
+				nLen--;
+		}
+		else
+		{
+			if( nPrevDir == 1 && !bCanMoveLeft || nPrevDir == 2 && !bCanMoveRight || !nLen )
+			{
+				nPrevDir = 0;
+				nLen = SRand::Inst().Rand( m_nMinVLength, m_nMaxVLength - 1 );
+			}
+			else if( nLen )
+				nLen--;
+		}
+
+		switch( nPrevDir )
+		{
+		case 0:
+			p.y--;
+			break;
+		case 1:
+			p.x--;
+			break;
+		case 2:
+			p.x++;
+			break;
+		}
+		if( p.y < nEndHeight )
+			break;
+		switch( nPrevDir )
+		{
+		case 0:
+			m_gendata[p.x + ( p.y + 1 ) * nWidth] |= 4;
+			break;
+		case 1:
+			m_gendata[p.x + 1 + p.y * nWidth] |= 2;
+			break;
+		case 2:
+			m_gendata[p.x + p.y * nWidth] |= 2;
+			break;
+		}
+	}
 }

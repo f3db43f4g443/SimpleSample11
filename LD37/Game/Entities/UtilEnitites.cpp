@@ -2,6 +2,7 @@
 #include "UtilEntities.h"
 #include "Render/Image2D.h"
 #include "Common/Rand.h"
+#include "Stage.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -13,5 +14,5 @@ void CTexRectRandomModifier::OnAddedToStage()
 	texRect = texRect.Offset( CVector2( nCol * m_fWidth, nRow * m_fHeight ) );
 
 	pImage2D->SetTexRect( texRect );
-	SetParentEntity( NULL );
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }

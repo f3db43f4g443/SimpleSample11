@@ -170,6 +170,13 @@ public:
 		eDamage_Normal,
 		eDamage_Crush
 	};
+	struct SDamageContext
+	{
+		float fDamage;
+		uint8 nType;
+		uint8 nSourceType;
+		CVector2 hitDir;
+	};
 
 	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_pChunk( NULL ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
 		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
@@ -184,7 +191,8 @@ public:
 	int32 GetMaxHp() { return m_nMaxHp; }
 
 	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) {}
-	virtual void Damage( float nDmg, uint8 nType = 0 );
+	void Damage( float nDmg, uint8 nType = 0 );
+	virtual void Damage( SDamageContext& context );
 	float Repair( float fAmount );
 	void AddHitShake( CVector2 shakeVector );
 	void ClearHitShake();
@@ -290,7 +298,7 @@ public:
 	CExplosiveChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_strKillEffect( context ), m_bKilled( false ), m_deathTick( this, &CExplosiveChunk::Tick )
 	{ SET_BASEOBJECT_ID( CExplosiveChunk ); }
 
-	virtual void Damage( float nDmg, uint8 nType = 0 ) override;
+	virtual void Damage( SDamageContext& context ) override;
 	virtual void Kill() override;
 	virtual void Crush() override { m_triggerCrushed.Trigger( 0, this ); Explode(); }
 	virtual void OnAddedToStage() override;
@@ -323,7 +331,7 @@ class CBarrel : public CExplosiveChunk
 public:
 	CBarrel( const SClassCreateContext& context ) : CExplosiveChunk( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CBarrel ); }
 	virtual void OnAddedToStage() override;
-	virtual void Damage( float nDmg, uint8 nType = 0 ) override;
+	virtual void Damage( SDamageContext& context ) override;
 protected:
 	CString m_strBullet;
 	CReference<CPrefab> m_pBulletPrefab;

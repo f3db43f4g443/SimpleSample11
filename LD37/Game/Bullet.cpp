@@ -188,8 +188,8 @@ void CBullet::OnTickAfterHitTest()
 				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 				hitDir.Normalize();
 				CReference<CEntity> pTempRef = pEntity;
-				pChunkObject->AddHitShake( hitDir * 8 );
-				pChunkObject->Damage( m_nDamage );
+				CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+				pChunkObject->Damage( dmgContext );
 				OnHit( pBlockObject );
 				Kill();
 				return;
@@ -206,8 +206,8 @@ void CBullet::OnTickAfterHitTest()
 					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 					hitDir.Normalize();
 					CReference<CEntity> pTempRef = pEntity;
-					pChunkObject->AddHitShake( hitDir * 8 );
-					pChunkObject->Damage( m_nDamage );
+					CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+					pChunkObject->Damage( dmgContext );
 					OnHit( pChunkObject );
 					Kill();
 					return;
@@ -250,8 +250,8 @@ void CBullet::OnTickAfterHitTest()
 				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 				hitDir.Normalize();
 				CReference<CEntity> pTempRef = pEntity;
-				pChunkObject->AddHitShake( hitDir * 8 );
-				pChunkObject->Damage( m_nDamage );
+				CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+				pChunkObject->Damage( dmgContext );
 				OnHit( pBlockObject );
 				Kill();
 				return;
@@ -268,8 +268,8 @@ void CBullet::OnTickAfterHitTest()
 					CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 					hitDir.Normalize();
 					CReference<CEntity> pTempRef = pEntity;
-					pChunkObject->AddHitShake( hitDir * 8 );
-					pChunkObject->Damage( m_nDamage );
+					CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+					pChunkObject->Damage( dmgContext );
 					OnHit( pChunkObject );
 					Kill();
 					return;
@@ -394,8 +394,8 @@ void CPlayerBullet::OnHit( CEntity* pEntity )
 			return;
 		CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 		hitDir.Normalize();
-		pChunkObject->AddHitShake( hitDir * 8 );
-		pChunkObject->Damage( m_nDmg );
+		CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+		pChunkObject->Damage( dmgContext );
 		Kill();
 		return;
 	}
@@ -412,8 +412,8 @@ void CPlayerBullet::OnHit( CEntity* pEntity )
 				return;
 			CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
 			hitDir.Normalize();
-			pChunkObject->AddHitShake( hitDir * 8 );
-			pChunkObject->Damage( m_nDmg );
+			CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+			pChunkObject->Damage( dmgContext );
 			Kill();
 			return;
 		}

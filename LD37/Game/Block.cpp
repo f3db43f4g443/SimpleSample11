@@ -365,13 +365,29 @@ void CChunkObject::OnKilled()
 
 void CChunkObject::Damage( float fDmg, uint8 nType )
 {
+	SDamageContext context = { fDmg, nType, eDamageSourceType_None, CVector2( 0, 0 ) };
+	Damage( context );
+}
+
+void CChunkObject::Damage( SDamageContext& context )
+{
 	if( !m_nMaxHp )
+	{
+		auto pParentChunk = m_pChunk->pParentChunk;
+		if( pParentChunk && m_pChunk->nSubChunkType == 2 )
+			pParentChunk->pChunkObject->Damage( context );
 		return;
+	}
 	if( m_fHp <= 0 )
 		return;
 
+	if( context.nSourceType > eDamageSourceType_None )
+	{
+		AddHitShake( context.hitDir );
+	}
+
 	uint32 nLastDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
-	m_fHp = Max<float>( m_fHp - (float)fDmg, 0 );
+	m_fHp = Max<float>( m_fHp - (float)context.fDamage, 0 );
 	uint32 nDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	if( nLastDamageFrame != nDamageFrame )
 	{
@@ -384,7 +400,7 @@ void CChunkObject::Damage( float fDmg, uint8 nType )
 	if( m_fHp <= 0 )
 	{
 		m_fHp = 0;
-		if( nType == 1 )
+		if( context.nType == 1 )
 			Crush();
 		else
 			Kill();
@@ -563,17 +579,17 @@ void CSpecialChunk3::Trigger()
 	pBarrage->Start();
 }
 
-void CExplosiveChunk::Damage( float fDmg, uint8 nType )
+void CExplosiveChunk::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
 	{
-		m_fHp -= fDmg;
+		m_fHp -= context.fDamage;
 		if( -m_fHp >= m_nMaxKillHp )
 			Explode();
 		return;
 	}
 	else
-		CChunkObject::Damage( m_fHp, nType );
+		CChunkObject::Damage( context );
 }
 
 void CExplosiveChunk::Kill()
@@ -622,7 +638,7 @@ void CExplosiveChunk::Tick()
 	if( !m_nDeathDamageCDLeft )
 	{
 		m_nDeathDamageCDLeft = m_nDeathDamageInterval;
-		Damage( m_nDeathDamage );
+		CChunkObject::Damage( m_nDeathDamage );
 	}
 }
 
@@ -633,14 +649,14 @@ void CBarrel::OnAddedToStage()
 	CExplosiveChunk::OnAddedToStage();
 }
 
-void CBarrel::Damage( float fDmg, uint8 nType )
+void CBarrel::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
 	{
 		CReference<CBarrel> temp = this;
 		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 		int32 nPreHp = -m_fHp;
-		CExplosiveChunk::Damage( fDmg );
+		CExplosiveChunk::Damage( context );
 		if( !GetParentEntity() )
 			return;
 		int32 nCurHp = -m_fHp;
@@ -683,7 +699,7 @@ void CBarrel::Damage( float fDmg, uint8 nType )
 		}
 	}
 	else
-		CExplosiveChunk::Damage( fDmg );
+		CExplosiveChunk::Damage( context );
 }
 
 void CBarrel::Explode()

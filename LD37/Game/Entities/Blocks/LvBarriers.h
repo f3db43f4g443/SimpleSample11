@@ -10,7 +10,7 @@ public:
 	CLvBarrier1Core( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_nPhase( 0 ), m_nSpecialFires( 0 ) { SET_BASEOBJECT_ID( CLvBarrier1Core ); }
 
 	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
-	virtual void Damage( float nDmg, uint8 nType = 0 ) override { m_nSpecialFires = 1; CChunkObject::Damage( nDmg, nType ); }
+	virtual void Damage( SDamageContext& context ) override { m_nSpecialFires = 1; CChunkObject::Damage( context ); }
 
 	void SetPhase( uint8 nPhase ) { m_nPhase = nPhase; }
 protected:

@@ -409,7 +409,10 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 
 	auto pSubItem = pXml->FirstChildElement( "subitem" );
 	if( pSubItem && pSubItem->FirstChildElement() )
+	{
 		m_pSubChunk = CreateNode( pSubItem->FirstChildElement(), context );
+		m_bCopyBlueprint = XmlGetAttr( pSubItem, "copy_blueprint", 0 );
+	}
 
 	if( chunk.pPrefab )
 	{
@@ -441,14 +444,25 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 	{
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
-		CLevelGenerateNode::Generate( context, region );
 
 		if( m_pSubChunk )
 		{
 			SLevelBuildContext tempContext( context.pLevel, pChunk );
 			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
+			if( m_bCopyBlueprint )
+			{
+				for( int i = 0; i < tempContext.nWidth; i++ )
+				{
+					for( int j = 0; j < tempContext.nHeight; j++ )
+					{
+						context.blueprint[i + region.x + ( j + region.y ) * context.nWidth]
+							= tempContext.blueprint[i + j * tempContext.nWidth];
+					}
+				}
+			}
 		}
+		CLevelGenerateNode::Generate( context, region );
 	}
 }
 
@@ -807,6 +821,7 @@ public:
 			m_nWeightGroupCount = Max( m_nWeightGroupCount, item.nWeightGroup + 1 );
 		}
 		m_nCheckBlockType = XmlGetAttr( pXml, "check_block", 0 );
+		m_nCheckGenData = XmlGetAttr( pXml, "check_gen_data", -1 );
 		CLevelGenerateNode::Load( pXml, context );
 
 		if( m_nWeightGroupCount )
@@ -898,7 +913,7 @@ public:
 		//Randomly flip
 		bool bFlipX = SRand::Inst().Rand() & 1;
 		bool bFlipY = SRand::Inst().Rand() & 1;
-		if( m_nCheckBlockType )
+		if( m_nCheckBlockType || m_nCheckGenData >= 0 )
 		{
 			for( int j = 0; j < size.y; j++ )
 			{
@@ -911,6 +926,8 @@ public:
 					for( int iLayer = 0; iLayer < 2; iLayer++ )
 					{
 						if( !!( m_nCheckBlockType & ( 1 << iLayer ) ) && context.GetBlock( x, y, iLayer ) )
+							grid = &dummy;
+						else if( m_nCheckGenData >= 0 && context.blueprint[x + y * context.nWidth] != m_nCheckGenData )
 							grid = &dummy;
 					}
 				}
@@ -1162,6 +1179,7 @@ public:
 	}
 protected:
 	uint8 m_nCheckBlockType;
+	int32 m_nCheckGenData;
 	int32 m_nWeightGroupCount;
 	vector<SSubNodeInfo> m_infos;
 	vector<vector<uint32> > m_weightGroups;
@@ -1183,6 +1201,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
+	REGISTER_GENERATE_NODE( "pipes", CPipeNode );
 	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
 	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
 }

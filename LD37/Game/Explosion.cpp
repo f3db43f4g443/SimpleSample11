@@ -65,8 +65,8 @@ void CExplosion::OnTick()
 			}
 			CVector2 hitDir = pChunkObject->globalTransform.GetPosition() - globalTransform.GetPosition();
 			hitDir.Normalize();
-			pChunkObject->AddHitShake( hitDir * 8 );
-			pChunkObject->Damage( nDmg );
+			CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+			pChunkObject->Damage( dmgContext );
 			OnHit( pEntity );
 			if( pEntity->GetStage() )
 				m_hit.insert( pEntity );

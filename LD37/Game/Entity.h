@@ -24,12 +24,18 @@ enum EEntityEvent
 	eEntityEvent_Count,
 };
 
+enum
+{
+	eDamageSourceType_None,
+	eDamageSourceType_Bullet,
+
+	eDamageSourceType_Count
+};
+
 class CPlayer;
 class CPlayerAction;
 
 class CStage;
-struct SPlayerDizzyContext;
-struct SPlayerAttackContext;
 class CEntity : public CPrefabBaseNode, public CHitProxy
 {
 	friend class CStage;
@@ -112,22 +118,4 @@ public:
 		if( GetPtr() )
 			GetPtr()->SetParentEntity( NULL );
 	}
-};
-
-struct SPlayerAttackContext
-{
-	SPlayerAttackContext( CPlayerAction* pAction, CPlayer* pPlayer, const CVector2& hitPos, uint32 nDmg )
-		: pAction( pAction ), pPlayer( pPlayer ), hitPos( hitPos ), nDmg( nDmg ), nResult( 0 ) {}
-	CPlayerAction* pAction;
-	CPlayer* pPlayer;
-	CReference<CEntity> pTarget;
-	CVector2 hitPos;
-	uint32 nDmg;
-
-	enum
-	{
-		eResult_Hit = 1,
-		eResult_Critical = 2,
-	};
-	uint32 nResult;
 };
