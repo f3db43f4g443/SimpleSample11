@@ -230,12 +230,15 @@
 
       <node type="subregion" name="lv1_2">
         <node type="tile" x="0" y="0" w="32" h="12">
-          <ref name="vblock" />
+          <ref name="block0" />
         </node>
         <node type="lv1type1" x="0" y="12" w="32" h="108">
           <wall>
-            <ref name="block0" />
+            <ref name="block0_1" />
           </wall>
+          <wallchunk>
+            <ref name="wall1" />
+          </wallchunk>
           <block1>
             <ref name="brick_tile_1a" />
           </block1>
@@ -261,9 +264,6 @@
               <ref name="garbage_bin_green" p="1" />
             </node>
           </obj>
-          <pipe>
-            <ref name="pipe0" />
-          </pipe>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>

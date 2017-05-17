@@ -61,3 +61,17 @@ private:
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
 };
+
+class CSplitNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	bool m_bVertical;
+	uint32 m_nMinWidth;
+	uint32 m_nMaxWidth;
+	uint32 m_nSpaceWidth;
+	CReference<CLevelGenerateNode> m_pSplitNode;
+	CReference<CLevelGenerateNode> m_pSpaceNode;
+};

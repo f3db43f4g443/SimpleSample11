@@ -7,6 +7,7 @@ public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
+	void GenWallChunks();
 	void GenRooms();
 	void PutHBars();
 	void ConnRooms();
@@ -17,6 +18,7 @@ private:
 	void GenObjects();
 
 	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pBlock1Node;
 	CReference<CLevelGenerateNode> m_pBlock2Node;
 	CReference<CLevelGenerateNode> m_pRoom1Node;
@@ -24,7 +26,6 @@ private:
 	CReference<CLevelGenerateNode> m_pBar1Node;
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
-	CReference<CLevelGenerateNode> m_pPipeNode;
 
 	enum
 	{
@@ -33,11 +34,11 @@ private:
 		eType_BlockBlue,
 		eType_Room1,
 		eType_Room2,
+		eType_WallChunk,
 		eType_Bar,
 		eType_Door,
 		eType_Path,
 		eType_Object,
-		eType_Pipe,
 
 		eType_Count,
 	};

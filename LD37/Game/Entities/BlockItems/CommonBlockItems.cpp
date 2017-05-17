@@ -21,13 +21,24 @@ void CDetectTrigger::OnRemovedFromStage()
 
 void CDetectTrigger::OnTick()
 {
+	if( m_nFireCountLeft )
+	{
+		m_nFireCountLeft--;
+		GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
+		Trigger();
+		return;
+	}
+
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 	if( pPlayer )
 	{
 		CVector2 pos = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
 		if( m_detectRect1.Contains( pos ) )
 		{
-			GetStage()->RegisterAfterHitTest( m_nCD, &m_onTick );
+			m_nFireCountLeft = m_nFireCount;
+			if( m_nFireCountLeft )
+				m_nFireCountLeft--;
+			GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
 			Trigger();
 			return;
 		}
@@ -64,9 +75,42 @@ void CSpawner::Trigger()
 	for( int i = 0; i < nSpawnCount; i++ )
 	{
 		auto pEntity = SafeCast<CEntity>( m_pPrefab->GetRoot()->CreateInstance() );
-		pEntity->SetPosition( globalTransform.GetPosition() + CVector2( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) ) );
+		pEntity->SetPosition( globalTransform.MulVector2Pos(
+			CVector2( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) ) ) );
 		if( m_bRandomRotate )
 			pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
+
+		switch( m_nVelocityType )
+		{
+		case 0:
+			break;
+		case 1:
+		{
+			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+			if( pCharacter )
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
+			break;
+		}
+		case 2:
+		{
+			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+			if( pCharacter )
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
+			break;
+		}
+		case 3:
+		{
+			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+			if( pCharacter )
+			{
+				float r = sqrt( SRand::Inst().Rand( m_vel1.x / m_vel2.x, 1.0f ) ) * m_vel2.x;
+				float angle = SRand::Inst().Rand( m_vel1.y, m_vel2.y ) * PI / 180;
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( cos( angle ) * r, sin( angle ) * r ) ) );
+			}
+			break;
+		}
+		}
+
 		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 		SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
 		Insert_SpawnedEntity( pSpawnedEntity );

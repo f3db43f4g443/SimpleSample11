@@ -36,7 +36,6 @@ public:
 
 	static CLevelGenerateNode* CreateNode( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context );
 
-
 	enum
 	{
 		eEditType_Brush,
@@ -65,6 +64,7 @@ public:
 	const SMetadata& GetMetadata() { return m_metadata; }
 
 protected:
+	int32 m_nFillBlueprint;
 	CReference<CLevelGenerateNode> m_pNextLevel;
 	float m_fNextLevelChance;
 	SMetadata m_metadata;

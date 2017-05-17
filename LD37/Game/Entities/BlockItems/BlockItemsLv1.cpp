@@ -33,6 +33,7 @@ void CPipe0::Trigger()
 	} );
 	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 	pBarrage->SetPosition( globalTransform.GetPosition() );
+	pBarrage->SetRotation( r );
 	pBarrage->Start();
 }
 

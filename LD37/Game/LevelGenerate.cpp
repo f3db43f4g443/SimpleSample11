@@ -330,6 +330,7 @@ SBlockLayer*& SLevelBuildContext::GetBlock( uint32 x, uint32 y, uint32 z )
 
 void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
 {
+	m_nFillBlueprint = XmlGetAttr( pXml, "fill_blueprint", -1 );
 	auto pMetadata = pXml->FirstChildElement( "metadata" );
 	if( pMetadata )
 	{
@@ -356,6 +357,16 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 
 void CLevelGenerateNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
+	if( m_nFillBlueprint >= 0 )
+	{
+		for( int i = region.x; i < region.GetRight(); i++ )
+		{
+			for( int j = region.y; j < region.GetBottom(); j++ )
+			{
+				context.blueprint[i + j * context.nWidth] = m_nFillBlueprint;
+			}
+		}
+	}
 	if( m_pNextLevel )
 	{
 		if( SRand::Inst().Rand( 0.0f, 1.0f ) < m_fNextLevelChance )
@@ -586,6 +597,7 @@ public:
 	{
 		CReference<CLevelGenerateNode> pNode;
 		TRectangle<int32> subRegion;
+		TRectangle<int32> subRegion1;
 		float fChance;
 	};
 
@@ -603,6 +615,10 @@ public:
 			item.subRegion.y = XmlGetAttr( pChild, "y", 0 );
 			item.subRegion.width = XmlGetAttr( pChild, "w", 1 );
 			item.subRegion.height = XmlGetAttr( pChild, "h", 1 );
+			item.subRegion1.x = XmlGetAttr( pChild, "x1", item.subRegion.x );
+			item.subRegion1.y = XmlGetAttr( pChild, "y1", item.subRegion.y );
+			item.subRegion1.width = XmlGetAttr( pChild, "w1", item.subRegion.width );
+			item.subRegion1.height = XmlGetAttr( pChild, "h1", item.subRegion.height );
 			item.fChance = XmlGetAttr( pChild, "p", 1.0f );
 		}
 
@@ -632,7 +648,36 @@ public:
 					subRegion.height = Max( region.height + subRegion.height - subRegion.y, 0 );
 				}
 				subRegion = subRegion.Offset( TVector2<int32>( region.x, region.y ) );
-				item.pNode->Generate( context, subRegion );
+
+				auto subRegion1 = item.subRegion1;
+				if( subRegion1.x < 0 )
+				{
+					subRegion1.x = region.width + subRegion1.x;
+				}
+				if( subRegion1.width <= 0 )
+				{
+					subRegion1.width = Max( region.width + subRegion1.width - subRegion1.x, 0 );
+				}
+				if( subRegion1.y < 0 )
+				{
+					subRegion1.y = region.height + subRegion1.y;
+				}
+				if( subRegion1.height <= 0 )
+				{
+					subRegion1.height = Max( region.height + subRegion1.height - subRegion1.y, 0 );
+				}
+				subRegion1 = subRegion1.Offset( TVector2<int32>( region.x, region.y ) );
+
+				int32 l0 = Min( subRegion.x, subRegion1.x ), l1 = Max( subRegion.x, subRegion1.x );
+				int32 t0 = Min( subRegion.y, subRegion1.y ), t1 = Max( subRegion.y, subRegion1.y );
+				int32 r0 = Min( subRegion.GetRight(), subRegion1.GetRight() ), r1 = Max( subRegion.GetRight(), subRegion1.GetRight() );
+				int32 b0 = Min( subRegion.GetBottom(), subRegion1.GetBottom() ), b1 = Max( subRegion.GetBottom(), subRegion1.GetBottom() );
+				int32 l = SRand::Inst().Rand( l0, l1 + 1 );
+				int32 t = SRand::Inst().Rand( t0, t1 + 1 );
+				int32 r = SRand::Inst().Rand( r0, r1 + 1 );
+				int32 b = SRand::Inst().Rand( b0, b1 + 1 );
+
+				item.pNode->Generate( context, TRectangle<int32>( l, t, r - l, b - t ) );
 			}
 		}
 		CLevelGenerateNode::Generate( context, region );
@@ -676,7 +721,7 @@ public:
 			if( r < info.nWeight )
 			{
 				info.pNode->Generate( context, region );
-				return;
+				break;
 			}
 
 			r -= info.nWeight;
@@ -1202,6 +1247,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
 	REGISTER_GENERATE_NODE( "pipes", CPipeNode );
+	REGISTER_GENERATE_NODE( "split", CSplitNode );
 	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
 	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
 }

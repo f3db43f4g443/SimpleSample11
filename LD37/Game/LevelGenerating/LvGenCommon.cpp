@@ -389,8 +389,8 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 void CPipeNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	m_fBeginPointCountPercent = XmlGetAttr( pXml, "begin_percent", 0.2f );
-	m_fBeginPointHeightPercent = XmlGetAttr( pXml, "begin_height_percent", 0.75f );
-	m_fEndPointHeightPercent = XmlGetAttr( pXml, "end_height_percent", 0.25f );
+	m_fBeginPointHeightPercent = XmlGetAttr( pXml, "begin_height_percent", 0.8f );
+	m_fEndPointHeightPercent = XmlGetAttr( pXml, "end_height_percent", 0.2f );
 	m_nBeginClipLen = XmlGetAttr( pXml, "begin_clip_len", 1 );
 	m_nMinHLength = XmlGetAttr( pXml, "min_h_len", 1 );
 	m_nMaxHLength = XmlGetAttr( pXml, "max_h_len", 8 );
@@ -443,11 +443,6 @@ void CPipeNode::Generate( SLevelBuildContext & context, const TRectangle<int32>&
 	{
 		for( int j = 0; j < nHeight; j++ )
 		{
-			int32 x = region.x + i;
-			int32 y = region.y + j;
-			int8 genData = m_gendata[i + j * region.width];
-			context.blueprint[x + y * context.nWidth] = genData & 1;
-
 			if( m_gendata[i + j * nWidth] & 1 )
 			{
 				uint8 n0 = !( m_gendata[i + j * nWidth] & 2 );
@@ -548,4 +543,101 @@ void CPipeNode::GenPipe( TVector2<int32> beginPoint )
 			break;
 		}
 	}
+}
+
+void CSplitNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+	auto pSplit = pXml->FirstChildElement( "split" );
+	if( pSplit )
+		m_pSplitNode = CreateNode( pSplit->FirstChildElement(), context );
+	auto pSpace = pXml->FirstChildElement( "space" );
+	if( pSpace )
+		m_pSpaceNode = CreateNode( pSpace->FirstChildElement(), context );
+	m_bVertical = XmlGetAttr( pXml, "vertical", 0 );
+	m_nMinWidth = XmlGetAttr( pXml, "min_width", 1 );
+	m_nMaxWidth = XmlGetAttr( pXml, "max_width", 2 );
+	m_nSpaceWidth = XmlGetAttr( pXml, "space_width", 1 );
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CSplitNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	int32 nWidth = m_bVertical ? region.height : region.width;
+	if( nWidth <= 0 )
+		return;
+
+	int32 nMaxCount = ( nWidth + m_nSpaceWidth ) / ( m_nMinWidth + m_nSpaceWidth );
+	int32 nMinCount = Max<int32>( nWidth + m_nSpaceWidth - 1, 0 ) / ( m_nMaxWidth + m_nSpaceWidth ) + 1;
+	nMinCount = Min( nMinCount, nMaxCount );
+	int32 nCount = SRand::Inst().Rand( nMinCount, nMaxCount + 1 );
+	if( nCount <= 1 )
+	{
+		m_pSplitNode->Generate( context, region );
+		CLevelGenerateNode::Generate( context, region );
+		return;
+	}
+
+	int32 a = nCount - 1;
+	int32 b = nWidth - nCount * ( m_nMinWidth + m_nSpaceWidth ) + m_nSpaceWidth + a;
+	assert( b >= a );
+	int8* result = (int8*)alloca( b );
+	SRand::Inst().C( a, b, result );
+
+	int32 nCurPos = 0;
+	int32 nPrePos = 0;
+	int32 nSplit = 0;
+	for( int i = 0; i < b; i++ )
+	{
+		if( result[i] )
+		{
+			nCurPos += m_nMinWidth + m_nSpaceWidth;
+			nSplit++;
+
+			TRectangle<int32> region1 = region;
+			if( m_bVertical )
+			{
+				region1.y += nPrePos;
+				region1.height = nCurPos - nPrePos - m_nSpaceWidth;
+			}
+			else
+			{
+				region1.x += nPrePos;
+				region1.width = nCurPos - nPrePos - m_nSpaceWidth;
+			}
+			if( m_pSplitNode )
+				m_pSplitNode->Generate( context, region1 );
+			if( m_bVertical )
+			{
+				region1.y += region1.height;
+				region1.height = m_nSpaceWidth;
+			}
+			else
+			{
+				region1.x += region1.width;
+				region1.width = m_nSpaceWidth;
+			}
+			if( m_pSpaceNode )
+				m_pSpaceNode->Generate( context, region1 );
+
+			nPrePos = nCurPos;
+		}
+		else
+			nCurPos++;
+	}
+
+	TRectangle<int32> region1 = region;
+	if( m_bVertical )
+	{
+		region1.y += nPrePos;
+		region1.height = nCurPos - nPrePos - m_nSpaceWidth;
+	}
+	else
+	{
+		region1.x += nPrePos;
+		region1.width = nCurPos - nPrePos - m_nSpaceWidth;
+	}
+	if( m_pSplitNode )
+		m_pSplitNode->Generate( context, region1 );
+
+	CLevelGenerateNode::Generate( context, region );
 }
