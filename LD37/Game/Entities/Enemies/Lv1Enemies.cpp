@@ -289,10 +289,25 @@ void CManHead4::OnTickAfterHitTest()
 	CEnemyTemplate::OnTickAfterHitTest();
 }
 
+bool CRoach::Knockback( const CVector2& vec )
+{
+	if( !m_creepData.bHitWall )
+		return false;
+	m_creepData.Knockback( 0.25f, vec * 750 );
+	m_bKnockedback = true;
+	return true;
+}
+
+bool CRoach::IsKnockback()
+{
+	return m_creepData.fKnockbackTime > 0;
+}
+
 void CRoach::AIFunc()
 {
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
+	m_bKnockedback = false;
 
 	uint32 nStep = SRand::Inst().Rand( 0u, m_nFireRate );
 
@@ -305,20 +320,25 @@ void CRoach::AIFunc()
 
 		m_nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
 
-		nStep++;
-		if( nStep == m_nFireRate )
+		if( m_bKnockedback )
+			m_bKnockedback = false;
+		else
 		{
-			nStep = 0;
-
-			CVector2 dir( cos( GetRotation() ), sin( GetRotation() ) );
-			CVector2 ofs[3] = { CVector2( 0, -8 ), CVector2( 8, 0 ), CVector2( 0, 8 ) };
-			for( int i = 0; i < 3; i++ )
+			nStep++;
+			if( nStep == m_nFireRate )
 			{
-				auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
-				pBullet->SetPosition( globalTransform.GetPosition() + dir * ofs[i].x + CVector2( dir.y, -dir.x ) * ofs[i].y );
-				pBullet->SetRotation( atan2( dir.y, dir.x ) );
-				pBullet->SetVelocity( CVector2( dir ) * 150 );
-				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				nStep = 0;
+
+				CVector2 dir( cos( GetRotation() ), sin( GetRotation() ) );
+				CVector2 ofs[3] = { CVector2( 0, -8 ), CVector2( 8, 0 ), CVector2( 0, 8 ) };
+				for( int i = 0; i < 3; i++ )
+				{
+					auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+					pBullet->SetPosition( globalTransform.GetPosition() + dir * ofs[i].x + CVector2( dir.y, -dir.x ) * ofs[i].y );
+					pBullet->SetRotation( atan2( dir.y, dir.x ) );
+					pBullet->SetVelocity( CVector2( dir ) * 150 );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
 			}
 		}
 	}

@@ -745,15 +745,18 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 
 	float deltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
 	float fDir = pCharacter->GetRotation();
-	if( nTurnDir == 1 )
+	if( fKnockbackTime <= 0 )
 	{
-		fDir += deltaTime * fTurnSpeed;
-		pCharacter->SetRotation( fDir );
-	}
-	else if( nTurnDir == -1 )
-	{
-		fDir -= deltaTime * fTurnSpeed;
-		pCharacter->SetRotation( fDir );
+		if( nTurnDir == 1 )
+		{
+			fDir += deltaTime * fTurnSpeed;
+			pCharacter->SetRotation( fDir );
+		}
+		else if( nTurnDir == -1 )
+		{
+			fDir -= deltaTime * fTurnSpeed;
+			pCharacter->SetRotation( fDir );
+		}
 	}
 
 	bHitWall = false;
@@ -772,20 +775,36 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 	
 	if( bHitWall )
 	{
-		CVector2 vel = CVector2( cos( fDir ), sin( fDir ) ) * fSpeed;
-		CVector2 vel0 = vel;
-		CVector2 ofs = vel * deltaTime;
-		TryMove( pCharacter, ofs, vel );
-		if( vel != vel0 )
+		if( fKnockbackTime > 0 )
 		{
-			vel = vel * 2 - vel0;
-			fDir = atan2( vel.y, vel.x );
-			pCharacter->SetRotation( fDir );
+			float fKnockbackTime0 = fKnockbackTime;
+			fKnockbackTime = Max( 0.0f, fKnockbackTime - deltaTime );
+			CVector2 vel0 = vecKnockback;
+			vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
+			CVector2 vel = vecKnockback;
+			CVector2 ofs = ( vel + vel0 ) * 0.5f * deltaTime;
+			TryMove( pCharacter, ofs, vel );
+			pCharacter->SetVelocity( vel );
 		}
-		pCharacter->SetVelocity( vel );
+		else
+		{
+			CVector2 vel = CVector2( cos( fDir ), sin( fDir ) ) * fSpeed;
+			CVector2 vel0 = vel;
+			CVector2 ofs = vel * deltaTime;
+			TryMove( pCharacter, ofs, vel );
+			if( vel != vel0 )
+			{
+				vel = vel * 2 - vel0;
+				fDir = atan2( vel.y, vel.x );
+				pCharacter->SetRotation( fDir );
+			}
+			pCharacter->SetVelocity( vel );
+		}
 	}
 	else
 	{
+		if( fKnockbackTime > 0 )
+			fKnockbackTime = Max( 0.0f, fKnockbackTime - deltaTime );
 		CVector2 vel = pCharacter->GetVelocity();
 		CVector2 vel0 = vel;
 		vel.y = Max( -fMaxFallSpeed, vel.y - fFallGravity * deltaTime );

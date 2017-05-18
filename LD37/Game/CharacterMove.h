@@ -189,8 +189,14 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 
 struct SCharacterCreepData : public SCharacterMovementData
 {
-	SCharacterCreepData( const SClassCreateContext& context ) : bHitWall( false ) {}
+	SCharacterCreepData( const SClassCreateContext& context ) : bHitWall( true ), fKnockbackTime( 0 ) {}
 	void UpdateMove( CCharacter* pCharacter, int8 nTurnDir );
+
+	void Knockback( float fTime, const CVector2& dir )
+	{
+		fKnockbackTime = fTime;
+		vecKnockback = dir;
+	}
 
 	float fSpeed;
 	float fTurnSpeed;
@@ -198,11 +204,14 @@ struct SCharacterCreepData : public SCharacterMovementData
 	float fMaxFallSpeed;
 
 	bool bHitWall;
+
+	float fKnockbackTime;
+	CVector2 vecKnockback;
 };
 
 struct SCharacterSurfaceWalkData : public SCharacterMovementData
 {
-	SCharacterSurfaceWalkData( const SClassCreateContext& context ) {}
+	SCharacterSurfaceWalkData( const SClassCreateContext& context ) : bHitSurface( false ) {}
 	void UpdateMove( CCharacter* pCharacter, int8 nDir );
 	void Fall( CCharacter* pCharacter, const CVector2& vel );
 

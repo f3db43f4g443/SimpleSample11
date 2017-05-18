@@ -72,6 +72,9 @@ class CRoach : public CEnemyTemplate
 	friend void RegisterGameClasses();
 public:
 	CRoach( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_creepData( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CRoach ); }
+
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
 protected:
 	virtual void AIFunc() override;
 	virtual void OnTickAfterHitTest() override;
@@ -83,6 +86,7 @@ protected:
 	float m_fAIStepTimeMax;
 	uint32 m_nFireRate;
 	SCharacterCreepData m_creepData;
+	bool m_bKnockedback;
 	int8 m_nDir;
 };
 
