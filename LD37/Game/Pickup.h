@@ -12,8 +12,10 @@ public:
 
 	virtual void PickUp( class CPlayer* pPlayer );
 	virtual void Kill();
+	void RegisterPickupEvent( CTrigger* pTrigger ) { m_onPickedUp.Register( 0, pTrigger ); }
 protected:
 	CReference<CEffectObject> m_pDeathEffect;
+	CEventTrigger<1> m_onPickedUp;
 };
 
 class CPickUpCommon : public CPickUp

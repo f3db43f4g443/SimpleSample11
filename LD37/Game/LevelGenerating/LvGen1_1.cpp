@@ -15,6 +15,8 @@ void CLevelGenNode1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext 
 	m_pBar1Node = CreateNode( pXml->FirstChildElement( "bar1" )->FirstChildElement(), context );
 	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pCrate1Node = CreateNode( pXml->FirstChildElement( "crate1" )->FirstChildElement(), context );
+	m_pCrate2Node = CreateNode( pXml->FirstChildElement( "crate2" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -44,7 +46,7 @@ void CLevelGenNode1_1::Generate( SLevelBuildContext & context, const TRectangle<
 			int8 genData = m_gendata[i + j * region.width];
 			context.blueprint[x + y * context.nWidth] = genData;
 
-			if( genData == eType_Path )
+			if( genData == eType_Path || genData == eType_Crate1 || genData == eType_Crate2 )
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 			else if( genData == eType_Object )
 			{
@@ -58,6 +60,10 @@ void CLevelGenNode1_1::Generate( SLevelBuildContext & context, const TRectangle<
 	m_pBlock1Node->Generate( context, region );
 	context.mapTags["mask"] = eType_BlockBlue;
 	m_pBlock2Node->Generate( context, region );
+	context.mapTags["mask"] = eType_Crate1;
+	m_pCrate1Node->Generate( context, region );
+	context.mapTags["mask"] = eType_Crate2;
+	m_pCrate2Node->Generate( context, region );
 
 	for( auto& bar : m_bars )
 	{
@@ -1428,6 +1434,9 @@ void CLevelGenNode1_1::FillBlockArea()
 {
 	const int32 nMin = 60;
 	const int32 nMax = 150;
+	const int32 nMin1 = 15;
+	const int32 nMax1 = 40;
+	float fChance = 0.65f;
 
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
@@ -1451,10 +1460,23 @@ void CLevelGenNode1_1::FillBlockArea()
 		if( gendata[p.x + p.y * nWidth] )
 			continue;
 
-		int32 n = SRand::Inst().Rand( nMin, nMax );
+		int32 n;
+		int8 nType;
+		bool bCrate = SRand::Inst().Rand( 0.0f, 1.0f ) < fChance;
+		if( !p.y || gendata[p.x + ( p.y - 1 ) * nWidth] == eType_Path )
+			bCrate = false;
+		if( bCrate )
+		{
+			n = SRand::Inst().Rand( nMin1, nMax1 );
+			nType = SRand::Inst().Rand( 0, 2 ) + eType_Crate1;
+		}
+		else
+		{
+			n = SRand::Inst().Rand( nMin, nMax );
+			nType = SRand::Inst().Rand( 0, 2 ) + eType_BlockRed;
+		}
 		vector<TVector2<int32> > q;
 		q.push_back( p );
-		int8 nType = SRand::Inst().Rand( 0, 2 ) + eType_BlockRed;
 
 		for( int32 iq = 0; iq < q.size(); iq++ )
 		{
@@ -1467,6 +1489,8 @@ void CLevelGenNode1_1::FillBlockArea()
 			for( int k = 0; k < 4 && q.size() < n; k++ )
 			{
 				TVector2<int32> pos1 = pos + ofs[k];
+				if( bCrate && ( !pos1.y || gendata[pos1.x + ( pos1.y - 1 ) * nWidth] == eType_Path ) )
+					continue;
 				if( pos1.x >= 0 && pos1.y >= 0 && pos1.x < nWidth && pos1.y < nHeight && gendata[pos1.x + pos1.y * nWidth] == eType_None )
 					q.push_back( pos1 );
 			}
@@ -1512,11 +1536,11 @@ void CLevelGenNode1_1::GenObjects()
 	};
 	bool bPatternOk[5][eType_Count] =
 	{
-		{ false, false, false, false, false, false, false, false, true, false },
-		{ true, true, true, true, true, true, true, false, false, false },
-		{ true, true, true, true, true, true, true, false, true, false },
-		{ true, true, true, false, false, false, false, false, false, false },
-		{ true, true, true, false, false, false, false, false, true, false },
+		{ false, false, false, false, false, false, false, false, true, false, false, false },
+		{ true, true, true, true, true, true, true, false, false, false, true, true },
+		{ true, true, true, true, true, true, true, false, true, false, true, true },
+		{ true, true, true, false, false, false, false, false, false, false, true, true },
+		{ true, true, true, false, false, false, false, false, true, false, true, true },
 	};
 	float fPatternPercent[] = { 0.4f, 0.8f, 0.8f, 1.0f, 1.0f };
 

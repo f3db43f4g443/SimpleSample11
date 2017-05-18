@@ -11,6 +11,7 @@ void CPickUp::OnAddedToStage()
 
 void CPickUp::PickUp( CPlayer* pPlayer )
 {
+	m_onPickedUp.Trigger( 0, pPlayer );
 	Kill();
 }
 

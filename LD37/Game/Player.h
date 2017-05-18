@@ -43,7 +43,8 @@ public:
 	void DelayChangeStage( const char* szName, const char* szStartPoint = "" );
 
 	bool IsRolling();
-	bool CanBeHit() { return m_fHurtInvincibleTime <= 0; }
+	bool CanBeHit() { return m_fHurtInvincibleTime <= 0 &&
+		( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Rolling : m_flyData.nState != SCharacterFlyData::eState_Rolling ); }
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
 	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
 	virtual void Damage( int32 nValue ) override;

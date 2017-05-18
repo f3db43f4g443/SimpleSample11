@@ -26,6 +26,8 @@ private:
 	CReference<CLevelGenerateNode> m_pBar1Node;
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pCrate1Node;
+	CReference<CLevelGenerateNode> m_pCrate2Node;
 
 	enum
 	{
@@ -39,6 +41,8 @@ private:
 		eType_Door,
 		eType_Path,
 		eType_Object,
+		eType_Crate1,
+		eType_Crate2,
 
 		eType_Count,
 	};

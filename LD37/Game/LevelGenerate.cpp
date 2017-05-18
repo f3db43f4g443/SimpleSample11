@@ -867,6 +867,7 @@ public:
 		}
 		m_nCheckBlockType = XmlGetAttr( pXml, "check_block", 0 );
 		m_nCheckGenData = XmlGetAttr( pXml, "check_gen_data", -1 );
+		m_strCheckGenData = XmlGetAttr( pXml, "check_gen_data_name", "" );
 		CLevelGenerateNode::Load( pXml, context );
 
 		if( m_nWeightGroupCount )
@@ -958,8 +959,15 @@ public:
 		//Randomly flip
 		bool bFlipX = SRand::Inst().Rand() & 1;
 		bool bFlipY = SRand::Inst().Rand() & 1;
-		if( m_nCheckBlockType || m_nCheckGenData >= 0 )
+		if( m_nCheckBlockType || m_nCheckGenData >= 0 || m_strCheckGenData.length() )
 		{
+			int32 nCheckGenData1 = -1;
+			if( m_strCheckGenData.length() )
+			{
+				auto itr = context.mapTags.find( m_strCheckGenData );
+				if( itr != context.mapTags.end() )
+					nCheckGenData1 = itr->second;
+			}
 			for( int j = 0; j < size.y; j++ )
 			{
 				for( int i = 0; i < size.x; i++ )
@@ -973,6 +981,8 @@ public:
 						if( !!( m_nCheckBlockType & ( 1 << iLayer ) ) && context.GetBlock( x, y, iLayer ) )
 							grid = &dummy;
 						else if( m_nCheckGenData >= 0 && context.blueprint[x + y * context.nWidth] != m_nCheckGenData )
+							grid = &dummy;
+						else if( nCheckGenData1 >= 0 && context.blueprint[x + y * context.nWidth] != nCheckGenData1 )
 							grid = &dummy;
 					}
 				}
@@ -1225,6 +1235,7 @@ public:
 protected:
 	uint8 m_nCheckBlockType;
 	int32 m_nCheckGenData;
+	string m_strCheckGenData;
 	int32 m_nWeightGroupCount;
 	vector<SSubNodeInfo> m_infos;
 	vector<vector<uint32> > m_weightGroups;

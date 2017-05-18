@@ -3,6 +3,21 @@
 #include "RandomBlocks.h"
 #include "Entities/AIObject.h"
 
+class CLvFloor1 : public CRandomChunkTiled
+{
+	friend void RegisterGameClasses();
+public:
+	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_strCrate( context ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+private:
+	void OnPickUp();
+
+	CString m_strCrate;
+	vector<CReference<CChunkObject> > m_vecCrates;
+	vector<CReference<CEntity> > m_vecPickups;
+	vector<CFunctionTrigger> m_triggers;
+};
+
 class CLvBarrier1Core : public CChunkObject
 {
 	friend void RegisterGameClasses();

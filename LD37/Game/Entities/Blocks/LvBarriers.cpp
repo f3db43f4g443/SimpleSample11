@@ -8,6 +8,65 @@
 #include "Entities/Barrage.h"
 #include "Common/ResourceManager.h"
 #include "Common/Rand.h"
+#include "Pickup.h"
+
+void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
+{
+	for( auto pEntity = Get_ChildEntity(); pEntity; pEntity = pEntity->NextChildEntity() )
+	{
+		auto pChunkObject = SafeCast<CChunkObject>( pEntity );
+		if( pChunkObject )
+		{
+			if( pChunkObject->GetName() == m_strCrate.c_str() )
+				m_vecCrates.push_back( pChunkObject );
+		}
+
+		auto pPickUp = SafeCast<CPickUp>( pEntity );
+		if( pPickUp )
+		{
+			m_vecPickups.push_back( pPickUp );
+		}
+
+		m_triggers.resize( m_vecPickups.size() );
+		for( int i = 0; i < m_triggers.size(); i++ )
+		{
+			CPickUp* pPickUp = SafeCast<CPickUp>( m_vecPickups[i].GetPtr() );
+			m_triggers[i].Set( [i, this] () {
+				m_vecPickups[i] = NULL;
+				OnPickUp();
+			} );
+			pPickUp->RegisterPickupEvent( &m_triggers[i] );
+		}
+	}
+}
+
+void CLvFloor1::OnPickUp()
+{
+	for( auto& trigger : m_triggers )
+	{
+		if( trigger.IsRegistered() )
+			trigger.Unregister();
+	}
+
+	for( auto& pCrate : m_vecCrates )
+	{
+		if( pCrate && pCrate->GetParentEntity() )
+		{
+			pCrate->Kill();
+			pCrate = NULL;
+		}
+	}
+	for( auto& pPickUp : m_vecPickups )
+	{
+		if( pPickUp )
+		{
+			SafeCast<CPickUp>( pPickUp.GetPtr() )->Kill();
+			pPickUp = NULL;
+		}
+	}
+
+	Kill();
+}
 
 void CLvBarrier1::OnRemovedFromStage()
 {
@@ -359,7 +418,7 @@ void CLvBarrier1Core::AIFunc()
 				{
 					SBarrageContext context;
 					context.pCreator = GetParentEntity();
-					context.vecBulletTypes.push_back( m_pBulletPrefab2 );
+					context.vecBulletTypes.push_back( m_pBulletPrefab );
 					context.nBulletPageSize = 60;
 
 					float fAngle = atan2( dPos.y, dPos.x );

@@ -264,6 +264,12 @@
               <ref name="garbage_bin_green" p="1" />
             </node>
           </obj>
+          <crate1>
+            <ref name="crate_tile" />
+          </crate1>
+          <crate2>
+            <ref name="cage_tile" />
+          </crate2>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
       </node>

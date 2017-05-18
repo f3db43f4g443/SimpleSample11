@@ -52,6 +52,8 @@ void CManHead1::AIFunc()
 			pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 			pBarrage->SetPosition( pos );
 			pBarrage->Start();
+
+			Damage( 10 );
 		}
 
 		CVector2 playerPos = pPlayer->GetPosition();

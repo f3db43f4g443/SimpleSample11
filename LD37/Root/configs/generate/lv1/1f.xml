@@ -44,6 +44,39 @@
         </subitem>
       </node>
 
+      <node name="lv1floorcrate" width="2" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/floor_crate.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4</types>
+      </node>
+
+      <node name="lv1floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
+            absorbshakestrength="10000" shakedmg="5" prefab="data/blocks/lv1/floor.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall_broken" />
+            </node>
+            <ref name="lv1floorcrate" x="3" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="19" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="27" y="0" w="2" h="2" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="hppack" x="3" y="0" w="2" h="2" />
+            <ref name="hppack" x="11" y="0" w="2" h="2" />
+            <ref name="hppack" x="19" y="0" w="2" h="2" />
+            <ref name="hppack" x="27" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+
       <node name="1f" type="barrier1" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

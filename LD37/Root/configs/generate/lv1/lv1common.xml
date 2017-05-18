@@ -10,6 +10,7 @@
       <node name="crack_wall_1x" prefab="data/blockitems/crack_wall_1x.pf" sizex="4" sizey="1" attach_type="0" />
       <node name="crack_wall_1y" prefab="data/blockitems/crack_wall_1y.pf" sizex="1" sizey="4" attach_type="0" />
       <node name="crack_wall_2" prefab="data/blockitems/crack_wall_2.pf" sizex="2" sizey="2" attach_type="0" />
+      <node name="hppack" prefab="data/pickups/hppack.pf" sizex="2" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />
@@ -662,6 +663,14 @@
         <brick1>
           <ref name="block1bx" />
         </brick1>
+      </node>
+      <node name="crate_tile" type="randomfill" check_gen_data_name="mask">
+        <ref name="crate2x2" sizeminx="2" sizeminy="2" p="5" />
+        <ref name="crate" sizeminx="1" sizeminy="1" p="1" />
+      </node>
+      <node name="cage_tile" type="randomfill" check_gen_data_name="mask">
+        <ref name="cage2x2" sizeminx="2" sizeminy="2" p="5" />
+        <ref name="cage" sizeminx="1" sizeminy="1" p="1" />
       </node>
       
       <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">

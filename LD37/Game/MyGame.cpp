@@ -612,6 +612,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strPrefab1 )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CLvFloor1 )
+		REGISTER_BASE_CLASS( CRandomChunkTiled )
+		REGISTER_MEMBER( m_strCrate )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CLvBarrier1Core )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_strBullet )
