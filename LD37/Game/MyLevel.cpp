@@ -848,7 +848,7 @@ void CMyLevel::CheckSpawn()
 		{
 			auto& basementLayer = basement.layers[iLayer];
 			auto pBlockToSpawn = ( basement.layers[iLayer].pSpawnedBlock ? basementLayer.pSpawnedBlock->NextBlockLayer() : basementLayer.Get_BlockLayer() );
-			while( pBlockToSpawn && pBlockToSpawn->pParent->pOwner->pos.y <= m_nSpawnHeight * GetBlockSize() )
+			while( pBlockToSpawn && pBlockToSpawn->pParent->pOwner->pos.y < m_nSpawnHeight * GetBlockSize() )
 			{
 				pBlockToSpawn->pParent->pOwner->CreateChunkObject( this );
 				basementLayer.pSpawnedBlock = pBlockToSpawn;

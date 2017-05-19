@@ -133,6 +133,7 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 				if( pDecorator )
 				{
 					pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
+					pDecorator->SetPosition( pSpawnInfo->pos );
 					pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
 				}
 				else
@@ -188,6 +189,7 @@ void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )
 			if( pDecorator )
 			{
 				pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
+				pDecorator->SetPosition( pSpawnInfo->pos );
 				pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
 			}
 		}

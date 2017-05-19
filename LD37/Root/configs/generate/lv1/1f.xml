@@ -5,8 +5,17 @@
   <level_gen>
     <spawns>
       <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.25" />
+      <node name="floor_label_1" prefab="data/blocks/lv1/1.pf" />
+      <node name="floor_label_2" prefab="data/blocks/lv1/2.pf" />
+      <node name="floor_label_3" prefab="data/blocks/lv1/3.pf" />
+      <node name="floor_label_4" prefab="data/blocks/lv1/4.pf" />
+      <node name="floor_label_f" prefab="data/blocks/lv1/f.pf" />
     </spawns>
     <nodes>
+      <node name="floor_broken" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" layer_type="1" prefab="data/blocks/lv1/floor_broken.pf">
+        <metadata isdesignvalid="0" />
+        <types>0</types>
+      </node>
       <node name="label_1f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_1f.pf">
         <metadata isdesignvalid="0" />
         <types>4,4,4,4,4,4,4,4</types>
@@ -58,7 +67,7 @@
         <subitem>
           <node type="subregion">
             <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="wall_broken" />
+              <ref name="floor_broken" />
             </node>
             <ref name="lv1floorcrate" x="3" y="0" w="2" h="2" />
             <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
@@ -73,6 +82,47 @@
             <ref name="hppack" x="11" y="0" w="2" h="2" />
             <ref name="hppack" x="19" y="0" w="2" h="2" />
             <ref name="hppack" x="27" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="lv1floor_1" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_1" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      <node name="lv1floor_2" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_2" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      <node name="lv1floor_3" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_3" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      <node name="lv1floor_4" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_4" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
           </node>
         </next_level>
       </node>
@@ -91,7 +141,7 @@
 
         <subitem>
           <node type="tile" x="0" y="0" w="0" h="0">
-            <ref name="wall_broken" />
+            <ref name="floor_broken" />
           </node>
         </subitem>
 

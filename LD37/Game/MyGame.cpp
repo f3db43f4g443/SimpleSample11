@@ -615,6 +615,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CLvFloor1 )
 		REGISTER_BASE_CLASS( CRandomChunkTiled )
 		REGISTER_MEMBER( m_strCrate )
+		REGISTER_MEMBER( m_fWeights )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CLvBarrier1Core )

@@ -26,18 +26,33 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 		{
 			m_vecPickups.push_back( pPickUp );
 		}
-
-		m_triggers.resize( m_vecPickups.size() );
-		for( int i = 0; i < m_triggers.size(); i++ )
-		{
-			CPickUp* pPickUp = SafeCast<CPickUp>( m_vecPickups[i].GetPtr() );
-			m_triggers[i].Set( [i, this] () {
-				m_vecPickups[i] = NULL;
-				OnPickUp();
-			} );
-			pPickUp->RegisterPickupEvent( &m_triggers[i] );
-		}
 	}
+
+	m_triggers.resize( m_vecPickups.size() + m_vecCrates.size() );
+	for( int i = 0; i < m_vecPickups.size(); i++ )
+	{
+		CPickUp* pPickUp = SafeCast<CPickUp>( m_vecPickups[i].GetPtr() );
+		m_triggers[i].Set( [i, this] () {
+			m_vecPickups[i] = NULL;
+			OnPickUp();
+		} );
+		pPickUp->RegisterPickupEvent( &m_triggers[i] );
+	}
+	for( int i = 0; i < m_vecCrates.size(); i++ )
+	{
+		CChunkObject* pCrate = SafeCast<CChunkObject>( m_vecCrates[i].GetPtr() );
+		m_triggers[i + m_vecPickups.size()].Set( [this] () {
+			OnCrateKilled();
+		} );
+		pCrate->RegisterKilledEvent( &m_triggers[i + m_vecPickups.size()] );
+	}
+}
+
+void CLvFloor1::OnCrateKilled()
+{
+	m_nKilledCrates++;
+	if( m_pChunk )
+		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
 }
 
 void CLvFloor1::OnPickUp()
