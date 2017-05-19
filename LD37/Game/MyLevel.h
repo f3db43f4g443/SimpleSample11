@@ -10,12 +10,10 @@ class CMyLevel : public CEntity
 	friend void RegisterGameClasses();
 	friend struct SLevelBuildContext;
 public:
-	CMyLevel( const SClassCreateContext& context ) : CEntity( context ), m_bPending( true ) { SET_BASEOBJECT_ID( CMyLevel ); }
+	CMyLevel( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CMyLevel ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-
-	void Start() { if( m_bPending ) { m_bPending = false; m_pClickToStart->bVisible = false; } }
 	void Clear();
 
 	void KillChunk( SChunk* pChunk, bool bCrush = false );
@@ -66,8 +64,6 @@ private:
 	void CacheNextLevel();
 	uint32 m_nCurLevel;
 
-	bool m_bPending;
-
 	bool m_bIsLevelDesignTest;
 	uint32 m_nWidth;
 	uint32 m_nHeight;
@@ -105,7 +101,6 @@ private:
 	CReference<CEntity> m_pChunkRoot;
 	CReference<CEntity> m_pChunkRoot1;
 	CReference<CEntity> m_pChunkEffectRoot;
-	CReference<CRenderObject2D> m_pClickToStart;
 	CReference<CEntity> m_pBulletRoot[eBulletLevel_Count];
 
 	static CMyLevel* s_pLevel;

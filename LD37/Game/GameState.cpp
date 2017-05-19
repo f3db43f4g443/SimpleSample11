@@ -112,7 +112,6 @@ void CMainGameState::UpdateInput()
 
 		if( pGame->IsMouseDown() )
 		{
-			CMyLevel::GetInst()->Start();
 			pPlayer->BeginFire();
 		}
 		if( pGame->IsMouseUp() )

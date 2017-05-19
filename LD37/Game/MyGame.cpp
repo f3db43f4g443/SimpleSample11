@@ -380,7 +380,6 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
-		REGISTER_MEMBER_TAGGED_PTR( m_pClickToStart, start/clicktostart );
 		REGISTER_MEMBER_TAGGED_PTR( m_pCrosshair, crosshair );
 	REGISTER_CLASS_END()
 
