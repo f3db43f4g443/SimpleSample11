@@ -16,7 +16,7 @@ struct SCharacterMovementData
 
 struct SCharacterFlyData : public SCharacterMovementData
 {
-	SCharacterFlyData( const SClassCreateContext& context ) { Reset(); }
+	SCharacterFlyData( const SClassCreateContext& context ) : bApplyExtraGravity( false ) { Reset(); }
 
 	void UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis );
 	void UpdateMoveNoBlocking( CCharacter* pCharacter, const CVector2& moveAxis );
@@ -59,6 +59,7 @@ struct SCharacterFlyData : public SCharacterMovementData
 
 	uint8 nState;
 	bool bRollingAcrossWall;
+	bool bApplyExtraGravity;
 	float fRollTime;
 	CVector2 rollDir;
 	CVector2 finalMoveAxis;

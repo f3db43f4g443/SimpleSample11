@@ -39,6 +39,7 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_fKnockbackInvincibleTime( 0 )
 	, m_nAnimState( 0 )
 {
+	m_flyData.bApplyExtraGravity = true;
 	SET_BASEOBJECT_ID( CPlayer );
 }
 

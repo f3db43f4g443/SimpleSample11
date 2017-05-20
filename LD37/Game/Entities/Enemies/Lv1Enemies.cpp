@@ -362,12 +362,13 @@ void CMaggot::OnAddedToStage()
 
 bool CMaggot::Knockback( const CVector2 & vec )
 {
-	if( !m_moveData.bHitSurface )
-		return false;
 	CVector2 tangent( m_moveData.normal.y, -m_moveData.normal.x );
 	float fTangent = tangent.Dot( vec );
-	CVector2 vecKnockback = tangent * fTangent + m_moveData.normal;
-	m_moveData.Fall( this, vecKnockback * m_moveData.fFallInitSpeed * 5 );
+	CVector2 vecKnockback = ( tangent * fTangent + m_moveData.normal ) * m_moveData.fFallInitSpeed * 5;
+	if( m_moveData.bHitSurface )
+		m_moveData.Fall( this, vecKnockback );
+	else
+		SetVelocity( GetVelocity() + vecKnockback );
 
 	m_nKnockBackTimeLeft = m_nKnockbackTime;
 

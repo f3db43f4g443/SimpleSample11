@@ -46,11 +46,14 @@ public:
 	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
 	CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
 	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
+	float GetHighGravityHeight() { return 256.0f; }
 	CEntity* GetChunkRoot() { return m_pChunkRoot; }
 	CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
 	CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
 	CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }
+	CRenderObject2D* GetBack0() { return m_pBack0; }
 	CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
+	void UpdateBack0Position( const CVector2& pos );
 
 	void UpdateBlocksMovement();
 
@@ -97,6 +100,7 @@ private:
 	TClassTrigger<CMyLevel> m_onTick;
 
 	CReference<CRenderObject2D> m_pCrosshair;
+	CReference<CRenderObject2D> m_pBack0;
 
 	CReference<CEntity> m_pChunkRoot;
 	CReference<CEntity> m_pChunkRoot1;

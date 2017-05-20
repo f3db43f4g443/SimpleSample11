@@ -381,6 +381,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
 		REGISTER_MEMBER_TAGGED_PTR( m_pCrosshair, crosshair );
+		REGISTER_MEMBER_TAGGED_PTR( m_pBack0, back0 );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMainUI )

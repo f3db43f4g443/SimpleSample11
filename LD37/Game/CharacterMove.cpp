@@ -3,6 +3,7 @@
 #include "Stage.h"
 #include "GameUtil.h"
 #include "Block.h"
+#include "MyLevel.h"
 
 void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& ofs, SRaycastResult* pHit )
 {
@@ -299,6 +300,13 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 				moveOfs = vecKnockback * fDeltaTime;
 			}
 
+			if( bApplyExtraGravity )
+			{
+				float fExtraGravity = 2 * Max( 0.0f, pCharacter->globalTransform.GetPosition().y -
+					( CMyLevel::GetInst()->GetBound().GetBottom() - CMyLevel::GetInst()->GetHighGravityHeight() ) );
+				moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fDeltaTime );
+			}
+
 			CVector2 velocity = moveOfs;
 			TryMove( pCharacter, moveOfs, velocity );
 			finalMoveAxis = velocity;
@@ -314,6 +322,13 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 		CVector2 rollOfsLeft = rollDir * ( fRollMaxTime * fRollMaxSpeed * 0.5f - fDist0 );
 		CVector2 moveOfs = rollDir * ( fDist1 - fDist0 );
 		fRollTime = fNewRollTime;
+
+		if( bApplyExtraGravity )
+		{
+			float fExtraGravity = 2 * Max( 0.0f, pCharacter->globalTransform.GetPosition().y -
+				( CMyLevel::GetInst()->GetBound().GetBottom() - CMyLevel::GetInst()->GetHighGravityHeight() ) );
+			moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fTime );
+		}
 
 		TryMove( pCharacter, moveOfs );
 
@@ -503,6 +518,10 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	}
 	velocity = velocity + dVelocity;
 
+	float fExtraGravity = 2 * Max( 0.0f, pCharacter->globalTransform.GetPosition().y -
+		( CMyLevel::GetInst()->GetBound().GetBottom() - CMyLevel::GetInst()->GetHighGravityHeight() ) );
+	dPos = dPos + CVector2( 0, -fExtraGravity * fDeltaTime );
+
 	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 	CVector2 v0 = velocity;
@@ -530,6 +549,9 @@ void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& mov
 	CVector2 rollOfsLeft = rollDir * ( fRollMaxTime * fRollMaxSpeed * 0.5f - fDist0 );
 	CVector2 moveOfs = rollDir * ( fDist1 - fDist0 );
 	fRollTime = fNewRollTime;
+	float fExtraGravity = 2 * Max( 0.0f, pCharacter->globalTransform.GetPosition().y -
+		( CMyLevel::GetInst()->GetBound().GetBottom() - CMyLevel::GetInst()->GetHighGravityHeight() ) );
+	moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fTime );
 
 	if( !ResolvePenetration( pCharacter ) )
 	{

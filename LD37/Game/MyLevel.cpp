@@ -388,6 +388,12 @@ void CMyLevel::AddShakeStrength( float fShakeStrength )
 	}
 }
 
+void CMyLevel::UpdateBack0Position( const CVector2 & pos )
+{
+	float center = GetBound().GetCenterX();
+	m_pBack0->SetPosition( CVector2( floor( pos.x - ( pos.x - center ) * 0.25f + 0.5f ), 0 ) );
+}
+
 void CMyLevel::UpdateBlocksMovement()
 {
 	uint32 nPlayerHeight = 0;

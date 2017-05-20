@@ -346,6 +346,7 @@ void CStage::Update()
 	if( m_pPlayer && pLevel )
 	{
 		CVector2 camPos = m_pPlayer->GetCam();
+		CMyLevel::GetInst()->UpdateBack0Position( m_pPlayer->GetPosition() );
 		//CVector2 camShake = CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) )
 		//	* Min( pLevel->GetShakeStrength() / 25.0f, 1.0f ) * 2.0f;
 
