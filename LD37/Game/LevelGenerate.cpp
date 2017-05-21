@@ -6,6 +6,7 @@
 #include "Common/ResourceManager.h"
 #include "Common/FileUtil.h"
 #include "Entities/Decorator.h"
+#include "LevelScrollObj.h"
 
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
@@ -107,6 +108,11 @@ void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<i
 	pInfo->pos = pInfo->pos + CVector2( pBlock->pParent->nX * nBlockSize, pBlock->pParent->nY * nBlockSize );
 
 	pBlock->pParent->pOwner->Insert_SpawnInfo( pInfo );
+}
+
+void SLevelBuildContext::PushScrollObj( CPrefab* pPrefab, uint32 nType )
+{
+	scrollObjs[nType].push_back( pPrefab );
 }
 
 void SLevelBuildContext::Build()
@@ -318,6 +324,22 @@ void SLevelBuildContext::Build()
 				{
 					delete pBlock->pParent->pOwner;
 				}
+			}
+		}
+	}
+
+	if( pLevel )
+	{
+		for( int i = 0; i < ELEM_COUNT( scrollObjs ); i++ )
+		{
+			uint32 nHeight = pLevel->GetCurHeightTag();
+			for( CPrefab* pPrefab : scrollObjs[i] )
+			{
+				auto pObj = SafeCast<CLevelScrollObj>( pPrefab->GetRoot()->CreateInstance() );
+				pObj->SetParentEntity( pLevel->GetScrollObjRoot( i ) );
+				pObj->Set( nHeight );
+				pObj->Update( pLevel->GetCurScrollPos() );
+				nHeight += pObj->GetHeight();
 			}
 		}
 	}
@@ -560,6 +582,30 @@ protected:
 	CReference<CPrefab> m_pPrefab;
 	TVector2<int32> m_size;
 	uint8 m_nLayer;
+	uint8 m_nType;
+};
+
+class CLevelGenerateScrollObjNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		const char* szPrefab = XmlGetAttr( pXml, "prefab", "" );
+		if( szPrefab[0] )
+		{
+			m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		}
+		m_nType = Min<uint8>( SBlock::eAttachedPrefab_Count, XmlGetAttr( pXml, "scrollobj_type", 0 ) );
+
+		CLevelGenerateNode::Load( pXml, context );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		context.PushScrollObj( m_pPrefab, m_nType );
+		CLevelGenerateNode::Generate( context, region );
+	}
+protected:
+	CReference<CPrefab> m_pPrefab;
 	uint8 m_nType;
 };
 
@@ -1248,6 +1294,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "simple", CLevelGenerateSimpleNode );
 	REGISTER_GENERATE_NODE( "simple_attach", CLevelGenerateAttachNode );
 	REGISTER_GENERATE_NODE( "simple_spawn", CLevelGenerateSpawnNode );
+	REGISTER_GENERATE_NODE( "scrollobj", CLevelGenerateScrollObjNode );
 	REGISTER_GENERATE_NODE( "tile", CLevelGenerateTileNode );
 	REGISTER_GENERATE_NODE( "subregion", CLevelGenerateSubRegionNode );
 	REGISTER_GENERATE_NODE( "randompick", CLevelGenerateRandomPickNode );
@@ -1411,6 +1458,15 @@ SLevelGenerateFileContext* SLevelGenerateNodeLoadContext::LoadFile( const char* 
 		if( pAttachRoot )
 		{
 			for( auto pItem = pAttachRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				CLevelGenerateNode::CreateNode( pItem, *this );
+			}
+		}
+		szDefaultType = "scrollobj";
+		auto pScrollObjRoot = pLevelGenRoot->FirstChildElement( "scrollobjs" );
+		if( pScrollObjRoot )
+		{
+			for( auto pItem = pScrollObjRoot->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 			{
 				CLevelGenerateNode::CreateNode( pItem, *this );
 			}

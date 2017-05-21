@@ -41,6 +41,17 @@ void CWindow::AIFunc()
 {
 	if( m_pDeathEffect )
 		m_pDeathEffect->SetParentEntity( NULL );
+	if( !CMyLevel::GetInst() )
+		return;
+
+	while( 1 )
+	{
+		m_pAI->Yield( 0.5f, true );
+		CRectangle rect;
+		Get_HitProxy()->CalcBound( globalTransform, rect );
+		if( CMyLevel::GetInst()->GetBound().GetBottom() > rect.GetBottom() )
+			break;
+	}
 
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_pBullet1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1.c_str() );
@@ -62,7 +73,7 @@ void CWindow::AIFunc()
 		{
 			m_pAI->Yield( 0.5f, true );
 			vector<CReference<CEntity> > hitEntities;
-			GetStage()->MultiHitTest(Get_HitProxy(), globalTransform, hitEntities );
+			GetStage()->MultiHitTest( Get_HitProxy(), globalTransform, hitEntities );
 			bool bHit = false;
 			for( CEntity* pEntity : hitEntities )
 			{

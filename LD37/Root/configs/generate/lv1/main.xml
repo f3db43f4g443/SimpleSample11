@@ -226,6 +226,19 @@
           <ref name="enemyroom_large" />
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
+        
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
       </node>
 
       <node type="subregion" name="lv1_2">
@@ -272,6 +285,18 @@
           </crate2>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
       </node>
     </nodes>
   </level_gen>

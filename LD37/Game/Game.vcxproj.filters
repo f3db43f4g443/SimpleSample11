@@ -138,6 +138,9 @@
     <ClCompile Include="Entities\UtilEnitites.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="LevelScrollObj.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -272,6 +275,9 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="Entities\UtilEntities.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelScrollObj.h">
       <Filter>Entities</Filter>
     </ClInclude>
   </ItemGroup>

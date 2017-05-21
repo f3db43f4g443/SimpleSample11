@@ -18,6 +18,11 @@
       <node name="wall1_deco" prefab="data/misc/dirt1.pf" />
       <node name="wall1_deco_lower" prefab="data/misc/fiber_1.pf" />
     </spawns>
+    <scrollobjs>
+      <node name="lv1_scroll_0" prefab="data/scrollobjs/lv1_0.pf" scrollobj_type="0" />
+      <node name="lv1_scroll_1" prefab="data/scrollobjs/lv1_1.pf" scrollobj_type="1" />
+      <node name="lv1_scroll_2" prefab="data/scrollobjs/lv1_2.pf" scrollobj_type="2" />
+    </scrollobjs>
     <nodes>
       <node name="block0" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv1/block0.pf">
         <types>0</types>

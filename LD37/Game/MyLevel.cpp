@@ -133,6 +133,8 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( g_levels[m_nCurLevel] );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
+	uint32 nCurBarrierHeight = m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0;
+	m_vecBarrierHeightTags.push_back( nCurBarrierHeight  + m_nHeight );
 }
 
 void CMyLevel::CacheNextLevel()
@@ -154,6 +156,17 @@ void CMyLevel::Clear()
 			while( basement.layers[i].Get_BlockLayer() )
 				RemoveChunk( basement.layers[i].Get_BlockLayer()->pParent->pOwner );
 		}
+	}
+
+	m_fLastScrollPos = 0;
+	m_fCurLvBarrierHeight = 0;
+	m_nCurBarrierHeightTag = 0;
+	m_vecBarrierHeightTags.clear();
+	for( int i = 0; i < ELEM_COUNT( m_pScrollObjRoot ); i++ )
+	{
+		auto pEntity = m_pScrollObjRoot[i];
+		while( pEntity->Get_ChildEntity() )
+			pEntity->Get_ChildEntity()->SetParentEntity( NULL );
 	}
 }
 
@@ -272,7 +285,10 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 	}
 
 	if( pChunk->bIsLevelBarrier )
+	{
 		CacheNextLevel();
+		m_nCurBarrierHeightTag++;
+	}
 
 	delete pChunk;
 }
@@ -697,9 +713,13 @@ void CMyLevel::UpdateBlocksMovement()
 		}
 	}
 
+	float fTargetScrollPos = 0;
 	if( pLevelBarrier )
 	{
 		m_fCurLvBarrierHeight = pLevelBarrier->pos.y + pLevelBarrier->nBarrierHeight * GetBlockSize();
+		if( m_nCurBarrierHeightTag < m_vecBarrierHeightTags.size() )
+			fTargetScrollPos += m_vecBarrierHeightTags[m_nCurBarrierHeightTag] * GetBlockSize() -
+			( pLevelBarrier->pos.y + pLevelBarrier->nHeight * GetBlockSize() );
 
 		while( nUpdatedBlock < vecUpdatedBlocks.size() )
 		{
@@ -844,6 +864,9 @@ void CMyLevel::UpdateBlocksMovement()
 	}
 
 	CheckSpawn();
+	m_fLastScrollPos = m_fCurScrollPos;
+	if( m_fCurScrollPos < fTargetScrollPos )
+		m_fCurScrollPos = Min( m_fCurScrollPos + 2.0f, fTargetScrollPos );
 }
 
 void CMyLevel::CheckSpawn()

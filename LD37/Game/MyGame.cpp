@@ -7,6 +7,7 @@
 #include "Enemy.h"
 #include "Block.h"
 #include "BlockItem.h"
+#include "LevelScrollObj.h"
 #include "CharacterMove.h"
 #include "GUI/StageDirector.h"
 #include "UICommon/UIFactory.h"
@@ -382,6 +383,9 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
 		REGISTER_MEMBER_TAGGED_PTR( m_pCrosshair, crosshair );
 		REGISTER_MEMBER_TAGGED_PTR( m_pBack0, back0 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pScrollObjRoot[0], building/scroll0 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pScrollObjRoot[1], building/scroll1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pScrollObjRoot[2], building/scroll2 );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMainUI )
@@ -717,6 +721,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_strBullet1 )
 		REGISTER_MEMBER( m_strLightning )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CLevelScrollObj )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEffect, eft )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSpike )

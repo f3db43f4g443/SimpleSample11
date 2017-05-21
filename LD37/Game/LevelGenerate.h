@@ -10,6 +10,7 @@ struct SLevelBuildContext
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32> ofs );
+	void PushScrollObj( CPrefab* pPrefab, uint32 nType );
 	void Build();
 
 	SBlockLayer*& GetBlock( uint32 x, uint32 y, uint32 z );
@@ -19,6 +20,7 @@ struct SLevelBuildContext
 	vector<SBlockLayer*> blocks;
 	vector<SChunk*> chunks;
 	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs[SBlock::eAttachedPrefab_Count];
+	vector<CReference<CPrefab> > scrollObjs[3];
 
 	vector<int8> blueprint;
 	map<string, int8> mapTags;
