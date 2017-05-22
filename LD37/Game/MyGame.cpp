@@ -506,6 +506,7 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strEffect )
 		REGISTER_MEMBER( m_nMaxHp )
+		REGISTER_MEMBER( m_nCrushCost )
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, 1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pDamagedEffectsRoot, dmgeft );
 	REGISTER_CLASS_END()

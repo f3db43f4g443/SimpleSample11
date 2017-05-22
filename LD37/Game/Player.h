@@ -51,7 +51,7 @@ public:
 	void RestoreHp( int32 nValue );
 	void CostSp( int32 nValue );
 	void RestoreSp( int32 nValue );
-	virtual void Crush() override { Damage( 1000 ); }
+	virtual void Crush() override;
 	virtual bool Knockback( const CVector2& vec ) override;
 	CVector2 GetKnockback();
 	void BeginFire();

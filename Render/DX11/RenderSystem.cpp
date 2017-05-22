@@ -25,7 +25,7 @@
 #endif
 
 IRenderSystem::IRenderSystem()
-	: m_pGame( NULL ), m_pRenderer( NULL ), m_dLastTime( 0 ), m_dTime( 0 ), m_fElapsedTime( 0 )
+	: m_pGame( NULL ), m_pRenderer( NULL ), m_dLastTime( 0 ), m_dTime( 0 ), m_fElapsedTime( 0 ), m_fTimeScale( 1 ), m_fTimeScaleA( 0 )
 {
 	
 }
@@ -576,7 +576,32 @@ bool CALLBACK CRenderSystem::ModifyDeviceSettings( DXUTDeviceSettings* pDeviceSe
 void CALLBACK CRenderSystem::OnFrameMove( double fTime, float fElapsedTime, void* pUserContext )
 {
 	CRenderSystem* pThis = (CRenderSystem*)pUserContext;
+
+	if( pThis->m_fTimeScale != 1 || pThis->m_fTimeScaleA != 0 )
+	{
+		float fTimeScale0 = pThis->m_fTimeScale;
+		float fTimeScale1 = fTimeScale0 + fElapsedTime * pThis->m_fTimeScaleA;
+		if( fTimeScale1 >= 1 )
+		{
+			fElapsedTime = fElapsedTime - ( 1 - fTimeScale0 ) * ( 1 - fTimeScale0 ) * 0.5f / pThis->m_fTimeScaleA;
+
+			pThis->m_fTimeScale = 1;
+			pThis->m_fTimeScaleA = 0;
+		}
+		else if( fTimeScale1 <= 0 )
+		{
+			fElapsedTime = fTimeScale0 * fTimeScale0 * 0.5f / -pThis->m_fTimeScaleA;
+			pThis->m_fTimeScale = 0;
+			pThis->m_fTimeScaleA = 0;
+		}
+		else
+		{
+			fElapsedTime = fElapsedTime * ( fTimeScale0 + fTimeScale1 ) * 0.5f;
+			pThis->m_fTimeScale = fTimeScale1;
+		}
+	}
 	fElapsedTime = Min( fElapsedTime, 0.1f );
+
 	pThis->m_fElapsedTime = fElapsedTime;
 	pThis->m_dTime = pThis->m_dLastTime + pThis->m_fElapsedTime;
 	pThis->m_pGame->Update();
@@ -587,7 +612,7 @@ void CALLBACK CRenderSystem::OnFrameMove( double fTime, float fElapsedTime, void
 	uint32 nFrames = floor( dTotalTime * 1000 ) - floor( dLastTime * 1000 );
 	for( int i = 0; i < nFrames; i++ )
 		pThis->UpdateTime();
-	pThis->m_dLastTime = fTime;
+	pThis->m_dLastTime = pThis->m_dTime;
 }
 
 

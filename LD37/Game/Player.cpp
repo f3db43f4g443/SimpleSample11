@@ -11,6 +11,7 @@
 #include "Entities/Door.h"
 #include "Pickup.h"
 #include "GameState.h"
+#include <algorithm>
 
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
@@ -82,6 +83,7 @@ void CPlayer::Damage( int32 nValue )
 	{
 		m_walkData.Reset();
 		m_flyData.Reset();
+		IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.25f );
 		CMainGameState::Inst().DelayResetStage();
 	}
 }
@@ -108,6 +110,61 @@ void CPlayer::RestoreSp( int32 nValue )
 	m_sp.ModifyCurValue( nValue );
 	if( pMainUI )
 		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+}
+
+void CPlayer::Crush()
+{
+	CRectangle rect;
+	Get_HitProxy()->CalcBound( globalTransform, rect );
+	vector<CChunkObject*> chunkObjs;
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pBlock = SafeCast<CBlockObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pBlock )
+		{
+			auto pChunk = pBlock->GetBlock()->pOwner->pChunkObject;
+			CVector2 pos = pChunk->globalTransform.GetPosition() + CVector2( pBlock->x, pBlock->y ) * CMyLevel::GetBlockSize();
+			if( pChunk->GetCrushCost() && pos.y <= rect.GetBottom() && pos.y >= rect.GetTop() )
+				chunkObjs.push_back( pChunk );
+		}
+	}
+
+	if( !chunkObjs.size() )
+	{
+		Damage( 1000 );
+		return;
+	}
+	std::sort( chunkObjs.begin(), chunkObjs.end() );
+	
+	int i, j = 0;
+	for( i = 1, j = 1; i < chunkObjs.size(); i++ )
+	{
+		if( chunkObjs[i] != chunkObjs[i - 1] )
+			chunkObjs[j++] = chunkObjs[i];
+	}
+
+	int32 nCostSp = 0;
+	for( i = 0; i < j; i++ )
+		nCostSp += chunkObjs[i]->GetCrushCost();
+
+	if( nCostSp > m_sp )
+	{
+		Damage( 1000 );
+		return;
+	}
+
+	CostSp( nCostSp );
+	for( i = 0; i < j; i++ )
+		chunkObjs[i]->Crush();
+	if( !m_walkData.ResolvePenetration( this ) )
+	{
+		Damage( 1000 );
+		return;
+	}
+
+	IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.5f );
+	Knockback( CVector2( 0, -1 ) );
+	Damage( ( m_hp + 1 ) >> 1 );
 }
 
 bool CPlayer::Knockback( const CVector2& vec )

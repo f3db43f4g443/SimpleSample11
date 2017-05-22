@@ -99,6 +99,7 @@ public:
 	double GetLastTime() { return m_dLastTime; }
 	double GetTotalTime() { return m_dTime; }
 	float GetElapsedTime() { return m_fElapsedTime; }
+	void SetTimeScale( float fTimeScale, float a ) { m_fTimeScale = fTimeScale; m_fTimeScaleA = a; }
 	const CVector2& GetScreenRes() { return m_screenRes; }
 	
 	static IRenderSystem* Inst();
@@ -109,5 +110,7 @@ protected:
 	double m_dLastTime;
 	double m_dTime;
 	float m_fElapsedTime;
+	float m_fTimeScale;
+	float m_fTimeScaleA;
 	CVector2 m_screenRes;
 };

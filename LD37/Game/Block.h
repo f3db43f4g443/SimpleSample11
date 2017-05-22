@@ -189,6 +189,7 @@ public:
 
 	float GetHp() { return m_fHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
+	int32 GetCrushCost() { return m_nCrushCost; }
 
 	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) {}
 	void Damage( float nDmg, uint8 nType = 0 );
@@ -222,6 +223,7 @@ protected:
 	SChunk* m_pChunk;
 	float m_fHp;
 	int32 m_nMaxHp;
+	float m_nCrushCost;
 
 	CVector2 m_hitShakeVector;
 	int32 m_nHitShakeFrame;
