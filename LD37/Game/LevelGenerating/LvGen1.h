@@ -1,7 +1,38 @@
 #pragma once
 #include "LevelGenerate.h"
 
-class CLevelGenNode1_1 : public CLevelGenerateNode
+class CLevelGenNode1_1_0 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenAreas();
+	void MakeHoles();
+
+	enum
+	{
+		eType_None,
+		eType_Wall,
+		eType_Block1,
+		eType_Block2,
+		eType_Stone,
+		eType_Obj,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<TRectangle<int32> > m_vecStones;
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pStoneNode;
+	CReference<CLevelGenerateNode> m_pBlock1Node;
+	CReference<CLevelGenerateNode> m_pBlock2Node;
+	CReference<CLevelGenerateNode> m_pObjNode;
+};
+
+class CLevelGenNode1_2 : public CLevelGenerateNode
 {
 public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;

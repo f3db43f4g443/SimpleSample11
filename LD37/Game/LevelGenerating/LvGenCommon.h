@@ -10,6 +10,7 @@ private:
 	CReference<CLevelGenerateNode> m_pBrick;
 	CReference<CLevelGenerateNode> m_pBrick1;
 	bool m_bVertical;
+	bool m_bOfs;
 };
 
 class CRoom1Node : public CLevelGenerateSimpleNode

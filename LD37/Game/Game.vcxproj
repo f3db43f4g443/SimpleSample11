@@ -591,6 +591,7 @@
     <ClCompile Include="LevelGenerate.cpp" />
     <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
+    <ClCompile Include="LevelGenerating\LvGen1_2.cpp" />
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
     <ClCompile Include="LevelScrollObj.cpp" />
     <ClCompile Include="Lightning.cpp" />

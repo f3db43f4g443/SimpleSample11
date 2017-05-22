@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LvGen1.h"
 #include "Common/Rand.h"
+#include "Algorithm.h"
 
 void CLvBarrierNodeGen1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
@@ -188,122 +189,9 @@ void CLvBarrierNodeGen1::GenRooms()
 				continue;
 		}
 
-		TRectangle<int32> roomRect( p.x, p.y, 1, 1 );
-
 		uint32 nExtend = SRand::Inst().Rand( nMinSize * 2 - 2, nMaxWidthPlusHeight - 1 );
-		uint32 nExtendDirs[] = { 0, 1, 2, 3 };
-		uint32 nExtendDirCount = 4;
-
-		for( int j = 0; j < nExtend && nExtendDirCount; )
-		{
-			uint32 iExtendDir;
-			if( roomRect.width >= nMinSize && roomRect.height < nMinSize )
-			{
-				int32 iDir[2] = { -1, -1 };
-				for( int i = 0; i < nExtendDirCount; i++ )
-				{
-					if( nExtendDirs[i] == 1 )
-						iDir[0] = i;
-					else if( nExtendDirs[i] == 3 )
-						iDir[1] = i;
-				}
-				if( iDir[0] >= 0 && iDir[1] >= 0 )
-					iExtendDir = iDir[SRand::Inst().Rand( 0, 2 )];
-				else if( iDir[0] >= 0 )
-					iExtendDir = iDir[0];
-				else if( iDir[1] >= 0 )
-					iExtendDir = iDir[1];
-				else
-					break;
-			}
-			else if( roomRect.height >= nMinSize && roomRect.width < nMinSize )
-			{
-				int32 iDir[2] = { -1, -1 };
-				for( int i = 0; i < nExtendDirCount; i++ )
-				{
-					if( nExtendDirs[i] == 0 )
-						iDir[0] = i;
-					else if( nExtendDirs[i] == 2 )
-						iDir[1] = i;
-				}
-				if( iDir[0] >= 0 && iDir[1] >= 0 )
-					iExtendDir = iDir[SRand::Inst().Rand( 0, 2 )];
-				else if( iDir[0] >= 0 )
-					iExtendDir = iDir[0];
-				else if( iDir[1] >= 0 )
-					iExtendDir = iDir[1];
-				else
-					break;
-			}
-			else
-				iExtendDir = SRand::Inst().Rand( 0u, nExtendDirCount );
-			uint32 nExtendDir = nExtendDirs[iExtendDir];
-			bool bSucceed = true;
-
-			TRectangle<int32> newPointsRect;
-			switch( nExtendDir )
-			{
-			case 0:
-				if( roomRect.width >= nMaxSize || roomRect.x <= 1 )
-				{
-					bSucceed = false;
-					break;
-				}
-				newPointsRect = TRectangle<int32>( roomRect.x - 1, roomRect.y, 1, roomRect.height );
-				break;
-			case 1:
-				if( roomRect.height >= nMaxSize || roomRect.y <= 1 )
-				{
-					bSucceed = false;
-					break;
-				}
-				newPointsRect = TRectangle<int32>( roomRect.x, roomRect.y - 1, roomRect.width, 1 );
-				break;
-			case 2:
-				if( roomRect.width >= nMaxSize || roomRect.GetRight() >= nWidth - 1 )
-				{
-					bSucceed = false;
-					break;
-				}
-				newPointsRect = TRectangle<int32>( roomRect.GetRight(), roomRect.y, 1, roomRect.height );
-				break;
-			case 3:
-				if( roomRect.height >= nMaxSize || roomRect.GetBottom() >= nHeight - 1 )
-				{
-					bSucceed = false;
-					break;
-				}
-				newPointsRect = TRectangle<int32>( roomRect.x, roomRect.GetBottom(), roomRect.width, 1 );
-				break;
-			default:
-				break;
-			}
-
-			if( bSucceed )
-			{
-				for( int iX = newPointsRect.x; iX < newPointsRect.GetRight(); iX++ )
-				{
-					for( int iY = newPointsRect.y; iY < newPointsRect.GetBottom(); iY++ )
-					{
-						if( m_gendata[iX + iY * nWidth] )
-						{
-							bSucceed = false;
-							break;
-						}
-					}
-					if( !bSucceed )
-						break;
-				}
-			}
-
-			if( !bSucceed )
-				nExtendDirs[iExtendDir] = nExtendDirs[--nExtendDirCount];
-			else
-			{
-				roomRect = newPointsRect + roomRect;
-				j++;
-			}
-		}
+		TRectangle<int32> roomRect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( nMinSize, nMinSize ), TVector2<int32>( nMaxSize, nMaxSize ),
+			TRectangle<int32>( 1, 1, nWidth - 2, nHeight - 2 ), nExtend, eType_Room );
 
 		if( roomRect.width < nMinSize || roomRect.height < nMinSize )
 			continue;

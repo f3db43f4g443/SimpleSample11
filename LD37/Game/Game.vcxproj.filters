@@ -109,9 +109,6 @@
     <ClCompile Include="Entities\Bullets.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
-    <ClCompile Include="LevelGenerating\LvGen1_1.cpp">
-      <Filter>LevelGenerating</Filter>
-    </ClCompile>
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
@@ -140,6 +137,12 @@
     </ClCompile>
     <ClCompile Include="LevelScrollObj.cpp">
       <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen1_2.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen1_1.cpp">
+      <Filter>LevelGenerating</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

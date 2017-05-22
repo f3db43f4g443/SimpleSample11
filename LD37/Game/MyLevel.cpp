@@ -12,7 +12,7 @@
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
-const char* g_levels[] = { "lv1_2", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
+const char* g_levels[] = { "lv1_1", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
 
 void CMyLevel::OnAddedToStage()
 {
@@ -124,11 +124,11 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 	auto& cfg = CGlobalCfg::Inst();
 	SLevelBuildContext context( this );
 
-	if( bNeedInit )
+	/*if( bNeedInit )
 	{
 		CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( "init" );
 		pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
-	}
+	}*/
 
 	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( g_levels[m_nCurLevel] );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );

@@ -653,7 +653,7 @@
         </next_level>
       </node>
 
-      <node name="brick_tile_1a" type="bricktile" >
+      <node name="brick_tile_1a" type="bricktile" ofs="1" >
         <brick>
           <ref name="block1a" />
         </brick>

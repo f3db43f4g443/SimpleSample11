@@ -7,6 +7,7 @@ void CBrickTileNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & 
 	m_pBrick = CreateNode( pXml->FirstChildElement( "brick" )->FirstChildElement(), context );
 	m_pBrick1 = CreateNode( pXml->FirstChildElement( "brick1" )->FirstChildElement(), context );
 	m_bVertical = XmlGetAttr( pXml, "vertical", 0 );
+	m_bOfs = XmlGetAttr( pXml, "ofs", 0 );
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -19,7 +20,7 @@ void CBrickTileNode::Generate( SLevelBuildContext & context, const TRectangle<in
 		for( int j = 0; j < region.height; j++ )
 		{
 			int32 y = j + region.y;
-			for( int i = ( j & 1 ) - 1; i < region.width; i += 2 )
+			for( int i = ( m_bOfs ? ( j + 1 ) & 1 : j & 1 ) - 1; i < region.width; i += 2 )
 			{
 				int32 x = i + region.x;
 				bool b0 = i >= 0 && context.blueprint[x + y * context.nWidth] == nMask;
@@ -38,7 +39,7 @@ void CBrickTileNode::Generate( SLevelBuildContext & context, const TRectangle<in
 		for( int i = 0; i < region.width; i++ )
 		{
 			int32 x = i + region.x;
-			for( int j = ( i & 1 ) - 1; j < region.height; j += 2 )
+			for( int j = ( m_bOfs ? ( i + 1 ) & 1 : i & 1 ) - 1; j < region.height; j += 2 )
 			{
 				int32 y = j + region.y;
 				bool b0 = j >= 0 && context.blueprint[x + y * context.nWidth] == nMask;

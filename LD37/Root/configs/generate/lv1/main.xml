@@ -163,67 +163,124 @@
       </node>
       
       <node type="subregion" name="lv1_1">
-        <node type="tile" x="0" y="0" w="32" h="16">
-          <ref name="vblock" />
+
+        <node type="lv1type1_0" x="0" y="0" w="32" h="22">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <stone>
+            <ref name="stone" />
+          </stone>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
+            </node>
+          </obj>
         </node>
-        <node type="randomfill" x="0" y="16" w="32" h="8">
-          <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-          <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
-          <ref name="block0" p="32" />
+        <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
+
+        <node type="lv1type1_0" x="0" y="24" w="32" h="22">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <stone>
+            <ref name="stone" />
+          </stone>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
+            </node>
+          </obj>
         </node>
-        <node type="tile" x="0" y="24" w="32" h="32" tilex="32" tiley="8">
-          <node type="subregion">    
-            <node type="randompick" x="0" y="0" w="0" h="0" >
-              <ref name="lv1style1" p="1" />
+        <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
+
+        <node type="lv1type1_0" x="0" y="48" w="32" h="22">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <stone>
+            <ref name="stone" />
+          </stone>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
             </node>
-            <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
-              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
-              <ref name="lv1fill1" p="8" />
-            </node>
-          </node>
+          </obj>
         </node>
-        <node type="tile" x="0" y="56" w="32" h="32" tilex="32" tiley="8">
-          <node type="subregion">
-            <node type="randompick" x="0" y="0" w="0" h="0" >
-              <ref name="lv1style1" p="1" />
-              <ref name="lv1style2" p="1" />
+        <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
+
+        <node type="lv1type1_0" x="0" y="72" w="32" h="22">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <stone>
+            <ref name="stone" />
+          </stone>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
             </node>
-            <node type="randomfill" x="0" y="2" w="0" h="0">
-              <ref name="lv1_enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
-              <ref name="lv1fill2" p="2" />
-            </node>
-            <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
-              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
-              <ref name="lv1fill2" p="3" />
-            </node>
-          </node>
+          </obj>
         </node>
-        <node type="tile" x="0" y="88" w="32" h="24" tilex="32" tiley="8">
-          <node type="subregion">
-            <node type="randompick" x="0" y="0" w="0" h="0" >
-              <ref name="lv1style1" p="1" />
-              <ref name="lv1style2" p="1" />
-              <ref name="lv1style3" p="1" />
+        <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
+
+        <node type="lv1type1_0" x="0" y="96" w="32" h="24">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <block1>
+            <ref name="brick_tile_1a" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1b" />
+          </block2>
+          <stone>
+            <ref name="stone" />
+          </stone>
+          <obj>
+            <node type="randompick">
+              <ref name="garbage_bin_red" p="1" />
+              <ref name="garbage_bin_yellow" p="1" />
+              <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
             </node>
-            <node type="randomfill" x="0" y="0" w="0" h="0">
-              <ref name="enemyroom_large" sizeminx="8" sizeminy="8" p="1" />
-              <node type="empty" p="2" />
-            </node>
-            <node type="randomfill" x="0" y="2" w="0" h="0">
-              <ref name="enemyroom_small" sizeminx="6" sizeminy="6" p="1" />
-              <ref name="lv1fill2" p="2" />
-            </node>
-            <node type="randomfill" check_block="3" x="0" y="0" w="0" h="0">
-              <ref name="stone" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-              <ref name="wall" sizeminx="6" sizeminy="4" sizemaxx="12" sizemaxy="8" p="1" />
-              <ref name="lv1fill2" p="1" />
-            </node>
-          </node>
-        </node>
-        <node type="tile" x="0" y="112" w="32" h="8" tilex="8" tiley="8">
-          <ref name="enemyroom_large" />
+          </obj>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
         
@@ -245,7 +302,7 @@
         <node type="tile" x="0" y="0" w="32" h="12">
           <ref name="block0" />
         </node>
-        <node type="lv1type1" x="0" y="12" w="32" h="108">
+        <node type="lv1type2" x="0" y="12" w="32" h="108">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -275,6 +332,7 @@
               <ref name="garbage_bin_red" p="1" />
               <ref name="garbage_bin_yellow" p="1" />
               <ref name="garbage_bin_green" p="1" />
+              <ref name="garbage_bin_black" p="1" />
             </node>
           </obj>
           <crate1>
