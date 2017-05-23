@@ -176,17 +176,119 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 	return q.size();
 }
 
-int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount )
+int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, TVector2<int32>* pOfs, int32 nOfs )
 {
 	int32 nBackType = vec[x + y * nWidth];
 	if( nBackType == nType )
 		return 0;
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	if( !pOfs )
+	{
+		pOfs = ofs;
+		nOfs = 4;
+	}
 
 	vec[x + y * nWidth] = nType;
 	vector<TVector2<int32> > q;
 	q.push_back( TVector2<int32>( x, y ) );
 
 	for( int i = 0; i < q.size() && q.size() < nMaxCount; i++ )
+	{
+		TVector2<int32> p = q[i];
+		SRand::Inst().Shuffle( pOfs, nOfs );
+		for( int j = 0; j < nOfs; j++ )
+		{
+			TVector2<int32> p1 = p + pOfs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+				if( q.size() >= nMaxCount )
+					break;
+			}
+		}
+	}
+	return q.size();
+}
+
+void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q )
+{
+	int32 nBackType = vec[x + y * nWidth];
+	if( nBackType == nType )
+		return;
+
+	vec[x + y * nWidth] = nType;
+	int i = q.size();
+	q.push_back( TVector2<int32>( x, y ) );
+
+	for( ; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+			}
+		}
+	}
+}
+
+void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, vector<TVector2<int32> >& q, TVector2<int32>* pOfs, int32 nOfs )
+{
+	int32 nBackType = vec[x + y * nWidth];
+	if( nBackType == nType )
+		return;
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	if( !pOfs )
+	{
+		pOfs = ofs;
+		nOfs = 4;
+	}
+
+	vec[x + y * nWidth] = nType;
+	int i = q.size();
+	nMaxCount += i;
+	q.push_back( TVector2<int32>( x, y ) );
+
+	for( i; i < q.size() && q.size() < nMaxCount; i++ )
+	{
+		TVector2<int32> p = q[i];
+		SRand::Inst().Shuffle( pOfs, nOfs );
+		for( int j = 0; j < nOfs; j++ )
+		{
+			TVector2<int32> p1 = p + pOfs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+				if( q.size() >= nMaxCount )
+					break;
+			}
+		}
+	}
+}
+
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount )
+{
+	vector<TVector2<int32> > q;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( vec[i + j * nWidth] == nType )
+				q.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+	SRand::Inst().Shuffle( &q[0], q.size() );
+
+	for( int i = 0; i < q.size() && q.size() < nTargetCount; i++ )
 	{
 		TVector2<int32> p = q[i];
 		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
@@ -199,10 +301,127 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 			{
 				vec[p1.x + p1.y * nWidth] = nType;
 				q.push_back( p1 );
-				if( q.size() >= nMaxCount )
+				if( q.size() >= nTargetCount )
 					break;
 			}
 		}
 	}
 	return q.size();
+}
+
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist )
+{
+	vector<int32> vecDist;
+	vecDist.resize( nWidth * nHeight );
+	vector<TVector2<int32> > q;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( vec[i + j * nWidth] == nType )
+				q.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+
+	for( int i = 0; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+		int32 nDist1 = vecDist[p.x + p.y * nWidth] + 1;
+		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				vecDist[p1.x + p1.y * nWidth] = nDist1;
+				if( nDist1 < nDist )
+					q.push_back( p1 );
+			}
+		}
+	}
+	return q.size();
+}
+
+TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 nBackType, int8 nPathType, int8 nDstType,
+	vector<TVector2<int32> >& q, vector<TVector2<int32> >& par, TVector2<int32>* pOfs, int32 nOfs )
+{
+	if( !q.size() )
+		return TVector2<int32>( -1, -1 );
+	TVector2<int32> ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	if( !pOfs )
+	{
+		pOfs = ofs;
+		nOfs = 4;
+	}
+	int32 nSrcCount = q.size();
+	for( int i = 0; i < nSrcCount; i++ )
+	{
+		TVector2<int32> p = q[i];
+		par[p.x + p.y * nWidth] = TVector2<int32>( -1, -1 );
+	}
+
+	bool bFound = false;
+	for( int i = 0; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+
+		SRand::Inst().Shuffle( pOfs, nOfs );
+		for( int j = 0; j < nOfs; j++ )
+		{
+			TVector2<int32> p1 = p + pOfs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight )
+			{
+				auto& type = vec[p1.x + p1.y * nWidth];
+				if( type == nBackType )
+				{
+					type = nPathType;
+					par[p1.x + p1.y * nWidth] = p;
+					q.push_back( p1 );
+				}
+				else if( type == nDstType )
+				{
+					par[p1.x + p1.y * nWidth] = p;
+					q.push_back( p1 );
+					bFound = true;
+					break;
+				}
+			}
+		}
+		if( bFound )
+			break;
+	}
+
+	for( int i = nSrcCount; i < ( bFound ? q.size() - 1 : q.size() ); i++ )
+	{
+		TVector2<int32> p = q[i];
+		vec[p.x + p.y * nWidth] = nBackType;
+	}
+
+	if( !bFound )
+		return TVector2<int32>( -1, -1 );
+
+	TVector2<int32> p = q.back();
+	TVector2<int32> res = p;
+	for( ; p.x >= 0; )
+	{
+		auto p1 = par[p.x + p.y * nWidth];
+		if( p1.x < 0 )
+			break;
+		if( vec[p.x + p.y * nWidth] == nBackType )
+			vec[p.x + p.y * nWidth] = nPathType;
+		p = p1;
+	}
+	q.clear();
+	return res;
+}
+
+TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> src, int8 nPathType, int8 nDstType,
+	vector<TVector2<int32> >& par, TVector2<int32>* pOfs, int32 nOfs )
+{
+	int8 nBackType = vec[src.x + src.y * nWidth];
+	vector<TVector2<int32> > q;
+	q.push_back( src );
+	return FindPath( vec, nWidth, nHeight, nBackType, nPathType, nDstType, q, par, pOfs, nOfs );
 }

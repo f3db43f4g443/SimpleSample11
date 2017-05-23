@@ -653,7 +653,7 @@
         </next_level>
       </node>
 
-      <node name="brick_tile_1a" type="bricktile" ofs="1" >
+      <node name="brick_tile_1ax" type="bricktile" ofs="1" >
         <brick>
           <ref name="block1a" />
         </brick>
@@ -661,7 +661,7 @@
           <ref name="block1ax" />
         </brick1>
       </node>
-      <node name="brick_tile_1b" type="bricktile" >
+      <node name="brick_tile_1bx" type="bricktile" >
         <brick>
           <ref name="block1b" />
         </brick>
@@ -669,6 +669,23 @@
           <ref name="block1bx" />
         </brick1>
       </node>
+      <node name="brick_tile_1ay" type="bricktile" vertical="1" ofs="1" >
+        <brick>
+          <ref name="block1a" />
+        </brick>
+        <brick1>
+          <ref name="block1ay" />
+        </brick1>
+      </node>
+      <node name="brick_tile_1by" type="bricktile" vertical="1" >
+        <brick>
+          <ref name="block1b" />
+        </brick>
+        <brick1>
+          <ref name="block1by" />
+        </brick1>
+      </node>
+      
       <node name="crate_tile" type="randomfill" check_gen_data_name="mask">
         <ref name="crate2x2" sizeminx="2" sizeminy="2" p="5" />
         <ref name="crate" sizeminx="1" sizeminy="1" p="1" />

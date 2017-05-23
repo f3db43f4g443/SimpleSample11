@@ -169,10 +169,10 @@
             <ref name="block0" />
           </wall>
           <block1>
-            <ref name="brick_tile_1a" />
+            <ref name="brick_tile_1ax" />
           </block1>
           <block2>
-            <ref name="brick_tile_1b" />
+            <ref name="brick_tile_1bx" />
           </block2>
           <stone>
             <ref name="stone" />
@@ -188,19 +188,31 @@
         </node>
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <node type="lv1type1_0" x="0" y="24" w="32" h="22">
+        <node type="lv1type1_1" x="0" y="24" w="32" h="22">
           <wall>
             <ref name="block0" />
           </wall>
-          <block1>
-            <ref name="brick_tile_1a" />
-          </block1>
-          <block2>
-            <ref name="brick_tile_1b" />
-          </block2>
+          <block1x>
+            <ref name="brick_tile_1ax" />
+          </block1x>
+          <block2x>
+            <ref name="brick_tile_1bx" />
+          </block2x>
+          <block1y>
+            <ref name="brick_tile_1ay" />
+          </block1y>
+          <block2y>
+            <ref name="brick_tile_1by" />
+          </block2y>
           <stone>
             <ref name="stone" />
           </stone>
+          <bar>
+            <ref name="stonebar" />
+          </bar>
+          <bar2>
+            <ref name="stonebar2" />
+          </bar2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -212,19 +224,31 @@
         </node>
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <node type="lv1type1_0" x="0" y="48" w="32" h="22">
+        <node type="lv1type1_1" x="0" y="48" w="32" h="22">
           <wall>
             <ref name="block0" />
           </wall>
-          <block1>
-            <ref name="brick_tile_1a" />
-          </block1>
-          <block2>
-            <ref name="brick_tile_1b" />
-          </block2>
+          <block1x>
+            <ref name="brick_tile_1ax" />
+          </block1x>
+          <block2x>
+            <ref name="brick_tile_1bx" />
+          </block2x>
+          <block1y>
+            <ref name="brick_tile_1ay" />
+          </block1y>
+          <block2y>
+            <ref name="brick_tile_1by" />
+          </block2y>
           <stone>
             <ref name="stone" />
           </stone>
+          <bar>
+            <ref name="stonebar" />
+          </bar>
+          <bar2>
+            <ref name="stonebar2" />
+          </bar2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -236,19 +260,31 @@
         </node>
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <node type="lv1type1_0" x="0" y="72" w="32" h="22">
+        <node type="lv1type1_1" x="0" y="72" w="32" h="22">
           <wall>
             <ref name="block0" />
           </wall>
-          <block1>
-            <ref name="brick_tile_1a" />
-          </block1>
-          <block2>
-            <ref name="brick_tile_1b" />
-          </block2>
+          <block1x>
+            <ref name="brick_tile_1ax" />
+          </block1x>
+          <block2x>
+            <ref name="brick_tile_1bx" />
+          </block2x>
+          <block1y>
+            <ref name="brick_tile_1ay" />
+          </block1y>
+          <block2y>
+            <ref name="brick_tile_1by" />
+          </block2y>
           <stone>
             <ref name="stone" />
           </stone>
+          <bar>
+            <ref name="stonebar" />
+          </bar>
+          <bar2>
+            <ref name="stonebar2" />
+          </bar2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -260,19 +296,31 @@
         </node>
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <node type="lv1type1_0" x="0" y="96" w="32" h="24">
+        <node type="lv1type1_1" x="0" y="96" w="32" h="24">
           <wall>
             <ref name="block0" />
           </wall>
-          <block1>
-            <ref name="brick_tile_1a" />
-          </block1>
-          <block2>
-            <ref name="brick_tile_1b" />
-          </block2>
+          <block1x>
+            <ref name="brick_tile_1ax" />
+          </block1x>
+          <block2x>
+            <ref name="brick_tile_1bx" />
+          </block2x>
+          <block1y>
+            <ref name="brick_tile_1ay" />
+          </block1y>
+          <block2y>
+            <ref name="brick_tile_1by" />
+          </block2y>
           <stone>
             <ref name="stone" />
           </stone>
+          <bar>
+            <ref name="stonebar" />
+          </bar>
+          <bar2>
+            <ref name="stonebar2" />
+          </bar2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -310,10 +358,10 @@
             <ref name="wall1" />
           </wallchunk>
           <block1>
-            <ref name="brick_tile_1a" />
+            <ref name="brick_tile_1ax" />
           </block1>
           <block2>
-            <ref name="brick_tile_1b" />
+            <ref name="brick_tile_1bx" />
           </block2>
           <room1>
             <ref name="enemyroom1" />

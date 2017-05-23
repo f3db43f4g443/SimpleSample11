@@ -32,6 +32,51 @@ private:
 	CReference<CLevelGenerateNode> m_pObjNode;
 };
 
+class CLevelGenNode1_1_1 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenMainPath();
+	void Flatten();
+	void GenObstacles();
+	void GenObjsBig();
+	void GenObjsSmall();
+	void GenAreas();
+
+	enum
+	{
+		eType_None,
+		eType_Path,
+		eType_Bar,
+		eType_Stone,
+		eType_Block1x,
+		eType_Block2x,
+		eType_Block1y,
+		eType_Block2y,
+		eType_Obj,
+		eType_Temp,
+		eType_Temp1,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<TRectangle<int32> > m_bars;
+	vector<TRectangle<int32> > m_stones;
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pStoneNode;
+	CReference<CLevelGenerateNode> m_pBlock1xNode;
+	CReference<CLevelGenerateNode> m_pBlock2xNode;
+	CReference<CLevelGenerateNode> m_pBlock1yNode;
+	CReference<CLevelGenerateNode> m_pBlock2yNode;
+	CReference<CLevelGenerateNode> m_pBarNode;
+	CReference<CLevelGenerateNode> m_pBar2Node;
+	CReference<CLevelGenerateNode> m_pObjNode;
+};
+
 class CLevelGenNode1_2 : public CLevelGenerateNode
 {
 public:
