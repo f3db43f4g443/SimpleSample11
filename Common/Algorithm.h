@@ -57,7 +57,9 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q );
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, vector<TVector2<int32> >& q, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount );
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount, vector<TVector2<int32> >& q );
 int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist );
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32> >& q );
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 nBackType, int8 nPathType, int8 nDstType,
 	vector<TVector2<int32> >& q, vector<TVector2<int32> >& par, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> src, int8 nPathType, int8 nDstType,

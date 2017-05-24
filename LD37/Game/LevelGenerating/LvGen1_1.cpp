@@ -871,3 +871,901 @@ void CLevelGenNode1_1_1::GenAreas()
 		FloodFill( m_gendata, nWidth, nHeight, p.x, p.y, eType_Block1x + SRand::Inst().Rand( 0, 4 ), SRand::Inst().Rand( nFillSizeMin, nFillSizeMax ) );
 	}
 }
+
+void CLevelGenNode1_1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+	m_pWallNode = CreateNode( pXml->FirstChildElement( "wall" )->FirstChildElement(), context );
+	m_pStoneNode = CreateNode( pXml->FirstChildElement( "stone" )->FirstChildElement(), context );
+	m_pBlock1xNode = CreateNode( pXml->FirstChildElement( "block1x" )->FirstChildElement(), context );
+	m_pBlock1yNode = CreateNode( pXml->FirstChildElement( "block1y" )->FirstChildElement(), context );
+	m_pBlock2xNode = CreateNode( pXml->FirstChildElement( "block2x" )->FirstChildElement(), context );
+	m_pBlock2yNode = CreateNode( pXml->FirstChildElement( "block2y" )->FirstChildElement(), context );
+	m_pBarNode = CreateNode( pXml->FirstChildElement( "bar" )->FirstChildElement(), context );
+	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
+	m_pRoom1Node = CreateNode( pXml->FirstChildElement( "room1" )->FirstChildElement(), context );
+	m_pRoom2Node = CreateNode( pXml->FirstChildElement( "room2" )->FirstChildElement(), context );
+	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CLevelGenNode1_1_2::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	m_pContext = &context;
+	m_region = region;
+	m_gendata.resize( region.width * region.height );
+	m_par.resize( region.width * region.height );
+
+	GenRooms();
+	GenRooms1();
+	GenObjs();
+	GenAreas();
+
+	for( int i = 0; i < region.width; i++ )
+	{
+		for( int j = 0; j < region.height; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData;
+
+			if( genData == eType_Path )
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			else if( genData == eType_Obj )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+		}
+	}
+
+	context.mapTags["mask"] = eType_Block1x;
+	m_pBlock1xNode->Generate( context, region );
+	context.mapTags["mask"] = eType_Block1y;
+	m_pBlock1yNode->Generate( context, region );
+	context.mapTags["mask"] = eType_Block2x;
+	m_pBlock2xNode->Generate( context, region );
+	context.mapTags["mask"] = eType_Block2y;
+	m_pBlock2yNode->Generate( context, region );
+	for( auto& rect : m_bars )
+	{
+		if( rect.height == 2 )
+			m_pBar2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		else
+			m_pBarNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_stones )
+	{
+		m_pStoneNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	context.mapTags["door"] = eType_Door;
+	for( auto& room : m_rooms )
+	{
+		if( room.nType == 0 )
+			m_pRoom1Node->Generate( context, room.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		else
+			m_pRoom2Node->Generate( context, room.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+
+	m_gendata.clear();
+	m_par.clear();
+	m_stones.clear();
+	m_bars.clear();
+	m_rooms.clear();
+	m_pathFindingTarget.clear();
+	m_vecHeight.clear();
+}
+
+void CLevelGenNode1_1_2::GenRooms()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	const int32 nBlockCountMin = 3;
+	const int32 nBlockCountMax = 6;
+	const int32 nBlockGroupSizeMin = 1;
+	const int32 nBlockGroupSizeMax = 4;
+	const int32 nEntranceSize = 8;
+	const int32 nBarLenMin = 6;
+	const int32 nBarLenMax = 12;
+	const int32 fBarChance = 0.75f;
+	enum
+	{
+		eOp_Blocks,
+		eOp_StoneOrBar,
+		eOp_Room,
+	};
+
+	uint8 nOp = eOp_StoneOrBar;
+	m_vecHeight.resize( nWidth );
+	memset( &m_vecHeight[0], -1, m_vecHeight.size() * sizeof( int32 ) );
+	int32 nEntranceBegin = SRand::Inst().Rand( 0, nWidth - nEntranceSize + 1 );
+	for( int i = 0; i < nEntranceSize; i++ )
+	{
+		m_gendata[i + nEntranceBegin] = eType_Path;
+		m_vecHeight[i + nEntranceBegin] = 0;
+		m_pathFindingTarget.push_back( TVector2<int32>( i + nEntranceBegin, 0 ) );
+	}
+	int8 nRoomPosType;
+	if( nEntranceBegin <= nWidth / 8 )
+		nRoomPosType = 0;
+	else if( nEntranceBegin + nEntranceSize >= nWidth - nWidth / 8 )
+		nRoomPosType = 3;
+	else if( SRand::Inst().Rand<float>( nEntranceBegin, nEntranceBegin + nEntranceSize ) < nWidth * 0.5f )
+		nRoomPosType = 0;
+	else
+		nRoomPosType = 3;
+
+	vector<int32> indexPool;
+	indexPool.resize( nWidth );
+	for( int i = 0; i < nWidth; i++ )
+		indexPool[i] = i;
+
+#define GET_LAST_TYPE( x ) ( m_vecHeight[x] < 0 ? eType_None : m_gendata[(x) + m_vecHeight[x] * nWidth] )
+
+	bool bBreak = false;
+	bool bFirstTime = true;
+	while( !bBreak )
+	{
+		switch( nOp )
+		{
+		case eOp_Blocks:
+		{
+			nOp = eOp_Room;
+			SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+			int iPos = 0;
+			int32 nBlockCount = SRand::Inst().Rand( nBlockCountMin, nBlockCountMax + 1 );
+			while( nBlockCount )
+			{
+				int32 nGroupSize = Min( nBlockCount, SRand::Inst().Rand( nBlockGroupSizeMin, nBlockGroupSizeMax + 1 ) );
+				nBlockCount -= nGroupSize;
+				int32 nGroupWidth = SRand::Inst().Rand( nGroupSize - nGroupSize / 2, nGroupSize + 1 );
+
+				int32 iBegin = -1;
+				for( ; iPos < nWidth; iPos++ )
+				{
+					int32 i1 = indexPool[iPos];
+					if( i1 + nGroupWidth > nWidth )
+						continue;
+
+					bool bSucceed = true;
+					for( int i2 = 0; i2 < nGroupWidth; i2++ )
+					{
+						if( GET_LAST_TYPE( i2 + i1 ) == eType_Path )
+						{
+							bSucceed = false;
+							break;
+						}
+					}
+					if( bSucceed )
+					{
+						iBegin = i1;
+						iPos++;
+						break;
+					}
+				}
+				if( iBegin < 0 )
+					continue;
+
+				int32 nGroupWidth1 = nGroupSize - nGroupWidth;
+				int32 iBegin1 = iBegin + SRand::Inst().Rand( 0, nGroupWidth - nGroupWidth1 + 1 );
+				for( int i = 0; i < nGroupWidth; i++ )
+				{
+					int32 x = i + iBegin;
+					if( m_vecHeight[x] < nHeight - 1 )
+					{
+						m_gendata[x + nWidth * ++m_vecHeight[x]] = eType_Temp;
+					}
+				}
+				for( int i = 0; i < nGroupWidth1; i++ )
+				{
+					int32 x = i + iBegin1;
+					if( m_vecHeight[x] < nHeight - 1 )
+					{
+						m_gendata[x + nWidth * ++m_vecHeight[x]] = eType_Temp;
+					}
+				}
+			}
+			break;
+		}
+		case eOp_StoneOrBar:
+		{
+			nOp = eOp_Blocks;
+			bool bStone = false;
+			for( int k = 0; k < 2; k++ )
+			{
+				SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+				bool bBar = bFirstTime || bStone ? true : SRand::Inst().Rand( 0.0f, 1.0f ) < fBarChance;
+				if( bBar )
+				{
+					int32 nBarLen = SRand::Inst().Rand( nBarLenMin, nBarLenMax + 1 );
+					int32 iBegin = -1;
+					int32 nBarHeight = 0;
+					for( int i = 0; i < nWidth; i++ )
+					{
+						int32 i1 = indexPool[i];
+						if( i1 + nBarLen > nWidth )
+							continue;
+
+						nBarHeight = 0;
+						bool b1 = false;
+						bool b2 = false;
+						for( int i2 = 0; i2 < nBarLen; i2++ )
+						{
+							int32 x = i2 + i1;
+							int8 lastType = GET_LAST_TYPE( x );
+							if( lastType == eType_Room )
+								b1 = true;
+							else if( lastType == eType_Path )
+								b2 = true;
+							nBarHeight = Max( nBarHeight, m_vecHeight[x] + 1 );
+						}
+
+						if( nBarHeight < nHeight && ( bFirstTime ? !b2 : b1 ) )
+						{
+							iBegin = i1;
+							break;
+						}
+					}
+					if( iBegin < 0 )
+						bBar = false;
+					else
+					{
+						for( int i = 0; i < nBarLen; i++ )
+						{
+							int32 x = i + iBegin;
+							m_gendata[x + nBarHeight * nWidth] = eType_Bar;
+							m_vecHeight[x] = nBarHeight;
+						}
+						m_bars.push_back( TRectangle<int32>( iBegin, nBarHeight, nBarLen, 1 ) );
+					}
+				}
+
+				if( !bBar )
+				{
+					bStone = true;
+					for( int i = 0; i < nWidth; i++ )
+					{
+						int32 x = indexPool[i];
+						int32 y = m_vecHeight[x] + 1;
+						if( y >= nHeight )
+							continue;
+						auto rect = PutRect( m_gendata, nWidth, nHeight, TVector2<int32>( x, y ), TVector2<int32>( 2, 2 ),
+							TVector2<int32>( SRand::Inst().Rand( 2, 5 ), SRand::Inst().Rand( 2, 5 ) ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Stone );
+						if( rect.width > 0 )
+						{
+							int32 y = rect.GetBottom() - 1;
+							for( int i = 0; i < rect.width; i++ )
+							{
+								int32 x = i + rect.x;
+								for( int j = 0; j < rect.height; j++ )
+								{
+									m_gendata[x + ( j + rect.y ) * nWidth] = eType_Stone;
+								}
+								m_vecHeight[x] = Max( m_vecHeight[x], y );
+							}
+							m_stones.push_back( rect );
+							break;
+						}
+					}
+				}
+			}
+
+			break;
+		}
+		case eOp_Room:
+		{
+			nOp = nRoomPosType == 4 ? eOp_Room : eOp_StoneOrBar;
+			
+			switch( nRoomPosType )
+			{
+			case 0:
+				nRoomPosType = SRand::Inst().Rand( 0.0f, 1.0f ) < 0.25f ? 1 : 3;
+				break;
+			case 3:
+				nRoomPosType = SRand::Inst().Rand( 0.0f, 1.0f ) < 0.25f ? 2 : 0;
+				break;
+			case 1:
+				nRoomPosType = 3;
+				break;
+			case 2:
+				nRoomPosType = 0;
+				break;
+			}
+
+			int32 nGenBegin, nGenEnd;
+			TVector2<int32> sizeMin, sizeMax;
+			switch( nRoomPosType )
+			{
+			case 0:
+				nGenBegin = 0;
+				nGenEnd = nWidth * 3 / 8;
+				sizeMin = TVector2<int32>( 6, 6 );
+				sizeMax = TVector2<int32>( 8, 9 );
+				break;
+			case 3:
+				nGenBegin = nWidth - nWidth * 3 / 8;
+				nGenEnd = nWidth;
+				sizeMin = TVector2<int32>( 6, 6 );
+				sizeMax = TVector2<int32>( 8, 9 );
+				break;
+			case 1:
+			case 2:
+				nGenBegin = nWidth * 3 / 8;
+				nGenEnd = nWidth - nWidth * 3 / 8;
+				sizeMin = TVector2<int32>( 6, 6 );
+				sizeMax = TVector2<int32>( 7, 7 );
+				break;
+			case 4:
+				nGenBegin = 0;
+				nGenEnd = nWidth;
+				sizeMin = TVector2<int32>( 6, 6 );
+				sizeMax = TVector2<int32>( 8, 8 );
+				break;
+			}
+
+			SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+			bool bCreated = false;
+			for( int i = 0; i < nWidth; i++ )
+			{
+				int32 x = indexPool[i];
+				int32 y = m_vecHeight[x] + 1;
+				if( x < nGenBegin || x >= nGenEnd || y + 6 > nHeight )
+					continue;
+				if( m_rooms.size() && nRoomPosType < 4 )
+					y = Min( nHeight - 6, Max( y, m_rooms.back().rect.GetBottom() - 6 ) );
+				auto rect = PutRect( m_gendata, nWidth, nHeight, TVector2<int32>( x, y ), sizeMin, sizeMax, TRectangle<int32>( nGenBegin, y, nGenEnd - nGenBegin, nHeight - y ), -1, eType_Room );
+				if( rect.width > 0 )
+				{
+					SRoom room;
+					room.nType = rect.width + rect.height >= 15 ? 1 : 0;
+					room.rect = rect;
+					m_rooms.push_back( room );
+
+					if( !bFirstTime )
+					{
+						for( int i = 0; i < nWidth; i++ )
+						{
+							if( i >= rect.x && i < rect.GetRight() )
+								continue;
+
+							int8 nLastType = GET_LAST_TYPE( i );
+							if( nLastType == eType_None || nLastType == eType_Path )
+							{
+								int32 h = SRand::Inst().Rand( 1, 4 );
+								for( int k = 0; k < h && m_vecHeight[i] < nHeight - 1; k++ )
+									m_gendata[i + nWidth * ++m_vecHeight[i]] = eType_Temp;
+							}
+						}
+
+						for( auto p : m_pathFindingTarget )
+						{
+							m_gendata[p.x + p.y * nWidth] = eType_Path;
+						}
+					}
+
+					LinkRoom( nRoomPosType );
+					bCreated = true;
+					break;
+				}
+			}
+
+			bFirstTime = false;
+			if( !bCreated )
+			{
+				if( nRoomPosType < 4 )
+					nRoomPosType = 4;
+				else
+					bBreak = true;
+			}
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	for( auto p : m_pathFindingTarget )
+	{
+		m_gendata[p.x + p.y * nWidth] = eType_Path;
+	}
+	for( int i = 0; i < m_gendata.size(); i++ )
+	{
+		if( m_gendata[i] == eType_Temp )
+			m_gendata[i] = eType_None;
+	}
+
+	vector<TVector2<int32> > q;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		if( m_gendata[i + ( nHeight - 1 ) * nWidth] == eType_None )
+		{
+			m_gendata[i + ( nHeight - 1 ) * nWidth] = eType_Path;
+			q.push_back( TVector2<int32>( i, nHeight - 1 ) );
+		}
+	}
+	SRand::Inst().Shuffle( &q[0], q.size() );
+	FloodFillExpand( m_gendata, nWidth, nHeight, eType_Path, eType_None, nWidth * nHeight * 0.1f, q );
+}
+
+void CLevelGenNode1_1_2::GenRooms1()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	vector<int8> vecTemp;
+	vecTemp.resize( m_gendata.size() );
+	for( int i = 0; i < m_gendata.size(); i++ )
+		vecTemp[i] = m_gendata[i] == eType_Path ? 1 : ( m_gendata[i] == eType_None ? 0 : 2 );
+	ExpandDist( vecTemp, nWidth, nHeight, 1, 0, 3 );
+	vector<TVector2<int32> > vecEmpty;
+	for( int i = 0; i < m_gendata.size(); i++ )
+	{
+		if( m_gendata[i] == eType_None )
+		{
+			if( vecTemp[i] == 1 )
+				m_gendata[i] = eType_Temp;
+			else
+				vecEmpty.push_back( TVector2<int32>( i % nWidth, i / nWidth ) );
+		}
+	}
+	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	
+	int32 nCount = 2;
+	for( auto p : vecEmpty )
+	{
+		if( m_gendata[p.x + p.y * nWidth] != eType_None )
+			continue;
+
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 5, 5 ), TVector2<int32>( 8, 8 ), TRectangle<int32>( 0, 3, nWidth, nHeight - 6 ), -1, eType_Room );
+		if( rect.width > 0 )
+		{
+			SRoom room;
+			room.nType = 1;
+			room.rect = rect;
+			m_rooms.push_back( room );
+
+			LinkRoom( 5 );
+
+			nCount--;
+			if( !nCount )
+				break;
+		}
+	}
+
+	for( int i = 0; i < m_gendata.size(); i++ )
+	{
+		if( m_gendata[i] == eType_Temp )
+			m_gendata[i] = eType_None;
+	}
+}
+
+void CLevelGenNode1_1_2::LinkRoom( int8 nRoomPosType )
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	const int32 nPathSizeMin = 4;
+	const int32 nPathSizeMax = 8;
+	auto& room = m_rooms.back();
+	auto& rect = room.rect;
+
+	vector<TVector2<int32> > q;
+	//left
+	if( rect.x > 0 )
+	{
+		int32 nCurLen = 0;
+		float fMaxLen = 0;
+		int32 nMaxPos = -1;
+		int32 x = rect.x - 1;
+		for( int32 y = rect.y + 1; y < rect.GetBottom() - 1; y++ )
+		{
+			if( m_gendata[x + y * nWidth] == eType_None )
+			{
+				nCurLen = Min( nCurLen + 1, 3 );
+				float fCurLen = nCurLen + SRand::Inst().Rand( 0.0f, 1.0f );
+				if( fCurLen > fMaxLen )
+				{
+					fMaxLen = fCurLen;
+					nMaxPos = y - nCurLen + 1;
+				}
+			}
+			else
+				nCurLen = 0;
+		}
+
+		if( nMaxPos >= 0 )
+		{
+			int32 nMaxLen = floor( fMaxLen );
+			int32 y = SRand::Inst().Rand( nMaxPos, nMaxPos + nMaxLen );
+			FloodFill( m_gendata, nWidth, nHeight, x, y, eType_Temp1, SRand::Inst().Rand( nPathSizeMin, nPathSizeMax + 1 ), q );
+
+			bool bLeft = y > rect.y + 1;
+			bool bRight = y < rect.GetBottom() - 2;
+			if( room.nType == 0 )
+			{
+				if( y == rect.y + 2 )
+				{
+					bLeft = true;
+					bRight = false;
+				}
+				if( y == rect.GetBottom() - 3 )
+				{
+					bLeft = false;
+					bRight = true;
+				}
+			}
+			if( bLeft && bRight )
+				( SRand::Inst().Rand() & 1 ? bLeft : bRight ) = false;
+			m_gendata[x + 1 + y * nWidth] = eType_Door;
+			if( bLeft )
+				m_gendata[x + 1 + ( y - 1 ) * nWidth] = eType_Door;
+			else
+				m_gendata[x + 1 + ( y + 1 ) * nWidth] = eType_Door;
+		}
+	}
+	//right
+	if( rect.GetRight() < nWidth )
+	{
+		int32 nCurLen = 0;
+		float fMaxLen = 0;
+		int32 nMaxPos = -1;
+		int32 x = rect.GetRight();
+		for( int32 y = rect.y + 1; y < rect.GetBottom() - 1; y++ )
+		{
+			if( m_gendata[x + y * nWidth] == eType_None )
+			{
+				nCurLen = Min( nCurLen + 1, 3 );
+				float fCurLen = nCurLen + SRand::Inst().Rand( 0.0f, 1.0f );
+				if( fCurLen > fMaxLen )
+				{
+					fMaxLen = fCurLen;
+					nMaxPos = y - nCurLen + 1;
+				}
+			}
+			else
+				nCurLen = 0;
+		}
+
+		if( nMaxPos >= 0 )
+		{
+			int32 nMaxLen = floor( fMaxLen );
+			int32 y = SRand::Inst().Rand( nMaxPos, nMaxPos + nMaxLen );
+			FloodFill( m_gendata, nWidth, nHeight, x, y, eType_Temp1, SRand::Inst().Rand( nPathSizeMin, nPathSizeMax + 1 ), q );
+
+			bool bLeft = y > rect.y + 1;
+			bool bRight = y < rect.GetBottom() - 2;
+			if( room.nType == 0 )
+			{
+				if( y == rect.y + 2 )
+				{
+					bLeft = true;
+					bRight = false;
+				}
+				if( y == rect.GetBottom() - 3 )
+				{
+					bLeft = false;
+					bRight = true;
+				}
+			}
+			if( bLeft && bRight )
+				( SRand::Inst().Rand() & 1 ? bLeft : bRight ) = false;
+			m_gendata[x - 1 + y * nWidth] = eType_Door;
+			if( bLeft )
+				m_gendata[x - 1 + ( y - 1 ) * nWidth] = eType_Door;
+			else
+				m_gendata[x - 1 + ( y + 1 ) * nWidth] = eType_Door;
+		}
+	}
+
+	//top
+	bool bTop = true;
+	if( rect.y > 0 )
+	{
+		if( nRoomPosType <= 4 )
+		{
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				if( GET_LAST_TYPE( i ) == eType_Path )
+				{
+					bTop = false;
+					break;
+				}
+			}
+		}
+
+		if( bTop )
+		{
+			int32 nCurLen = 0;
+			float fMaxLen = 0;
+			int32 nMaxPos = -1;
+			int32 y = rect.y - 1;
+			for( int32 x = rect.x + 1; x < rect.GetRight() - 1; x++ )
+			{
+				if( m_gendata[x + y * nWidth] == eType_None )
+				{
+					nCurLen = Min( nCurLen + 1, 3 );
+					float fCurLen = nCurLen + SRand::Inst().Rand( 0.0f, 1.0f );
+					if( fCurLen > fMaxLen )
+					{
+						fMaxLen = fCurLen;
+						nMaxPos = x - nCurLen + 1;
+					}
+				}
+				else
+					nCurLen = 0;
+			}
+
+			if( nMaxPos >= 0 )
+			{
+				int32 nMaxLen = floor( fMaxLen );
+				int32 x = SRand::Inst().Rand( nMaxPos, nMaxPos + nMaxLen );
+				FloodFill( m_gendata, nWidth, nHeight, x, y, eType_Temp1, SRand::Inst().Rand( nPathSizeMin, nPathSizeMax + 1 ), q );
+
+				bool bLeft = x > rect.x + 1;
+				bool bRight = x < rect.GetRight() - 2;
+				if( bLeft && bRight )
+					( SRand::Inst().Rand() & 1 ? bLeft : bRight ) = false;
+				m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+				if( bLeft )
+					m_gendata[x - 1 + ( y + 1 ) * nWidth] = eType_Door;
+				else
+					m_gendata[x + 1 + ( y + 1 ) * nWidth] = eType_Door;
+			}
+		}
+	}
+	//bottom
+	if( rect.GetBottom() < nHeight - 1 && ( nRoomPosType != 1 && nRoomPosType != 2 || !bTop ) )
+	{
+		int32 nCurLen = 0;
+		float fMaxLen = 0;
+		int32 nMaxPos = -1;
+		int32 y = rect.GetBottom();
+		for( int32 x = rect.x + 1; x < rect.GetRight() - 1; x++ )
+		{
+			if( m_gendata[x + y * nWidth] == eType_None )
+			{
+				nCurLen = Min( nCurLen + 1, 3 );
+				float fCurLen = nCurLen + SRand::Inst().Rand( 0.0f, 1.0f );
+				if( fCurLen > fMaxLen )
+				{
+					fMaxLen = fCurLen;
+					nMaxPos = x - nCurLen + 1;
+				}
+			}
+			else
+				nCurLen = 0;
+		}
+
+		if( nMaxPos >= 0 )
+		{
+			int32 nMaxLen = floor( fMaxLen );
+			int32 x = SRand::Inst().Rand( nMaxPos, nMaxPos + nMaxLen );
+			FloodFill( m_gendata, nWidth, nHeight, x, y, eType_Temp1, SRand::Inst().Rand( nPathSizeMin, nPathSizeMax + 1 ), q );
+
+			bool bLeft = x > rect.x + 1;
+			bool bRight = x < rect.GetRight() - 2;
+			if( bLeft && bRight )
+				( SRand::Inst().Rand() & 1 ? bLeft : bRight ) = false;
+			m_gendata[x + ( y - 1 ) * nWidth] = eType_Door;
+			if( bLeft )
+				m_gendata[x - 1 + ( y - 1 ) * nWidth] = eType_Door;
+			else
+				m_gendata[x + 1 + ( y - 1 ) * nWidth] = eType_Door;
+		}
+	}
+
+	TVector2<int32> dst = FindPath( m_gendata, nWidth, nHeight, eType_None, eType_Temp2, nRoomPosType == 5 ? eType_Path : eType_Temp1, m_pathFindingTarget, m_par );
+	if( dst.x >= 0 )
+	{
+		vector<TVector2<int32> > q1;
+		TVector2<int32> p = m_par[dst.x + dst.y * nWidth];
+		while( p.x >= 0 && m_gendata[p.x + p.y * nWidth] == eType_Temp2 )
+		{
+			q1.push_back( p );
+			p = m_par[p.x + p.y * nWidth];
+		}
+
+		ExpandDist( m_gendata, nWidth, nHeight, eType_Temp2, eType_None, nRoomPosType == 5 ? 1 : 2, q1 );
+		for( auto p : q1 )
+		{
+			m_gendata[p.x + p.y * nWidth] = eType_Path;
+			m_vecHeight[p.x] = Max( m_vecHeight[p.x], p.y );
+		}
+	}
+
+	if( nRoomPosType <= 4 )
+	{
+		m_pathFindingTarget.clear();
+		m_pathFindingTarget.resize( q.size() );
+		for( int i = 0; i < q.size(); i++ )
+		{
+			auto p = q[i];
+			m_pathFindingTarget[i] = p;
+			m_vecHeight[p.x] = Max( m_vecHeight[p.x], p.y );
+		}
+		for( int x = rect.x; x < rect.GetRight(); x++ )
+			m_vecHeight[x] = Max( m_vecHeight[x], rect.GetBottom() - 1 );
+	}
+	else
+	{
+		for( int i = 0; i < q.size(); i++ )
+		{
+			auto p = q[i];
+			m_gendata[p.x + p.y * nWidth] = eType_Path;
+		}
+	}
+}
+
+#undef GET_LAST_TYPE
+
+void CLevelGenNode1_1_2::GenObjs()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+
+	vector<int8> vecTemp;
+	vecTemp.resize( m_gendata.size() );
+	for( int i = 0; i < m_gendata.size(); i++ )
+		vecTemp[i] = m_gendata[i] == eType_None ? 0 : 1;
+	vector<TVector2<int32> > vecEmpty;
+	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
+	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+
+	for( auto p : vecEmpty )
+	{
+		if( vecTemp[p.x + p.y * nWidth] )
+			continue;
+
+		vector<TVector2<int32> > q;
+
+		bool bFound = false;
+		int i = 0;
+		int32 h[] = { 1, 2, 3 };
+		int32 n[] = { 4, 8, 15};
+
+		int32 minX = nWidth, minY = nHeight, maxX = -1, maxY = -1;
+		int k;
+		for( k = 0; k < ELEM_COUNT( h ); k++ )
+		{
+			if( k == 0 )
+				FloodFill( vecTemp, nWidth, nHeight, p.x, p.y, 1, n[k], q );
+			else
+				FloodFillExpand( vecTemp, nWidth, nHeight, 1, 0, n[k], q );
+			if( q.size() < n[k] )
+				break;
+			for( ; i < n[k]; i++ )
+			{
+				auto p1 = q[i];
+				if( p1.x < minX )
+					minX = p1.x;
+				if( p1.y < minY )
+					minY = p1.y;
+				if( p1.x > maxX )
+					maxX = p1.x;
+				if( p1.y > maxY )
+					maxY = p1.y;
+			}
+			if( maxY - minY <= h[k] )
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if( bFound )
+		{
+			int32 nHoleSizesMin[] = { 4, 6, 10 };
+			int32 nHoleSizesMax[] = { 4, 8, 13 };
+			int32 nHoleSize = nHoleSizesMin[k];
+			minX = nWidth;
+			minY = nHeight;
+			maxX = -1;
+			maxY = -1;
+			for( i = 0; i < nHoleSize; i++ )
+			{
+				auto p1 = q[i];
+				if( p1.x < minX )
+					minX = p1.x;
+				if( p1.y < minY )
+					minY = p1.y;
+				if( p1.x > maxX )
+					maxX = p1.x;
+				if( p1.y > maxY )
+					maxY = p1.y;
+			}
+
+			if( minY <= 0 )
+				continue;
+			else
+			{
+				bool bPath = false;
+				for( i = minX; i <= maxX; i++ )
+				{
+					if( m_gendata[i + ( minY - 1 ) * nWidth] == eType_Path || m_gendata[i + ( minY - 1 ) * nWidth] == eType_Obj )
+					{
+						bPath = true;
+						break;
+					}
+				}
+				if( bPath )
+					continue;
+			}
+			if( maxY >= nHeight - 1 )
+				continue;
+			else
+			{
+				bool bPath = false;
+				for( i = minX; i <= maxX; i++ )
+				{
+					if( m_gendata[i + ( maxY + 1 ) * nWidth] == eType_Path || m_gendata[i + ( maxY + 1 ) * nWidth] == eType_Obj )
+					{
+						bPath = true;
+						break;
+					}
+				}
+				if( bPath )
+					continue;
+			}
+
+			nHoleSize = SRand::Inst().Rand( nHoleSizesMin[k], nHoleSizesMax[k] + 1 );
+			int32 nObjCount = nHoleSize / 2;
+			SRand::Inst().Shuffle( &q[0], nHoleSize );
+			for( i = 0; i < nHoleSize; i++ )
+			{
+				auto p1 = q[i];
+				m_gendata[p1.x + p1.y * nWidth] = eType_Path;
+				if( nObjCount )
+				{
+					if( m_gendata[p1.x + p1.y * nWidth] == eType_Path )
+					{
+						while( p1.y > 0 && m_gendata[p1.x + ( p1.y - 1 ) * nWidth] == eType_Path )
+							p1.y--;
+
+						m_gendata[p1.x + p1.y * nWidth] = eType_Obj;
+						nObjCount--;
+					}
+				}
+			}
+		}
+	}
+}
+
+void CLevelGenNode1_1_2::GenAreas()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	const int32 nFillSizeMin = 32;
+	const int32 nFillSizeMax = 48;
+
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 1; i < nWidth - 1; i++ )
+		{
+			auto& data = m_gendata[i + j * nWidth];
+			if( data == eType_None && m_gendata[i - 1 + j * nWidth] == eType_Path && m_gendata[i + 1 + j * nWidth] == eType_Path )
+				data = eType_Path;
+		}
+	}
+	vector<TVector2<int32> > vecEmpty;
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			auto& data = m_gendata[i + j * nWidth];
+			if( i > 0 && i < nWidth - 1 )
+			{
+				if( data == eType_Path && m_gendata[i - 1 + j * nWidth] == eType_None && m_gendata[i + 1 + j * nWidth] == eType_None )
+					data = eType_None;
+			}
+			if( data == eType_None )
+				vecEmpty.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+
+	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	for( auto p : vecEmpty )
+	{
+		if( m_gendata[p.x + p.y * nWidth] != eType_None )
+			continue;
+		FloodFill( m_gendata, nWidth, nHeight, p.x, p.y, eType_Block1x + SRand::Inst().Rand( 0, 4 ), SRand::Inst().Rand( nFillSizeMin, nFillSizeMax ) );
+	}
+}

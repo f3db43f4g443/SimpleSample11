@@ -224,7 +224,7 @@
         </node>
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <node type="lv1type1_1" x="0" y="48" w="32" h="22">
+        <node type="lv1type1_2" x="0" y="48" w="32" h="22">
           <wall>
             <ref name="block0" />
           </wall>
@@ -249,6 +249,12 @@
           <bar2>
             <ref name="stonebar2" />
           </bar2>
+          <room1>
+            <ref name="enemyroom1" />
+          </room1>
+          <room2>
+            <ref name="enemyroom2" />
+          </room2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -260,7 +266,7 @@
         </node>
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <node type="lv1type1_1" x="0" y="72" w="32" h="22">
+        <node type="lv1type1_2" x="0" y="72" w="32" h="22">
           <wall>
             <ref name="block0" />
           </wall>
@@ -285,6 +291,12 @@
           <bar2>
             <ref name="stonebar2" />
           </bar2>
+          <room1>
+            <ref name="enemyroom1" />
+          </room1>
+          <room2>
+            <ref name="enemyroom2" />
+          </room2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />
@@ -296,7 +308,7 @@
         </node>
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <node type="lv1type1_1" x="0" y="96" w="32" h="24">
+        <node type="lv1type1_2" x="0" y="96" w="32" h="24">
           <wall>
             <ref name="block0" />
           </wall>
@@ -321,6 +333,12 @@
           <bar2>
             <ref name="stonebar2" />
           </bar2>
+          <room1>
+            <ref name="enemyroom1" />
+          </room1>
+          <room2>
+            <ref name="enemyroom2" />
+          </room2>
           <obj>
             <node type="randompick">
               <ref name="garbage_bin_red" p="1" />

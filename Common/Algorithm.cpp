@@ -47,7 +47,7 @@ TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TVect
 			else
 				break;
 		}
-		else if( rect.height >= minSize.x && rect.width < minSize.y )
+		else if( rect.height >= minSize.y && rect.width < minSize.x )
 		{
 			int32 iDir[2] = { -1, -1 };
 			for( int i = 0; i < nExtendDirCount; i++ )
@@ -288,6 +288,11 @@ int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nTy
 	}
 	SRand::Inst().Shuffle( &q[0], q.size() );
 
+	return FloodFillExpand( vec, nWidth, nHeight, nType, nBackType, nTargetCount, q );
+}
+
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount, vector<TVector2<int32>>& q )
+{
 	for( int i = 0; i < q.size() && q.size() < nTargetCount; i++ )
 	{
 		TVector2<int32> p = q[i];
@@ -311,8 +316,6 @@ int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nTy
 
 int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist )
 {
-	vector<int32> vecDist;
-	vecDist.resize( nWidth * nHeight );
 	vector<TVector2<int32> > q;
 	for( int i = 0; i < nWidth; i++ )
 	{
@@ -322,22 +325,31 @@ int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, i
 				q.push_back( TVector2<int32>( i, j ) );
 		}
 	}
+	return ExpandDist( vec, nWidth, nHeight, nType, nBackType, nDist, q );
+}
+
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32>>& q )
+{
+	vector<int32> vecDist;
+	vecDist.resize( nWidth * nHeight );
 
 	for( int i = 0; i < q.size(); i++ )
 	{
 		TVector2<int32> p = q[i];
 		int32 nDist1 = vecDist[p.x + p.y * nWidth] + 1;
-		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
-		for( int j = 0; j < 4; j++ )
+		if( nDist1 <= nDist )
 		{
-			TVector2<int32> p1 = p + ofs[j];
-			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
-				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+			for( int j = 0; j < 4; j++ )
 			{
-				vec[p1.x + p1.y * nWidth] = nType;
-				vecDist[p1.x + p1.y * nWidth] = nDist1;
-				if( nDist1 < nDist )
+				TVector2<int32> p1 = p + ofs[j];
+				if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+					&& vec[p1.x + p1.y * nWidth] == nBackType )
+				{
+					vec[p1.x + p1.y * nWidth] = nType;
+					vecDist[p1.x + p1.y * nWidth] = nDist1;
 					q.push_back( p1 );
+				}
 			}
 		}
 	}
