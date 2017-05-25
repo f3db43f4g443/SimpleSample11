@@ -1309,6 +1309,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
 	REGISTER_GENERATE_NODE( "lv1type1_1", CLevelGenNode1_1_1 );
 	REGISTER_GENERATE_NODE( "lv1type1_2", CLevelGenNode1_1_2 );
+	REGISTER_GENERATE_NODE( "lv1type1_3", CLevelGenNode1_1_3 );
 	REGISTER_GENERATE_NODE( "lv1type2", CLevelGenNode1_2 );
 	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
 }

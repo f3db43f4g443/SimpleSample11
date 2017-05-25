@@ -144,6 +144,9 @@
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGenLib.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -282,6 +285,9 @@
     </ClInclude>
     <ClInclude Include="LevelScrollObj.h">
       <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelGenerating\LvGenLib.h">
+      <Filter>LevelGenerating</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1489,10 +1489,13 @@ void CLevelGenNode1_2::FillBlockArea()
 			for( int k = 0; k < 4 && q.size() < n; k++ )
 			{
 				TVector2<int32> pos1 = pos + ofs[k];
-				if( bCrate && ( !pos1.y || gendata[pos1.x + ( pos1.y - 1 ) * nWidth] == eType_Path ) )
-					continue;
 				if( pos1.x >= 0 && pos1.y >= 0 && pos1.x < nWidth && pos1.y < nHeight && gendata[pos1.x + pos1.y * nWidth] == eType_None )
+				{
+					if( bCrate && ( !pos1.y || gendata[pos1.x + ( pos1.y - 1 ) * nWidth] == eType_Path ) )
+						continue;
+
 					q.push_back( pos1 );
+				}
 			}
 		}
 	}

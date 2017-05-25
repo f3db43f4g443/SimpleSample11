@@ -18,8 +18,6 @@ TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TVect
 	, TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType )
 {
 	int32 nBackType = vec[p.x + p.y * nWidth];
-	if( nBackType == nType )
-		return TRectangle<int32>( 0, 0, 0, 0 );
 	TRectangle<int32> rect( p.x, p.y, 1, 1 );
 
 	uint32 nExtendDirs[] = { 0, 1, 2, 3 };

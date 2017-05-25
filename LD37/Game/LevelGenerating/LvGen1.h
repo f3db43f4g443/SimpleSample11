@@ -43,7 +43,7 @@ private:
 	void GenObstacles();
 	void GenObjsBig();
 	void GenObjsSmall();
-	void GenAreas();
+	void GenBlocks();
 
 	enum
 	{
@@ -86,8 +86,10 @@ private:
 	void GenRooms();
 	void GenRooms1();
 	void LinkRoom( int8 nRoomPosType );
+	void AddMoreBars();
 	void GenObjs();
-	void GenAreas();
+	void GenObjs1();
+	void GenBlocks();
 
 	enum
 	{
@@ -133,6 +135,68 @@ private:
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pRoom1Node;
 	CReference<CLevelGenerateNode> m_pRoom2Node;
+	CReference<CLevelGenerateNode> m_pObjNode;
+};
+
+class CLevelGenNode1_1_3 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenAreas();
+	void GenObstacles();
+
+	enum
+	{
+		eType_None,
+		eType_Bar,
+		eType_Stone,
+		eType_Room,
+		eType_Door,
+		eType_Block1x,
+		eType_Block2x,
+		eType_Block1y,
+		eType_Block2y,
+		eType_WallChunk,
+		eType_Obj,
+
+		eType_Temp,
+		eType_Temp1,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<int8> m_gendata1;
+
+	struct SArea
+	{
+		int8 nType;
+		TRectangle<int32> rect;
+	};
+	struct SRoom
+	{
+		uint8 nType;
+		TRectangle<int32> rect;
+	};
+	vector<SArea> m_areas;
+	vector<SRoom> m_rooms;
+	vector<TRectangle<int32> > m_bars;
+	vector<TRectangle<int32> > m_stones;
+	vector<TRectangle<int32> > m_wallChunks;
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pStoneNode;
+	CReference<CLevelGenerateNode> m_pBlock1xNode;
+	CReference<CLevelGenerateNode> m_pBlock2xNode;
+	CReference<CLevelGenerateNode> m_pBlock1yNode;
+	CReference<CLevelGenerateNode> m_pBlock2yNode;
+	CReference<CLevelGenerateNode> m_pBarNode;
+	CReference<CLevelGenerateNode> m_pBar2Node;
+	CReference<CLevelGenerateNode> m_pRoom1Node;
+	CReference<CLevelGenerateNode> m_pRoom2Node;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 };
 

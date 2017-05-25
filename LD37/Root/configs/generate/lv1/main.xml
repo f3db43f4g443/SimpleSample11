@@ -75,73 +75,147 @@
         </next_level>
       </node>
       
-      <node type="randompick" name="lv1style1" >
-        <node type="subregion" p="1">
-          <ref name="trap0" x="0" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="4" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="8" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="12" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="16" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="20" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="24" y="0" w="8" h="8" />
-        </node>
+      <node type="lv1type1_0" name="lv1style1">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1>
+          <ref name="brick_tile_1ax" />
+        </block1>
+        <block2>
+          <ref name="brick_tile_1bx" />
+        </block2>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <obj>
+          <node type="randompick">
+            <ref name="garbage_bin_red" p="1" />
+            <ref name="garbage_bin_yellow" p="1" />
+            <ref name="garbage_bin_green" p="1" />
+            <ref name="garbage_bin_black" p="1" />
+          </node>
+        </obj>
       </node>
       
-      <node type="randompick" name="lv1style2" >
-        <node type="subregion" p="1">
-          <ref name="trap0" x="0" y="0" w="8" h="8" />
-          <ref name="trap0" x="24" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="4" y="0" w="8" h="8" />
-          <ref name="trap0" x="20" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="8" y="0" w="8" h="8" />
-          <ref name="trap0" x="16" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="0" y="0" w="8" h="8" />
-          <ref name="trap0" x="16" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="8" y="0" w="8" h="8" />
-          <ref name="trap0" x="24" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap1" x="0" y="0" w="16" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap1" x="16" y="0" w="16" h="8" />
-        </node>
+      <node type="lv1type1_1" name="lv1style2">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1x>
+          <ref name="brick_tile_1ax" />
+        </block1x>
+        <block2x>
+          <ref name="brick_tile_1bx" />
+        </block2x>
+        <block1y>
+          <ref name="brick_tile_1ay" />
+        </block1y>
+        <block2y>
+          <ref name="brick_tile_1by" />
+        </block2y>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <bar>
+          <ref name="stonebar" />
+        </bar>
+        <bar2>
+          <ref name="stonebar2" />
+        </bar2>
+        <obj>
+          <node type="randompick">
+            <ref name="garbage_bin_red" p="1" />
+            <ref name="garbage_bin_yellow" p="1" />
+            <ref name="garbage_bin_green" p="1" />
+            <ref name="garbage_bin_black" p="1" />
+          </node>
+        </obj>
       </node>
       
-      <node type="randompick" name="lv1style3" >
-        <node type="subregion" p="1">
-          <ref name="trap0" x="0" y="0" w="8" h="8" />
-          <ref name="trap0" x="12" y="0" w="8" h="8" />
-          <ref name="trap0" x="24" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap1" x="0" y="0" w="16" h="8" />
-          <ref name="trap0" x="24" y="0" w="8" h="8" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="trap0" x="0" y="0" w="8" h="8" />
-          <ref name="trap1" x="16" y="0" w="16" h="8" />
-        </node>
+      <node type="lv1type1_2" name="lv1style3">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1x>
+          <ref name="brick_tile_1ax" />
+        </block1x>
+        <block2x>
+          <ref name="brick_tile_1bx" />
+        </block2x>
+        <block1y>
+          <ref name="brick_tile_1ay" />
+        </block1y>
+        <block2y>
+          <ref name="brick_tile_1by" />
+        </block2y>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <bar>
+          <ref name="stonebar" />
+        </bar>
+        <bar2>
+          <ref name="stonebar2" />
+        </bar2>
+        <room1>
+          <ref name="enemyroom1" />
+        </room1>
+        <room2>
+          <ref name="enemyroom2" />
+        </room2>
+        <obj>
+          <node type="randompick">
+            <ref name="garbage_bin_red" p="1" />
+            <ref name="garbage_bin_yellow" p="1" />
+            <ref name="garbage_bin_green" p="1" />
+            <ref name="garbage_bin_black" p="1" />
+          </node>
+        </obj>
+      </node>
+      
+      <node type="lv1type1_3" name="lv1style4">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1x>
+          <ref name="brick_tile_1ax" />
+        </block1x>
+        <block2x>
+          <ref name="brick_tile_1bx" />
+        </block2x>
+        <block1y>
+          <ref name="brick_tile_1ay" />
+        </block1y>
+        <block2y>
+          <ref name="brick_tile_1by" />
+        </block2y>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <bar>
+          <ref name="stonebar" />
+        </bar>
+        <bar2>
+          <ref name="stonebar2" />
+        </bar2>
+        <room1>
+          <ref name="enemyroom1" />
+        </room1>
+        <room2>
+          <ref name="enemyroom2" />
+        </room2>
+        <wallchunk>
+          <ref name="wall" />
+        </wallchunk>
+        <obj>
+          <node type="randompick">
+            <ref name="garbage_bin_red" p="1" />
+            <ref name="garbage_bin_yellow" p="1" />
+            <ref name="garbage_bin_green" p="1" />
+            <ref name="garbage_bin_black" p="1" />
+          </node>
+        </obj>
       </node>
 
       <node type="randompick" name="lv1fill1">
@@ -163,191 +237,19 @@
       </node>
       
       <node type="subregion" name="lv1_1">
-
-        <node type="lv1type1_0" x="0" y="0" w="32" h="22">
-          <wall>
-            <ref name="block0" />
-          </wall>
-          <block1>
-            <ref name="brick_tile_1ax" />
-          </block1>
-          <block2>
-            <ref name="brick_tile_1bx" />
-          </block2>
-          <stone>
-            <ref name="stone" />
-          </stone>
-          <obj>
-            <node type="randompick">
-              <ref name="garbage_bin_red" p="1" />
-              <ref name="garbage_bin_yellow" p="1" />
-              <ref name="garbage_bin_green" p="1" />
-              <ref name="garbage_bin_black" p="1" />
-            </node>
-          </obj>
-        </node>
+        <ref name="lv1style1" x="0" y="0" w="32" h="22" />
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <node type="lv1type1_1" x="0" y="24" w="32" h="22">
-          <wall>
-            <ref name="block0" />
-          </wall>
-          <block1x>
-            <ref name="brick_tile_1ax" />
-          </block1x>
-          <block2x>
-            <ref name="brick_tile_1bx" />
-          </block2x>
-          <block1y>
-            <ref name="brick_tile_1ay" />
-          </block1y>
-          <block2y>
-            <ref name="brick_tile_1by" />
-          </block2y>
-          <stone>
-            <ref name="stone" />
-          </stone>
-          <bar>
-            <ref name="stonebar" />
-          </bar>
-          <bar2>
-            <ref name="stonebar2" />
-          </bar2>
-          <obj>
-            <node type="randompick">
-              <ref name="garbage_bin_red" p="1" />
-              <ref name="garbage_bin_yellow" p="1" />
-              <ref name="garbage_bin_green" p="1" />
-              <ref name="garbage_bin_black" p="1" />
-            </node>
-          </obj>
-        </node>
+        <ref name="lv1style4" x="0" y="24" w="32" h="22" />
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <node type="lv1type1_2" x="0" y="48" w="32" h="22">
-          <wall>
-            <ref name="block0" />
-          </wall>
-          <block1x>
-            <ref name="brick_tile_1ax" />
-          </block1x>
-          <block2x>
-            <ref name="brick_tile_1bx" />
-          </block2x>
-          <block1y>
-            <ref name="brick_tile_1ay" />
-          </block1y>
-          <block2y>
-            <ref name="brick_tile_1by" />
-          </block2y>
-          <stone>
-            <ref name="stone" />
-          </stone>
-          <bar>
-            <ref name="stonebar" />
-          </bar>
-          <bar2>
-            <ref name="stonebar2" />
-          </bar2>
-          <room1>
-            <ref name="enemyroom1" />
-          </room1>
-          <room2>
-            <ref name="enemyroom2" />
-          </room2>
-          <obj>
-            <node type="randompick">
-              <ref name="garbage_bin_red" p="1" />
-              <ref name="garbage_bin_yellow" p="1" />
-              <ref name="garbage_bin_green" p="1" />
-              <ref name="garbage_bin_black" p="1" />
-            </node>
-          </obj>
-        </node>
+        <ref name="lv1style4" x="0" y="48" w="32" h="22" />
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <node type="lv1type1_2" x="0" y="72" w="32" h="22">
-          <wall>
-            <ref name="block0" />
-          </wall>
-          <block1x>
-            <ref name="brick_tile_1ax" />
-          </block1x>
-          <block2x>
-            <ref name="brick_tile_1bx" />
-          </block2x>
-          <block1y>
-            <ref name="brick_tile_1ay" />
-          </block1y>
-          <block2y>
-            <ref name="brick_tile_1by" />
-          </block2y>
-          <stone>
-            <ref name="stone" />
-          </stone>
-          <bar>
-            <ref name="stonebar" />
-          </bar>
-          <bar2>
-            <ref name="stonebar2" />
-          </bar2>
-          <room1>
-            <ref name="enemyroom1" />
-          </room1>
-          <room2>
-            <ref name="enemyroom2" />
-          </room2>
-          <obj>
-            <node type="randompick">
-              <ref name="garbage_bin_red" p="1" />
-              <ref name="garbage_bin_yellow" p="1" />
-              <ref name="garbage_bin_green" p="1" />
-              <ref name="garbage_bin_black" p="1" />
-            </node>
-          </obj>
-        </node>
+        <ref name="lv1style4" x="0" y="72" w="32" h="22" />
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <node type="lv1type1_2" x="0" y="96" w="32" h="24">
-          <wall>
-            <ref name="block0" />
-          </wall>
-          <block1x>
-            <ref name="brick_tile_1ax" />
-          </block1x>
-          <block2x>
-            <ref name="brick_tile_1bx" />
-          </block2x>
-          <block1y>
-            <ref name="brick_tile_1ay" />
-          </block1y>
-          <block2y>
-            <ref name="brick_tile_1by" />
-          </block2y>
-          <stone>
-            <ref name="stone" />
-          </stone>
-          <bar>
-            <ref name="stonebar" />
-          </bar>
-          <bar2>
-            <ref name="stonebar2" />
-          </bar2>
-          <room1>
-            <ref name="enemyroom1" />
-          </room1>
-          <room2>
-            <ref name="enemyroom2" />
-          </room2>
-          <obj>
-            <node type="randompick">
-              <ref name="garbage_bin_red" p="1" />
-              <ref name="garbage_bin_yellow" p="1" />
-              <ref name="garbage_bin_green" p="1" />
-              <ref name="garbage_bin_black" p="1" />
-            </node>
-          </obj>
-        </node>
+        <ref name="lv1style4" x="0" y="96" w="32" h="24" />
         <ref name="1f" x="0" y="120" w="32" h="8" />
         
         <ref name="lv1_scroll_0" />

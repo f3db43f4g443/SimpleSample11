@@ -593,6 +593,7 @@
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_2.cpp" />
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
+    <ClCompile Include="LevelGenerating\LvGenLib.cpp" />
     <ClCompile Include="LevelScrollObj.cpp" />
     <ClCompile Include="Lightning.cpp" />
     <ClCompile Include="MyGame.cpp" />
@@ -663,6 +664,7 @@
     <ClInclude Include="LevelGenerate.h" />
     <ClInclude Include="LevelGenerating\LvGen1.h" />
     <ClInclude Include="LevelGenerating\LvGenCommon.h" />
+    <ClInclude Include="LevelGenerating\LvGenLib.h" />
     <ClInclude Include="LevelScrollObj.h" />
     <ClInclude Include="Lightning.h" />
     <ClInclude Include="MyGame.h" />
