@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity.h"
+#include "Item.h"
 #include "Entities/EffectObject.h"
 
 class CPickUp : public CEntity
@@ -26,4 +26,14 @@ public:
 	virtual void PickUp( CPlayer* pPlayer ) override;
 protected:
 	uint32 m_nHpRestore;
+};
+
+class CPickUpItem : public CPickUp
+{
+	friend void RegisterGameClasses();
+public:
+	CPickUpItem( const SClassCreateContext& context ) : CPickUp( context ) { SET_BASEOBJECT_ID( CPickUpCommon ); }
+	virtual void PickUp( CPlayer* pPlayer ) override;
+protected:
+	CReference<CItem> m_pItem;
 };

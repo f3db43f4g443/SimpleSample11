@@ -39,9 +39,26 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_fHurtInvincibleTime( 0 )
 	, m_fKnockbackInvincibleTime( 0 )
 	, m_nAnimState( 0 )
+	, m_pItems( NULL )
 {
 	m_flyData.bApplyExtraGravity = true;
 	SET_BASEOBJECT_ID( CPlayer );
+}
+
+void CPlayer::ModifyHp( int32 nValue )
+{
+	m_hp.add1 += nValue;
+	CMainUI* pMainUI = CMainUI::GetInst();
+	if( pMainUI )
+		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
+}
+
+void CPlayer::ModifySp( int32 nValue )
+{
+	m_sp.add1 += nValue;
+	CMainUI* pMainUI = CMainUI::GetInst();
+	if( pMainUI )
+		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
 }
 
 void CPlayer::AimAt( const CVector2& pos )
@@ -209,17 +226,60 @@ void CPlayer::EndRepair()
 	m_walkData.ReleaseJump( this );
 }
 
+void CPlayer::AddItem( CItem * pItem )
+{
+	DEFINE_TEMP_REF( pItem )
+	pItem->SetParentEntity( NULL );
+	CString strKey = pItem->GetKey();
+	if( strKey.length() )
+	{
+		auto& pKeyItem = m_mapKeyItems[strKey];
+		if( !pKeyItem )
+			pKeyItem = pItem;
+		else
+		{
+			CString strUpgrade = pKeyItem->GetUpgrade();
+			if( strUpgrade.length() )
+			{
+				CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strUpgrade.c_str() );
+				if( pPrefab )
+				{
+					pKeyItem->Remove( this );
+					pKeyItem = SafeCast<CItem>( pPrefab->GetRoot()->CreateInstance() );
+				}
+			}
+
+			pItem = pKeyItem;
+		}
+	}
+	Insert_Item( pItem );
+
+	pItem->Add( this );
+}
+
+void CPlayer::RemoveItem( CItem * pItem )
+{
+	pItem->Remove( this );
+
+	CString strKey = pItem->GetKey();
+	if( strKey.length() )
+		m_mapKeyItems.erase( strKey );
+	Remove_Item( pItem );
+}
+
 void CPlayer::SetWeapon( CPlayerWeapon * pWeapon )
 {
 	if( m_pCurWeapon )
 	{
-		m_pCurWeapon->Remove( this );
+		m_pCurWeapon->UnEquip( this );
+		m_pCurWeapon->SetParentEntity( NULL );
 	}
 	m_pCurWeapon = pWeapon;
 	if( pWeapon )
 	{
+		pWeapon->SetPosition( CVector2( 0, 0 ) );
 		pWeapon->SetParentEntity( this );
-		pWeapon->Add( this );
+		pWeapon->Equip( this );
 		pWeapon->Face( m_nAnimState & 2 );
 	}
 }

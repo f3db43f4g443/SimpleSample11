@@ -6,6 +6,7 @@
 #include "Stage.h"
 #include "Render/Scene2DManager.h"
 #include "MyLevel.h"
+#include "Common/Rand.h"
 
 CPlayerWeaponShoot0::CPlayerWeaponShoot0( const SClassCreateContext& context )
 	: CPlayerWeapon( context )
@@ -41,15 +42,53 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 	if( m_bIsFiring && !m_nFireCD )
 	{
 		CScene2DManager::GetGlobalInst()->UpdateDirty();
-		CPlayerBullet* pPlayerBullet = static_cast<CPlayerBullet*>( m_pBulletPrefab->GetRoot()->CreateInstance() );
-		pPlayerBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
-		CVector2 velocity = GetGlobalTransform().MulVector2Dir( CVector2( m_fSpeed, 0 ) );
-		pPlayerBullet->SetVelocity( velocity );
-		pPlayerBullet->SetRotation( atan2( velocity.y, velocity.x ) );
-		pPlayerBullet->SetLife( m_nBulletLife );
-		pPlayerBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-		pPlayerBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
-		CMyLevel::GetInst()->AddShakeStrength( 5 );
+
+		if( !m_nBulletCount )
+		{
+			CBullet* pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
+			CVector2 velocity = GetGlobalTransform().MulVector2Dir( CVector2( m_fSpeed, 0 ) );
+			pBullet->SetVelocity( velocity );
+			pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+			pBullet->SetLife( m_nBulletLife );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			pBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
+			pBullet->SetDamage( m_nDamage, m_nDamage1, m_nDamage2 );
+		}
+		else
+		{
+			float fAngle0 = GetRotation();
+
+			for( int i = 0; i < m_nBulletCount; i++ )
+			{
+				CBullet* pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+
+				float fAngle = fAngle0;
+				switch( m_nDistribution )
+				{
+				case 0:
+					fAngle = m_nBulletCount > 1 ? fAngle0 + ( i / ( m_nBulletCount - 1 ) - 0.5f ) * m_fAngle : fAngle0;
+					break;
+				case 1:
+					fAngle = fAngle0 + ( ( i + SRand::Inst().Rand( 0.0f, 1.0f ) ) / m_nBulletCount - 0.5f ) * m_fAngle;
+					break;
+				case 2:
+					fAngle = fAngle0 + SRand::Inst().Rand( -m_fAngle * 0.5f, m_fAngle * 0.5f );
+					break;
+				}
+
+				pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
+				CVector2 velocity = CVector2( cos( fAngle ), sin( fAngle ) ) * m_fSpeed;
+				pBullet->SetVelocity( velocity );
+				pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+				pBullet->SetLife( m_nBulletLife );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+				pBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
+				pBullet->SetDamage( m_nDamage, m_nDamage1, m_nDamage2 );
+			}
+		}
+
+		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
 		CMyLevel::GetInst()->pFireSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 		m_nFireCD = m_nFireRate;

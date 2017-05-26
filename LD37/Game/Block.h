@@ -128,7 +128,7 @@ struct SChunk
 	uint32 nCurShakeStrength;
 
 	SBlock* GetBlock( uint32 x, uint32 y ) { return x < nWidth && y < nHeight ? &blocks[x + y * nWidth] : NULL; }
-	void CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
+	bool CreateChunkObject( class CMyLevel* pLevel, SChunk* pParent = NULL );
 	void CreateChunkObjectPreview( CEntity* pRootEntity, SChunk* pParent = NULL );
 	float GetFallSpeed();
 	bool HasLayer( uint8 i ) { return !!( nLayerType & ( 1 << i ) ); }

@@ -88,7 +88,6 @@ private:
 	void LinkRoom( int8 nRoomPosType );
 	void AddMoreBars();
 	void GenObjs();
-	void GenObjs1();
 	void GenBlocks();
 
 	enum

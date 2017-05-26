@@ -587,6 +587,7 @@
     <ClCompile Include="GUI\MainUI.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
+    <ClCompile Include="Item.cpp" />
     <ClCompile Include="LevelDesign.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
     <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
@@ -660,6 +661,7 @@
     <ClInclude Include="GUI\HpBar.h" />
     <ClInclude Include="GUI\MainUI.h" />
     <ClInclude Include="GUI\UIUtils.h" />
+    <ClInclude Include="Item.h" />
     <ClInclude Include="LevelDesign.h" />
     <ClInclude Include="LevelGenerate.h" />
     <ClInclude Include="LevelGenerating\LvGen1.h" />

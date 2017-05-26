@@ -15,6 +15,20 @@ CWorld::~CWorld()
 	CStageDirector::Inst()->OnWorldDestroyed( this );
 }
 
+void CWorld::CreatePlayer()
+{
+	if( m_pCurPlayer )
+	{
+		m_pCurPlayer->SetParentEntity( NULL );
+		SetPlayer( NULL );
+	}
+
+	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
+	SetPlayer( pPlayer );
+	auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
+	pPlayer->AddItem( pWeapon );
+}
+
 void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterContext )
 {
 	if( m_bUpdating )
@@ -43,6 +57,8 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 
 	StopSubStage( 0 );
 	PlaySubStage( "ui.pf", CStageDirector::Inst()->GetSubStageView() );
+
+	CreatePlayer();
 	
 	auto& context = m_mapStageContexts[szStageName];
 	CStage* pStage = new CStage( this );

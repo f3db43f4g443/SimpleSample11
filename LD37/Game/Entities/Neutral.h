@@ -1,6 +1,31 @@
 #pragma once
 #include "Enemy.h"
+#include "Pickup.h"
 #include "Common/StringUtil.h"
+#include "CharacterMove.h"
+
+class CPickupCarrier : public CCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CPickupCarrier( const SClassCreateContext& context ) : CCharacter( context ), m_onPickUp( this, &CPickupCarrier::Kill ) { SET_BASEOBJECT_ID( CPickupCarrier ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	CReference<CPickUp> m_pPickup;
+	TClassTrigger<CPickupCarrier> m_onPickUp;
+};
+
+class CPickUpCarrierPhysics : public CPickupCarrier
+{
+	friend void RegisterGameClasses();
+public:
+	CPickUpCarrierPhysics( const SClassCreateContext& context ) : CPickupCarrier( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CPickUpCarrierPhysics ); }
+protected:
+	virtual void OnTickAfterHitTest() override;
+	SCharacterPhysicsMovementData m_moveData;
+};
 
 class CSpike : public CEntity
 {

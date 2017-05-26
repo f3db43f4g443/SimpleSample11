@@ -1,11 +1,11 @@
 #pragma once
-#include "Entity.h"
+#include "Item.h"
 
-class CPlayerWeapon : public CEntity
+class CPlayerWeapon : public CItem
 {
 	friend void RegisterGameClasses();
 public:
-	CPlayerWeapon( const SClassCreateContext& context ) : CEntity( context ), m_bIsFiring( false ) { SET_BASEOBJECT_ID( CPlayerWeapon ); }
+	CPlayerWeapon( const SClassCreateContext& context ) : CItem( context ), m_bIsFiring( false ) { SET_BASEOBJECT_ID( CPlayerWeapon ); }
 
 	void Face( bool bLeft );
 
@@ -22,11 +22,14 @@ public:
 		}
 	}
 
-	virtual void Add( CPlayer* pPlayer ) {}
+	virtual void Add( CPlayer* pPlayer ) override;
+	virtual void Remove( CPlayer* pPlayer ) override;
+
+	virtual void Equip( CPlayer* pPlayer ) {}
 	virtual void BeginFire( CPlayer* pPlayer ) {}
 	virtual void EndFire( CPlayer* pPlayer ) {}
 	virtual void Update( CPlayer* pPlayer ) {}
-	virtual void Remove( CPlayer* pPlayer ) {}
+	virtual void UnEquip( CPlayer* pPlayer ) {}
 protected:
 	CRectangle m_texRectFaceRight;
 	CRectangle m_texRectFaceLeft;

@@ -117,6 +117,7 @@ public:
 	void SetTransparent( bool bTransparent );
 
 	const CVector2& GetLastPos() { return m_lastPos; }
+	void SetLastPos( const CVector2& pos ) { m_lastPos = pos; }
 
 	SHitProxyCircle* AddCircle( float fRadius, const CVector2 &center );
 	SHitProxyPolygon* AddRect( const CRectangle& rect );

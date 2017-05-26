@@ -6,6 +6,7 @@
 #include "MyLevel.h"
 #include "Bullet.h"
 #include "Entities/Barrage.h"
+#include "Entities/Bullets.h"
 #include "Common/ResourceManager.h"
 
 void CManHead1::AIFunc()
@@ -358,9 +359,17 @@ void CMaggot::OnAddedToStage()
 	CEnemy::OnAddedToStage();
 	m_nDir = SRand::Inst().Rand( -1, 2 );
 	m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
+	if( m_pExplosion )
+		m_pExplosion->SetParentEntity( NULL );
 }
 
 bool CMaggot::Knockback( const CVector2 & vec )
+{
+	Kill();
+	return true;
+}
+
+void CMaggot::OnKnockbackPlayer( const CVector2 & vec )
 {
 	CVector2 tangent( m_moveData.normal.y, -m_moveData.normal.x );
 	float fTangent = tangent.Dot( vec );
@@ -371,13 +380,28 @@ bool CMaggot::Knockback( const CVector2 & vec )
 		SetVelocity( GetVelocity() + vecKnockback );
 
 	m_nKnockBackTimeLeft = m_nKnockbackTime;
-
-	return true;
 }
 
 bool CMaggot::IsKnockback()
 {
 	return m_nKnockBackTimeLeft > 0;
+}
+
+void CMaggot::Kill()
+{
+	if( m_pExplosion )
+	{
+		CBlockBuff::SContext context;
+		context.nLife = m_nExplosionLife;
+		context.nTotalLife = m_nExplosionLife;
+		context.fParams[0] = m_fExplosionDmg;
+
+		SafeCast<CExplosionWithBlockBuff>( m_pExplosion.GetPtr() )->Set( &context );
+		m_pExplosion->SetPosition( GetPosition() );
+		m_pExplosion->SetParentBeforeEntity( this );
+		m_pExplosion = NULL;
+	}
+	CEnemy::Kill();
 }
 
 void CMaggot::OnTickAfterHitTest()

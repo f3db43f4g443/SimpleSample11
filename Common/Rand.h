@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+using namespace std;
 
 struct SRand
 {
@@ -29,6 +31,13 @@ struct SRand
 				pElems[b] = temp;
 			}
 		}
+	}
+
+	template<typename T>
+	void Shuffle( vector<T> vecElems )
+	{
+		if( vecElems.size() )
+			Shuffle( &vecElems[0], vecElems.size() );
 	}
 
 	void C( uint32 a, uint32 b, int8* result )

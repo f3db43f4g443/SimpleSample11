@@ -917,3 +917,35 @@ void SCharacterSurfaceWalkData::Fall( CCharacter* pCharacter, const CVector2 & v
 	bHitSurface = false;
 	pCharacter->SetVelocity( vel );
 }
+
+void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
+{
+	if( !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+
+	float deltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+	CVector2 vel = pCharacter->GetVelocity();
+
+	CVector2 vel1 = CVector2( vel.x, vel.y - fGravity * deltaTime );
+	vel1.y = Max( vel1.y, -fMaxFallSpeed );
+	CVector2 ofs = ( vel1 + vel ) * 0.5f * deltaTime;
+
+	CVector2 vel0 = vel1;
+	TryMove( pCharacter, ofs, vel1 );
+	CVector2 dVel = vel1 - vel0;
+	float l = dVel.Normalize();
+	float l0 = l;
+	l = Max( 0.0f, l * fBounceCoef - fBounceCoef1 );
+
+	float l1 = vel1.Normalize();
+	l1 = Max( l1 - ( l0 + l ) * fFriction, 0.0f );
+	vel1 = vel1 * l1 + dVel * l;
+
+	float dRot = fRotCoef * ( ofs.y * vel1.x - ofs.x * vel1.y );
+	pCharacter->SetRotation( pCharacter->GetRotation() + dRot );
+
+	pCharacter->SetVelocity( vel1 );
+}

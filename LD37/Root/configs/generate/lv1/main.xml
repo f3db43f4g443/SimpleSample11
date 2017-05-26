@@ -240,16 +240,17 @@
         <ref name="lv1style1" x="0" y="0" w="32" h="22" />
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <ref name="lv1style4" x="0" y="24" w="32" h="22" />
+        <ref name="lv1style2" x="0" y="24" w="32" h="22" />
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <ref name="lv1style4" x="0" y="48" w="32" h="22" />
+        <ref name="lv1style3" x="0" y="48" w="32" h="22" />
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
         <ref name="lv1style4" x="0" y="72" w="32" h="22" />
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <ref name="lv1style4" x="0" y="96" w="32" h="24" />
+        <ref name="lv1style4" x="0" y="96" w="32" h="16" />
+        <ref name="lv1style4" x="0" y="112" w="32" h="8" />
         <ref name="1f" x="0" y="120" w="32" h="8" />
         
         <ref name="lv1_scroll_0" />

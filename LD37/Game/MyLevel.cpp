@@ -356,6 +356,9 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 	}
 
 	bool bSpawned = pOldChunk->bSpawned;
+	CVector2 oldChunkOfs;
+	if( pOldChunk->pChunkObject )
+		oldChunkOfs = pOldChunk->pChunkObject->GetLastPos() - CVector2( pOldChunk->pos.x, pOldChunk->pos.y );
 	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
 		if( !pOldChunk->HasLayer( iLayer ) )
@@ -385,7 +388,15 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 				{
 					auto basement = m_basements[i + nX];
 					auto basementLayer = basement.layers[iLayer];
-					pNewBlock->pOwner->CreateChunkObject( this );
+					if( pNewBlock->pOwner->CreateChunkObject( this ) )
+					{
+						for( auto& block : pNewBlock->pOwner->blocks )
+						{
+							block.pEntity->SetLastPos( oldChunkOfs + CVector2( block.nX, block.nY ) * CMyLevel::GetBlockSize()
+								+ CVector2( pNewBlock->pOwner->pos.x, pNewBlock->pOwner->pos.y ) );
+						}
+					}
+
 					auto pBlockToSpawn = ( basementLayer.pSpawnedBlock ? basementLayer.pSpawnedBlock->NextBlockLayer() : basementLayer.Get_BlockLayer() );
 					if( pBlockToSpawn == pNewBlockLayer )
 						basementLayer.pSpawnedBlock = pNewBlockLayer;

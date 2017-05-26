@@ -100,10 +100,10 @@ SChunk::~SChunk()
 	}
 }
 
-void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
+bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 {
 	if( pParent && pChunkObject )
-		return;
+		return false;
 
 	if( !pChunkObject )
 	{
@@ -151,7 +151,7 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 	else
 	{
 		if( !pParentChunk )
-			return;
+			return false;
 		pParentChunk = NULL;
 		pChunkObject->SetChunk( this, pLevel );
 	}
@@ -171,6 +171,7 @@ void SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 		pSubChunk = pNext;
 	}
 	pChunkObject->OnCreateComplete( pLevel );
+	return true;
 }
 
 void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )

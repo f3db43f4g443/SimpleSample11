@@ -39,3 +39,9 @@ void CPickUpCommon::PickUp( CPlayer* pPlayer )
 
 	CPickUp::PickUp( pPlayer );
 }
+
+void CPickUpItem::PickUp( CPlayer* pPlayer )
+{
+	pPlayer->AddItem( m_pItem );
+	CPickUp::PickUp( pPlayer );
+}

@@ -232,3 +232,21 @@ void CFuelTank::OnTickAfterHitTest()
 		}
 	}
 }
+
+void CPickupCarrier::OnAddedToStage()
+{
+	if( m_pPickup )
+		m_pPickup->RegisterPickupEvent( &m_onPickUp );
+}
+
+void CPickupCarrier::OnRemovedFromStage()
+{
+	if( m_onPickUp.IsRegistered() )
+		m_onPickUp.Unregister();
+}
+
+void CPickUpCarrierPhysics::OnTickAfterHitTest()
+{
+	CPickupCarrier::OnTickAfterHitTest();
+	m_moveData.UpdateMove( this );
+}

@@ -9,6 +9,7 @@
 #include "PlayerWeapon.h"
 #include "Block.h"
 #include "GUI/ChunkUI.h"
+#include "Item.h"
 
 class CPlayer : public CCharacter
 {
@@ -26,6 +27,8 @@ public:
 	int32 GetMaxHp() { return m_hp.GetMaxValue(); }
 	int32 GetSp() { return m_sp; }
 	int32 GetMaxSp() { return m_sp.GetMaxValue(); }
+	void ModifyHp( int32 nValue );
+	void ModifySp( int32 nValue );
 	CEntity* GetCore() { return m_pCore; }
 	bool IsHiding() { return m_fHidingCurTime >= m_fHidingTime; }
 	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
@@ -58,6 +61,9 @@ public:
 	void EndFire();
 	void BeginRepair();
 	void EndRepair();
+
+	void AddItem( CItem* pItem );
+	void RemoveItem( CItem* pItem );
 
 	CChunkObject* GetCurRoom() { return m_pCurRoom; }
 	void SetWeapon( CPlayerWeapon* pWeapon );
@@ -117,4 +123,7 @@ private:
 	uint8 m_nAnimState;
 
 	CPostProcessCrackEffect m_crackEffect;
+
+	map<CString, CItem*> m_mapKeyItems;
+	LINK_LIST_REF_HEAD( m_pItems, CItem, Item )
 };

@@ -98,7 +98,9 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual bool Knockback( const CVector2& vec ) override;
+	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
 	virtual bool IsKnockback() override;
+	virtual void Kill() override;
 protected:
 	virtual void OnTickAfterHitTest() override;
 private:
@@ -107,6 +109,9 @@ private:
 	float m_fAIStepTimeMax;
 	float m_fFallChance;
 	uint32 m_nKnockbackTime;
+	CReference<CEntity> m_pExplosion;
+	uint32 m_nExplosionLife;
+	float m_fExplosionDmg;
 
 	uint32 m_nAIStepTimeLeft;
 	int8 m_nDir;

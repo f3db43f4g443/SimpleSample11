@@ -58,6 +58,11 @@
         <types>4,4,4,4</types>
       </node>
 
+      <node name="lv1floor_item" type="randompick">
+        <ref name="hppack" />
+        <ref name="w0" />
+      </node>
+
       <node name="lv1floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
             absorbshakestrength="10000" shakedmg="5" prefab="data/blocks/lv1/floor.pf">
         <types>
@@ -78,10 +83,10 @@
         <next_level>
           <node type="subregion">
             <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="hppack" x="3" y="0" w="2" h="2" />
-            <ref name="hppack" x="11" y="0" w="2" h="2" />
-            <ref name="hppack" x="19" y="0" w="2" h="2" />
-            <ref name="hppack" x="27" y="0" w="2" h="2" />
+            <ref name="lv1floor_item" x="3" y="0" w="2" h="2" />
+            <ref name="lv1floor_item" x="11" y="0" w="2" h="2" />
+            <ref name="lv1floor_item" x="19" y="0" w="2" h="2" />
+            <ref name="lv1floor_item" x="27" y="0" w="2" h="2" />
           </node>
         </next_level>
       </node>

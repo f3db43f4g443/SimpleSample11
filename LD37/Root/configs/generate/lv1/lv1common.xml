@@ -1,6 +1,7 @@
 ﻿<root>
   <includes>
     <item name="common" public="1" />
+    <item name="pickups" public="1" />
   </includes>
   <level_gen>
     <attachs>
@@ -10,7 +11,6 @@
       <node name="crack_wall_1x" prefab="data/blockitems/crack_wall_1x.pf" sizex="4" sizey="1" attach_type="0" />
       <node name="crack_wall_1y" prefab="data/blockitems/crack_wall_1y.pf" sizex="1" sizey="4" attach_type="0" />
       <node name="crack_wall_2" prefab="data/blockitems/crack_wall_2.pf" sizex="2" sizey="2" attach_type="0" />
-      <node name="hppack" prefab="data/pickups/hppack.pf" sizex="2" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />

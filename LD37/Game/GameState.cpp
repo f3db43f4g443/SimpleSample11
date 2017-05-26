@@ -70,13 +70,6 @@ void CMainGameState::EnterState()
 	CUIMgrGameState::EnterState();
 
 	m_pWorld = new CWorld;
-
-	//CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
-	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
-	m_pWorld->SetPlayer( pPlayer );
-	auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
-	pPlayer->SetWeapon( pWeapon );
-
 	SStageEnterContext context;
 	context.strStartPointName = "start";
 	m_pWorld->EnterStage( m_strStage.length() ? m_strStage.c_str() : "scene0.pf", context );

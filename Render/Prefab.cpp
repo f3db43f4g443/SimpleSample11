@@ -117,6 +117,18 @@ bool CPrefabNode::SetResource( CResource* pResource )
 	return true;
 }
 
+SClassMetaData * CPrefabNode::GetFinalClassData()
+{
+	auto pClassData = m_obj.GetClassData();
+	if( pClassData )
+		return pClassData;
+
+	if( m_pResource && m_pResource->GetResourceType() == eEngineResType_Prefab )
+		return static_cast<CPrefab*>( m_pResource.GetPtr() )->GetRoot()->GetFinalClassData();
+
+	return NULL;
+}
+
 void CPrefabNode::OnResourceRefreshBegin()
 {
 	if( m_pResource->GetResourceType() == eEngineResType_Prefab )
@@ -178,14 +190,15 @@ void CPrefabNode::OnResourceRefreshEnd()
 
 void CPrefabNode::UpdateTaggedNodePtrInfo()
 {
-	if( !m_obj.GetClassData() )
+	auto pClassData = GetFinalClassData();
+	if( !pClassData )
 		return;
 	map<string, STaggedNodePtrInfo*> mapInfo;
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this, &mapInfo]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
 	{
 		m_vecTaggedNodePtrInfo.push_back( STaggedNodePtrInfo( pData, nOfs, 0 ) );
 	};
-	m_obj.GetClassData()->FindAllTaggedPtr( func );
+	pClassData->FindAllTaggedPtr( func );
 	for( auto& item : m_vecTaggedNodePtrInfo )
 	{
 		mapInfo[item.pMemberData->strName] = &item;
@@ -203,8 +216,9 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 		if( itr != mapInfo.end() )
 		{
 			auto pInfo = itr->second;
+			auto pClassData = GetFinalClassData();
 			if( pInfo->pMemberData->pTypeData == CClassMetaDataMgr::Inst().GetClassData<CRenderObject2D>()
-				|| m_obj.GetClassData() && m_obj.GetClassData()->Is( pInfo->pMemberData->pTypeData ) )
+				|| pClassData && pClassData->Is( pInfo->pMemberData->pTypeData ) )
 				pInfo->nChild = nIndex;
 		}
 	}
@@ -230,7 +244,8 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 	CPrefabBaseNode* pPrefabNode = m_obj.CreateObject();
 	if( pPrefabNode )
 	{
-		pPrefabNode->SetName( m_strName );
+		if( m_strName.length() )
+			pPrefabNode->SetName( m_strName );
 		if( m_pResource )
 			pPrefabNode->SetResource( m_pResource );
 	}

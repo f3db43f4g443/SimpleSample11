@@ -20,7 +20,7 @@ public:
 	virtual void OnHit( CEntity* pEntity ) { if( m_onHit ) m_onHit( this, pEntity ); }
 	virtual void Kill();
 	void SetLife( uint32 nLife ) { m_nLife = nLife; }
-	void SetDamage( uint32 nDamage, uint32 nDamage1 = 0 ) { m_nDamage = nDamage; m_nDamage1 = nDamage1; }
+	void SetDamage( uint32 nDamage, uint32 nDamage1 = 0, uint32 nDamage2 = 0 ) { m_nDamage = nDamage; m_nDamage1 = nDamage1; m_nDamage2 = nDamage2; }
 
 	void SetOnHit( function<void( CBullet*, CEntity* )> onHit ) { m_onHit = onHit; }
 
@@ -45,6 +45,7 @@ protected:
 	uint8 m_nType;
 	uint32 m_nDamage;
 	uint32 m_nDamage1;
+	uint32 m_nDamage2;
 
 	CVector2 m_acc;
 	float m_fAngularVelocity;

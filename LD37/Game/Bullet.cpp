@@ -224,6 +224,7 @@ void CBullet::OnTickAfterHitTest()
 	break;
 	default:
 	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
 		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 		{
 			CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
@@ -232,10 +233,12 @@ void CBullet::OnTickAfterHitTest()
 			CReference<CEntity> pTempRef = pEntity;
 
 			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
+			if( pCharacter && pCharacter != pPlayer )
 			{
+				if( !m_nDamage2 )
+					continue;
 				CReference<CEntity> pTempRef = pEntity;
-				pCharacter->Damage( m_nDamage );
+				pCharacter->Damage( m_nDamage2 );
 				OnHit( pCharacter );
 				Kill();
 				return;
@@ -276,17 +279,20 @@ void CBullet::OnTickAfterHitTest()
 				}
 			}
 
-			/*if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			if( pEntity && pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
 			{
+				if( !m_nDamage1 )
+					continue;
+				CReference<CEntity> pTempRef = pEntity;
+				pPlayer->Damage( m_nDamage1 );
+				OnHit( pPlayer );
 				Kill();
 				return;
-			}*/
+			}
 		}
 	}
 		break;
 	}
-
-	
 }
 
 void CEnemyBullet::OnTickAfterHitTest()

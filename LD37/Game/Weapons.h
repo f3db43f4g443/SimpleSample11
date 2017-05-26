@@ -15,9 +15,19 @@ public:
 private:
 	CReference<CPrefab> m_pBulletPrefab;
 	CString m_strBulletName;
+	uint32 m_nDamage;
+	uint32 m_nDamage1;
+	uint32 m_nDamage2;
+
+	uint32 m_nBulletCount;
+	float m_fAngle;
+	uint8 m_nDistribution;
+
 	float m_fSpeed;
 	uint32 m_nFireRate;
 	uint32 m_nBulletLife;
+	float m_fShakePerFire;
+
 	CVector2 m_fireOfs;
 
 	bool m_bIsFiring;

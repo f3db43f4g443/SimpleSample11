@@ -165,7 +165,7 @@ void CLevelGenNode1_1_0::GenAreas()
 	nFillCount -= FloodFill( m_gendata, nWidth, nHeight, emptyArea.x, emptyArea.y, eType_Wall, nFillCount );
 	vector<TVector2<int32> > vecEmpty;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 	int i;
 	for( i = 0; i < vecEmpty.size() && nFillCount; i++ )
 	{
@@ -217,7 +217,7 @@ void CLevelGenNode1_1_0::MakeHoles()
 
 	int32 nHoleCount = vec.size() * SRand::Inst().Rand( fMinPercent, fMaxPercent );
 	int32 nObjCount = vec.size() * fObjPercent;
-	SRand::Inst().Shuffle( &vec[0], vec.size() );
+	SRand::Inst().Shuffle( vec );
 
 	for( int i = 0; i < vec.size() && nHoleCount; i++ )
 	{
@@ -464,7 +464,7 @@ void CLevelGenNode1_1_1::GenObstacles()
 
 	vector<TVector2<int32> > vecEmpty;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 
 	int i;
 	TVector2<int32> ofs[] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 }, { 2, 0 }, { 0, -2 } };
@@ -719,7 +719,7 @@ void CLevelGenNode1_1_1::GenObjsBig()
 	ExpandDist( vecTemp, nWidth, nHeight, 1, 0, 3 );
 	vector<TVector2<int32> > vecEmpty;
 	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 
 	for( auto p : vecEmpty )
 	{
@@ -778,7 +778,7 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 	ExpandDist( vecTemp, nWidth, nHeight, 1, 0, 2 );
 	vector<TVector2<int32> > vecEmpty;
 	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 	uint32 nObjCount = nWidth * nHeight * SRand::Inst().Rand( fObjPercentMin, fObjPercentMax );
 
 	for( auto p : vecEmpty )
@@ -834,7 +834,7 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 	nObjCount = nWidth * nHeight * SRand::Inst().Rand( fObjPercentMin1, fObjPercentMax1 );
 	vecEmpty.clear();
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_Path, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 	for( auto p : vecEmpty )
 	{
 		if( !nObjCount )
@@ -892,7 +892,6 @@ void CLevelGenNode1_1_2::Generate( SLevelBuildContext & context, const TRectangl
 	GenRooms1();
 	AddMoreBars();
 	GenObjs();
-	GenObjs1();
 	GenBlocks();
 
 	for( int i = 0; i < region.width; i++ )
@@ -1006,7 +1005,7 @@ void CLevelGenNode1_1_2::GenRooms()
 		case eOp_Blocks:
 		{
 			nOp = eOp_Room;
-			SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+			SRand::Inst().Shuffle( indexPool );
 			int iPos = 0;
 			int32 nBlockCount = SRand::Inst().Rand( nBlockCountMin, nBlockCountMax + 1 );
 			while( nBlockCount )
@@ -1068,7 +1067,7 @@ void CLevelGenNode1_1_2::GenRooms()
 			bool bStone = false;
 			for( int k = 0; k < 2; k++ )
 			{
-				SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+				SRand::Inst().Shuffle( indexPool );
 				bool bBar = bFirstTime || bStone ? true : SRand::Inst().Rand( 0.0f, 1.0f ) < fBarChance;
 				if( bBar )
 				{
@@ -1198,7 +1197,7 @@ void CLevelGenNode1_1_2::GenRooms()
 				break;
 			}
 
-			SRand::Inst().Shuffle( &indexPool[0], indexPool.size() );
+			SRand::Inst().Shuffle( indexPool );
 			bool bCreated = false;
 			for( int i = 0; i < nWidth; i++ )
 			{
@@ -1278,7 +1277,7 @@ void CLevelGenNode1_1_2::GenRooms()
 			q.push_back( TVector2<int32>( i, nHeight - 1 ) );
 		}
 	}
-	SRand::Inst().Shuffle( &q[0], q.size() );
+	SRand::Inst().Shuffle( q );
 	FloodFillExpand( m_gendata, nWidth, nHeight, eType_Path, eType_None, nWidth * nHeight * 0.1f, q );
 }
 
@@ -1302,7 +1301,7 @@ void CLevelGenNode1_1_2::GenRooms1()
 				vecEmpty.push_back( TVector2<int32>( i % nWidth, i / nWidth ) );
 		}
 	}
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
+	SRand::Inst().Shuffle( vecEmpty );
 	
 	int32 nCount = 2;
 	for( auto p : vecEmpty )
@@ -1622,172 +1621,8 @@ void CLevelGenNode1_1_2::GenObjs()
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
-	const int32 nMaxSize = 15;
-
-	vector<int8> vecTemp;
-	vecTemp.resize( m_gendata.size() );
-	for( int i = 0; i < m_gendata.size(); i++ )
-		vecTemp[i] = m_gendata[i] == eType_Path ? 0 : 1;
-	vector<TVector2<int32> > vecEmpty;
-	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
-
-	for( auto p : vecEmpty )
-	{
-		if( vecTemp[p.x + p.y * nWidth] )
-			continue;
-
-		vector<TVector2<int32> > q;
-		FloodFill( vecTemp, nWidth, nHeight, p.x, p.y, 1, q );
-
-		if( q.size() <= nMaxSize )
-		{
-			int32 nObjCount = q.size() < 3 ? q.size() : 1 + q.size() / 2;
-			for( int i = 0; i < q.size(); i++ )
-			{
-				auto p1 = q[i];
-				while( p1.y > 0 && m_gendata[p1.x + ( p1.y - 1 ) * nWidth] == eType_Path )
-					p1.y--;
-
-				m_gendata[p1.x + p1.y * nWidth] = eType_Obj;
-				nObjCount--;
-				if( !nObjCount )
-					break;
-			}
-		}
-	}
-}
-
-void CLevelGenNode1_1_2::GenObjs1()
-{
-	int32 nWidth = m_region.width;
-	int32 nHeight = m_region.height;
-
-	vector<int8> vecTemp;
-	vecTemp.resize( m_gendata.size() );
-	for( int i = 0; i < m_gendata.size(); i++ )
-		vecTemp[i] = m_gendata[i] == eType_None ? 0 : 1;
-	vector<TVector2<int32> > vecEmpty;
-	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
-	SRand::Inst().Shuffle( &vecEmpty[0], vecEmpty.size() );
-
-	for( auto p : vecEmpty )
-	{
-		if( vecTemp[p.x + p.y * nWidth] )
-			continue;
-
-		vector<TVector2<int32> > q;
-
-		bool bFound = false;
-		int i = 0;
-		int32 h[] = { 1, 2, 3 };
-		int32 n[] = { 4, 8, 15};
-
-		int32 minX = nWidth, minY = nHeight, maxX = -1, maxY = -1;
-		int k;
-		for( k = 0; k < ELEM_COUNT( h ); k++ )
-		{
-			if( k == 0 )
-				FloodFill( vecTemp, nWidth, nHeight, p.x, p.y, 1, n[k], q );
-			else
-				FloodFillExpand( vecTemp, nWidth, nHeight, 1, 0, n[k], q );
-			if( q.size() < n[k] )
-				break;
-			for( ; i < n[k]; i++ )
-			{
-				auto p1 = q[i];
-				if( p1.x < minX )
-					minX = p1.x;
-				if( p1.y < minY )
-					minY = p1.y;
-				if( p1.x > maxX )
-					maxX = p1.x;
-				if( p1.y > maxY )
-					maxY = p1.y;
-			}
-			if( maxY - minY <= h[k] )
-			{
-				bFound = true;
-				break;
-			}
-		}
-
-		if( bFound )
-		{
-			int32 nHoleSizesMin[] = { 4, 6, 10 };
-			int32 nHoleSizesMax[] = { 4, 8, 13 };
-			int32 nHoleSize = nHoleSizesMin[k];
-			minX = nWidth;
-			minY = nHeight;
-			maxX = -1;
-			maxY = -1;
-			for( i = 0; i < nHoleSize; i++ )
-			{
-				auto p1 = q[i];
-				if( p1.x < minX )
-					minX = p1.x;
-				if( p1.y < minY )
-					minY = p1.y;
-				if( p1.x > maxX )
-					maxX = p1.x;
-				if( p1.y > maxY )
-					maxY = p1.y;
-			}
-
-			if( minY <= 0 )
-				continue;
-			else
-			{
-				bool bPath = false;
-				for( i = minX; i <= maxX; i++ )
-				{
-					if( m_gendata[i + ( minY - 1 ) * nWidth] == eType_Path || m_gendata[i + ( minY - 1 ) * nWidth] == eType_Obj )
-					{
-						bPath = true;
-						break;
-					}
-				}
-				if( bPath )
-					continue;
-			}
-			if( maxY >= nHeight - 1 )
-				continue;
-			else
-			{
-				bool bPath = false;
-				for( i = minX; i <= maxX; i++ )
-				{
-					if( m_gendata[i + ( maxY + 1 ) * nWidth] == eType_Path || m_gendata[i + ( maxY + 1 ) * nWidth] == eType_Obj )
-					{
-						bPath = true;
-						break;
-					}
-				}
-				if( bPath )
-					continue;
-			}
-
-			nHoleSize = SRand::Inst().Rand( nHoleSizesMin[k], nHoleSizesMax[k] + 1 );
-			int32 nObjCount = nHoleSize / 2;
-			SRand::Inst().Shuffle( &q[0], nHoleSize );
-			for( i = 0; i < nHoleSize; i++ )
-			{
-				auto p1 = q[i];
-				m_gendata[p1.x + p1.y * nWidth] = eType_Path;
-				if( nObjCount )
-				{
-					if( m_gendata[p1.x + p1.y * nWidth] == eType_Path )
-					{
-						while( p1.y > 0 && m_gendata[p1.x + ( p1.y - 1 ) * nWidth] == eType_Path )
-							p1.y--;
-
-						m_gendata[p1.x + p1.y * nWidth] = eType_Obj;
-						nObjCount--;
-					}
-				}
-			}
-		}
-	}
+	LvGenLib::GenObjs( m_gendata, nWidth, nHeight, 15, eType_Path, eType_Obj );
+	LvGenLib::GenObjs1( m_gendata, nWidth, nHeight, eType_None, eType_Path, eType_Obj );
 }
 
 void CLevelGenNode1_1_2::GenBlocks()
@@ -1892,8 +1727,8 @@ void CLevelGenNode1_1_3::GenAreas()
 	int32 nHeight = m_region.height;
 	const TVector2<int32> sizeMin = TVector2<int32>( 10, 7 );
 	const float fChanceXCoefMin = 0.8f;
-	const float fChanceXCoefMax = 1.0f;
-	const float fChanceYCoefMin = 1.2f;
+	const float fChanceXCoefMax = 0.85f;
+	const float fChanceYCoefMin = 1.35f;
 	const float fChanceYCoefMax = 1.4f;
 
 	vector<int32> vecLeft, vecRight;
@@ -2001,7 +1836,38 @@ void CLevelGenNode1_1_3::GenAreas()
 			break;
 	}
 
+	vector<TVector2<int32> > temp;
 	m_gendata1.resize( nWidth * nHeight );
+	int32 nEntranceWidth = 12;
+	int32 nEntranceBegin = SRand::Inst().Rand( 0, nWidth + 1 - nEntranceWidth );
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( m_gendata[i + j * nWidth] == eType_Temp )
+				temp.push_back( TVector2<int32>( i, j ) );
+			if( j == 0 )
+				m_gendata1[i + j * nWidth] = i >= nEntranceBegin && i < nEntranceBegin + nEntranceWidth ? -100 : 1;
+			else
+				m_gendata1[i + j * nWidth] = i == 0 || i == nWidth - 1 || j == nHeight - 1 ? 1 : 0;
+		}
+	}
+	if( temp.size() )
+		SRand::Inst().Shuffle( temp );
+	for( auto p : temp )
+	{
+		if( m_gendata[p.x + p.y * nWidth] != eType_None )
+			continue;
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 6, 6 ), TVector2<int32>( 12, 12 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_None );
+		if( rect.width > 0 )
+		{
+			SArea area;
+			area.rect = rect;
+			area.nType = 0;
+			m_areas.push_back( area );
+		}
+	}
+
 	float fChanceXCoef1 = SRand::Inst().Rand( fChanceXCoefMin, fChanceXCoefMax );
 	float fChanceXCoef2 = SRand::Inst().Rand( fChanceXCoefMin, fChanceXCoefMax );
 	float fChanceYCoef1 = SRand::Inst().Rand( fChanceYCoefMin, fChanceYCoefMax );
@@ -2152,11 +2018,17 @@ void CLevelGenNode1_1_3::GenAreas()
 			{
 				int n = Min( i - area.rect.x, area.rect.GetRight() - 1 - i );
 				float p = n * 2.0f / area.rect.width;
+				float p1 = n * 1.5f / area.rect.width;
 				int32 yMin = area.rect.y < sizeMin.y ? 0 : Max( 0, area.rect.height / 2 - n );
 				int32 yMax = area.rect.y < sizeMin.y ? Min( area.rect.height / 2, n ) : area.rect.height - 1 - yMin;
 				int32 y = area.rect.y + SRand::Inst().Rand( yMin, yMax + 1 );
 				if( SRand::Inst().Rand( 0.0f, 1.0f ) < p )
-					m_gendata1[i + y * nWidth] = 100;
+				{
+					if( SRand::Inst().Rand( 0.0f, 1.0f ) < p1 )
+						FloodFill( m_gendata, nWidth, nHeight, i, y, eType_Obj, SRand::Inst().Rand( 4, 8 ) );
+					else
+						m_gendata1[i + y * nWidth] = 100;
+				}
 			}
 		}
 	}
@@ -2181,8 +2053,7 @@ void CLevelGenNode1_1_3::GenObstacles()
 
 	vector<TVector2<int32> > vec;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
-	if( vec.size() )
-		SRand::Inst().Shuffle( &vec[0], vec.size() );
+	SRand::Inst().Shuffle( vec );
 	for( auto p : vec )
 	{
 		if( m_gendata[p.x + p.y * nWidth] != eType_None )
@@ -2204,6 +2075,10 @@ void CLevelGenNode1_1_3::GenObstacles()
 	}
 	//ExpandDist( m_gendata, nWidth, nHeight, eType_None, eType_Temp, 1 );
 	LvGenLib::AddBars( m_gendata, nWidth, nHeight, m_bars, eType_Temp, eType_Bar );
+
+	LvGenLib::GenObjs1( m_gendata, nWidth, nHeight, eType_Temp, eType_None, eType_Obj );
+	LvGenLib::DropObjs( m_gendata, nWidth, nHeight, eType_None, eType_Obj );
+	LvGenLib::Flatten( m_gendata, nWidth, nHeight, eType_None, eType_Obj, eType_Temp );
 
 	int8 nTypes[4] = { eType_Block1x, eType_Block1y, eType_Block2x, eType_Block2y };
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp, nTypes, 4 );

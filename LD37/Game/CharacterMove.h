@@ -224,3 +224,16 @@ struct SCharacterSurfaceWalkData : public SCharacterMovementData
 	bool bHitSurface;
 	CVector2 normal;
 };
+
+struct SCharacterPhysicsMovementData : public SCharacterMovementData
+{
+	SCharacterPhysicsMovementData( const SClassCreateContext& context ) {}
+	void UpdateMove( CCharacter* pCharacter );
+
+	float fGravity;
+	float fMaxFallSpeed;
+	float fFriction;
+	float fBounceCoef;
+	float fBounceCoef1;
+	float fRotCoef;
+};

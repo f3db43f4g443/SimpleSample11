@@ -64,6 +64,7 @@ public:
 	CResource* GetResource() { return m_pResource; }
 	bool SetResource( CResource* pResource );
 	SClassMetaData* GetClassData() { return m_obj.GetClassData(); }
+	SClassMetaData* GetFinalClassData();
 	bool SetClassName( const char* szName ) { return m_obj.SetClassName( szName ); }
 	uint8* GetObjData() { return m_obj.GetObjData(); }
 

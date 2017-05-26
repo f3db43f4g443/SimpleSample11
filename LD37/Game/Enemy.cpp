@@ -26,16 +26,25 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 		if( pPlayer->IsRolling() )
 		{
 			if( !Knockback( vec ) )
+			{
 				pPlayer->Knockback( vec * -1 );
+				OnKnockbackPlayer( vec );
+			}
 		}
 		else if( pPlayer->GetSp() >= m_nKnockbackCostSp )
 		{
 			if( !Knockback( vec ) )
+			{
 				pPlayer->Knockback( vec * -1 );
+				OnKnockbackPlayer( vec );
+			}
 			else
 				pPlayer->CostSp( m_nKnockbackCostSp );
 		}
 		else
+		{
 			pPlayer->Knockback( vec * -1 );
+			OnKnockbackPlayer( vec );
+		}
 	}
 }

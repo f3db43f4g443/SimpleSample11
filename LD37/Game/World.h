@@ -18,6 +18,7 @@ public:
 
 	CPlayer* GetPlayer() { return m_pCurPlayer; }
 	void SetPlayer( CPlayer* pPlayer ) { m_pCurPlayer = pPlayer; }
+	void CreatePlayer();
 
 	void EnterStage( const char* szStageName, SStageEnterContext& enterContext );
 	void Update();
