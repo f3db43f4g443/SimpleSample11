@@ -938,14 +938,14 @@ void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
 	CVector2 dVel = vel1 - vel0;
 	float l = dVel.Normalize();
 	float l0 = l;
-	l = Max( 0.0f, l * fBounceCoef - fBounceCoef1 );
+	l = Max( 0.0f, l * fBounceCoef - ( fBounceCoef1 + fGravity * deltaTime ) );
 
 	float l1 = vel1.Normalize();
 	l1 = Max( l1 - ( l0 + l ) * fFriction, 0.0f );
+	float dRot = l0 > 0 ? ( ofs.y * dVel.x - ofs.x * dVel.y ) / fRotCoef : fRot;
+	fRot = dRot;
 	vel1 = vel1 * l1 + dVel * l;
 
-	float dRot = fRotCoef * ( ofs.y * vel1.x - ofs.x * vel1.y );
 	pCharacter->SetRotation( pCharacter->GetRotation() + dRot );
-
 	pCharacter->SetVelocity( vel1 );
 }

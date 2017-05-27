@@ -1317,6 +1317,25 @@ void CHitTestMgr::ClearManifolds( CHitProxy* pProxy )
 	}
 }
 
+void CHitTestMgr::ClearNoBulletModeManifolds( CHitProxy * pProxy )
+{
+	SHitProxyManifold* pManifold;
+	for( pManifold = pProxy->m_pManifolds; pManifold; )
+	{
+		auto pNext = pManifold->NextManifold();
+
+		if( !pManifold->pOtherHitProxy->m_bBulletMode )
+		{
+			pManifold->pOther->RemoveFrom_Manifold();
+			FreeManifold( pManifold->pOther );
+			pManifold->RemoveFrom_Manifold();
+			FreeManifold( pManifold );
+		}
+
+		pManifold = pNext;
+	}
+}
+
 void CHitTestMgr::UpdateBound( SHitProxy* pProxy, const TRectangle<int32>& newRect, vector<CHitProxy*>* pOverlaps, bool bInsertGrids )
 {
 	TRectangle<int32>& oldRect = pProxy->bound;
@@ -1490,6 +1509,66 @@ void CHitTestMgr::Update()
 	for( CHitProxy* pHitProxy = m_pHitProxyBulletMode; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
 	{
 		Update( pHitProxy, &vecOverlaps );
+	}
+}
+
+void CHitTestMgr::Update( CHitProxy* pHitProxy )
+{
+	vector<CHitProxy*> vecOverlaps;
+	ClearNoBulletModeManifolds( pHitProxy );
+	const CMatrix2D& transform = pHitProxy->GetGlobalTransform();
+	for( SHitProxy* pProxy = pHitProxy->Get_HitProxy(); pProxy; pProxy = pProxy->NextHitProxy() )
+	{
+		CRectangle rect;
+		pProxy->CalcBound( transform, rect );
+		TRectangle<int32> newRect( floor( rect.x / nGridSize ), floor( rect.y / nGridSize ), ceil( ( rect.x + rect.width ) / nGridSize ), ceil( ( rect.y + rect.height ) / nGridSize ) );
+		newRect.width -= newRect.x;
+		newRect.height -= newRect.y;
+		UpdateBound( pProxy, newRect, &vecOverlaps, !pHitProxy->m_bBulletMode );
+	}
+
+	if( vecOverlaps.size() )
+	{
+		std::sort( vecOverlaps.begin(), vecOverlaps.end() );
+		int i, j;
+		for( i = 1, j = 1; i < vecOverlaps.size(); i++ )
+		{
+			if( vecOverlaps[i] != vecOverlaps[i - 1] )
+				vecOverlaps[j++] = vecOverlaps[i];
+		}
+
+		for( i = 0; i < j; i++ )
+		{
+			CHitProxy* pHitProxy1 = vecOverlaps[i];
+			SHitTestResult hitTestResult;
+			if( !pHitProxy->HitTest( pHitProxy1, &hitTestResult ) )
+				continue;
+			SHitProxyManifold* pManifold = AllocManifold();
+			SHitProxyManifold* pManifold1 = AllocManifold();
+			pManifold->pOtherHitProxy = pHitProxy1;
+			pManifold1->pOtherHitProxy = pHitProxy;
+			pManifold->pOther = pManifold1;
+			pManifold1->pOther = pManifold;
+			pManifold->hitPoint = hitTestResult.hitPoint1;
+			pManifold->normal = hitTestResult.normal;
+			pManifold1->hitPoint = hitTestResult.hitPoint2;
+			pManifold1->normal = hitTestResult.normal * -1;
+			pHitProxy->Insert_Manifold( pManifold );
+			pHitProxy1->Insert_Manifold( pManifold1 );
+		}
+
+		vecOverlaps.resize( 0 );
+	}
+	pHitProxy->m_bDirty = false;
+	if( !pHitProxy->m_bLastPosValid )
+	{
+		pHitProxy->m_bLastPosValid = true;
+		pHitProxy->m_lastPos = pHitProxy->m_curPos = transform.GetPosition();
+	}
+	else
+	{
+		pHitProxy->m_lastPos = pHitProxy->m_curPos;
+		pHitProxy->m_curPos = transform.GetPosition();
 	}
 }
 

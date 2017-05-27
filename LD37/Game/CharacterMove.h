@@ -227,7 +227,7 @@ struct SCharacterSurfaceWalkData : public SCharacterMovementData
 
 struct SCharacterPhysicsMovementData : public SCharacterMovementData
 {
-	SCharacterPhysicsMovementData( const SClassCreateContext& context ) {}
+	SCharacterPhysicsMovementData( const SClassCreateContext& context ) : fRot( 0 ) {}
 	void UpdateMove( CCharacter* pCharacter );
 
 	float fGravity;
@@ -236,4 +236,5 @@ struct SCharacterPhysicsMovementData : public SCharacterMovementData
 	float fBounceCoef;
 	float fBounceCoef1;
 	float fRotCoef;
+	float fRot;
 };

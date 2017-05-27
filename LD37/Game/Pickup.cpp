@@ -11,8 +11,9 @@ void CPickUp::OnAddedToStage()
 
 void CPickUp::PickUp( CPlayer* pPlayer )
 {
-	m_onPickedUp.Trigger( 0, pPlayer );
+	DEFINE_TEMP_REF_THIS()
 	Kill();
+	m_onPickedUp.Trigger( 0, pPlayer );
 }
 
 void CPickUp::Kill()
@@ -33,9 +34,9 @@ void CPickUp::Kill()
 void CPickUpCommon::PickUp( CPlayer* pPlayer )
 {
 	if( m_nHpRestore )
-	{
 		pPlayer->RestoreHp( m_nHpRestore );
-	}
+	if( m_nMoney )
+		pPlayer->AddMoney( m_nMoney );
 
 	CPickUp::PickUp( pPlayer );
 }

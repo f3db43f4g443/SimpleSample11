@@ -29,6 +29,8 @@ public:
 	int32 GetMaxSp() { return m_sp.GetMaxValue(); }
 	void ModifyHp( int32 nValue );
 	void ModifySp( int32 nValue );
+	int32 GetMoney() { return m_nMoney; }
+	void AddMoney( int32 nMoney ) { m_nMoney += nMoney; }
 	CEntity* GetCore() { return m_pCore; }
 	bool IsHiding() { return m_fHidingCurTime >= m_fHidingTime; }
 	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
@@ -85,6 +87,7 @@ private:
 	int32 m_nSpRegenPerFrame;
 	int32 m_nSpRegenPerFrameSlidingDown;
 	int32 m_nRollSpCost;
+	int32 m_nMoney;
 
 	CReference<CEntity> m_pCore;
 	CReference<CPlayerWeapon> m_pCurWeapon;

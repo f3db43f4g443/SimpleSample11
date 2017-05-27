@@ -161,8 +161,16 @@ void CPlayer::Crush()
 	}
 
 	int32 nCostSp = 0;
+	bool bCertainlyCrush = false;
 	for( i = 0; i < j; i++ )
+	{
+		if( chunkObjs[i]->GetCrushCost() > m_sp.GetMaxValue() )
+			bCertainlyCrush = true;
 		nCostSp += chunkObjs[i]->GetCrushCost();
+	}
+
+	if( !bCertainlyCrush && IsRolling() )
+		nCostSp = Min<int32>( nCostSp, m_sp );
 
 	if( nCostSp > m_sp )
 	{

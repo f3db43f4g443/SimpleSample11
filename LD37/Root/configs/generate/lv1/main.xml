@@ -96,6 +96,9 @@
             <ref name="garbage_bin_black" p="1" />
           </node>
         </obj>
+        <bonus>
+          <ref name="box" />
+        </bonus>
       </node>
       
       <node type="lv1type1_1" name="lv1style2">
@@ -131,6 +134,9 @@
             <ref name="garbage_bin_black" p="1" />
           </node>
         </obj>
+        <bonus>
+          <ref name="box" />
+        </bonus>
       </node>
       
       <node type="lv1type1_2" name="lv1style3">
@@ -172,6 +178,9 @@
             <ref name="garbage_bin_black" p="1" />
           </node>
         </obj>
+        <bonus>
+          <ref name="box" />
+        </bonus>
       </node>
       
       <node type="lv1type1_3" name="lv1style4">
@@ -216,6 +225,9 @@
             <ref name="garbage_bin_black" p="1" />
           </node>
         </obj>
+        <bonus>
+          <ref name="box" />
+        </bonus>
       </node>
 
       <node type="randompick" name="lv1fill1">

@@ -19,7 +19,7 @@ public:
 	CWindow( const SClassCreateContext& context ) : CEntity( context ), m_pAI( NULL ), m_bHit( false )
 		, m_strBullet( context ), m_strBullet1( context )
 		, m_strHead( context ), m_strHead1( context ), m_strHead2( context ), m_strHead3( context ) { SET_BASEOBJECT_ID( CWindow ); }
-	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
+	virtual void OnAddedToStage() override { if( m_pSpawner ) m_pSpawner->SetEnabled( false ); m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
 protected:
 	virtual void AIFunc();
 	class AI : public CAIObject
@@ -34,6 +34,7 @@ protected:
 	CReference<CRenderObject2D> m_pWindow;
 	CReference<CRenderObject2D> m_pMan;
 	CReference<CEffectObject> m_pDeathEffect;
+	CReference<CSpawner> m_pSpawner;
 	bool m_bHit;
 
 	CString m_strBullet;

@@ -165,13 +165,10 @@ public:
 	void Remove( CHitProxy* pProxy );
 	void ReAdd( CHitProxy* pProxy );
 	void ClearManifolds( CHitProxy* pProxy );
+	void ClearNoBulletModeManifolds( CHitProxy* pProxy );
 
 	void Update();
-	void Update( CHitProxy* pHitProxy )
-	{
-		vector<CHitProxy*> vecOverlaps;
-		Update( pHitProxy, &vecOverlaps );
-	}
+	void Update( CHitProxy* pHitProxy );
 	void CalcBound( SHitProxy* pProxy, const CMatrix2D& transform );
 	void HitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CHitProxy*>& vecResult, vector<SHitTestResult>* pResult = NULL );
 	void Raycast( const CVector2& begin, const CVector2& end, vector<SRaycastResult>& vecResult );

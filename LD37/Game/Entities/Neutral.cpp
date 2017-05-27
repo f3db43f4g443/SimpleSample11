@@ -235,6 +235,7 @@ void CFuelTank::OnTickAfterHitTest()
 
 void CPickupCarrier::OnAddedToStage()
 {
+	CCharacter::OnAddedToStage();
 	if( m_pPickup )
 		m_pPickup->RegisterPickupEvent( &m_onPickUp );
 }
@@ -243,10 +244,36 @@ void CPickupCarrier::OnRemovedFromStage()
 {
 	if( m_onPickUp.IsRegistered() )
 		m_onPickUp.Unregister();
+	CCharacter::OnRemovedFromStage();
 }
 
 void CPickUpCarrierPhysics::OnTickAfterHitTest()
 {
+	if( !m_bAttracted )
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer )
+			m_bAttracted = ( GetPosition() - pPlayer->GetPosition() ).Length2() < m_fAttractDist * m_fAttractDist;
+	}
+
 	CPickupCarrier::OnTickAfterHitTest();
-	m_moveData.UpdateMove( this );
+	if( m_bAttracted )
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		m_flyData.UpdateMove( this, pPlayer ? pPlayer->GetPosition() : GetPosition() );
+	}
+	else
+	{
+		if( m_nLife )
+		{
+			m_nLife--;
+			if( !m_nLife )
+			{
+				Kill();
+				return;
+			}
+		}
+
+		m_moveData.UpdateMove( this );
+	}
 }

@@ -21,10 +21,15 @@ class CPickUpCarrierPhysics : public CPickupCarrier
 {
 	friend void RegisterGameClasses();
 public:
-	CPickUpCarrierPhysics( const SClassCreateContext& context ) : CPickupCarrier( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CPickUpCarrierPhysics ); }
+	CPickUpCarrierPhysics( const SClassCreateContext& context ) : CPickupCarrier( context ), m_moveData( context ), m_flyData( context ), m_bAttracted( false ) { SET_BASEOBJECT_ID( CPickUpCarrierPhysics ); }
 protected:
 	virtual void OnTickAfterHitTest() override;
 	SCharacterPhysicsMovementData m_moveData;
+	SCharacterPhysicsFlyData m_flyData;
+	uint32 m_nLife;
+	float m_fAttractDist;
+
+	bool m_bAttracted;
 };
 
 class CSpike : public CEntity

@@ -218,6 +218,8 @@ dead:
 		m_pDeathEffect->SetParentEntity( this );
 		m_pDeathEffect->SetState( 2 );
 	}
+	if( m_pSpawner )
+		m_pSpawner->SetEnabled( true );
 
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 8, 12, 2 );
 	static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( 1, false );

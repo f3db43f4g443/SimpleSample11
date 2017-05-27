@@ -71,6 +71,9 @@
         <types>4</types>
       </node>
       
+      <node name="box" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/box.pf">
+        <types>4</types>
+      </node>
       <node name="crate" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/crate.pf">
         <types>4</types>
       </node>

@@ -1,0 +1,8 @@
+﻿<root>
+  <level_gen>
+    <attachs>
+      <node name="hppack" prefab="data/pickups/hppack.pf" sizex="2" sizey="2" />
+      <node name="w0" prefab="data/pickups/w0.pf" sizex="2" sizey="2" />
+    </attachs>
+  </level_gen>
+</root>

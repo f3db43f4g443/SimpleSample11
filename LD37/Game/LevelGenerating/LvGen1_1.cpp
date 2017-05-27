@@ -3,6 +3,7 @@
 #include "Common/Rand.h"
 #include "Common/Algorithm.h"
 #include "LvGenLib.h"
+#include <algorithm>
 
 void CLevelGenNode1_1_0::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
@@ -11,6 +12,7 @@ void CLevelGenNode1_1_0::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pBlock1Node = CreateNode( pXml->FirstChildElement( "block1" )->FirstChildElement(), context );
 	m_pBlock2Node = CreateNode( pXml->FirstChildElement( "block2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -38,6 +40,11 @@ void CLevelGenNode1_1_0::Generate( SLevelBuildContext & context, const TRectangl
 			{
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+			else if( genData == eType_Bonus )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pBonusNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 			}
 		}
 	}
@@ -210,6 +217,7 @@ void CLevelGenNode1_1_0::MakeHoles()
 	const float fMinPercent = 0.1f;
 	const float fMaxPercent = 0.2f;
 	const float fObjPercent = 0.02f;
+	const float fBonusPercent = 0.02f;
 
 	vector<TVector2<int32> > vec;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_Block1, vec );
@@ -217,6 +225,7 @@ void CLevelGenNode1_1_0::MakeHoles()
 
 	int32 nHoleCount = vec.size() * SRand::Inst().Rand( fMinPercent, fMaxPercent );
 	int32 nObjCount = vec.size() * fObjPercent;
+	int32 nBonusCount = vec.size() * fBonusPercent;
 	SRand::Inst().Shuffle( vec );
 
 	for( int i = 0; i < vec.size() && nHoleCount; i++ )
@@ -242,7 +251,7 @@ void CLevelGenNode1_1_0::MakeHoles()
 			{
 				for( int y = Max( 0, p.y - 1 ); y <= Min( nHeight - 1, p.y + 1 ); y++ )
 				{
-					if( m_gendata[x + y * nWidth] == eType_Wall || m_gendata[x + y * nWidth] == eType_None )
+					if( m_gendata[x + y * nWidth] <= eType_Bonus )
 					{
 						bSucceed = false;
 						break;
@@ -256,11 +265,19 @@ void CLevelGenNode1_1_0::MakeHoles()
 
 			m_gendata[p.x + p.y * nWidth] = m_gendata[p1.x + p1.y * nWidth] = eType_Wall;
 			nHoleCount--;
-			if( nObjCount )
+
+			bool b = SRand::Inst().Rand() & 1;
+			if( nObjCount && SRand::Inst().Rand() & 1 )
 			{
-				auto obj = SRand::Inst().Rand() & 1 ? p : p1;
+				auto obj = b ? p : p1;
 				m_gendata[obj.x + obj.y * nWidth] = eType_Obj;
 				nObjCount--;
+			}
+			if( nBonusCount && SRand::Inst().Rand() & 1 )
+			{
+				auto obj = !b ? p : p1;
+				m_gendata[obj.x + obj.y * nWidth] = eType_Bonus;
+				nBonusCount--;
 			}
 		}
 	}
@@ -277,6 +294,7 @@ void CLevelGenNode1_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pBarNode = CreateNode( pXml->FirstChildElement( "bar" )->FirstChildElement(), context );
 	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -307,6 +325,11 @@ void CLevelGenNode1_1_1::Generate( SLevelBuildContext & context, const TRectangl
 			{
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+			else if( genData == eType_Bonus )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pBonusNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 			}
 		}
 	}
@@ -738,11 +761,11 @@ void CLevelGenNode1_1_1::GenObjsBig()
 			m_gendata[p1.x + p1.y * nWidth] = eType_Path;
 		}
 
-		int32 nObjCount = n / 2;
+		int32 nObjCount = n * 2 / 3;
 		for( int i = 0; i < n && nObjCount; i++ )
 		{
 			auto p1 = q[i];
-			if( m_gendata[p1.x + p1.y * nWidth] == eType_Obj )
+			if( m_gendata[p1.x + p1.y * nWidth] == eType_Obj || m_gendata[p1.x + p1.y * nWidth] == eType_Bonus )
 				continue;
 
 			for( ; p1.y > 0; p1.y-- )
@@ -750,7 +773,7 @@ void CLevelGenNode1_1_1::GenObjsBig()
 				if( m_gendata[p1.x + ( p1.y - 1 ) * nWidth] != eType_Path )
 					break;
 			}
-			m_gendata[p1.x + p1.y * nWidth] = eType_Obj;
+			m_gendata[p1.x + p1.y * nWidth] = i & 1 ? eType_Obj : eType_Bonus;
 			nObjCount--;
 		}
 
@@ -768,24 +791,31 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 	const int32 nFillSizeMax = 32;
 	const float fObjPercentMin = 0.008f;
 	const float fObjPercentMax = 0.01f;
+	const float fBonusPercentMin = 0.008f;
+	const float fBonusPercentMax = 0.01f;
 	const float fObjPercentMin1 = 0.015f;
 	const float fObjPercentMax1 = 0.02f;
 
 	vector<int8> vecTemp;
 	vecTemp.resize( m_gendata.size() );
 	for( int i = 0; i < m_gendata.size(); i++ )
-		vecTemp[i] = m_gendata[i] == eType_Path || m_gendata[i] == eType_Obj ? 1 : ( m_gendata[i] == eType_Temp1 ? 0 : 2 );
+		vecTemp[i] = m_gendata[i] == eType_Path || m_gendata[i] == eType_Obj || m_gendata[i] == eType_Bonus ? 1 : ( m_gendata[i] == eType_Temp1 ? 0 : 2 );
 	ExpandDist( vecTemp, nWidth, nHeight, 1, 0, 2 );
 	vector<TVector2<int32> > vecEmpty;
 	FindAllOfTypesInMap( vecTemp, nWidth, nHeight, 0, vecEmpty );
 	SRand::Inst().Shuffle( vecEmpty );
 	uint32 nObjCount = nWidth * nHeight * SRand::Inst().Rand( fObjPercentMin, fObjPercentMax );
+	uint32 nBonusCount = nWidth * nHeight * SRand::Inst().Rand( fBonusPercentMin, fBonusPercentMax );
 
 	for( auto p : vecEmpty )
 	{
-		if( !nObjCount )
+		if( !nObjCount && !nBonusCount )
 			break;
 		if( m_gendata[p.x + p.y * nWidth] != eType_Temp1 )
+			continue;
+		bool bObj = nObjCount && SRand::Inst().Rand() & 1;
+		bool bBonus = nBonusCount && SRand::Inst().Rand() & 1;
+		if( !bObj && !bBonus )
 			continue;
 
 		TVector2<int32> p1s[4];
@@ -824,11 +854,23 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 		FloodFill( m_gendata, nWidth, nHeight, p.x, p.y, nType, SRand::Inst().Rand( nFillSizeMin, nFillSizeMax ) );
 		m_gendata[p.x + p.y * nWidth] = m_gendata[p1.x + p1.y * nWidth] = eType_Temp;
 
-		if( nType < eType_Block1y )
-			( SRand::Inst().Rand() & 1 ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = eType_Obj;
+		if( bObj && bBonus )
+		{
+			m_gendata[p.x + p.y * nWidth] = eType_Obj;
+			m_gendata[p1.x + p1.y * nWidth] = eType_Bonus;
+		}
 		else
-			( p.y < p1.y ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = eType_Obj;
-		nObjCount--;
+		{
+			int8 nType = bObj ? eType_Obj : eType_Bonus;
+			if( nType < eType_Block1y )
+				( SRand::Inst().Rand() & 1 ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = nType;
+			else
+				( p.y < p1.y ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = nType;
+		}
+		if( bObj )
+			nObjCount--;
+		if( bBonus )
+			nBonusCount--;
 	}
 
 	nObjCount = nWidth * nHeight * SRand::Inst().Rand( fObjPercentMin1, fObjPercentMax1 );
@@ -877,6 +919,7 @@ void CLevelGenNode1_1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pRoom1Node = CreateNode( pXml->FirstChildElement( "room1" )->FirstChildElement(), context );
 	m_pRoom2Node = CreateNode( pXml->FirstChildElement( "room2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -893,6 +936,7 @@ void CLevelGenNode1_1_2::Generate( SLevelBuildContext & context, const TRectangl
 	AddMoreBars();
 	GenObjs();
 	GenBlocks();
+	GenBonus();
 
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -909,6 +953,11 @@ void CLevelGenNode1_1_2::Generate( SLevelBuildContext & context, const TRectangl
 			{
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+			else if( genData == eType_Bonus )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pBonusNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 			}
 		}
 	}
@@ -946,6 +995,7 @@ void CLevelGenNode1_1_2::Generate( SLevelBuildContext & context, const TRectangl
 	m_stones.clear();
 	m_bars.clear();
 	m_rooms.clear();
+	m_path.clear();
 	m_pathFindingTarget.clear();
 	m_vecHeight.clear();
 }
@@ -1562,6 +1612,7 @@ void CLevelGenNode1_1_2::LinkRoom( int8 nRoomPosType )
 		{
 			m_gendata[p.x + p.y * nWidth] = eType_Path;
 			m_vecHeight[p.x] = Max( m_vecHeight[p.x], p.y );
+			m_path.push_back( p );
 		}
 	}
 
@@ -1633,6 +1684,242 @@ void CLevelGenNode1_1_2::GenBlocks()
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_None, nTypes, 4 );
 }
 
+void CLevelGenNode1_1_2::GenBonus()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	const float fBonusPercentMin = 0.018f;
+	const float fBonusPercentMax = 0.02f;
+
+	vector<float> vecRisk, vecRisk1;
+	vecRisk.resize( nWidth * nHeight );
+	vecRisk1.resize( nWidth * nHeight );
+	vector<float> vecRiskOpacity;
+	vecRiskOpacity.resize( nWidth * nHeight );
+
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			float& opacity = vecRiskOpacity[i + j * nWidth];
+			int8 nType = m_gendata[i + j * nWidth];
+			if( nType == eType_Path || nType == eType_Obj || nType == eType_Door )
+				opacity = 0;
+			else if( nType >= eType_Block1x && nType <= eType_Block1y )
+				opacity = 0.5f;
+			else
+				opacity = 0.85f;
+		}
+	}
+
+	for( auto& room : m_rooms )
+	{
+		auto rect = room.rect;
+		for( int i = rect.x + 1; i < rect.GetRight() - 1; i++ )
+		{
+			for( int j = rect.y + 1; j < rect.GetBottom() - 1; j++ )
+			{
+				vecRiskOpacity[i + j * nWidth] = 0.15f;
+			}
+		}
+
+		rect.y -= 2;
+		rect.height = 2;
+		rect = rect * TRectangle<int32>( 0, 0, nWidth, nHeight );
+		for( int i = rect.x + 1; i < rect.GetRight() - 1; i++ )
+		{
+			for( int j = rect.y + 1; j < rect.GetBottom() - 1; j++ )
+			{
+				vecRiskOpacity[i + j * nWidth] = Max( vecRiskOpacity[i + j * nWidth], 0.25f );
+			}
+		}
+	}
+
+	for( auto bar : m_bars )
+	{
+		bar.y -= bar.height;
+		bar = bar * TRectangle<int32>( 0, 0, nWidth, nHeight );
+		for( int i = bar.x; i < bar.GetRight(); i++ )
+		{
+			for( int j = bar.y; j < bar.GetBottom(); j++ )
+			{
+				vecRiskOpacity[i + j * nWidth] = Max( vecRiskOpacity[i + j * nWidth], 0.25f );
+			}
+		}
+	}
+	for( auto stone : m_stones )
+	{
+		stone.height = ( stone.height + 1 ) / 2;
+		stone.y -= stone.height;
+		stone = stone * TRectangle<int32>( 0, 0, nWidth, nHeight );
+		for( int i = stone.x; i < stone.GetRight(); i++ )
+		{
+			for( int j = stone.y; j < stone.GetBottom(); j++ )
+			{
+				vecRiskOpacity[i + j * nWidth] = Max( vecRiskOpacity[i + j * nWidth], 0.25f );
+			}
+		}
+	}
+
+	vector<int8> vecLightMap;
+	vecLightMap.resize( nWidth * nHeight );
+	for( int i = 0; i < m_gendata.size(); i++ )
+	{
+		vecLightMap[i] = m_gendata[i] == eType_Path ? 0 : 1;
+	}
+
+	vector<TVector2<int32> > vecLightArea;
+	vector<int32> vecDist;
+	vecDist.resize( nWidth * nHeight );
+	for( int i = 0; i < nWidth; i++ )
+	{
+		if( m_gendata[i + ( nHeight - 1 ) * nWidth] )
+			vecLightArea.push_back( TVector2<int32>( i, nHeight - 1 ) );
+	}
+	for( auto p : m_path )
+	{
+		if( p.y < nHeight - 1 )
+		vecLightArea.push_back( p );
+	}
+	int32 iq = 0;
+
+	vector<TVector2<int32> > vecCoords;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			vecCoords.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	
+	const int32 nIteration = 8;
+	for( int iIteration = 0; iIteration < nIteration; iIteration++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			for( int j = 0; j < nHeight; j++ )
+			{
+				int8 nType = m_gendata[i + j * nWidth];
+				if( nType >= eType_Block1x && nType <= eType_Block1y )
+					vecRisk[i + j * nWidth] += 0.25f;
+				else if( nType == eType_Obj )
+				{
+					vecRisk[i + j * nWidth] += 5.0f;
+				}
+			}
+		}
+		for( auto& room : m_rooms )
+		{
+			auto rect = room.rect;
+			rect.y -= 2;
+			rect.height = 2;
+			rect = rect * TRectangle<int32>( 0, 0, nWidth, nHeight );
+			for( int i = rect.x + 1; i < rect.GetRight() - 1; i++ )
+			{
+				for( int j = rect.y + 1; j < rect.GetBottom() - 1; j++ )
+				{
+					vecRisk[i + j * nWidth] += 2.0f;
+				}
+			}
+		}
+		for( auto bar : m_bars )
+		{
+			bar.y -= bar.height;
+			bar = bar * TRectangle<int32>( 0, 0, nWidth, nHeight );
+			for( int i = bar.x; i < bar.GetRight(); i++ )
+			{
+				for( int j = bar.y; j < bar.GetBottom(); j++ )
+				{
+					vecRisk[i + j * nWidth] += 1.0f;
+				}
+			}
+		}
+		for( auto stone : m_stones )
+		{
+			stone.height = ( stone.height + 1 ) / 2;
+			stone.y -= stone.height;
+			stone = stone * TRectangle<int32>( 0, 0, nWidth, nHeight );
+			for( int i = stone.x; i < stone.GetRight(); i++ )
+			{
+				for( int j = stone.y; j < stone.GetBottom(); j++ )
+				{
+					vecRisk[i + j * nWidth] += 1.0f;
+				}
+			}
+		}
+
+		SRand::Inst().Shuffle( vecCoords );
+		for( auto& p : vecCoords )
+		{
+			float s = 0;
+			int32 n = 1;
+			for( int i = 0; i < 4; i++ )
+			{
+				auto& p1 = p + ofs[i];
+				if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight )
+				{
+					s += 1.0f - vecRiskOpacity[p1.x + p1.y * nWidth];
+					n++;
+				}
+			}
+
+			float s0 = 1.0f - vecRiskOpacity[p.x + p.y * nWidth];
+			float f = ( 1.0f - vecRiskOpacity[p.x + p.y * nWidth] ) / n * vecRisk[p.x + p.y * nWidth];
+			vecRisk1[p.x + p.y * nWidth] += vecRisk[p.x + p.y * nWidth] - f * s;
+			for( int i = 0; i < 4; i++ )
+			{
+				auto& p1 = p + ofs[i];
+				if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight )
+				{
+					float s1 = 1.0f - vecRiskOpacity[p1.x + p1.y * nWidth];
+					vecRisk1[p1.x + p1.y * nWidth] += f * s1;
+				}
+			}
+		}
+
+		for( int i = 0; i < vecRisk.size(); i++ )
+		{
+			vecRisk[i] = vecRisk1[i] * 0.5f;
+			vecRisk1[i] = 0;
+		}
+
+		int32 nMaxDist = iIteration + 1;
+		StepExpandDist( vecLightMap, nWidth, nHeight, 0, 1, nMaxDist, vecLightArea, vecDist, iq );
+		for( int i = 0; i < iq; i++ )
+		{
+			auto p = vecLightArea[i];
+			int32 dist = vecDist[p.x + p.y * nWidth];
+			float f = ( nMaxDist - dist ) * 5.0f / nMaxDist;
+			vecRisk[p.x + p.y * nWidth] = Max( vecRisk[p.x + p.y * nWidth] - f, 0.0f );
+		}
+	}
+
+	vector<TVector2<int32> > vecEmpty;
+	for( int i = 0; i < m_gendata.size(); i++ )
+	{
+		vecLightMap[i] = m_gendata[i] == eType_Path ? 0 : 1;
+	}
+	FindAllOfTypesInMap( vecLightMap, nWidth, nHeight, 0, vecEmpty );
+	sort( vecEmpty.begin(), vecEmpty.end(), [&vecRisk, nWidth] ( const TVector2<int32> & left, const TVector2<int32> & right ) {
+		return vecRisk[left.x + left.y * nWidth] > vecRisk[right.x + right.y * nWidth];
+	} );
+
+	int32 nCount = nWidth * nHeight * SRand::Inst().Rand( fBonusPercentMin, fBonusPercentMax );
+	for( auto& p : vecEmpty )
+	{
+		if( !nCount )
+			break;
+
+		if( SRand::Inst().Rand() & 1 )
+		{
+			m_gendata[p.x + p.y * nWidth] = eType_Bonus;
+			nCount--;
+		}
+	}
+	LvGenLib::DropObjs( m_gendata, nWidth, nHeight, eType_Path, eType_Bonus );
+}
+
 void CLevelGenNode1_1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	m_pWallNode = CreateNode( pXml->FirstChildElement( "wall" )->FirstChildElement(), context );
@@ -1647,6 +1934,7 @@ void CLevelGenNode1_1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pRoom2Node = CreateNode( pXml->FirstChildElement( "room2" )->FirstChildElement(), context );
 	m_pWallChunkNode = CreateNode( pXml->FirstChildElement( "wallchunk" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
+	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -1676,6 +1964,11 @@ void CLevelGenNode1_1_3::Generate( SLevelBuildContext & context, const TRectangl
 			{
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 				m_pObjNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			}
+			else if( genData == eType_Bonus )
+			{
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+				m_pBonusNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
 			}
 		}
 	}
@@ -2078,7 +2371,7 @@ void CLevelGenNode1_1_3::GenObstacles()
 
 	LvGenLib::GenObjs1( m_gendata, nWidth, nHeight, eType_Temp, eType_None, eType_Obj );
 	LvGenLib::DropObjs( m_gendata, nWidth, nHeight, eType_None, eType_Obj );
-	LvGenLib::Flatten( m_gendata, nWidth, nHeight, eType_None, eType_Obj, eType_Temp );
+	LvGenLib::Flatten( m_gendata, nWidth, nHeight, eType_None, eType_Obj, eType_Bonus );
 
 	int8 nTypes[4] = { eType_Block1x, eType_Block1y, eType_Block2x, eType_Block2y };
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp, nTypes, 4 );

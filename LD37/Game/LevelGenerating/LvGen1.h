@@ -14,10 +14,11 @@ private:
 	{
 		eType_None,
 		eType_Wall,
+		eType_Obj,
+		eType_Bonus,
 		eType_Block1,
 		eType_Block2,
 		eType_Stone,
-		eType_Obj,
 	};
 
 	SLevelBuildContext* m_pContext;
@@ -30,6 +31,7 @@ private:
 	CReference<CLevelGenerateNode> m_pBlock1Node;
 	CReference<CLevelGenerateNode> m_pBlock2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pBonusNode;
 };
 
 class CLevelGenNode1_1_1 : public CLevelGenerateNode
@@ -56,6 +58,7 @@ private:
 		eType_Block1y,
 		eType_Block2y,
 		eType_Obj,
+		eType_Bonus,
 		eType_Temp,
 		eType_Temp1,
 	};
@@ -75,6 +78,7 @@ private:
 	CReference<CLevelGenerateNode> m_pBarNode;
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pBonusNode;
 };
 
 class CLevelGenNode1_1_2 : public CLevelGenerateNode
@@ -89,6 +93,7 @@ private:
 	void AddMoreBars();
 	void GenObjs();
 	void GenBlocks();
+	void GenBonus();
 
 	enum
 	{
@@ -103,6 +108,7 @@ private:
 		eType_Block1y,
 		eType_Block2y,
 		eType_Obj,
+		eType_Bonus,
 		eType_Temp,
 		eType_Temp1,
 		eType_Temp2,
@@ -121,6 +127,7 @@ private:
 	vector<SRoom> m_rooms;
 	vector<TRectangle<int32> > m_bars;
 	vector<TRectangle<int32> > m_stones;
+	vector<TVector2<int32> > m_path;
 	vector<TVector2<int32> > m_pathFindingTarget;
 	vector<TVector2<int32> > m_par;
 
@@ -135,6 +142,7 @@ private:
 	CReference<CLevelGenerateNode> m_pRoom1Node;
 	CReference<CLevelGenerateNode> m_pRoom2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pBonusNode;
 };
 
 class CLevelGenNode1_1_3 : public CLevelGenerateNode
@@ -159,6 +167,7 @@ private:
 		eType_Block2y,
 		eType_WallChunk,
 		eType_Obj,
+		eType_Bonus,
 
 		eType_Temp,
 		eType_Temp1,
@@ -197,6 +206,7 @@ private:
 	CReference<CLevelGenerateNode> m_pRoom2Node;
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pBonusNode;
 };
 
 class CLevelGenNode1_2 : public CLevelGenerateNode

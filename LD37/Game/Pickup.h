@@ -26,6 +26,7 @@ public:
 	virtual void PickUp( CPlayer* pPlayer ) override;
 protected:
 	uint32 m_nHpRestore;
+	uint32 m_nMoney;
 };
 
 class CPickUpItem : public CPickUp

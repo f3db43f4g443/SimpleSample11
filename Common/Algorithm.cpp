@@ -354,6 +354,34 @@ int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, i
 	return q.size();
 }
 
+int32 StepExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist,
+	vector<TVector2<int32> >& q, vector<int32> vecDist, int32& i )
+{
+	int32 i0 = i;
+	for( ; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+		int32 nDist1 = vecDist[p.x + p.y * nWidth];
+		if( nDist1 > nDist )
+			break;
+		nDist1++;
+
+		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				vecDist[p1.x + p1.y * nWidth] = nDist1;
+				q.push_back( p1 );
+			}
+		}
+	}
+	return i - i0;
+}
+
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 nBackType, int8 nPathType, int8 nDstType,
 	vector<TVector2<int32> >& q, vector<TVector2<int32> >& par, TVector2<int32>* pOfs, int32 nOfs )
 {
