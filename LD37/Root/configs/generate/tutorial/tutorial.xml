@@ -1,0 +1,196 @@
+﻿<root>
+  <includes>
+    <item name="common" public="1" />
+    <item name="pickups" public="1" />
+  </includes>
+  <level_gen>
+    <attachs>
+      <node name="beam_0" prefab="data/tutorial/beam_0.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="beam_1" prefab="data/tutorial/beam_1.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="welcome" prefab="data/tutorial/welcome.pf" sizex="16" sizey="4" attach_type="0" />
+    </attachs>
+    <spawns>
+    </spawns>
+    <scrollobjs>
+    </scrollobjs>
+    <nodes>
+      <node name="block0" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" destroyshake="2" prefab="data/tutorial/block0.pf">
+        <types>0</types>
+      </node>
+      <node name="block0_1" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" destroyshake="2" prefab="data/tutorial/block0_1.pf">
+        <types>0</types>
+      </node>
+      <node name="block1" width="1" height="1" weight="1" destroyweight="1.3" destroyshake="2" prefab="data/tutorial/block1.pf">
+        <types>4</types>
+      </node>
+      <node name="broken" width="1" height="1" weight="1" destroyweight="1.2" layer_type="1" prefab="data/tutorial/broken.pf">
+        <metadata isdesignvalid="0" />
+        <types>0</types>
+      </node>
+      <node name="broken1" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/tutorial/broken1.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      
+      <node name="block1_beam0" width="1" height="1" weight="1" destroyweight="1.3" destroyshake="2" prefab="data/tutorial/block1.pf">
+        <types>4</types>
+        <next_level>
+          <ref name="beam_0" />
+        </next_level>
+      </node>
+      <node name="block1_beam1" width="1" height="1" weight="1" destroyweight="1.3" destroyshake="2" prefab="data/tutorial/block1.pf">
+        <types>4</types>
+        <next_level>
+          <ref name="beam_1" />
+        </next_level>
+      </node>
+      
+      <node name="bigchunk" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="2" absorbshakestrengthperheight="2"
+           destroyshake="8" weightperwidth="1" destroyweightperwidth="5" shakedmg="8" prefab="data/tutorial/bigchunk.pf">
+        <metadata minx="2" miny="2" maxx="6" maxy="6" />
+        <types>4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="bigchunk2" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="2" absorbshakestrengthperheight="2"
+           destroyshake="20" weightperwidth="1" destroyweightperwidth="5" shakedmg="10" prefab="data/tutorial/bigchunk2.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="6" />
+        <types>4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="welcome_chunk" type="subregion">
+        <metadata isdesignvalid="1" minx="18" miny="6" maxx="18" maxy="6" minlevel="0" maxlevel="1" />
+        <ref name="bigchunk2" x="0" y="0" w="0" h="0" />
+        <ref name="welcome" x="1" y="1" w="16" h="4" />
+      </node>
+      
+      <node name="bar_h" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           destroyshake="8" weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/tutorial/bar_h.pf">
+        <metadata minx="4" maxx="32" />
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="bar_h2" width="8" height="2" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           destroyshake="16" weightperwidth="1" destroyweightperwidth="5" shakedmg="8" prefab="data/tutorial/bar_h2.pf">
+        <metadata minx="4" maxx="32" />
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4
+        </types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="bar_v" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="1" destroyshake="8"
+            absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/tutorial/bar_v.pf">
+        <metadata miny="4" maxy="32" />
+        <types>4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="bar_v2" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="1" destroyshake="16"
+            absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/tutorial/bar_v2.pf">
+        <metadata miny="4" maxy="32" />
+        <types>4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken1" />
+          </node>
+        </subitem>
+      </node>
+      
+      <node name="room_small" type="commonroom" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="40" shakedmg="40" isroom="1" prefab="data/tutorial/room.pf">
+        <types>
+          4,4,4,4,4,4,
+          4,0,0,0,0,4,
+          4,0,0,0,0,4,
+          0,0,0,0,0,0,
+          0,0,0,0,0,0,
+          4,4,4,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door0_3" x="0" y="1" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="1" w="1" h="2" />
+          </node>
+        </subitem>
+        <wall_broken>
+          <ref name="broken" />
+        </wall_broken>
+        <wall_broken1>
+          <ref name="broken1" />
+        </wall_broken1>
+      </node>
+      
+      <node name="room_large" type="commonroom" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="50" shakedmg="40" isroom="1" prefab="data/tutorial/room.pf">
+        <types>
+          4,4,4,0,0,4,4,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,4,4,0,0,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door0_0" x="3" y="0" w="2" h="1" />
+            <ref name="door0_2" x="3" y="-1" w="2" h="1" />
+            <ref name="door0_3" x="0" y="3" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="3" w="1" h="2" />
+          </node>
+        </subitem>
+        <wall_broken>
+          <ref name="broken" />
+        </wall_broken>
+        <wall_broken1>
+          <ref name="broken1" />
+        </wall_broken1>
+      </node>
+      
+      <node name="chest" width="3" height="3" layer_type="2" destroyshake="0" prefab="data/tutorial/chest.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,
+        </types>
+      </node>
+      
+      <node name="screen" width="12" height="10" weight="10" layer_type="1" destroyweight="40" absorbshakestrength="5" destroyshake="80" shakedmg="10" prefab="data/tutorial/screen.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+        <subitem>
+          <node type="tile">
+            <ref name="broken" />
+          </node>
+        </subitem>
+      </node>
+      
+    </nodes>
+  </level_gen>
+</root>

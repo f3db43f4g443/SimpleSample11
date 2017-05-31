@@ -55,6 +55,40 @@ void CBrickTileNode::Generate( SLevelBuildContext & context, const TRectangle<in
 	}
 }
 
+void CCommonRoomNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_pWallBroken = CreateNode( pXml->FirstChildElement( "wall_broken" )->FirstChildElement(), context );
+	m_pWallBroken1 = CreateNode( pXml->FirstChildElement( "wall_broken1" )->FirstChildElement(), context );
+}
+
+void CCommonRoomNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				if( pChunk->GetBlock( i, j )->eBlockType == eBlockType_Block )
+					m_pWallBroken1->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+				else
+					m_pWallBroken->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+			}
+		}
+
+		tempContext.Build();
+	}
+}
+
 void CRoom1Node::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	CLevelGenerateSimpleNode::Load( pXml, context );

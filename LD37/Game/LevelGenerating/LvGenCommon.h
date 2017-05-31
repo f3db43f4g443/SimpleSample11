@@ -13,6 +13,16 @@ private:
 	bool m_bOfs;
 };
 
+class CCommonRoomNode : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pWallBroken;
+	CReference<CLevelGenerateNode> m_pWallBroken1;
+};
+
 class CRoom1Node : public CLevelGenerateSimpleNode
 {
 public:

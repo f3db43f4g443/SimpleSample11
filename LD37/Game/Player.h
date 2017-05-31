@@ -47,6 +47,7 @@ public:
 	const CVector2& GetCam() { return m_cam; }
 	void DelayChangeStage( const char* szName, const char* szStartPoint = "" );
 
+	bool IsFiring() { return m_bFiringDown; }
 	bool IsRolling();
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0 &&
 		( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Rolling : m_flyData.nState != SCharacterFlyData::eState_Rolling ); }
@@ -68,6 +69,7 @@ public:
 	void RemoveItem( CItem* pItem );
 
 	CChunkObject* GetCurRoom() { return m_pCurRoom; }
+	CPlayerWeapon* GetWeapon() { return m_pCurWeapon; }
 	void SetWeapon( CPlayerWeapon* pWeapon );
 	void RefreshCurRoomUI() { m_pCurRoomChunkUI->SetChunkObject( m_pCurRoom ); }
 

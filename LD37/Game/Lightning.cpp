@@ -46,21 +46,32 @@ void CLightning::OnTick()
 {
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 
-	UpdateRenderObject();
+	CVector2 beginCenter, endCenter;
+	{
+		const CMatrix2D& worldMat = m_pBegin ? ( m_nBeginTransIndex >= 0 ? m_pBegin->GetTransform( m_nBeginTransIndex ) : m_pBegin->globalTransform ) : globalTransform;
+		beginCenter = worldMat.MulVector2Pos( m_begin );
+	}
+	{
+		const CMatrix2D& worldMat = m_pEnd ? ( m_nEndTransIndex >= 0 ? m_pEnd->GetTransform( m_nEndTransIndex ) : m_pEnd->globalTransform ) : globalTransform;
+		endCenter = worldMat.MulVector2Pos( m_end );
+	}
+
+	if( m_bIsBeam )
+	{
+		CVector2 dCenter = endCenter - beginCenter;
+		float l = dCenter.Normalize();
+		CVector2 dir = dCenter;
+		CVector2 begin = beginCenter + dir * m_fHitWidth * 0.5f;
+		SRaycastResult result;
+		if( GetStage()->Raycast( begin, endCenter, eEntityHitType_WorldStatic, &result ) )
+			endCenter = begin + dir * result.fDist;
+		m_beamEnd = endCenter;
+		m_bIsBeamInited = true;
+	}
 
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 	if( pPlayer && pPlayer->CanBeHit() )
 	{
-		CVector2 beginCenter, endCenter;
-		{
-			const CMatrix2D& worldMat = m_pBegin ? ( m_nBeginTransIndex >= 0 ? m_pBegin->GetTransform( m_nBeginTransIndex ) : m_pBegin->globalTransform ) : globalTransform;
-			beginCenter = worldMat.MulVector2Pos( m_begin );
-		}
-		{
-			const CMatrix2D& worldMat = m_pEnd ? ( m_nEndTransIndex >= 0 ? m_pEnd->GetTransform( m_nEndTransIndex ) : m_pEnd->globalTransform ) : globalTransform;
-			endCenter = worldMat.MulVector2Pos( m_end );
-		}
-
 		SHitProxyPolygon polygon;
 		polygon.nVertices = 4;
 		auto dCenter = endCenter - beginCenter;
@@ -76,11 +87,21 @@ void CLightning::OnTick()
 		CMatrix2D mat;
 		mat.Identity();
 		GetStage()->GetHitTestMgr().CalcBound( &polygon, mat );
-		if( pPlayer->GetCore()->HitTest( &polygon, mat ) )
+		SHitTestResult hitResult;
+		if( pPlayer->GetCore()->HitTest( &polygon, mat, &hitResult ) )
 		{
-			pPlayer->Damage( 1 );
+			if( m_nDamage )
+				pPlayer->Damage( m_nDamage );
+			if( m_fKnockback > 0 && pPlayer->CanKnockback() )
+			{
+				CVector2 norm = hitResult.normal;
+				norm.Normalize();
+				pPlayer->Knockback( norm * -1 );
+			}
 		}
 	}
+
+	UpdateRenderObject();
 }
 
 void CLightning::UpdateRenderObject()
@@ -88,7 +109,7 @@ void CLightning::UpdateRenderObject()
 	CRopeObject2D* pRope = static_cast<CRopeObject2D*>( GetRenderObject() );
 	if( !pRope )
 		return;
-	if( !m_bSet )
+	if( !m_bSet || m_bIsBeam && !m_bIsBeamInited )
 	{
 		pRope->bVisible = false;
 		return;
@@ -104,10 +125,20 @@ void CLightning::UpdateRenderObject()
 	begin.fWidth = m_fWidth;
 	begin.pRefObj = m_pBegin;
 	begin.nRefTransformIndex = m_nBeginTransIndex;
-	end.center = m_end;
+
 	end.fWidth = m_fWidth;
-	end.pRefObj = m_pEnd;
-	end.nRefTransformIndex = m_nEndTransIndex;
+	if( m_bIsBeam )
+	{
+		end.center = m_beamEnd;
+		end.pRefObj = GetStage()->GetRoot();
+		end.nRefTransformIndex = -1;
+	}
+	else
+	{
+		end.center = m_end;
+		end.pRefObj = m_pEnd;
+		end.nRefTransformIndex = m_nEndTransIndex;
+	}
 }
 
 void CLightning::OnBeginRemoved()

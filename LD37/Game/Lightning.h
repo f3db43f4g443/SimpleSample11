@@ -8,7 +8,7 @@ class CLightning : public CEntity
 public:
 	CLightning( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CLightning::OnTick ),
 		m_onBeginRemoved( this, &CLightning::OnBeginRemoved ), m_onEndRemoved( this, &CLightning::OnEndRemoved ), m_nBeginTransIndex( -1 ), m_nEndTransIndex( -1 ),
-		m_bSet( false ), m_bAutoRemove( false ) { SET_BASEOBJECT_ID( CLightning ); }
+		m_bSet( false ), m_bAutoRemove( false ), m_bIsBeamInited( false ) { SET_BASEOBJECT_ID( CLightning ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
@@ -31,10 +31,16 @@ protected:
 	CReference<CEntity> m_pEnd;
 	CVector2 m_begin;
 	CVector2 m_end;
+	CVector2 m_beamEnd;
 	int16 m_nBeginTransIndex;
 	int16 m_nEndTransIndex;
 	bool m_bSet;
 	bool m_bAutoRemove;
+	bool m_bIsBeam;
+	bool m_bIsBeamInited;
+
+	uint32 m_nDamage;
+	float m_fKnockback;
 
 	TClassTrigger<CLightning> m_onTick;
 

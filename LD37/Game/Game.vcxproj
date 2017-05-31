@@ -576,6 +576,7 @@
     <ClCompile Include="Entities\Neutral.cpp" />
     <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
+    <ClCompile Include="Entities\Tutorial.cpp" />
     <ClCompile Include="Entities\UtilEnitites.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Explosion.cpp" />
@@ -650,6 +651,7 @@
     <ClInclude Include="Entities\Neutral.h" />
     <ClInclude Include="Entities\FallingObj.h" />
     <ClInclude Include="Entities\StartPoint.h" />
+    <ClInclude Include="Entities\Tutorial.h" />
     <ClInclude Include="Entities\UtilEntities.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="Explosion.h" />

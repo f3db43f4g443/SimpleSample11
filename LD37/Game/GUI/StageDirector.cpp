@@ -13,6 +13,7 @@ CStageDirector::CStageDirector()
 	, m_onMouseMove( this, &CStageDirector::OnMainStageMouseMove )
 	, m_onTick( this, &CStageDirector::OnTick )
 	, m_onPostProcess( this, &CStageDirector::OnPostProcess )
+	, m_mousePos( 0, 0 )
 	, m_pWorld( NULL )
 {
 
@@ -52,19 +53,20 @@ void CStageDirector::OnClickMainStage( CVector2* mousePos )
 
 void CStageDirector::OnMainStageMouseMove( SUIMouseEvent * pEvent )
 {
-	if( m_pWorld )
-	{
-		CPlayer* pPlayer = m_pWorld->GetPlayer();
-		if( pPlayer )
-		{
-			pPlayer->AimAt( m_pMainStageViewport->GetScenePos( pEvent->mousePos ) );
-		}
-	}
+	m_mousePos = pEvent->mousePos;
 }
 
 void CStageDirector::OnTick()
 {
 	CGame::Inst().Register( 1, &m_onTick );
+	if( m_pWorld )
+	{
+		CPlayer* pPlayer = m_pWorld->GetPlayer();
+		if( pPlayer )
+		{
+			pPlayer->AimAt( m_pMainStageViewport->GetScenePos( m_mousePos ) );
+		}
+	}
 }
 
 void CStageDirector::OnPostProcess( class CPostProcessPass* pPass )

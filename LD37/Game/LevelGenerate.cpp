@@ -1302,6 +1302,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
 
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
+	REGISTER_GENERATE_NODE( "commonroom", CCommonRoomNode );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
 	REGISTER_GENERATE_NODE( "pipes", CPipeNode );

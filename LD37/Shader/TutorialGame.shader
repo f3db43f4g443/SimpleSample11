@@ -31,12 +31,28 @@ float4 vTimeCoef;
 
 void PSScanLineBase( in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
-	out float4 outColor : SV_Target )
+	out float4 outColor[2] : SV_Target )
 {
-	outColor = 1;
-	outColor.x = frac( floor( tex1.y / fScanLineWidth ) * 0.5 ) < 0.5 ? 0 : 1;
+	float fScanLine = frac( floor( tex1.y / fScanLineWidth ) * 0.5 ) < 0.5 ? 0 : 1;
 	float fTimeCoef = dot( abs( cos( vTimeScale * g_totalTime ) ), vTimeCoef );
-	outColor.x = lerp( 0.5f, outColor.x, fTimeCoef );
+	fScanLine = lerp( 0.5f, fScanLine, fTimeCoef );
+	float alpha = Texture0.Sample( LinearSampler, tex ).x;
+	outColor[0] = 0;
+	outColor[1] = pow( alpha * vColor, pow( vGamma.x, fScanLine ) * pow( vGamma.y, 1 - fScanLine ) );
+}
+
+float fColorTimeScale;
+void PSFlash( in float2 tex : TexCoord0,
+	out float4 outColor[2] : SV_Target )
+{
+	float4 texColor = Texture0.Sample( PointSampler, tex );
+	float h = frac( texColor.x + g_totalTime * fColorTimeScale ) * 3;
+	float3 color = float3( saturate( max( 1 - h, h - 2 ) * 2 ),
+		saturate( min( 2 - h, h ) * 2 ),
+		saturate( min( 3 - h, h - 1 ) * 2 ) );
+
+	outColor[0] = 0;
+	outColor[1] = float4( color, texColor.w );
 }
 
 void PSScanLineBase1( in float2 tex : TexCoord0,
@@ -84,23 +100,6 @@ void PSScanLine1( in float2 tex : TexCoord0,
 	float alpha = Texture0.Sample( LinearSampler, tex ).x;
 	float4 effectColor = Texture1.Sample( LinearSampler, tex1 );
 	outColor = lerp( vColor, vColor1, effectColor.x ) * alpha;
-}
-
-float fColorTimeScale;
-void PSFlash( in float2 tex : TexCoord0,
-	in float2 tex1 : TexCoord1,
-	out float4 outColor : SV_Target )
-{
-	float4 texColor = Texture0.Sample( PointSampler, tex );
-	float4 effectColor = Texture1.Sample( LinearSampler, tex1 ).x;
-	float l = ScanLineAlpha( texColor.x, effectColor.x );
-	float h = frac( texColor.y + g_totalTime * fColorTimeScale ) * 3;
-	float3 color = float3( saturate( max( 1 - h, h - 2 ) * 2 ),
-		saturate( min( 2 - h, h ) * 2 ),
-		saturate( min( 3 - h, h - 1 ) * 2 ) );
-	color = l > 0.5 ? lerp( color, 1, l * 2 - 1 ) : lerp( 0, color, l * 2 );
-
-	outColor = float4( color, texColor.w );
 }
 
 float2 g_screenResolution;

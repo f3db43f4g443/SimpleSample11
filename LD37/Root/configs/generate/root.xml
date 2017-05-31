@@ -1,6 +1,7 @@
 ﻿<root>
   <includes>
     <item name="lv1/main" />
+    <item name="tutorial/tutorial" />
   </includes>
   <level_gen>
     <nodes>

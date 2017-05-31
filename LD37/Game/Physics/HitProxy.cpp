@@ -747,8 +747,8 @@ bool SHitProxyPolygon::Raycast( const CVector2& begin, const CVector2& end, cons
 
 		if( s < 0 && fMaxDist > 0 )
 		{
-			float f0 = dir.x * p0.y - dir.y * p0.x;
-			float f1 = dir.x * p1.y - dir.y * p1.x;
+			float f0 = dir.x * vert1.y - dir.y * vert1.x;
+			float f1 = dir.x * vert2.y - dir.y * vert2.x;
 			bool bIntersect;
 
 			if( f0 == 0 && f1 == 0 )

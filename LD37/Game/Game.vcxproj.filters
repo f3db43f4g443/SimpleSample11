@@ -148,6 +148,9 @@
       <Filter>LevelGenerating</Filter>
     </ClCompile>
     <ClCompile Include="Item.cpp" />
+    <ClCompile Include="Entities\Tutorial.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -291,6 +294,9 @@
       <Filter>LevelGenerating</Filter>
     </ClInclude>
     <ClInclude Include="Item.h" />
+    <ClInclude Include="Entities\Tutorial.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

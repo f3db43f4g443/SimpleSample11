@@ -39,9 +39,9 @@ void VSParticle( in float2 tex : Position,
 	float frameCount = floor( min( t * g_frames, g_frames - 0.01 ) );
 	float row = floor( frameCount / g_columns );
 	float column = frameCount - row * g_columns;
-	int nRand = instData2.z;
+	float fRand = instData2.z;
 
-	float frameCountRandom = floor( min( nRand * g_framesRandom, g_framesRandom - 0.01 ) );
+	float frameCountRandom = floor( min( fRand * g_framesRandom, g_framesRandom - 0.01 ) );
 	float rowRandom = floor( frameCountRandom / g_columnsRandom );
 	float columnRandom = frameCountRandom - rowRandom * g_columnsRandom;
 
@@ -78,9 +78,9 @@ void VSParticle1( in float2 tex : Position,
 	float frameCount = floor( min( t * g_frames, g_frames - 0.01 ) );
 	float row = floor( frameCount / g_columns );
 	float column = frameCount - row * g_columns;
-	int nRand = instData2.z;
+	float fRand = instData2.z;
 
-	float frameCountRandom = floor( min( nRand * g_framesRandom, g_framesRandom - 0.01 ) );
+	float frameCountRandom = floor( min( fRand * g_framesRandom, g_framesRandom - 0.01 ) );
 	float rowRandom = floor( frameCountRandom / g_columnsRandom );
 	float columnRandom = frameCountRandom - rowRandom * g_columnsRandom;
 

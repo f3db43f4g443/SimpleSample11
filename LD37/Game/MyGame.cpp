@@ -37,6 +37,7 @@
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
 #include "Entities/Enemies/Lv1Enemies.h"
+#include "Entities/Tutorial.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
 
@@ -510,6 +511,9 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_fWidth )
 		REGISTER_MEMBER( m_fHitWidth )
+		REGISTER_MEMBER( m_bIsBeam )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_fKnockback )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CItem )
@@ -663,6 +667,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nTriggerImpact )
 		REGISTER_MEMBER( m_strPrefab )
 		REGISTER_MEMBER( m_strPrefab1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDefaultRandomRoom )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CLvFloor1 )
@@ -916,6 +925,25 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pExplosion, explosion )
 		REGISTER_MEMBER( m_nExplosionLife )
 		REGISTER_MEMBER( m_fExplosionDmg )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTutorialStaticBeam )
+		REGISTER_BASE_CLASS( CLightning )
+		REGISTER_MEMBER( m_beginOfs )
+		REGISTER_MEMBER( m_endOfs )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTutorialScreen )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER_TAGGED_PTR( m_pTips, tips )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTutorialChest )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER_TAGGED_PTR( m_e, e )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPickUp, pickup )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft1, pickup/eft1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft2, pickup/eft2 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

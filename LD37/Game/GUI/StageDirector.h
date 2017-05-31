@@ -30,6 +30,7 @@ protected:
 	CWorld* m_pWorld;
 	CReference<CUIViewport> m_pMainStageViewport;
 	CReference<CUIViewport> m_pSubStageViewport;
+	CVector2 m_mousePos;
 
 	TClassTrigger1<CStageDirector, CVector2*> m_onClickMainStage;
 	TClassTrigger1<CStageDirector, SUIMouseEvent*> m_onMouseMove;

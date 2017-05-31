@@ -67,6 +67,7 @@ void CPlayer::AimAt( const CVector2& pos )
 	float l = pos1.Normalize();
 	pos1 = pos1 * Min( l, 400.0f ) + GetPosition();
 	CMyLevel::GetInst()->GetCrosshair()->SetPosition( pos );
+	CMyLevel::GetInst()->GetCrosshair()->bVisible = m_pCurWeapon != NULL;
 	m_aimAt = pos;
 }
 
@@ -603,7 +604,7 @@ void CPlayer::OnAddedToStage()
 	m_nRepairTimeLeft = 0;
 	m_nRepairIntervalLeft = 0;
 
-	m_aimAt = GetPosition();
+	AimAt( GetPosition() );
 	m_cam = GetPosition();
 	m_hp.add2 = 0;
 
