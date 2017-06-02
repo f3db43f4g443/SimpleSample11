@@ -11,6 +11,7 @@
       <node name="crack_wall_1x" prefab="data/blockitems/crack_wall_1x.pf" sizex="4" sizey="1" attach_type="0" />
       <node name="crack_wall_1y" prefab="data/blockitems/crack_wall_1y.pf" sizex="1" sizey="4" attach_type="0" />
       <node name="crack_wall_2" prefab="data/blockitems/crack_wall_2.pf" sizex="2" sizey="2" attach_type="0" />
+      <node name="tips1" prefab="data/tutorial/tips1.pf" sizex="8" sizey="4" attach_type="0" />
     </attachs>
     <spawns>
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />
@@ -474,14 +475,6 @@
         </subitem>
         <next_level>
           <node type="subregion">
-            <!--node type="randomfill" x="2" y="0" w="2" h="1" >
-              <ref name="item1" p="1" />
-              <node type="empty" p="1" />
-            </node>
-            <node type="randomfill" x="2" y="2" w="2" h="2" >
-              <ref name="item2" p="1" />
-              <node type="empty" p="3" />
-            </node-->
             <ref name="enemycharacter" x="1" y="1" w="4" h="4" />
           </node>
         </next_level>
@@ -526,28 +519,51 @@
         </subitem>
         <next_level>
           <node type="subregion">
-            <!--ref name="item3" x="3" y="3" w="2" h="2" />
-            <node type="randomfill" x="2" y="0" w="4" h="1" >
-              <ref name="item1" p="1" />
-              <node type="empty" p="1" />
-            </node>
-            <node type="randomfill" x="1" y="3" w="2" h="2" >
-              <ref name="item2" p="1" />
-              <node type="empty" p="3" />
-            </node>
-            <node type="randomfill" x="3" y="1" w="2" h="2" >
-              <ref name="item2" p="1" />
-              <node type="empty" p="3" />
-            </node>
-            <node type="randomfill" x="5" y="3" w="2" h="2" >
-              <ref name="item2" p="1" />
-              <node type="empty" p="3" />
-            </node>
-            <node type="randomfill" x="3" y="5" w="2" h="2" >
-              <ref name="item2" p="1" />
-              <node type="empty" p="3" />
-            </node-->
             <ref name="enemycharacter" x="1" y="1" w="6" h="6" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="enemyroom_special" width="12" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="stonebar_room_corner" x="0" y="0" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="0" y="-1" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="-1" y="0" w="1" h="1" />
+            <ref name="stonebar_room_corner" x="-1" y="-1" w="1" h="1" />
+
+            <ref name="stonebar_room_h" x="1" y="0" w="4" h="1" />
+            <ref name="stonebar_room_h" x="7" y="0" w="4" h="1" />
+            <ref name="stonebar_room_h" x="1" y="-1" w="4" h="1" />
+            <ref name="stonebar_room_h" x="7" y="-1" w="4" h="1" />
+
+            <ref name="stonebar_room_v" x="0" y="1" w="1" h="2" />
+            <ref name="stonebar_room_v" x="0" y="5" w="1" h="2" />
+            <ref name="stonebar_room_v" x="-1" y="1" w="1" h="2" />
+            <ref name="stonebar_room_v" x="-1" y="5" w="1" h="2" />
+
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall_room_broken" />
+            </node>
+            <ref name="door0_0" x="5" y="0" w="2" h="1" />
+            <ref name="door0_2" x="5" y="-1" w="2" h="1" />
+            <ref name="door0_3" x="0" y="3" w="1" h="2" />
+            <ref name="door0_1" x="-1" y="3" w="1" h="2" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="tips1" x="2" y="1" w="8" h="4" />
           </node>
         </next_level>
       </node>
@@ -761,7 +777,6 @@
         </next_level>
       </node>
       <node name="bossroom" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="bossroom.pf" islevelbarrier="1">
-        <metadata isdesignvalid="0" />
         <types>
           4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
           4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4,

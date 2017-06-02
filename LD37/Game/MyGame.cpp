@@ -40,6 +40,7 @@
 #include "Entities/Tutorial.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
+#include "GUI/Splash.h"
 
 #include "Bullet.h"
 #include "Explosion.h"
@@ -106,13 +107,13 @@ void CGame::Update()
 
 	for( int i = 0; i < nFrames; i++ )
 	{
-		m_trigger.UpdateTime();
 		for( auto pObj = CScene2DManager::GetGlobalInst()->Get_AutoUpdateAnimObject(); pObj; pObj = pObj->NextAutoUpdateAnimObject() )
 		{
 			pObj->UpdateAnim( fInvFPS );
 		}
 		if( m_pCurGameState )
 			m_pCurGameState->UpdateFrame();
+		m_trigger.UpdateTime();
 	}
 
 	m_keyDown.Clear();
@@ -927,6 +928,27 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fExplosionDmg )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CSplashElem )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nBaseHeight )
+		REGISTER_MEMBER( m_nScrollHeight )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSplash )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nBlendHeight )
+		REGISTER_MEMBER( m_strElem )
+		REGISTER_MEMBER( m_elemRect )
+		REGISTER_MEMBER( m_nTileX )
+		REGISTER_MEMBER( m_nTileY )
+		REGISTER_MEMBER_TAGGED_PTR( m_pElemLayer, elems )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSplashRenderer )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_strSplash )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CTutorialStaticBeam )
 		REGISTER_BASE_CLASS( CLightning )
 		REGISTER_MEMBER( m_beginOfs )
@@ -935,6 +957,7 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CTutorialScreen )
 		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_strEft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pTips, tips )
 	REGISTER_CLASS_END()
 
@@ -944,6 +967,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pPickUp, pickup )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft1, pickup/eft1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft2, pickup/eft2 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTutorialEft )
+		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_flyData )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTutorialLevel )
+		REGISTER_BASE_CLASS( CMyLevel )
+		REGISTER_MEMBER( m_strSplash )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )

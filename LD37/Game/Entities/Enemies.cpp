@@ -142,9 +142,6 @@ void CBoss::OnAddedToStage()
 
 void CBoss::OnRemovedFromStage()
 {
-	CPlayer* pPlayer = GetStage()->GetPlayer();
-	if( pPlayer )
-		pPlayer->DelayChangeStage( "scene0.pf", "start" );
 	CEnemyTemplate::OnRemovedFromStage();
 }
 

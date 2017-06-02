@@ -6,6 +6,7 @@
 CWorld::CWorld()
 	: m_pCurStage( NULL )
 	, m_bUpdating( false )
+	, m_nMainUISubStage( -1 )
 {
 	CStageDirector::Inst()->OnWorldCreated( this );
 }
@@ -55,8 +56,8 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 		context.strSceneResName = context.strName;
 	}
 
-	StopSubStage( 0 );
-	PlaySubStage( "ui.pf", CStageDirector::Inst()->GetSubStageView() );
+	StopSubStage( m_nMainUISubStage );
+	m_nMainUISubStage = PlaySubStage( "ui.pf", CStageDirector::Inst()->GetSubStageView() );
 
 	CreatePlayer();
 	

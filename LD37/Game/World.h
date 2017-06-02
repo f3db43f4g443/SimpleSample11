@@ -33,6 +33,7 @@ private:
 	map<string, SStageContext> m_mapStageContexts;
 	vector<SSubStage> m_subStages;
 
+	int32 m_nMainUISubStage;
 	bool m_bUpdating;
 	string m_strEnterStage;
 	SStageEnterContext m_stageEnterContext;

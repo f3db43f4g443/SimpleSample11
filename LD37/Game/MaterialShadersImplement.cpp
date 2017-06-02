@@ -4,12 +4,14 @@
 void Game_ShaderImplement_Dummy_Effect();
 void Game_ShaderImplement_Dummy_MainUI();
 void Game_ShaderImplement_Dummy_PostEffects();
+void Game_ShaderImplement_Dummy_Splash();
 void Game_ShaderImplement_Dummy()
 {
 	Engine_ShaderImplement_Dummy();
 	Game_ShaderImplement_Dummy_Effect();
 	Game_ShaderImplement_Dummy_MainUI();
 	Game_ShaderImplement_Dummy_PostEffects();
+	Game_ShaderImplement_Dummy_Splash();
 }
 
 template<uint32 InstCount>

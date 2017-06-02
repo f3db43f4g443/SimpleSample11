@@ -151,6 +151,9 @@
     <ClCompile Include="Entities\Tutorial.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="GUI\Splash.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -297,6 +300,9 @@
     <ClInclude Include="Entities\Tutorial.h">
       <Filter>Entities</Filter>
     </ClInclude>
+    <ClInclude Include="GUI\Splash.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -341,9 +347,6 @@
     <None Include="..\Shader\Particle1.shader">
       <Filter>Shader</Filter>
     </None>
-    <None Include="..\Shader\Slime.shader">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="..\Shader\TutorialGame.shader">
       <Filter>Shader</Filter>
     </None>
@@ -372,6 +375,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Decorator.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Splash.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

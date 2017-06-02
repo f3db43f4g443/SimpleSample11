@@ -8,12 +8,42 @@
       <node name="beam_0" prefab="data/tutorial/beam_0.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="beam_1" prefab="data/tutorial/beam_1.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="welcome" prefab="data/tutorial/welcome.pf" sizex="16" sizey="4" attach_type="0" />
+    
+      <node name="door0_0_a" prefab="data/tutorial/door0_0.pf" sizex="2" sizey="1" />
+      <node name="door0_1_a" prefab="data/tutorial/door0_1.pf" sizex="1" sizey="2" />
+      <node name="door0_2_a" prefab="data/tutorial/door0_2.pf" sizex="2" sizey="1" />
+      <node name="door0_3_a" prefab="data/tutorial/door0_3.pf" sizex="1" sizey="2" />
     </attachs>
     <spawns>
     </spawns>
     <scrollobjs>
     </scrollobjs>
     <nodes>
+      <node name="door0_0" width="2" height="1" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door0_0_a" />
+        </next_level>
+      </node>
+      <node name="door0_1" width="1" height="2" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door0_1_a" />
+        </next_level>
+      </node>
+      <node name="door0_2" width="2" height="1" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door0_2_a" />
+        </next_level>
+      </node>
+      <node name="door0_3" width="1" height="2" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door0_3_a" />
+        </next_level>
+      </node>
+      
       <node name="block0" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" destroyshake="2" prefab="data/tutorial/block0.pf">
         <types>0</types>
       </node>
@@ -60,8 +90,22 @@
         <metadata minx="2" miny="2" maxx="32" maxy="6" />
         <types>4</types>
         <subitem>
-          <node type="tile">
-            <ref name="broken1" />
+          <node type="subregion">
+            <node type="tile" x="1" y="1" w="-1" h="-1">
+              <ref name="broken" />
+            </node>
+            <node type="tile" x="0" y="0" w="0" h="1">
+              <ref name="broken1" />
+            </node>
+            <node type="tile" x="0" y="0" w="1" h="0">
+              <ref name="broken1" />
+            </node>
+            <node type="tile" x="0" y="-1" w="0" h="1">
+              <ref name="broken1" />
+            </node>
+            <node type="tile" x="-1" y="0" w="1" h="0">
+              <ref name="broken1" />
+            </node>
           </node>
         </subitem>
       </node>

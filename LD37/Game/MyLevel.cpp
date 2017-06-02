@@ -86,17 +86,7 @@ void CMyLevel::OnAddedToStage()
 		pBottom->SetParentEntity( pBorder );
 	}
 
-	if( m_bIsLevelDesignTest )
-	{
-		auto pLevel = SafeCast<CDesignLevel>( CLevelDesignGameState::Inst().GetDesignLevel() );
-		pLevel->GenerateLevel( this );
-		m_nCurLevel = ELEM_COUNT( g_levels );
-	}
-	else
-	{
-		CreateGrids( true );
-		CacheNextLevel();
-	}
+	StartUp();
 	CheckSpawn();
 	s_pLevel = this;
 
@@ -117,6 +107,26 @@ void CMyLevel::OnRemovedFromStage()
 {
 	if( s_pLevel == this )
 		s_pLevel = NULL;
+}
+
+void CMyLevel::StartUp()
+{
+	if( m_bIsLevelDesignTest )
+	{
+		auto pLevel = SafeCast<CDesignLevel>( CLevelDesignGameState::Inst().GetDesignLevel() );
+		pLevel->GenerateLevel( this );
+		m_nCurLevel = ELEM_COUNT( g_levels );
+	}
+	else
+	{
+		CreateGrids( true );
+		CacheNextLevel();
+	}
+}
+
+void CMyLevel::OnPlayerKilled( CPlayer * pPlayer )
+{
+	CMainGameState::Inst().DelayResetStage();
 }
 
 void CMyLevel::CreateGrids( bool bNeedInit )
@@ -421,6 +431,14 @@ void CMyLevel::UpdateBack0Position( const CVector2 & pos )
 	m_pBack0->SetPosition( CVector2( floor( pos.x - ( pos.x - center ) * 0.25f + 0.5f ), 0 ) );
 }
 
+CVector2 CMyLevel::GetCamPos()
+{
+	auto pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return CVector2( 0, 0 );
+	return GetStage()->GetPlayer()->GetCam();
+}
+
 void CMyLevel::UpdateBlocksMovement()
 {
 	uint32 nPlayerHeight = 0;
@@ -428,7 +446,10 @@ void CMyLevel::UpdateBlocksMovement()
 	if( pPlayer )
 	{
 		if( pPlayer->GetHp() <= 0 )
+		{
+			UpdateShake();
 			return;
+		}
 		nPlayerHeight = pPlayer->GetCurRoom() && pPlayer->GetCurRoom()->GetChunk() ? pPlayer->GetCurRoom()->GetChunk()->pos.y : floor( pPlayer->GetPosition().y - 16 );
 	}
 
@@ -860,6 +881,16 @@ void CMyLevel::UpdateBlocksMovement()
 		}
 	}
 
+	UpdateShake();
+	CheckSpawn();
+	m_fLastScrollPos = m_fCurScrollPos;
+	if( m_fCurScrollPos < fTargetScrollPos )
+		m_fCurScrollPos = Min( m_fCurScrollPos + 2.0f, fTargetScrollPos );
+}
+
+void CMyLevel::UpdateShake()
+{
+	auto pMainUI = CMainUI::GetInst();
 	for( int i = 0; i < m_basements.size(); i++ )
 	{
 		auto& basement = m_basements[i];
@@ -873,11 +904,6 @@ void CMyLevel::UpdateBlocksMovement()
 		basement.fShakeStrength = Max( 0.0f, basement.fShakeStrength * 0.95f - 0.02f );
 		pMainUI->UpdateShakeSmallBar( i, nShakeHeight >= 0 ? Min( nShakeHeight, (int32)m_nHeight ) : (int32)m_nHeight );
 	}
-
-	CheckSpawn();
-	m_fLastScrollPos = m_fCurScrollPos;
-	if( m_fCurScrollPos < fTargetScrollPos )
-		m_fCurScrollPos = Min( m_fCurScrollPos + 2.0f, fTargetScrollPos );
 }
 
 void CMyLevel::CheckSpawn()

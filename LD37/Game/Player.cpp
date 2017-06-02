@@ -88,7 +88,7 @@ bool CPlayer::IsRolling()
 
 void CPlayer::Damage( int32 nValue )
 {
-	if( m_strChangeStage != "" )
+	if( m_hp <= 0 )
 		return;
 	CMainUI* pMainUI = CMainUI::GetInst();
 
@@ -102,7 +102,7 @@ void CPlayer::Damage( int32 nValue )
 		m_walkData.Reset();
 		m_flyData.Reset();
 		IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.25f );
-		CMainGameState::Inst().DelayResetStage();
+		CMyLevel::GetInst()->OnPlayerKilled( this );
 	}
 }
 

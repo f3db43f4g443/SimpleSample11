@@ -14,6 +14,8 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
+	virtual void StartUp();
+	virtual void OnPlayerKilled( class CPlayer* pPlayer );
 	void Clear();
 
 	void KillChunk( SChunk* pChunk, bool bCrush = false );
@@ -59,6 +61,7 @@ public:
 	CRenderObject2D* GetBack0() { return m_pBack0; }
 	CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
 	void UpdateBack0Position( const CVector2& pos );
+	virtual CVector2 GetCamPos();
 
 	void UpdateBlocksMovement();
 
@@ -67,7 +70,7 @@ public:
 	CReference<CSoundFile> pExpSound;
 
 	CReference<CPrefab> pChunkUIPrefeb;
-private:
+protected:
 	void CreateGrids( bool bNeedInit );
 	void CacheNextLevel();
 	uint32 m_nCurLevel;
@@ -104,6 +107,7 @@ private:
 	vector<SBasement> m_basements;
 	float m_fFallDistPerSpeedFrame;
 
+	void UpdateShake();
 	void CheckSpawn();
 
 	TClassTrigger<CMyLevel> m_onTick;

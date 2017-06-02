@@ -748,7 +748,9 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 		if( hits[0].pHitProxy )
 		{
 			bHit = true;
-			curVelocity = curVelocity * 2 - curVelocity0;
+			dVelocity = curVelocity - curVelocity0;
+			curVelocity = curVelocity + dVelocity;
+			dVelocity = dVelocity * 2;
 			pCharacter->SetPosition( pCharacter->GetPosition() * 2 - ( prePos + dPos ) );
 		}
 	}

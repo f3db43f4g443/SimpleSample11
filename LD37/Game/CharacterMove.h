@@ -186,6 +186,7 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 	float fMaxAcc;
 	float fStablity;
 	bool bHit;
+	CVector2 dVelocity;
 };
 
 struct SCharacterCreepData : public SCharacterMovementData

@@ -157,6 +157,28 @@ void CChunkEdit::Check()
 		static_cast<CImage2D*>( m_pFrameImg[i].GetPtr() )->GetParam()[0] = color;
 }
 
+void SLevelDesignContext::Init()
+{
+	if( !bInited )
+	{
+		auto& cfg = CGlobalCfg::Inst();
+
+		for( auto& file : cfg.levelGenerateNodeContext.mapFiles )
+		{
+			string strFileName = file.first + ":";
+			for( auto& node : file.second.mapNamedNodes )
+			{
+				if( node.second->GetMetadata().bIsDesignValid )
+				{
+					string strFullName = strFileName + node.first;
+					mapGenerateNodes[strFullName] = node.second;
+				}
+			}
+		}
+		bInited = true;
+	}
+}
+
 SLevelDesignItem * SLevelDesignContext::AddItem( CLevelGenerateNode * pNode, const TRectangle<int32>& region, bool bAutoErase )
 {
 	if( region.x < 0 || region.y < 0 || region.GetRight() > nWidth || region.GetBottom() > nHeight )
@@ -220,26 +242,9 @@ CDesignLevel* CDesignLevel::s_pLevel = NULL;
 void CDesignLevel::OnAddedToStage()
 {
 	s_pLevel = this;
-
-	if( !m_bInited )
-	{
+	if( !m_pChunkEditPrefab )
 		m_pChunkEditPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strChunkEditPrefab.c_str() );
-		auto& cfg = CGlobalCfg::Inst();
-
-		for( auto& file : cfg.levelGenerateNodeContext.mapFiles )
-		{
-			string strFileName = file.first + ":";
-			for( auto& node : file.second.mapNamedNodes )
-			{
-				if( node.second->GetMetadata().bIsDesignValid )
-				{
-					string strFullName = strFileName + node.first;
-					m_mapGenerateNodes[strFullName] = node.second;
-				}
-			}
-		}
-		m_bInited = true;
-	}
+	Init();
 
 	for( int k = 0; k < 2; k++ )
 	{
@@ -275,6 +280,17 @@ void CDesignLevel::OnRemovedFromStage()
 
 	if( s_pLevel == this )
 		s_pLevel = NULL;
+}
+
+void SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& region )
+{
+	auto pNode = FindNode( szFullName );
+	if( !pNode )
+		return;
+	auto pItem = AddItem( pNode, region, false );
+	if( !pItem )
+		return;
+	pItem->strFullName = szFullName;
 }
 
 void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region )
@@ -606,15 +622,15 @@ void CDesignLevel::ClearLockedItems()
 	m_vecLockedItems.clear();
 }
 
-CLevelGenerateNode * CDesignLevel::FindNode( const char * szFullName )
+CLevelGenerateNode * SLevelDesignContext::FindNode( const char * szFullName )
 {
-	auto itr = m_mapGenerateNodes.find( szFullName );
-	if( itr == m_mapGenerateNodes.end() )
+	auto itr = mapGenerateNodes.find( szFullName );
+	if( itr == mapGenerateNodes.end() )
 		return NULL;
 	return itr->second;
 }
 
-void CDesignLevel::GenerateLevel( CMyLevel * pLevel )
+void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 {
 	SLevelBuildContext context( pLevel );
 
@@ -634,7 +650,7 @@ void CDesignLevel::GenerateLevel( CMyLevel * pLevel )
 	context.Build();
 }
 
-void CDesignLevel::New()
+void SLevelDesignContext::New()
 {
 	for( int k = 0; k < 2; k++ )
 	{
@@ -646,7 +662,7 @@ void CDesignLevel::New()
 	}
 }
 
-void CDesignLevel::Load( IBufReader & buf )
+void SLevelDesignContext::Load( IBufReader & buf )
 {
 	New();
 	for( ;; )
@@ -665,7 +681,7 @@ void CDesignLevel::Load( IBufReader & buf )
 	}
 }
 
-void CDesignLevel::Save( CBufFile & buf )
+void SLevelDesignContext::Save( CBufFile & buf )
 {
 	for( int k = 0; k < 2; k++ )
 	{

@@ -34,7 +34,7 @@ struct SRand
 	}
 
 	template<typename T>
-	void Shuffle( vector<T> vecElems )
+	void Shuffle( vector<T>& vecElems )
 	{
 		if( vecElems.size() )
 			Shuffle( &vecElems[0], vecElems.size() );

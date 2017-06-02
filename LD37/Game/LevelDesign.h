@@ -57,17 +57,30 @@ struct SLevelDesignItem : public CReferenceObject
 
 struct SLevelDesignContext
 {
-	SLevelDesignContext( uint32 nWidth, uint32 nHeight ) : nWidth( nWidth ), nHeight( nHeight )
+	SLevelDesignContext( uint32 nWidth, uint32 nHeight ) : nWidth( nWidth ), nHeight( nHeight ), bInited( false )
 	{
 		items[0].resize( nWidth * nHeight );
 		items[1].resize( nWidth * nHeight );
 	}
+	void Init();
 
 	SLevelDesignItem* AddItem( CLevelGenerateNode* pNode, const TRectangle<int32>& region, bool bAutoErase );
 	void RemoveItem( SLevelDesignItem* pItem );
+	virtual void Add( const char* szFullName, const TRectangle<int32>& region );
+	virtual void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
+
+	CLevelGenerateNode* FindNode( const char* szFullName );
+	void GenerateLevel( class CMyLevel* pLevel );
+
+	void New();
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 
 	uint32 nWidth, nHeight;
 	vector<CReference<SLevelDesignItem> > items[2];
+
+	map<string, CReference<CLevelGenerateNode> > mapGenerateNodes;
+	bool bInited;
 };
 
 class CDesignLevel : public CEntity, public SLevelDesignContext
@@ -82,8 +95,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	void Add( const char* szFullName, const TRectangle<int32>& region );
-	void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
+	virtual void Add( const char* szFullName, const TRectangle<int32>& region ) override;
 	void CreatePreviewForItem( SLevelDesignItem* pItem );
 	void SetShowLevelType( uint8 nType );
 	void ToggloShowEditLevel();
@@ -111,13 +123,6 @@ public:
 	void StopEdit();
 	void ClearLockedItems();
 
-	CLevelGenerateNode* FindNode( const char* szFullName );
-	void GenerateLevel( class CMyLevel* pLevel );
-
-	void New();
-	void Load( IBufReader& buf );
-	void Save( CBufFile& buf );
-
 	CEntity* GetChunkRoot( uint8 nLevel ) { return m_pChunkRoot[nLevel - 1]; }
 
 	static CDesignLevel* GetInst() { return s_pLevel; }
@@ -130,8 +135,6 @@ private:
 
 	CReference<CEntity> m_pChunkRoot[3];
 	CReference<CEntity> m_pChunkEditRoot[3];
-
-	map<string, CReference<CLevelGenerateNode> > m_mapGenerateNodes;
 
 	CVector2 m_curEditPos;
 	bool m_bBeginEdit;

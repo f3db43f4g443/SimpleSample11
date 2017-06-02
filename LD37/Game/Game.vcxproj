@@ -525,7 +525,7 @@
     <None Include="..\Shader\FootprintLiquid.shader" />
     <None Include="..\Shader\ParticleFlipbook1.shader" />
     <None Include="..\Shader\SelectArea.shader" />
-    <None Include="..\Shader\Slime.shader" />
+    <None Include="..\Shader\Splash.shader" />
     <None Include="..\Shader\GSWrapTex.shader" />
     <None Include="..\Shader\HpBar.shader" />
     <None Include="..\Shader\HUDCircle.shader" />
@@ -586,6 +586,7 @@
     <ClCompile Include="GUI\ChunkUI.cpp" />
     <ClCompile Include="GUI\HpBar.cpp" />
     <ClCompile Include="GUI\MainUI.cpp" />
+    <ClCompile Include="GUI\Splash.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
     <ClCompile Include="Item.cpp" />
@@ -659,6 +660,7 @@
     <ClInclude Include="GameUtil.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GUI\ChunkUI.h" />
+    <ClInclude Include="GUI\Splash.h" />
     <ClInclude Include="GUI\StageDirector.h" />
     <ClInclude Include="GUI\HpBar.h" />
     <ClInclude Include="GUI\MainUI.h" />
