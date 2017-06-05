@@ -243,7 +243,7 @@ CEntity* CStage::Raycast( const CVector2& begin, const CVector2& end, EEntityHit
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
-		if( hitType != eEntityEvent_Count && pEntity->GetHitType() != hitType )
+		if( hitType != eEntityHitType_Count && pEntity->GetHitType() != hitType )
 			continue;
 		if( pResult )
 			*pResult = result[i];

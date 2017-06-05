@@ -156,6 +156,9 @@ void CBoss::AIFunc()
 	for( ;; )
 	{
 		{
+			auto pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer || !pPlayer->GetHp() )
+				return;
 			SBarrageContext context;
 			context.vecBulletTypes.push_back( m_pBulletPrefab );
 			context.vecBulletTypes.push_back( m_pBulletPrefab1 );
@@ -192,6 +195,9 @@ void CBoss::AIFunc()
 		}
 
 		{
+			auto pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer || !pPlayer->GetHp() )
+				return;
 			SBarrageContext context;
 			context.vecBulletTypes.push_back( m_pBulletPrefab );
 			context.vecBulletTypes.push_back( m_pBulletPrefab1 );
@@ -233,6 +239,9 @@ void CBoss::AIFunc()
 		}
 
 		{
+			auto pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer || !pPlayer->GetHp() )
+				return;
 			SBarrageContext context;
 			context.vecBulletTypes.push_back( m_pBulletPrefab );
 			context.vecBulletTypes.push_back( m_pBulletPrefab1 );

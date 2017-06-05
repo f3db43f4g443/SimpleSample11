@@ -179,3 +179,70 @@ void CDecoratorDirt::Init( const CVector2 & size )
 
 	SetRenderObject( NULL );
 }
+
+void CDecoratorTile::Init( const CVector2& size )
+{
+	int32 nTileX = size.x / m_nTileSize;
+	int32 nTileY = size.y / m_nTileSize;
+
+	if( m_nTileCount[0] )
+		AddTile( TVector2<int32>( 0, 0 ), 0 );
+	if( m_nTileCount[2] )
+		AddTile( TVector2<int32>( nTileX - 1, 0 ), 2 );
+	if( m_nTileCount[6] )
+		AddTile( TVector2<int32>( 0, nTileY - 1 ), 6 );
+	if( m_nTileCount[8] )
+		AddTile( TVector2<int32>( nTileX - 1, nTileY - 1 ), 8 );
+
+	if( m_nTileCount[1] )
+	{
+		for( int i = 1; i < nTileX - 1; i++ )
+			AddTile( TVector2<int32>( i, 0 ), 1 );
+	}
+	if( m_nTileCount[3] )
+	{
+		for( int i = 1; i < nTileY - 1; i++ )
+			AddTile( TVector2<int32>( 0, i ), 3 );
+	}
+	if( m_nTileCount[5] )
+	{
+		for( int i = 1; i < nTileY - 1; i++ )
+			AddTile( TVector2<int32>( nTileX - 1, i ), 5 );
+	}
+	if( m_nTileCount[7] )
+	{
+		for( int i = 1; i < nTileX - 1; i++ )
+			AddTile( TVector2<int32>( i, nTileY - 1 ), 7 );
+	}
+
+	if( m_nTileCount[4] )
+	{
+		for( int i = 1; i < nTileX - 1; i++ )
+		{
+			for( int j = 1; j < nTileY - 1; j++ )
+			{
+				AddTile( TVector2<int32>( i, j ), 4 );
+			}
+		}
+	}
+
+	SetRenderObject( NULL );
+}
+
+void CDecoratorTile::AddTile( TVector2<int32> pos, uint8 nType )
+{
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+	AddChild( pImg );
+	pImg->SetRect( CRectangle( m_nTileSize * pos.x, m_nTileSize * pos.y, m_nTileSize, m_nTileSize ) );
+
+	uint32 nTex = m_nTileBegin[nType] + SRand::Inst().Rand( 0u, m_nTileCount[nType] );
+	uint32 texY = nTex / m_nTexCols;
+	uint32 texX = nTex - texY * m_nTexCols;
+	pImg->SetTexRect( CRectangle( texX * 1.0f / m_nTexCols, ( m_nTexRows - 1 - texY ) * 1.0f / m_nTexCols, 1.0f / m_nTexCols, 1.0f / m_nTexRows ) );
+
+	uint16 nParamCount;
+	CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+	CVector4* dst = pImg->GetParam();
+	memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+}

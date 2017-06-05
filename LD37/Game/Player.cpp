@@ -611,6 +611,10 @@ void CPlayer::OnAddedToStage()
 	CMainUI* pMainUI = CMainUI::GetInst();
 	if( pMainUI )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
+
+	auto pLevel = CMyLevel::GetInst();
+	if( pLevel )
+		pLevel->OnPlayerEntered( this );
 	
 	//CMainUI::Inst()->SetVignetteColorFixedTime( CVector4( 0, 0, 0, 1 ), 2.0f );
 }

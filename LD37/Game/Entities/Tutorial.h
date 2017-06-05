@@ -79,21 +79,36 @@ class CTutorialLevel : public CMyLevel
 {
 	friend void RegisterGameClasses();
 public:
-	CTutorialLevel( const SClassCreateContext& context ) : CMyLevel( context ), m_strSplash( context ) { SET_BASEOBJECT_ID( CTutorialLevel ); }
+	CTutorialLevel( const SClassCreateContext& context ) : CMyLevel( context ), m_strSplash( context ), m_strFloorEft( context ), m_onTick( this, &CTutorialLevel::OnTick ) { SET_BASEOBJECT_ID( CTutorialLevel ); }
 	virtual void StartUp() override;
 	virtual void OnPlayerKilled( class CPlayer* pPlayer );
+	virtual void OnPlayerEntered( class CPlayer* pPlayer ) {}
 	virtual CVector2 GetCamPos() override;
 
 	void StartScenario();
 private:
+	virtual void OnTick();
 	void Scenario();
 	class CScenario : public CAIObject
 	{
 	protected:
 		virtual void AIFunc() override { static_cast<CTutorialLevel*>( GetParentEntity() )->Scenario(); }
 	};
+	CVector2 UpdateCamShake();
+
 	CScenario* m_pScenario;
 	CVector2 m_camPos;
+	float m_fBaseShake;
+	CVector2 m_hitShakeVec[2];
+	uint32 m_nHitShakeFrame[2];
+	SChunk* m_pLastChunk;
 
 	CString m_strSplash;
+	CString m_strFloorEft;
+
+	CReference<CEntity> m_scroll[3];
+	CReference<CEntity> m_scroll1[3];
+	CReference<CEntity> m_pFloor;
+	int32 m_nFloorCrushY;
+	TClassTrigger<CTutorialLevel> m_onTick;
 };

@@ -129,6 +129,12 @@ void CMyLevel::OnPlayerKilled( CPlayer * pPlayer )
 	CMainGameState::Inst().DelayResetStage();
 }
 
+void CMyLevel::OnPlayerEntered( CPlayer * pPlayer )
+{
+	auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
+	pPlayer->AddItem( pWeapon );
+}
+
 void CMyLevel::CreateGrids( bool bNeedInit )
 {
 	auto& cfg = CGlobalCfg::Inst();

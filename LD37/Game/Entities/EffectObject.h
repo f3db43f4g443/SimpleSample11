@@ -8,6 +8,7 @@ class CEffectObject : public CEntity
 	friend void RegisterGameClasses();
 public:
 	CEffectObject( const SClassCreateContext& context );
+	CEffectObject( float fTime, CVector2 velocity, float fAngularVelocity );
 
 	void SetTime( float fTime ) { m_fTimeLeft = fTime; }
 	virtual void OnAddedToStage() override;
@@ -26,5 +27,7 @@ private:
 	float m_fBirthTime;
 	float m_fDeathTime;
 	float m_fTimeLeft;
+	CVector2 m_vel;
+	float m_velA;
 	uint8 m_nState;
 };

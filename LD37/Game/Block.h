@@ -163,6 +163,7 @@ struct SChunk
 class CChunkObject : public CEntity
 {
 	friend class CMyLevel;
+	friend struct SChunk;
 	friend void RegisterGameClasses();
 public:
 	enum
@@ -211,7 +212,7 @@ protected:
 	virtual void HandleHitShake( const CVector2& ofs );
 	virtual void OnKilled();
 
-	CReference<CRenderObject2D> m_p1;
+	CReference<CEntity> m_p1;
 
 	CReference<CEntity> m_pDamagedEffectsRoot;
 	CRenderObject2D* m_pDamagedEffects[4];

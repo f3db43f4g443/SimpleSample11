@@ -16,6 +16,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 	virtual void StartUp();
 	virtual void OnPlayerKilled( class CPlayer* pPlayer );
+	virtual void OnPlayerEntered( class CPlayer* pPlayer );
 	void Clear();
 
 	void KillChunk( SChunk* pChunk, bool bCrush = false );

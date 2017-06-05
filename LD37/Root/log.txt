@@ -262,3 +262,11 @@ HitTest	11997	1499.625000	8	1.000000	2189
 HitTest1	43	5.375000	8	1.000000	6
 Tick2	8	1.000000	8	1.000000	1
 UpdateDirty2	14	1.750000	8	1.000000	3
+label	time	avgTime	count	avgCount	maxTime
+Update	0	-nan(ind)	0	-nan(ind)	0
+Tick1	0	-nan(ind)	0	-nan(ind)	0
+UpdateDirty1	0	-nan(ind)	0	-nan(ind)	0
+HitTest	0	-nan(ind)	0	-nan(ind)	0
+HitTest1	0	-nan(ind)	0	-nan(ind)	0
+Tick2	0	-nan(ind)	0	-nan(ind)	0
+UpdateDirty2	0	-nan(ind)	0	-nan(ind)	0

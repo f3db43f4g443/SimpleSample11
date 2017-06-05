@@ -189,7 +189,7 @@ void CSplashRenderer::Flush( CRenderContext2D & context )
 	if( context.eRenderPass == eRenderPass_Color )
 		pPixelShader->SetParams( pRenderSystem, canvas.GetTexture()->GetShaderResource(), CVector4( 0, 0, 0, 0 ), CVector4( 0.5, 0, 0, 1 ), fHeight1, 1.0f / ( fHeight - fHeight1 ) );
 	else
-		pPixelShader->SetParams( pRenderSystem, canvas.GetTexture()->GetShaderResource(), CVector4( 1, 1, 1, 0 ), CVector4( 1, 0.75, 0.75, 1 ), fHeight1, 1.0f / ( fHeight - fHeight1 ) );
+		pPixelShader->SetParams( pRenderSystem, canvas.GetTexture()->GetShaderResource(), CVector4( 1, 1, 1, 0 ), CVector4( 0.5, 0, 0, 1 ), fHeight1, 1.0f / ( fHeight - fHeight1 ) );
 
 	pRenderSystem->DrawInput();
 

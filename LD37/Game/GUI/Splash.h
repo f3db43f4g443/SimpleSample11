@@ -45,11 +45,11 @@ class CSplashRenderer : public CEntity, public CDrawable2D
 public:
 	CSplashRenderer( const SClassCreateContext& context ) : CEntity( context ), m_strSplash( context ), m_nSubStage( -1 )
 		, m_canvasColor( true, 1, 1, EFormat::EFormatR8G8B8A8UNorm, CCanvas::eDepthStencilType_UseDefault )
-		, m_canvasOcclusion( true, 1, 1, EFormat::EFormatR8G8B8A8UNorm, CCanvas::eDepthStencilType_UseDefault )
+		, m_canvasOcclusion( true, 1, 1, EFormat::EFormatR8G8B8A8UNorm, CCanvas::eDepthStencilType_Create )
 	{
 		SET_BASEOBJECT_ID( CSplashRenderer );
 		m_elem2D.SetDrawable( this );
-		m_localBound = CRectangle( -10000, -10000, 10000, 10000 );
+		m_localBound = CRectangle( -10000, -10000, 20000, 20000 );
 		m_bOpaque = false;
 	}
 

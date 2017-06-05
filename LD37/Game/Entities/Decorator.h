@@ -42,3 +42,19 @@ private:
 	uint32 m_nMaskCols;
 	uint32 m_nMaskRows;
 };
+
+class CDecoratorTile : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorTile( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorTile ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	void AddTile( TVector2<int32> pos, uint8 nType );
+	uint32 m_nTexCols;
+	uint32 m_nTexRows;
+	uint32 m_nTileSize;
+	uint32 m_nTileBegin[9];
+	uint32 m_nTileCount[9];
+};

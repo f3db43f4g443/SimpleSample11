@@ -26,8 +26,6 @@ void CWorld::CreatePlayer()
 
 	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
 	SetPlayer( pPlayer );
-	//auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
-	//pPlayer->AddItem( pWeapon );
 }
 
 void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterContext )

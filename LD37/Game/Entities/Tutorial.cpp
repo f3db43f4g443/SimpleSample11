@@ -262,6 +262,13 @@ void CTutorialLevel::StartUp()
 	context.Init();
 	context.Load( buf );
 	context.GenerateLevel( this );
+
+	auto pBlockLayer = m_basements[0].layers[0].Get_BlockLayer();
+	while( pBlockLayer->NextBlockLayer() )
+		pBlockLayer = pBlockLayer->NextBlockLayer();
+	m_pLastChunk = pBlockLayer->pParent->pOwner;
+
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }
 
 void CTutorialLevel::OnPlayerKilled( CPlayer * pPlayer )
@@ -273,7 +280,10 @@ void CTutorialLevel::OnPlayerKilled( CPlayer * pPlayer )
 		if( pChunk->nWidth == 32 && pChunk->nHeight == 8 && pChunk->pos.y < CMyLevel::GetBlockSize() )
 		{
 			if( !m_pScenario )
+			{
+				m_nFloorCrushY = pChunk->pos.y;
 				StartScenario();
+			}
 			return;
 		}
 	}
@@ -294,10 +304,33 @@ void CTutorialLevel::StartScenario()
 	m_pScenario->SetParentEntity( this );
 }
 
+void CTutorialLevel::OnTick()
+{
+	int32 nHeight = m_pLastChunk->pos.y + m_pLastChunk->nHeight * CMyLevel::GetBlockSize() / 2;
+
+	for( int i = 0; i < ELEM_COUNT( m_scroll ); i++ )
+	{
+		for( int j = 0; j < 2; j++ )
+		{
+			CEntity* pEntity = ( j == 0 ? m_scroll[i] : m_scroll1[i] );
+			auto pImage2D = static_cast<CImage2D*>( pEntity->GetRenderObject() );
+			CRectangle rect = pImage2D->GetElem().rect;
+			rect.height = Max( 0.0f, Min( 1024.0f, nHeight - pEntity->GetPosition().y ) );
+			pImage2D->SetRect( rect );
+			CRectangle texRect = pImage2D->GetElem().texRect;
+			texRect.height = rect.height / 1024;
+			texRect.y = 1 - texRect.height;
+			pImage2D->SetTexRect( texRect );
+		}
+	}
+
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
 void CTutorialLevel::Scenario()
 {
 	CVector2 cam0 = CMyLevel::GetCamPos();
-	CVector2 camTarget( 512, 0 );
+	CVector2 camTarget( 512, 256 );
 	for( int i = 1; i <= 60; i++ )
 	{
 		float f = i / 60.0f;
@@ -305,38 +338,153 @@ void CTutorialLevel::Scenario()
 		m_pScenario->Yield( 0, false );
 	}
 
+	CReference<CDrawableGroup> pBarDrawable = static_cast<CDrawableGroup*>( m_pFloor->GetResource() );
 	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strSplash );
 	CReference<CSplashRenderer> pRenderer = SafeCast<CSplashRenderer>( pPrefab->GetRoot()->CreateInstance() );
 	pRenderer->SetZOrder( 10000 );
 	pRenderer->SetParentEntity( this );
 
-	float fMaxSpeed = 1200;
-	float fSpeedPerTick = 10.0f;
-	int32 nMaxTime = 60 * 100;
-	int32 nHeightBegin = 480;
-	int32 nHeightEnd = -640;
+	CReference<CPrefab> pPrefabFloorEft = CResourceManager::Inst()->CreateResource<CPrefab>( m_strFloorEft );
 
-	int32 nScrollLen = 0;
+	float fMaxSpeed = 512;
+	float fSpeedPerTick = 1;
+	int32 nMaxTime = 60 * 120;
+	int32 nTime1 = 60 * 30;
+	int32 nHeightBegin = 768;
+	int32 nHeightEnd = -800;
+	int32 nBarPos[] = { 0, 4, 8, 12, 16, 24, 28, 32, 36, 40, 44, 48, 52, 56 };
+
+	float fScrollLen = 0;
+	int32 iBar = 0;
 
 	for( int i = 1; i <= nMaxTime; i++ )
 	{
 		int32 nFloodHeight = nHeightBegin + ( nHeightEnd - nHeightBegin ) * i / nMaxTime;
-		int32 nCamHeight = 0;
+		int32 nCamHeight = 256;
+		nFloodHeight += 256;
 		if( nFloodHeight < 0 )
 		{
-			nCamHeight = -nFloodHeight;
+			nCamHeight += -nFloodHeight;
 			nFloodHeight = 0;
 		}
 
 		float v = Min( fMaxSpeed, fSpeedPerTick * i );
-		int32 d = v * GetStage()->GetElapsedTimePerTick();
-		nScrollLen += d;
+		fScrollLen += v * GetStage()->GetElapsedTimePerTick();
+		m_fBaseShake = v * 2 / fMaxSpeed;
+		int32 nScrollLen = floor( fScrollLen );
+
+		float y0 = ( nScrollLen + 1536 - nCamHeight ) % 2048 - 1536 + nCamHeight;
+		float y1 = y0 + 512 - nCamHeight > 0 ? y0 - 1024 : y0 + 1024;
+		for( int j = 0; j < 3; j++ )
+		{
+			m_scroll[j]->SetPosition( CVector2( m_scroll[j]->x, y0 ) );
+			m_scroll1[j]->SetPosition( CVector2( m_scroll1[j]->x, y1 ) );
+		}
+
+		if( iBar < ELEM_COUNT( nBarPos ) )
+		{
+			int32 nCurBarY = nScrollLen - nBarPos[iBar] * 1024;
+			m_pFloor->SetPosition( CVector2( m_pFloor->x, nCurBarY ) );
+			
+			if( nCurBarY >= m_nFloorCrushY )
+			{
+				int32 breakPos[2][2];
+				float breakVel[2][4];
+				int32 centerLen0 = SRand::Inst().Rand( 256, 512 );
+				int32 nReservedLen = ( 1024 - centerLen0 ) * 3 / 8;
+				breakPos[0][0] = SRand::Inst().Rand( 0, 1024 - centerLen0 - nReservedLen * 2 + 1 ) + nReservedLen;
+				breakPos[0][1] = breakPos[0][0] + centerLen0;
+
+				breakPos[1][0] = breakPos[0][0] + SRand::Inst().Rand( -64, 65 );
+				breakPos[1][1] = breakPos[0][1] + SRand::Inst().Rand( -64, 65 );
+
+				for( int j = 0; j < 4; j++ )
+				{
+					breakVel[0][j] = SRand::Inst().Rand( -240.0f, -480.0f );
+					breakVel[1][j] = breakVel[0][j] + SRand::Inst().Rand( -80.0f, -160.0f );
+				}
+
+				auto pFloorEft = SafeCast<CEffectObject>( pPrefabFloorEft->GetRoot()->CreateInstance() );
+				pFloorEft->SetState( 2 );
+				pFloorEft->SetPosition( CVector2( 0, -80 ) );
+				pFloorEft->SetParentBeforeEntity( m_pFloor );
+
+				for( int k = 0; k < 2; k++ )
+				{
+					for( int j = 0; j < 3; j++ )
+					{
+						float x0 = j == 0 ? 0 : breakPos[k][j - 1];
+						float x1 = j == 2 ? 1024 : breakPos[k][j];
+						float len = x1 - x0;
+						auto pImage = static_cast<CImage2D*>( pBarDrawable->CreateInstance() );
+						pImage->SetRect( CRectangle( -len / 2, -16, len, 32 ) );
+						pImage->SetTexRect( CRectangle( x0 / 1024, 0, len / 1024, 1 ) );
+
+						float vel0 = breakVel[k][j];
+						float vel1 = breakVel[k][j + 1];
+						float vel = ( vel0 + vel1 ) * 0.5f;
+						float velA = ( vel1 - vel0 ) / len;
+
+						CEffectObject* pEffectObject = new CEffectObject( 8, CVector2( 0, vel ), velA );
+						pEffectObject->AddChild( pImage );
+						pEffectObject->SetPosition( CVector2( ( x0 + x1 ) / 2, m_nFloorCrushY - 16 - k * 32 ) );
+						pEffectObject->SetParentBeforeEntity( m_pFloor );
+					}
+				}
+
+				m_nHitShakeFrame[0] = 0;
+				m_hitShakeVec[0] = CVector2( 0, -20 - m_fBaseShake * 50 );
+
+				iBar++;
+				if( iBar < ELEM_COUNT( nBarPos ) )
+				{
+					int32 nCurBarY = nScrollLen - nBarPos[iBar] * 1024;
+					m_pFloor->SetPosition( CVector2( m_pFloor->x, nCurBarY ) );
+				}
+				else
+					m_pFloor->bVisible = false;
+			}
+		}
 
 		pRenderer->GetSplash()->Set( nFloodHeight, -nScrollLen );
-		m_camPos.y = nCamHeight;
+		camTarget.y = nCamHeight;
+		m_camPos = camTarget + UpdateCamShake();
+
+		if( !SRand::Inst().Rand( 0, 30 ) )
+		{
+			m_nHitShakeFrame[1] = 0;
+			m_hitShakeVec[1] = CVector2( ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) * ( 4 + m_fBaseShake * 7 ), 0 );
+		}
+
+		if( i == nMaxTime - 120 )
+		{
+			CMainGameState::Inst().SetStageName( "" );
+			CMainGameState::Inst().DelayResetStage();
+		}
 		m_pScenario->Yield( 0, false );
 	}
+}
 
-	CMainGameState::Inst().SetStageName( "" );
-	CMainGameState::Inst().DelayResetStage();
+CVector2 CTutorialLevel::UpdateCamShake()
+{
+	CVector2 shake( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) );
+	shake = shake * m_fBaseShake;
+	CVector2 shake1( 0, 0 );
+
+	for( int i = 0; i < ELEM_COUNT( m_nHitShakeFrame ); i++ )
+	{
+		CVector2 vec = m_hitShakeVec[i] * ( m_nHitShakeFrame[i] % 4 < 2 ? 1 : -1 );
+		if( i == 0 )
+			shake1 = shake1 + vec;
+		else
+			shake = shake + vec;
+		shake = shake + CVector2( m_hitShakeVec[i].y, -m_hitShakeVec[i].x ) * sin( m_nHitShakeFrame[i] * 1.58792 ) * 0.2f;
+		m_nHitShakeFrame[i]++;
+
+		float l = m_hitShakeVec[i].Normalize();
+		m_hitShakeVec[i] = m_hitShakeVec[i] * Max( l - 8, 0.0f );
+	}
+	shake = CVector2( floor( shake.x + 0.5f ), floor( shake.y + 0.5f ) );
+	shake1 = CVector2( floor( shake1.x * 0.03125f + 0.5f ), floor( shake1.y * 0.03125f + 0.5f ) ) * 32;
+	return shake + shake1;
 }
