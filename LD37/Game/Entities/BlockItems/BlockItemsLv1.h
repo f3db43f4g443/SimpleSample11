@@ -2,6 +2,7 @@
 #include "CommonBlockItems.h"
 #include "Entities/AIObject.h"
 #include "Entities/EffectObject.h"
+#include "Enemy.h"
 
 class CPipe0 : public CDetectTrigger
 {
@@ -50,7 +51,10 @@ protected:
 
 class CWindow2 : public CEntity
 {
+	friend void RegisterGameClasses();
 public:
+	CWindow2( const SClassCreateContext& context ) : CEntity( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CWindow2 ); }
+	virtual void OnAddedToStage() override;
 protected:
 	void AIFunc();
 	class AI : public CAIObject
@@ -78,9 +82,9 @@ protected:
 	CRectangle m_openRect;
 	CRectangle m_closeRect;
 	CReference<CRenderObject2D> m_pWindow;
-	CReference<CRenderObject2D> m_pMan;
+	CReference<CEntity> m_pMan;
 	CReference<CRenderObject2D> m_pEye[2];
-	CReference<CRenderObject2D> m_pHead[2];
+	CReference<CEnemy> m_pHead[2];
 	CReference<CRenderObject2D> m_pLinks[2];
 	int32 m_nLinkCount;
 	CString m_strBullet;

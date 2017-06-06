@@ -4,11 +4,15 @@
 
 void CEnemy::Damage( int32 nDmg )
 {
-	m_nHp -= nDmg;
-	if( m_nHp <= 0 )
+	if( m_nHp )
 	{
-		m_nHp = 0;
-		Kill();
+		nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
+		m_nHp -= nDmg;
+		if( m_nHp <= 0 )
+		{
+			m_nHp = 0;
+			Kill();
+		}
 	}
 }
 

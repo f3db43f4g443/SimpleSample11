@@ -409,6 +409,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
 	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
 	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
+	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0 );
 	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
 	chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
 	chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );

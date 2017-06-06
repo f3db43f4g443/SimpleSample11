@@ -72,6 +72,7 @@ struct SChunkBaseInfo
 	float fDestroyBalance;
 	float fImbalanceTime;
 	float fShakeDmg;
+	float fShakeDmgPerWidth;
 	uint32 nShakeDmgThreshold;
 	uint32 nAbsorbShakeStrength;
 	uint32 nDestroyShake;

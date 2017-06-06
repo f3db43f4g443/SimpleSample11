@@ -229,11 +229,16 @@ dead:
 	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 }
 
+void CWindow2::OnAddedToStage()
+{
+	for( auto pChild = m_pLinks[0]->Get_Child(); pChild; pChild = pChild->NextChild() )
+		m_nLinkCount++;
+	m_pAI = new AI();
+	m_pAI->SetParentEntity( this );
+}
+
 void CWindow2::AIFunc()
 {
-	if( !CMyLevel::GetInst() )
-		return;
-
 	static_cast<CMultiFrameImage2D*>( m_pWindow.GetPtr() )->SetFrames( 0, 1, 0 );
 	m_pMan->bVisible = false;
 	for( int i = 0; i < 2; i++ )
@@ -242,6 +247,9 @@ void CWindow2::AIFunc()
 		m_pHead[i]->bVisible = false;
 		m_pLinks[i]->bVisible = false;
 	}
+
+	if( !CMyLevel::GetInst() )
+		return;
 
 	while( 1 )
 	{
@@ -284,10 +292,15 @@ void CWindow2::AIFunc()
 		static_cast<CMultiFrameImage2D*>( m_pWindow.GetPtr() )->SetPlaySpeed( 1, false );
 		m_pAI->Yield( 0.25f, false );
 		m_pMan->bVisible = true;
-		static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 0, 4, 8 );
-		static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( 1, false );
+		static_cast<CMultiFrameImage2D*>( m_pMan->GetRenderObject() )->SetFrames( 0, 4, 8 );
+		static_cast<CMultiFrameImage2D*>( m_pMan->GetRenderObject() )->SetPlaySpeed( 1, false );
+		for( int i = 0; i < 2; i++ )
+		{
+			static_cast<CMultiFrameImage2D*>( m_pEye[i].GetPtr() )->SetFrames( 0, 4, 8 );
+			static_cast<CMultiFrameImage2D*>( m_pEye[i].GetPtr() )->SetPlaySpeed( 1, false );
+		}
 		m_pAI->Yield( 0.75f, false );
-		m_pMan->MoveToTopmost();
+		m_pMan->MoveToTopmost( true );
 
 		//open
 		while( 1 )
@@ -296,10 +309,10 @@ void CWindow2::AIFunc()
 			if( !pPlayer )
 				break;
 
-			float fDeathChance = nAttackCount / ( nAttackCount + 1.0f );
+			float fDeathChance = Max( 0.0f, nAttackCount - 10.0f ) / ( nAttackCount + 10.0f );
 			auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
 			if( pChunkObject && pChunkObject->GetMaxHp() )
-				fDeathChance = 1 - ( 1 - fDeathChance ) * ( pChunkObject->GetHp() / pChunkObject->GetMaxHp() );
+				fDeathChance = 1 - ( 1 - fDeathChance ) * Max( pChunkObject->GetHp() / pChunkObject->GetMaxHp() * 2 - 1, 0.0f );
 			if( SRand::Inst().Rand( 0.0f, 1.0f ) < fDeathChance )
 			{
 				goto dead;
@@ -312,9 +325,6 @@ void CWindow2::AIFunc()
 
 			//attack
 			nAttackCount++;
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( pPlayer )
-				playerPos = pPlayer->GetPosition();
 
 			{
 				CVector2 dPos1 = playerPos - m_pEye[0]->globalTransform.GetPosition();
@@ -331,31 +341,50 @@ void CWindow2::AIFunc()
 				for( int i = 0; i < 8; i++ )
 				{
 					float fBaseAngle = i * PI / 4;
-					CVector2 vel0 = CVector2( cos( fBaseAngle ) * 150, sin( fBaseAngle ) * 50 );
+					CVector2 vel0 = CVector2( cos( fBaseAngle ) * 80, sin( fBaseAngle ) * 40 );
 					CVector2 vel = mat1.MulVector2Dir( vel0 );
 					auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( m_pEye[0]->globalTransform.GetPosition() );
-					pBullet->SetVelocity( vel + dPos1 * 100 );
-					pBullet->SetRotation( atan2( pBullet->GetVelocity().x, pBullet->GetVelocity().y ) );
+					pBullet->SetVelocity( vel + dPos1 * 180 );
+					pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					vel = mat2.MulVector2Dir( vel0 );
 					pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( m_pEye[1]->globalTransform.GetPosition() );
-					pBullet->SetVelocity( vel + dPos2 * 100 );
-					pBullet->SetRotation( atan2( pBullet->GetVelocity().x, pBullet->GetVelocity().y ) );
+					pBullet->SetVelocity( vel + dPos2 * 180 );
+					pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
+
+				CVector2 shakeDir[2] = { CVector2( cos( fAngle1 ), sin( fAngle1 ) ), CVector2( cos( fAngle2 ), sin( fAngle2 ) ) };
+				CVector2 basePos[2] = { m_pEye[0]->GetPosition(), m_pEye[1]->GetPosition() };
+				for( int i = 30; i >= 0; i-- )
+				{
+					for( int k = 0; k < 2; k++ )
+					{
+						CVector2 ofs = shakeDir[k] * cos( ( 30 - i ) * 1.1243232f ) * ( i / 30.0f ) * 8;
+						ofs = CVector2( floor( ofs.x + 0.5f ), floor( ofs.y + 0.5f ) );
+						m_pEye[k]->SetPosition( basePos[k] + ofs );
+					}
+					m_pAI->Yield( 0, false );
 				}
 			}
 
-			m_pAI->Yield( 1.0f, false );
+			m_pAI->Yield( 1.2f, false );
 		}
 
 		//closing
-		static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetFrames( 0, 4, 8 );
-		static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlayPercent( 1 );
-		static_cast<CMultiFrameImage2D*>( m_pMan.GetPtr() )->SetPlaySpeed( -1, false );
+		static_cast<CMultiFrameImage2D*>( m_pMan->GetRenderObject() )->SetFrames( 0, 4, 8 );
+		static_cast<CMultiFrameImage2D*>( m_pMan->GetRenderObject() )->SetPlayPercent( 1 );
+		static_cast<CMultiFrameImage2D*>( m_pMan->GetRenderObject() )->SetPlaySpeed( -1, false );
+		for( int i = 0; i < 2; i++ )
+		{
+			static_cast<CMultiFrameImage2D*>( m_pEye[i].GetPtr() )->SetFrames( 0, 4, 8 );
+			static_cast<CMultiFrameImage2D*>( m_pEye[i].GetPtr() )->SetPlayPercent( 1 );
+			static_cast<CMultiFrameImage2D*>( m_pEye[i].GetPtr() )->SetPlaySpeed( -1, false );
+		}
 		m_pAI->Yield( 0.25f, false );
-		m_pWindow->MoveToTopmost();
+		m_pWindow->MoveToTopmost( true );
 		static_cast<CMultiFrameImage2D*>( m_pWindow.GetPtr() )->SetFrames( 0, 4, 8 );
 		static_cast<CMultiFrameImage2D*>( m_pWindow.GetPtr() )->SetPlayPercent( 1 );
 		static_cast<CMultiFrameImage2D*>( m_pWindow.GetPtr() )->SetPlaySpeed( -1, false );
@@ -373,21 +402,35 @@ dead:
 
 void CWindow2::AIFuncEye( uint8 nEye )
 {
-	m_pEye[nEye]->bVisible = false;
-	m_pHead[nEye]->bVisible = true;
-	m_pLinks[nEye]->bVisible = true;
-
-	switch( SRand::Inst().Rand( 0, 3 ) )
+	struct SEyeKilled
 	{
-	case 0:
-		AIFuncEye1( nEye );
-		break;
-	case 1:
-		AIFuncEye2( nEye );
-		break;
-	case 2:
-		AIFuncEye3( nEye );
-		break;
+
+	};
+	try
+	{
+		CMessagePump pump( m_pAIEye[nEye] );
+		m_pHead[nEye]->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SEyeKilled*>() );
+
+		m_pEye[nEye]->bVisible = false;
+		m_pHead[nEye]->bVisible = true;
+		m_pLinks[nEye]->bVisible = true;
+
+		switch( SRand::Inst().Rand( 0, 3 ) )
+		{
+		case 0:
+			AIFuncEye1( nEye );
+			break;
+		case 1:
+			AIFuncEye2( nEye );
+			break;
+		case 2:
+			AIFuncEye3( nEye );
+			break;
+		}
+	}
+	catch( SEyeKilled* e )
+	{
+		m_pLinks[nEye]->bVisible = false;
 	}
 }
 
@@ -395,17 +438,32 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 {
 	CVector2 target = globalTransform.GetPosition();
 
+	for( int k = 0; k < 2; k++ )
+	{
+		m_pEye[k]->ForceUpdateTransform();
+		float fBaseAngle = SRand::Inst().Rand( -PI, PI );
+		for( int i = 0; i < 8; i++ )
+		{
+			float fAngle = fBaseAngle + i * PI / 4;
+			auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( m_pEye[k]->globalTransform.GetPosition() );
+			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 200 );
+			pBullet->SetRotation( fAngle );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+	}
+
 	auto pAI = m_pAIEye[nEye];
 	auto pHead = m_pHead[nEye];
 	float fForce = 1.0f;
-	int32 nTickCount = SRand::Inst().Rand( 60, 90 );
+	int32 nTickCount = SRand::Inst().Rand( 45, 60 );
 	while( 1 )
 	{
 		if( GetStage()->GetPlayer() )
 			target = GetStage()->GetPlayer()->GetPosition();
 		CVector2 dPos = target - pHead->globalTransform.GetPosition();
 
-		CVector2 force = target - dPos;
+		CVector2 force = dPos;
 		float l = force.Normalize();
 		force = force * Min( l * 10, 400.0f ) * fForce;
 		CVector2 force1 = m_pEye[nEye]->GetPosition() - pHead->GetPosition();
@@ -427,14 +485,14 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 			float r = ( fDist - fMinDist ) / ( fMaxDist - fMinDist );
 			if( SRand::Inst().Rand( 0.0f, 1.0f ) > r )
 			{
-				for( int i = 0; i < 7; i++ )
+				for( int i = 0; i < 9; i++ )
 				{
-					float fAngle = ( i - 3 + SRand::Inst().Rand( 0.25f, 0.75f ) ) * 0.2f + atan2( dPos.y, dPos.x );
+					float fAngle = ( i - 3 + SRand::Inst().Rand( 0.25f, 0.75f ) ) * 0.18f + atan2( dPos.y, dPos.x );
 					float fSpeed = SRand::Inst().Rand( 150.0f, 200.0f );
 					auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( pHead->globalTransform.GetPosition() );
 					pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * fSpeed );
-					pBullet->SetRotation( atan2( pBullet->GetVelocity().x, pBullet->GetVelocity().y ) );
+					pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 				}
 
@@ -443,19 +501,19 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 			else
 			{
 				float fBaseAngle = SRand::Inst().Rand( -PI, PI );
-				for( int i = 0; i < 3; i++ )
+				for( int i = 0; i < 6; i++ )
 				{
-					float fAngle = fBaseAngle + i * PI * 2 / 3;
+					float fAngle = fBaseAngle + i * PI * 2 / 6;
 					auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( pHead->globalTransform.GetPosition() );
 					pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 150.0f );
-					pBullet->SetRotation( atan2( pBullet->GetVelocity().x, pBullet->GetVelocity().y ) );
+					pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 				}
 
-				fForce = SRand::Inst().Rand( 0.75f, 0.9f );
+				fForce = SRand::Inst().Rand( 0.4f, 0.6f );
 			}
-			nTickCount = SRand::Inst().Rand( 60, 90 );
+			nTickCount = SRand::Inst().Rand( 45, 60 );
 		}
 
 		pAI->Yield( 0, true );
@@ -469,7 +527,7 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 	auto pAI = m_pAIEye[nEye];
 	auto pHead = m_pHead[nEye];
 	float fForce = 1.0f;
-	int32 nTickCount = SRand::Inst().Rand( 120, 180 );
+	int32 nTickCount = SRand::Inst().Rand( 240, 300 );
 	while( 1 )
 	{
 		while( 1 )
@@ -478,7 +536,7 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 				target = GetStage()->GetPlayer()->GetPosition();
 			CVector2 dPos = target - pHead->globalTransform.GetPosition();
 
-			CVector2 force = target - dPos;
+			CVector2 force = dPos;
 			float l = force.Normalize();
 			force = force * Min( l * 10, 80.0f ) * fForce;
 			CVector2 force1 = m_pEye[nEye]->GetPosition() - pHead->GetPosition();
@@ -495,29 +553,191 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 
 			if( !nTickCount )
 			{
-				nTickCount = SRand::Inst().Rand( 120, 180 );
+				nTickCount = SRand::Inst().Rand( 240, 300 );
 				break;
 			}
 			pAI->Yield( 0, true );
 		}
 
+		pHead->SetDefence( -4.0f );
 		CVector2 pos0 = pHead->GetPosition();
 		CVector2 dir = CVector2( cos( pHead->r ), sin( pHead->r ) );
 		int i;
+		bool bHit = true;
 		for( i = 1; i <= 60; i++ )
 		{
+			pAI->Yield( 0, false );
+
 			float f = i / 60.0f;
-			pHead->SetPosition( pos0 + dir * ( f * 800 - ( f * f ) * 200 ) );
+			pHead->SetPosition( pos0 + dir * ( f * 600 + ( f * f ) * 200 ) );
+			UpdateLink( nEye );
 			pAI->Yield( 0, true );
 
+			bool bHit1 = false;
+			bool bForceBreak = false;
+			for( auto pManifold = pHead->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+			{
+				auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 
+				if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
+				{
+					auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+					if( pBlockObject && pBlockObject->GetBlock()->pOwner->bIsRoom )
+					{
+						bForceBreak = true;
+						break;
+					}
+					bHit1 = true;
+					break;
+				}
+			}
+			if( bForceBreak )
+				break;
+			if( bHit1 )
+			{
+				if( !bHit )
+					break;
+			}
+			else
+				bHit = false;
+
+			if( GetStage()->GetPlayer() )
+				target = GetStage()->GetPlayer()->GetPosition();
+			if( ( target - pHead->globalTransform.GetPosition() ).Dot( dir ) < 0 )
+				break;
+		}
+
+		SBarrageContext context;
+		context.vecBulletTypes.push_back( m_pBullet );
+		context.nBulletPageSize = 100;
+
+		pHead->ForceUpdateTransform();
+		CBarrage* pBarrage = new CBarrage( context );
+		CVector2 pos = pHead->globalTransform.GetPosition();
+		float fAngle0 = pHead->r;
+		pBarrage->AddFunc( [fAngle0] ( CBarrage* pBarrage )
+		{
+			CMatrix2D mat;
+			mat.Rotate( fAngle0 );
+			int32 nBullet = 0;
+			for( int i = 0; i < 5; i++ )
+			{
+				for( int j = 0; j < 20; j++ )
+				{
+					float r = 150 + i * 25;
+					CVector2 center( 50 + i * 15, 0 );
+					CVector2 vel = center + CVector2( cos( ( j + i * 0.5f ) * PI / 10 ), sin( ( j + i * 0.5f ) * PI / 10 ) ) * r;
+					vel = mat.MulVector2Dir( vel );
+					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), vel, CVector2( 0, 0 ) );
+				}
+				pBarrage->Yield( 3 );
+			}
+			pBarrage->StopNewBullet();
+		} );
+		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		pBarrage->SetPosition( pos );
+		pBarrage->Start();
+
+		pHead->SetDefence( 0.0f );
+		for( i--; i >= 0; i-- )
+		{
+			float f = i / 60.0f;
+			pHead->SetPosition( pos0 + dir * ( f * 600 + ( f * f ) * 200 ) );
+			UpdateLink( nEye );
 			pAI->Yield( 0, false );
 		}
+
+		pAI->Yield( 0, true );
 	}
 }
 
 void CWindow2::AIFuncEye3( uint8 nEye )
 {
+	CVector2 target = globalTransform.GetPosition();
+
+	auto pAI = m_pAIEye[nEye];
+	auto pHead = m_pHead[nEye];
+	int32 nTickCount = SRand::Inst().Rand( 400, 500 );
+	uint8 nState = 0;
+	float fLinear = 0;
+	float fRadius = 0;
+	float fFireCD = 200.0f;
+	while( 1 )
+	{
+		pAI->Yield( 0, false );
+
+		float fTargetLinear;
+		float fTargetRadius;
+
+		if( nTickCount )
+			nTickCount--;
+		switch( nState )
+		{
+		case 0:
+			fTargetLinear = 200.0f;
+			fTargetRadius = 100.0f;
+			if( !nTickCount )
+			{
+				nTickCount = SRand::Inst().Rand( 300, 400 );
+				pHead->SetDefence( -4.0f );
+				nState = 1;
+			}
+			break;
+		case 1:
+			fTargetLinear = 600.0f;
+			fTargetRadius = 250.0f;
+			if( !nTickCount )
+			{
+				nTickCount = SRand::Inst().Rand( 600, 700 );
+				pHead->SetDefence( 0.0f );
+				nState = 0;
+			}
+			break;
+		}
+
+		if( fLinear < fTargetLinear )
+			fLinear = Min( fLinear + GetStage()->GetElapsedTimePerTick() * ( 50.0f + fTargetLinear - fLinear ), fTargetLinear );
+		else
+			fLinear = Max( fLinear - GetStage()->GetElapsedTimePerTick() * 50.0f, fTargetLinear );
+		if( fRadius < fTargetRadius )
+			fRadius = Min( fRadius + GetStage()->GetElapsedTimePerTick() * 100.0f, fTargetRadius );
+		else
+			fRadius = Max( fRadius - GetStage()->GetElapsedTimePerTick() * 100.0f, fTargetRadius );
+
+		pHead->SetRotation( pHead->r + ( nEye == 1 ? -fLinear / fRadius : fLinear / fRadius ) * GetStage()->GetElapsedTimePerTick() );
+		pHead->SetPosition( CVector2( cos( pHead->r ), sin( pHead->r ) ) * fRadius );
+		UpdateLink( nEye );
+
+		fFireCD -= fLinear * GetStage()->GetElapsedTimePerTick();
+		if( fFireCD <= 0 )
+		{
+			pAI->Yield( 0, true );
+			if( nState == 0 )
+			{
+				auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
+				pBullet->SetPosition( pHead->globalTransform.GetPosition() );
+				pBullet->SetVelocity( CVector2( cos( pHead->r ), sin( pHead->r ) ) * 150.0f );
+				pBullet->SetRotation( pHead->r );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				fFireCD = 30;
+			}
+			else
+			{
+				for( int i = 0; i < 5; i++ )
+				{
+					float fAngle = pHead->r + ( i - 2 ) * 0.45f;
+					float fSpeed = 180 - abs( i - 2 ) * 15;
+					auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
+					pBullet->SetPosition( pHead->globalTransform.GetPosition() );
+					pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * fSpeed );
+					pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
+				fFireCD = 120;
+			}
+		}
+	}
+
 }
 
 void CWindow2::UpdateLink( uint8 nEye )

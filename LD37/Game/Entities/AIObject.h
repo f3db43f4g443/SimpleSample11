@@ -16,10 +16,11 @@ public:
 		m_resumeFunc = [=] () { throw( t ); };
 		ResumeThrow();
 	}
+
+	struct SExceptionRemoved {};
 protected:
 	virtual void AIFunc() {}
 private:
-	struct SExceptionRemoved {};
 	void OnTick();
 
 	static uint32 CoroutineFunc( void* pThis );

@@ -44,7 +44,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fDestroyWeight( baseInfo.fDestroyWeight + baseInfo.fDestroyWeightPerWidth * (int32)( size.x - baseInfo.nWidth ) )
 	, fDestroyBalance( baseInfo.fDestroyBalance )
 	, fImbalanceTime( baseInfo.fImbalanceTime )
-	, fShakeDmg( baseInfo.fShakeDmg )
+	, fShakeDmg( baseInfo.fShakeDmg + baseInfo.fShakeDmgPerWidth * (int32)( size.x - baseInfo.nWidth ) )
 	, nShakeDmgThreshold( baseInfo.nShakeDmgThreshold )
 	, nAbsorbShakeStrength( baseInfo.nAbsorbShakeStrength + baseInfo.fAbsorbShakeStrengthPerHeight * (int32)( size.y - baseInfo.nHeight ) )
 	, nDestroyShake( baseInfo.nDestroyShake )

@@ -14,7 +14,7 @@ void CGarbageBinRed::Trigger()
 	{
 		auto pBullet = SafeCast<CBullet>( m_pPrefab->GetRoot()->CreateInstance() );
 		pBullet->SetCreator( this );
-		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+		pBullet->SetPosition( CVector2( m_pChunk->pos.x, m_pChunk->pos.y ) + CVector2( m_pChunk->nWidth * 0.5f, m_pChunk->nHeight * 0.5f ) * CMyLevel::GetBlockSize() );
 		float fAngle = fBaseAngle + PI * 2 * i / m_nBulletCount;
 		pBullet->SetRotation( fAngle );
 		pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
@@ -26,8 +26,9 @@ void CGarbageBinRed::Trigger()
 
 void CGarbageBinYellow::Trigger()
 {
+	ForceUpdateTransform();
 	auto pExplosion = SafeCast<CExplosion>( m_pPrefab->GetRoot()->CreateInstance() );
-	pExplosion->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+	pExplosion->SetPosition( CVector2( m_pChunk->pos.x, m_pChunk->pos.y ) + CVector2( m_pChunk->nWidth * 0.5f, m_pChunk->nHeight * 0.5f ) * CMyLevel::GetBlockSize() );
 	pExplosion->SetCreator( this );
 	pExplosion->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 
@@ -36,12 +37,13 @@ void CGarbageBinYellow::Trigger()
 
 void CGarbageBinGreen::Trigger()
 {
+	ForceUpdateTransform();
 	float fBaseAngle = SRand::Inst().Rand( -PI, PI );
 	for( int i = 0; i < m_nBulletCount; i++ )
 	{
 		auto pBullet = SafeCast<CBulletWithBlockBuff>( m_pPrefab->GetRoot()->CreateInstance() );
 		pBullet->SetCreator( this );
-		pBullet->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+		pBullet->SetPosition( CVector2( m_pChunk->pos.x, m_pChunk->pos.y ) + CVector2( m_pChunk->nWidth * 0.5f, m_pChunk->nHeight * 0.5f ) * CMyLevel::GetBlockSize() );
 		float fAngle = fBaseAngle + PI * 2 * i / m_nBulletCount;
 		pBullet->SetRotation( fAngle );
 		pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
@@ -59,13 +61,14 @@ void CGarbageBinGreen::Trigger()
 
 void CGarbageBinBlack::Trigger()
 {
+	ForceUpdateTransform();
 	float fBaseAngle = SRand::Inst().Rand( -PI, PI );
 	for( int i = 0; i < m_nCount; i++ )
 	{
 		auto pCharacter = SafeCast<CCharacter>( m_pPrefab->GetRoot()->CreateInstance() );
 		float fAngle = fBaseAngle + PI * 2 * i / m_nCount;
 		pCharacter->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( m_fMinSpeed, m_fMaxSpeed ) );
-		pCharacter->SetPosition( globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize() );
+		pCharacter->SetPosition( CVector2( m_pChunk->pos.x, m_pChunk->pos.y ) + CVector2( m_pChunk->nWidth * 0.5f, m_pChunk->nHeight * 0.5f ) * CMyLevel::GetBlockSize() );
 		if( m_bSetAngle )
 			pCharacter->SetRotation( fAngle );
 		pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
