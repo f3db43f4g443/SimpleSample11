@@ -15,7 +15,7 @@ public:
 	CRenderObject2D();
 	~CRenderObject2D();
 
-	CRenderObject2D* GetParent() { return m_pParent; }
+	CRenderObject2D* GetParent() { return m_pTransformParent; }
 	void SetTransformDirty();
 	void ResetTransformDirty() { m_isTransformDirty = false; }
 	void SetBoundDirty();
@@ -24,9 +24,19 @@ public:
 	void AddChild( CRenderObject2D* pNode );
 	void AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter );
 	void AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore );
-	void RemoveChild( CRenderObject2D* pNode );
+private:
+	void AddTransformChild( CRenderObject2D* pNode );
+	void AddRenderChild( CRenderObject2D* pNode );
+	void AddRenderChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter );
+	void AddRenderChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore );
+	void RemoveTransformChild( CRenderObject2D* pNode );
+	void RemoveRenderChild( CRenderObject2D* pNode );
+public:
+	void SetRenderParent( CRenderObject2D* pNode );
+	void SetRenderParentBefore( CRenderObject2D* pNode );
+	void SetRenderParentAfter( CRenderObject2D* pNode );
 	void RemoveAllChild();
-	void RemoveThis() { if( m_pParent ) m_pParent->RemoveChild( this ); }
+	void RemoveThis();
 	void MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder = false );
 	void MoveToTopmost( bool bKeepZOrder = false );
 	int32 GetZOrder() { return m_nZOrder; }
@@ -139,7 +149,8 @@ private:
 	void OnChildZOrderChanged( CRenderObject2D* pChild );
 	void _setDepth(int depth);
 
-	CRenderObject2D* m_pParent;
+	CRenderObject2D* m_pTransformParent;
+	CRenderObject2D* m_pRenderParent;
 	int32 m_nZOrder;
 	int32 m_depth;
 	bool m_isTransformDirty;
@@ -148,8 +159,10 @@ private:
 	bool m_bAutoUpdateAnim;
 	uint16 m_nTransformIndex;
 	CAnimationController* m_pAnimController;
-	LINK_LIST_REF( CRenderObject2D, Child );
-	LINK_LIST_REF_HEAD( m_pChildren, CRenderObject2D, Child );
+	LINK_LIST_REF( CRenderObject2D, TransformChild );
+	LINK_LIST_REF_HEAD( m_pTransformChildren, CRenderObject2D, TransformChild );
+	LINK_LIST_REF( CRenderObject2D, RenderChild );
+	LINK_LIST_REF_HEAD( m_pRenderChildren, CRenderObject2D, RenderChild );
 	LINK_LIST_REF( CRenderObject2D, UpdatedObject );
 	LINK_LIST( CRenderObject2D, AutoUpdateAnimObject );
 };

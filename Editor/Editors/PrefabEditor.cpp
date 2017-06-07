@@ -114,7 +114,7 @@ void CPrefabEditor::RefreshSceneView( CPrefabNode* pNode, CUITreeView::CTreeView
 {
 	auto pContent = CPrefabNodeTreeFolder::Create( this, m_pSceneView, pParNodeItem, pNode );
 	vector<CPrefabNode*> vecChildren;
-	for( CRenderObject2D* pChild = pNode->Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 	{
 		if( pChild == pNode->m_pRenderObject )
 			continue;
@@ -293,7 +293,7 @@ void CPrefabEditor::OnZOrderChanged()
 
 		bool bFind = false;
 		uint32 nIndex = 0;
-		for( auto pChild = pNode->Get_Child(); pChild; pChild = pChild->NextChild() )
+		for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 		{
 			if( pChild == pNode->m_pRenderObject )
 				continue;
@@ -313,7 +313,7 @@ void CPrefabEditor::OnZOrderChanged()
 
 		bFind = false;
 		uint32 nIndex1 = 0;
-		for( auto pChild = pNode->Get_Child(); pChild; pChild = pChild->NextChild() )
+		for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 		{
 			if( pChild == pNode->m_pRenderObject )
 				continue;

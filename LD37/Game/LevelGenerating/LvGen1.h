@@ -271,6 +271,57 @@ private:
 	vector<SBar> m_bars;
 };
 
+class CLevelGenNode1_3 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenBase();
+	void GenSubArea( const TRectangle<int32>& rect );
+	void FillLine( const TRectangle<int32>& rect );
+	void GenRestWallChunks();
+	void GenObjs();
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
+	CReference<CLevelGenerateNode> m_pWallChunk0Node;
+	CReference<CLevelGenerateNode> m_pWallChunk1Node;
+	CReference<CLevelGenerateNode> m_pBlock1Node;
+	CReference<CLevelGenerateNode> m_pBlock2Node;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pCrate1Node;
+	CReference<CLevelGenerateNode> m_pCrate2Node;
+
+	enum
+	{
+		eType_None,
+		eType_Wall,
+		eType_Room,
+		eType_Door,
+		eType_WallChunk0,
+		eType_WallChunk,
+		eType_WallChunk1,
+		eType_BlockRed,
+		eType_BlockBlue,
+		eType_Crate1,
+		eType_Crate2,
+
+		eType_Temp,
+		eType_Temp1,
+
+		eType_Count,
+	};
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+
+	vector<TRectangle<int32> > m_rooms;
+	vector<TRectangle<int32> > m_wallChunks0;
+	vector<TRectangle<int32> > m_wallChunks;
+	vector<TRectangle<int32> > m_wallChunks1;
+};
+
 class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode
 {
 public:

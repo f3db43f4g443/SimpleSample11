@@ -82,10 +82,10 @@ void CScene2DManager::UpdateDirty()
 		pNode->m_isAABBDirty = false;
 		if( pNode->m_depth >= 0 && pNode->CalcAABB())
 		{
-			if( pNode->m_pParent != NULL && !pNode->m_pParent->m_isAABBDirty )
+			if( pNode->m_pRenderParent != NULL && !pNode->m_pRenderParent->m_isAABBDirty )
 			{
-				pNode->m_pParent->m_isAABBDirty = true;
-				m_dirtyAABBSceneNodes.insert( pNode->m_pParent );
+				pNode->m_pRenderParent->m_isAABBDirty = true;
+				m_dirtyAABBSceneNodes.insert( pNode->m_pRenderParent );
 			}
 		}
 	}

@@ -224,7 +224,7 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 	}
 	nIndex++;
 
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
@@ -328,7 +328,7 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 	vecInst.push_back( pRenderObject );
 
 	vector<CRenderObject2D*> vecChildren;
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
@@ -386,7 +386,7 @@ void CPrefabNode::BindShaderResource( EShaderType eShaderType, const char* szNam
 		}
 	} while( 0 );
 
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
@@ -474,7 +474,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 	}
 
 	vector<CPrefabNode*> vecChildren;
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == m_pRenderObject )
 			continue;
@@ -710,7 +710,7 @@ void CPrefabNode::Save( CBufFile& buf )
 	m_obj.Save( buf, true );
 
 	vector<CPrefabNode*> vecChildren;
-	for( CRenderObject2D* pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == m_pRenderObject )
 			continue;

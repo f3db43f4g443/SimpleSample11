@@ -481,7 +481,7 @@ void CFootprintMgr::Update( float fElapsedTime, IRenderSystem* pRenderSystem )
 	if( m_pPersistentReceiver )
 	{
 		vecReceivers.clear();
-		for( auto pRenderObject = m_pFootprintRoot->Get_Child(); pRenderObject; pRenderObject = pRenderObject->NextChild() )
+		for( auto pRenderObject = m_pFootprintRoot->Get_RenderChild(); pRenderObject; pRenderObject = pRenderObject->NextRenderChild() )
 		{
 			auto pReceiver = dynamic_cast<CFootprintReceiver*>( pRenderObject );
 			if( pReceiver && !pReceiver->m_bPersistent )

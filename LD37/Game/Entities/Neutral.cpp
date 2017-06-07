@@ -61,9 +61,9 @@ void CFuelTank::Awake()
 
 void CFuelTank::Kill()
 {
-	auto localBound = Get_Child()->GetLocalBound();
+	auto localBound = Get_TransformChild()->GetLocalBound();
 	CVector2 center = localBound.GetCenter();
-	center = Get_Child()->globalTransform.MulVector2Pos( center );
+	center = Get_TransformChild()->globalTransform.MulVector2Pos( center );
 	if( m_pKillEffect )
 	{
 		auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
@@ -133,9 +133,9 @@ void CFuelTank::OnTickAfterHitTest()
 			if( !m_nAwakeEffectCD )
 			{
 				CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
-				auto localBound = Get_Child()->GetLocalBound();
+				auto localBound = Get_TransformChild()->GetLocalBound();
 				CVector2 center = CVector2( localBound.x + SRand::Inst().Rand( 0.0f, localBound.width ), localBound.y + SRand::Inst().Rand( 0.0f, localBound.height ) );
-				center = Get_Child()->globalTransform.MulVector2Pos( center );
+				center = Get_TransformChild()->globalTransform.MulVector2Pos( center );
 				auto pEffect = SafeCast<CEffectObject>( m_pAwakeEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( center );

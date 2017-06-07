@@ -83,8 +83,8 @@ void CEntity::SetRenderObject( CRenderObject2D* pRenderObject )
 
 uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 {
-	CRenderObject2D* pRenderObject = m_pChildren;
-	for( ; pRenderObject; pRenderObject = pRenderObject->NextChild() )
+	CRenderObject2D* pRenderObject = m_pRenderChildren;
+	for( ; pRenderObject; pRenderObject = pRenderObject->NextRenderChild() )
 	{
 		if( pRenderObject->GetZOrder() < 0 )
 			break;
@@ -93,7 +93,7 @@ uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 			nTraverseIndex = pEntity->BeforeHitTest( nTraverseIndex );
 	}
 	m_nTraverseIndex = nTraverseIndex++;
-	for( ; pRenderObject; pRenderObject = pRenderObject->NextChild() )
+	for( ; pRenderObject; pRenderObject = pRenderObject->NextRenderChild() )
 	{
 		CEntity* pEntity = SafeCast<CEntity>( pRenderObject );
 		if( pEntity )

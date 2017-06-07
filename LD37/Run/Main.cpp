@@ -7,7 +7,7 @@
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
-	SRand::Inst().nSeed = (uint32)GetLocalTime();
+	SRand::Inst().nSeed = 0;// (uint32)GetLocalTime();
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	SDeviceCreateContext context;
@@ -16,7 +16,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	pRenderSystem->CreateDevice( context );
 
 	InitGame();
-	CMainGameState::Inst().SetStageName( "data/tutorial/tutorial_level.pf" );
+	//CMainGameState::Inst().SetStageName( "data/tutorial/tutorial_level.pf" );
 	CGame::Inst().SetCurState( &CMainGameState::Inst() );
 	pRenderSystem->SetGame( &CGame::Inst() );
 	pRenderSystem->Start();

@@ -12,7 +12,7 @@
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
-const char* g_levels[] = { "lv1_1", "lv1_2", "lv1_2", "lv1_2", "lv1_2" };
+const char* g_levels[] = { "lv1_3", "lv1_3", "lv1_3", "lv1_3", "lv1_3" };
 
 void CMyLevel::OnAddedToStage()
 {

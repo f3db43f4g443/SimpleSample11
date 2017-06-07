@@ -33,7 +33,7 @@ public:
 	template<class T = CPrefabBaseNode>
 	T* GetChildByName_Fast( const char* szName )
 	{
-		for( auto pChild = Get_Child(); pChild; pChild = pChild->NextChild() )
+		for( auto pChild = Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 		{
 			auto pT = SafeCast<T>( pChild );
 			if( !pT )

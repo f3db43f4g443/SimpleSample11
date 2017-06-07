@@ -337,6 +337,54 @@
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
+
+      <node type="subregion" name="lv1_3">
+        <node type="tile" x="0" y="0" w="32" h="12">
+          <ref name="block0" />
+        </node>
+        <node type="lv1type3" x="0" y="12" w="32" h="108">
+          <wall>
+            <ref name="block0_1" />
+          </wall>
+          <wallchunk>
+            <ref name="wall2" />
+          </wallchunk>
+          <wallchunk0>
+            <ref name="wall1" />
+          </wallchunk0>
+          <wallchunk1>
+            <ref name="wall3" />
+          </wallchunk1>
+          <block1>
+            <ref name="brick_tile_1ax" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1bx" />
+          </block2>
+          <room>
+            <ref name="enemyroom2" />
+          </room>
+          <crate1>
+            <ref name="crate_tile" />
+          </crate1>
+          <crate2>
+            <ref name="cage_tile" />
+          </crate2>
+        </node>
+        <ref name="1f" x="0" y="120" w="32" h="8" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
     </nodes>
   </level_gen>
 </root>

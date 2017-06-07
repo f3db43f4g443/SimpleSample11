@@ -140,7 +140,7 @@ void CDynamicTexture::Update( float fTime )
 	m_nTimeStamp = timeStamp;
 
 	CRenderObject2D* pRoot = m_texCanvas.GetRoot();
-	for( CRenderObject2D* pRenderObject = pRoot->Get_Child(); pRenderObject; pRenderObject = pRenderObject->NextChild() )
+	for( CRenderObject2D* pRenderObject = pRoot->Get_TransformChild(); pRenderObject; pRenderObject = pRenderObject->NextTransformChild() )
 	{
 		pRenderObject->UpdateAnim( fTime );
 	}

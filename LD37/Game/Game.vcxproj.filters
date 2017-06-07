@@ -154,6 +154,9 @@
     <ClCompile Include="GUI\Splash.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen1_3.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />

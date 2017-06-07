@@ -161,7 +161,7 @@ void CUIElement::Focus()
 
 void CUIElement::ForEachChild( function<bool( CUIElement* pElem )> func )
 {
-	LINK_LIST_FOR_EACH_BEGIN( pRenderObject, m_pChildren, CRenderObject2D, Child )
+	LINK_LIST_FOR_EACH_BEGIN( pRenderObject, m_pTransformChildren, CRenderObject2D, TransformChild )
 		if( !pRenderObject->GetParent() )
 			continue;
 		CUIElement* pElem = dynamic_cast<CUIElement*>( pRenderObject );
@@ -169,7 +169,7 @@ void CUIElement::ForEachChild( function<bool( CUIElement* pElem )> func )
 			continue;
 		if( !func( pElem ) )
 			break;
-	LINK_LIST_FOR_EACH_END( pRenderObject, m_pChildren, CRenderObject2D, Child )
+	LINK_LIST_FOR_EACH_END( pRenderObject, m_pTransformChildren, CRenderObject2D, TransformChild )
 }
 
 void CUIElement::SetActive( bool bActive )
@@ -249,13 +249,13 @@ void CUIElement::Clone( CUIElement* pElement, bool bInit )
 	ForEachChild( [&pChildren, bInit] ( CUIElement* pElem ) {
 		CUIElement* pChild = pElem->Clone( bInit );
 		pChild->AddRef();
-		pChild->InsertTo_Child( pChildren );
+		pChild->InsertTo_TransformChild( pChildren );
 		return true;
 	} );
 	while( pChildren )
 	{
 		CUIElement* pChild = static_cast<CUIElement*>( pChildren );
-		pChild->RemoveFrom_Child();
+		pChild->RemoveFrom_TransformChild();
 		pElement->AddChild( pChild );
 		pChild->Release();
 	}
@@ -294,7 +294,7 @@ bool CUIElement::CalcAABB()
 	}
 	else
 	{
-		for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() )
+		for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() )
 		{
 			if( globalAABB.width <= 0 || globalAABB.height <= 0 )
 				globalAABB = pChild->globalAABB;

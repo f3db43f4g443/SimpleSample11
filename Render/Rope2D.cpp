@@ -386,7 +386,7 @@ bool CRopeObject2D::CalcAABB()
 		globalAABB.height += m_boundExt.height;
 	}
 
-	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
+	for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() ) {
 		globalAABB = globalAABB + pChild->globalAABB;
 	}
 	return !( orig == globalAABB );

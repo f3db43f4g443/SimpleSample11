@@ -231,7 +231,7 @@ dead:
 
 void CWindow2::OnAddedToStage()
 {
-	for( auto pChild = m_pLinks[0]->Get_Child(); pChild; pChild = pChild->NextChild() )
+	for( auto pChild = m_pLinks[0]->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 		m_nLinkCount++;
 	m_pAI = new AI();
 	m_pAI->SetParentEntity( this );
@@ -414,6 +414,8 @@ void CWindow2::AIFuncEye( uint8 nEye )
 		m_pEye[nEye]->bVisible = false;
 		m_pHead[nEye]->bVisible = true;
 		m_pLinks[nEye]->bVisible = true;
+		m_pHead[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot1() );
+		m_pLinks[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot1() );
 
 		switch( SRand::Inst().Rand( 0, 3 ) )
 		{
@@ -526,7 +528,6 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 
 	auto pAI = m_pAIEye[nEye];
 	auto pHead = m_pHead[nEye];
-	float fForce = 1.0f;
 	int32 nTickCount = SRand::Inst().Rand( 240, 300 );
 	while( 1 )
 	{
@@ -538,15 +539,13 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 
 			CVector2 force = dPos;
 			float l = force.Normalize();
-			force = force * Min( l * 10, 80.0f ) * fForce;
+			force = force * Min( l * 10, 80.0f ) * Min( nTickCount / 120.0f, 1.0f );
 			CVector2 force1 = m_pEye[nEye]->GetPosition() - pHead->GetPosition();
-			force = force + force1 * fForce;
-			fForce += ( SRand::Inst().Rand( -1.0f, 1.0f ) + ( 1 - fForce ) ) * GetStage()->GetElapsedTimePerTick();
+			force = force + force1;
 			pAI->Yield( 0, false );
 
 			pHead->SetPosition( pHead->GetPosition() + force * GetStage()->GetElapsedTimePerTick() );
 			pHead->SetRotation( atan2( dPos.y, dPos.x ) );
-			fForce = Min( 1.0f, fForce + GetStage()->GetElapsedTimePerTick() * 1.0f );
 			nTickCount = Max( nTickCount - 1, 0 );
 
 			UpdateLink( nEye );
@@ -745,7 +744,7 @@ void CWindow2::UpdateLink( uint8 nEye )
 	CVector2 eyePos = m_pEye[nEye]->GetPosition();
 	CVector2 headPos = m_pHead[nEye]->GetPosition();
 	int i = 0;
-	for( auto pChild = m_pLinks[nEye]->Get_Child(); pChild; pChild = pChild->NextChild(), i++ )
+	for( auto pChild = m_pLinks[nEye]->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild(), i++ )
 	{
 		float f = ( i + 0.5f ) / m_nLinkCount;
 		pChild->SetPosition( eyePos * f + headPos * ( 1 - f ) );

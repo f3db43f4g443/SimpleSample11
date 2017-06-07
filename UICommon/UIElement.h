@@ -83,7 +83,7 @@ public:
 	template<typename T = CUIElement>
 	T* GetChildByName( const char* szName )
 	{
-		for( auto pRenderObject = m_pChildren; pRenderObject; pRenderObject = pRenderObject->NextChild() )
+		for( auto pRenderObject = m_pTransformChildren; pRenderObject; pRenderObject = pRenderObject->NextTransformChild() )
 		{
 			T* pElem = dynamic_cast<T*>( pRenderObject );
 			if( !pElem )

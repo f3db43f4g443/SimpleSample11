@@ -247,7 +247,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 
 		if( m_pDamagedEffectsRoot )
 		{
-			for( auto pChild = m_pDamagedEffectsRoot->Get_Child(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextChild() )
+			for( auto pChild = m_pDamagedEffectsRoot->Get_TransformChild(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextTransformChild() )
 			{
 				pChild->bVisible = false;
 				m_pDamagedEffects[m_nDamagedEffectsCount++] = pChild;
@@ -307,7 +307,7 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 
 	if( m_pDamagedEffectsRoot )
 	{
-		for( auto pChild = m_pDamagedEffectsRoot->Get_Child(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextChild() )
+		for( auto pChild = m_pDamagedEffectsRoot->Get_TransformChild(); pChild && m_nDamagedEffectsCount < 4; pChild = pChild->NextTransformChild() )
 		{
 			pChild->bVisible = false;
 			m_pDamagedEffects[m_nDamagedEffectsCount++] = pChild;

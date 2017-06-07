@@ -68,15 +68,15 @@ void CRenderContext2D::Render( CRenderObject2D* pObject, bool bTest )
 		pObject->InsertTo_UpdatedObject( pUpdatedObjects );
 	}
 
-	CRenderObject2D* pChild = pObject->m_pChildren;
-	for( ; pChild; pChild = pChild->NextChild() )
+	CRenderObject2D* pChild = pObject->m_pRenderChildren;
+	for( ; pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild->m_nZOrder < 0 )
 			break;
 		Render( pChild, bTest );
 	}
 	pObject->Render( *this );
-	for( ; pChild; pChild = pChild->NextChild() )
+	for( ; pChild; pChild = pChild->NextRenderChild() )
 	{
 		Render( pChild, bTest );
 	}

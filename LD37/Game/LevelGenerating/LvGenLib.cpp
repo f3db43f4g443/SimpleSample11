@@ -137,7 +137,7 @@ void LvGenLib::GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int3
 		vector<TVector2<int32> > q;
 		FloodFill( vecTemp, nWidth, nHeight, p.x, p.y, 1, q );
 
-		if( q.size() <= nMaxSize )
+		if( nMaxSize <= 0 || q.size() <= nMaxSize )
 		{
 			int32 nObjCount = q.size() < 3 ? q.size() : 1 + q.size() / 2;
 			for( int i = 0; i < q.size(); i++ )

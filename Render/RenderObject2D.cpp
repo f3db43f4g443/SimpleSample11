@@ -6,8 +6,8 @@
 CRenderObject2D::CRenderObject2D()
 {
 	SET_BASEOBJECT_ID( CRenderObject2D );
-	m_pParent = NULL;
-	m_pChildren = NULL;
+	m_pTransformParent = m_pRenderParent = NULL;
+	m_pTransformChildren = m_pRenderChildren = NULL;
 	m_depth = -1;
 	m_isTransformDirty = false;
 	m_isAABBDirty = false;
@@ -25,9 +25,6 @@ CRenderObject2D::CRenderObject2D()
 
 CRenderObject2D::~CRenderObject2D()
 {
-	if( m_pAnimController )
-		delete m_pAnimController;
-	RemoveAllChild();
 }
 
 
@@ -51,62 +48,147 @@ void CRenderObject2D::SetBoundDirty()
 
 void CRenderObject2D::AddChild( CRenderObject2D* pNode )
 {
-	pNode->m_pParent = this;
+	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
 	OnAddChild(pNode);
 	pNode->OnAdded();
 
-	CRenderObject2D** pInsertTo = &m_pChildren;
+	CRenderObject2D** pInsertTo = &m_pRenderChildren;
 	while( true )
 	{
 		CRenderObject2D* pNext = *pInsertTo;
 		if( !pNext || pNext->m_nZOrder <= pNode->m_nZOrder )
 			break;
-		pInsertTo = &pNext->__pNextChild;
+		pInsertTo = &pNext->__pNextRenderChild;
 	}
-	pNode->InsertTo_Child( *pInsertTo );
+	pNode->InsertTo_RenderChild( *pInsertTo );
+	Insert_TransformChild( pNode );
 
 	pNode->SetTransformDirty();
 }
 
 void CRenderObject2D::AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter )
 {
-	pNode->m_pParent = this;
+	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
 	pNode->m_nZOrder = pAfter->m_nZOrder;
 	OnAddChild(pNode);
 	pNode->OnAdded();
-	pAfter->InsertAfter_Child( pNode );
+	pAfter->InsertAfter_RenderChild( pNode );
+	Insert_TransformChild( pNode );
 	pNode->SetTransformDirty();
 }
 
 void CRenderObject2D::AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore )
 {
-	pNode->m_pParent = this;
+	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
 	pNode->m_nZOrder = pBefore->m_nZOrder;
 	OnAddChild(pNode);
 	pNode->OnAdded();
-	pBefore->InsertBefore_Child( pNode );
+	pBefore->InsertBefore_RenderChild( pNode );
+	Insert_TransformChild( pNode );
 	pNode->SetTransformDirty();
 }
 
-void CRenderObject2D::RemoveChild( CRenderObject2D* pNode )
+void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
+{
+	pNode->m_pTransformParent = this;
+	pNode->_setDepth( m_depth < 0 ? -1 : m_depth + 1 );
+	OnAddChild( pNode );
+	pNode->OnAdded();
+	Insert_TransformChild( pNode );
+	pNode->SetTransformDirty();
+}
+
+void CRenderObject2D::AddRenderChild( CRenderObject2D * pNode )
+{
+	pNode->m_pRenderParent = this;
+
+	CRenderObject2D** pInsertTo = &m_pRenderChildren;
+	while( true )
+	{
+		CRenderObject2D* pNext = *pInsertTo;
+		if( !pNext || pNext->m_nZOrder <= pNode->m_nZOrder )
+			break;
+		pInsertTo = &pNext->__pNextRenderChild;
+	}
+	pNode->InsertTo_RenderChild( *pInsertTo );
+	pNode->SetBoundDirty();
+}
+
+void CRenderObject2D::AddRenderChildAfter( CRenderObject2D * pNode, CRenderObject2D * pAfter )
+{
+	pNode->m_pRenderParent = this;
+
+	pNode->m_nZOrder = pAfter->m_nZOrder;
+	pAfter->InsertAfter_RenderChild( pNode );
+	pNode->SetBoundDirty();
+}
+
+void CRenderObject2D::AddRenderChildBefore( CRenderObject2D * pNode, CRenderObject2D * pBefore )
+{
+	pNode->m_pRenderParent = this;
+
+	pNode->m_nZOrder = pBefore->m_nZOrder;
+	pBefore->InsertBefore_RenderChild( pNode );
+	pNode->SetBoundDirty();
+}
+
+void CRenderObject2D::RemoveTransformChild( CRenderObject2D* pNode )
 {
 	pNode->OnRemoved();
 	pNode->_setDepth(-1);
-	pNode->m_pParent = NULL;
+	pNode->m_pTransformParent = NULL;
 	OnRemoveChild(pNode);
-	Remove_Child( pNode );
+	Remove_TransformChild( pNode );
+}
+
+void CRenderObject2D::RemoveRenderChild( CRenderObject2D * pNode )
+{
+	pNode->m_pRenderParent = NULL;
+	Remove_RenderChild( pNode );
 	SetBoundDirty();
+}
+
+void CRenderObject2D::SetRenderParent( CRenderObject2D * pNode )
+{
+	if( m_pRenderParent )
+		m_pRenderParent->RemoveRenderChild( this );
+	if( pNode )
+		pNode->AddRenderChild( this );
+}
+
+void CRenderObject2D::SetRenderParentBefore( CRenderObject2D * pNode )
+{
+	if( m_pRenderParent )
+		m_pRenderParent->RemoveRenderChild( this );
+	if( pNode && pNode->m_pRenderParent )
+		pNode->m_pRenderParent->AddRenderChildBefore( this, pNode );
+}
+
+void CRenderObject2D::SetRenderParentAfter( CRenderObject2D * pNode )
+{
+	if( m_pRenderParent )
+		m_pRenderParent->RemoveRenderChild( this );
+	if( pNode && pNode->m_pRenderParent )
+		pNode->m_pRenderParent->AddRenderChildAfter( this, pNode );
 }
 
 void CRenderObject2D::RemoveAllChild()
 {
-	while( m_pChildren )
-	{
-		RemoveChild( m_pChildren );
-	}
+	while( m_pTransformChildren )
+		m_pTransformChildren->RemoveThis();
+	while( m_pRenderChildren )
+		RemoveRenderChild( m_pRenderChildren );
+}
+
+void CRenderObject2D::RemoveThis()
+{
+	if( m_pTransformParent )
+		m_pTransformParent->RemoveTransformChild( this );
+	if( m_pRenderParent )
+		m_pRenderParent->RemoveRenderChild( this );
 }
 
 void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder )
@@ -114,34 +196,34 @@ void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder )
 	CReference<CRenderObject2D> temp( pNode );
 	if( bKeepZOrder )
 	{
-		while( pNode->__pPrevChild != &m_pChildren )
+		while( pNode->__pPrevRenderChild != &m_pRenderChildren )
 		{
-			CRenderObject2D* pRenderObject = (CRenderObject2D*)( (uint8*)pNode->__pPrevChild - ( (uint8*)&__pNextChild - (uint8*)this ) );
+			CRenderObject2D* pRenderObject = (CRenderObject2D*)( (uint8*)pNode->__pPrevRenderChild - ( (uint8*)&__pNextRenderChild - (uint8*)this ) );
 			if( pRenderObject->m_nZOrder > pNode->m_nZOrder )
 				break;
-			pRenderObject->Shift_Child();
+			pRenderObject->Shift_RenderChild();
 		}
 	}
 	else
 	{
-		Remove_Child( pNode );
-		if( m_pChildren )
-			pNode->m_nZOrder = Max( pNode->m_nZOrder, m_pChildren->m_nZOrder );
-		Insert_Child( pNode );
+		Remove_RenderChild( pNode );
+		if( m_pRenderChildren )
+			pNode->m_nZOrder = Max( pNode->m_nZOrder, m_pRenderChildren->m_nZOrder );
+		Insert_RenderChild( pNode );
 	}
 }
 
 void CRenderObject2D::MoveToTopmost( bool bKeepZOrder )
 {
-	if( m_pParent )
-		m_pParent->MoveToTopmost( this, bKeepZOrder );
+	if( m_pRenderParent )
+		m_pRenderParent->MoveToTopmost( this, bKeepZOrder );
 }
 
 void CRenderObject2D::SetZOrder( int32 nZOrder )
 {
 	m_nZOrder = nZOrder;
-	if( m_pParent )
-		m_pParent->OnChildZOrderChanged( this );
+	if( m_pRenderParent )
+		m_pRenderParent->OnChildZOrderChanged( this );
 }
 
 CRenderObject2D* CRenderObject2D::FindCommonParent( CRenderObject2D* a, CRenderObject2D* b )
@@ -234,19 +316,19 @@ void CRenderObject2D::SetTransformIndex( uint16 nIndex )
 
 void CRenderObject2D::OnChildZOrderChanged( CRenderObject2D* pChild )
 {
-	while( pChild->__pPrevChild != &m_pChildren )
+	while( pChild->__pPrevRenderChild != &m_pRenderChildren )
 	{
-		CRenderObject2D* pRenderObject = (CRenderObject2D*)( (uint8*)pChild->__pPrevChild - ( (uint8*)&__pNextChild - (uint8*)this ) );
+		CRenderObject2D* pRenderObject = (CRenderObject2D*)( (uint8*)pChild->__pPrevRenderChild - ( (uint8*)&__pNextRenderChild - (uint8*)this ) );
 		if( pRenderObject->m_nZOrder >= pChild->m_nZOrder )
 			break;
-		pRenderObject->Shift_Child();
+		pRenderObject->Shift_RenderChild();
 	}
-	while( pChild->__pNextChild )
+	while( pChild->__pNextRenderChild )
 	{
-		CRenderObject2D* pRenderObject = pChild->__pNextChild;
+		CRenderObject2D* pRenderObject = pChild->__pNextRenderChild;
 		if( pRenderObject->m_nZOrder <= pChild->m_nZOrder )
 			break;
-		pChild->Shift_Child();
+		pChild->Shift_RenderChild();
 	}
 }
 
@@ -255,20 +337,21 @@ bool CRenderObject2D::CalcAABB()
 	CRectangle orig = globalAABB;
 	globalAABB = m_localBound * globalTransform;
 
-	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() )
+	for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() )
 		globalAABB = globalAABB + pChild->globalAABB;
 	return !( orig == globalAABB );
 }
+
 void CRenderObject2D::CalcGlobalTransform()
 {
-	if( m_nTransformIndex != INVALID_16BITID && m_pParent )
-		globalTransform = m_pParent->GetTransform( m_nTransformIndex );
+	if( m_nTransformIndex != INVALID_16BITID && m_pTransformParent )
+		globalTransform = m_pTransformParent->GetTransform( m_nTransformIndex );
 	else
 	{
 		CMatrix2D mat;
 		mat.Transform( x, y, r, s );
-		if( m_pParent != NULL )
-			globalTransform = m_pParent->globalTransform * mat;
+		if( m_pTransformParent != NULL )
+			globalTransform = m_pTransformParent->globalTransform * mat;
 		else
 			globalTransform = mat;
 	}
@@ -283,17 +366,16 @@ void CRenderObject2D::UpdateDirty()
 	CalcGlobalTransform();
 	SetBoundDirty();
 	m_isTransformDirty = false;
-	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
+	for( CRenderObject2D* pChild = m_pTransformChildren; pChild; pChild = pChild->NextTransformChild() ) {
 		pChild->UpdateDirty();
 	}
 }
 void CRenderObject2D::Dispose()
 {
+	if( m_pAnimController )
+		delete m_pAnimController;
 	m_isTransformDirty = true;
-
-	while( m_pChildren ) {
-		RemoveChild( m_pChildren );
-	}
+	RemoveAllChild();
 	OnDispose();
 }
 
@@ -322,7 +404,7 @@ void CRenderObject2D::_setDepth(int depth)
 		else
 			RemoveFrom_AutoUpdateAnimObject();
 	}
-	for( CRenderObject2D* pChild = m_pChildren; pChild; pChild = pChild->NextChild() ) {
+	for( CRenderObject2D* pChild = m_pTransformChildren; pChild; pChild = pChild->NextTransformChild() ) {
 		pChild->_setDepth(m_depth < 0? -1: m_depth + 1);
 	}
 }
