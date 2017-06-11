@@ -189,7 +189,7 @@ void CPlayer::Crush()
 	}
 
 	IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.5f );
-	Knockback( CVector2( 0, -1 ) );
+	//Knockback( CVector2( 0, -1 ) );
 	Damage( ( m_hp + 1 ) >> 1 );
 }
 

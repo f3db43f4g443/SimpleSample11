@@ -71,7 +71,7 @@ void CGarbageBinBlack::Trigger()
 		pCharacter->SetPosition( CVector2( m_pChunk->pos.x, m_pChunk->pos.y ) + CVector2( m_pChunk->nWidth * 0.5f, m_pChunk->nHeight * 0.5f ) * CMyLevel::GetBlockSize() );
 		if( m_bSetAngle )
 			pCharacter->SetRotation( fAngle );
-		pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+		pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 
 	CMyLevel::GetInst()->AddShakeStrength( m_fShake );

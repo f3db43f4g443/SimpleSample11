@@ -533,7 +533,7 @@ public:
 		}
 		else
 		{
-			uint32 nCount = region.width * region.height * m_fCountPerGrid;
+			uint32 nCount = floor( region.width * region.height * m_fCountPerGrid + SRand::Inst().Rand( 0.0f, 1.0f ) );
 
 			for( int i = 0; i < nCount; i++ )
 			{
@@ -723,7 +723,8 @@ public:
 				int32 t = SRand::Inst().Rand( t0, t1 + 1 );
 				int32 r = SRand::Inst().Rand( r0, r1 + 1 );
 				int32 b = SRand::Inst().Rand( b0, b1 + 1 );
-
+				if( l < region.x || t < region.y || r > region.GetRight() || b > region.GetBottom() )
+					continue;
 				item.pNode->Generate( context, TRectangle<int32>( l, t, r - l, b - t ) );
 			}
 		}

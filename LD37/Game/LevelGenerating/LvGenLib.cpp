@@ -15,7 +15,7 @@ void LvGenLib::FillBlocks( vector<int8>& genData, int32 nWidth, int32 nHeight, i
 	{
 		if( genData[p.x + p.y * nWidth] != nTypeBack )
 			continue;
-		FloodFill( genData, nWidth, nHeight, p.x, p.y, nTypes[SRand::Inst().Rand( 0, 4 )], SRand::Inst().Rand( nFillSizeMin, nFillSizeMax ) );
+		FloodFill( genData, nWidth, nHeight, p.x, p.y, nTypes[SRand::Inst().Rand<int32>( 0, nTypeCount )], SRand::Inst().Rand( nFillSizeMin, nFillSizeMax ) );
 	}
 }
 

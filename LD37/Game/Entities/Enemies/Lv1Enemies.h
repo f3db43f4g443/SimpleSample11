@@ -1,6 +1,7 @@
 #pragma once
 #include "Entities/Enemies.h"
 #include "CharacterMove.h"
+#include "Block.h"
 
 class CManHead1 : public CEnemyTemplate
 {
@@ -117,4 +118,32 @@ private:
 	int8 m_nDir;
 	uint8 m_nAnimState;
 	uint32 m_nKnockBackTimeLeft;
+};
+
+class CRat : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CRat( const SClassCreateContext& context ) : CEnemy( context ), m_walkData( context ), m_flyData( context ), m_strPrefab( context )
+		, m_nState( 0 ), m_nAnimState( -1 ), m_nTick( 0 ), m_nKnockBackTimeLeft( 0 ) { SET_BASEOBJECT_ID( CRat ); }
+	
+	virtual void OnAddedToStage() override;
+	virtual void OnTickAfterHitTest() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
+	virtual bool IsKnockback() override;
+	virtual void Kill() override;
+private:
+	SCharacterSimpleWalkData m_walkData;
+	SCharacterFlyData m_flyData;
+	CString m_strPrefab;
+	CReference<CPrefab> m_pBulletPrefab;
+	uint32 m_nKnockbackTime;
+
+	uint8 m_nState;
+	uint8 m_nAnimState;
+	int32 m_nTick;
+	CVector2 m_curMoveDir;
+	uint32 m_nKnockBackTimeLeft;
+	CReference<CChunkObject> m_pCurRoom;
 };

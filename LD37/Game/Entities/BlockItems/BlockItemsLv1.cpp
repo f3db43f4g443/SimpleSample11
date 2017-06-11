@@ -226,7 +226,7 @@ dead:
 	float fLevelHeight = CMyLevel::GetInst()->GetBoundWithLvBarrier().height;
 	auto pHead = SafeCast<CEntity>( m_pHead[SRand::Inst().Rand( 0, 2 ) * 2 + ( globalTransform.GetPosition().y < fLevelHeight * 0.5f ? 0 : 1 )]->GetRoot()->CreateInstance() );
 	pHead->SetPosition( globalTransform.GetPosition() );
-	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 }
 
 void CWindow2::OnAddedToStage()
@@ -414,8 +414,8 @@ void CWindow2::AIFuncEye( uint8 nEye )
 		m_pEye[nEye]->bVisible = false;
 		m_pHead[nEye]->bVisible = true;
 		m_pLinks[nEye]->bVisible = true;
-		m_pHead[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot1() );
-		m_pLinks[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot1() );
+		m_pHead[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		m_pLinks[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
 
 		switch( SRand::Inst().Rand( 0, 3 ) )
 		{
@@ -459,6 +459,7 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 	auto pHead = m_pHead[nEye];
 	float fForce = 1.0f;
 	int32 nTickCount = SRand::Inst().Rand( 45, 60 );
+	int32 nLastHp = pHead->GetHp();
 	while( 1 )
 	{
 		if( GetStage()->GetPlayer() )
@@ -467,12 +468,17 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 
 		CVector2 force = dPos;
 		float l = force.Normalize();
-		force = force * Min( l * 10, 400.0f ) * fForce;
+		force = force * Min( l * 10, 450.0f ) * fForce;
 		CVector2 force1 = m_pEye[nEye]->GetPosition() - pHead->GetPosition();
-		force1 = force1 * 0.75f;
+		float l1 = force1.Normalize();
+		force1 = force1 * ( 200 + l1 * 0.25f );
 		force = force + force1;
 		UpdateLink( nEye );
 		pAI->Yield( 0, false );
+
+		int32 nDeltaHp = nLastHp - pHead->GetHp();
+		nLastHp = pHead->GetHp();
+		fForce -= nDeltaHp / 25.0f;
 
 		pHead->SetPosition( pHead->GetPosition() + force * GetStage()->GetElapsedTimePerTick() );
 		pHead->SetRotation( atan2( dPos.y, dPos.x ) );

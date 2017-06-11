@@ -77,16 +77,16 @@ void CManHead2::AIFunc()
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_flyData.fStablity = 0.35f;
 
-	CRectangle bound = CMyLevel::GetInst()->GetBoundWithLvBarrier();
-	bound.x += 128;
-	bound.width -= 256;
-	bound.y += 128;
-	bound.height -= 256;
 	uint32 n = 8;
 	while( 1 )
 	{
 		if( n == 8 )
 		{
+			CRectangle bound = CMyLevel::GetInst()->GetBoundWithLvBarrier();
+			bound.x += 128;
+			bound.width -= 256;
+			bound.y += 128;
+			bound.height -= 256;
 			m_moveTarget = CVector2( x >= bound.x + bound.width * 0.5f ? SRand::Inst().Rand( bound.x, bound.x + bound.width * 0.35f ) : SRand::Inst().Rand( bound.x + bound.width * 0.65f, bound.GetRight() ),
 				y >= bound.y + bound.height * 0.5f ? SRand::Inst().Rand( bound.y, bound.y + bound.height * 0.35f ) : SRand::Inst().Rand( bound.y + bound.width * 0.65f, bound.GetBottom() ) );
 			n = 0;
@@ -506,4 +506,237 @@ void CMaggot::OnTickAfterHitTest()
 	if( m_nKnockBackTimeLeft )
 		m_nKnockBackTimeLeft--;
 	CEnemy::OnTickAfterHitTest();
+}
+
+void CRat::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	m_flyData.bHitChannel[eEntityHitType_Platform] = false;
+
+	m_nState = 0;
+	int8 nDir = SRand::Inst().Rand( 0, 4 );
+	CVector2 dirs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
+	m_curMoveDir = dirs[nDir];
+	m_nTick = SRand::Inst().Rand( 60, 120 );
+	m_nAnimState = 0;
+	auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	pImage->SetFrames( 8, 12, 12 );
+	pImage->SetRotation( atan2( m_curMoveDir.y, m_curMoveDir.x ) );
+
+	m_nTick = SRand::Inst().Rand( 60, 120 );
+	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab );
+}
+
+void CRat::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+
+	int8 nAnimState = m_nAnimState;
+	CVector2 prePos = GetPosition();
+	if( m_nTick )
+		m_nTick--;
+	if( m_nKnockBackTimeLeft )
+		m_nKnockBackTimeLeft--;
+
+	if( m_nState == 1 )
+	{
+		bool bJump = false;
+		if( !m_nTick )
+		{
+			bJump = true;
+			m_nTick = SRand::Inst().Rand( 60, 120 );
+		}
+		CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_curMoveDir.x > 0 ? 1 : -1, bJump );
+		if( !GetStage() )
+			return;
+
+		auto levelBound = CMyLevel::GetInst()->GetBound();
+		if( x < levelBound.x || x > levelBound.GetRight() || y < levelBound.y )
+		{
+			Kill();
+			return;
+		}
+
+		if( fixedVelocity.x == 0 )
+			m_curMoveDir.x = -m_curMoveDir.x;
+
+		CChunkObject* pCurRoom = NULL;
+		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+		{
+			CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+			if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
+			{
+				CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
+					pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
+					pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
+				if( rect.Contains( GetPosition() ) )
+					pCurRoom = pChunkObject;
+			}
+		}
+
+		if( pCurRoom )
+		{
+			m_flyData.Reset();
+			m_flyData.SetLandedEntity( pCurRoom );
+			m_flyData.fKnockbackTime = m_walkData.fKnockbackTime;
+			m_flyData.vecKnockback = m_walkData.vecKnockback;
+			m_nState = 0;
+		}
+	}
+	else
+	{
+		if( !m_flyData.pLandedEntity )
+		{
+			for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+			{
+				auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+				auto pChunkObject = SafeCast<CChunkObject>( pEntity );
+				if( pChunkObject )
+				{
+					m_flyData.SetLandedEntity( pChunkObject );
+					break;
+				}
+			}
+		}
+		if( m_flyData.pLandedEntity && !m_flyData.pLandedEntity->GetStage() )
+			m_flyData.SetLandedEntity( NULL );
+		if( m_flyData.pLandedEntity )
+		{
+			bool bHitChunkObject = false;
+			for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+			{
+				auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+				auto pChunkObject = SafeCast<CChunkObject>( pEntity );
+				if( m_flyData.pLandedEntity == pChunkObject )
+				{
+					bHitChunkObject = true;
+					break;
+				}
+			}
+			if( !bHitChunkObject )
+			{
+				m_flyData.pLandedEntity = NULL;
+			}
+		}
+
+		if( m_flyData.pLandedEntity )
+		{
+			if( !m_nTick )
+			{
+				int8 nDir = SRand::Inst().Rand( 0, 4 );
+				CVector2 dirs[4] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
+				m_curMoveDir = dirs[nDir];
+				m_nTick = SRand::Inst().Rand( 60, 120 );
+			}
+
+			m_flyData.UpdateMove( this, m_curMoveDir );
+			if( !GetStage() )
+				return;
+
+			if( m_flyData.finalMoveAxis.x == 0 )
+				m_curMoveDir.x = -m_curMoveDir.x;
+			if( m_flyData.finalMoveAxis.y == 0 )
+				m_curMoveDir.y = -m_curMoveDir.y;
+		}
+		if( !m_flyData.pLandedEntity )
+		{
+			m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+			m_walkData.Reset();
+			m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
+			m_walkData.vecKnockback = m_flyData.vecKnockback;
+			if( m_curMoveDir.x == 0 )
+				m_curMoveDir = SRand::Inst().Rand() & 1 ? CVector2( -1, 0 ) : CVector2( 1, 0 );
+			m_nState = 1;
+		}
+	}
+
+	if( m_nState == 1 )
+	{
+		if( m_curMoveDir.x > 0 )
+			m_nAnimState = 1;
+		else
+			m_nAnimState = -1;
+		m_pRenderObject->SetRotation( 0 );
+	}
+	else
+	{
+		m_nAnimState = 0;
+		m_pRenderObject->SetRotation( atan2( m_curMoveDir.y, m_curMoveDir.x ) );
+	}
+
+	auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	if( nAnimState != m_nAnimState )
+	{
+		if( m_nState == 1 )
+			pImage->SetFrames( 0, 4, 12 );
+		else if( m_nState == -1 )
+			pImage->SetFrames( 4, 8, 12 );
+		else
+			pImage->SetFrames( 8, 12, 12 );
+	}
+
+	CVector2 curPos = GetPosition();
+	m_velocity = ( curPos - prePos ) / GetStage()->GetElapsedTimePerTick();
+}
+
+bool CRat::Knockback( const CVector2 & vec )
+{
+	if( m_nState == 1 )
+		m_curMoveDir = CVector2( vec.x > 0 ? 1 : -1, 0 );
+	else
+	{
+		int8 a = vec.y > vec.x;
+		int8 b = vec.y > -vec.x;
+		int8 n = a + b * 2;
+		CVector2 dirs[4] = { { 0, -1 }, { -1, 0 }, { 1, 0 }, { 0, 1 } };
+		m_curMoveDir = dirs[n];
+	}
+
+	m_nKnockBackTimeLeft = m_nKnockbackTime;
+	return true;
+}
+
+void CRat::OnKnockbackPlayer( const CVector2 & vec )
+{
+	Damage( 5 );
+}
+
+bool CRat::IsKnockback()
+{
+	return m_nKnockBackTimeLeft > 0;
+}
+
+void CRat::Kill()
+{
+	SBarrageContext context;
+	context.vecBulletTypes.push_back( m_pBulletPrefab );
+	context.nBulletPageSize = 9;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	CVector2 pos = GetPosition();
+	float fAngle0 = atan2( m_curMoveDir.y, m_curMoveDir.x );
+	pBarrage->AddFunc( [fAngle0] ( CBarrage* pBarrage )
+	{
+		pBarrage->Yield( 4 );
+		int32 iBullet = 0;
+		float fSpeed = 175;
+		for( int i = 0; i < 5; i++ )
+		{
+			float fAngle1 = fAngle0 + ( i - 2 ) * 0.2f;
+			pBarrage->InitBullet( iBullet++, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * cos( fAngle1 ), fSpeed * sin( fAngle1 ) ), CVector2( 0, 0 ) );
+		}
+		pBarrage->Yield( 8 );
+		for( int i = 0; i < 4; i++ )
+		{
+			float fAngle1 = fAngle0 + ( i - 1.5f ) * 0.2f;
+			pBarrage->InitBullet( iBullet++, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * cos( fAngle1 ), fSpeed * sin( fAngle1 ) ), CVector2( 0, 0 ) );
+		}
+		pBarrage->Yield( 4 );
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->SetPosition( pos );
+	pBarrage->Start();
+
+	CEnemy::Kill();
 }

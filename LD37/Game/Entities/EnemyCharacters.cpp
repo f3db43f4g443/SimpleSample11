@@ -77,7 +77,7 @@ void CEnemyCharacter::UpdateMove()
 
 	if( m_nState == 1 )
 	{
-		CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_nFireStopTimeLeft ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 ), false );
+		CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_nFireStopTimeLeft || m_bLeader ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 ), false );
 		if( !GetStage() )
 			return;
 
@@ -164,7 +164,7 @@ void CEnemyCharacter::UpdateMove()
 		{
 			m_flyData.fMoveSpeed = m_fOrigFlySpeed;
 
-			if( !m_nFireStopTimeLeft )
+			if( !m_nFireStopTimeLeft && !m_bLeader )
 			{
 				auto pChunk = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() )->GetChunk();
 				CRectangle roomBound( m_flyData.pLandedEntity->globalTransform.GetPosition().x, m_flyData.pLandedEntity->globalTransform.GetPosition().y,
@@ -206,29 +206,14 @@ void CEnemyCharacter::UpdateMove()
 
 	CVector2 curPos = GetPosition();
 	m_velocity = ( curPos - prePos ) / GetStage()->GetElapsedTimePerTick();
-
-	CChunkObject* pCurRoom = NULL;
-	for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
-	{
-		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
-		{
-			CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
-				pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
-				pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
-			if( rect.Contains( GetPosition() ) )
-				pCurRoom = pChunkObject;
-		}
-	}
 }
 
 void CEnemyCharacter::UpdateFire()
 {
-	bool bCanFire;
-	if( m_nState == 0 )
-		bCanFire = true;
-	else
-		bCanFire = m_walkData.bLanded;
+	if( m_bLeader )
+		return;
+
+	bool bCanFire = CanFire();
 
 	if( m_nFireCDLeft )
 		m_nFireCDLeft--;
@@ -236,12 +221,20 @@ void CEnemyCharacter::UpdateFire()
 	if( !bCanFire )
 	{
 		m_nAmmoLeft = 0;
-		m_nFireStopTimeLeft = 0;
+		if( m_nFireStopTimeLeft )
+		{
+			m_nFireStopTimeLeft = 0;
+			OnEndFire();
+		}
 		return;
 	}
 
 	if( m_nFireStopTimeLeft )
+	{
 		m_nFireStopTimeLeft--;
+		if( !m_nFireStopTimeLeft )
+			OnEndFire();
+	}
 	if( m_nNextFireTime )
 		m_nNextFireTime--;
 
@@ -260,6 +253,7 @@ void CEnemyCharacter::UpdateFire()
 			m_nFireStopTimeLeft = m_nFireStopTime;
 			m_nAmmoLeft = m_nAmmoCount;
 			m_nNextFireTime = 0;
+			OnBeginFire();
 		}
 	}
 
@@ -275,12 +269,13 @@ void CEnemyCharacter::UpdateFire()
 				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
 				pBullet->SetPosition( globalTransform.GetPosition() );
 				float r = atan2( p.y, p.x ) + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
-				pBullet->SetRotation( atan2( p.y, p.x ) );
+				pBullet->SetRotation( r );
 				pBullet->SetVelocity( CVector2( cos( r ), sin( r ) ) * m_fBulletSpeed );
 				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 			}
 
 			CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
+			OnFire();
 
 			m_nAmmoLeft--;
 			m_nNextFireTime = m_nFireInterval;
@@ -321,4 +316,73 @@ bool CEnemyCharacter::IsKnockback()
 bool CEnemyCharacter::CanTriggerItem()
 {
 	return m_nState == 0;
+}
+
+void CEnemyCharacterLeader::OnRemovedFromStage()
+{
+	for( auto& pChar : m_chars )
+	{
+		if( pChar )
+			SafeCast<CEnemyCharacter>( pChar.GetPtr() )->SetLeader( false );
+	}
+	m_chars.clear();
+}
+
+void CEnemyCharacterLeader::OnBeginFire()
+{
+	SHitProxyCircle hitproxy;
+	hitproxy.fRadius = m_fRadius;
+	hitproxy.center = CVector2( 0, 0 );
+	vector<CReference<CEntity> > vecHit;
+	GetStage()->MultiHitTest( &hitproxy, globalTransform, vecHit );
+	for( CEntity* pEntity : vecHit )
+	{
+		if( pEntity->GetTypeID() == CClassMetaDataMgr::Inst().GetClassID<CEnemyCharacter>() )
+		{
+			SafeCast<CEnemyCharacter>( pEntity )->SetLeader( true );
+			m_chars.push_back( pEntity );
+		}
+	}
+}
+
+void CEnemyCharacterLeader::OnFire()
+{
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return;
+	CVector2 p = pPlayer->GetPosition() - globalTransform.GetPosition();
+	float f = m_nAmmoLeft * 1.0f / m_nAmmoCount;
+
+	for( auto& pChar : m_chars )
+	{
+		if( !pChar )
+			continue;
+		if( !pChar->GetStage() || !SafeCast<CEnemyCharacter>( pChar.GetPtr() )->CanFire() )
+		{
+			pChar = NULL;
+			continue;
+		}
+		CVector2 p1 = pPlayer->GetPosition() - pChar->globalTransform.GetPosition();
+		p1 = p * ( 1 - f ) + p1 * f;
+
+		for( int i = 0; i < m_nBulletCount; i++ )
+		{
+			auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( pChar->globalTransform.GetPosition() );
+			float angle = atan2( p1.y, p1.x ) + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
+			pBullet->SetRotation( angle );
+			pBullet->SetVelocity( CVector2( cos( angle ), sin( angle ) ) * m_fBulletSpeed );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+	}
+}
+
+void CEnemyCharacterLeader::OnEndFire()
+{
+	for( auto& pChar : m_chars )
+	{
+		if( pChar )
+			SafeCast<CEnemyCharacter>( pChar.GetPtr() )->SetLeader( false );
+	}
+	m_chars.clear();
 }

@@ -342,7 +342,8 @@
         <node type="tile" x="0" y="0" w="32" h="12">
           <ref name="block0" />
         </node>
-        <node type="lv1type3" x="0" y="12" w="32" h="108">
+
+        <node type="lv1type3" gen_type="0" x="0" y="12" w="32" h="50">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -362,7 +363,7 @@
             <ref name="brick_tile_1bx" />
           </block2>
           <room>
-            <ref name="enemyroom2" />
+            <ref name="enemyroom2_1" />
           </room>
           <crate1>
             <ref name="crate_tile" />
@@ -370,6 +371,44 @@
           <crate2>
             <ref name="cage_tile" />
           </crate2>
+          <window>
+            <ref name="window4x4" />
+          </window>
+        </node>
+        
+        <ref name="lv1floor_1" x="0" y="62" w="32" h="2" />
+        
+        <node type="lv1type3" gen_type="1" x="0" y="64" w="32" h="56">
+          <wall>
+            <ref name="block0_1" />
+          </wall>
+          <wallchunk>
+            <ref name="wall2" />
+          </wallchunk>
+          <wallchunk0>
+            <ref name="wall1" />
+          </wallchunk0>
+          <wallchunk1>
+            <ref name="wall3" />
+          </wallchunk1>
+          <block1>
+            <ref name="brick_tile_1ax" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1bx" />
+          </block2>
+          <room>
+            <ref name="enemyroom2_1" />
+          </room>
+          <crate1>
+            <ref name="crate_tile" />
+          </crate1>
+          <crate2>
+            <ref name="cage_tile" />
+          </crate2>
+          <window>
+            <ref name="window4x4" />
+          </window>
         </node>
         <ref name="1f" x="0" y="120" w="32" h="8" />
         <ref name="lv1_scroll_0" />

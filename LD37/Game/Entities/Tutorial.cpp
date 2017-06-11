@@ -77,7 +77,7 @@ void CTutorialScreen::OnTick()
 			{
 				auto pEntity = SafeCast<CEntity>( m_eft->GetRoot()->CreateInstance() );
 				pEntity->SetPosition( CVector2( x + ( i + 0.5f ) * 8, y + ( GetChunk()->nHeight - 0.5f ) * 32 ) );
-				pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+				pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 			}
 			static_cast<CMultiFrameImage2D*>( m_pTips.GetPtr() )->SetFrames( 17, 18, 0 );
 			m_nState = 5;

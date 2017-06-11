@@ -10,6 +10,7 @@ public:
 	virtual void Damage( int32 nDmg ) override;
 	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal );
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) {}
+	int32 GetHp() { return m_nHp; }
 
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
 private:

@@ -163,7 +163,7 @@ void CChunkUI::SetChunkObject( CChunkObject* pChunkObject )
 	static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( pChunk->nWidth * nBlockSize, pChunk->nHeight * nBlockSize, 8, 8 ) );
 
 	m_fBlockBulletEftAlpha = -1;
-	SetParentBeforeEntity( pChunkObject->GetParentEntity() );
+	SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 	UpdateEft();
 }
 
@@ -207,7 +207,7 @@ void CChunkUI::UpdateHp()
 		hpColor = ( CVector4( 0.5, 0.5, 0, 1 ) * ( fPercent - 0.25f ) + CVector4( 1, 0, 0, 1 ) * ( 0.75f - fPercent ) ) / 0.5f;
 	else
 		hpColor = ( CVector4( 1, 0, 0, 1 ) * fPercent + CVector4( 0, 0, 0, 1 ) * ( 0.25f - fPercent ) ) * 4;
-	hpColor.w = 0.5f + 0.5f * m_fRepairPercent;
+	hpColor.w = 1.0f;// 0.5f + 0.5f * m_fRepairPercent;
 	for( int i = 0; i < ELEM_COUNT( m_pFrameImg ); i++ )
 		static_cast<CImage2D*>( m_pFrameImg[i].GetPtr() )->GetParam()[0] = hpColor;
 }

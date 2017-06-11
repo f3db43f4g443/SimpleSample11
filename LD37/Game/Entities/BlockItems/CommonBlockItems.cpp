@@ -145,7 +145,7 @@ void CSpawner::Trigger()
 		}
 		}
 
-		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		if( m_nMaxCount )
 		{
 			SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
@@ -285,6 +285,6 @@ void CKillSpawner::Trigger()
 		}
 		}
 
-		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 }

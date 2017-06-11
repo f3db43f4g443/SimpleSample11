@@ -279,10 +279,12 @@ public:
 private:
 	void GenBase();
 	void GenSubArea( const TRectangle<int32>& rect );
-	void FillLine( const TRectangle<int32>& rect );
+	void FillLine( TRectangle<int32>& rect );
 	void GenRestWallChunks();
+	void GenWindows();
 	void GenObjs();
 
+	uint8 m_nType;
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pWallChunk0Node;
@@ -292,6 +294,7 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
+	CReference<CLevelGenerateNode> m_pWindowNode;
 
 	enum
 	{
@@ -320,6 +323,7 @@ private:
 	vector<TRectangle<int32> > m_wallChunks0;
 	vector<TRectangle<int32> > m_wallChunks;
 	vector<TRectangle<int32> > m_wallChunks1;
+	vector<TRectangle<int32> > m_windows;
 };
 
 class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode
