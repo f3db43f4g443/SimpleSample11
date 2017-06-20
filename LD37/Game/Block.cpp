@@ -58,6 +58,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fCurImbalanceTime( 0 )
 	, nCurShakeStrength( 0 )
 	, nLayerType( baseInfo.nLayerType )
+	, bInvulnerable( 0 )
 	, bIsRoom( baseInfo.bIsRoom )
 	, bIsLevelBarrier( false )
 	, bStopMove( false )
@@ -71,6 +72,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, pParentChunk( NULL )
 	, m_pSubChunks( NULL )
 	, m_pSpawnInfos( NULL )
+	, m_pChunkStopEvents( NULL )
 {
 	blocks.resize( size.x * size.y );
 	for( int j = 0; j < size.y; j++ )
@@ -92,6 +94,11 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 
 SChunk::~SChunk()
 {
+	while( Get_StopEvent() )
+	{
+		CReference<CChunkStopEvent> pStopEvent = Get_StopEvent();
+		pStopEvent->RemoveFrom_StopEvent();
+	}
 	while( Get_SpawnInfo() )
 	{
 		auto pSpawnInfo = Get_SpawnInfo();
@@ -380,6 +387,8 @@ void CChunkObject::Damage( float fDmg, uint8 nType )
 
 void CChunkObject::Damage( SDamageContext& context )
 {
+	if( m_pChunk->bInvulnerable )
+		return;
 	if( !m_nMaxHp )
 	{
 		auto pParentChunk = m_pChunk->pParentChunk;
@@ -434,6 +443,13 @@ float CChunkObject::Repair( float fAmount )
 
 void CChunkObject::Kill()
 {
+	while( m_pChunk->Get_StopEvent() )
+	{
+		CReference<CChunkStopEvent> pStopEvent = m_pChunk->Get_StopEvent();
+		pStopEvent->RemoveFrom_StopEvent();
+		if( pStopEvent->killedFunc )
+			pStopEvent->killedFunc( m_pChunk );
+	}
 	m_triggerKilled.Trigger( 0, this );
 	OnKilled();
 	CMyLevel::GetInst()->pHitSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );

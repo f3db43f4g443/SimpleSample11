@@ -63,6 +63,16 @@ private:
 	SBlock* m_pBlock;
 };
 
+class CChunkStopEvent : public CReferenceObject
+{
+public:
+	int32 nHeight;
+	function<void( struct SChunk* )> func;
+	function<void( struct SChunk* )> killedFunc;
+
+	LINK_LIST_REF( CChunkStopEvent, StopEvent )
+};
+
 struct SChunkBaseInfo
 {
 	uint32 nWidth;
@@ -149,6 +159,7 @@ struct SChunk
 	uint8 bIsBeingRepaired : 1;
 	uint8 nVisitFlag : 1;
 
+	uint8 bInvulnerable : 1;
 	uint8 bIsRoom : 2;
 	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 2;
@@ -159,6 +170,7 @@ struct SChunk
 	LINK_LIST( SChunk, SubChunk )
 	LINK_LIST_HEAD( m_pSpawnInfos, SChunkSpawnInfo, SpawnInfo )
 	LINK_LIST_HEAD( m_pSubChunks, SChunk, SubChunk )
+	LINK_LIST_REF_HEAD( m_pChunkStopEvents, CChunkStopEvent, StopEvent )
 };
 
 class CChunkObject : public CEntity
@@ -182,6 +194,7 @@ public:
 
 	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_pChunk( NULL ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
 		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
+	~CChunkObject() {}
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
 	void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );

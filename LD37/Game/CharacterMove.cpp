@@ -601,6 +601,15 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 	}
 }
 
+void SCharacterWalkData::ReleaseCachedJump( CCharacter * pCharacter, float fTime )
+{
+	CVector2 dVelocity = velocity;
+	float l = dVelocity.Normalize();
+	dVelocity = dVelocity * Max( l, Min( 1.0f, fTime / fJumpMaxHoldTime ) * fJumpMaxSpeed );
+	velocity = dVelocity;
+	bSleep = false;
+}
+
 void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxis )
 {
 	if( nState != eState_Rolling && fKnockbackTime <= 0 )

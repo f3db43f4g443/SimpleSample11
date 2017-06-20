@@ -18,3 +18,12 @@ private:
 	float m_fDefence;
 	int32 m_nKnockbackCostSp;
 };
+
+class CEnemyPart : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CEnemyPart( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemy ); }
+
+	virtual void Damage( int32 nDmg ) override;
+};

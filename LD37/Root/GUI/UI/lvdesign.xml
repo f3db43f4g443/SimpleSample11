@@ -12,4 +12,6 @@
   </template>
   <template type="GUI/UI/button.xml" name="save" x="160" y="10" rectX="0" rectY="0" rectWidth="50" rectHeight="20" alignX="1" alignY="1" text="Save" >
   </template>
+  <template type="GUI/UI/textbox.xml" name="chunkname" x="300" y="10" rectX="0" rectY="0" rectWidth="200" rectHeight="20" alignX="1" alignY="1" >
+  </template>
 </root>

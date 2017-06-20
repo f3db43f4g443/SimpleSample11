@@ -282,7 +282,7 @@ void CDesignLevel::OnRemovedFromStage()
 		s_pLevel = NULL;
 }
 
-void SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& region )
+void SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName )
 {
 	auto pNode = FindNode( szFullName );
 	if( !pNode )
@@ -291,9 +291,10 @@ void SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& 
 	if( !pItem )
 		return;
 	pItem->strFullName = szFullName;
+	pItem->strChunkName = szChunkName;
 }
 
-void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region )
+void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName )
 {
 	auto pNode = FindNode( szFullName );
 	if( !pNode )
@@ -302,6 +303,7 @@ void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region 
 	if( !pItem )
 		return;
 	pItem->strFullName = szFullName;
+	pItem->strChunkName = szChunkName;
 
 	CreatePreviewForItem( pItem );
 	if( m_bBeginEdit )
@@ -675,9 +677,10 @@ void SLevelDesignContext::Load( IBufReader & buf )
 		TRectangle<int32> region;
 		buf.Read( region );
 
-		Add( strFullName.c_str(), region );
-
+		string strNodeName;
 		CBufReader extraData( buf );
+		extraData.Read( strNodeName );
+		Add( strFullName.c_str(), region, strNodeName.c_str() );
 	}
 }
 
@@ -696,6 +699,7 @@ void SLevelDesignContext::Save( CBufFile & buf )
 					buf.Write( pItem->region );
 
 					CBufFile extraData;
+					extraData.Write( pItem->strChunkName );
 					buf.Write( extraData );
 				}
 			}
@@ -951,7 +955,12 @@ protected:
 				m_nDragType = 0;
 		}
 		else
+		{
 			m_nDragType = 0;
+			auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos );
+			if( pItem )
+				m_pOwner->SelectItem( pItem );
+		}
 
 		m_bStartDrag = true;
 	}
@@ -1069,6 +1078,22 @@ void CDesignView::SelectNode( CDesignViewNodeElem * pItem )
 	FormatStateText();
 }
 
+void CDesignView::SelectItem( SLevelDesignItem * pItem )
+{
+	if( m_pSelectedItem == pItem )
+		return;
+	if( m_pSelectedItem )
+		m_onSelectedItemDeleted.Unregister();
+	m_pSelectedItem = pItem;
+	if( pItem )
+	{
+		pItem->onRemoved.Register( 0, &m_onSelectedItemDeleted );
+		m_pChunkName->SetText( pItem->strChunkName.c_str() );
+	}
+	else
+		m_pChunkName->SetText( "" );
+}
+
 void CDesignView::OnInited()
 {
 	auto& cfg = CGlobalCfg::Inst();
@@ -1079,6 +1104,11 @@ void CDesignView::OnInited()
 	m_pMainViewport->Replace( pViewport );
 	m_pFileView = GetChildByName<CUITreeView>( "fileview" );
 	m_pNodeView = GetChildByName<CUIScrollView>( "nodeview" );
+
+	m_pChunkName = GetChildByName<CUITextBox>( "chunkname" );
+	m_onChunkNameChanged.Set( this, &CDesignView::OnChunkNameChanged );
+	m_pChunkName->Register( eEvent_Action, &m_onChunkNameChanged );
+
 	m_pStateText = m_pMainViewport->GetChildByName<CUILabel>( "state_text" );
 
 	m_onNew.Set( this, &CDesignView::OnNew );
@@ -1186,6 +1216,12 @@ void CDesignView::OnChar( uint32 nChar )
 		break;
 	}
 	FormatStateText();
+}
+
+void CDesignView::OnChunkNameChanged()
+{
+	if( m_pSelectedItem )
+		m_pSelectedItem->strChunkName = UnicodeToUtf8( m_pChunkName->GetText() );
 }
 
 void CDesignView::FormatStateText()

@@ -107,6 +107,8 @@ private:
 	bool m_bRoll;
 	bool m_bFiringDown;
 	bool m_bIsRepairing;
+	bool m_bCachedJump;
+	float m_fCachedJumpTime;
 
 	float m_fHidingTime;
 	float m_fHidingCurTime;

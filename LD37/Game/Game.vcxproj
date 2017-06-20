@@ -570,6 +570,7 @@
     <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Enemies.cpp" />
+    <ClCompile Include="Entities\Enemies\Lv1Boss.cpp" />
     <ClCompile Include="Entities\Enemies\Lv1Enemies.cpp" />
     <ClCompile Include="Entities\EnemyCharacters.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
@@ -647,6 +648,7 @@
     <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Enemies.h" />
+    <ClInclude Include="Entities\Enemies\Lv1Boss.h" />
     <ClInclude Include="Entities\Enemies\Lv1Enemies.h" />
     <ClInclude Include="Entities\EnemyCharacters.h" />
     <ClInclude Include="Entities\GlitchEffect.h" />

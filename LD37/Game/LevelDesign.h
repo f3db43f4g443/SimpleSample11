@@ -2,6 +2,7 @@
 #include "LevelGenerate.h"
 #include "UICommon/UITreeView.h"
 #include "UICommon/UIViewport.h"
+#include "UICommon/UITextBox.h"
 
 class CChunkPreview : public CEntity
 {
@@ -46,13 +47,16 @@ struct SLevelDesignItem : public CReferenceObject
 	{
 		if( pEntity )
 			pEntity->SetParentEntity( NULL );
+		onRemoved.Trigger( 0, this );
 	}
 
 	string strFullName;
 	CReference<CLevelGenerateNode> pGenNode;
 	CReference<CChunkEdit> pEntity;
 	TRectangle<int32> region;
+	string strChunkName;
 	bool bLocked;
+	CEventTrigger<1> onRemoved;
 };
 
 struct SLevelDesignContext
@@ -66,7 +70,7 @@ struct SLevelDesignContext
 
 	SLevelDesignItem* AddItem( CLevelGenerateNode* pNode, const TRectangle<int32>& region, bool bAutoErase );
 	void RemoveItem( SLevelDesignItem* pItem );
-	virtual void Add( const char* szFullName, const TRectangle<int32>& region );
+	virtual void Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName = "" );
 	virtual void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
 
 	CLevelGenerateNode* FindNode( const char* szFullName );
@@ -95,7 +99,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	virtual void Add( const char* szFullName, const TRectangle<int32>& region ) override;
+	virtual void Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName = "" ) override;
 	void CreatePreviewForItem( SLevelDesignItem* pItem );
 	void SetShowLevelType( uint8 nType );
 	void ToggloShowEditLevel();
@@ -157,7 +161,7 @@ class CDesignView : public CUIElement
 public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CDesignView )
 
-	CDesignView() : m_pSelectedFile( NULL ), m_pSelectedNode( NULL ), m_bIsDeleteMode( false ), m_bHelp( false ) {}
+	CDesignView() : m_pSelectedFile( NULL ), m_pSelectedNode( NULL ), m_pSelectedItem( NULL ), m_bIsDeleteMode( false ), m_bHelp( false ), m_onSelectedItemDeleted( this, &CDesignView::OnSelectedItemDeleted ) {}
 
 	void OnHelp();
 	void OnNew() { CDesignLevel::GetInst()->New(); }
@@ -170,6 +174,7 @@ public:
 	void SelectFile( class CDesignViewFileElem* pItem );
 	void SelectNode( class CDesignViewNodeElem* pItem );
 	void SetDeleteMode( bool bDelete ) { m_bIsDeleteMode = bDelete; FormatStateText(); }
+	void SelectItem( SLevelDesignItem* pItem );
 
 	bool IsDeleteMode() { return m_bIsDeleteMode; }
 	class CDesignViewNodeElem* GetSelectedNode() { return !m_bIsDeleteMode ? m_pSelectedNode : NULL; }
@@ -178,6 +183,9 @@ public:
 protected:
 	virtual void OnInited() override;
 	virtual void OnChar( uint32 nChar ) override;
+
+	void OnSelectedItemDeleted() { SelectItem( NULL ); }
+	void OnChunkNameChanged();
 
 	void FormatStateText();
 private:
@@ -188,6 +196,8 @@ private:
 	CReference<CUITreeView> m_pFileView;
 	CReference<CUIScrollView> m_pNodeView;
 
+	CReference<CUITextBox> m_pChunkName;
+
 	CReference<CUILabel> m_pStateText;
 
 	CReference<CUIElement> m_pLoadDialog;
@@ -195,8 +205,12 @@ private:
 
 	class CDesignViewFileElem* m_pSelectedFile;
 	class CDesignViewNodeElem* m_pSelectedNode;
+	SLevelDesignItem* m_pSelectedItem;
 
 	TClassTrigger<CDesignView> m_onNew;
 	TClassTrigger<CDesignView> m_onLoad;
 	TClassTrigger<CDesignView> m_onSave;
+
+	TClassTrigger<CDesignView> m_onChunkNameChanged;
+	TClassTrigger<CDesignView> m_onSelectedItemDeleted;
 };

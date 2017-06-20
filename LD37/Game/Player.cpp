@@ -24,6 +24,8 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_bFiringDown( false )
 	, m_bIsRepairing( false )
 	, m_bIsWalkOrFly( false )
+	, m_bCachedJump( false )
+	, m_fCachedJumpTime( 0 )
 	, m_hp( context )
 	, m_sp( context )
 	, m_fHidingTime( 1 )
@@ -226,13 +228,20 @@ void CPlayer::EndFire()
 void CPlayer::BeginRepair()
 {
 	//m_bIsRepairing = true;
-	m_walkData.Jump( this );
+	if( m_bIsWalkOrFly )
+		m_walkData.Jump( this );
+	else
+	{
+		m_fCachedJumpTime = 0;
+		m_bCachedJump = true;
+	}
 }
 
 void CPlayer::EndRepair()
 {
 	m_bIsRepairing = false;
 	m_walkData.ReleaseJump( this );
+	m_bCachedJump = false;
 }
 
 void CPlayer::AddItem( CItem * pItem )
@@ -375,7 +384,11 @@ void CPlayer::UpdateMove()
 	}
 	else
 	{
-		m_flyData.UpdateMove( this, moveAxis );
+		m_flyData.UpdateMove( this, m_bCachedJump ? moveAxis * 0.5f : moveAxis );
+		if( m_flyData.nState == SCharacterFlyData::eState_Rolling )
+			m_bCachedJump = false;
+		else
+			m_fCachedJumpTime += fTime;
 		RestoreSp( m_nSpRegenPerFrame );
 	}
 
@@ -471,6 +484,12 @@ void CPlayer::UpdateRoom()
 				m_walkData.velocity = m_velocity;
 				m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 				m_walkData.vecKnockback = m_flyData.vecKnockback;
+
+				if( m_bCachedJump )
+				{
+					m_bCachedJump = false;
+					m_walkData.ReleaseCachedJump( this, m_fCachedJumpTime );
+				}
 			}
 			else
 			{

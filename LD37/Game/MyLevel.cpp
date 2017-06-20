@@ -12,7 +12,7 @@
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
-const char* g_levels[] = { "lv1_3", "lv1_3", "lv1_3", "lv1_3", "lv1_3" };
+const char* g_levels[] = { "lv1_boss", "lv1_boss", "lv1_boss", "lv1_boss", "lv1_boss" };
 
 void CMyLevel::OnAddedToStage()
 {
@@ -86,9 +86,9 @@ void CMyLevel::OnAddedToStage()
 		pBottom->SetParentEntity( pBorder );
 	}
 
+	s_pLevel = this;
 	StartUp();
 	CheckSpawn();
-	s_pLevel = this;
 
 	pFireSound = CResourceManager::Inst()->CreateResource<CSoundFile>( CGlobalCfg::Inst().mapSoundPath["fire"].c_str() );
 	pHitSound = CResourceManager::Inst()->CreateResource<CSoundFile>( CGlobalCfg::Inst().mapSoundPath["hit"].c_str() );
@@ -188,6 +188,13 @@ void CMyLevel::Clear()
 
 void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 {
+	while( pChunk->Get_StopEvent() )
+	{
+		CReference<CChunkStopEvent> pStopEvent = pChunk->Get_StopEvent();
+		pStopEvent->RemoveFrom_StopEvent();
+		if( pStopEvent->killedFunc )
+			pStopEvent->killedFunc( pChunk );
+	}
 	if( pChunk->pChunkObject )
 	{
 		if( bCrush )
@@ -504,6 +511,9 @@ void CMyLevel::UpdateBlocksMovement()
 			else if( !pChunk->bStopMove )
 			{
 				int32 nMinY = 0;
+				auto pStopEvent = pChunk->Get_StopEvent();
+				if( pChunk->Get_StopEvent() )
+					nMinY = pStopEvent->nHeight;
 				uint32 nMaxFallSpeed = 0;
 				uint32 nApplyWeightCount = 0;
 				int32 preY = pChunk->pos.y;
@@ -582,6 +592,14 @@ void CMyLevel::UpdateBlocksMovement()
 					if( pChunk->pChunkObject )
 					{
 						pChunk->pChunkObject->OnLandImpact( nPreSpeed, nMaxFallSpeed );
+					}
+					if( pStopEvent && pStopEvent->nHeight == nMinY )
+					{
+						DEFINE_TEMP_REF( pStopEvent );
+						pChunk->bStopMove = true;
+						pChunk->bMovedLastFrame = false;
+						pStopEvent->RemoveFrom_StopEvent();
+						pStopEvent->func( pChunk );
 					}
 				}
 

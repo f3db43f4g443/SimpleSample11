@@ -35,3 +35,12 @@ private:
 	CReference<CPrefab> m_pBlockBuff;
 	CBlockBuff::SContext m_context;
 };
+
+class CExplosionKnockback : public CExplosion
+{
+	friend void RegisterGameClasses();
+public:
+	CExplosionKnockback( const SClassCreateContext& context ) : CExplosion( context ) { SET_BASEOBJECT_ID( CExplosionKnockback ); }
+
+	virtual void OnHit( CEntity* pEntity ) override;
+};

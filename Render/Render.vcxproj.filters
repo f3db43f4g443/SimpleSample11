@@ -217,5 +217,8 @@
     <None Include="..\LD37\Shader\Decorator.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\Light2DAO.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

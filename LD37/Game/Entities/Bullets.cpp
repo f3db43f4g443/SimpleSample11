@@ -32,3 +32,15 @@ void CExplosionWithBlockBuff::OnHit( CEntity * pEntity )
 		CBlockBuff::AddBuff( m_pBlockBuff, pBlockObject, &m_context );
 	}
 }
+
+void CExplosionKnockback::OnHit( CEntity * pEntity )
+{
+	CCharacter* pChar = SafeCast<CCharacter>( pEntity );
+	if( pChar )
+	{
+		CVector2 dir = pChar->globalTransform.GetPosition() - globalTransform.GetPosition();
+		dir.Normalize();
+		pChar->Knockback( dir );
+	}
+	CExplosion::OnHit( pEntity );
+}

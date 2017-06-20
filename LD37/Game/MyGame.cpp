@@ -36,6 +36,7 @@
 #include "Entities/BlockItems/BlockItemsLv1.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
+#include "Entities/Enemies/Lv1Boss.h"
 #include "Entities/Enemies/Lv1Enemies.h"
 #include "Entities/Tutorial.h"
 #include "GUI/MainUI.h"
@@ -326,6 +327,10 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fDefence )
 		REGISTER_MEMBER( m_nKnockbackCostSp )
 	REGISTER_CLASS_END()
+	
+	REGISTER_CLASS_BEGIN( CEnemyPart )
+		REGISTER_BASE_CLASS( CEnemy )
+	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEnemy1 )
 		REGISTER_BASE_CLASS( CEnemy )
@@ -474,6 +479,10 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CExplosionWithBlockBuff )
 		REGISTER_BASE_CLASS( CExplosion )
 		REGISTER_MEMBER( m_strBlockBuff )
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CExplosionKnockback )
+		REGISTER_BASE_CLASS( CExplosion )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickUp )
@@ -792,6 +801,26 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEffect, eft )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CLv1Boss )
+		REGISTER_BASE_CLASS( CLevelScrollObj )
+		REGISTER_MEMBER( m_strTentacle )
+		REGISTER_MEMBER( m_strTentacleHole )
+		REGISTER_MEMBER_TAGGED_PTR( m_pBoss, boss )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[0], boss/face/eye_l )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[1], boss/face/eye_r )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFaceNose, boss/face/nose )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFaceMouth, boss/face/mouth )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEyeHole[0], boss/eye_l_hole )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEyeHole[1], boss/eye_r_hole )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEye[0], boss/eye_l_hole/eye_l )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEye[1], boss/eye_r_hole/eye_r )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEyeLink[0], boss/eye_l_hole/link )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEyeLink[1], boss/eye_r_hole/link )
+		REGISTER_MEMBER_TAGGED_PTR( m_pNose, boss/nose )
+		REGISTER_MEMBER_TAGGED_PTR( m_pTongueHole, boss/tongue_hole )
+		REGISTER_MEMBER_TAGGED_PTR( m_pTongue, boss/tongue_hole/tongue )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSpike )

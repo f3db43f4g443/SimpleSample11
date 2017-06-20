@@ -46,6 +46,14 @@ void CScene2DManager::AddDirtyAABB( CRenderObject2D* pRenderObject )
 	m_dirtyAABBSceneNodes.insert( pRenderObject );
 }
 
+CCamera2D * CScene2DManager::GetCamera()
+{
+	if( m_activeCams.size() )
+		return m_activeCams.begin()->first;
+	else
+		return NULL;
+}
+
 void CScene2DManager::AddActiveCamera( CCamera2D* pCamera, CRenderObject2D* pRoot )
 {
 	auto& context = m_activeCams[pCamera];

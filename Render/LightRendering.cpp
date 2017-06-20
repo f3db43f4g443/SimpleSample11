@@ -576,9 +576,162 @@ void CLighted2DRenderer::FetchSubRendererTexture( ITexture** ppTex )
 	m_pSubRendererTexture = NULL;
 }
 
+class CPreTransmissionVS : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CPreTransmissionVS );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_dstRect, "DstRect" );
+		GetShader()->GetShaderInfo().Bind( m_srcRect, "SrcRect" );
+		GetShader()->GetShaderInfo().Bind( m_srcRect1, "SrcRect1" );
+		GetShader()->GetShaderInfo().Bind( m_srcRect2, "SrcRect2" );
+		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+		GetShader()->GetShaderInfo().Bind( m_invSrc1Resolution, "InvSrc1Resolution" );
+		GetShader()->GetShaderInfo().Bind( m_invSrc2Resolution, "InvSrc2Resolution" );
+		GetShader()->GetShaderInfo().Bind( m_depth, "fDepth" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, const CRectangle& DstRect, const CRectangle& SrcRect, const CRectangle& SrcRect1, const CRectangle& SrcRect2, 
+		const CVector2& DstResolution, const CVector2& SrcResolution, const CVector2& SrcResolution1, const CVector2& SrcResolution2, float fDepth = 0 )
+	{
+		m_dstRect.Set( pRenderSystem, &DstRect );
+		m_srcRect.Set( pRenderSystem, &SrcRect );
+		m_srcRect1.Set( pRenderSystem, &SrcRect1 );
+		m_srcRect2.Set( pRenderSystem, &SrcRect2 );
+		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
+		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+		CVector2 invSrc1Resolution( 1.0f / SrcResolution1.x, 1.0f / SrcResolution1.y );
+		m_invSrc1Resolution.Set( pRenderSystem, &invSrc1Resolution );
+		CVector2 invSrc2Resolution( 1.0f / SrcResolution2.x, 1.0f / SrcResolution2.y );
+		m_invSrc2Resolution.Set( pRenderSystem, &invSrc2Resolution );
+		m_depth.Set( pRenderSystem, &fDepth );
+	}
+private:
+	CShaderParam m_dstRect;
+	CShaderParam m_srcRect;
+	CShaderParam m_srcRect1;
+	CShaderParam m_srcRect2;
+	CShaderParam m_invDstSrcResolution;
+	CShaderParam m_invSrc1Resolution;
+	CShaderParam m_invSrc2Resolution;
+	CShaderParam m_depth;
+};
+
+IMPLEMENT_GLOBAL_SHADER( CPreTransmissionVS, "Shader/Light2DAO.shader", "VSPreTransmission", "vs_5_0" );
+
+class CPreTransmissionPS : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CPreTransmissionPS );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_light, "LightMap" );
+		GetShader()->GetShaderInfo().Bind( m_color, "ColorMap" );
+		GetShader()->GetShaderInfo().Bind( m_emission, "EmissionMap" );
+		GetShader()->GetShaderInfo().Bind( m_transmission, "TransmissionMap" );
+		GetShader()->GetShaderInfo().Bind( m_occlusion, "OcclusionMap" );
+		GetShader()->GetShaderInfo().Bind( m_paramPointSampler, "PointSampler" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pLight, IShaderResource* pColor,
+		IShaderResource* pEmission, IShaderResource* pTransmission, IShaderResource* pOcclusion )
+	{
+		m_light.Set( pRenderSystem, pLight );
+		m_color.Set( pRenderSystem, pColor );
+		m_emission.Set( pRenderSystem, pEmission );
+		m_transmission.Set( pRenderSystem, pTransmission );
+		m_occlusion.Set( pRenderSystem, pOcclusion );
+		m_paramPointSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP>() );
+	}
+private:
+	CShaderParamShaderResource m_light;
+	CShaderParamShaderResource m_color;
+	CShaderParamShaderResource m_emission;
+	CShaderParamShaderResource m_transmission;
+	CShaderParamShaderResource m_occlusion;
+	CShaderParamSampler m_paramPointSampler;
+};
+
+IMPLEMENT_GLOBAL_SHADER( CPreTransmissionPS, "Shader/Light2DAO.shader", "PSPreTransmission", "ps_5_0" );
+
+class CTransmissionVS : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CTransmissionVS );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_dstRect, "DstRect" );
+		GetShader()->GetShaderInfo().Bind( m_srcRect, "SrcRect" );
+		GetShader()->GetShaderInfo().Bind( m_srcRect1, "SrcRect1" );
+		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+		GetShader()->GetShaderInfo().Bind( m_invSrc1Resolution, "InvSrc1Resolution" );
+		GetShader()->GetShaderInfo().Bind( m_depth, "fDepth" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, const CRectangle& DstRect, const CRectangle& SrcRect, const CRectangle& SrcRect1,
+		const CVector2& DstResolution, const CVector2& SrcResolution, const CVector2& SrcResolution1, float fDepth = 0 )
+	{
+		m_dstRect.Set( pRenderSystem, &DstRect );
+		m_srcRect.Set( pRenderSystem, &SrcRect );
+		m_srcRect1.Set( pRenderSystem, &SrcRect1 );
+		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
+		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+		CVector2 invSrc1Resolution( 1.0f / SrcResolution1.x, 1.0f / SrcResolution1.y );
+		m_invSrc1Resolution.Set( pRenderSystem, &invSrc1Resolution );
+		m_depth.Set( pRenderSystem, &fDepth );
+	}
+private:
+	CShaderParam m_dstRect;
+	CShaderParam m_srcRect;
+	CShaderParam m_srcRect1;
+	CShaderParam m_invDstSrcResolution;
+	CShaderParam m_invSrc1Resolution;
+	CShaderParam m_depth;
+};
+
+IMPLEMENT_GLOBAL_SHADER( CTransmissionVS, "Shader/Light2DAO.shader", "VSTransmission", "vs_5_0" );
+
+class CTransmissionPS : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CTransmissionPS );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_transmission, "TransmissionMap" );
+		GetShader()->GetShaderInfo().Bind( m_transmissionTemp, "TransmissionTemp" );
+		GetShader()->GetShaderInfo().Bind( m_randomnormal, "RandomNormalMap" );
+		GetShader()->GetShaderInfo().Bind( m_invSrcResolution, "InvSrcRes" );
+		GetShader()->GetShaderInfo().Bind( m_paramPointSampler, "PointSampler" );
+		GetShader()->GetShaderInfo().Bind( m_paramPointSampler1, "PointSampler1" );
+		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTransmission, IShaderResource* pTransmissionTemp, IShaderResource* pRandomNormal, const CVector2& srcRes )
+	{
+		m_transmission.Set( pRenderSystem, pTransmission );
+		m_transmissionTemp.Set( pRenderSystem, pTransmissionTemp );
+		m_randomnormal.Set( pRenderSystem, pRandomNormal );
+		CVector2 invSrc1Resolution( 1.0f / srcRes.x, 1.0f / srcRes.y );
+		m_invSrcResolution.Set( pRenderSystem, &invSrc1Resolution );
+		m_paramPointSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP>() );
+		m_paramPointSampler1.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP, ETextureAddressModeWrap, ETextureAddressModeWrap, ETextureAddressModeWrap>() );
+		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
+	}
+private:
+	CShaderParamShaderResource m_transmission;
+	CShaderParamShaderResource m_transmissionTemp;
+	CShaderParamShaderResource m_randomnormal;
+	CShaderParam m_invSrcResolution;
+	CShaderParamSampler m_paramPointSampler;
+	CShaderParamSampler m_paramPointSampler1;
+	CShaderParamSampler m_paramLinearSampler;
+};
+
+IMPLEMENT_GLOBAL_SHADER( CTransmissionPS, "Shader/Light2DAO.shader", "PSTransmission", "ps_5_0" );
+
 void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTarget )
 {
-	pSystem->SetRenderTarget( pTarget, NULL );
 	SViewport viewport = { 0, 0, m_screenRes.x, m_screenRes.y, 0, 1 };
 	pSystem->SetViewports( &viewport, 1 );
 
@@ -589,19 +742,48 @@ void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTa
 	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
 	pSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
 
-	auto pVertexShader = CScreenVertexShader::Inst();
-	auto pPixelShader = CLightScenePixelShader::Inst();
-	static IShaderBoundState* g_pShaderBoundState = NULL;
-	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
-	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
+	{
+		IRenderTarget* targets[] = { pTarget, m_pTransmissionBuffer1->GetRenderTarget(), m_pTransmissionBufferTemp->GetRenderTarget() };
+		pSystem->SetRenderTargets( targets, ELEM_COUNT( targets ), NULL );
 
-	CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
-	CRectangle srcRect( 0, 0, m_screenRes.x, m_screenRes.y );
+		auto pVertexShader = CPreTransmissionVS::Inst();
+		auto pPixelShader = CPreTransmissionPS::Inst();
+		static IShaderBoundState* g_pShaderBoundState = NULL;
+		const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+		pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
 
-	pVertexShader->SetParams( pSystem, dstRect, srcRect, dstRect.GetSize(), srcRect.GetSize() );
-	pPixelShader->SetParams( pSystem, m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(), m_pLightAccumulationBuffer->GetShaderResource() );
+		CVector2 srcRes( m_screenRes.x, m_screenRes.y );
+		CRectangle occRect( 0, 0, m_lightMapRes.x, m_lightMapRes.y );
+		CVector2 occRes = occRect.GetSize();
+		occRect.SetSizeX( m_screenRes.x );
+		occRect.SetSizeY( m_screenRes.y );
+		pVertexShader->SetParams( pSystem, CRectangle( 0, 0, m_screenRes.x, m_screenRes.y ), CRectangle( 0, 0, m_screenRes.x, m_screenRes.y ),
+			occRect, CRectangle( m_cameraOfs.x, -m_cameraOfs.y, m_screenRes.x, m_screenRes.y ), srcRes, srcRes, occRes, srcRes );
+		pPixelShader->SetParams( pSystem, m_pLightAccumulationBuffer->GetShaderResource(), m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(),
+			m_pTransmissionBuffer->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
 
-	pSystem->DrawInput();
+		pSystem->DrawInput();
+	}
+
+	{
+		pSystem->SetRenderTarget( m_pTransmissionBuffer->GetRenderTarget(), NULL );
+
+		auto pVertexShader = CTransmissionVS::Inst();
+		auto pPixelShader = CTransmissionPS::Inst();
+		static IShaderBoundState* g_pShaderBoundState = NULL;
+		const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+		pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
+
+		CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
+		CRectangle srcRect( 0, 0, m_screenRes.x, m_screenRes.y );
+		CVector2 randomSize( 64, 64 );
+		CRectangle randomRect( SRand::Inst().Rand( 0, 64 ), SRand::Inst().Rand( 0, 64 ), m_screenRes.x, m_screenRes.y );
+
+		pVertexShader->SetParams( pSystem, dstRect, srcRect, randomRect, dstRect.GetSize(), srcRect.GetSize(), randomSize );
+		pPixelShader->SetParams( pSystem, m_pTransmissionBuffer1->GetShaderResource(), m_pTransmissionBufferTemp->GetShaderResource(), CGlobalRenderResources::Inst()->GetRandomNorm()->GetShaderResource(), m_screenRes );
+
+		pSystem->DrawInput();
+	}
 }
 
 void Engine_ShaderImplement_Dummy_Light()

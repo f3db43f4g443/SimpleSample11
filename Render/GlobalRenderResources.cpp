@@ -10,6 +10,7 @@
 #include "Prefab.h"
 #include "ResourceManager.h"
 #include "ClassMetaData.h"
+#include "Rand.h"
 
 void CGlobalShader::Create( const char* szShaderName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
 {
@@ -72,6 +73,17 @@ void CGlobalRenderResources::Init( IRenderSystem* pRenderSystem )
 		fVBStripData[i * 4 + 3] = i;
 	}
 	m_pVBStrip = pRenderSystem->CreateVertexBuffer( ELEM_COUNT( elem ), elem, nStripInstanceCount * 2, fVBStripData );
+
+	uint8 norm[64 * 64 * 2];
+	for( int i = 0; i < 64 * 64; i++ )
+	{
+		float fAngle = SRand::Inst().Rand( -PI, PI );
+		float fRad = SRand::Inst().Rand( 0, 1 );
+		fRad = sqrt( 1 - fRad * fRad );
+		norm[i * 2] = floor( ( cos( fAngle ) * fRad + 1 ) * 0.5f * 255 + 0.5f );
+		norm[i * 2 + 1] = floor( ( sin( fAngle ) * fRad + 1 ) * 0.5f * 255 + 0.5f );
+	}
+	m_pTexRandomNorm = pRenderSystem->CreateTexture( ETextureType::Tex2D, 64, 64, 1, 1, EFormat::EFormatR8G8UNorm, norm );
 
 	CGlobalShader::Init( pRenderSystem );
 }

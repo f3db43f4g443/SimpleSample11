@@ -72,7 +72,6 @@ public:
 
 	void GenerateSingleParticle( SParticleInstanceData& data, uint8* pData, const CMatrix2D& transform )
 	{
-		*(float*)pData = m_bBatchAcrossInstances? 0: data.fTime;
 		for( int iElem = 0; iElem < m_nElements; iElem++ )
 		{
 			m_pElements[iElem].GenerateValue( pData + m_pElements[iElem].nOffset, transform );

@@ -4,6 +4,9 @@
     <item name="1f" />
   </includes>
   <level_gen>
+    <scrollobjs>
+      <node name="boss1" prefab="data/enemies/boss1/boss1.pf" scrollobj_type="2" />
+    </scrollobjs>
     <nodes>
       <node type="subregion" name="trap0">
         <ref name="stonebar" y="0" w="0" h="1" />
@@ -423,6 +426,20 @@
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
+      </node>
+    
+      <node type="subregion" name="lv1_boss">
+        <node type="designed_level" file="data/enemies/boss1/level" x="0" y="0" w="0" h="0" />
+        
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="boss1" />
       </node>
     </nodes>
   </level_gen>

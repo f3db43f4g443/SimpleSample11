@@ -26,9 +26,13 @@ void CLighted2DRenderer::OnResize( IRenderSystem* pSystem, const CVector2& size 
 {
 	m_screenRes = size;
 	if( !m_bIsSubRenderer )
+	{
+		CRenderTargetPool::GetSizeDependentPool().Release( m_pTransmissionBuffer );
 		CRenderTargetPool::GetSizeDependentPool().Clear();
+	}
 	else
 	{
+		m_sizeDependentPool.Release( m_pTransmissionBuffer );
 		ReleaseSubRendererTexture();
 		m_sizeDependentPool.Clear();
 	}
@@ -104,7 +108,6 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 	{
 		sizeIndependentPool.Release( m_pShadowBuffer[i] );
 	}
-	sizeIndependentPool.Release( m_pOcclusionBuffer );
 
 	//Post process
 	auto pPostProcessPass = CPostProcessPass::GetPostProcessPass( ePostProcessPass_PreGUI );
@@ -124,11 +127,29 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 					m_pRenderer->m_screenRes.x, m_pRenderer->m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
 				pTarget = pPass->GetTarget()->GetRenderTarget();
 			}
+
+			if( !m_pRenderer->m_pTransmissionBuffer )
+			{
+				sizeDependentPool.AllocRenderTarget( m_pRenderer->m_pTransmissionBuffer, ETextureType::Tex2D,
+					m_pRenderer->m_screenRes.x, m_pRenderer->m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+				m_pSystem->ClearRenderTarget( CVector4( 0, 0, 0, 0 ), m_pRenderer->m_pTransmissionBuffer->GetRenderTarget() );
+				m_pRenderer->m_cameraOfs = CVector2( 0, 0 );
+			}
+			else
+				m_pRenderer->m_cameraOfs = m_pRenderer->m_curCameraPos - m_pRenderer->m_lastCameraPos;
+			m_pRenderer->m_lastCameraPos = m_pRenderer->m_curCameraPos;
+
+			sizeDependentPool.AllocRenderTarget( m_pRenderer->m_pTransmissionBuffer1, ETextureType::Tex2D,
+				m_pRenderer->m_screenRes.x, m_pRenderer->m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+			sizeDependentPool.AllocRenderTarget( m_pRenderer->m_pTransmissionBufferTemp, ETextureType::Tex2D,
+				m_pRenderer->m_screenRes.x, m_pRenderer->m_screenRes.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
 			
 			m_pRenderer->RenderScene( m_pSystem, pTarget );
 			sizeDependentPool.Release( m_pRenderer->m_pColorBuffer );
 			sizeDependentPool.Release( m_pRenderer->m_pEmissionBuffer );
 			sizeDependentPool.Release( m_pRenderer->m_pLightAccumulationBuffer );
+			sizeDependentPool.Release( m_pRenderer->m_pTransmissionBuffer1 );
+			sizeDependentPool.Release( m_pRenderer->m_pTransmissionBufferTemp );
 		}
 		virtual bool IsForceFirstPass() override { return true; }
 	private:
@@ -144,6 +165,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 	pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
 	pPostProcessPass->Process( pSystem, pTempTarget, m_pSubRendererTexture ? m_pSubRendererTexture->GetRenderTarget() : pSystem->GetDefaultRenderTarget() );
 	sizeDependentPool.Release( pTempTarget );
+	sizeIndependentPool.Release( m_pOcclusionBuffer );
 
 	RenderGUI( context );
 	if( m_bIsSubRenderer )
@@ -162,9 +184,15 @@ void CLighted2DRenderer::RenderColorBuffer( CRenderContext2D& context )
 	context.eRenderPass = eRenderPass_Color;
 	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
 	if( m_bIsSubRenderer )
+	{
 		pSceneMgr->Render( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+		m_curCameraPos = m_subRendererContext.pCamera->GetViewArea().GetCenter();
+	}
 	else
+	{
 		pSceneMgr->Render( context );
+		m_curCameraPos = pSceneMgr->GetCamera()->GetViewArea().GetCenter();
+	}
 
 	IRenderSystem* pSystem = context.pRenderSystem;
 	IRenderTarget* pTargets[2] = { m_pColorBuffer->GetRenderTarget(), m_pEmissionBuffer->GetRenderTarget() };

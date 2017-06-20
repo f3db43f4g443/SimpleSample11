@@ -157,6 +157,9 @@
     <ClCompile Include="LevelGenerating\LvGen1_3.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\Enemies\Lv1Boss.cpp">
+      <Filter>Entities\Enemies</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -305,6 +308,9 @@
     </ClInclude>
     <ClInclude Include="GUI\Splash.h">
       <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Enemies\Lv1Boss.h">
+      <Filter>Entities\Enemies</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

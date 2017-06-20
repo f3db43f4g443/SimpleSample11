@@ -43,6 +43,14 @@ void PSEmissionClearColorNoClip( in float2 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, outColor[1].w );
 }
 
+void PSEmissionClearColorInstData( in float2 tex : TexCoord0,
+	in float4 InstData : ExtraInstData0,
+	out float4 outColor[2] : SV_Target )
+{
+	outColor[1] = Texture0.Sample( LinearSampler, tex ) * InstData;
+	outColor[0] = float4( 0, 0, 0, outColor[1].w );
+}
+
 Texture2D Texture1;
 float g_totalTime;
 float fTimeScale;

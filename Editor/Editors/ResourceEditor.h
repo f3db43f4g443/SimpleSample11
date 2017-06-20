@@ -51,9 +51,9 @@ protected:
 
 		if( m_pViewport->GetRoot() )
 		{
-			CPointLightObject* pPointLight = new CPointLightObject( CVector4( 0.1f, 0, 500, -0.05f ), CVector3( 1, 1, 1 ), 10.0f, 0.2f, 0.4f );
-			m_pViewport->GetRoot()->AddChild( pPointLight );
-			m_pLight = pPointLight;
+			CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ),CVector3( 1, 1, 1 ), 8, 256 );
+			m_pViewport->GetRoot()->AddChild( pDirectionalLight );
+			m_pLight = pDirectionalLight;
 
 			static CDefaultDrawable2D* pDrawable = NULL;
 			static CDefaultDrawable2D* pDrawable1 = NULL;

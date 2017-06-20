@@ -111,6 +111,7 @@ struct SCharacterWalkData : public SCharacterMovementData
 
 	void Jump( CCharacter* pCharacter );
 	void ReleaseJump( CCharacter* pCharacter );
+	void ReleaseCachedJump( CCharacter* pCharacter, float fTime );
 	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
 
 	void Knockback( float fTime, const CVector2& dir )

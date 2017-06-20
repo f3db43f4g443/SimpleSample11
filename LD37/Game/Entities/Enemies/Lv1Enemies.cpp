@@ -529,6 +529,7 @@ void CRat::OnAddedToStage()
 
 void CRat::OnTickAfterHitTest()
 {
+	DEFINE_TEMP_REF_THIS();
 	CEnemy::OnTickAfterHitTest();
 
 	int8 nAnimState = m_nAnimState;
@@ -667,9 +668,9 @@ void CRat::OnTickAfterHitTest()
 	auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
 	if( nAnimState != m_nAnimState )
 	{
-		if( m_nState == 1 )
+		if( m_nAnimState == 1 )
 			pImage->SetFrames( 0, 4, 12 );
-		else if( m_nState == -1 )
+		else if( m_nAnimState == -1 )
 			pImage->SetFrames( 4, 8, 12 );
 		else
 			pImage->SetFrames( 8, 12, 12 );

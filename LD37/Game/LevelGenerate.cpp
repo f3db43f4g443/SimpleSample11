@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LevelGenerate.h"
+#include "LevelDesign.h"
 #include "MyLevel.h"
 #include "Common/Rand.h"
 #include "GUI/MainUI.h"
@@ -67,6 +68,11 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		}
 	}
 
+	if( strChunkName.length() )
+	{
+		mapChunkNames[strChunkName] = pChunk;
+		strChunkName = "";
+	}
 	return pChunk;
 }
 
@@ -338,6 +344,7 @@ void SLevelBuildContext::Build()
 				auto pObj = SafeCast<CLevelScrollObj>( pPrefab->GetRoot()->CreateInstance() );
 				pObj->SetParentEntity( pLevel->GetScrollObjRoot( i ) );
 				pObj->Set( nHeight );
+				pObj->PostBuild( *this );
 				pObj->Update( pLevel->GetCurScrollPos() );
 				nHeight += pObj->GetHeight();
 			}
@@ -499,6 +506,47 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 		CLevelGenerateNode::Generate( context, region );
 	}
 }
+
+class CLevelGenerateDesignedLevelNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		m_strFileName = XmlGetAttr( pXml, "file", "" );
+
+		CLevelGenerateNode::Load( pXml, context );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		if( !IsFileExist( m_strFileName.c_str() ) )
+			return;
+		vector<char> content;
+		uint32 nSize = GetFileContent( content, m_strFileName.c_str(), false );
+		CBufReader buf( &content[0], nSize );
+		SLevelDesignContext context1( region.width, region.height );
+		context1.Init();
+		context1.Load( buf );
+
+		for( int k = 0; k < 2; k++ )
+		{
+			for( int i = 0; i < context1.nWidth; i++ )
+			{
+				for( int j = 0; j < context1.nHeight; j++ )
+				{
+					auto pItem = context1.items[k][i + j * context1.nWidth];
+					if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+					{
+						if( pItem->strChunkName.length() )
+							context.strChunkName = pItem->strChunkName;
+						pItem->pGenNode->Generate( context, pItem->region.Offset( TVector2<int32>( region.x, region.y ) ) );
+					}
+				}
+			}
+		}
+	}
+protected:
+	string m_strFileName;
+};
 
 class CLevelGenerateSpawnNode : public CLevelGenerateNode
 {
@@ -1294,6 +1342,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 {
 	REGISTER_GENERATE_NODE( "empty", CLevelGenerateNode );
 	REGISTER_GENERATE_NODE( "simple", CLevelGenerateSimpleNode );
+	REGISTER_GENERATE_NODE( "designed_level", CLevelGenerateDesignedLevelNode );
 	REGISTER_GENERATE_NODE( "simple_attach", CLevelGenerateAttachNode );
 	REGISTER_GENERATE_NODE( "simple_spawn", CLevelGenerateSpawnNode );
 	REGISTER_GENERATE_NODE( "scrollobj", CLevelGenerateScrollObjNode );

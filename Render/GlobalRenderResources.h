@@ -2,6 +2,7 @@
 
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "Texture.h"
 #include "Shader.h"
 #include <vector>
 #include <map>
@@ -110,11 +111,14 @@ public:
 	IIndexBuffer* GetIBQuad() { return m_pIBQuad; }
 	static const uint32 nStripInstanceCount = 4096;
 	IVertexBuffer* GetVBStrip() { return m_pVBStrip; }
+	ITexture* GetRandomNorm() { return m_pTexRandomNorm; }
 private:
 	CReference<IVertexBuffer> m_pVBDebug;
 	CReference<IVertexBuffer> m_pVBQuad;
 	CReference<IIndexBuffer> m_pIBQuad;
 	CReference<IVertexBuffer> m_pVBStrip;
+
+	CReference<ITexture> m_pTexRandomNorm;
 };
 
 void InitEngine();

@@ -24,6 +24,8 @@ struct SLevelBuildContext
 
 	vector<int8> blueprint;
 	map<string, int8> mapTags;
+	map<string, SChunk*> mapChunkNames;
+	string strChunkName;
 
 	CMyLevel* pLevel;
 	SChunk* pParentChunk;

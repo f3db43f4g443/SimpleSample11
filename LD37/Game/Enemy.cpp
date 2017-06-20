@@ -52,3 +52,10 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 		}
 	}
 }
+
+void CEnemyPart::Damage( int32 nDmg )
+{
+	CEnemy* pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+	if( pEnemy )
+		pEnemy->Damage( nDmg );
+}

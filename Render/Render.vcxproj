@@ -261,6 +261,7 @@
     <None Include="..\Shader\Default2DWithPos.shader" />
     <None Include="..\Shader\Default2DWithScrTex.shader" />
     <None Include="..\Shader\Default2DWorldToTex.shader" />
+    <None Include="..\Shader\Light2DAO.shader" />
     <None Include="..\Shader\Light2DInstancing.shader" />
     <None Include="..\Shader\Rope2D.shader" />
     <None Include="..\Shader\SingleImage2D.shader" />

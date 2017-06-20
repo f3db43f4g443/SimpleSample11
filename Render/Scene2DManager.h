@@ -25,6 +25,7 @@ public:
 	void AddDirtyRenderObject( CRenderObject2D* pRenderObject );
 	void AddDirtyAABB( CRenderObject2D* pRenderObject );
 
+	CCamera2D* GetCamera();
 	void AddActiveCamera( CCamera2D* pCamera, CRenderObject2D* pRoot );
 	void RemoveActiveCamera( CCamera2D* pCamera );
 

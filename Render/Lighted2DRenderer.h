@@ -58,11 +58,17 @@ private:
 
 	CReference<ITexture> m_pShadowBuffer[2];
 
+	CReference<ITexture> m_pTransmissionBuffer;
+	CReference<ITexture> m_pTransmissionBuffer1, m_pTransmissionBufferTemp;
+
 	CVector2 m_screenRes;
 	CVector2 m_lightMapRes;
 
 	uint32 m_nTimeStamp;
 	uint32 m_nUpdateFrames;
+	CVector2 m_lastCameraPos;
+	CVector2 m_curCameraPos;
+	CVector2 m_cameraOfs;
 
 	bool m_bIsSubRenderer;
 	SLighted2DSubRendererContext m_subRendererContext;
