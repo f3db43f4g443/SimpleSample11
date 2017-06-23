@@ -8,7 +8,7 @@ class CPrefabBaseNode : public CRenderObject2D
 public:
 	CPrefabBaseNode() : m_strName( "" ) { SET_BASEOBJECT_ID( CPrefabBaseNode ); }
 	CPrefabBaseNode( const SClassCreateContext& context ) : m_strName( "" ) {}
-	const char* GetName() const { return m_strName.c_str(); }
+	const CString& GetName() const { return m_strName; }
 	void SetName( const char* szName ) { m_strName = szName; }
 	void SetName( const CString& strName ) { m_strName = strName; }
 	CResource* GetResource() { return m_pResource; }

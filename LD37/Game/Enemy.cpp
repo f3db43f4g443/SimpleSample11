@@ -57,5 +57,8 @@ void CEnemyPart::Damage( int32 nDmg )
 {
 	CEnemy* pEnemy = SafeCast<CEnemy>( GetParentEntity() );
 	if( pEnemy )
+	{
+		nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
 		pEnemy->Damage( nDmg );
+	}
 }

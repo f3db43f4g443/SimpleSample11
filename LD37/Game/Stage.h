@@ -92,7 +92,7 @@ public:
 	void SetFootprintRoot( CRenderObject2D* pRenderObject ) { m_pFootprintMgr->SetFootprintRoot( pRenderObject ); }
 	bool AddFootprint( CFootprintReceiver* pReceiver );
 
-	void AddStartPoint( CEntity* pEntity ) { m_mapStartPoints[pEntity->GetName()] = pEntity; }
+	void AddStartPoint( CEntity* pEntity ) { m_mapStartPoints[pEntity->GetName().c_str()] = pEntity; }
 	CEntity* GetStartPoint( const char* szName )
 	{
 		auto itr = m_mapStartPoints.find( szName );

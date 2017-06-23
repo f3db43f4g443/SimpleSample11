@@ -132,9 +132,6 @@
     <ClCompile Include="Entities\Decorator.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
-    <ClCompile Include="Entities\UtilEnitites.cpp">
-      <Filter>Entities</Filter>
-    </ClCompile>
     <ClCompile Include="LevelScrollObj.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
@@ -159,6 +156,9 @@
     </ClCompile>
     <ClCompile Include="Entities\Enemies\Lv1Boss.cpp">
       <Filter>Entities\Enemies</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\UtilEntities.cpp">
+      <Filter>Entities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

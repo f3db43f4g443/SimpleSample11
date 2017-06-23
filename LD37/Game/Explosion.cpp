@@ -32,11 +32,31 @@ void CExplosion::OnRemovedFromStage()
 
 void CExplosion::OnTick()
 {
-	SHitProxyCircle circle;
-	circle.fRadius = m_fInitRange + m_nHitFrame * m_fDeltaRange;
-	circle.center = CVector2( 0, 0 );
 	vector<CReference<CEntity> > hitResult;
-	GetStage()->MultiHitTest( &circle, globalTransform, hitResult );
+
+	switch( m_nRangeType )
+	{
+	case 0:
+	{
+		SHitProxyCircle circle;
+		circle.fRadius = m_fInitRange + m_nHitFrame * m_fDeltaRange;
+		circle.center = CVector2( 0, 0 );
+		GetStage()->MultiHitTest( &circle, globalTransform, hitResult );
+		break;
+	}
+	default:
+	{
+		CRectangle rect;
+		rect.x = -m_fInitRange - m_nHitFrame * m_fDeltaRange;
+		rect.y = -m_fInitRange1 - m_nHitFrame * m_fDeltaRange1;
+		rect.width = m_fInitRange2 + m_nHitFrame * m_fDeltaRange2 - rect.x;
+		rect.height = m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 - rect.y;
+		SHitProxyPolygon polygon( rect );
+		GetStage()->MultiHitTest( &polygon, globalTransform, hitResult );
+		break;
+	}
+	}
+
 	for( auto& pEntity : hitResult )
 	{
 		if( !pEntity->GetStage() )

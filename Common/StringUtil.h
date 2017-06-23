@@ -16,6 +16,7 @@ public:
 	bool operator < ( const char* rhs ) const;
 	friend bool operator < ( const char* lhs, const CString& rhs );
 	bool operator == ( const CString& rhs ) const;
+	bool operator != ( const CString& rhs ) const;
 	bool operator == ( const char* rhs ) const;
 	friend bool operator == ( const char* lhs, const CString& rhs );
 	
@@ -32,6 +33,12 @@ public:
 
 	void PackData( class CBufFile& buf, bool bWithMetaData );
 	void UnpackData( class IBufReader& buf, bool bWithMetaData );
+
+	static const CString& empty()
+	{
+		static CString str( "" );
+		return str;
+	}
 private:
 	void* m_ptr;
 

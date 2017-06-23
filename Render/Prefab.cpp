@@ -229,7 +229,7 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 		if( pChild == m_pRenderObject )
 			continue;
 		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
-		pNode->UpdateTaggedNodePtrInfo( nIndex, curName.size() ? curName + "/" + pNode->GetName() : pNode->GetName(), mapInfo );
+		pNode->UpdateTaggedNodePtrInfo( nIndex, curName.size() ? curName + "/" + pNode->GetName().c_str() : pNode->GetName().c_str(), mapInfo );
 	}
 }
 

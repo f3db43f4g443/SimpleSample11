@@ -61,6 +61,11 @@ bool CString::operator == ( const CString& rhs ) const
 	return m_ptr == rhs.m_ptr;
 }
 
+bool CString::operator != ( const CString& rhs ) const
+{
+	return m_ptr != rhs.m_ptr;
+}
+
 bool CString::operator == ( const char* rhs ) const
 {
 	return strcmp( this->c_str(), rhs ) == 0;

@@ -1,7 +1,57 @@
 #include "stdafx.h"
 #include "Bullets.h"
 #include "BlockBuffs.h"
+#include "Entities/Barrage.h"
 #include "Common/ResourceManager.h"
+
+void CBomb::OnAddedToStage()
+{
+	CBullet::OnAddedToStage();
+	m_pExp->SetParentEntity( NULL );
+}
+
+void CBomb::OnHit( CEntity * pEntity )
+{
+	if( SafeCast<CBlockObject>( pEntity ) )
+	{
+		if( m_bExplodeOnHitBlock )
+			Explode();
+	}
+	else if( SafeCast<CCharacter>( pEntity ) )
+	{
+		if( m_bExplodeOnHitChar )
+			Explode();
+	}
+	else
+	{
+		if( m_bExplodeOnHitWorld )
+			Explode();
+	}
+	m_pExp = NULL;
+
+	CBullet::OnHit( pEntity );
+}
+
+void CBomb::Kill()
+{
+	if( m_bExplodeOnHitWorld )
+		Explode();
+	CBullet::Kill();
+}
+
+void CBomb::Explode()
+{
+	if( m_pExp )
+	{
+		auto pParent = SafeCast<CBarrage>( GetParentEntity() );
+		if( pParent )
+			m_pExp->SetPosition( pParent->globalTransform.MulVector2Pos( GetPosition() ) );
+		else
+			m_pExp->SetPosition( GetPosition() );
+		m_pExp->SetParentBeforeEntity( pParent ? (CEntity*)pParent : this );
+		m_pExp = NULL;
+	}
+}
 
 void CBulletWithBlockBuff::OnAddedToStage()
 {
@@ -40,7 +90,7 @@ void CExplosionKnockback::OnHit( CEntity * pEntity )
 	{
 		CVector2 dir = pChar->globalTransform.GetPosition() - globalTransform.GetPosition();
 		dir.Normalize();
-		pChar->Knockback( dir );
+		pChar->Knockback( dir * m_fKnockbackStrength );
 	}
 	CExplosion::OnHit( pEntity );
 }

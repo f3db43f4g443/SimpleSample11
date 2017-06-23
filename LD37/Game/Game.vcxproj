@@ -578,7 +578,7 @@
     <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entities\Tutorial.cpp" />
-    <ClCompile Include="Entities\UtilEnitites.cpp" />
+    <ClCompile Include="Entities\UtilEntities.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="Explosion.cpp" />
     <ClCompile Include="GameState.cpp" />

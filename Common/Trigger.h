@@ -10,7 +10,7 @@ public:
 	CTrigger() : __pPrevTrigger( NULL ), m_bValidFlag( true ), bAutoDelete( false ) {}
 	virtual ~CTrigger() { bAutoDelete = false; if( IsRegistered() ) Unregister(); }
 
-	virtual void Run( void* pContext ) = 0;
+	virtual void Run( void* pContext ) {}
 	virtual void OnRemoved() { if( bAutoDelete ) delete this; }
 	bool IsRegistered() { return __pPrevTrigger != NULL; }
 	void OnTimer();
@@ -76,7 +76,15 @@ template <int iCount>
 class CEventTrigger
 {
 public:
-	CEventTrigger() { memset( m_triggers, 0, sizeof( m_triggers ) ); }
+	CEventTrigger()
+	{
+		memset( m_triggers, 0, sizeof( m_triggers ) );
+		for( int i = 0; i < iCount; i++ )
+		{
+			m_tail[i].m_bValidFlag = false;
+			Insert_Trigger( &m_tail[i], i );
+		}
+	}
 	~CEventTrigger() { Clear(); }
 
 	void Trigger( uint32 iEvent, void* pContext )
@@ -91,7 +99,7 @@ public:
 	{
 		for( int i = 0; i < iCount; i++ )
 		{
-			while( m_triggers[i] )
+			while( m_triggers[i] != &m_tail[i] )
 				m_triggers[i]->Unregister();
 		}
 	}
@@ -99,8 +107,9 @@ public:
 	{
 		if( pTrigger->IsRegistered() )
 			pTrigger->Unregister();
-		Insert_Trigger( pTrigger, iEvent );
+		m_tail[iEvent].InsertBefore_Trigger( pTrigger );
 	}
+	CTrigger m_tail[iCount];
 	LINK_LIST_HEAD_ARR( m_triggers, iCount, CTrigger, Trigger )
 };
 
@@ -165,7 +174,7 @@ public:
 			int dTime = pEntry->nTime - m_nTime;
 			if( !dTime )
 			{
-				for( CTrigger* pTrigger = pEntry->m_triggers[0]; pTrigger; pTrigger = pEntry->m_triggers[0] )
+				for( CTrigger* pTrigger = pEntry->m_triggers[0]; pTrigger != &pEntry->m_tail[0]; pTrigger = pEntry->m_triggers[0] )
 				{
 					pTrigger->OnTimer();
 				}

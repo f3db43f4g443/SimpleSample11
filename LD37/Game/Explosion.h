@@ -28,8 +28,15 @@ private:
 	uint32 m_nHitFrameCount;
 	int32 m_nDamage;
 	int32 m_nDeltaDamage;
+	int8 m_nRangeType;
 	float m_fInitRange;
 	float m_fDeltaRange;
+	float m_fInitRange1;
+	float m_fDeltaRange1;
+	float m_fInitRange2;
+	float m_fDeltaRange2;
+	float m_fInitRange3;
+	float m_fDeltaRange3;
 
 	bool m_bHitPlayer;
 	bool m_bHitEnemy;

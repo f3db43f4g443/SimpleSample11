@@ -8,7 +8,6 @@ void CTrigger::OnTimer()
 	Run( NULL );
 }
 
-//ШЁЯћзЂВс
 void CTrigger::Unregister()
 {
 	RemoveFrom_Trigger();

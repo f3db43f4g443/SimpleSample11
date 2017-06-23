@@ -23,8 +23,6 @@ void CDoor::OnRemovedFromStage()
 
 void CDoor::OnTick()
 {
-	GetStage()->RegisterStageEvent( eStageEvent_PostHitTest, &m_onTick );
-
 	bool bOpen = false;
 	for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 	{

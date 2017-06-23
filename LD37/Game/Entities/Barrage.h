@@ -105,6 +105,7 @@ public:
 	void Start();
 	void Stop();
 	void StopNewBullet() { m_bStopNewBullet = true; }
+	bool IsStopNewBullet() { return m_bStopNewBullet; }
 	virtual void OnRemovedFromStage() override;
 	bool IsStarted() { return m_bStarted; }
 	void Yield( uint32 nFrame = 1 );

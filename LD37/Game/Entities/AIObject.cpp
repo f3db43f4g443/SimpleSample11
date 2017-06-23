@@ -107,7 +107,11 @@ void CAIObject::ResumeThrow()
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
 	if( m_pCoroutine->GetState() == ICoroutine::eState_Running )
-		m_resumeFunc();
+	{
+		auto func = m_resumeFunc;
+		m_resumeFunc = nullptr;
+		func();
+	}
 	else
 	{
 		auto pStage = GetStage();

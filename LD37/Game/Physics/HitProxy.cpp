@@ -718,6 +718,17 @@ bool SHitProxyCircle::Raycast( const CVector2& begin, const CVector2& end, const
 	return true;
 }
 
+SHitProxyPolygon::SHitProxyPolygon( const CRectangle & rect )
+{
+	nType = eHitProxyType_Polygon;
+	vertices[0] = CVector2( rect.x, rect.y );
+	vertices[1] = CVector2( rect.x + rect.width, rect.y );
+	vertices[2] = CVector2( rect.x + rect.width, rect.y + rect.height );
+	vertices[3] = CVector2( rect.x, rect.y + rect.height );
+	nVertices = 4;
+	CalcNormals();
+}
+
 bool SHitProxyPolygon::Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult )
 {
 	CVector2 p0 = trans.MulTVector2PosNoScale( begin );

@@ -13,7 +13,7 @@ public:
 	int32 GetHp() { return m_nHp; }
 
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
-private:
+protected:
 	int32 m_nHp;
 	float m_fDefence;
 	int32 m_nKnockbackCostSp;

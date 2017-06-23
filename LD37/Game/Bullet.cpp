@@ -63,6 +63,23 @@ void CBullet::OnAddedToStage()
 	CCharacter::OnAddedToStage();
 	if( m_pDeathEffect )
 		m_pDeathEffect->SetParentEntity( NULL );
+
+	switch( m_nBoundType )
+	{
+	case 0:
+		m_bound = CMyLevel::GetInst()->GetLargeBound();
+		break;
+	case 1:
+		m_bound = CMyLevel::GetInst()->GetBound();
+		break;
+	default:
+	{
+		CRectangle rect1 = CMyLevel::GetInst()->GetBound();
+		CRectangle rect2 = CMyLevel::GetInst()->GetLargeBound();
+		m_bound = CRectangle( rect2.x, rect1.y, rect2.width, rect1.height );
+		break;
+	}
+	}
 }
 
 void CBullet::OnTickBeforeHitTest()
@@ -96,8 +113,12 @@ void CBullet::OnTickAfterHitTest()
 		return;
 	}
 
-	if( !CMyLevel::GetInst()->GetLargeBound().Contains( globalTransform.GetPosition() ) )
+	if( !m_bound.Contains( globalTransform.GetPosition() ) )
 	{
+		CVector2 globalPos = globalTransform.GetPosition();
+		globalPos.x = Min( m_bound.GetRight(), Max( m_bound.x, globalPos.x ) );
+		globalPos.y = Min( m_bound.GetBottom(), Max( m_bound.y, globalPos.y ) );
+		globalTransform.SetPosition( globalPos );
 		Kill();
 		return;
 	}

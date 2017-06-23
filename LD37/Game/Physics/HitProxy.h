@@ -70,6 +70,7 @@ struct SHitProxyCircle : public SHitProxy
 struct SHitProxyPolygon : public SHitProxy
 {
 	SHitProxyPolygon() { nType = eHitProxyType_Polygon; }
+	SHitProxyPolygon( const CRectangle& rect );
 	SHitProxyPolygon( const struct SClassCreateContext& context ) { nType = eHitProxyType_Polygon; }
 	bool Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult = NULL );
 	uint32 nVertices;

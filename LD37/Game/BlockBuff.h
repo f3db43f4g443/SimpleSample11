@@ -7,6 +7,8 @@ class CBlockBuff : public CEntity
 public:
 	struct SContext
 	{
+		SContext() {}
+		SContext( const SClassCreateContext& context ) {}
 		uint32 nLife;
 		uint32 nTotalLife;
 		float fParams[4];

@@ -47,6 +47,9 @@ protected:
 	uint32 m_nDamage1;
 	uint32 m_nDamage2;
 
+	uint8 m_nBoundType;
+	CRectangle m_bound;
+
 	CVector2 m_acc;
 	float m_fAngularVelocity;
 

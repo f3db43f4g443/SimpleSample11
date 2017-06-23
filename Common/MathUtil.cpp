@@ -51,6 +51,13 @@ float NormalizeAngle( float f )
 	return f;
 }
 
+float InterpAngle( float a, float b, float t )
+{
+	float f = b - a;
+	f = NormalizeAngle( f );
+	return a + t * f;
+}
+
 struct SZCurveTable
 {
 	uint32 nValue[256];
