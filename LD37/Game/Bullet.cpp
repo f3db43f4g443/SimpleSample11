@@ -11,16 +11,6 @@
 #include "Entities/Door.h"
 #include "ParticleSystem.h"
 
-void CBullet::SetVelocity( const CVector2& velocity )
-{
-	m_velocity = velocity;
-}
-
-void CBullet::SetAcceleration( const CVector2& acc )
-{
-	m_acc = acc;
-}
-
 void CBullet::Kill()
 {
 	auto pParent = SafeCast<CBarrage>( GetParentEntity() );
@@ -257,6 +247,8 @@ void CBullet::OnTickAfterHitTest()
 			if( pCharacter && pCharacter != pPlayer )
 			{
 				if( !m_nDamage2 )
+					continue;
+				if( SafeCast<CBullet>( pCharacter ) )
 					continue;
 				CReference<CEntity> pTempRef = pEntity;
 				pCharacter->Damage( m_nDamage2 );

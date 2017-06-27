@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "GlobalRenderResources.h"
 #include "SystemShaderParams.h"
+#include "Canvas.h"
 #include "xml.h"
 
 void CMaterial::IMaterialShader::_init( const char* szShaderName, IShader* pShader )
@@ -89,11 +90,21 @@ void CMaterial::Load( IBufReader& buf )
 		{
 			string strFileName;
 			buf.Read( strFileName );
-			CTextureFile* pTexture = CResourceManager::Inst()->CreateResource<CTextureFile>( strFileName.c_str() );
-			if( !pTexture )
+			auto pResource = CResourceManager::Inst()->CreateResource( strFileName.c_str() );
+			if( !pResource )
 				continue;
-			m_vecDependentResources.push_back( pTexture );
-			m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+			if( pResource->GetResourceType() == CTextureFile::eResType )
+			{
+				CTextureFile* pTexture = static_cast<CTextureFile*>( pResource );
+				m_vecDependentResources.push_back( pTexture );
+				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+			}
+			else if( pResource->GetResourceType() == CDynamicTexture::eResType )
+			{
+				CDynamicTexture* pTexture = static_cast<CDynamicTexture*>( pResource );
+				m_vecDependentResources.push_back( pTexture );
+				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture ) );
+			}
 		}
 	}
 	
@@ -132,11 +143,10 @@ void CMaterial::Save( CBufFile& buf )
 	for( auto& item : m_vecShaderResources )
 	{
 		item.first.Save( buf );
-		IShaderResource* pShaderResource = item.second->GetShaderResource();
-		if( pShaderResource->GetType() == EShaderResourceType::Texture2D )
+		EShaderResourceType eType = item.first.eType;
+		if( eType == EShaderResourceType::Texture2D )
 		{
-			CTextureFile* pTexture = static_cast<CTextureFile*>( m_vecDependentResources[nResource++].GetPtr() );
-			string strFileName = pTexture->GetName();
+			string strFileName = m_vecDependentResources[nResource++]->GetName();
 			buf.Write( strFileName );
 		}
 	}

@@ -49,7 +49,7 @@ public:
 		eEvent_Count,
 	};
 	void Register( uint32 iEvent, CTrigger* pTrigger ) { m_trigger.Register( iEvent, pTrigger ); }
-	void Trigger( uint32 iEvent ) { m_trigger.Trigger( iEvent, NULL ); }
+	void Trigger( uint32 iEvent, void* pContext = NULL ) { m_trigger.Trigger( iEvent, pContext ); }
 
 	static CScene2DManager* GetGlobalInst();
 private:

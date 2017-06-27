@@ -305,7 +305,7 @@ void SParticleDrawableEditItem::Refresh( CParticleSystemDrawable* pDrawable )
 	SDrawableEditItems::RefreshMaterial( pDrawable->m_material );
 }
 
-void SParticleDrawableEditItem::Update( CParticleSystemDrawable* pDrawable )
+void SParticleDrawableEditItem::Update( CParticleSystemDrawable* pDrawable, CResource* pResource )
 {
 	paramItem.Update( &pDrawable->m_param, pDrawable->m_pData );
 	CRopeDrawable2D* pRopeDrawable2D = dynamic_cast<CRopeDrawable2D*>( pDrawable );
@@ -313,7 +313,7 @@ void SParticleDrawableEditItem::Update( CParticleSystemDrawable* pDrawable )
 		pRopeDrawable2D->m_nRopeMaxInst = pRopeMaxInst->GetValue<uint32>();
 	uint16 nBlend = (uint16)pBlend->GetSelectedItem()->pData;
 	pDrawable->m_pBlendState = pDrawable->GetBlendState( nBlend );
-	SDrawableEditItems::UpdateMaterial( pDrawable->m_material );
+	SDrawableEditItems::UpdateMaterial( pDrawable->m_material, pResource );
 	pDrawable->BindParams();
 }
 
@@ -354,7 +354,7 @@ void SParticleDrawablePassEditItem::Refresh( CParticleSystem* pParticleSystem, v
 	}
 }
 
-void SParticleDrawablePassEditItem::Update( CParticleSystem* pParticleSystem, vector<CParticleSystemDrawable*>& vecDrawables )
+void SParticleDrawablePassEditItem::Update( CParticleSystem* pParticleSystem, vector<CParticleSystemDrawable*>& vecDrawables, CResource* pResource )
 {
 	for( auto pDrawable : vecDrawables )
 		delete pDrawable;
@@ -364,7 +364,7 @@ void SParticleDrawablePassEditItem::Update( CParticleSystem* pParticleSystem, ve
 	{
 		auto pDrawable = pParticleSystem->CreateDrawable();
 		auto pItem = items[i];
-		pItem->Update( pDrawable );
+		pItem->Update( pDrawable, pResource );
 		vecDrawables.push_back( pDrawable );
 	}
 }
@@ -392,6 +392,8 @@ void CParticleEditor::NewFile( const char* szFileName )
 {
 	CRectangle rect( -128, -128, 256, 256 );
 	m_pRect->SetFloats( &rect.x );
+	CVector4 vec( 64, 8, 0, 0 );
+	m_pPreview->SetFloats( &vec.x );
 	m_dataItem.Clear();
 	for( int i = 0; i < ELEM_COUNT( m_drawablePassItems ); i++ )
 		m_drawablePassItems[i].Clear();
@@ -425,6 +427,8 @@ void CParticleEditor::OnInited()
 
 	m_pRect = CVectorEdit::Create( "Rect", 4 );
 	m_pTreeView->AddContent( m_pRect );
+	m_pPreview = CVectorEdit::Create( "Preview", 2 );
+	m_pTreeView->AddContent( m_pPreview );
 	m_dataItem.pTreeView = m_pTreeView;
 	m_dataItem.pEditor = this;
 	m_dataItem.Create();
@@ -453,10 +457,10 @@ void CParticleEditor::RefreshPreview()
 		particleSystem.m_pParticleSystemData = new CParticleSystemData;
 	m_pRect->GetFloats( &particleSystem.m_rect.x );
 	m_dataItem.Update( particleSystem.m_pParticleSystemData );
-	m_drawablePassItems[0].Update( &particleSystem, particleSystem.m_vecColorPassDrawables );
-	m_drawablePassItems[1].Update( &particleSystem, particleSystem.m_vecOcclusionPassDrawables );
-	m_drawablePassItems[2].Update( &particleSystem, particleSystem.m_vecGUIPassDrawables );
-
+	m_drawablePassItems[0].Update( &particleSystem, particleSystem.m_vecColorPassDrawables, m_pRes );
+	m_drawablePassItems[1].Update( &particleSystem, particleSystem.m_vecOcclusionPassDrawables, m_pRes );
+	m_drawablePassItems[2].Update( &particleSystem, particleSystem.m_vecGUIPassDrawables, m_pRes );
+	m_pRes->UpdateDependencies();
 	m_pRes->RefreshEnd();
 	RefreshRenderObject();
 }
@@ -491,6 +495,14 @@ void CParticleEditor::RefreshRenderObject()
 	m_pRenderObject = m_pRes->CreateInstance( NULL );
 	if( m_pRenderObject )
 		m_pViewport->GetRoot()->AddChild( m_pRenderObject );
+	CVector4 preview;
+	m_pPreview->GetFloats( &preview.x );
+	if( m_pRes->GetParticleSystem().GetData()->GetType() == eParticleSystemType_Beam )
+	{
+		CRopeObject2D* pRopeObject = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
+		pRopeObject->GetData().data[1].center = CVector2( preview.x, 0 );
+		pRopeObject->GetData().data[0].fWidth = pRopeObject->GetData().data[1].fWidth = preview.y;
+	}
 
 	SetCamOfs( CVector2( 0, 0 ) );
 }

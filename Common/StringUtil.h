@@ -29,6 +29,7 @@ public:
 	}
 
 	const char* c_str() const;
+	const char* c_str_safe() const;
 	int length() const;
 
 	void PackData( class CBufFile& buf, bool bWithMetaData );

@@ -79,7 +79,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 			pFootprintMgr->Update( context.dTime, pSystem );
 		}
 		pSceneMgr->UpdateDirty();
-		pSceneMgr->Trigger( CScene2DManager::eEvent_BeforeRender );
+		pSceneMgr->Trigger( CScene2DManager::eEvent_BeforeRender, &context );
 	}
 
 	auto& sizeDependentPool = m_bIsSubRenderer ? m_sizeDependentPool : CRenderTargetPool::GetSizeDependentPool();

@@ -45,7 +45,7 @@ void CBomb::Explode()
 	{
 		auto pParent = SafeCast<CBarrage>( GetParentEntity() );
 		if( pParent )
-			m_pExp->SetPosition( pParent->globalTransform.MulVector2Pos( GetPosition() ) );
+			m_pExp->SetPosition( globalTransform.GetPosition() );
 		else
 			m_pExp->SetPosition( GetPosition() );
 		m_pExp->SetParentBeforeEntity( pParent ? (CEntity*)pParent : this );

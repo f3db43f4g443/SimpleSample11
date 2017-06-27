@@ -32,6 +32,9 @@
     <ClInclude Include="Editors\ParticleEditor.h">
       <Filter>Editors</Filter>
     </ClInclude>
+    <ClInclude Include="Editors\DynamicTextureEditor.h">
+      <Filter>Editors</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp" />
@@ -55,6 +58,9 @@
       <Filter>Editors</Filter>
     </ClCompile>
     <ClCompile Include="Editors\ParticleEditor.cpp">
+      <Filter>Editors</Filter>
+    </ClCompile>
+    <ClCompile Include="Editors\DynamicTextureEditor.cpp">
       <Filter>Editors</Filter>
     </ClCompile>
   </ItemGroup>

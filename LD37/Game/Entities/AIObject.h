@@ -9,6 +9,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 	void Yield();
 	void Yield( float fTime, bool bAfterHitTest );
+	bool IsRunning();
 
 	template<typename T>
 	void Throw( T t )

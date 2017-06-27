@@ -605,7 +605,7 @@ void SCharacterWalkData::ReleaseCachedJump( CCharacter * pCharacter, float fTime
 {
 	CVector2 dVelocity = velocity;
 	float l = dVelocity.Normalize();
-	dVelocity = dVelocity * Max( l, Min( 1.0f, fTime / fJumpMaxHoldTime ) * fJumpMaxSpeed );
+	dVelocity = dVelocity * Min( fJumpMaxSpeed, fTime / fJumpMaxHoldTime * fJumpMaxSpeed + l );
 	velocity = dVelocity;
 	bSleep = false;
 }

@@ -17,6 +17,8 @@ public:
 	void LoadXml( TiXmlElement* pRoot );
 	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 	void Flush( CRenderContext2D& context );
+
+	vector<CReference<CResource> >& GetDependentResources() { return m_material.GetDependentResources(); }
 protected:
 	virtual void OnApplyMaterial( CRenderContext2D& context ) {}
 	virtual bool OnFlushElement( CRenderContext2D& context, CElement2D* pElement, bool bBreak ) { return false; }

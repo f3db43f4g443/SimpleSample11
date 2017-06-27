@@ -24,6 +24,7 @@ public:
 		m_frameData.frames.clear();
 		m_tileMapInfo.nWidth = m_tileMapInfo.nHeight = m_tileMapInfo.nTileCount = 0;
 		m_tileMapInfo.params.clear();
+		ClearDependency();
 	}
 	uint8 GetType() { return m_nType; }
 	uint8 GetParamCount() { return m_nParamCount; }
@@ -64,6 +65,8 @@ public:
 	void Save( CBufFile& buf );
 
 	CRenderObject2D* CreateInstance();
+
+	void UpdateDependencies();
 private:
 	SDrawableInfo m_colorDrawable;
 	SDrawableInfo m_occlusionDrawable;

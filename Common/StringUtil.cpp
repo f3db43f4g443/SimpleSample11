@@ -119,6 +119,14 @@ const char* CString::c_str() const
 	return ptr->_Myval.first.c_str();
 }
 
+const char* CString::c_str_safe() const
+{
+	if( !m_ptr )
+		return "";
+	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
+	return ptr->_Myval.first.c_str();
+}
+
 int CString::length() const
 {
 	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );

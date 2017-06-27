@@ -47,7 +47,8 @@ public:
 	virtual void BindParams() override;
 	void BindParamsNoParticleSystem();
 	virtual void LoadXml( TiXmlElement* pRoot ) override;
-	
+
+	vector<CReference<CResource> >& GetDependentResources() { return m_material.GetDependentResources(); }
 	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 private:
 	uint32 m_nRopeMaxInst;

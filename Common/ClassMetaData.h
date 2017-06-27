@@ -7,6 +7,7 @@
 #include "Math3D.h"
 #include "Reference.h"
 #include "BitArray.h"
+#include "ResourceManager.h"
 using namespace std;
 
 struct SClassCreateContext
@@ -59,6 +60,7 @@ struct SClassMetaData
 			eTypeTaggedPtr,
 		};
 		uint32 nType;
+		uint32 nFlag;
 		string strTypeName;
 		SClassMetaData* pTypeData;
 		SEnumMetaData* pEnumData;
@@ -70,10 +72,10 @@ struct SClassMetaData
 	};
 	vector<SMemberData> vecMemberData;
 	map<string, uint32> mapMemberDataIndex;
-	void AddMemberData( const char* szName, uint32 nType, uint32 nOffset );
-	void AddMemberData( const char* szName, const char* szTypeName, uint32 nOffset );
-	void AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset );
-	void AddMemberDataTaggedPtr( const char* szName, const char* szTypeName, const char* szTag, uint32 nOffset );
+	SMemberData& AddMemberData( const char* szName, uint32 nType, uint32 nOffset );
+	SMemberData& AddMemberData( const char* szName, const char* szTypeName, uint32 nOffset );
+	SMemberData& AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset );
+	SMemberData& AddMemberDataTaggedPtr( const char* szName, const char* szTypeName, const char* szTag, uint32 nOffset );
 
 	template <typename T>
 	struct AddMemberData_Impl{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, typeid( T ).name(), nOffset ); } };
@@ -121,6 +123,11 @@ struct SClassMetaData
 			ss << szName << "[" << i << "]";
 			pThis->AddMemberData<T>( ss.str().c_str(), nOffset + sizeof( T ) * i );
 		}
+	} };
+	template <typename T>
+	struct AddMemberData_Impl<TResourceRef<T> > { static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset )
+	{
+		pThis->AddMemberData( szName, typeid( CString ).name(), nOffset ).nFlag = 1 | ( T::eResType << 16 );
 	} };
 
 	template<typename T>
@@ -179,6 +186,7 @@ struct SClassMetaData
 
 	void FindAllDerivedClasses( function<void( SClassMetaData* pData )>& func );
 	void FindAllTaggedPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass = NULL, uint32 nOfs = 0 );
+	void FindAllResPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass = NULL, uint32 nOfs = 0 );
 };
 
 class CBaseObject

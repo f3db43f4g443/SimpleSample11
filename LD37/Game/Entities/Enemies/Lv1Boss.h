@@ -10,8 +10,10 @@ class CLv1Boss : public CLevelScrollObj
 	friend void RegisterGameClasses();
 public:
 	CLv1Boss( const SClassCreateContext& context ) : CLevelScrollObj( context ), m_h1( -1 ), m_nLinkCount( 0 )
-		, m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_strBullet3( context ), m_strTentacle( context ), m_strTentacleHole( context )
-		, m_strExpKnockbackName( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strTentacleName1( context ) { SET_BASEOBJECT_ID( CLv1Boss ); }
+		, m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_strBullet3( context )
+		, m_strLaser( context ), m_strBulletEye( context ), m_strBulletShockwave( context ), m_strTentacle( context ), m_strTentacleHole( context )
+		, m_strExpKnockbackName( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strTentacleName1( context )
+		, m_strExplosive0( context ), m_strExplosive1( context ), m_strExplosive2( context ), m_strExplosive3( context ) { SET_BASEOBJECT_ID( CLv1Boss ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void Update( uint32 nCur ) override;
@@ -25,6 +27,7 @@ private:
 	void SpawnWorm1( CEntity* pTentacle );
 	CEntity* FindWorm1ReturnPoint();
 
+	void UpdateEyePos( CEntity* pEye, CRenderObject2D* pEyeLink, const CVector2& target, float fSpeed );
 	void AIFuncEye( uint8 nEye );
 	void AIFuncEye1( uint8 nEye );
 	void AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject );
@@ -71,24 +74,22 @@ private:
 
 	bool CheckBlocked( const TRectangle<int32>& rect );
 
-	CString m_strBullet;
-	CString m_strBullet1;
-	CString m_strBullet2;
-	CString m_strBullet3;
-	CString m_strTentacle;
-	CString m_strTentacleHole;
-	CString m_strWorm1;
+	TResourceRef<CPrefab> m_strBullet;
+	TResourceRef<CPrefab> m_strBullet1;
+	TResourceRef<CPrefab> m_strBullet2;
+	TResourceRef<CPrefab> m_strBullet3;
+	TResourceRef<CPrefab> m_strLaser;
+	TResourceRef<CPrefab> m_strBulletEye;
+	TResourceRef<CPrefab> m_strBulletShockwave;
+	TResourceRef<CDrawableGroup> m_strTentacle;
+	TResourceRef<CDrawableGroup> m_strTentacleHole;
+	TResourceRef<CPrefab> m_strWorm1;
+	TResourceRef<CPrefab> m_strExpKnockbackName;
+	TResourceRef<CPrefab> m_strExplosive0;
+	TResourceRef<CPrefab> m_strExplosive1;
+	TResourceRef<CPrefab> m_strExplosive2;
+	TResourceRef<CPrefab> m_strExplosive3;
 	CString m_strTransparentChunkName;
-	CReference<CPrefab> m_pPrefabBullet;
-	CReference<CPrefab> m_pPrefabBullet1;
-	CReference<CPrefab> m_pPrefabBullet2;
-	CReference<CPrefab> m_pPrefabBullet3;
-	CReference<CDrawableGroup> m_pDrawableTentacle;
-	CReference<CDrawableGroup> m_pDrawableTentacleHole;
-	CReference<CPrefab> m_pWorm1;
-	CReference<CPrefab> m_pPrefabExpKnockback;
-
-	CString m_strExpKnockbackName;
 	CString m_strTentacleName1;
 
 	CReference<CEntity> m_pBoss;

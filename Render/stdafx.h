@@ -156,6 +156,7 @@ enum
 	eEngineResType_Prefab,
 	eEngineResType_Font,
 	eEngineResType_Sound,
+	eEngineResType_DynamicTexture,
 
 	eEngineResType_End,
 };

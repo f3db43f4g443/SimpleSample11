@@ -26,6 +26,7 @@ public:
 	bool CanAddDependency( CResource* pResource );
 	bool AddDependency( CResource* pResource );
 	bool RemoveDependency( CResource* pResource );
+	void ClearDependency() { m_mapDependencies.clear(); }
 
 	void RegisterRefreshBegin( CTrigger* pTrigger ) { Register( 0, pTrigger ); }
 	void RegisterRefreshEnd( CTrigger* pTrigger ) { Register( 1, pTrigger ); }

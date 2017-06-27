@@ -11,6 +11,7 @@
 #include "Bullet.h"
 #include "Entities/Barrage.h"
 #include "Common/MathUtil.h"
+#include "Lightning.h"
 
 #define BOSS_HEIGHT 24
 
@@ -199,14 +200,6 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 	pChunk->fDestroyWeight = 100000;
 	pChunk->Insert_StopEvent( pEvent );
 
-	m_pPrefabBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet );
-	m_pPrefabBullet1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet1 );
-	m_pPrefabBullet2 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet2 );
-	m_pPrefabBullet3 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet3 );
-	m_pDrawableTentacle = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strTentacle );
-	m_pDrawableTentacleHole = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strTentacleHole );
-	m_pWorm1 = CResourceManager::Inst()->CreateResource<CPrefab>( m_strWorm1 );
-	m_pPrefabExpKnockback = CResourceManager::Inst()->CreateResource<CPrefab>( m_strExpKnockbackName );
 	const char* szChunks[] = { "1", "2", "3", "4", "5a", "5b", "6", "7", "8", "9", "10", "11", "12", "13", "14" };
 	uint32 nHeights[] = { 8, 8, 8, 8, 11, 11, 10, 10, 6, 5, 10, 6, 11, 2, 8 };
 	for( int i = 0; i < ELEM_COUNT( szChunks ); i++ )
@@ -321,7 +314,7 @@ void CLv1Boss::CreateTentacle( uint8 i, CChunkObject* pChunkObject )
 	for( int iPos = 0; iPos < nCount[i]; iPos++ )
 	{
 		auto pos1 = pos[iPos + nBegin[i]];
-		CTentacle* pTentacle = new CTentacle( this, m_pDrawableTentacle, m_pDrawableTentacleHole );
+		CTentacle* pTentacle = new CTentacle( this, m_strTentacle, m_strTentacleHole );
 		pTentacle->SetPosition( CVector2( pos1.x + 2, pos1.y + 2 ) * CMyLevel::GetBlockSize() - CVector2( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y ) );
 		pTentacle->SetParentEntity( pChunkObject );
 	}
@@ -329,7 +322,7 @@ void CLv1Boss::CreateTentacle( uint8 i, CChunkObject* pChunkObject )
 
 void CLv1Boss::SpawnWorm1( CEntity* pTentacle )
 {
-	auto pWorm = SafeCast<CLv1BossWorm1>( m_pWorm1->GetRoot()->CreateInstance() );
+	auto pWorm = SafeCast<CLv1BossWorm1>( m_strWorm1->GetRoot()->CreateInstance() );
 	pWorm->Set( this, pTentacle );
 	pWorm->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 }
@@ -343,6 +336,24 @@ CEntity* CLv1Boss::FindWorm1ReturnPoint()
 			return pEntity;
 	}
 	return NULL;
+}
+
+void CLv1Boss::UpdateEyePos( CEntity* pEye, CRenderObject2D* pEyeLink, const CVector2 & target, float fSpeed )
+{
+	float fDeltaTime = GetStage()->GetElapsedTimePerTick();
+	CVector2 eyePos = pEye->GetPosition();
+	CVector2 dPos = target - eyePos;
+	float l = dPos.Normalize();
+	eyePos = eyePos + dPos * Min( l, fSpeed * fDeltaTime );
+	pEye->SetPosition( eyePos );
+	pEye->SetRotation( atan2( eyePos.y, eyePos.x ) );
+
+	int iChild = 0;
+	for( auto pChild = pEyeLink->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild(), iChild++ )
+	{
+		float f = ( iChild + 0.5f ) / m_nLinkCount;
+		pChild->SetPosition( eyePos * ( 1 - f ) );
+	}
 }
 
 void CLv1Boss::AIFuncEye( uint8 nEye )
@@ -379,7 +390,7 @@ void CLv1Boss::AIFuncEye1( uint8 nEye )
 			{
 				float fAngle = i * PI / 8;
 				CVector2 dir( cos( fAngle ), sin( fAngle ) );
-				auto pBullet = SafeCast<CBullet>( m_pPrefabBullet->GetRoot()->CreateInstance() );
+				auto pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
 				float k = ( 1 - dir.y ) * 0.5f;
 				float k1 = 1 - ( 1 - k ) * ( 1 - k ) * ( 1 - k ) * ( 1 - k );
 				float k2 = k * k * k * k;
@@ -408,33 +419,168 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 		CRenderObject2D* pEyeLink = m_pEyeLink[nEye];
 		CVector2 basePos = pEyeHole->GetPosition() + pChunkObject->GetPosition();
 
+		for( int i = 0; i < 60; i++ )
+		{
+			UpdateEyePos( pEye, pEyeLink, CVector2( 0, -100 ), 100.0f );
+			m_pAIEye[nEye]->Yield( 0, false );
+		}
+
 		CVector2 target( 0, -100 );
 		while( 1 )
 		{
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( pPlayer )
+			int32 nFire = SRand::Inst().Rand( 10, 15 );
+			while( nFire > 0 )
 			{
-				target = pPlayer->GetPosition() - basePos;
-				target.Normalize();
-				target = target * 100;
+				int32 nType = SRand::Inst().Rand( 0, 3 );
+
+				if( nType == 0 )
+				{
+					for( int i = 0; i < 3; i++ )
+					{
+						for( int j = 0; j < 60; j++ )
+						{
+							CPlayer* pPlayer = GetStage()->GetPlayer();
+							if( pPlayer )
+							{
+								target = pPlayer->GetPosition() - basePos;
+								target.Normalize();
+								target = target * 200;
+							}
+
+							UpdateEyePos( pEye, pEyeLink, target, 25.0f );
+							m_pAIEye[nEye]->Yield( 0, false );
+						}
+
+						auto pBullet = SafeCast<CBullet>( m_strBulletEye->GetRoot()->CreateInstance() );
+						CVector2 dir( cos( pEye->r ), sin( pEye->r ) );
+						pBullet->SetPosition( pEye->GetPosition() + basePos + dir * 90 );
+						pBullet->SetVelocity( dir * 100 );
+						pBullet->SetRotation( pEye->r );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						nFire--;
+						m_pAIEye[nEye]->Yield( 0.5f, false );
+					}
+				}
+				else if( nType == 1 )
+				{
+					for( int j = 0; j < 90; j++ )
+					{
+						CPlayer* pPlayer = GetStage()->GetPlayer();
+						if( pPlayer )
+						{
+							target = pPlayer->GetPosition() - basePos;
+							target.Normalize();
+							target = target * 100;
+						}
+
+						UpdateEyePos( pEye, pEyeLink, target, 10.0f );
+						m_pAIEye[nEye]->Yield( 0, false );
+					}
+
+					for( int i = 0; i < 3; i++ )
+					{
+						auto pBullet = SafeCast<CBullet>( m_strBulletEye->GetRoot()->CreateInstance() );
+						float fAngle = pEye->r + ( i - 1 ) * 0.3f;
+						CVector2 dir( cos( pEye->r + ( i - 1 ) * 0.3f ), sin( pEye->r + ( i - 1 ) * 0.3f ) );
+						pBullet->SetPosition( pEye->GetPosition() + basePos + dir * 90 );
+						pBullet->SetVelocity( dir * 100 );
+						pBullet->SetRotation( fAngle );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						nFire--;
+					}
+					m_pAIEye[nEye]->Yield( 0.75f, false );
+				}
+				else if( nType == 2 )
+				{
+					CPlayer* pPlayer = GetStage()->GetPlayer();
+					if( pPlayer )
+						target = pPlayer->GetPosition() - basePos;
+
+					int8 nDir = NormalizeAngle( atan2( target.y, target.x ) - pEye->r ) > 0 ? 1 : -1;
+					int32 nCD = 0;
+					float l = pEye->GetPosition().Length();
+					float ofsAngle = atan2( pEye->y, pEye->x );
+
+					while( 1 )
+					{
+						CPlayer* pPlayer = GetStage()->GetPlayer();
+						if( pPlayer )
+							target = pPlayer->GetPosition() - basePos;
+						float dAngle = NormalizeAngle( atan2( target.y, target.x ) - pEye->r ) * nDir;
+						if( dAngle < -0.3f )
+							break;
+
+						ofsAngle += nDir * 0.008f;
+						pEye->SetPosition( CVector2( cos( ofsAngle ), sin( ofsAngle ) ) * l );
+						UpdateEyePos( pEye, pEyeLink, pEye->GetPosition(), 0 );
+
+						if( !nCD )
+						{
+							auto pBullet = SafeCast<CBullet>( m_strBulletEye->GetRoot()->CreateInstance() );
+							CVector2 dir( cos( pEye->r ), sin( pEye->r ) );
+							pBullet->SetPosition( pEye->GetPosition() + basePos + dir * 90 );
+							pBullet->SetVelocity( dir * 100 );
+							pBullet->SetRotation( pEye->r );
+							pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+							nCD = 25;
+							nFire--;
+						}
+						nCD--;
+						m_pAIEye[nEye]->Yield( 0, false );
+					}
+				}
+
 			}
 
-			float fDeltaTime = GetStage()->GetElapsedTimePerTick();
-			CVector2 eyePos = pEye->GetPosition();
-			CVector2 dPos = target - eyePos;
-			float l = dPos.Normalize();
-			eyePos = eyePos + dPos * Min( l, 50.0f * fDeltaTime );
-			pEye->SetPosition( eyePos );
-			pEye->SetRotation( atan2( eyePos.y, eyePos.x ) );
-
-			int i = 0;
-			for( auto pChild = pEyeLink->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild(), i++ )
 			{
-				float f = ( i + 0.5f ) / m_nLinkCount;
-				pChild->SetPosition( eyePos * ( 1 - f ) );
+				CVector2 target( nEye ? -150 : 150, 0 );
+				while( 1 )
+				{
+					UpdateEyePos( pEye, pEyeLink, target, 400 );
+					m_pAIEye[nEye]->Yield( 0, false );
+					if( ( pEye->GetPosition() - target ).Length2() < 0.01f * 0.01f )
+						break;
+				}
+
+				TTempEntityHolder<CLightning> pLaser = SafeCast<CLightning>( m_strLaser->GetRoot()->CreateInstance() );
+				pLaser->SetCreator( pEye );
+				pLaser->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				CVector2 dir( cos( pEye->r ), sin( pEye->r ) );
+				CVector2 begin = pEye->GetPosition() + basePos + dir * 90;
+				CVector2 end = pEye->GetPosition() + basePos + dir * 1200;
+				pLaser->Set( NULL, NULL, begin, end, -1, -1 );
+				pLaser->SetOnHit( [this] ( CLightning* pObj, CEntity* pTarget ) {
+					if( SafeCast<CBullet>( pTarget ) && pTarget->GetName() == m_strBulletEye->GetRoot()->GetName() )
+					{
+						float fAngle0 = pTarget->r;
+						for( int i = 0; i < 24; i++ )
+						{
+							float fAngle = fAngle0 + i * PI / 12;
+							float fLen = 150 + abs( ( i % 4 ) - 2 ) * 25;
+							auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
+							pBullet->SetPosition( pTarget->GetPosition() );
+							pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * fLen );
+							pBullet->SetRotation( fAngle );
+							pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						}
+
+						pTarget->SetParentEntity( NULL );
+					}
+				} );
+				m_pAIEye[nEye]->Yield( 0.5f, false );
+
+				for( int nTick = 0; nTick < 250; nTick++ )
+				{
+					UpdateEyePos( pEye, pEyeLink, CVector2( nEye ? 30 : -30, -75 ), 80 );
+
+					CVector2 dir( cos( pEye->r ), sin( pEye->r ) );
+					CVector2 begin = pEye->GetPosition() + basePos + dir * 90;
+					CVector2 end = pEye->GetPosition() + basePos + dir * 2000;
+					pLaser->Set( NULL, NULL, begin, end, -1, -1 );
+					m_pAIEye[nEye]->Yield( 0, false );
+				}
 			}
 
-			m_pAIEye[nEye]->Yield( 0, false );
 		}
 	}
 	catch( SKilled e )
@@ -461,8 +607,22 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 void CLv1Boss::AIFuncEye3( uint8 nEye )
 {
 	auto pAI = m_pAIEye[nEye];
+	TRectangle<int32> rect = nEye == 0 ? TRectangle<int32>( 2, 18, 4, 4 ) : TRectangle<int32>( 26, 18, 4, 4 );
+	CVector2 center = CVector2( rect.GetCenterX(), rect.GetCenterY() ) * CMyLevel::GetBlockSize();
+	pAI->Yield( 1.0f, false );
 	while( 1 )
-		pAI->Yield( 1.0f, false );
+	{
+		if( !CheckBlocked( rect ) )
+		{
+			auto pBullet = SafeCast<CBullet>( m_strBulletEye->GetRoot()->CreateInstance() );
+			float fAngle = SRand::Inst().Rand( -0.3f, 0.3f ) - PI / 2;
+			pBullet->SetPosition( center );
+			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 100 );
+			pBullet->SetRotation( fAngle );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+		pAI->Yield( 2.0f, false );
+	}
 }
 
 void CLv1Boss::AIFuncNose()
@@ -492,7 +652,7 @@ void CLv1Boss::AIFuncNose1()
 		float fAngle = i * 11 * PI * 2 / 255;
 		if( !CheckBlocked( TRectangle<int32>( 12, 6, 4, 2 ) ) )
 		{
-			auto pBullet = SafeCast<CBullet>( m_pPrefabBullet1->GetRoot()->CreateInstance() );
+			auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( CVector2( 14, 7 ) * CMyLevel::GetBlockSize() );
 			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 180 );
 			pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
@@ -500,7 +660,7 @@ void CLv1Boss::AIFuncNose1()
 		}
 		if( !CheckBlocked( TRectangle<int32>( 16, 6, 4, 2 ) ) )
 		{
-			auto pBullet = SafeCast<CBullet>( m_pPrefabBullet1->GetRoot()->CreateInstance() );
+			auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( CVector2( 18, 7 ) * CMyLevel::GetBlockSize() );
 			pBullet->SetVelocity( CVector2( -cos( fAngle ), sin( fAngle ) ) * 180 );
 			pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
@@ -522,7 +682,7 @@ void CLv1Boss::AIFuncNose2( CChunkObject* pChunkObject )
 		pChunkObject->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled>() );
 
 		SBarrageContext context;
-		context.vecBulletTypes.push_back( m_pPrefabBullet1 );
+		context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
 		context.nBulletPageSize = 100;
 
 		float fTargetV = 0;
@@ -604,8 +764,47 @@ void CLv1Boss::AIFuncNose2( CChunkObject* pChunkObject )
 
 void CLv1Boss::AIFuncNose3()
 {
+	int32 i = 0;
 	while( 1 )
-		m_pAINose->Yield( 1.0f, false );
+	{
+		m_pAINose->Yield( 0.4f, false );
+
+		float t = i * 19.0f / 255;
+		t -= floor( t );
+		t = abs( t - 0.5f ) * 2;
+		float fTime = 5.0f;
+		float g = 200.0f;
+		if( !CheckBlocked( TRectangle<int32>( 12, 5, 4, 2 ) ) )
+		{
+			CVector2 pos = CVector2( 14, 6 ) * CMyLevel::GetBlockSize();
+			CVector2 target( t * 1024, 0 );
+			CVector2 vel( ( target.x - pos.x ) / fTime, 0.5f * g * fTime + ( target.y - pos.y ) / fTime );
+
+			auto pBullet = SafeCast<CBullet>( m_strBullet3->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( pos );
+			pBullet->SetVelocity( vel );
+			pBullet->SetAcceleration( CVector2( 0, -g ) );
+			pBullet->SetAngularVelocity( 0.5f );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+		if( !CheckBlocked( TRectangle<int32>( 16, 5, 4, 2 ) ) )
+		{
+			CVector2 pos = CVector2( 18, 6 ) * CMyLevel::GetBlockSize();
+			CVector2 target( ( 1 - t ) * 1024, 0 );
+			CVector2 vel( ( target.x - pos.x ) / fTime, 0.5f * g * fTime + ( target.y - pos.y ) / fTime );
+
+			auto pBullet = SafeCast<CBullet>( m_strBullet3->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( pos );
+			pBullet->SetVelocity( vel );
+			pBullet->SetAcceleration( CVector2( 0, -g ) );
+			pBullet->SetAngularVelocity( -0.5f );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+
+		i++;
+		if( i >= 255 )
+			i = 0;
+	}
 }
 
 void CLv1Boss::AIFuncMouth()
@@ -656,7 +855,7 @@ void CLv1Boss::AIFuncMouth1()
 				CVector2 center = CVector2( 16, 2 ) * CMyLevel::GetBlockSize();
 				if( ( pPlayer->GetPosition() - center ).Length2() < 300 * 300 )
 				{
-					auto pExp = SafeCast<CEntity>( m_pPrefabExpKnockback->GetRoot()->CreateInstance() );
+					auto pExp = SafeCast<CEntity>( m_strExpKnockbackName->GetRoot()->CreateInstance() );
 					pExp->SetPosition( center );
 					pExp->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
 					m_pAIMouth->Yield( 3.0f, false );
@@ -723,9 +922,13 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 			vecSegOrigs.push_back( m_vecTongueSegs[i]->GetPosition() );
 		}
 
+		CPrefab* pPrefab[4] = { m_strExplosive0, m_strExplosive1, m_strExplosive2, m_strExplosive3 };
+		uint32 nFireSeg = 0;
 		while( 1 )
 		{
 			int32 nTick = SRand::Inst().Rand( 10 * 60, 20 * 60 );
+			uint32 nFireCD = 15;
+			uint32 nFireCD1 = 60;
 			for( ; nTick; nTick-- )
 			{
 				CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -777,6 +980,77 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 				pRope->SetTransformDirty();
 				for( int i = 0; i < m_vecTongueSegs.size(); i++ )
 					m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
+				if( ( m_vecTongueSegs.back()->GetPosition() - target ).Length2() < 80 * 80 )
+					nTick = Max( 1, nTick - 10 );
+
+				nFireCD--;
+				if( !nFireCD )
+				{
+					float fAngle0 = SRand::Inst().Rand( -PI, PI );
+					int32 nCount = nFireSeg < m_vecTongueSegs.size() - 1 ? 4 : 12;
+					for( int i = 0; i < nCount; i++ )
+					{
+						float fAngle = fAngle0 + i * PI * 2 / nCount;
+
+						auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
+						pBullet->SetPosition( m_vecTongueSegs[nFireSeg]->GetPosition() + basePos );
+						pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 175 );
+						pBullet->SetRotation( fAngle );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					}
+
+					nFireSeg++;
+					if( nFireSeg >= m_vecTongueSegs.size() )
+						nFireSeg = 0;
+					nFireCD = 15;
+				}
+
+				nFireCD1--;
+				if( !nFireCD1 )
+				{
+					SBarrageContext context;
+					context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
+					context.vecBulletTypes.push_back( pPrefab[SRand::Inst().Rand( 0, 4 )] );
+					context.nBulletPageSize = 40;
+
+					CVector2 acc = CVector2( 0, -400 );
+					CVector2 velocity;
+
+					CVector2 dPos = target;
+					dPos.x = Max( -250.0f, Min( dPos.x, 250.0f ) );
+					dPos = dPos + CVector2( SRand::Inst().Rand( -32, 32 ), SRand::Inst().Rand( -32, 32 ) );
+					float t = -abs( dPos.x ) / 400.0f + SRand::Inst().Rand( 3.5f, 3.7f );
+					velocity.y = dPos.y / t - 0.5f * acc.y * t;
+					velocity.x = dPos.x / t;
+
+					CBarrage* pBarrage = new CBarrage( context );
+					pBarrage->AddFunc( [velocity, acc] ( CBarrage* pBarrage )
+					{
+						int32 nBullet = 0;
+						pBarrage->InitBullet( nBullet++, 1, -1, CVector2( 0, 0 ), velocity, acc );
+						pBarrage->Yield( 20 );
+
+						int t = 20;
+						while( pBarrage->GetBulletContext( 0 )->pEntity )
+						{
+							CVector2 center = velocity * ( t / 60.0f ) + acc * ( 0.5f * t * t / 60.0f / 60.0f );
+							CVector2 vel = velocity + acc * ( t / 60.0f );
+							CVector2 vel1( -vel.y, vel.x );
+							vel1.Normalize();
+							pBarrage->InitBullet( nBullet++, 0, -1, center, vel1 * 64 + vel, acc * 1.5f );
+							pBarrage->InitBullet( nBullet++, 0, -1, center, vel1 * -64 + vel, acc * 1.5f );
+							t += 10;
+							pBarrage->Yield( 10 );
+						}
+
+						pBarrage->StopNewBullet();
+					} );
+					pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					pBarrage->SetPosition( basePos );
+					pBarrage->Start();
+
+					nFireCD1 = 180;
+				}
 
 				m_pAIMouth->Yield( 0, false );
 			}
@@ -801,9 +1075,11 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 			int32 nFrames = ceil( fMaxTime * 60.0f );
 			int32 iFrame = nFrames;
 
+			nFireCD = 2;
+			nFireCD1 = 10;
 			float fPos = 0;
 			int8 k = m_vecTongueSegs.back()->x > 0 ? -1 : 1;
-			int32 nHits = SRand::Inst().Rand( 2, 7 );
+			int32 nHits = SRand::Inst().Rand( 2, 5 );
 			while( nHits )
 			{
 				if( iFrame )
@@ -888,6 +1164,33 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 				for( int i = 0; i < m_vecTongueSegs.size(); i++ )
 					m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
 
+				if( !iFrame )
+				{
+					nFireCD--;
+					if( !nFireCD )
+					{
+						auto pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
+						pBullet->SetPosition( m_vecTongueSegs.back()->GetPosition() + basePos );
+						pBullet->SetVelocity( CVector2( sin( fPos * 0.15f ) * 100, cos( fPos * 0.15f ) * 200 ) );
+						pBullet->SetAcceleration( CVector2( 0, -200 ) );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+
+						nFireCD = 2;
+					}
+
+					nFireCD1--;
+					if( !nFireCD1 )
+					{
+						auto pBullet = SafeCast<CBullet>( pPrefab[SRand::Inst().Rand( 0, 4 )]->GetRoot()->CreateInstance() );
+						pBullet->SetPosition( basePos );
+						pBullet->SetVelocity( CVector2( sin( fPos * 0.5f ), cos( fPos * 0.5f ) ) * 400 );
+						pBullet->SetRotation( PI * 0.5f - fPos * 0.5 );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+
+						nFireCD1 = 10;
+					}
+				}
+
 				m_pAIMouth->Yield( 0, false );
 			}
 		}
@@ -916,7 +1219,50 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 void CLv1Boss::AIFuncMouth3()
 {
 	while( 1 )
-		m_pAIMouth->Yield( 1.0f, false );
+	{
+		int32 n = 0;
+		while( 1 )
+		{
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
+			if( bBlocked )
+				n = 0;
+			else
+			{
+				n++;
+				if( n >= 30 )
+					break;
+			}
+			m_pAIMouth->Yield( bBlocked ? 0.5f : 0.0f, false );
+		}
+
+		while( 1 )
+		{
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 0, 0, 0, 0 ) );
+			if( bBlocked )
+				break;
+
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( pPlayer )
+			{
+				CVector2 center = CVector2( 16, 2 ) * CMyLevel::GetBlockSize();
+				CVector2 dPos = pPlayer->GetPosition() - center;
+				if( ( pPlayer->GetPosition() - center ).Length2() < 300 * 300 )
+				{
+					CVector2 dir = dPos;
+					float l = dir.Normalize();
+					auto pBullet = SafeCast<CBullet>( m_strBulletShockwave->GetRoot()->CreateInstance() );
+					pBullet->SetPosition( center );
+					pBullet->SetVelocity( dir * 100 );
+					pBullet->SetLife( 300 );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					m_pAIMouth->Yield( 6.0f, false );
+					continue;
+				}
+			}
+
+			m_pAIMouth->Yield( 0.5f, false );
+		}
+	}
 }
 
 void CLv1Boss::AIFuncMain()
@@ -1315,6 +1661,12 @@ void CLv1BossWorm1::AIFunc()
 
 			if( nLife )
 				nLife--;
+			if( m_pAIFire && !m_pAIFire->IsRunning() )
+			{
+				m_pAIFire = NULL;
+				nLife = 0;
+			}
+
 			if( bShouldReturn )
 			{
 				if( nLife1 )
@@ -1343,7 +1695,8 @@ void CLv1BossWorm1::AIFunc()
 
 void CLv1BossWorm1::AIFuncFire()
 {
-	while( 1 )
+	int32 nFireCount = 1;
+	for( int i = 0; i < nFireCount; i++ )
 	{
 		m_pAIFire->Yield( 0.5f, false );
 
@@ -1367,12 +1720,12 @@ void CLv1BossWorm1::AIFuncFire()
 
 						dPos = dPos + CVector2( SRand::Inst().Rand( -32.0f, 32.0f ), SRand::Inst().Rand( -32.0f, 32.0f ) );
 
-						auto pBullet = SafeCast<CBullet>( m_pOwner->m_pPrefabBullet2->GetRoot()->CreateInstance() );
+						auto pBullet = SafeCast<CBullet>( m_pOwner->m_strBullet2->GetRoot()->CreateInstance() );
 						pBullet->SetPosition( pos );
 						CVector2 acc = CVector2( 0, -100 );
 						CVector2 velocity;
 
-						float t = dPos.Length() / 250.0f * SRand::Inst().Rand( 0.9f, 1.1f ) + SRand::Inst().Rand( 0.1f, 0.4f );
+						float t = dPos.Length() / 250.0f * SRand::Inst().Rand( 0.9f, 1.1f ) + SRand::Inst().Rand( 0.4f, 0.6f );
 						velocity.y = dPos.y / t - 0.5f * acc.y * t;
 						velocity.x = dPos.x / t;
 
@@ -1397,7 +1750,7 @@ void CLv1BossWorm1::AIFuncFire()
 
 						for( int j = 0; j < 3; j++ )
 						{
-							auto pBullet = SafeCast<CBullet>( m_pOwner->m_pPrefabBullet3->GetRoot()->CreateInstance() );
+							auto pBullet = SafeCast<CBullet>( m_pOwner->m_strBullet3->GetRoot()->CreateInstance() );
 
 							pBullet->SetPosition( pos );
 							pBullet->SetVelocity( vel );
@@ -1408,7 +1761,7 @@ void CLv1BossWorm1::AIFuncFire()
 					}
 				}
 
-				m_pAIFire->Yield( 3.0f, false );
+				m_pAIFire->Yield( 6.0f, false );
 			}
 		}
 	}

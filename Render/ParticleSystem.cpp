@@ -955,6 +955,22 @@ CParticleSystemObject* CParticleFile::CreateInstance( CAnimationController* pAni
 	return pObj;
 }
 
+void CParticleFile::UpdateDependencies()
+{
+	ClearDependency();
+	vector<CParticleSystemDrawable*>* drawables[] = { &m_particleSystem.m_vecColorPassDrawables, &m_particleSystem.m_vecOcclusionPassDrawables, &m_particleSystem.m_vecGUIPassDrawables };
+	for( int i = 0; i < ELEM_COUNT( drawables ); i++ )
+	{
+		auto& vecDrawables = *drawables[i];
+		for( auto pDrawable : vecDrawables )
+		{
+			auto& material = pDrawable->GetMaterial();
+			for( auto& res : material.GetDependentResources() )
+				AddDependency( res );
+		}
+	}
+}
+
 void CParticleSystemObject::CopyData( CParticleSystemObject* pObj )
 {
 	auto pInstanceData = GetInstanceData();

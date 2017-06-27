@@ -133,6 +133,122 @@ CTexture::CTexture( ID3D11Device* pDevice, ETextureType eType, int nDim1, int nD
 		m_pRTV = new CRenderTarget( pDevice, m_pTexture, NULL, this );
 	if( bBindDepthStencil )
 		m_pDSV = new CDepthStencil( pDevice, m_pTexture, NULL, this );
+	m_nActualMipLevel = nMipLevels;
+}
+
+uint32 CTexture::GetData( void ** ppData )
+{
+	CRenderSystem* pRenderSystem = static_cast<CRenderSystem*>( IRenderSystem::Inst() );
+	auto pDevice = pRenderSystem->GetDevice();
+	auto pDeviceContext = pRenderSystem->GetDeviceContext();
+
+	CReference<ID3D11Resource> pResource;
+	DXGI_FORMAT format = GetDXGIFormat( m_desc.eFormat );
+	switch( m_desc.eType )
+	{
+	case ETextureType::Tex2D:
+	{
+		D3D11_TEXTURE2D_DESC desc = {
+			m_desc.nDim1,
+			m_desc.nDim2,
+			1,
+			1,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0
+		};
+		pDevice->CreateTexture2D( &desc, NULL, (ID3D11Texture2D**)pResource.AssignPtr() );
+		break;
+	}
+	case ETextureType::TexCube:
+	{
+		D3D11_TEXTURE2D_DESC desc = {
+			m_desc.nDim1,
+			m_desc.nDim2,
+			1,
+			1,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0
+		};
+		pDevice->CreateTexture2D( &desc, NULL, (ID3D11Texture2D**)pResource.AssignPtr() );
+		break;
+	}
+	case ETextureType::Tex3D:
+	{
+		D3D11_TEXTURE3D_DESC desc = {
+			m_desc.nDim1,
+			m_desc.nDim2,
+			m_desc.nDim3,
+			1,
+			format,
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0
+		};
+		pDevice->CreateTexture3D( &desc, NULL, (ID3D11Texture3D**)pResource.AssignPtr() );
+	}
+	break;
+	}
+
+	uint32 nSize = 0;
+	uint8* pData;
+
+	switch( m_desc.eType )
+	{
+	case ETextureType::Tex2D:
+	{
+		pDeviceContext->CopySubresourceRegion( pResource, 0, 0, 0, 0, m_pTexture, 0, NULL );
+		D3D11_MAPPED_SUBRESOURCE resource;
+		pDeviceContext->Map( pResource, 0, D3D11_MAP_READ, 0, &resource );
+		nSize = resource.RowPitch * m_desc.nDim2;
+		pData = (uint8*)malloc( nSize );
+		memcpy( pData, resource.pData, nSize );
+		pDeviceContext->Unmap( pResource, 0 );
+		break;
+	}
+	case ETextureType::TexCube:
+	{
+		D3D11_MAPPED_SUBRESOURCE resource;
+		uint8* pData1 = NULL;
+		for( int i = 0; i < 6; i++ )
+		{
+			pDeviceContext->CopySubresourceRegion( pResource, 0, 0, 0, 0, m_pTexture, i * m_nActualMipLevel, NULL );
+			pDeviceContext->Map( pResource, 0, D3D11_MAP_READ, 0, &resource );
+			if( !pData1 )
+			{
+				nSize = resource.RowPitch * m_desc.nDim2;
+				pData = pData1 = (uint8*)malloc( nSize * 6 );
+			}
+			memcpy( pData1, resource.pData, nSize );
+			pDeviceContext->Unmap( pResource, 0 );
+			pData1 += nSize;
+		}
+		nSize *= 6;
+		break;
+	}
+	case ETextureType::Tex3D:
+	{
+		pDeviceContext->CopySubresourceRegion( pResource, 0, 0, 0, 0, m_pTexture, 0, NULL );
+		D3D11_MAPPED_SUBRESOURCE resource;
+		pDeviceContext->Map( pResource, 0, D3D11_MAP_READ, 0, &resource );
+		nSize = resource.DepthPitch * m_desc.nDim3;
+		pData = (uint8*)malloc( nSize );
+		memcpy( pData, resource.pData, nSize );
+		pDeviceContext->Unmap( pResource, 0 );
+		break;
+	}
+	}
+
+	*ppData = pData;
+	return uint32();
 }
 
 ITexture* CRenderSystem::CreateTexture( ETextureType eType, uint32 nDim1, uint32 nDim2, uint32 nDim3, uint32 nMipLevels, EFormat eFormat, void* data,

@@ -13,8 +13,8 @@ class CBullet : public CCharacter
 public:
 	CBullet( const SClassCreateContext& context )
 		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ) { SET_BASEOBJECT_ID( CBullet ); }
-	void SetVelocity( const CVector2& velocity );
-	void SetAcceleration( const CVector2& acc );
+	void SetVelocity( const CVector2& velocity ) { m_velocity = velocity; }
+	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
 	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
 	virtual void OnHit( CEntity* pEntity ) { if( m_onHit ) m_onHit( this, pEntity ); }

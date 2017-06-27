@@ -11,8 +11,6 @@ void CDetectTrigger::OnAddedToStage()
 {
 	if( m_bEnabled )
 		GetStage()->RegisterAfterHitTest( 15, &m_onTick );
-
-	m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab.c_str() );
 }
 
 void CDetectTrigger::OnRemovedFromStage()
@@ -76,6 +74,12 @@ void CKillTrigger::OnAddedToStage()
 	auto pPar = SafeCast<CChunkObject>( GetParentEntity() );
 	if( pPar )
 		pPar->RegisterKilledEvent( &m_onKilled );
+	else
+	{
+		auto pChar = SafeCast<CCharacter>( GetParentEntity() );
+		if( pChar )
+			pChar->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onKilled );
+	}
 }
 
 void CKillTrigger::OnRemovedFromStage()
@@ -176,23 +180,16 @@ CSpawner::SSpawnedEntity::SSpawnedEntity( CSpawner * pOwner, CEntity * pSpawnedE
 void CRandomSpawner::OnAddedToStage()
 {
 	CSpawner::OnAddedToStage();
-	if( m_strPrefab0.length() )
-		m_pPrefabs[0] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab0.c_str() );
-	if( m_strPrefab1.length() )
-		m_pPrefabs[1] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab1.c_str() );
-	if( m_strPrefab2.length() )
-		m_pPrefabs[2] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab2.c_str() );
-	if( m_strPrefab3.length() )
-		m_pPrefabs[3] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab3.c_str() );
 }
 
 CEntity * CRandomSpawner::Spawn()
 {
 	float fTotalChance = 0;
 	int32 nCount;
-	for( nCount = 0; nCount < ELEM_COUNT( m_pPrefabs ); nCount++ )
+	CPrefab* pPrefabs[4] = { m_strPrefab0, m_strPrefab1, m_strPrefab2, m_strPrefab3 };
+	for( nCount = 0; nCount < ELEM_COUNT( pPrefabs ); nCount++ )
 	{
-		if( !m_pPrefabs[nCount] )
+		if( !pPrefabs[nCount] )
 			break;
 		fTotalChance += m_fChances[nCount];
 	}
@@ -206,30 +203,23 @@ CEntity * CRandomSpawner::Spawn()
 			break;
 	}
 
-	auto pEntity = SafeCast<CEntity>( m_pPrefabs[n]->GetRoot()->CreateInstance() );
+	auto pEntity = SafeCast<CEntity>( pPrefabs[n]->GetRoot()->CreateInstance() );
 	return pEntity;
 }
 
 void CKillSpawner::OnAddedToStage()
 {
 	CKillTrigger::OnAddedToStage();
-	if( m_strPrefab0.length() )
-		m_pPrefabs[0] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab0.c_str() );
-	if( m_strPrefab1.length() )
-		m_pPrefabs[1] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab1.c_str() );
-	if( m_strPrefab2.length() )
-		m_pPrefabs[2] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab2.c_str() );
-	if( m_strPrefab3.length() )
-		m_pPrefabs[3] = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab3.c_str() );
 }
 
 void CKillSpawner::Trigger()
 {
 	float fTotalChance = 0;
 	int32 nCount;
-	for( nCount = 0; nCount < ELEM_COUNT( m_pPrefabs ); nCount++ )
+	CPrefab* pPrefabs[4] = { m_strPrefab0, m_strPrefab1, m_strPrefab2, m_strPrefab3 };
+	for( nCount = 0; nCount < ELEM_COUNT( pPrefabs ); nCount++ )
 	{
-		if( !m_pPrefabs[nCount] )
+		if( !pPrefabs[nCount] )
 			break;
 		fTotalChance += m_fChances[nCount];
 	}
@@ -248,42 +238,43 @@ void CKillSpawner::Trigger()
 				break;
 		}
 
-		auto pEntity = SafeCast<CEntity>( m_pPrefabs[n]->GetRoot()->CreateInstance() );
+		auto pEntity = SafeCast<CEntity>( pPrefabs[n]->GetRoot()->CreateInstance() );
 		pEntity->SetPosition( globalTransform.MulVector2Pos(
 			CVector2( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) ) ) );
-		if( m_bRandomRotate )
-			pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
 
-		switch( m_nVelocityType )
+		CVector2 vel( 1, 0 );
+		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+		if( pCharacter )
 		{
-		case 0:
-			break;
-		case 1:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
-				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
-			break;
-		}
-		case 2:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
-				pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
-			break;
-		}
-		case 3:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
+			switch( m_nVelocityType )
 			{
+			case 0:
+				break;
+			case 1:
+			{
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
+				break;
+			}
+			case 2:
+			{
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
+				break;
+			}
+			case 3:
+			{
+
 				float r = sqrt( SRand::Inst().Rand( m_vel1.x / m_vel2.x, 1.0f ) ) * m_vel2.x;
 				float angle = SRand::Inst().Rand( m_vel1.y, m_vel2.y ) * PI / 180;
 				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( cos( angle ) * r, sin( angle ) * r ) ) );
+				break;
 			}
-			break;
+			}
+			vel = pCharacter->GetVelocity();
 		}
-		}
+		if( m_bRandomRotate )
+			pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
+		else if( m_bTangentRotate )
+			pEntity->SetRotation( atan2( vel.y, vel.x ) );
 
 		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}

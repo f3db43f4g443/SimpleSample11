@@ -515,6 +515,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Editor.cpp" />
+    <ClCompile Include="Editors\DynamicTextureEditor.cpp" />
     <ClCompile Include="Editors\FileExplorer.cpp" />
     <ClCompile Include="Editors\FileView.cpp" />
     <ClCompile Include="Editors\MaterialEditor.cpp" />
@@ -530,6 +531,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Editor.h" />
+    <ClInclude Include="Editors\DynamicTextureEditor.h" />
     <ClInclude Include="Editors\FileExplorer.h" />
     <ClInclude Include="Editors\FileView.h" />
     <ClInclude Include="Editors\MaterialEditor.h" />

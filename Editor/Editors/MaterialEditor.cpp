@@ -4,6 +4,7 @@
 #include "Common/Utf8Util.h"
 #include "Render/SystemShaderParams.h"
 #include "Render/Rope2D.h"
+#include "Render/Canvas.h"
 #include "UICommon/UIFactory.h"
 #include "TabFile.h"
 #include <sstream>
@@ -46,7 +47,7 @@ SShaderResourceEditItem::~SShaderResourceEditItem()
 void SShaderResourceEditItem::Create( CUITreeView::CTreeViewContent* pParent )
 {
 	pRoot = CTreeFolder::Create( pTreeView, pParent, param.strName.c_str() );
-	pFileName = CFileNameEdit::Create( "File name", "bmp;jpg;png;tga" );
+	pFileName = CFileNameEdit::Create( "File name", "bmp;jpg;png;tga;dtx" );
 	pTreeView->AddContentChild( pFileName, pRoot );
 }
 
@@ -359,7 +360,7 @@ void SDrawableEditItems::RefreshMaterial( CMaterial& material )
 	}
 }
 
-void SDrawableEditItems::UpdateMaterial( CMaterial& material )
+void SDrawableEditItems::UpdateMaterial( CMaterial& material, CResource* pRes )
 {
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	material.m_nExtraInstData = Min( pExtraInstData->GetValue<uint32>(), 2048u );
@@ -400,11 +401,26 @@ void SDrawableEditItems::UpdateMaterial( CMaterial& material )
 			EShaderResourceType eType = shaderResourceItem.param.eType;
 			if( eType == EShaderResourceType::Texture2D )
 			{
-				CTextureFile* pTexture = CResourceManager::Inst()->CreateResource<CTextureFile>( UnicodeToUtf8( shaderResourceItem.pFileName->GetText() ).c_str() );
-				if( !pTexture )
+				auto pResource = CResourceManager::Inst()->CreateResource( UnicodeToUtf8( shaderResourceItem.pFileName->GetText() ).c_str() );
+				if( !pResource )
 					continue;
-				material.m_vecDependentResources.push_back( pTexture );
-				material.m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( shaderResourceItem.param, pTexture->GetTexture() ) );
+				if( !pRes->CanAddDependency( pResource ) )
+				{
+					shaderResourceItem.pFileName->SetText( "" );
+					continue;
+				}
+				if( pResource->GetResourceType() == CTextureFile::eResType )
+				{
+					CTextureFile* pTexture = static_cast<CTextureFile*>( pResource );
+					material.m_vecDependentResources.push_back( pTexture );
+					material.m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( shaderResourceItem.param, pTexture->GetTexture() ) );
+				}
+				else if( pResource->GetResourceType() == CDynamicTexture::eResType )
+				{
+					CDynamicTexture* pTexture = static_cast<CDynamicTexture*>( pResource );
+					material.m_vecDependentResources.push_back( pTexture );
+					material.m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( shaderResourceItem.param, pTexture ) );
+				}
 			}
 		}
 
@@ -833,7 +849,7 @@ void CMaterialEditor::RefreshPreview()
 			pDrawable->m_pBlendState = pDrawable->GetBlendState( nBlend );
 
 			auto& material = pDrawable->m_material;
-			item.UpdateMaterial( material );
+			item.UpdateMaterial( material, m_pRes );
 		}
 		else
 		{
@@ -843,11 +859,12 @@ void CMaterialEditor::RefreshPreview()
 			pDrawable->m_pBlendState = pDrawable->GetBlendState( nBlend );
 
 			auto& material = pDrawable->m_material;
-			item.UpdateMaterial( material );
+			item.UpdateMaterial( material, m_pRes );
 			pDrawable->m_nRopeMaxInst = material.GetMaxInst();
 			pDrawable->BindParamsNoParticleSystem();
 		}
 	}
+	m_pRes->UpdateDependencies();
 	m_pRes->RefreshEnd();
 
 	RefreshRenderObject();

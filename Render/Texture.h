@@ -84,6 +84,7 @@ public:
 	}
 
 	const CTextureDesc& GetDesc() { return m_desc; }
+	virtual uint32 GetData( void** ppData ) = 0;
 
 	virtual IShaderResource* GetShaderResource() override { return m_pSRV; }
 	IRenderTarget* GetRenderTarget() { return m_pRTV; }
@@ -157,6 +158,8 @@ public:
 
 	ITexture* GetTexture() { return m_pTexture; }
 	static void InitLoader();
+
+	static bool SaveTexFile( const char* szFileName, void* pData, uint32 nWidth, uint32 nHeight );
 private:
 	CReference<ITexture> m_pTexture;
 };

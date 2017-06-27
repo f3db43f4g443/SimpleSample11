@@ -74,7 +74,7 @@ struct SParticleDrawableEditItem : public SDrawableEditItems
 	void Clear();
 
 	void Refresh( CParticleSystemDrawable* pDrawable );
-	void Update( CParticleSystemDrawable* pDrawable );
+	void Update( CParticleSystemDrawable* pDrawable, CResource* pResource );
 };
 
 struct SParticleDrawablePassEditItem
@@ -88,7 +88,7 @@ struct SParticleDrawablePassEditItem
 	void Create( uint8 nPass );
 	void Clear();
 	void Refresh( CParticleSystem* pParticleSystem, vector<CParticleSystemDrawable*>& vecDrawables );
-	void Update( CParticleSystem* pParticleSystem, vector<CParticleSystemDrawable*>& vecDrawables );
+	void Update( CParticleSystem* pParticleSystem, vector<CParticleSystemDrawable*>& vecDrawables, CResource* pResource );
 	void OnDrawableCountChanged();
 	TClassTrigger<SParticleDrawablePassEditItem> m_onDrawableCountChanged;
 };
@@ -114,6 +114,7 @@ private:
 
 	void RefreshRenderObject();
 	CReference<CVectorEdit> m_pRect;
+	CReference<CVectorEdit> m_pPreview;
 	SParticleDataEditItem m_dataItem;
 	SParticleDrawablePassEditItem m_drawablePassItems[3];
 

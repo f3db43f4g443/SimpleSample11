@@ -46,6 +46,8 @@ IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle1, "Shader/Particle1.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticle1, "Shader/Particle1.shader", "PSParticle", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleColorMapColor, "Shader/Particle1.shader", "PSParticleColorMapColor", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleColorMapOcclusion, "Shader/Particle1.shader", "PSParticleColorMapOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSHUDCircle, "Shader/HUDCircle.shader", "VSMain", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHUDCircle, "Shader/HUDCircle.shader", "PSMain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHUDCirclePercent, "Shader/HUDCircle.shader", "PSMainPercent", "ps_5_0" );
@@ -53,6 +55,7 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook, "Shader/ParticleFlipbook.shader",
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1, "Shader/ParticleFlipbook1.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel, "Shader/ParticleFlipbook1.shader", "VSParticle1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2T, "Shader/ParticleFlipbook1.shader", "VSParticle2", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2TL, "Shader/ParticleFlipbook1.shader", "VSParticle2L", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFootprintUpdate, "Shader/Footprint.shader", "PSUpdate", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFootprintAlphaToOcclusion, "Shader/Footprint.shader", "PSPrint_AlphaToOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFootprintLiquidColor, "Shader/FootprintLiquid.shader", "PSColor", "ps_5_0" );

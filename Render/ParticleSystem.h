@@ -259,6 +259,7 @@ class CRopeObject2D;
 class CParticleSystem
 {
 	friend class CParticleEditor;
+	friend class CParticleFile;
 public:
 	typedef CParticleSystemDrawable* DrawableAllocFunc( CParticleSystemData* pData );
 	typedef CParticleSystemObject* ParticleRenderObjectAllocFunc( CParticleSystemInstance* pData, CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, const CRectangle& rect, bool bGUI );
@@ -301,6 +302,7 @@ public:
 	CParticleSystem& GetParticleSystem() { return m_particleSystem; }
 
 	CParticleSystemObject* CreateInstance( CAnimationController* pAnimController );
+	void UpdateDependencies();
 private:
 	CParticleSystem m_particleSystem;
 };

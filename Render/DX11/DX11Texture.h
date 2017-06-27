@@ -9,9 +9,11 @@ public:
 	CTexture( ID3D11Device* pDevice, ETextureType eType, int nDim1, int nDim2, int nDim3, int nMipLevels, EFormat eFormat, void* data,
 		bool bIsDynamic = false, bool bBindRenderTarget = false, bool bBindDepthStencil = false );
 
+	virtual uint32 GetData( void** ppData ) override;
 	ID3D11Resource* GetTexture() { return m_pTexture; }
 private:
 	CReference<ID3D11Resource> m_pTexture;
+	uint32 m_nActualMipLevel;
 };
 
 class CRenderTarget : public IRenderTarget

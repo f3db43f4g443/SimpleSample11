@@ -28,6 +28,7 @@ enum
 {
 	eDamageSourceType_None,
 	eDamageSourceType_Bullet,
+	eDamageSourceType_Beam,
 
 	eDamageSourceType_Count
 };

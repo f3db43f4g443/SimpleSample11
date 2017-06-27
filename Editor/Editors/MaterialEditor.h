@@ -95,7 +95,7 @@ struct SDrawableEditItems
 	void OnPassEnabledChanged();
 
 	void RefreshMaterial( CMaterial& material );
-	void UpdateMaterial( CMaterial& material );
+	void UpdateMaterial( CMaterial& material, CResource* pRes );
 private:
 	TClassTrigger<SDrawableEditItems> m_onPassEnabledChanged;
 };

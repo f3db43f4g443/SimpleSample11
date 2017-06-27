@@ -3,6 +3,8 @@
 #include "RenderSystem.h"
 #include "Scene2DManager.h"
 #include "Game.h"
+#include "FileUtil.h"
+#include "CommonShader.h"
 
 CCanvas::CCanvas( bool bSizeDependent, uint32 nWidth, uint32 nHeight, EFormat eFormat, EDepthStencilType eDepthStencil, bool bMip )
 	: m_pRenderTargetPool( bSizeDependent ? &CRenderTargetPool::GetSizeDependentPool() : &CRenderTargetPool::GetSizeIndependentPool() )
@@ -28,7 +30,18 @@ void CCanvas::SetSize( const CVector2& size )
 		return;
 	m_textureDesc.nDim1 = m_depthStencilDesc.nDim1 = size.x;
 	m_textureDesc.nDim2 = m_depthStencilDesc.nDim2 = size.y;
+	m_cam.SetViewport( CRectangle( 0, 0, m_textureDesc.nDim1, m_textureDesc.nDim2 ) );
+	m_cam.SetSize( m_textureDesc.nDim1, m_textureDesc.nDim2 );
 	ReleaseTexture();
+}
+
+void CCanvas::InitRenderTarget( ITexture * pTexture, IRenderSystem* pSystem )
+{
+	if( !m_pTexture )
+		m_pRenderTargetPool->AllocRenderTarget( m_pTexture, m_textureDesc );
+	CVector2 size( m_textureDesc.nDim1, m_textureDesc.nDim2 );
+	CRectangle rect( 0, 0, m_textureDesc.nDim1, m_textureDesc.nDim2 );
+	CopyToRenderTarget( pSystem, m_pTexture->GetRenderTarget(), pTexture, rect, rect, size, size );
 }
 
 void CCanvas::Render( CRenderContext2D& context )
@@ -96,71 +109,210 @@ void CCanvas::ReleaseTexture()
 	}
 }
 
-CDynamicTexture::CDynamicTexture( uint32 nWidth, uint32 nHeight, EFormat eFormat )
-	: m_texCanvas( false, nWidth, nHeight, eFormat, CCanvas::eDepthStencilType_None )
-	, m_bClear( false )
-	, m_fTotalTime( 0 )
-	, m_nTimeStamp( 0 )
+CDynamicTexture::~CDynamicTexture()
+{
+	CRenderObject2D* pRoot = GetRoot();
+	pRoot->GetAnimController()->StopAll();
+	pRoot->RemoveThis();
+	m_pAnim = NULL;
+
+	SetPrefab( "" );
+	SetBaseTex( "" );
+}
+
+void CDynamicTexture::Create()
 {
 	CRenderObject2D* pRoot = new CRenderObject2D;
 	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pRoot );
 	m_texCanvas.SetRoot( pRoot );
-}
+	pRoot->GetAnimController()->PlayAnim( m_pAnim );
+	if( !m_beforeRender.IsRegistered() )
+		CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
-CDynamicTexture::CDynamicTexture( CRenderObject2D* pRoot, uint32 nWidth, uint32 nHeight, EFormat eFormat )
-	: m_texCanvas( false, nWidth, nHeight, eFormat, CCanvas::eDepthStencilType_None )
-	, m_bClear( false )
-	, m_fTotalTime( 0 )
-	, m_nTimeStamp( 0 )
-{
-	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pRoot );
-	m_texCanvas.SetRoot( pRoot );
-}
-
-CDynamicTexture::~CDynamicTexture()
-{
-	m_texCanvas.GetRoot()->RemoveThis();
-}
-
-void CDynamicTexture::SetRoot( CRenderObject2D* pRoot )
-{
-	if( m_texCanvas.GetRoot() == m_pDefaultRoot )
-	{
-		m_pDefaultRoot->RemoveThis();
-		m_pDefaultRoot = NULL;
-	}
-	m_texCanvas.SetRoot( pRoot );
-}
-
-void CDynamicTexture::Update( float fTime )
-{
-	int32 timeStamp = IRenderSystem::Inst()->GetGame()->GetTimeStamp();
-	if( timeStamp == m_nTimeStamp )
+	if( strcmp( GetFileExtension( GetName() ), "dtx" ) )
 		return;
-	m_nTimeStamp = timeStamp;
+	vector<char> content;
+	if( GetFileContent( content, GetName(), false ) == INVALID_32BITID )
+		return;
 
-	CRenderObject2D* pRoot = m_texCanvas.GetRoot();
-	for( CRenderObject2D* pRenderObject = pRoot->Get_TransformChild(); pRenderObject; pRenderObject = pRenderObject->NextTransformChild() )
+	CBufReader buf( &content[0], content.size() );
+	Load( buf );
+	m_bCreated = true;
+}
+
+void CDynamicTexture::Load( IBufReader& buf )
+{
+	buf.Read( m_desc.nWidth );
+	buf.Read( m_desc.nHeight );
+	string strPrefab;
+	string strBaseTex;
+	buf.Read( strPrefab );
+	buf.Read( strBaseTex );
+
+	m_texCanvas.SetSize( CVector2( m_desc.nWidth, m_desc.nHeight ) );
+	SetPrefab( strPrefab.c_str() );
+	SetBaseTex( strBaseTex.c_str() );
+}
+
+void CDynamicTexture::Save( CBufFile& buf )
+{
+	buf.Write( m_desc.nWidth );
+	buf.Write( m_desc.nHeight );
+	buf.Write( m_desc.strPrefab );
+	buf.Write( m_desc.strBaseTex );
+}
+
+void CDynamicTexture::SetSize( uint32 nWidth, uint32 nHeight )
+{
+	m_desc.nWidth = nWidth;
+	m_desc.nHeight = nHeight;
+	m_texCanvas.SetSize( CVector2( m_desc.nWidth, m_desc.nHeight ) );
+	m_bDirty = true;
+	if( !m_beforeRender.IsRegistered() )
+		CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
+}
+
+bool CDynamicTexture::SetPrefab( const char * szPrefab )
+{
+	CReference<CPrefab> pPrefab;
+	if( szPrefab[0] )
 	{
-		pRenderObject->UpdateAnim( fTime );
+		pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		if( !pPrefab )
+			return false;
+	}
+
+	if( pPrefab.GetPtr() == m_pPrefab.GetPtr() )
+		return true;
+	if( pPrefab && !CanAddDependency( pPrefab ) )
+		return false;
+
+	if( m_pPrefab )
+	{
+		auto pChild = GetRoot()->Get_TransformChild();
+		if( pChild )
+			pChild->RemoveThis();
+
+		if( m_onResourceRefreshBegin.IsRegistered() )
+			m_onResourceRefreshBegin.Unregister();
+		if( m_onResourceRefreshEnd.IsRegistered() )
+			m_onResourceRefreshEnd.Unregister();
+		RemoveDependency( m_pPrefab );
+	}
+	m_pPrefab = pPrefab;
+	m_desc.strPrefab = szPrefab;
+	if( pPrefab )
+	{
+		AddDependency( pPrefab );
+		pPrefab->RegisterRefreshBegin( &m_onResourceRefreshBegin );
+		pPrefab->RegisterRefreshEnd( &m_onResourceRefreshEnd );
+
+		auto pNode = pPrefab->GetRoot()->CreateInstance();
+		DisableAutoUpdateRec( pNode );
+		GetRoot()->AddChild( pNode );
+	}
+	m_bDirty = true;
+}
+
+bool CDynamicTexture::SetBaseTex( const char * szTex )
+{
+	CReference<CTextureFile> pTexture;
+	if( szTex[0] )
+	{
+		pTexture = CResourceManager::Inst()->CreateResource<CTextureFile>( szTex );
+		if( !pTexture )
+			return false;
+	}
+
+	if( pTexture.GetPtr() == m_pBaseTextureFile.GetPtr() )
+		return true;
+	m_pBaseTextureFile = pTexture;
+	m_desc.strBaseTex = szTex;
+	m_bDirty = true;
+}
+
+void CDynamicTexture::ExportTex( const char * szTex )
+{
+	ITexture* pTex = m_texCanvas.GetTexture();
+	if( !pTex )
+		return;
+	void* pTexData;
+	uint32 nSize = pTex->GetData( &pTexData );
+	if( !CTextureFile::SaveTexFile( szTex, pTexData, m_desc.nWidth, m_desc.nHeight ) )
+		return;
+
+	SetBaseTex( szTex );
+}
+
+bool CDynamicTexture::CAnim::Update( float fDeltaTime, const CMatrix2D& matGlobal )
+{
+	if( !m_pOwner->m_beforeRender.IsRegistered() )
+		CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_pOwner->m_beforeRender );
+
+	CRenderObject2D* pRoot = m_pOwner->m_texCanvas.GetRoot();
+	if( pRoot->Get_TransformChild() )
+		m_pOwner->UpdateRec( pRoot->Get_TransformChild(), fDeltaTime );
+
+	m_pOwner->GetRoot()->SetAutoUpdateAnim( false );
+	return true;
+}
+
+void CDynamicTexture::UpdateRec( CRenderObject2D * pNode, float fDeltaTime )
+{
+	pNode->UpdateAnim( fDeltaTime );
+	for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+	{
+		UpdateRec( pChild, fDeltaTime );
+	}
+}
+
+void CDynamicTexture::DisableAutoUpdateRec( CRenderObject2D * pNode )
+{
+	pNode->SetAutoUpdateAnim( false );
+	for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+	{
+		DisableAutoUpdateRec( pChild );
 	}
 }
 
 void CDynamicTexture::Render( CRenderContext2D& context )
 {
-	double totalTime = IRenderSystem::Inst()->GetTotalTime();
-	if( totalTime == m_fTotalTime )
-		return;
-	if( m_bClear )
-		m_texCanvas.ReleaseTexture();
-	m_fTotalTime = totalTime;
+	if( m_bClear || m_bDirty )
+	{
+		if( m_pBaseTextureFile )
+			m_texCanvas.InitRenderTarget( m_pBaseTextureFile->GetTexture(), context.pRenderSystem );
+		else
+			m_texCanvas.ReleaseTexture();
+		m_bDirty = false;
+	}
 	m_texCanvas.Render( context );
 }
 
 IShaderResource* CDynamicTexture::GetShaderResource()
 {
+	GetRoot()->SetAutoUpdateAnim( true );
 	ITexture* pTex = m_texCanvas.GetTexture();
 	if( pTex )
 		return pTex->GetShaderResource();
 	return NULL;
+}
+
+void CDynamicTexture::OnResourceRefreshBegin()
+{
+	auto pChild = GetRoot()->Get_TransformChild();
+	if( pChild )
+		pChild->RemoveThis();
+}
+
+void CDynamicTexture::OnResourceRefreshEnd()
+{
+	auto pNode = m_pPrefab->GetRoot()->CreateInstance();
+	DisableAutoUpdateRec( pNode );
+	GetRoot()->AddChild( pNode );
+}
+
+void CDynamicTexture::BeforeRender( CRenderContext2D* pContext )
+{
+	Render( *pContext );
+	m_beforeRender.Unregister();
 }

@@ -52,6 +52,8 @@ public:
 	void ApplyPerInstance( CRenderContext2D& context );
 	void UnApply( CRenderContext2D& context );
 
+	vector<CReference<CResource> >& GetDependentResources() { return m_vecDependentResources; }
+
 	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 private:
 	void GetShaders( const char** szShaders, IShader** pShaders, IShaderBoundState* &pShaderBoundState,

@@ -438,6 +438,23 @@
           </node>
         </next_level>
       </node>
+
+      <node name="wall3_empty" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <types>0</types>
+        <subitem copy_blueprint="1">
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall3_broken" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="wall3_deco_edge" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
       
       <node name="wall3" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />

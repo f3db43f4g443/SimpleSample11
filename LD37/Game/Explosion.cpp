@@ -85,7 +85,7 @@ void CExplosion::OnTick()
 			}
 			CVector2 hitDir = pChunkObject->globalTransform.GetPosition() - globalTransform.GetPosition();
 			hitDir.Normalize();
-			CChunkObject::SDamageContext dmgContext = { m_nDamage, 0, eDamageSourceType_Bullet, hitDir * 8 };
+			CChunkObject::SDamageContext dmgContext = { nDmg, 0, eDamageSourceType_Bullet, hitDir * 8 };
 			pChunkObject->Damage( dmgContext );
 			OnHit( pEntity );
 			if( pEntity->GetStage() )
@@ -101,7 +101,8 @@ void CExplosion::OnTick()
 		{
 			if( pPlayer->IsHiding() ? m_bHitHidingPlayer : m_bHitPlayer )
 			{
-				pPlayer->Damage( nDmg );
+				if( nDmg )
+					pPlayer->Damage( nDmg );
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
@@ -114,7 +115,8 @@ void CExplosion::OnTick()
 		{
 			if( pEnemy->IsHiding() ? m_bHitHidingEnemy : m_bHitEnemy )
 			{
-				pEnemy->Damage( nDmg );
+				if( nDmg )
+					pEnemy->Damage( nDmg );
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
@@ -127,7 +129,8 @@ void CExplosion::OnTick()
 		{
 			if( pCharacter->IsHiding() ? m_bHitHidingNeutral : m_bHitNeutral )
 			{
-				pCharacter->Damage( nDmg );
+				if( nDmg )
+					pCharacter->Damage( nDmg );
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );

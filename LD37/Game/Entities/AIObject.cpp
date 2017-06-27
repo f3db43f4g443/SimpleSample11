@@ -51,6 +51,11 @@ void CAIObject::Yield( float fTime, bool bAfterHitTest )
 		func();
 	}
 }
+
+bool CAIObject::IsRunning()
+{
+	return m_pCoroutine->GetState() != ICoroutine::eState_Stopped;
+}
 	
 void CAIObject::OnTick()
 {

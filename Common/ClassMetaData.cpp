@@ -39,7 +39,7 @@ void SEnumMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData
 	}
 }
 
-void SClassMetaData::AddMemberData( const char* szName, uint32 nType, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberData( const char* szName, uint32 nType, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
@@ -47,12 +47,14 @@ void SClassMetaData::AddMemberData( const char* szName, uint32 nType, uint32 nOf
 	mapMemberDataIndex[szName] = nIndex;
 	data.strName = szName;
 	data.nType = nType;
+	data.nFlag = 0;
 	data.pTypeData = NULL;
 	data.pEnumData = NULL;
 	data.nOffset = nOffset;
+	return data;
 }
 
-void SClassMetaData::AddMemberData( const char* szName, const char* szTypeName, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberData( const char* szName, const char* szTypeName, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
@@ -60,13 +62,15 @@ void SClassMetaData::AddMemberData( const char* szName, const char* szTypeName, 
 	mapMemberDataIndex[szName] = nIndex;
 	data.strName = szName;
 	data.nType = SMemberData::eTypeClass;
+	data.nFlag = 0;
 	data.strTypeName = szTypeName;
 	data.pTypeData = NULL;
 	data.pEnumData = NULL;
 	data.nOffset = nOffset;
+	return data;
 }
 
-void SClassMetaData::AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
@@ -74,13 +78,15 @@ void SClassMetaData::AddMemberDataPtr( const char* szName, const char* szTypeNam
 	mapMemberDataIndex[szName] = nIndex;
 	data.strName = szName;
 	data.nType = SMemberData::eTypeClassPtr;
+	data.nFlag = 0;
 	data.strTypeName = szTypeName;
 	data.pTypeData = NULL;
 	data.pEnumData = NULL;
 	data.nOffset = nOffset;
+	return data;
 }
 
-void SClassMetaData::AddMemberDataTaggedPtr( const char * szName, const char * szTypeName, const char * szTag, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberDataTaggedPtr( const char * szName, const char * szTypeName, const char * szTag, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
@@ -88,10 +94,12 @@ void SClassMetaData::AddMemberDataTaggedPtr( const char * szName, const char * s
 	mapMemberDataIndex[szTag] = nIndex;
 	data.strName = szTag;
 	data.nType = SMemberData::eTypeTaggedPtr;
+	data.nFlag = 0;
 	data.strTypeName = szTypeName;
 	data.pTypeData = NULL;
 	data.pEnumData = NULL;
 	data.nOffset = nOffset;
+	return data;
 }
 
 void SClassMetaData::AddBaseClassData( const char* szTypeName, uint32 nOffset )
@@ -362,6 +370,23 @@ void SClassMetaData::FindAllTaggedPtr( function<void( SMemberData* pData, uint32
 	{
 		if( item.pBaseClass )
 			item.pBaseClass->FindAllTaggedPtr( func, pBaseClass, nOfs + item.nOffset );
+	}
+}
+
+void SClassMetaData::FindAllResPtr( function<void( SMemberData*pData, uint32 nOfs )>& func, SClassMetaData * pBaseClass, uint32 nOfs )
+{
+	for( auto& item : vecMemberData )
+	{
+		if( item.nType == SMemberData::eTypeClass && item.pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() && ( item.nFlag & 1 ) )
+		{
+			func( &item, nOfs + item.nOffset );
+		}
+	}
+
+	for( auto& item : vecBaseClassData )
+	{
+		if( item.pBaseClass )
+			item.pBaseClass->FindAllResPtr( func, pBaseClass, nOfs + item.nOffset );
 	}
 }
 

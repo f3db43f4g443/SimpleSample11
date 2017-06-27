@@ -49,3 +49,28 @@ void PSParticle( in float3 tex : TexCoord0,
 	float4 texColor = Texture0.Sample( LinearSampler, tex.xy ) * tex.z;
 	outColor = texColor;
 }
+
+Texture2D TextureColorMap;
+SamplerState LinearSampler1;
+void PSParticleColorMapColor( in float2 tex : TexCoord0,
+	in float4 InstData : ExtraInstData0,
+	out float4 outColor[2] : SV_Target )
+{
+	float4 texColor = Texture0.Sample( LinearSampler, tex );
+	texColor *= InstData;
+	float4 color = TextureColorMap.Sample( LinearSampler1, texColor.w );
+	color.xyz *= texColor.xyz;
+
+	outColor[1] = color;
+	outColor[0] = float4( 0, 0, 0, color.w );
+}
+
+void PSParticleColorMapOcclusion( in float2 tex : TexCoord0,
+	in float4 InstData : ExtraInstData0,
+	out float4 outColor : SV_Target )
+{
+	float4 texColor = Texture0.Sample( LinearSampler, tex );
+	texColor *= InstData;
+	float4 color = TextureColorMap.Sample( LinearSampler1, texColor.w );
+	outColor = float4( color.xyz, 0 );
+}

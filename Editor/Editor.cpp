@@ -6,6 +6,7 @@
 #include "Common/ResourceManager.h"
 #include "Editors/FileExplorer.h"
 #include "Editors/MaterialEditor.h"
+#include "Editors/DynamicTextureEditor.h"
 #include "Editors/ParticleEditor.h"
 #include "Editors/PrefabEditor.h"
 #include "Common/FileUtil.h"
@@ -17,6 +18,7 @@ CEditor::CEditor()
 	RegisterEditor( CMaterialEditor::Inst(), "EditorRes/UI/material_editor.xml", "Material(.mtl)", "mtl" );
 	RegisterEditor( CParticleEditor::Inst(), "EditorRes/UI/material_editor.xml", "Particle System(.pts)", "pts" );
 	RegisterEditor( CPrefabEditor::Inst(), "EditorRes/UI/prefab_editor.xml", "Prefab(.pf)", "pf" );
+	RegisterEditor( CDynamicTextureEditor::Inst(), "EditorRes/UI/dynamic_texture_editor.xml", "Dynamic Texture(.dtx)", "dtx" );
 }
 
 void CEditor::Start()

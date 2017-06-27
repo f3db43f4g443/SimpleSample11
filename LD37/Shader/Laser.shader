@@ -1,7 +1,7 @@
 float4x4 g_matView;
 float fTexYTimeScale;
 float fInvTexGrids;
-float fTex1Scale;
+float2 fTex1Scale;
 float g_zOrder;
 float g_segmentsPerData;
 float g_t;
@@ -40,16 +40,17 @@ void VSParticle( in float2 tex : Position,
 	float texGrid = floor( particleInstData.w );
 
 	outTex1.x = pos * 1.001;
-	outTex1.y = texData.y * fTex1Scale - 1;
+	outTex1.y = texData.z * lerp( fTex1Scale.x, fTex1Scale.y, t ) - 1;
 
 	pos = pos * width;
 	float2 dir = center_dir.zw;
 	center_dir.xy = center_dir.xy + pos * dir;
 	outPos = mul( g_matView, float4( center_dir.xy, g_zOrder, 1.0 ) );
 
-	outTex.xy = lerp( texData.xy, texData.zw, tex.x );
+	outTex.x = lerp( texData.x, texData.y, tex.x );
+	outTex.y = texData.z;
 	outTex.x = ( texGrid + outTex.x ) * fInvTexGrids;
-	outTex.y = outTex.y + fTexYTimeScale * t + texYOfs;
+	outTex.y = outTex.y + fTexYTimeScale * t * ( 2 - t ) + texYOfs;
 	outTex.z = 1 - t;
 
 }

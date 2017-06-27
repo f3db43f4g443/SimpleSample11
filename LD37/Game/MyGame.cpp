@@ -108,9 +108,11 @@ void CGame::Update()
 
 	for( int i = 0; i < nFrames; i++ )
 	{
-		for( auto pObj = CScene2DManager::GetGlobalInst()->Get_AutoUpdateAnimObject(); pObj; pObj = pObj->NextAutoUpdateAnimObject() )
+		for( auto pObj = CScene2DManager::GetGlobalInst()->Get_AutoUpdateAnimObject(); pObj; )
 		{
+			auto pObj1 = pObj->NextAutoUpdateAnimObject();
 			pObj->UpdateAnim( fInvFPS );
+			pObj = pObj1;
 		}
 		if( m_pCurGameState )
 			m_pCurGameState->UpdateFrame();
@@ -543,11 +545,20 @@ void RegisterGameClasses()
 		
 	REGISTER_CLASS_BEGIN( CLightning )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nType )
 		REGISTER_MEMBER( m_fWidth )
 		REGISTER_MEMBER( m_fHitWidth )
+		REGISTER_MEMBER( m_fTexYTileLen )
+		REGISTER_MEMBER( m_nHitFrameBegin )
+		REGISTER_MEMBER( m_nHitFrameCount )
+		REGISTER_MEMBER( m_fHitWidthPerFrame )
 		REGISTER_MEMBER( m_bIsBeam )
 		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_nDamage1 )
+		REGISTER_MEMBER( m_nDamage2 )
 		REGISTER_MEMBER( m_fKnockback )
+		REGISTER_MEMBER_TAGGED_PTR( m_pBeginEft, begin );
+		REGISTER_MEMBER_TAGGED_PTR( m_pEndEft, end );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CItem )
@@ -833,12 +844,19 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strBullet1 )
 		REGISTER_MEMBER( m_strBullet2 )
 		REGISTER_MEMBER( m_strBullet3 )
+		REGISTER_MEMBER( m_strLaser )
+		REGISTER_MEMBER( m_strBulletEye )
+		REGISTER_MEMBER( m_strBulletShockwave )
 		REGISTER_MEMBER( m_strTentacle )
 		REGISTER_MEMBER( m_strTentacleHole )
 		REGISTER_MEMBER( m_strWorm1 )
 		REGISTER_MEMBER( m_strExpKnockbackName )
 		REGISTER_MEMBER( m_strTransparentChunkName )
 		REGISTER_MEMBER( m_strTentacleName1 )
+		REGISTER_MEMBER( m_strExplosive0 )
+		REGISTER_MEMBER( m_strExplosive1 )
+		REGISTER_MEMBER( m_strExplosive2 )
+		REGISTER_MEMBER( m_strExplosive3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBoss, boss )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[0], boss/face/eye_l )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[1], boss/face/eye_r )
@@ -922,6 +940,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CKillSpawner )
 		REGISTER_BASE_CLASS( CKillTrigger )
 		REGISTER_MEMBER( m_bRandomRotate )
+		REGISTER_MEMBER( m_bTangentRotate )
 		REGISTER_MEMBER( m_rectSpawn )
 		REGISTER_MEMBER( m_nVelocityType )
 		REGISTER_MEMBER( m_vel1 )

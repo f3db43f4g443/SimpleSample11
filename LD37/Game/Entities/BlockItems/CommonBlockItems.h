@@ -20,11 +20,10 @@ protected:
 	uint32 m_nCD;
 	uint32 m_nFireCount;
 	uint32 m_nFireCD;
-	CString m_strPrefab;
+	TResourceRef<CPrefab> m_strPrefab;
 
 	bool m_bEnabled;
 	uint32 m_nFireCountLeft;
-	CReference<CPrefab> m_pPrefab;
 private:
 	TClassTrigger<CDetectTrigger> m_onTick;
 };
@@ -51,7 +50,7 @@ public:
 
 	virtual void OnRemovedFromStage() override;
 protected:
-	virtual CEntity* Spawn() { return SafeCast<CEntity>( m_pPrefab->GetRoot()->CreateInstance() ); }
+	virtual CEntity* Spawn() { return SafeCast<CEntity>( m_strPrefab->GetRoot()->CreateInstance() ); }
 	virtual void Trigger() override;
 private:
 	uint32 m_nMaxCount;
@@ -91,12 +90,11 @@ public:
 protected:
 	virtual CEntity* Spawn() override;
 
-	CString m_strPrefab0;
-	CString m_strPrefab1;
-	CString m_strPrefab2;
-	CString m_strPrefab3;
+	TResourceRef<CPrefab> m_strPrefab0;
+	TResourceRef<CPrefab> m_strPrefab1;
+	TResourceRef<CPrefab> m_strPrefab2;
+	TResourceRef<CPrefab> m_strPrefab3;
 	float m_fChances[4];
-	CReference<CPrefab> m_pPrefabs[4];
 };
 
 class CKillSpawner : public CKillTrigger
@@ -111,6 +109,7 @@ protected:
 private:
 	CRectangle m_rectSpawn;
 	bool m_bRandomRotate;
+	bool m_bTangentRotate;
 
 	uint8 m_nVelocityType;
 	CVector2 m_vel1;
@@ -118,10 +117,9 @@ private:
 
 	int32 m_nMinCount;
 	int32 m_nMaxCount;
-	CString m_strPrefab0;
-	CString m_strPrefab1;
-	CString m_strPrefab2;
-	CString m_strPrefab3;
+	TResourceRef<CPrefab> m_strPrefab0;
+	TResourceRef<CPrefab> m_strPrefab1;
+	TResourceRef<CPrefab> m_strPrefab2;
+	TResourceRef<CPrefab> m_strPrefab3;
 	float m_fChances[4];
-	CReference<CPrefab> m_pPrefabs[4];
 };

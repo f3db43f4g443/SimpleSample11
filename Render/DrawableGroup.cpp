@@ -50,6 +50,33 @@ CRenderObject2D* CDrawableGroup::CreateInstance()
 	}
 }
 
+void CDrawableGroup::UpdateDependencies()
+{
+	ClearDependency();
+	CDrawable2D* pDrawables[] = { m_colorDrawable.pDrawable, m_occlusionDrawable.pDrawable, m_guiDrawable.pDrawable };
+	for( int i = 0; i < ELEM_COUNT( pDrawables ); i++ )
+	{
+		if( !pDrawables[i] )
+			continue;
+		if( m_nType == eType_Default || m_nType == eType_MultiFrame || m_nType == eType_TileMap )
+		{
+			auto pDefaultDrawable = static_cast<CDefaultDrawable2D*>( pDrawables[i] );
+			for( auto& pResource : pDefaultDrawable->GetDependentResources() )
+			{
+				AddDependency( pResource );
+			}
+		}
+		else if( m_nType == eType_Rope )
+		{
+			auto pRopeDrawable = static_cast<CRopeDrawable2D*>( pDrawables[i] );
+			for( auto& pResource : pRopeDrawable->GetDependentResources() )
+			{
+				AddDependency( pResource );
+			}
+		}
+	}
+}
+
 void CDrawableGroup::SDrawableInfo::Load( IBufReader& buf )
 {
 	uint8 bDrawable = buf.Read<uint8>();
@@ -174,6 +201,7 @@ void CDrawableGroup::Load( IBufReader& buf )
 				buf.Read( &m_tileMapInfo.editInfos[0], m_tileMapInfo.editInfos.size() * sizeof( m_tileMapInfo.editInfos[0] ) );
 		}
 	}
+	UpdateDependencies();
 }
 
 void CDrawableGroup::Save( CBufFile& buf )

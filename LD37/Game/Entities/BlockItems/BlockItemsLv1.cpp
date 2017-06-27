@@ -12,7 +12,7 @@ void CPipe0::Trigger()
 {
 	SBarrageContext context;
 	context.pCreator = GetParentEntity();
-	context.vecBulletTypes.push_back( m_pPrefab );
+	context.vecBulletTypes.push_back( m_strPrefab.GetPtr() );
 	context.nBulletPageSize = 80;
 
 	CBarrage* pBarrage = new CBarrage( context );

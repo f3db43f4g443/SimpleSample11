@@ -11,6 +11,7 @@
 #include "ResourceManager.h"
 #include "ClassMetaData.h"
 #include "Rand.h"
+#include "Canvas.h"
 
 void CGlobalShader::Create( const char* szShaderName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
 {
@@ -118,6 +119,8 @@ void InitEngine()
 	CResourceManager::Inst()->RegisterExtension<CPrefab>( "pf" );
 	CResourceManager::Inst()->Register( new TResourceFactory<CSoundFile>() );
 	CResourceManager::Inst()->RegisterExtension<CSoundFile>( "wav" );
+	CResourceManager::Inst()->Register( new TResourceFactory<CDynamicTexture>() );
+	CResourceManager::Inst()->RegisterExtension<CDynamicTexture>( "dtx" );
 	CTextureFile::InitLoader();
 	CFontFile::Init();
 	Engine_ShaderImplement_Dummy();

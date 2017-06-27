@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Resource.h"
+#include "StringUtil.h"
 #include <map>
 #include <string>
 using namespace std;
@@ -37,6 +38,7 @@ class CResourceManager
 public:
 	template <typename T = CResource>
 	T* CreateResource( const char* name, bool bNew = false );
+	CResource* CreateResource( uint8 nType, const char* name, bool bNew = false );
 
 	void RemoveRes( CResource* pRes );
 	void Register( CResourceFactory* pFactory ) { m_mapFactories[pFactory->GetType()] = pFactory; }
@@ -60,3 +62,39 @@ T* CResourceManager::CreateResource( const char* name, bool bNew )
 {
 	return static_cast<T*>( m_mapFactories[T::eResType]->CreateResource( name, bNew ) );
 }
+
+template <class T>
+class TResourceRef : public CString
+{
+public:
+	TResourceRef( const char* c ) : CString( c ) {}
+	TResourceRef( const CString& str ) : CString( str ) {}
+	TResourceRef( const TResourceRef<T>& ref ) : CString( ref ), m_pRef( ref.m_pRef ) {}
+	TResourceRef( const struct SClassCreateContext& context ) : CString( context ) {}
+
+	TResourceRef<T>& operator = ( const TResourceRef<T>& rhs )
+	{
+		CString::operator=( rhs );
+		m_pRef = rhs.m_pRef;
+	}
+
+	T& operator * () const {
+		return *m_pRef.GetPtr();
+	}
+	T* operator -> () const {
+		return m_pRef.GetPtr();
+	}
+	operator T* () const {
+		return (T*)m_pRef;
+	}
+	operator bool() const {
+		return m_pRef.GetPtr() != NULL;
+	}
+	T* GetPtr() const { return m_pRef.GetPtr(); }
+
+	static int32 GetPtrOfs() { return MEMBER_OFFSET( TResourceRef<T>, m_pRef ); }
+
+	void Create() { m_pRef = CResourceManager::Inst()->CreateResource<T>( c_str() ); }
+private:
+	CReference<T> m_pRef;
+};

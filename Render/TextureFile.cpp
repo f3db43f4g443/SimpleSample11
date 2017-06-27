@@ -11,6 +11,18 @@ void CTextureFile::InitLoader()
 	ilInit();
 }
 
+bool CTextureFile::SaveTexFile( const char * szFileName, void * pData, uint32 nWidth, uint32 nHeight )
+{
+	uint32 img = ilGenImage();
+	ilBindImage( img );
+	ilEnable( IL_ORIGIN_SET );
+	ilOriginFunc( IL_ORIGIN_UPPER_LEFT );
+
+	ilTexImage( nWidth, nHeight, 1, 4, IL_RGBA, IL_UNSIGNED_BYTE, pData );
+
+	return ilSaveImage( Utf8ToUnicode( szFileName ).c_str() );
+}
+
 void CTextureFile::Create()
 {
 	const char* szExt = GetFileExtension( GetName() );

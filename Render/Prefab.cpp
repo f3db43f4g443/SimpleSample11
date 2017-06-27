@@ -62,10 +62,10 @@ bool CPrefabNode::SetResource( CResource* pResource )
 {
 	if( m_nType )
 		return false;
+	bool bIsRefresh = false;
 	if( m_pPrefab )
 	{
-		if( pResource == m_pResource )
-			return true;
+		bIsRefresh = pResource == m_pResource;
 		if( pResource && !m_pPrefab->CanAddDependency( pResource ) )
 			return false;
 	}
@@ -96,21 +96,27 @@ bool CPrefabNode::SetResource( CResource* pResource )
 
 	if( m_pPrefab )
 	{
-		if( m_onResourceRefreshBegin.IsRegistered() )
-			m_onResourceRefreshBegin.Unregister();
-		if( m_onResourceRefreshEnd.IsRegistered() )
-			m_onResourceRefreshEnd.Unregister();
-		if( m_pResource )
-			m_pPrefab->RemoveDependency( m_pResource );
+		if( !bIsRefresh )
+		{
+			if( m_onResourceRefreshBegin.IsRegistered() )
+				m_onResourceRefreshBegin.Unregister();
+			if( m_onResourceRefreshEnd.IsRegistered() )
+				m_onResourceRefreshEnd.Unregister();
+			if( m_pResource )
+				m_pPrefab->RemoveDependency( m_pResource );
+		}
 	}
 	m_pResource = pResource;
 	if( m_pPrefab )
 	{
-		if( m_pResource )
+		if( !bIsRefresh )
 		{
-			m_pPrefab->AddDependency( m_pResource );
-			m_pResource->RegisterRefreshBegin( &m_onResourceRefreshBegin );
-			m_pResource->RegisterRefreshEnd( &m_onResourceRefreshEnd );
+			if( m_pResource )
+			{
+				m_pPrefab->AddDependency( m_pResource );
+				m_pResource->RegisterRefreshBegin( &m_onResourceRefreshBegin );
+				m_pResource->RegisterRefreshEnd( &m_onResourceRefreshEnd );
+			}
 		}
 	}
 	SetRenderObject( pRenderObject );
@@ -138,12 +144,11 @@ void CPrefabNode::OnResourceRefreshBegin()
 void CPrefabNode::OnResourceRefreshEnd()
 {
 	CReference<CResource> pResource = m_pResource;
-	m_pResource = NULL;
-	if( m_pResource->GetResourceType() == eEngineResType_Prefab )
+	if( pResource->GetResourceType() == eEngineResType_Prefab )
 	{
 		SetResource( pResource );
 	}
-	else if( m_pResource->GetResourceType() == eEngineResType_DrawableGroup )
+	else if( pResource->GetResourceType() == eEngineResType_DrawableGroup )
 	{
 		auto nType = static_cast<CDrawableGroup*>( pResource.GetPtr() )->GetType();
 		CReference<CImage2D> pPreImage = nType == CDrawableGroup::eType_Default ? static_cast<CImage2D*>( m_pRenderObject.GetPtr() ) : NULL;
@@ -186,6 +191,14 @@ void CPrefabNode::OnResourceRefreshEnd()
 			pCurTileMap->CopyData( pPreTileMap );
 		}
 	}
+	else if( pResource->GetResourceType() == eEngineResType_ParticleSystem )
+	{
+		CReference<CParticleSystemObject> pPreParticleSystem = static_cast<CParticleSystemObject*>( m_pRenderObject.GetPtr() );
+		SetResource( pResource );
+		CReference<CParticleSystemObject> pCurParticleSystem = static_cast<CParticleSystemObject*>( m_pRenderObject.GetPtr() );
+		if( pPreParticleSystem && pCurParticleSystem )
+			pPreParticleSystem->CopyData( pCurParticleSystem );
+	}
 }
 
 void CPrefabNode::UpdateTaggedNodePtrInfo()
@@ -194,7 +207,7 @@ void CPrefabNode::UpdateTaggedNodePtrInfo()
 	if( !pClassData )
 		return;
 	map<string, STaggedNodePtrInfo*> mapInfo;
-	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this, &mapInfo]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
+	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
 	{
 		m_vecTaggedNodePtrInfo.push_back( STaggedNodePtrInfo( pData, nOfs, 0 ) );
 	};
@@ -233,11 +246,30 @@ void CPrefabNode::UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<s
 	}
 }
 
+void CPrefabNode::UpdateResPtrInfo()
+{
+	auto pClassData = GetClassData();
+	if( !pClassData )
+		return;
+	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
+	{
+		m_vecResPtrInfo.push_back( SResPtrInfo( pData, nOfs ) );
+	};
+	pClassData->FindAllResPtr( func );
+	for( auto& info : m_vecResPtrInfo )
+	{
+		auto& name = *(CString*)( m_obj.GetObjData() + info.nOfs );
+		info.nOfs += TResourceRef<CPrefab>::GetPtrOfs();
+		info.pResource = CResourceManager::Inst()->CreateResource( info.pMemberData->nFlag >> 16, name.c_str_safe() );
+	}
+}
+
 CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst )
 {
 	if( m_bTaggedNodePtrInfoDirty )
 	{
 		UpdateTaggedNodePtrInfo();
+		UpdateResPtrInfo();
 		m_bTaggedNodePtrInfoDirty = false;
 	}
 
@@ -248,6 +280,11 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 			pPrefabNode->SetName( m_strName );
 		if( m_pResource )
 			pPrefabNode->SetResource( m_pResource );
+
+		uint8* pRawData = (uint8*)pPrefabNode;
+		pRawData -= m_obj.GetCastOffset();
+		for( auto& item : m_vecResPtrInfo )
+			*( CReference<CResource>* )( pRawData + item.nOfs ) = item.pResource;
 	}
 
 	CRenderObject2D* pRenderObject = NULL;

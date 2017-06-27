@@ -32,6 +32,11 @@ void CResourceFactory::RemoveRes( CResource* pRes )
 	m_mapRes.erase( pRes->GetName() );
 }
 
+CResource * CResourceManager::CreateResource( uint8 nType, const char * name, bool bNew )
+{
+	return m_mapFactories[nType]->CreateResource( name, bNew );
+}
+
 void CResourceManager::RemoveRes( CResource* pRes )
 {
 	m_mapFactories[pRes->GetResourceType()]->RemoveRes( pRes );

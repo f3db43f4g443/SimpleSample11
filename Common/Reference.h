@@ -70,7 +70,7 @@ public:
 		return m_ptr != r.m_ptr;
 	}*/
 
-	T* GetPtr() { return m_ptr; }
+	T* GetPtr() const { return m_ptr; }
 	T** AssignPtr() { SAFE_RELEASE( m_ptr ); return &m_ptr; }
 private:
 	T* m_ptr;

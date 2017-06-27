@@ -108,8 +108,17 @@ private:
 	bool m_bTaggedNodePtrInfoDirty;
 	vector<STaggedNodePtrInfo> m_vecTaggedNodePtrInfo;
 	void UpdateTaggedNodePtrInfo();
-
 	void UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo );
+
+	struct SResPtrInfo
+	{
+		SResPtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs ) : pMemberData( pMemberData ), nOfs( nOfs ) {}
+		SClassMetaData::SMemberData* pMemberData;
+		uint32 nOfs;
+		CReference<CResource> pResource;
+	};
+	vector<SResPtrInfo> m_vecResPtrInfo;
+	void UpdateResPtrInfo();
 
 	CRenderObject2D* CreateInstance( vector<CRenderObject2D*>& vecInst );
 };
