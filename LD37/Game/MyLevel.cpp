@@ -706,6 +706,8 @@ void CMyLevel::UpdateBlocksMovement()
 					bHit = pChunk->pos.y == nMinY && pChunk->nFallSpeed == 0;
 				}
 			}
+			else
+				pChunk->bMovedLastFrame = false;
 			if( !b1 )
 			{
 				for( int i = 0; i < pChunk->nWidth; i++ )

@@ -12,7 +12,7 @@ public:
 	CLv1Boss( const SClassCreateContext& context ) : CLevelScrollObj( context ), m_h1( -1 ), m_nLinkCount( 0 )
 		, m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_strBullet3( context )
 		, m_strLaser( context ), m_strBulletEye( context ), m_strBulletShockwave( context ), m_strTentacle( context ), m_strTentacleHole( context )
-		, m_strExpKnockbackName( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strTentacleName1( context )
+		, m_strExpKnockbackName( context ), m_strExpKnockback1( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strTentacleName1( context )
 		, m_strExplosive0( context ), m_strExplosive1( context ), m_strExplosive2( context ), m_strExplosive3( context ) { SET_BASEOBJECT_ID( CLv1Boss ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
@@ -85,6 +85,7 @@ private:
 	TResourceRef<CDrawableGroup> m_strTentacleHole;
 	TResourceRef<CPrefab> m_strWorm1;
 	TResourceRef<CPrefab> m_strExpKnockbackName;
+	TResourceRef<CPrefab> m_strExpKnockback1;
 	TResourceRef<CPrefab> m_strExplosive0;
 	TResourceRef<CPrefab> m_strExplosive1;
 	TResourceRef<CPrefab> m_strExplosive2;

@@ -23,20 +23,24 @@ void CDoor::OnRemovedFromStage()
 
 void CDoor::OnTick()
 {
-	bool bOpen = false;
-	for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+	bool bOpen = m_nOpenFrame > 0;
+	m_nOpenFrame = Max( m_nOpenFrame - 1, 0 );
+	if( !bOpen )
 	{
-		auto pPlayer = SafeCast<CPlayer>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pPlayer )
+		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 		{
-			bOpen = true;
-			break;
-		}
-		auto pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pEnemy )
-		{
-			bOpen = true;
-			break;
+			auto pPlayer = SafeCast<CPlayer>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+			if( pPlayer )
+			{
+				bOpen = true;
+				break;
+			}
+			auto pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+			if( pEnemy )
+			{
+				bOpen = true;
+				break;
+			}
 		}
 	}
 

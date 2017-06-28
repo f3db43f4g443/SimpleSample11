@@ -417,7 +417,7 @@
       </node>
       
       <node name="wall2" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2.5" destroyweightperwidth="2.5" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20"  shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall2.pf">
-        <metadata minx="6" miny="6" maxx="32" maxy="32" />
+        <metadata minx="4" miny="4" maxx="32" maxy="32" />
         <types>4</types>
         <subitem copy_blueprint="1">
           <node type="subregion">

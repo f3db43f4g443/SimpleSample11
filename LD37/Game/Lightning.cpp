@@ -112,24 +112,27 @@ void CLightning::OnTick()
 				break;
 			}
 
-			CDoor* pDoor = SafeCast<CDoor>( pEntity );
-			if( pDoor && !pDoor->IsOpen() )
+			if( m_nType <= 1 )
 			{
-				auto pChunk = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
-				if( pChunk )
+				CDoor* pDoor = SafeCast<CDoor>( pEntity );
+				if( pDoor && !pDoor->IsOpen() )
 				{
-					if( pChunk == m_pCreator )
-						continue;
-					if( m_nType == 0 )
+					auto pChunk = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+					if( pChunk )
 					{
-						if( !pPlayer || !pPlayer->IsHiding() || pChunk != pPlayer->GetCurRoom() )
+						if( pChunk == m_pCreator )
 							continue;
+						if( m_nType == 0 )
+						{
+							if( !pPlayer || !pPlayer->IsHiding() || pChunk != pPlayer->GetCurRoom() )
+								continue;
+						}
+						pHitEntity = pChunk;
+						pDamageEntity = pChunk;
+						pResult = &item;
 					}
-					pHitEntity = pChunk;
-					pDamageEntity = pChunk;
-					pResult = &item;
+					break;
 				}
-				break;
 			}
 		}
 
@@ -242,6 +245,13 @@ void CLightning::OnTick()
 				}
 				else
 				{
+					CDoor* pDoor = SafeCast<CDoor>( pEntity );
+					if( pDoor )
+					{
+						pDoor->OpenForFrame( 5 );
+						continue;
+					}
+
 					CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 					if( pCharacter && pCharacter != pPlayer )
 					{

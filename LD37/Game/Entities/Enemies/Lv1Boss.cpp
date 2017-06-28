@@ -200,8 +200,8 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 	pChunk->fDestroyWeight = 100000;
 	pChunk->Insert_StopEvent( pEvent );
 
-	const char* szChunks[] = { "1", "2", "3", "4", "5a", "5b", "6", "7", "8", "9", "10", "11", "12", "13", "14" };
-	uint32 nHeights[] = { 8, 8, 8, 8, 11, 11, 10, 10, 6, 5, 10, 6, 11, 2, 8 };
+	const char* szChunks[] = { "1", "2", "3", "4", "5a", "5b", "6", "7", "8", "9", "10", "11" };
+	uint32 nHeights[] = { 8, 8, 8, 8, 11, 11, 10, 10, 10, 5, 2, 6 };
 	for( int i = 0; i < ELEM_COUNT( szChunks ); i++ )
 	{
 		pChunk = context.mapChunkNames[szChunks[i]];
@@ -235,9 +235,9 @@ void CLv1Boss::OnTick()
 
 void CLv1Boss::CreateTentacle( uint8 i, CChunkObject* pChunkObject )
 {
-	static uint32 nBegin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15 };
-	static uint32 nCount[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2 };
-	static TVector2<int32> pos[] = { { 0, 9 }, { 28, 9 }, { 1, 8 }, { 27, 8 }, { 5, 12 }, { 23, 12 }, { 0, 10 }, { 28, 10 }, { 4, 7 }, { 24, 7 }, { 2, 10 }, { 26, 6 }, { 25, 11 }, { 27, 11 }, { 1, 4 }, { 4, 8 }, { 6, 12 } };
+	static uint32 nBegin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+	static uint32 nCount[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2 };
+	static TVector2<int32> pos[] = { { 0, 9 }, { 28, 9 }, { 1, 8 }, { 27, 8 }, { 5, 12 }, { 23, 12 }, { 0, 10 }, { 28, 10 }, { 2, 10 }, { 24, 7 }, { 2, 5 }, { 26, 6 }, { 25, 11 }, { 27, 11 } };
 
 	class CTentacle : public CAIObject
 	{
@@ -406,6 +406,35 @@ void CLv1Boss::AIFuncEye1( uint8 nEye )
 
 void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 {
+	class AIGuard : public CAIObject
+	{
+	public:
+		AIGuard( const CVector2& basePos ) : m_basePos( basePos ) {}
+	protected:
+		virtual void AIFunc() override
+		{
+			auto pBoss = static_cast<CLv1Boss*>( GetParentEntity() );
+
+			while( 1 )
+			{
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( pPlayer )
+				{
+					CVector2 dPos = pPlayer->GetPosition() - m_basePos;
+					if( abs( dPos.x ) < 160 && abs( dPos.y ) < 160 )
+					{
+						auto pExp = SafeCast<CEntity>( pBoss->m_strExpKnockback1->GetRoot()->CreateInstance() );
+						pExp->SetPosition( m_basePos );
+						pExp->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+					}
+				}
+
+				Yield( 1, false );
+			}
+		}
+		CVector2 m_basePos;
+	};
+
 	typedef int32 SKilled;
 	typedef void* SKilled1;
 	try
@@ -424,6 +453,9 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 			UpdateEyePos( pEye, pEyeLink, CVector2( 0, -100 ), 100.0f );
 			m_pAIEye[nEye]->Yield( 0, false );
 		}
+
+		TTempEntityHolder<AIGuard> pTemp = new AIGuard( basePos );
+		pTemp->SetParentEntity( this );
 
 		CVector2 target( 0, -100 );
 		while( 1 )
@@ -552,17 +584,47 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 				pLaser->SetOnHit( [this] ( CLightning* pObj, CEntity* pTarget ) {
 					if( SafeCast<CBullet>( pTarget ) && pTarget->GetName() == m_strBulletEye->GetRoot()->GetName() )
 					{
-						float fAngle0 = pTarget->r;
-						for( int i = 0; i < 24; i++ )
+						SBarrageContext context;
+						context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
+						context.nBulletPageSize = 36;
+
+						CBarrage* pBarrage = new CBarrage( context );
+						pBarrage->AddFunc( [] ( CBarrage* pBarrage )
 						{
-							float fAngle = fAngle0 + i * PI / 12;
-							float fLen = 150 + abs( ( i % 4 ) - 2 ) * 25;
-							auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
-							pBullet->SetPosition( pTarget->GetPosition() );
-							pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * fLen );
-							pBullet->SetRotation( fAngle );
-							pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-						}
+							float fAngle0 = SRand::Inst().Rand( -PI, PI );
+							float fAngles[9];
+							for( int i = 0; i < ELEM_COUNT( fAngles ); i++ )
+							{
+								fAngles[i] = fAngle0 + ( i + SRand::Inst().Rand( -0.1f, 0.1f ) ) * PI * 2 / ELEM_COUNT( fAngles );
+							}
+							SRand::Inst().Shuffle( fAngles, 3 );
+							SRand::Inst().Shuffle( fAngles + 3, 3 );
+							SRand::Inst().Shuffle( fAngles + 6, 3 );
+
+							int32 nBullet = 0;
+
+							for( int i = 0; i < 8; i++ )
+							{
+								for( int k = 0; k < 3; k++ )
+								{
+									int32 j = i - k * 2;
+									if( j >= 0 && j < 4 )
+									{
+										for( int i0 = 0; i0 < 3; i0++ )
+										{
+											float fAngle = fAngles[k + i0 * 3];
+											pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), CVector2( cos( fAngle ), sin( fAngle ) ) * 200, CVector2( 0, 0 ) );
+										}
+									}
+								}
+								pBarrage->Yield( 8 );
+							}
+
+							pBarrage->StopNewBullet();
+						} );
+						pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						pBarrage->SetPosition( pTarget->GetPosition() );
+						pBarrage->Start();
 
 						pTarget->SetParentEntity( NULL );
 					}
@@ -784,7 +846,7 @@ void CLv1Boss::AIFuncNose3()
 			pBullet->SetPosition( pos );
 			pBullet->SetVelocity( vel );
 			pBullet->SetAcceleration( CVector2( 0, -g ) );
-			pBullet->SetAngularVelocity( 0.5f );
+			pBullet->SetAngularVelocity( 1.5f );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
 		if( !CheckBlocked( TRectangle<int32>( 16, 5, 4, 2 ) ) )
@@ -845,7 +907,7 @@ void CLv1Boss::AIFuncMouth1()
 
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 0, 0, 0, 0 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
 			if( bBlocked )
 				break;
 
@@ -1076,7 +1138,7 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 			int32 iFrame = nFrames;
 
 			nFireCD = 2;
-			nFireCD1 = 10;
+			nFireCD1 = 8;
 			float fPos = 0;
 			int8 k = m_vecTongueSegs.back()->x > 0 ? -1 : 1;
 			int32 nHits = SRand::Inst().Rand( 2, 5 );
@@ -1184,10 +1246,10 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 						auto pBullet = SafeCast<CBullet>( pPrefab[SRand::Inst().Rand( 0, 4 )]->GetRoot()->CreateInstance() );
 						pBullet->SetPosition( basePos );
 						pBullet->SetVelocity( CVector2( sin( fPos * 0.5f ), cos( fPos * 0.5f ) ) * 400 );
-						pBullet->SetRotation( PI * 0.5f - fPos * 0.5 );
+						pBullet->SetRotation( PI * 0.5f - fPos * 1.1f );
 						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 
-						nFireCD1 = 10;
+						nFireCD1 = 8;
 					}
 				}
 
@@ -1237,7 +1299,7 @@ void CLv1Boss::AIFuncMouth3()
 
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 0, 0, 0, 0 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
 			if( bBlocked )
 				break;
 
@@ -1246,6 +1308,7 @@ void CLv1Boss::AIFuncMouth3()
 			{
 				CVector2 center = CVector2( 16, 2 ) * CMyLevel::GetBlockSize();
 				CVector2 dPos = pPlayer->GetPosition() - center;
+				dPos.y = Max( dPos.y, 0.0f );
 				if( ( pPlayer->GetPosition() - center ).Length2() < 300 * 300 )
 				{
 					CVector2 dir = dPos;
@@ -1253,7 +1316,7 @@ void CLv1Boss::AIFuncMouth3()
 					auto pBullet = SafeCast<CBullet>( m_strBulletShockwave->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( center );
 					pBullet->SetVelocity( dir * 100 );
-					pBullet->SetLife( 300 );
+					pBullet->SetLife( 240 );
 					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					m_pAIMouth->Yield( 6.0f, false );
 					continue;
