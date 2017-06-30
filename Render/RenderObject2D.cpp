@@ -185,10 +185,10 @@ void CRenderObject2D::RemoveAllChild()
 
 void CRenderObject2D::RemoveThis()
 {
-	if( m_pTransformParent )
-		m_pTransformParent->RemoveTransformChild( this );
 	if( m_pRenderParent )
 		m_pRenderParent->RemoveRenderChild( this );
+	if( m_pTransformParent )
+		m_pTransformParent->RemoveTransformChild( this );
 }
 
 void CRenderObject2D::MoveToTopmost( CRenderObject2D* pNode, bool bKeepZOrder )

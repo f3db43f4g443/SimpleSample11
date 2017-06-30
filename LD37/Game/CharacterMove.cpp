@@ -4,6 +4,7 @@
 #include "GameUtil.h"
 #include "Block.h"
 #include "MyLevel.h"
+#include "Common/MathUtil.h"
 
 void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& ofs, SRaycastResult* pHit )
 {
@@ -959,4 +960,171 @@ void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
 
 	pCharacter->SetRotation( pCharacter->GetRotation() + dRot );
 	pCharacter->SetVelocity( vel1 );
+}
+
+void SCharacterChainMovementData::SetCharacterCount( uint32 nCount )
+{
+	vecPos.resize( nCount );
+	vecVel.resize( nCount );
+	vecAcc.resize( nCount );
+	vecDir.resize( nCount );
+
+	vecLen.resize( nCount - 1 );
+	vecK.resize( nCount - 1 );
+	vecAngleLim.resize( nCount );
+	vecK1.resize( nCount );
+	vecInvWeight.resize( nCount );
+	vecExtraAcc.resize( nCount );
+	for( int i = 0; i < nCount; i++ )
+	{
+		vecPos[i] = vecVel[i] = vecAcc[i] = vecExtraAcc[i] = CVector2( 0, 0 );
+	}
+}
+
+void SCharacterChainMovementData::Simulate( float fTime, uint32 nSteps, CCharacter** pCharacters, uint32 nCharacters )
+{
+	fTime /= nSteps;
+	float f = pow( 0.5f, fTime * fDamping );
+	int32 nSegs = vecPos.size();
+	for( int iStep = 0; iStep < nSteps; iStep++ )
+	{
+		for( auto& item : vecAcc )
+			item = CVector2( 0, 0 );
+
+		for( int i = 0; i < nSegs - 1; i++ )
+		{
+			CVector2 dPos = vecPos[i + 1] - vecPos[i];
+			float l = dPos.Normalize() - vecLen[i];
+			CVector2 force = dPos * vecK[i] * l;
+			vecAcc[i] = vecAcc[i] + force;
+			vecAcc[i + 1] = vecAcc[i + 1] - force;
+		}
+
+		for( int i = 0; i < nSegs; i++ )
+		{
+			CVector2 dir0;
+			float l0 = 0;
+			if( i == 0 )
+				dir0 = beginDir;
+			else
+			{
+				dir0 = vecPos[i] - vecPos[i - 1];
+				l0 = dir0.Normalize();
+			}
+
+			CVector2 dir1;
+			float l1 = 0;
+			if( i == nSegs - 1 )
+				dir1 = endDir;
+			else
+			{
+				dir1 = vecPos[i + 1] - vecPos[i];
+				l1 = dir1.Normalize();
+			}
+
+			float dAngle = atan2( dir0.Dot( CVector2( dir1.y, -dir1.x ) ), dir0.Dot( dir1 ) );
+			float fForce = ( dAngle > 0 ? Min( vecAngleLim[i] - dAngle, 0.0f ) : Max( -dAngle - vecAngleLim[i], 0.0f ) ) * vecK1[i];
+			if( i > 0 )
+			{
+				vecAcc[i] = vecAcc[i] + CVector2( dir0.y, -dir0.x ) * fForce;
+				vecAcc[i - 1] = vecAcc[i - 1] - CVector2( dir0.y, -dir0.x ) * fForce;
+			}
+			if( i < nSegs - 1 )
+			{
+				vecAcc[i] = vecAcc[i] + CVector2( dir1.y, -dir1.x ) * fForce;
+				vecAcc[i + 1] = vecAcc[i + 1] - CVector2( dir1.y, -dir1.x ) * fForce;
+			}
+		}
+
+		for( int i = 0; i < nSegs; i++ )
+		{
+			vecAcc[i] = vecAcc[i] * vecInvWeight[i] + vecExtraAcc[i];
+			vecVel[i] = vecVel[i] * f + vecAcc[i] * fTime;
+			vecPos[i] = vecPos[i] + vecVel[i] * fTime;
+		}
+
+		for( int i = 0; i < nSegs; i++ )
+		{
+			CVector2 dir0;
+			float l0 = 0;
+			if( i == 0 )
+				dir0 = beginDir;
+			else
+			{
+				dir0 = vecPos[i] - vecPos[i - 1];
+				l0 = dir0.Normalize();
+			}
+
+			CVector2 dir1;
+			float l1 = 0;
+			if( i == nSegs - 1 )
+				dir1 = endDir;
+			else
+			{
+				dir1 = vecPos[i + 1] - vecPos[i];
+				l1 = dir1.Normalize();
+			}
+			vecDir[i] = dir1 * l0 + dir0 * l1;
+			vecDir[i].Normalize();
+
+			if( i < nCharacters && pCharacters[i] != NULL )
+			{
+				pCharacters[i]->SetPosition( vecPos[i] );
+				pCharacters[i]->SetRotation( atan2( -vecDir[i].y, -vecDir[i].x ) );
+				pCharacters[i]->SetVelocity( vecVel[i] );
+			}
+		}
+	}
+}
+
+void SCharacterQueueMovementData::Setup( CCharacter ** pCharacters, uint32 nCharacters )
+{
+	waypoints.resize( nCharacters );
+	angles.resize( nCharacters );
+
+	CVector2 pos( 0, 0 );
+	float fAngle = 0;
+	for( int i = nCharacters - 1; i >= 0; i-- )
+	{
+		if( pCharacters[i] )
+		{
+			pos = pCharacters[i]->GetPosition();
+			fAngle = pCharacters[i]->GetRotation();
+		}
+		waypoints[i] = pos;
+		angles[i] = fAngle;
+	}
+	nWaypointBegin = 0;
+	fPercent = 0.0f;
+}
+
+void SCharacterQueueMovementData::UpdateMove( CCharacter ** pCharacters, uint32 nCharacters )
+{
+	float fTime = pCharacters[nCharacters - 1]->GetStage()->GetElapsedTimePerTick();
+	fPercent += fTime * fSpeed;
+	if( fPercent >= 1 )
+	{
+		fPercent -= 1;
+		waypoints[nWaypointBegin] = pCharacters[nCharacters - 1]->GetPosition();
+		angles[nWaypointBegin] = pCharacters[nCharacters - 1]->GetRotation();
+		nWaypointBegin++;
+		if( nWaypointBegin >= nCharacters )
+			nWaypointBegin -= nCharacters;
+	}
+
+	for( int i = 0; i < nCharacters - 1; i++ )
+	{
+		int32 i0 = i + nWaypointBegin;
+		if( i0 >= nCharacters )
+			i0 -= nCharacters;
+		int32 i1 = i0 + 1;
+		if( i1 >= nCharacters )
+			i1 -= nCharacters;
+		if( pCharacters[i] )
+		{
+			pCharacters[i]->SetPosition( waypoints[i0] + ( waypoints[i1] - waypoints[i0] ) * fPercent );
+			pCharacters[i]->SetRotation( InterpAngle( angles[i0], angles[i1], fPercent ) );
+			pCharacters[i]->SetVelocity( ( waypoints[i1] - waypoints[i0] ) * fSpeed );
+		}
+	}
 }

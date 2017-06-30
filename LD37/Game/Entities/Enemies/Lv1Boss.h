@@ -3,17 +3,19 @@
 #include "Block.h"
 #include "LevelScrollObj.h"
 #include "Render/DrawableGroup.h"
+#include "CharacterMove.h"
 
 class CLv1Boss : public CLevelScrollObj
 {
 	friend class CLv1BossWorm1;
+	friend class CLv1BossWorm2;
 	friend void RegisterGameClasses();
 public:
-	CLv1Boss( const SClassCreateContext& context ) : CLevelScrollObj( context ), m_h1( -1 ), m_nLinkCount( 0 )
+	CLv1Boss( const SClassCreateContext& context ) : CLevelScrollObj( context ), m_bActive( false ), m_h1( -1 ), m_nLinkCount( 0 )
 		, m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_strBullet3( context )
 		, m_strLaser( context ), m_strBulletEye( context ), m_strBulletShockwave( context ), m_strTentacle( context ), m_strTentacleHole( context )
-		, m_strExpKnockbackName( context ), m_strExpKnockback1( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strTentacleName1( context )
-		, m_strExplosive0( context ), m_strExplosive1( context ), m_strExplosive2( context ), m_strExplosive3( context ) { SET_BASEOBJECT_ID( CLv1Boss ); }
+		, m_strExpKnockbackName( context ), m_strExpKnockback1( context ), m_strTransparentChunkName( context ), m_strWorm1( context ), m_strWorm2( context )
+		, m_strTentacleName1( context ), m_strExplosive0( context ), m_strExplosive1( context ), m_strExplosive2( context ), m_strExplosive3( context ) { SET_BASEOBJECT_ID( CLv1Boss ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void Update( uint32 nCur ) override;
@@ -65,12 +67,17 @@ private:
 	AIMouth* m_pAIMouth;
 
 	void AIFuncMain();
+	void AIFuncMain1();
+	void AIFuncMainFinal();
 	class AIMain : public CAIObject
 	{
 	protected:
 		virtual void AIFunc() override { static_cast<CLv1Boss*>( GetParentEntity() )->AIFuncMain(); }
 	};
 	AIMain* m_pAIMain;
+	bool m_bActive;
+
+	void BeginFinalPhase();
 
 	bool CheckBlocked( const TRectangle<int32>& rect );
 
@@ -84,6 +91,7 @@ private:
 	TResourceRef<CDrawableGroup> m_strTentacle;
 	TResourceRef<CDrawableGroup> m_strTentacleHole;
 	TResourceRef<CPrefab> m_strWorm1;
+	TResourceRef<CPrefab> m_strWorm2;
 	TResourceRef<CPrefab> m_strExpKnockbackName;
 	TResourceRef<CPrefab> m_strExpKnockback1;
 	TResourceRef<CPrefab> m_strExplosive0;
@@ -138,4 +146,71 @@ protected:
 	CReference<CEntity> m_pSpawner;
 	bool m_bKilled;
 	bool m_bReturn;
+};
+
+class CLv1BossWorm2Seg : public CEnemyPart
+{
+	friend void RegisterGameClasses();
+public:
+	CLv1BossWorm2Seg( const SClassCreateContext& context ) : CEnemyPart( context ) { SET_BASEOBJECT_ID( CLv1BossWorm2Seg ); }
+
+	CRenderObject2D* GetLayer( int8 i ) { return m_pLayers[i]; }
+private:
+	CReference<CRenderObject2D> m_pLayers[3];
+};
+
+class CLv1BossWorm2 : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+	typedef int32 SKilled;
+	typedef void* SKilled1;
+public:
+	CLv1BossWorm2( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_bSpawned( false ), m_bKilled( false ), m_strSeg( context )
+		, m_strBullet1( context ), m_strBullet2( context ), m_strBullet3( context ) { SET_BASEOBJECT_ID( CLv1BossWorm2 ); }
+
+	bool IsSpawned() { return m_bSpawned; }
+	bool IsKilled() { return m_bKilled; }
+	void Set( CLv1Boss* pOwner, uint32 nSegs, const CVector2& src, const CVector2& target, int8 nMoveType ) { m_pOwner = pOwner; m_vecSegs.resize( nSegs ); m_src = src; m_target = target; m_nMoveType = nMoveType; }
+	virtual void OnAddedToStage() override;
+	virtual void Kill() override;
+
+	void Fire1();
+	void Fire2();
+protected:
+	virtual void AIFunc() override;
+	void Move1();
+	void Move2();
+	void Move3();
+	void Destroy();
+
+	bool m_bSpawned;
+	bool m_bKilled;
+	TResourceRef<CPrefab> m_strSeg;
+	TResourceRef<CPrefab> m_strBullet1;
+	TResourceRef<CPrefab> m_strBullet2;
+	TResourceRef<CPrefab> m_strBullet3;
+
+	vector<CCharacter*> m_vecSegs;
+	CReference<CLv1Boss> m_pOwner;
+	CVector2 m_src;
+	CVector2 m_target;
+	int8 m_nMoveType;
+	CReference<CEntity> m_pLayers[3];
+};
+
+class CLv1BossBullet1 : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+public:
+	CLv1BossBullet1( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_flyData( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CLv1BossBullet1 ); }
+
+	virtual void Kill() override;
+protected:
+	virtual void AIFunc() override;
+	virtual void OnTickAfterHitTest() override;
+
+	TResourceRef<CPrefab> m_strBullet;
+
+	SCharacterPhysicsFlyData m_flyData;
+	CVector2 m_moveTarget;
 };

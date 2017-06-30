@@ -111,7 +111,7 @@ void CLv1Boss::Update( uint32 nCur )
 			pRenderObject = pNext;
 		}
 
-		if( nCur >= nMinScrollPos && !m_pAIEye[0] )
+		if( nCur >= nMinScrollPos && !m_bActive )
 			Active();
 	}
 }
@@ -212,10 +212,22 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 		};
 		pChunk->Insert_StopEvent( pEvent );
 	}
+
+	pChunk = context.mapChunkNames["barrier"];
+	pEvent = new CChunkStopEvent;
+	pEvent->nHeight = 768;
+	pEvent->func = [this] ( struct SChunk* pChunk ) {
+		BeginFinalPhase();
+	};
+	pChunk->bInvulnerable = true;
+	pChunk->fDestroyBalance = 0;
+	pChunk->fDestroyWeight = 100000;
+	pChunk->Insert_StopEvent( pEvent );
 }
 
 void CLv1Boss::Active()
 {
+	m_bActive = true;
 	m_pAIEye[0] = new AIEye( 0 );
 	m_pAIEye[0]->SetParentEntity( this );
 	m_pAIEye[1] = new AIEye( 1 );
@@ -647,6 +659,7 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 	}
 	catch( SKilled e )
 	{
+		m_pAIEye[nEye]->Yield( 0, false );
 		m_pEyeHole[nEye]->SetParentEntity( NULL );
 		m_pEyeHole[nEye] = NULL;
 		m_pEye[nEye] = NULL;
@@ -846,7 +859,7 @@ void CLv1Boss::AIFuncNose3()
 			pBullet->SetPosition( pos );
 			pBullet->SetVelocity( vel );
 			pBullet->SetAcceleration( CVector2( 0, -g ) );
-			pBullet->SetAngularVelocity( 1.5f );
+			pBullet->SetAngularVelocity( 2.5f );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
 		if( !CheckBlocked( TRectangle<int32>( 16, 5, 4, 2 ) ) )
@@ -859,7 +872,7 @@ void CLv1Boss::AIFuncNose3()
 			pBullet->SetPosition( pos );
 			pBullet->SetVelocity( vel );
 			pBullet->SetAcceleration( CVector2( 0, -g ) );
-			pBullet->SetAngularVelocity( -0.5f );
+			pBullet->SetAngularVelocity( -2.5f );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
 
@@ -1259,6 +1272,7 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 	}
 	catch( SKilled e )
 	{
+		m_pAIMouth->Yield( 0, false );
 		m_pTongueHole->SetParentEntity( NULL );
 		m_pTongueHole = NULL;
 		m_pTongue = NULL;
@@ -1330,6 +1344,18 @@ void CLv1Boss::AIFuncMouth3()
 
 void CLv1Boss::AIFuncMain()
 {
+	try
+	{
+		AIFuncMain1();
+	}
+	catch( int32 e )
+	{
+	}
+	AIFuncMainFinal();
+}
+
+void CLv1Boss::AIFuncMain1()
+{
 	while( 1 )
 	{
 		if( m_vecTentacles.size() > m_vecWorms1.size() )
@@ -1350,6 +1376,59 @@ void CLv1Boss::AIFuncMain()
 
 		m_pAIMain->Yield( 1.0f, false );
 	}
+}
+
+void CLv1Boss::AIFuncMainFinal()
+{
+	auto pWorm = SafeCast<CLv1BossWorm2>( m_strWorm2->GetRoot()->CreateInstance() );
+	CVector2 center = CVector2( 16, 0 ) * CMyLevel::GetBlockSize();
+	pWorm->Set( this, 10, center, CVector2( 512, 768 - 40 ), 0 );
+	pWorm->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+
+	int32 i = 0;
+	while( 1 )
+	{
+		if( pWorm->IsSpawned() )
+		{
+			if( i == 0 )
+			{
+				pWorm->Fire1();
+				m_pAIMain->Yield( 5.0f, false );
+			}
+			else
+			{
+				pWorm->Fire2();
+				m_pAIMain->Yield( 8.0f, false );
+			}
+			i = 1 - i;
+		}
+		else
+			m_pAIMain->Yield( 1.0f, false );
+	}
+}
+
+void CLv1Boss::BeginFinalPhase()
+{
+	for( int i = 0; i < 2; i++ )
+	{
+		if( m_pAIEye[i] )
+		{
+			m_pAIEye[i]->SetParentEntity( NULL );
+			m_pAIEye[i] = NULL;
+		}
+	}
+	if( m_pAINose )
+	{
+		m_pAINose->SetParentEntity( NULL );
+		m_pAINose = NULL;
+	}
+	if( m_pAIMouth )
+	{
+		m_pAIMouth->SetParentEntity( NULL );
+		m_pAIMouth = NULL;
+	}
+
+	m_pAIMain->Throw( (int32)0 );
 }
 
 bool CLv1Boss::CheckBlocked( const TRectangle<int32>& rect )
@@ -1751,7 +1830,7 @@ void CLv1BossWorm1::AIFunc()
 	{
 		CEntity* pEntity = m_parts[--nSegEnd];
 		pEntity->SetParentEntity( NULL );
-		m_pAI->Yield( 0.25f, false );
+		m_pAI->Yield( 0.1f, false );
 	}
 	SetParentEntity( NULL );
 }
@@ -1828,4 +1907,345 @@ void CLv1BossWorm1::AIFuncFire()
 			}
 		}
 	}
+}
+
+void CLv1BossWorm2::OnAddedToStage()
+{
+	for( int i = ELEM_COUNT( m_pLayers ); i >= 0; i-- )
+	{
+		m_pLayers[i] = new CEntity;
+		m_pLayers[i]->SetParentEntity( this );
+	}
+
+	CEnemyTemplate::OnAddedToStage();
+}
+
+void CLv1BossWorm2::Kill()
+{
+	if( m_bKilled )
+		return;
+	m_bKilled = true;
+	if( m_pAI )
+		m_pAI->Throw( (SKilled1)0 );
+}
+
+void CLv1BossWorm2::AIFunc()
+{
+	try
+	{
+		try
+		{
+			Move1();
+		}
+		catch( SKilled1 e )
+		{
+		}
+
+		if( m_nMoveType == 0 )
+			Move2();
+		else
+			Move3();
+	}
+	catch( SKilled e )
+	{
+	}
+	Destroy();
+}
+
+void CLv1BossWorm2::Move1()
+{
+	m_fDefence = 1.0f;
+	uint32 nSegs = m_vecSegs.size();
+	float fSegLen = 80;
+	float fHeadMoveLen = 70;
+
+	SCharacterChainMovementData data;
+	data.beginDir = CVector2( 0, -1 );
+	data.endDir = CVector2( 0, -1 );
+	data.fDamping = 1.0f;
+	data.SetCharacterCount( nSegs + 1 );
+	for( int i = 0; i <= nSegs; i++ )
+		data.vecPos[i] = m_src + CVector2( 0, -1 ) * i;
+	for( int i = 0; i < nSegs; i++ )
+		data.vecLen[i] = 1;
+
+	CVector2 headPos = m_src;
+	for( int iSeg = 0; iSeg < nSegs; iSeg++ )
+	{
+		CLv1BossWorm2Seg* pSeg = SafeCast<CLv1BossWorm2Seg>( m_strSeg->GetRoot()->CreateInstance() );
+		m_vecSegs[iSeg] = pSeg;
+		pSeg->SetParentEntity( this );
+		for( int i = 0; i < 3; i++ )
+		{
+			pSeg->GetLayer( i )->SetRenderParentBefore( m_pLayers[i] );
+			static_cast<CMultiFrameImage2D*>( pSeg->GetLayer( i ) )->SetFrames( 0, 4, 8 );
+			static_cast<CMultiFrameImage2D*>( pSeg->GetLayer( i ) )->SetPlaySpeed( 1.0f, false );
+		}
+		if( iSeg > 0 )
+			data.vecInvWeight[iSeg] = 1;
+		data.vecPos[iSeg] = m_src + CVector2( 0, 1 );
+		data.vecPos[iSeg + 1] = m_src;
+		data.vecVel[iSeg] = CVector2( 0, 0 );
+		data.vecK[iSeg] = 80.0f;
+		data.vecAngleLim[iSeg] = 0.4f;
+		data.vecK1[iSeg] = 300.0f;
+		if( iSeg == 0 )
+			data.vecK1[iSeg] *= 2;
+		if( iSeg == 0 || iSeg == nSegs - 1 )
+			data.vecK[iSeg] *= 2;
+
+		for( int32 iFrame = 0; iFrame < 40; iFrame++ )
+		{
+			for( int i = 1; i <= iSeg; i++ )
+			{
+				data.vecExtraAcc[i] = CVector2( SRand::Inst().Rand( -10.0f, 10.0f ), 0 );
+			}
+
+			for( int iSubFrame = 0; iSubFrame < 4; iSubFrame++ )
+			{
+				CVector2 dPos = m_target - headPos;
+				float l = dPos.Normalize();
+				float l1 = Max( 0.0f, l - fHeadMoveLen / 160 );
+				headPos = m_target - dPos * l1;
+				data.vecPos[0] = headPos;
+
+				data.vecLen[iSeg] = fSegLen * ( iFrame * 4 + iSubFrame + 1 ) / 160;
+				data.Simulate( GetStage()->GetElapsedTimePerTick() / 4, 1, &m_vecSegs[0], nSegs );
+			}
+			m_pAI->Yield( 0, false );
+		}
+	}
+	data.vecK1[nSegs] = 600.0f;
+
+	m_fDefence = 0.0f;
+	m_bSpawned = true;
+
+	int iTick = 0;
+	while( 1 )
+	{
+		for( int i = 1; i < nSegs; i++ )
+		{
+			data.vecExtraAcc[i] = CVector2( sin( iTick * 1.5f / 60  + i * PI * 2 / nSegs ) * 200, 0 );
+		}
+
+		data.Simulate( GetStage()->GetElapsedTimePerTick(), 4, &m_vecSegs[0], nSegs );
+		m_pAI->Yield( 0, false );
+		iTick++;
+	}
+}
+
+void CLv1BossWorm2::Move2()
+{
+	SCharacterQueueMovementData data;
+	data.fSpeed = 2.0f;
+	CCharacter* pHead = m_vecSegs[0];
+
+	for( int i = 0; i < m_vecSegs.size() / 2; i++ )
+		swap( m_vecSegs[i], m_vecSegs[m_vecSegs.size() - i - 1] );
+	data.Setup( &m_vecSegs[0], m_vecSegs.size() );
+
+	float fSpeed = 80.0f * data.fSpeed;
+	float fTurnSpeed = 0.5f;
+	while( 1 )
+	{
+		CRectangle bound = CMyLevel::GetInst()->GetBound();
+		CRectangle rects[4] = {
+			{ bound.x - 256, bound.y, 256, bound.height },
+			{ bound.x, bound.y - 256, bound.width, 256 },
+			{ bound.GetRight(), bound.y, 256, bound.height },
+			{ bound.x, bound.GetBottom(), bound.width, 256 },
+		};
+		uint32 nRects[4] = { 0, 1, 2, 3 };
+		SRand::Inst().Shuffle( nRects, 4 );
+
+		int32 iRect = SRand::Inst().Rand( 1, 4 );
+		swap( nRects[0], nRects[iRect] );
+		CRectangle rect = rects[nRects[0]];
+		CVector2 target( SRand::Inst().Rand( rect.x, rect.GetRight() ), SRand::Inst().Rand( rect.y, rect.GetBottom() ) );
+		int32 nTime = ( pHead->GetPosition() - target ).Length() / fSpeed * 60;
+		for( int i = 0; i < nTime && !rect.Contains( pHead->GetPosition() ); i++ )
+		{
+			float dRotation;
+			pHead->CommonTurn( fTurnSpeed, GetStage()->GetElapsedTimePerTick(), atan2( target.y - pHead->y, target.x - pHead->x ), dRotation );
+			pHead->SetPosition( pHead->GetPosition() + CVector2( cos( pHead->r ), sin( pHead->r ) ) * fSpeed * GetStage()->GetElapsedTimePerTick() );
+			data.UpdateMove( &m_vecSegs[0], m_vecSegs.size() );
+			m_pAI->Yield( 0, false );
+		}
+	}
+}
+
+void CLv1BossWorm2::Move3()
+{
+}
+
+void CLv1BossWorm2::Destroy()
+{
+	for( int i = 0; i < m_vecSegs.size(); i++ )
+	{
+		if( !m_vecSegs[i] )
+			continue;
+		m_vecSegs[i]->SetParentEntity( NULL );
+		m_vecSegs[i] = NULL;
+		m_pAI->Yield( 0.25f, false );
+	}
+	SetParentEntity( NULL );
+}
+
+void CLv1BossWorm2::Fire1()
+{
+	SBarrageContext context;
+	context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
+	context.vecBulletTypes.push_back( m_pOwner->m_strBullet.GetPtr() );
+	context.nBulletPageSize = m_vecSegs.size() * 21;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	CReference<CLv1BossWorm2> pThis = this;
+	pBarrage->AddFunc( [pThis] ( CBarrage* pBarrage )
+	{
+		uint32 nSegs = pThis->m_vecSegs.size();
+		int i;
+		for( int i = 0; i < nSegs; i++ )
+		{
+			if( !pThis->GetStage() )
+				break;
+			CPlayer* pPlayer = pThis->GetStage()->GetPlayer();
+			if( !pPlayer )
+				break;
+			CVector2 target = pPlayer->GetPosition();
+
+			auto& trans = pThis->m_vecSegs[i]->globalTransform;
+			CVector2 dPos = target - trans.GetPosition();
+			float l = dPos.Length();
+			CVector2 dirs[] = { { -1, 0 }, { 0.8f, 0.6f }, { 0.8f, -0.6f } };
+			for( int j = 0; j < ELEM_COUNT( dirs ); j++ )
+			{
+				float t = 1.5f;
+				CVector2 dir = trans.MulVector2Dir( dirs[j] );
+				CVector2 v = dir * ( 400 + l * 0.5f );
+				CVector2 a = ( dPos - v * t ) / ( t * t * 0.5f );
+				CVector2 finalDir = v + a * t;
+				float r = atan2( finalDir.y, finalDir.x );
+				int32 nBullet = ( i * 3 + j ) * 7;
+				pBarrage->InitBullet( nBullet, 0, -1, trans.GetPosition(), v, a );
+				pBarrage->AddDelayAction( 90, [pBarrage, target, r, nBullet] () {
+					for( int i = 0; i < 6; i++ )
+					{
+						float fAngle = i * PI / 3 + nBullet * ( PI / 21 / 10 );
+						pBarrage->InitBullet( nBullet + 1 + i, 1, -1, target, CVector2( cos( fAngle ), sin( fAngle ) ) * 240, CVector2( 0, 0 ) );
+					}
+					pBarrage->DestroyBullet( nBullet );
+				} );
+			}
+			pBarrage->Yield( 10 );
+		}
+
+		pBarrage->Yield( ( nSegs - i ) * 10 + 90 );
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->Start();
+}
+
+void CLv1BossWorm2::Fire2()
+{
+	class AIFire : public CAIObject
+	{
+	public:
+		AIFire( CLv1BossWorm2* pOwner ) : m_pOwner( pOwner ) {}
+	protected:
+		virtual void AIFunc() override
+		{
+			uint32 nSegs = m_pOwner->m_vecSegs.size();
+			for( int i = nSegs - 1; i >= 0; i-- )
+			{
+				auto pSeg = m_pOwner->m_vecSegs[i];
+				if( !pSeg )
+				{
+					SetParentEntity( NULL );
+					return;
+				}
+
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( !pPlayer )
+				{
+					SetParentEntity( NULL );
+					return;
+				}
+
+				auto& trans = pSeg->globalTransform;
+				CVector2 dir[] = { { 1, 0 }, { -0.6f, 0.8f }, { -0.6f, -0.8f } };
+				for( int j = 0; j < ELEM_COUNT( dir ); j++ )
+				{
+					auto pCharacter = SafeCast<CCharacter>( m_pOwner->m_strBullet2->GetRoot()->CreateInstance() );
+					pCharacter->SetPosition( trans.GetPosition() );
+					pCharacter->SetVelocity( trans.MulVector2Dir( dir[j] ) * 200 );
+					pCharacter->SetRotation( atan2( pCharacter->GetVelocity().y, pCharacter->GetVelocity().x ) );
+					pCharacter->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				}
+
+				Yield( 0.5f, false );
+			}
+
+			SetParentEntity( NULL );
+		}
+		CReference<CLv1BossWorm2> m_pOwner;
+	};
+
+	( new AIFire( this ) )->SetParentEntity( this );
+}
+
+void CLv1BossBullet1::Kill()
+{
+	for( int i = 0; i < 3; i++ )
+	{
+		float fAngle = r + i * PI * 2 / 3;
+		auto pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
+		pBullet->SetPosition( GetPosition() );
+		pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 160.0f );
+		pBullet->SetLife( 15 );
+		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	}
+
+	CEnemyTemplate::Kill();
+}
+
+void CLv1BossBullet1::AIFunc()
+{
+	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+	m_flyData.fStablity = 0.4f;
+	m_flyData.fMaxAcc = 0.0f;
+
+	m_moveTarget = GetPosition();
+	while( 1 )
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer )
+			m_moveTarget = pPlayer->GetPosition();
+
+		CVector2 dPos = m_moveTarget - GetPosition();
+		if( dPos.Length2() < 64.0f * 64.0f )
+		{
+			Kill();
+			return;
+		}
+		m_flyData.fMaxAcc = Min( 140.0f, m_flyData.fMaxAcc + GetStage()->GetElapsedTimePerTick() * 70.0f );
+
+		m_pAI->Yield( 0, false );
+	}
+}
+
+void CLv1BossBullet1::OnTickAfterHitTest()
+{
+	DEFINE_TEMP_REF_THIS();
+	m_flyData.UpdateMove( this, m_moveTarget );
+	if( !GetStage() )
+		return;
+
+	if( m_flyData.bHit )
+	{
+		Kill();
+		return;
+	}
+	SetRotation( atan2( m_velocity.y, m_velocity.x ) );
+	CEnemyTemplate::OnTickAfterHitTest();
 }

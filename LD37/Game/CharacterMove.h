@@ -240,3 +240,41 @@ struct SCharacterPhysicsMovementData : public SCharacterMovementData
 	float fRotCoef;
 	float fRot;
 };
+
+struct SCharacterChainMovementData
+{
+	SCharacterChainMovementData() : beginDir( 0, 0 ), endDir( 0, 0 ), fDamping( 1 ) {}
+	SCharacterChainMovementData( const SClassCreateContext& context ) {}
+
+	void SetCharacterCount( uint32 nCount );
+	void Simulate( float fTime, uint32 nSteps, CCharacter** pCharacters, uint32 nCharacters );
+
+	vector<CVector2> vecPos;
+	vector<CVector2> vecVel;
+	vector<CVector2> vecAcc;
+	vector<CVector2> vecDir;
+
+	vector<float> vecLen;
+	vector<float> vecK;
+	vector<float> vecAngleLim;
+	vector<float> vecK1;
+	vector<float> vecInvWeight;
+	vector<CVector2> vecExtraAcc;
+	CVector2 beginDir;
+	CVector2 endDir;
+	float fDamping;
+};
+
+struct SCharacterQueueMovementData
+{
+	SCharacterQueueMovementData() : fSpeed( 1 ) {}
+
+	void Setup( CCharacter** pCharacters, uint32 nCharacters );
+	void UpdateMove( CCharacter** pCharacters, uint32 nCharacters );
+	vector<CVector2> waypoints;
+	vector<float> angles;
+	int32 nWaypointBegin;
+	float fPercent;
+
+	float fSpeed;
+};
