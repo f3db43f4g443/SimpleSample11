@@ -9,6 +9,8 @@
       <node name="floor_label_2" prefab="data/blocks/lv1/2.pf" />
       <node name="floor_label_3" prefab="data/blocks/lv1/3.pf" />
       <node name="floor_label_4" prefab="data/blocks/lv1/4.pf" />
+      <node name="floor_label_6" prefab="data/blocks/lv1/6.pf" />
+      <node name="floor_label_8" prefab="data/blocks/lv1/8.pf" />
       <node name="floor_label_f" prefab="data/blocks/lv1/f.pf" />
     </spawns>
     <nodes>
@@ -17,6 +19,14 @@
         <types>0</types>
       </node>
       <node name="label_1f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_1f.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="label_2f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_2f.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="label_3f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_3f.pf">
         <metadata isdesignvalid="0" />
         <types>4,4,4,4,4,4,4,4</types>
       </node>
@@ -61,6 +71,10 @@
       <node name="lv1floor_item" type="randompick">
         <ref name="hppack" />
         <ref name="w0" />
+        <ref name="w1" />
+        <ref name="w2" />
+        <ref name="w3" />
+        <ref name="w4" />
       </node>
 
       <node name="lv1floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
@@ -131,6 +145,26 @@
           </node>
         </next_level>
       </node>
+      <node name="lv1floor_6" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_6" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+      <node name="lv1floor_8" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+        <next_level>
+          <node type="subregion">
+            <ref name="floor_label_8" x="14" y="0" w="2" h="2" />
+            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
 
       <node name="1f" type="barrier1" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
         <types>
@@ -182,6 +216,97 @@
           <ref name="window2x2" />
         </window>
         
+      </node>
+
+      <node name="2f" type="barrier1" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+
+        <subitem>
+          <node type="tile" x="0" y="0" w="0" h="0">
+            <ref name="floor_broken" />
+          </node>
+        </subitem>
+
+        <next_level>
+          <node type="subregion">
+            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+
+        <label>
+          <ref name="label_2f" />
+        </label>
+        <fill>
+          <ref name="stonebar_room_corner2" />
+        </fill>
+        <base>
+          <ref name="unbreakable" />
+        </base>
+        <core>
+          <ref name="core" />
+        </core>
+        <room>
+          <ref name="vroom" />
+        </room>
+        <wall_h>
+          <ref name="stonebar_room_h2" />
+        </wall_h>
+        <wall_v>
+          <ref name="stonebar_room_v2" />
+        </wall_v>
+        <window>
+          <ref name="window2x2" />
+        </window>
+
+      </node>
+      
+      <node name="3f" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000"
+            prefab="data/blocks/lv1/barrier_reward.pf" islevelbarrier="1" levelbarrierheight="6">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+
+        <subitem>
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="floor_broken" />
+            </node>
+            <node type="tile" x="0" y="6" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <ref name="label_3f" x="14" y="6" w="4" h="2" />
+            <node type="tile" x="18" y="6" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="lv1floor_item" x="3" y="3" w="2" h="2" />
+            <ref name="lv1floor_item" x="11" y="3" w="2" h="2" />
+            <ref name="lv1floor_item" x="19" y="3" w="2" h="2" />
+            <ref name="lv1floor_item" x="27" y="3" w="2" h="2" />
+          </node>
+        </next_level>
+
       </node>
       
       <node name="lv1bossfloor" width="32" height="12" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/floor.pf" islevelbarrier="1" levelbarrierheight="10">

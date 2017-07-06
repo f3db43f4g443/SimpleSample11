@@ -216,6 +216,7 @@ dead:
 	if( m_pDeathEffect )
 	{
 		m_pDeathEffect->SetParentEntity( this );
+		m_pDeathEffect->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		m_pDeathEffect->SetState( 2 );
 	}
 	if( m_pSpawner )

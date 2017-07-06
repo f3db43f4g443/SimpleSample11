@@ -32,6 +32,7 @@ public:
 	float GetLastScrollPos() { return m_fLastScrollPos; }
 	float GetCurScrollPos() { return m_fCurScrollPos; }
 	uint32 GetCurHeightTag() { return m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0; }
+	bool IsReachEnd();
 
 	enum
 	{

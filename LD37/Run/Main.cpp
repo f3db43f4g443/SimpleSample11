@@ -16,7 +16,6 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	pRenderSystem->CreateDevice( context );
 
 	InitGame();
-	//CMainGameState::Inst().SetStageName( "data/tutorial/tutorial_level.pf" );
 	CGame::Inst().SetCurState( &CMainGameState::Inst() );
 	pRenderSystem->SetGame( &CGame::Inst() );
 	pRenderSystem->Start();

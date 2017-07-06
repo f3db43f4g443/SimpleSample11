@@ -524,6 +524,7 @@
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
     <None Include="..\Shader\ParticleFlipbook1.shader" />
+    <None Include="..\Shader\ParticleRandomTex.shader" />
     <None Include="..\Shader\SelectArea.shader" />
     <None Include="..\Shader\Splash.shader" />
     <None Include="..\Shader\GSWrapTex.shader" />
@@ -607,6 +608,7 @@
     <ClCompile Include="Physics\HitProxyData.cpp" />
     <ClCompile Include="Pickup.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerData.cpp" />
     <ClCompile Include="PlayerWeapon.cpp" />
     <ClCompile Include="PostEffects.cpp" />
     <ClCompile Include="MaterialShadersImplement.cpp" />
@@ -682,6 +684,7 @@
     <ClInclude Include="Physics\HitProxyData.h" />
     <ClInclude Include="Pickup.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerData.h" />
     <ClInclude Include="PlayerWeapon.h" />
     <ClInclude Include="PostEffects.h" />
     <ClInclude Include="Stage.h" />

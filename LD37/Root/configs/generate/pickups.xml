@@ -3,6 +3,10 @@
     <attachs>
       <node name="hppack" prefab="data/pickups/hppack.pf" sizex="2" sizey="2" />
       <node name="w0" prefab="data/pickups/w0.pf" sizex="2" sizey="2" />
+      <node name="w1" prefab="data/pickups/w1.pf" sizex="2" sizey="2" />
+      <node name="w2" prefab="data/pickups/w2.pf" sizex="2" sizey="2" />
+      <node name="w3" prefab="data/pickups/w3.pf" sizex="2" sizey="2" />
+      <node name="w4" prefab="data/pickups/w4.pf" sizex="2" sizey="2" />
     </attachs>
   </level_gen>
 </root>

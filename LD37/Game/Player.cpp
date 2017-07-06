@@ -19,7 +19,7 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_flyData( context )
 	, m_fMoveXAxis( 0 )
 	, m_fMoveYAxis( 0 )
-	, m_aimAt( 0, 0 )
+	, m_aimAtOfs( 0, 0 )
 	, m_bRoll( false )
 	, m_bFiringDown( false )
 	, m_bIsRepairing( false )
@@ -36,8 +36,9 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_nRepairHp( 16 )
 	, m_nRepairTimeLeft( 0 )
 	, m_nRepairIntervalLeft( 0 )
+	, m_fAimSpeed( 0 )
 	, m_fCrackEffectTime( 0 )
-	, m_fChangeStageTime( 0 )
+	, m_fChangeStageTime( -1 )
 	, m_fHurtInvincibleTime( 0 )
 	, m_fKnockbackInvincibleTime( 0 )
 	, m_nAnimState( 0 )
@@ -68,14 +69,28 @@ void CPlayer::AimAt( const CVector2& pos )
 	CVector2 pos1 = pos - GetPosition();
 	float l = pos1.Normalize();
 	pos1 = pos1 * Min( l, 400.0f ) + GetPosition();
-	CMyLevel::GetInst()->GetCrosshair()->SetPosition( pos );
+
+	CVector2 ofs = pos - GetPosition();
+	if( m_fAimSpeed > 0 )
+	{
+		CVector2 d = m_aimAtOfs - ofs;
+		float l = d.Normalize();
+		float l1 = m_fAimSpeed * GetStage()->GetElapsedTimePerTick();
+		if( l > l1 )
+			m_aimAtOfs = ofs + d * ( l - l1 );
+		else
+			m_aimAtOfs = ofs;
+	}
+	else
+		m_aimAtOfs = ofs;
+
+	CMyLevel::GetInst()->GetCrosshair()->SetPosition( GetAimAt() );
 	CMyLevel::GetInst()->GetCrosshair()->bVisible = m_pCurWeapon != NULL;
-	m_aimAt = pos;
 }
 
-void CPlayer::DelayChangeStage( const char* szName, const char* szStartPoint )
+void CPlayer::DelayChangeStage( float fTime, const char* szName, const char* szStartPoint )
 {
-	m_fChangeStageTime = 2.0f;
+	m_fChangeStageTime = fTime;
 	m_strChangeStage = szName;
 	m_strChangeStageStartPoint = szStartPoint;
 }
@@ -320,11 +335,12 @@ void CPlayer::OnTickBeforeHitTest()
 		}
 	}
 
-	if( m_fChangeStageTime > 0 )
+	if( m_fChangeStageTime >= 0 )
 	{
 		m_fChangeStageTime = Max( m_fChangeStageTime - fTime, 0.0f );
 		if( m_fChangeStageTime <= 0 )
 		{
+			m_fChangeStageTime = -1;
 			SStageEnterContext context;
 			context.strStartPointName = m_strChangeStageStartPoint;
 			GetStage()->GetWorld()->EnterStage( m_strChangeStage.c_str(), context );
@@ -361,7 +377,7 @@ void CPlayer::UpdateMove()
 					axis = CVector2( 1, 0 );
 				else if( moveAxis.x < 0 )
 					axis = CVector2( -1, 0 );
-				else if( m_aimAt.x > x )
+				else if( m_aimAtOfs.x > 0 )
 					axis = CVector2( 1, 0 );
 				else
 					axis = CVector2( -1, 0 );
@@ -550,7 +566,7 @@ void CPlayer::OnTickAfterHitTest()
 		float fSelfPosWeight = 0.1f;
 		float fAimAtPosWeight = 0.05f;
 		CVector2 dPos1 = globalTransform.GetPosition() - m_cam;
-		CVector2 dPos2 = m_aimAt - m_cam;
+		CVector2 dPos2 = GetAimAt() - m_cam;
 		m_cam = m_cam + dPos1 * fSelfPosWeight + dPos2 * fAimAtPosWeight;
 
 		UpdateRoom();
@@ -564,14 +580,14 @@ void CPlayer::OnTickAfterHitTest()
 			if( m_walkData.nState == SCharacterWalkData::eState_Rolling )
 				newAnimState = 2 + ( m_walkData.rollDir.x > 0 ? 0 : 3 );
 			else
-				newAnimState += m_aimAt.x > x ? 0 : 3;
+				newAnimState += m_aimAtOfs.x > 0 ? 0 : 3;
 		}
 		else
 		{
 			if( m_flyData.nState == SCharacterFlyData::eState_Rolling )
 				newAnimState = 2 + ( m_flyData.rollDir.x > 0 ? 0 : 3 );
 			else
-				newAnimState += m_aimAt.x > x ? 0 : 3;
+				newAnimState += m_aimAtOfs.x > 0 ? 0 : 3;
 		}
 
 		if( newAnimState != m_nAnimState )
@@ -613,7 +629,7 @@ void CPlayer::OnTickAfterHitTest()
 void CPlayer::OnAddedToStage()
 {
 	CCharacter::OnAddedToStage();
-	m_fChangeStageTime = 0;
+	m_fChangeStageTime = -1;
 	m_strChangeStage = "";
 	m_strChangeStageStartPoint = "";
 	m_walkData.Reset();

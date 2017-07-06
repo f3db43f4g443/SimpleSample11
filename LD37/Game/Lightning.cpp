@@ -49,15 +49,36 @@ void CLightning::Set( CEntity * pBegin, CEntity * pEnd, const CVector2 & begin, 
 
 void CLightning::OnTick()
 {
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( m_nLife <= 0 )
+		{
+			SetParentEntity( NULL );
+			return;
+		}
+	}
+
 	DEFINE_TEMP_REF_THIS();
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 
 	float fHitWidth = m_nHitFrameCount ? 0 : m_fHitWidth;
 	if( m_nHitFrameCount )
 	{
-		m_nFrame = Min( m_nFrame + 1, m_nHitFrameBegin + m_nHitFrameCount - 1 );
-		if( m_nFrame >= m_nHitFrameBegin )
-			fHitWidth = m_fHitWidth +( m_nFrame - m_nHitFrameBegin ) * m_fHitWidthPerFrame;
+		if( m_bBurst )
+		{
+			m_nFrame++;
+			if( m_nFrame >= m_nHitFrameBegin + m_nHitFrameCount || m_nFrame < m_nHitFrameBegin )
+				fHitWidth = 0;
+			else
+				fHitWidth = m_fHitWidth + ( m_nFrame - m_nHitFrameBegin ) * m_fHitWidthPerFrame;
+		}
+		else
+		{
+			m_nFrame = Min( m_nFrame + 1, m_nHitFrameBegin + m_nHitFrameCount - 1 );
+			if( m_nFrame >= m_nHitFrameBegin )
+				fHitWidth = m_fHitWidth + ( m_nFrame - m_nHitFrameBegin ) * m_fHitWidthPerFrame;
+		}
 	}
 
 	CVector2 beginCenter, endCenter;
@@ -136,34 +157,39 @@ void CLightning::OnTick()
 			}
 		}
 
-		if( pDamageEntity )
+		if( fHitWidth > 0 && !m_nHitCDLeft )
 		{
-			auto pChunk = SafeCast<CChunkObject>( pDamageEntity.GetPtr() );
-			if( pChunk )
+			if( pDamageEntity )
 			{
-				uint32 nDmg = m_nType == 0 ? m_nDamage1 : m_nDamage;
-				if( nDmg )
+				auto pChunk = SafeCast<CChunkObject>( pDamageEntity.GetPtr() );
+				if( pChunk )
 				{
-					CVector2 hit = m_nType == 0 ? CVector2( 0, 0 ) : dir * 8;
-					CChunkObject::SDamageContext dmgContext = { nDmg, 0, eDamageSourceType_Beam, hit };
-					pChunk->Damage( dmgContext );
+					uint32 nDmg = m_nType == 0 ? m_nDamage1 : m_nDamage;
+					if( nDmg )
+					{
+						CVector2 hit = m_nType == 0 ? CVector2( 0, 0 ) : dir * 8;
+						CChunkObject::SDamageContext dmgContext = { nDmg, 0, eDamageSourceType_Beam, hit };
+						pChunk->Damage( dmgContext );
+					}
 				}
 			}
+			if( pHitEntity )
+			{
+				endCenter = begin + dir * pResult->fDist;
+
+				OnHit( pHitEntity );
+			}
 		}
-		if( pHitEntity )
-		{
+		else if( pHitEntity )
 			endCenter = begin + dir * pResult->fDist;
 
-			OnHit( pHitEntity );
-		}
-
-		m_beamEnd = endCenter;
+		m_beamEnd = globalTransform.MulTVector2PosNoScale( endCenter );
 		m_bIsBeamInited = true;
 	}
 
 	if( !GetStage() )
 		return;
-	if( fHitWidth > 0 )
+	if( fHitWidth > 0 && !m_nHitCDLeft )
 	{
 		switch( m_nType )
 		{
@@ -289,6 +315,13 @@ void CLightning::OnTick()
 			return;
 	}
 
+	if( fHitWidth > 0 )
+	{
+		if( !m_nHitCDLeft )
+			m_nHitCDLeft = m_nHitCD;
+		if( m_nHitCDLeft )
+			m_nHitCDLeft--;
+	}
 	UpdateRenderObject();
 }
 
@@ -309,10 +342,12 @@ void CLightning::UpdateRenderObject()
 
 	pRope->bVisible = true;
 	pRope->SetTransformDirty();
+	bool bBegin = m_fBeginLen > 0;
+	bool bEnd = m_fEndLen > 0;
 	auto& data = pRope->GetData();
-	data.SetDataCount( 2 );
-	auto& begin = data.data[0];
-	auto& end = data.data[1];
+	data.SetDataCount( 2 + ( bBegin ? 1 : 0 ) + ( bEnd ? 1 : 0 ) );
+	auto& begin = data.data[bBegin ? 1 : 0];
+	auto& end = data.data[bBegin ? 2 : 1];
 	begin.center = m_begin;
 	begin.fWidth = m_fWidth;
 	begin.pRefObj = m_pBegin;
@@ -320,19 +355,38 @@ void CLightning::UpdateRenderObject()
 
 	end.fWidth = m_fWidth;
 	if( m_bIsBeam )
-	{
 		end.center = m_beamEnd;
-		end.pRefObj = GetStage()->GetRoot();
-		end.nRefTransformIndex = -1;
-	}
 	else
-	{
 		end.center = m_end;
-		end.pRefObj = m_pEnd;
-		end.nRefTransformIndex = m_nEndTransIndex;
-	}
+	end.pRefObj = m_pEnd;
+	end.nRefTransformIndex = m_nEndTransIndex;
 	if( m_fTexYTileLen > 0 )
 		end.tex0.y = end.tex1.y = ( end.center - begin.center ).Length() / m_fTexYTileLen;
+
+	if( bBegin )
+	{
+		auto& begin0 = data.data[0];
+		CVector2 d = begin.center - end.center;
+		d.Normalize();
+		begin0.center = begin.center + d * m_fBeginLen;
+		begin0.fWidth = begin.fWidth;
+		begin0.tex0.x = begin.tex0.x;
+		begin0.tex1.x = begin.tex1.x;
+		begin0.tex0.y = begin0.tex1.y = 0;
+		begin.tex0.y = begin.tex1.y = m_fBeginTexLen;
+	}
+	if( bEnd )
+	{
+		auto& end0 = data.data.back();
+		CVector2 d = end.center - begin.center;
+		d.Normalize();
+		end0.center = end.center + d * m_fEndLen;
+		end0.fWidth = end.fWidth;
+		end0.tex0.x = end.tex0.x;
+		end0.tex1.x = end.tex1.x;
+		end0.tex0.y = end0.tex1.y = 1;
+		end.tex0.y = end.tex1.y = 1 - m_fEndTexLen;
+	}
 
 	if( m_pBeginEft )
 	{

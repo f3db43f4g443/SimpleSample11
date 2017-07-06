@@ -7,6 +7,12 @@
 #include "Block.h"
 #include "Render/Image2D.h"
 
+CDoor::CDoor( const SClassCreateContext& context )
+	: CEntity( context ), m_bOpen( false ), m_nOpenFrame( 0 ), m_onTick( this, &CDoor::OnTick )
+{
+	SET_BASEOBJECT_ID( CDoor );
+}
+
 void CDoor::OnAddedToStage()
 {
 	GetStage()->RegisterStageEvent( eStageEvent_PostHitTest, &m_onTick );

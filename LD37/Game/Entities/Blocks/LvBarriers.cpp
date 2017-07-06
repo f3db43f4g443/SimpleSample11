@@ -37,22 +37,24 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 			OnPickUp();
 		} );
 		pPickUp->RegisterPickupEvent( &m_triggers[i] );
+		pPickUp->bVisible = false;
 	}
 	for( int i = 0; i < m_vecCrates.size(); i++ )
 	{
 		CChunkObject* pCrate = SafeCast<CChunkObject>( m_vecCrates[i].GetPtr() );
-		m_triggers[i + m_vecPickups.size()].Set( [this] () {
-			OnCrateKilled();
+		m_triggers[i + m_vecPickups.size()].Set( [this, i] () {
+			OnCrateKilled( i );
 		} );
 		pCrate->RegisterKilledEvent( &m_triggers[i + m_vecPickups.size()] );
 	}
 }
 
-void CLvFloor1::OnCrateKilled()
+void CLvFloor1::OnCrateKilled( int32 i )
 {
 	m_nKilledCrates++;
 	if( m_pChunk )
 		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
+	m_vecPickups[m_vecPickups.size() - 1 - i]->bVisible = true;
 }
 
 void CLvFloor1::OnPickUp()
@@ -642,4 +644,56 @@ void CLvBarrier1Core::AIFunc()
 			m_pAI->Yield( fYield, false );
 		}
 	}
+}
+
+void CLvBarrierReward1::OnCreateComplete( CMyLevel * pLevel )
+{
+	for( auto pEntity = Get_ChildEntity(); pEntity; pEntity = pEntity->NextChildEntity() )
+	{
+		auto pPickUp = SafeCast<CPickUp>( pEntity );
+		if( pPickUp )
+		{
+			m_vecPickups.push_back( pPickUp );
+			pPickUp->SetParentEntity( NULL );
+		}
+	}
+
+	m_triggers.resize( m_vecPickups.size() );
+	for( int i = 0; i < m_vecPickups.size(); i++ )
+	{
+		CPickUp* pPickUp = SafeCast<CPickUp>( m_vecPickups[i].GetPtr() );
+		m_triggers[i].Set( [i, this] () {
+			m_vecPickups[i] = NULL;
+			OnPickUp();
+		} );
+		pPickUp->RegisterPickupEvent( &m_triggers[i] );
+	}
+}
+
+void CLvBarrierReward1::OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed )
+{
+	if( m_pChunk->pos.y == 0 )
+	{
+		for( auto& pPickUp : m_vecPickups )
+			pPickUp->SetParentEntity( this );
+	}
+}
+
+void CLvBarrierReward1::OnPickUp()
+{
+	for( auto& trigger : m_triggers )
+	{
+		if( trigger.IsRegistered() )
+			trigger.Unregister();
+	}
+	for( auto& pPickUp : m_vecPickups )
+	{
+		if( pPickUp && pPickUp->GetStage() )
+		{
+			SafeCast<CPickUp>( pPickUp.GetPtr() )->Kill();
+			pPickUp = NULL;
+		}
+	}
+
+	Kill();
 }

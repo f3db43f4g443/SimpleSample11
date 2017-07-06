@@ -65,7 +65,12 @@ IMPLEMENT_MATERIAL_SHADER( VSSpiderWebSilkParticle, "Shader/SpiderWebSilk.shader
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle, "Shader/Laser.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticleOcclusion, "Shader/Laser.shader", "PSParticleOcclusion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleRandomTex, "Shader/ParticleRandomTex.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSBloodWave, "Shader/ParticleRandomTex.shader", "PSMask", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSBloodWaveOcc, "Shader/ParticleRandomTex.shader", "PSMaskOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( GSWrapTex, "Shader/GSWrapTex.shader", "GSMain", "gs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( GSWrapTex1, "Shader/GSWrapTex.shader", "GSMain1", "gs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( GSWrapTex2, "Shader/GSWrapTex.shader", "GSMain2", "gs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendMul, "Shader/Decorator.shader", "PSBlendMul", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendVividLight, "Shader/Decorator.shader", "PSBlendVividLight", "ps_5_0" );

@@ -48,7 +48,7 @@ public:
 	CWorld* GetWorld() { return m_pWorld; }
 	void SetStageName( const char* szStage ) { m_strStage = szStage; }
 
-	void DelayResetStage();
+	void DelayResetStage( float fTime );
 
 	DECLARE_GLOBAL_INST_REFERENCE( CMainGameState );
 private:

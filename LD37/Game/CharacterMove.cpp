@@ -1048,23 +1048,18 @@ void SCharacterChainMovementData::Simulate( float fTime, uint32 nSteps, CCharact
 			CVector2 dir0;
 			float l0 = 0;
 			if( i == 0 )
-				dir0 = beginDir;
+				vecDir[i] = vecPos[i + 1] - vecPos[i];
+			else if( i == nSegs - 1 )
+				vecDir[i] = vecPos[i] - vecPos[i - 1];
 			else
 			{
-				dir0 = vecPos[i] - vecPos[i - 1];
-				l0 = dir0.Normalize();
-			}
+				CVector2 dir0 = vecPos[i] - vecPos[i - 1];
+				float l0 = dir0.Normalize();
 
-			CVector2 dir1;
-			float l1 = 0;
-			if( i == nSegs - 1 )
-				dir1 = endDir;
-			else
-			{
-				dir1 = vecPos[i + 1] - vecPos[i];
-				l1 = dir1.Normalize();
+				CVector2 dir1 = vecPos[i + 1] - vecPos[i];
+				float l1 = dir1.Normalize();
+				vecDir[i] = dir1 * l0 + dir0 * l1;
 			}
-			vecDir[i] = dir1 * l0 + dir0 * l1;
 			vecDir[i].Normalize();
 
 			if( i < nCharacters && pCharacters[i] != NULL )

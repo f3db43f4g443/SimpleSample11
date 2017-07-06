@@ -12,6 +12,10 @@ public:
 	SLevelGenerateNodeLoadContext levelGenerateNodeContext;
 	SLevelGenerateFileContext* pRootGenerateFile;
 
+	string strTutorialLevelPrefab;
+	string strMainLevelPrefab;
+	vector<string> vecLevels;
+
 	void Load();
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGlobalCfg );

@@ -17,11 +17,6 @@ CPlayerWeaponShoot0::CPlayerWeaponShoot0( const SClassCreateContext& context )
 	SET_BASEOBJECT_ID( CPlayerWeaponShoot0 );
 }
 
-void CPlayerWeaponShoot0::OnAddedToStage()
-{
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBulletName.c_str() );
-}
-
 void CPlayerWeaponShoot0::BeginFire( CPlayer* pPlayer )
 {
 	m_bIsFiring = true;
@@ -45,11 +40,13 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 
 		if( !m_nBulletCount )
 		{
-			CBullet* pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			CBullet* pBullet = SafeCast<CBullet>( m_strBulletName->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
 			CVector2 velocity = GetGlobalTransform().MulVector2Dir( CVector2( m_fSpeed, 0 ) );
 			pBullet->SetVelocity( velocity );
+			pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
 			pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+			pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
 			pBullet->SetLife( m_nBulletLife );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 			pBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
@@ -61,7 +58,7 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 
 			for( int i = 0; i < m_nBulletCount; i++ )
 			{
-				CBullet* pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+				CBullet* pBullet = SafeCast<CBullet>( m_strBulletName->GetRoot()->CreateInstance() );
 
 				float fAngle = fAngle0;
 				switch( m_nDistribution )
@@ -80,7 +77,9 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 				pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
 				CVector2 velocity = CVector2( cos( fAngle ), sin( fAngle ) ) * m_fSpeed;
 				pBullet->SetVelocity( velocity );
+				pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
 				pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+				pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
 				pBullet->SetLife( m_nBulletLife );
 				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 				pBullet->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
@@ -94,5 +93,69 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 		m_nFireCD = m_nFireRate;
 	}
 	if( m_nFireCD )
+		m_nFireCD--;
+}
+
+CPlayerWeaponLaser0::CPlayerWeaponLaser0( const SClassCreateContext & context )
+	: CPlayerWeapon( context )
+	, m_bIsFiring( false )
+	, m_nFireCD( 0 )
+	, m_strBulletName( context )
+{
+	SET_BASEOBJECT_ID( CPlayerWeaponLaser0 );
+}
+
+void CPlayerWeaponLaser0::BeginFire( CPlayer * pPlayer )
+{
+	m_bIsFiring = true;
+	pPlayer->SetAimSpeed( m_fAimSpeed );
+}
+
+void CPlayerWeaponLaser0::EndFire( CPlayer * pPlayer )
+{
+	if( m_pLaser )
+	{
+		m_pLaser->SetParentEntity( NULL );
+		m_pLaser = NULL;
+	}
+	m_bIsFiring = false;
+	m_nFireCD = m_nFireRate;
+	pPlayer->SetAimSpeed( 0 );
+}
+
+void CPlayerWeaponLaser0::Update( CPlayer * pPlayer )
+{
+	CVector2 dPos = pPlayer->GetAimAt() - pPlayer->GetPosition();
+	if( dPos.Dot( dPos ) < 0.01f )
+		dPos = CVector2( 0, 1 );
+	SetRotation( atan2( dPos.y, dPos.x ) );
+
+	if( m_bIsFiring && !m_pLaser && !m_nFireCD )
+	{
+		m_pLaser = SafeCast<CLightning>( m_strBulletName->GetRoot()->CreateInstance() );
+
+		m_pLaser->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
+		m_pLaser->SetWidth( m_fWidth, m_fHitWidth );
+		m_pLaser->SetDamage( m_nDamage );
+		m_pLaser->SetDamage1( m_nDamage1 );
+		m_pLaser->SetDamage2( m_nDamage2 );
+		m_pLaser->SetHitCD( m_nHitCD );
+
+		m_pLaser->SetParentEntity( this );
+		m_pLaser->SetRenderParent( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	}
+
+	if( m_pLaser )
+	{
+		CVector2 ofs = m_fireOfs;
+		ofs.Normalize();
+		float fLen = Max( m_fWidth, Min( m_fRange, pPlayer->GetAimAtOfs().Length() ) );
+		ofs = ofs * fLen;
+
+		m_pLaser->Set( NULL, NULL, m_fireOfs, m_fireOfs + ofs, -1, -1 );
+
+		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerSec * GetStage()->GetElapsedTimePerTick() );
+	}
+	else if( m_nFireCD )
 		m_nFireCD--;
 }

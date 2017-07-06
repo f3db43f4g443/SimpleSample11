@@ -808,64 +808,6 @@
         <metadata isdesignvalid="0" />
         <types>0</types>
       </node>
-      <node name="2f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/2f.pf" islevelbarrier="1">
-        <metadata isdesignvalid="0" />
-        <types>
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-        </types>
-        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
-        <next_level>
-          <node type="randomfill">
-            <ref name="e10" p="1" />
-            <ref name="e11" p="1" />
-            <node type="empty" p="20" />
-          </node>
-        </next_level>
-      </node>
-      <node name="3f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/3f.pf" islevelbarrier="1">
-        <metadata isdesignvalid="0" />
-        <types>
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-        </types>
-        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
-        <next_level>
-          <node type="subregion">
-            <ref name="e2" x="15" y="1" w="2" h="2" />
-            <node type="randomfill" x="0" y="0" w="-1" h="-1">
-              <ref name="e10" p="1" />
-              <ref name="e11" p="1" />
-              <node type="empty" p="25" />
-            </node>
-          </node>
-        </next_level>
-      </node>
-      <node name="4f" width="32" height="4" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/misc/4f.pf" islevelbarrier="1">
-        <metadata isdesignvalid="0" />
-        <types>
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-          4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-        </types>
-        <!--subitem name="clearer" x="0" y="0" arrayx="32" arrayy="4" /-->
-        <next_level>
-          <node type="subregion">
-            <ref name="e2" x="11" y="1" w="2" h="2" />
-            <ref name="e2" x="19" y="1" w="2" h="2" />
-            <node type="randomfill" x="0" y="0" w="-1" h="-1">
-              <ref name="e10" p="1" />
-              <ref name="e11" p="1" />
-              <node type="empty" p="25" />
-            </node>
-          </node>
-        </next_level>
-      </node>
       <node name="bossroom" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="bossroom.pf" islevelbarrier="1">
         <types>
           4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,

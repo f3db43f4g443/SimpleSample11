@@ -5,6 +5,8 @@
 #include "Render/Scene2DManager.h"
 #include "Common/ResourceManager.h"
 #include "UICommon/UIFactory.h"
+#include "PlayerData.h"
+#include "GlobalCfg.h"
 
 CUIMgrGameState::CUIMgrGameState()
 {
@@ -69,10 +71,19 @@ void CMainGameState::EnterState()
 {
 	CUIMgrGameState::EnterState();
 
+	if( !CPlayerData::Inst().bIsDesign )
+	{
+		CPlayerData::Inst().Load( "test" );
+		if( !CPlayerData::Inst().bFinishedTutorial )
+			SetStageName( CGlobalCfg::Inst().strTutorialLevelPrefab.c_str() );
+		else
+			SetStageName( "" );
+	}
+
 	m_pWorld = new CWorld;
 	SStageEnterContext context;
 	context.strStartPointName = "start";
-	m_pWorld->EnterStage( m_strStage.length() ? m_strStage.c_str() : "scene0.pf", context );
+	m_pWorld->EnterStage( m_strStage.length() ? m_strStage.c_str() : CGlobalCfg::Inst().strMainLevelPrefab.c_str(), context );
 }
 
 void CMainGameState::ExitState()
@@ -127,7 +138,7 @@ void CMainGameState::UpdateFrame()
 	m_pWorld->Update();
 }
 
-void CMainGameState::DelayResetStage()
+void CMainGameState::DelayResetStage( float fTime )
 {
-	m_pWorld->GetPlayer()->DelayChangeStage( m_strStage.length() ? m_strStage.c_str() : "scene0.pf", "start" );
+	m_pWorld->GetPlayer()->DelayChangeStage( fTime, m_strStage.length() ? m_strStage.c_str() : "scene0.pf", "start" );
 }

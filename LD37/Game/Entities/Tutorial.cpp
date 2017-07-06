@@ -10,6 +10,9 @@
 #include "GUI/Splash.h"
 #include "GameState.h"
 #include "LevelDesign.h"
+#include "PlayerData.h"
+#include "GUI/MainUI.h"
+#include "MyGame.h"
 
 void CTutorialStaticBeam::OnAddedToStage()
 {
@@ -300,6 +303,9 @@ CVector2 CTutorialLevel::GetCamPos()
 
 void CTutorialLevel::StartScenario()
 {
+	CPlayerData::Inst().bFinishedTutorial = true;
+	CPlayerData::Inst().Save();
+	CMainUI::GetInst()->SetSkipVisible( true );
 	m_pScenario = new CScenario();
 	m_pScenario->SetParentEntity( this );
 }
@@ -324,7 +330,16 @@ void CTutorialLevel::OnTick()
 		}
 	}
 
+	if( !m_pScenario && nHeight < 24 * 32 )
+		AddShakeStrength( 2.0f );
+
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+
+	if( m_pScenario && CGame::Inst().IsKeyUp( VK_BACK ) )
+	{
+		CMainGameState::Inst().SetStageName( "" );
+		CMainGameState::Inst().DelayResetStage( 0 );
+	}
 }
 
 void CTutorialLevel::Scenario()
@@ -459,7 +474,7 @@ void CTutorialLevel::Scenario()
 		if( i == nMaxTime - 120 )
 		{
 			CMainGameState::Inst().SetStageName( "" );
-			CMainGameState::Inst().DelayResetStage();
+			CMainGameState::Inst().DelayResetStage( 2.0f );
 		}
 		m_pScenario->Yield( 0, false );
 	}

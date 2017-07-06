@@ -5,6 +5,7 @@
 
 void CPlayerWeapon::Face( bool bLeft )
 {
+	m_bFaceLeft = bLeft;
 	if( bLeft )
 		static_cast<CImage2D*>( GetRenderObject() )->SetTexRect( m_texRectFaceLeft );
 	else

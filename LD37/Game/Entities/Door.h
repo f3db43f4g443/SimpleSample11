@@ -4,7 +4,7 @@
 class CDoor : public CEntity
 {
 public:
-	CDoor( const SClassCreateContext& context ) : CEntity( context ), m_bOpen( false ), m_nOpenFrame( 0 ), m_onTick( this, &CDoor::OnTick ) { SET_BASEOBJECT_ID( CDoor ); }
+	CDoor( const SClassCreateContext& context );
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 

@@ -13,6 +13,14 @@ void CGlobalCfg::Load()
 		TiXmlDocument doc;
 		doc.LoadFromBuffer( &content[0] );
 
+		auto pLevel = doc.RootElement()->FirstChildElement( "levels" );
+		strTutorialLevelPrefab = XmlGet( pLevel, "tutorial.name", "" );
+		strMainLevelPrefab = XmlGet( pLevel, "main.name", "" );
+		for( auto pGen = pLevel->FirstChildElement( "gen" )->FirstChildElement(); pGen; pGen = pGen->NextSiblingElement() )
+		{
+			vecLevels.push_back( XmlGetAttr( pGen, "name", "" ) );
+		}
+
 		auto pPrefabs = doc.RootElement()->FirstChildElement( "prefabs" );
 		for( auto pItem = pPrefabs->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 		{

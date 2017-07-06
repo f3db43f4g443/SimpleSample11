@@ -16,6 +16,7 @@ public:
 	void UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType );
 	void UpdateShakeSmallBar( uint32 x, uint32 nHeight );
 	void ClearMinimap();
+	void SetSkipVisible( bool bVisible ) { m_pSkip->bVisible = bVisible; }
 
 	static CMainUI* GetInst() { return s_pLevel; }
 private:
@@ -26,6 +27,7 @@ private:
 	CReference<CRenderObject2D> m_pSpBar;
 	CReference<CRenderObject2D> m_pShake;
 	CReference<CRenderObject2D> m_pMinimap;
+	CReference<CRenderObject2D> m_pSkip;
 	vector<uint8> m_blockTypes;
 
 	CReference<CRenderObject2D> m_pShakeSmallBars[32];

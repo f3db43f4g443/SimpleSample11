@@ -1,4 +1,14 @@
 ﻿<root>
+  <levels>
+    <tutorial name="data/tutorial/tutorial_level.pf" />
+    <main name="scene0.pf" />
+    <gen>
+      <node name="lv1_1" />
+      <node name="lv1_2" />
+      <node name="lv1_3" />
+      <node name="lv1_boss" />
+    </gen>
+  </levels>
   <prefabs>
     <prefab name="chunk_ui" path="data/GUI/chunk_ui.pf" />
   </prefabs>

@@ -43,9 +43,11 @@ public:
 	}
 	void AimAt( const CVector2& pos );
 	void Roll() { m_bRoll = true; }
-	const CVector2& GetAimAt() { return m_aimAt; }
+	const CVector2& GetAimAtOfs() { return m_aimAtOfs; }
+	const CVector2& GetAimAt() { return m_aimAtOfs + GetPosition(); }
 	const CVector2& GetCam() { return m_cam; }
-	void DelayChangeStage( const char* szName, const char* szStartPoint = "" );
+	void SetAimSpeed( float fAimSpeed ) { m_fAimSpeed = fAimSpeed; }
+	void DelayChangeStage( float fTime, const char* szName, const char* szStartPoint = "" );
 
 	bool IsFiring() { return m_bFiringDown; }
 	bool IsRolling();
@@ -120,8 +122,9 @@ private:
 	uint32 m_nRepairTimeLeft;
 	uint32 m_nRepairIntervalLeft;
 
-	CVector2 m_aimAt;
+	CVector2 m_aimAtOfs;
 	CVector2 m_cam;
+	float m_fAimSpeed;
 	
 	string m_strChangeStage;
 	string m_strChangeStageStartPoint;

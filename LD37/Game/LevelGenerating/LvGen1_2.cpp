@@ -392,6 +392,30 @@ void CLevelGenNode1_2::GenRooms()
 		}
 	};
 	std::sort( m_rooms.begin(), m_rooms.end(), SLess() );
+
+	for( int iRoom = 0; iRoom < Min( 3u, m_rooms.size() ); iRoom++ )
+	{
+		auto& room = m_rooms[iRoom];
+		int32 x1 = room.rect.x + SRand::Inst().Rand( 1, room.rect.width / 4 );
+		int32 x2 = room.rect.GetRight() - SRand::Inst().Rand( 1, room.rect.width / 4 );
+		for( int i = x1; i < x2; i++ )
+		{
+			bool bSucceed = true;
+			for( int j = room.rect.y - 1; j >= 0; j-- )
+			{
+				if( m_gendata[i + j * nWidth] )
+				{
+					bSucceed = false;
+					break;
+				}
+			}
+			if( bSucceed )
+			{
+				for( int j = room.rect.y - 1; j >= 0; j-- )
+					m_gendata[i + j * nWidth] = eType_Path;
+			}
+		}
+	}
 }
 
 void CLevelGenNode1_2::PutHBars()

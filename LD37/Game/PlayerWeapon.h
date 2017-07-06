@@ -5,7 +5,7 @@ class CPlayerWeapon : public CItem
 {
 	friend void RegisterGameClasses();
 public:
-	CPlayerWeapon( const SClassCreateContext& context ) : CItem( context ), m_bIsFiring( false ) { SET_BASEOBJECT_ID( CPlayerWeapon ); }
+	CPlayerWeapon( const SClassCreateContext& context ) : CItem( context ), m_bIsFiring( false ), m_bFaceLeft( false ) { SET_BASEOBJECT_ID( CPlayerWeapon ); }
 
 	void Face( bool bLeft );
 
@@ -34,4 +34,5 @@ protected:
 	CRectangle m_texRectFaceRight;
 	CRectangle m_texRectFaceLeft;
 	bool m_bIsFiring;
+	bool m_bFaceLeft;
 };

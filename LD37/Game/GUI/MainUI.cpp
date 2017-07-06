@@ -19,6 +19,7 @@ CMainUI::CMainUI( const SClassCreateContext& context )
 
 void CMainUI::OnAddedToStage()
 {
+	m_pSkip->bVisible = false;
 	m_hpBarOrigPos = m_pHpBar->GetPosition();
 	m_hpBarOrigHeight = static_cast<CImage2D*>( m_pHpBar.GetPtr() )->GetElem().rect.height;
 	m_shakeBarOrigPos = m_pShake->GetPosition();

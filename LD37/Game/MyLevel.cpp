@@ -12,7 +12,6 @@
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
-const char* g_levels[] = { "lv1_boss", "lv1_boss", "lv1_boss", "lv1_boss", "lv1_boss" };
 
 void CMyLevel::OnAddedToStage()
 {
@@ -115,7 +114,7 @@ void CMyLevel::StartUp()
 	{
 		auto pLevel = SafeCast<CDesignLevel>( CLevelDesignGameState::Inst().GetDesignLevel() );
 		pLevel->GenerateLevel( this );
-		m_nCurLevel = ELEM_COUNT( g_levels );
+		m_nCurLevel = CGlobalCfg::Inst().vecLevels.size();
 	}
 	else
 	{
@@ -126,7 +125,7 @@ void CMyLevel::StartUp()
 
 void CMyLevel::OnPlayerKilled( CPlayer * pPlayer )
 {
-	CMainGameState::Inst().DelayResetStage();
+	CMainGameState::Inst().DelayResetStage( 2.0f );
 }
 
 void CMyLevel::OnPlayerEntered( CPlayer * pPlayer )
@@ -146,7 +145,7 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 		pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	}*/
 
-	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( g_levels[m_nCurLevel] );
+	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( CGlobalCfg::Inst().vecLevels[m_nCurLevel].c_str() );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
 	uint32 nCurBarrierHeight = m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0;
@@ -155,10 +154,10 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 
 void CMyLevel::CacheNextLevel()
 {
-	if( m_nCurLevel < ELEM_COUNT( g_levels ) )
+	if( m_nCurLevel < CGlobalCfg::Inst().vecLevels.size() )
 	{
 		m_nCurLevel++;
-		if( m_nCurLevel < ELEM_COUNT( g_levels ) )
+		if( m_nCurLevel < CGlobalCfg::Inst().vecLevels.size() )
 			CreateGrids( false );
 	}
 }
@@ -436,6 +435,20 @@ void CMyLevel::AddShakeStrength( float fShakeStrength )
 	{
 		basement.fShakeStrength += fShakeStrength;
 	}
+}
+
+bool CMyLevel::IsReachEnd()
+{
+	for( auto& basement : m_basements )
+	{
+		for( int i = 0; i < ELEM_COUNT( basement.layers ); i++ )
+		{
+			auto pBlockLayer = basement.layers[i].Get_BlockLayer();
+			if( pBlockLayer && !pBlockLayer->pParent->pOwner->bIsLevelBarrier )
+				return false;
+		}
+	}
+	return true;
 }
 
 void CMyLevel::UpdateBack0Position( const CVector2 & pos )

@@ -12,6 +12,7 @@
 #include "MyGame.h"
 #include "Common/FileUtil.h"
 #include "Common/Utf8Util.h"
+#include "PlayerData.h"
 
 CEntity * CChunkPreview::GetPreviewRoot()
 {
@@ -1300,6 +1301,7 @@ void CLevelDesignGameState::UpdateInput()
 {
 	if( CGame::Inst().IsKeyUp( ' ' ) )
 	{
+		CPlayerData::Inst().bIsDesign = true;
 		CMainGameState::Inst().SetStageName( "design_test.pf" );
 		CGame::Inst().SetCurState( &CMainGameState::Inst() );
 	}

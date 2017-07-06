@@ -63,3 +63,18 @@ public:
 private:
 	float m_fKnockbackStrength;
 };
+
+class CPlayerBulletMultiHit : public CBullet
+{
+	friend void RegisterGameClasses();
+public:
+	CPlayerBulletMultiHit( const SClassCreateContext& context ) : CBullet( context ), m_nHit( 0 ), m_nHitCDLeft( 0 ) { SET_BASEOBJECT_ID( CPlayerBulletMultiHit ); }
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	int32 m_nHit;
+	int32 m_nHitCD;
+	bool m_bMultiHitBlock;
+
+	int32 m_nHitCDLeft;
+};

@@ -3,6 +3,11 @@
 #include "BlockBuffs.h"
 #include "Entities/Barrage.h"
 #include "Common/ResourceManager.h"
+#include "Stage.h"
+#include "Player.h"
+#include "Enemy.h"
+#include "Block.h"
+#include "Entities/Door.h"
 
 void CBomb::OnAddedToStage()
 {
@@ -93,4 +98,105 @@ void CExplosionKnockback::OnHit( CEntity * pEntity )
 		pChar->Knockback( dir * m_fKnockbackStrength );
 	}
 	CExplosion::OnHit( pEntity );
+}
+
+void CPlayerBulletMultiHit::OnTickAfterHitTest()
+{
+	CCharacter::OnTickAfterHitTest();
+	if( m_bKilled )
+	{
+		m_fDeathTime -= GetStage()->GetElapsedTimePerTick();
+		if( m_fDeathTime <= 0 )
+		{
+			SetParentEntity( NULL );
+		}
+		return;
+	}
+
+	if( !m_bound.Contains( globalTransform.GetPosition() ) )
+	{
+		CVector2 globalPos = globalTransform.GetPosition();
+		globalPos.x = Min( m_bound.GetRight(), Max( m_bound.x, globalPos.x ) );
+		globalPos.y = Min( m_bound.GetBottom(), Max( m_bound.y, globalPos.y ) );
+		globalTransform.SetPosition( globalPos );
+		Kill();
+		return;
+	}
+
+	if( m_nHitCDLeft )
+		m_nHitCDLeft--;
+	if( m_nHitCDLeft )
+		return;
+
+	for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
+	{
+		CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		if( pEntity == m_pCreator )
+			continue;
+		CReference<CEntity> pTempRef = pEntity;
+
+		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
+		if( pEnemy )
+		{
+			CReference<CEntity> pTempRef = pEntity;
+			pEnemy->Damage( m_nDamage );
+			OnHit( pEnemy );
+			m_nHit++;
+			m_nHitCDLeft = m_nHitCD;
+			if( m_nHit >= m_nDamage2 )
+				Kill();
+			return;
+		}
+
+		CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+		if( pBlockObject && pBlockObject->GetBlock()->eBlockType == eBlockType_Block )
+		{
+			auto pChunkObject = pBlockObject->GetBlock()->pOwner->pChunkObject;
+			if( pChunkObject == m_pCreator )
+				continue;
+			CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+			hitDir.Normalize();
+			CReference<CEntity> pTempRef = pEntity;
+			CChunkObject::SDamageContext dmgContext = { m_nDamage1, 0, eDamageSourceType_Bullet, hitDir * 8 };
+			pChunkObject->Damage( dmgContext );
+			OnHit( pBlockObject );
+			if( m_bMultiHitBlock )
+			{
+				m_nHit++;
+				m_nHitCDLeft = m_nHitCD;
+				if( m_nHit >= m_nDamage2 )
+					Kill();
+			}
+			else
+				Kill();
+			return;
+		}
+
+		CDoor* pDoor = SafeCast<CDoor>( pEntity );
+		if( pDoor && !pDoor->IsOpen() )
+		{
+			auto pChunkObject = SafeCast<CChunkObject>( pDoor->GetParentEntity() );
+			if( pChunkObject )
+			{
+				if( pChunkObject == m_pCreator )
+					continue;
+				CVector2 hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+				hitDir.Normalize();
+				CReference<CEntity> pTempRef = pEntity;
+				CChunkObject::SDamageContext dmgContext = { m_nDamage1, 0, eDamageSourceType_Bullet, hitDir * 8 };
+				pChunkObject->Damage( dmgContext );
+				OnHit( pChunkObject );
+				if( m_bMultiHitBlock )
+				{
+					m_nHit++;
+					m_nHitCDLeft = m_nHitCD;
+					if( m_nHit >= m_nDamage2 )
+						Kill();
+				}
+				else
+					Kill();
+				return;
+			}
+		}
+	}
 }

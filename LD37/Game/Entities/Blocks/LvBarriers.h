@@ -10,7 +10,7 @@ public:
 	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_strCrate( context ), m_nKilledCrates( 0 ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 private:
-	void OnCrateKilled();
+	void OnCrateKilled( int32 i );
 	void OnPickUp();
 
 	CString m_strCrate;
@@ -83,4 +83,18 @@ private:
 	CReference<CPrefab> m_pKillEffect;
 	uint32 m_nKillEffectCDLeft;
 	uint32 m_nCoreCount;
+};
+
+class CLvBarrierReward1 : public CRandomChunkTiled
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrierReward1( const SClassCreateContext& context ) : CRandomChunkTiled( context ) { SET_BASEOBJECT_ID( CLvBarrierReward1 ); }
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) override;
+private:
+	void OnPickUp();
+
+	vector<CReference<CEntity> > m_vecPickups;
+	vector<CFunctionTrigger> m_triggers;
 };

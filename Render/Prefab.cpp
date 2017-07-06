@@ -185,6 +185,7 @@ void CPrefabNode::OnResourceRefreshEnd()
 		else if( pPreMultiImage && pCurMultiImage )
 		{
 			pCurMultiImage->SetFrames( pPreMultiImage->GetFrameBegin(), pPreMultiImage->GetFrameEnd(), pPreMultiImage->GetFramesPerSec() );
+			pCurMultiImage->SetPlaySpeed( pPreMultiImage->GetPlaySpeed(), pPreMultiImage->IsLoop() );
 		}
 		else if( pPreTileMap && pCurTileMap )
 		{
@@ -325,6 +326,7 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 				CMultiFrameImage2D* pMultiImage1 = static_cast<CMultiFrameImage2D*>( pRenderObject );
 
 				pMultiImage1->SetFrames( pMultiImage->GetFrameBegin(), pMultiImage->GetFrameEnd(), pMultiImage->GetFramesPerSec() );
+				pMultiImage1->SetPlaySpeed( pMultiImage->GetPlaySpeed(), pMultiImage->IsLoop() );
 			}
 			else if( nType == CDrawableGroup::eType_TileMap )
 			{
@@ -486,6 +488,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab )
 				CMultiFrameImage2D* pRenderObject1 = static_cast<CMultiFrameImage2D*>( pPrefabNode->m_pRenderObject.GetPtr() );
 				
 				pRenderObject1->SetFrames( pRenderObject->GetFrameBegin(), pRenderObject->GetFrameEnd(), pRenderObject->GetFramesPerSec() );
+				pRenderObject1->SetPlaySpeed( pRenderObject->GetPlaySpeed(), pRenderObject->IsLoop() );
 			}
 			else if( nType == CDrawableGroup::eType_TileMap )
 			{
@@ -601,6 +604,7 @@ void CPrefabNode::Load( IBufReader& buf )
 					pMultiImage->SetFrames( nBegin, nEnd, fFrame );
 					float fPlaySpeed = 1.0f;
 					uint8 bLoop = 1;
+					extraData.Read( fPlaySpeed );
 					extraData.Read( bLoop );
 					pMultiImage->SetPlaySpeed( fPlaySpeed, bLoop );
 				}

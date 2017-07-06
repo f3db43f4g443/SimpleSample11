@@ -12,7 +12,7 @@ class CBullet : public CCharacter
 	friend void RegisterGameClasses();
 public:
 	CBullet( const SClassCreateContext& context )
-		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ), m_nLife( 0 ) { SET_BASEOBJECT_ID( CBullet ); }
+		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ) { SET_BASEOBJECT_ID( CBullet ); }
 	void SetVelocity( const CVector2& velocity ) { m_velocity = velocity; }
 	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
 	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
