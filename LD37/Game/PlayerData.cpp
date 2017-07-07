@@ -14,7 +14,8 @@ void CPlayerData::Load( const char * szPlayer )
 		return;
 
 	CBufReader buf( &result[0], result.size() );
-	bFinishedTutorial = buf.Read<uint8>();
+	buf.Read( bFinishedTutorial );
+	buf.Read( nPassedLevels );
 }
 
 void CPlayerData::Save()
@@ -23,6 +24,7 @@ void CPlayerData::Save()
 	strFileName += strPlayerName;
 
 	CBufFile buf;
-	buf.Write<uint8>( bFinishedTutorial );
+	buf.Write( bFinishedTutorial );
+	buf.Write( nPassedLevels );
 	SaveFile( strFileName.c_str(), buf.GetBuffer(), buf.GetBufLen() );
 }

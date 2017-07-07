@@ -13,10 +13,13 @@ public:
 
 	void OnModifyHp( float fHp, float fMaxHp );
 	void OnModifySp( float fSp, float fMaxSp );
+	void OnModifyHpStore( float fHpStore, float fMaxHp );
 	void UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType );
 	void UpdateShakeSmallBar( uint32 x, uint32 nHeight );
 	void ClearMinimap();
 	void SetSkipVisible( bool bVisible ) { m_pSkip->bVisible = bVisible; }
+	void ShowMinimap();
+	void HideMinimap();
 
 	static CMainUI* GetInst() { return s_pLevel; }
 private:
@@ -25,6 +28,7 @@ private:
 
 	CReference<CRenderObject2D> m_pHpBar;
 	CReference<CRenderObject2D> m_pSpBar;
+	CReference<CRenderObject2D> m_pHpStoreBar;
 	CReference<CRenderObject2D> m_pShake;
 	CReference<CRenderObject2D> m_pMinimap;
 	CReference<CRenderObject2D> m_pSkip;

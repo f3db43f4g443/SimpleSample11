@@ -27,6 +27,7 @@ public:
 	int32 GetMaxHp() { return m_hp.GetMaxValue(); }
 	int32 GetSp() { return m_sp; }
 	int32 GetMaxSp() { return m_sp.GetMaxValue(); }
+	int32 GetHpStore() { return m_nHpStore; }
 	void ModifyHp( int32 nValue );
 	void ModifySp( int32 nValue );
 	int32 GetMoney() { return m_nMoney; }
@@ -58,7 +59,7 @@ public:
 	virtual void Damage( int32 nValue ) override;
 	void RestoreHp( int32 nValue );
 	void CostSp( int32 nValue );
-	void RestoreSp( int32 nValue );
+	void RecoverSp( int32 nValue );
 	virtual void Crush() override;
 	virtual bool Knockback( const CVector2& vec ) override;
 	CVector2 GetKnockback();
@@ -88,6 +89,7 @@ private:
 
 	SAttribute m_hp;
 	SAttribute m_sp;
+	int32 m_nHpStore;
 	int32 m_nSpRegenPerFrame;
 	int32 m_nSpRegenPerFrameSlidingDown;
 	int32 m_nRollSpCost;

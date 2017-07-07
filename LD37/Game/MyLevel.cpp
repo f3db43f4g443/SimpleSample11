@@ -9,6 +9,7 @@
 #include "Rand.h"
 #include "GameState.h"
 #include "LevelDesign.h"
+#include "PlayerData.h"
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
@@ -118,9 +119,14 @@ void CMyLevel::StartUp()
 	}
 	else
 	{
-		CreateGrids( true );
-		CacheNextLevel();
+		CreateGrids( CGlobalCfg::Inst().strMainMenuLevel.c_str() );
 	}
+}
+
+void CMyLevel::BeginGenLevel( int32 nLevel )
+{
+	m_nCurLevel = nLevel;
+	CreateGrids( CGlobalCfg::Inst().vecLevels[m_nCurLevel].c_str() );
 }
 
 void CMyLevel::OnPlayerKilled( CPlayer * pPlayer )
@@ -134,7 +140,7 @@ void CMyLevel::OnPlayerEntered( CPlayer * pPlayer )
 	pPlayer->AddItem( pWeapon );
 }
 
-void CMyLevel::CreateGrids( bool bNeedInit )
+void CMyLevel::CreateGrids( const char* szNode )
 {
 	auto& cfg = CGlobalCfg::Inst();
 	SLevelBuildContext context( this );
@@ -145,11 +151,11 @@ void CMyLevel::CreateGrids( bool bNeedInit )
 		pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	}*/
 
-	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( CGlobalCfg::Inst().vecLevels[m_nCurLevel].c_str() );
+	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( szNode );
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
 	uint32 nCurBarrierHeight = m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0;
-	m_vecBarrierHeightTags.push_back( nCurBarrierHeight  + m_nHeight );
+	m_vecBarrierHeightTags.push_back( nCurBarrierHeight + context.nMaxChunkHeight );
 }
 
 void CMyLevel::CacheNextLevel()
@@ -158,7 +164,7 @@ void CMyLevel::CacheNextLevel()
 	{
 		m_nCurLevel++;
 		if( m_nCurLevel < CGlobalCfg::Inst().vecLevels.size() )
-			CreateGrids( false );
+			CreateGrids( CGlobalCfg::Inst().vecLevels[m_nCurLevel].c_str() );
 	}
 }
 
@@ -308,6 +314,9 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 
 	if( pChunk->bIsLevelBarrier )
 	{
+		CPlayerData::Inst().nPassedLevels = Max<int32>( CPlayerData::Inst().nPassedLevels, m_nCurLevel );
+		CPlayerData::Inst().Save();
+
 		CacheNextLevel();
 		m_nCurBarrierHeightTag++;
 	}
@@ -399,7 +408,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 			continue;
 		for( int i = 0; i < nWidth; i++ )
 		{
-			for( auto pNewBlockLayer = ppInsertAfter[iLayer][i]; pNewBlockLayer != ppInsertBefore[iLayer][i]; pNewBlockLayer = pNewBlockLayer->NextBlockLayer() )
+			for( auto pNewBlockLayer = ppInsertAfter[iLayer][i]->NextBlockLayer(); pNewBlockLayer != ppInsertBefore[iLayer][i]; pNewBlockLayer = pNewBlockLayer->NextBlockLayer() )
 			{
 				auto pNewBlock = pNewBlockLayer->pParent;
 				if( pMainUI )
@@ -924,7 +933,7 @@ void CMyLevel::UpdateBlocksMovement()
 	CheckSpawn();
 	m_fLastScrollPos = m_fCurScrollPos;
 	if( m_fCurScrollPos < fTargetScrollPos )
-		m_fCurScrollPos = Min( m_fCurScrollPos + 2.0f, fTargetScrollPos );
+		m_fCurScrollPos = Min( m_fCurScrollPos + Max( 1.0f, ceil( ( fTargetScrollPos - m_fCurScrollPos ) * 0.015f ) ), fTargetScrollPos );
 }
 
 void CMyLevel::UpdateShake()

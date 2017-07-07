@@ -2,6 +2,7 @@
   <levels>
     <tutorial name="data/tutorial/tutorial_level.pf" />
     <main name="scene0.pf" />
+    <mainmenu name="mainmenu" />
     <gen>
       <node name="lv1_1" />
       <node name="lv1_2" />

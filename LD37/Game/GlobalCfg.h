@@ -14,6 +14,7 @@ public:
 
 	string strTutorialLevelPrefab;
 	string strMainLevelPrefab;
+	string strMainMenuLevel;
 	vector<string> vecLevels;
 
 	void Load();

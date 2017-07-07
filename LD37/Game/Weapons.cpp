@@ -134,7 +134,6 @@ void CPlayerWeaponLaser0::Update( CPlayer * pPlayer )
 	{
 		m_pLaser = SafeCast<CLightning>( m_strBulletName->GetRoot()->CreateInstance() );
 
-		m_pLaser->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
 		m_pLaser->SetWidth( m_fWidth, m_fHitWidth );
 		m_pLaser->SetDamage( m_nDamage );
 		m_pLaser->SetDamage1( m_nDamage1 );
@@ -147,6 +146,7 @@ void CPlayerWeaponLaser0::Update( CPlayer * pPlayer )
 
 	if( m_pLaser )
 	{
+		m_pLaser->SetCreator( pPlayer->GetCurRoom() ? pPlayer->GetCurRoom() : (CEntity*)pPlayer );
 		CVector2 ofs = m_fireOfs;
 		ofs.Normalize();
 		float fLen = Max( m_fWidth, Min( m_fRange, pPlayer->GetAimAtOfs().Length() ) );

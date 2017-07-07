@@ -1,5 +1,6 @@
 ﻿<root>
   <includes>
+    <item name="mainmenu" />
     <item name="lv1/main" />
     <item name="tutorial/tutorial" />
   </includes>

@@ -17,6 +17,7 @@
 #include "MyLevel.h"
 #include "GlobalCfg.h"
 #include "LevelDesign.h"
+#include "MainMenu.h"
 
 #include "Entities/Enemies.h"
 #include "Entities/EnemyCharacters.h"
@@ -417,6 +418,7 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar, hp );
 		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, sp );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar, hp/hp1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShake, shake );
 		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, minimap );
 		REGISTER_MEMBER_TAGGED_PTR( m_pSkip, skip );
@@ -1248,6 +1250,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_baseTex )
 		REGISTER_MEMBER( m_texSize )
 		REGISTER_MEMBER( m_fMaxTexOfs )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CMainMenu )
+		REGISTER_BASE_CLASS( CRandomChunkTiled )
+		REGISTER_MEMBER( m_strButton )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CParticleTimeoutEmitter )

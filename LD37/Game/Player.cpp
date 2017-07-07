@@ -28,6 +28,7 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	, m_fCachedJumpTime( 0 )
 	, m_hp( context )
 	, m_sp( context )
+	, m_nHpStore( 0 )
 	, m_fHidingTime( 1 )
 	, m_fHidingCurTime( 0 )
 	, m_nRepairTime( 40 )
@@ -126,7 +127,23 @@ void CPlayer::Damage( int32 nValue )
 void CPlayer::RestoreHp( int32 nValue )
 {
 	CMainUI* pMainUI = CMainUI::GetInst();
+	int32 nPreHp = m_hp;
 	m_hp.ModifyCurValue( nValue );
+	int32 nCurHp = m_hp;
+
+	int32 nStore = nValue - ( nCurHp - nPreHp );
+	if( nStore > 0 )
+	{
+		m_nHpStore += nStore;
+		while( m_nHpStore >= m_hp.base )
+		{
+			m_nHpStore -= m_hp.base;
+			m_hp.base++;
+		}
+		if( pMainUI )
+			pMainUI->OnModifyHpStore( m_nHpStore, m_hp.GetMaxValue() );
+	}
+
 	if( pMainUI )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 }
@@ -139,7 +156,7 @@ void CPlayer::CostSp( int32 nValue )
 		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
 }
 
-void CPlayer::RestoreSp( int32 nValue )
+void CPlayer::RecoverSp( int32 nValue )
 {
 	CMainUI* pMainUI = CMainUI::GetInst();
 	m_sp.ModifyCurValue( nValue );
@@ -394,9 +411,9 @@ void CPlayer::UpdateMove()
 	{
 		m_walkData.UpdateMove( this, moveAxis );
 		if( m_walkData.pLandedEntity )
-			RestoreSp( m_nSpRegenPerFrame );
+			RecoverSp( m_nSpRegenPerFrame );
 		else if( m_walkData.nIsSlidingDownWall )
-			RestoreSp( m_nSpRegenPerFrameSlidingDown );
+			RecoverSp( m_nSpRegenPerFrameSlidingDown );
 	}
 	else
 	{
@@ -405,7 +422,7 @@ void CPlayer::UpdateMove()
 			m_bCachedJump = false;
 		else
 			m_fCachedJumpTime += fTime;
-		RestoreSp( m_nSpRegenPerFrame );
+		RecoverSp( m_nSpRegenPerFrame );
 	}
 
 	CVector2 curPos = GetPosition();
@@ -645,7 +662,11 @@ void CPlayer::OnAddedToStage()
 
 	CMainUI* pMainUI = CMainUI::GetInst();
 	if( pMainUI )
+	{
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
+		pMainUI->OnModifyHpStore( m_nHpStore, m_hp.GetMaxValue() );
+		pMainUI->OnModifyHp( m_sp, m_sp.GetMaxValue() );
+	}
 
 	auto pLevel = CMyLevel::GetInst();
 	if( pLevel )

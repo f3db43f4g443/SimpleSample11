@@ -41,7 +41,11 @@ void CMainUI::OnAddedToStage()
 
 	CPlayer* pPlayer = GetStage()->GetWorld()->GetPlayer();
 	if( pPlayer )
+	{
 		OnModifyHp( pPlayer->GetHp(), pPlayer->GetMaxHp() );
+		OnModifyHpStore( pPlayer->GetHpStore(), pPlayer->GetMaxHp() );
+		OnModifySp( pPlayer->GetSp(), pPlayer->GetMaxHp() );
+	}
 	s_pLevel = this;
 }
 
@@ -72,6 +76,16 @@ void CMainUI::OnModifySp( float fSp, float fMaxSp )
 	auto rect = pSp->GetElem().rect;
 	rect.height = m_hpBarOrigHeight * fPercent;
 	pSp->SetRect( rect );
+}
+
+void CMainUI::OnModifyHpStore( float fHpStore, float fMaxHp )
+{
+	float fPercent = fMaxHp > 0 ? fHpStore / fMaxHp : 0;
+	fPercent = Max( Min( fPercent, 1.0f ), 0.0f );
+	auto pHp = static_cast<CImage2D*>( m_pHpStoreBar.GetPtr() );
+	auto rect = pHp->GetElem().rect;
+	rect.height = m_hpBarOrigHeight * fPercent;
+	pHp->SetRect( rect );
 }
 
 void CMainUI::UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType )
@@ -125,6 +139,16 @@ void CMainUI::ClearMinimap()
 	{
 		m_pShakeSmallBars[i]->bVisible = false;
 	}
+}
+
+void CMainUI::ShowMinimap()
+{
+	m_pMinimap->bVisible = true;
+}
+
+void CMainUI::HideMinimap()
+{
+	m_pMinimap->bVisible = false;
 }
 
 void CMainUI::Tick()

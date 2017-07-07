@@ -23,7 +23,7 @@ class CEnemyPart : public CEnemy
 {
 	friend void RegisterGameClasses();
 public:
-	CEnemyPart( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemy ); }
+	CEnemyPart( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemyPart ); }
 
 	virtual void Damage( int32 nDmg ) override;
 };

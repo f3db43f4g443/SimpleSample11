@@ -5,10 +5,12 @@ using namespace std;
 class CPlayerData
 {
 public:
-	CPlayerData() : bFinishedTutorial( false ), bIsDesign( false ) {}
+	CPlayerData() : bFinishedTutorial( false ), bIsDesign( false ), nPassedLevels( 0 ) {}
 	string strPlayerName;
-	bool bFinishedTutorial;
 	bool bIsDesign;
+
+	uint8 bFinishedTutorial;
+	int32 nPassedLevels;
 
 	void Load( const char* szPlayer );
 	void Save();

@@ -8,11 +8,12 @@
 #include "Common/FileUtil.h"
 #include "Entities/Decorator.h"
 #include "LevelScrollObj.h"
+#include "MainMenu.h"
 
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
 
-SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk )
+SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
@@ -23,7 +24,7 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 }
 
-SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight ) : pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 )
+SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight ) : pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 ), nMaxChunkHeight( 0 )
 {
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
@@ -73,6 +74,7 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		mapChunkNames[strChunkName] = pChunk;
 		strChunkName = "";
 	}
+	nMaxChunkHeight = Max<uint32>( nMaxChunkHeight, region.GetBottom() );
 	return pChunk;
 }
 
@@ -1351,6 +1353,8 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "randompick", CLevelGenerateRandomPickNode );
 	REGISTER_GENERATE_NODE( "frame", CLevelGenerateFrameNode );
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
+
+	REGISTER_GENERATE_NODE( "mainmenu", CMainMenuGenerateNode );
 
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
 	REGISTER_GENERATE_NODE( "commonroom", CCommonRoomNode );

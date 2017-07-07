@@ -21,6 +21,7 @@ struct SLevelBuildContext
 	vector<SChunk*> chunks;
 	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs[SBlock::eAttachedPrefab_Count];
 	vector<CReference<CPrefab> > scrollObjs[3];
+	uint32 nMaxChunkHeight;
 
 	vector<int8> blueprint;
 	map<string, int8> mapTags;

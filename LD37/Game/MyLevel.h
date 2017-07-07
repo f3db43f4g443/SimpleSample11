@@ -15,6 +15,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void StartUp();
+	void BeginGenLevel( int32 nLevel );
 	virtual void OnPlayerKilled( class CPlayer* pPlayer );
 	virtual void OnPlayerEntered( class CPlayer* pPlayer );
 	void Clear();
@@ -73,7 +74,7 @@ public:
 
 	CReference<CPrefab> pChunkUIPrefeb;
 protected:
-	void CreateGrids( bool bNeedInit );
+	void CreateGrids( const char* szNode );
 	void CacheNextLevel();
 	uint32 m_nCurLevel;
 

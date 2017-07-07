@@ -16,6 +16,7 @@ void CGlobalCfg::Load()
 		auto pLevel = doc.RootElement()->FirstChildElement( "levels" );
 		strTutorialLevelPrefab = XmlGet( pLevel, "tutorial.name", "" );
 		strMainLevelPrefab = XmlGet( pLevel, "main.name", "" );
+		strMainMenuLevel = XmlGet( pLevel, "mainmenu.name", "" );
 		for( auto pGen = pLevel->FirstChildElement( "gen" )->FirstChildElement(); pGen; pGen = pGen->NextSiblingElement() )
 		{
 			vecLevels.push_back( XmlGetAttr( pGen, "name", "" ) );

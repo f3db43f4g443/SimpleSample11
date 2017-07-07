@@ -12,6 +12,7 @@
       <node name="floor_label_6" prefab="data/blocks/lv1/6.pf" />
       <node name="floor_label_8" prefab="data/blocks/lv1/8.pf" />
       <node name="floor_label_f" prefab="data/blocks/lv1/f.pf" />
+      <node name="thanks_label" prefab="thanks.pf" />
     </spawns>
     <nodes>
       <node name="floor_broken" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" layer_type="1" prefab="data/blocks/lv1/floor_broken.pf">
@@ -337,6 +338,7 @@
         <next_level>
           <node type="subregion">
             <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="thanks_label" x="0" y="2" w="32" h="8" />
           </node>
         </next_level>
       </node>

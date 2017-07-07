@@ -1685,7 +1685,7 @@ void CHitTestMgr::Raycast( const CVector2& begin, const CVector2& end, vector<SR
 	
 	vector<CHitProxy*> vecOverlaps;
 	float s = dGrid.x * ( pt.y + curGrid.y - gridBegin.y ) - dGrid.y * ( pt.x + curGrid.x - gridBegin.x );
-	while( curGrid.x != end1.x || curGrid.y != end1.y )
+	while( 1 )
 	{
 		int32 i = curGrid.x - m_size.x;
 		int32 j = curGrid.y - m_size.y;
@@ -1698,6 +1698,8 @@ void CHitTestMgr::Raycast( const CVector2& begin, const CVector2& end, vector<SR
 				vecOverlaps.push_back( pHitProxy );
 			}
 		}
+		if( curGrid.x == end1.x && curGrid.y == end1.y )
+			break;
 
 		if( s > 0 )
 		{
