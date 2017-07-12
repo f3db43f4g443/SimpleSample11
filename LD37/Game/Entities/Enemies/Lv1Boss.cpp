@@ -91,7 +91,7 @@ void CLv1Boss::Update( uint32 nCur )
 		for( ; m_h1 < h1; m_h1++ )
 		{
 			auto pRenderObject = m_pDrawableGroup->CreateInstance();
-			pRenderObject->y = ( m_h1 + 1 ) * 32 - h + CMyLevel::GetInst()->GetBound().height;
+			pRenderObject->y = ( m_h1 + 1 ) * 32 - h + CMyLevel::GetInst()->GetBound().height + nDeltaScroll;
 			int32 nFrame = SRand::Inst().Rand( 0, 8 );
 			static_cast<CMultiFrameImage2D*>( pRenderObject )->SetFrames( nFrame * 4, nFrame * 4 + 1, 0 );
 			GetRenderObject()->AddChild( pRenderObject );
@@ -345,6 +345,11 @@ void CLv1Boss::CreateTentacle( uint8 i, CChunkObject* pChunkObject )
 		CTentacle* pTentacle = new CTentacle( this, m_strTentacle, m_strTentacleHole );
 		pTentacle->SetPosition( CVector2( pos1.x + 2, pos1.y + 2 ) * CMyLevel::GetBlockSize() - CVector2( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y ) );
 		pTentacle->SetParentEntity( pChunkObject );
+
+		auto pEffect = SafeCast<CEffectObject>( m_strParticle0->GetRoot()->CreateInstance() );
+		pEffect->SetPosition( CVector2( pos1.x + 2, pos1.y + 2 ) * CMyLevel::GetBlockSize() );
+		pEffect->SetState( 2 );
+		pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 }
 
@@ -475,6 +480,11 @@ void CLv1Boss::AIFuncEye2( uint8 nEye, CChunkObject* pChunkObject )
 		CEnemy* pEye = m_pEye[nEye];
 		CRenderObject2D* pEyeLink = m_pEyeLink[nEye];
 		CVector2 basePos = pEyeHole->GetPosition() + pChunkObject->GetPosition();
+
+		auto pEffect = SafeCast<CEffectObject>( m_strParticle3->GetRoot()->CreateInstance() );
+		pEffect->SetPosition( basePos );
+		pEffect->SetState( 2 );
+		pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 
 		for( int i = 0; i < 60; i++ )
 		{
@@ -769,6 +779,12 @@ void CLv1Boss::AIFuncNose2( CChunkObject* pChunkObject )
 	typedef void* SKilled;
 	try
 	{
+		auto pEffect = SafeCast<CEffectObject>( m_strParticle1->GetRoot()->CreateInstance() );
+		auto pChunk = pChunkObject->GetChunk();
+		pEffect->SetPosition( CVector2( pChunk->pos.x + pChunk->nWidth * CMyLevel::GetBlockSize() / 2, pChunk->pos.y + pChunk->nHeight * CMyLevel::GetBlockSize() / 2 ) );
+		pEffect->SetState( 2 );
+		pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+
 		CMessagePump pump( m_pAINose );
 		pChunkObject->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled>() );
 
@@ -965,6 +981,12 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 	typedef void* SKilled1;
 	try
 	{
+		auto pEffect = SafeCast<CEffectObject>( m_strParticle2->GetRoot()->CreateInstance() );
+		auto pChunk = pChunkObject->GetChunk();
+		pEffect->SetPosition( CVector2( pChunk->pos.x + pChunk->nWidth * CMyLevel::GetBlockSize() / 2, pChunk->pos.y + pChunk->nHeight * CMyLevel::GetBlockSize() / 2 ) );
+		pEffect->SetState( 2 );
+		pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+
 		CMessagePump pump( m_pAIMouth );
 		m_pTongue->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled>() );
 		pChunkObject->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled1>() );

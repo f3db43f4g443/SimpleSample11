@@ -90,10 +90,6 @@ void CMyLevel::OnAddedToStage()
 	StartUp();
 	CheckSpawn();
 
-	pFireSound = CResourceManager::Inst()->CreateResource<CSoundFile>( CGlobalCfg::Inst().mapSoundPath["fire"].c_str() );
-	pHitSound = CResourceManager::Inst()->CreateResource<CSoundFile>( CGlobalCfg::Inst().mapSoundPath["hit"].c_str() );
-	pExpSound = CResourceManager::Inst()->CreateResource<CSoundFile>( CGlobalCfg::Inst().mapSoundPath["exp"].c_str() );
-
 	pChunkUIPrefeb = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().mapPrefabPath["chunk_ui"].c_str() );
 
 	for( int i = 0; i < ELEM_COUNT( m_pBulletRoot ); i++ )

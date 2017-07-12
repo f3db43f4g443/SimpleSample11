@@ -100,8 +100,6 @@ void CLvBarrier1::OnRemovedFromStage()
 
 void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 {
-	m_pKillEffect = CResourceManager::Inst()->CreateResource<CPrefab>( m_strKillEffect.c_str() );
-
 	int32 iTrigger = 0;
 	vector<CChunkObject*> vecChunkObjects;
 	uint32 nWidth = m_pChunk->nWidth;
@@ -296,15 +294,14 @@ void CLvBarrier1::Tick()
 {
 	GetStage()->RegisterAfterHitTest( 1, &m_deathTick );
 
-	if( m_pKillEffect )
+	if( m_strKillEffect )
 	{
 		if( m_nKillEffectCDLeft )
 			m_nKillEffectCDLeft--;
 		if( !m_nKillEffectCDLeft )
 		{
-			CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
-			auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
+			auto pEffect = SafeCast<CEffectObject>( m_strKillEffect->GetRoot()->CreateInstance() );
 			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 			pEffect->SetPosition( GetPosition() + center );
 			pEffect->SetState( 2 );
@@ -315,14 +312,14 @@ void CLvBarrier1::Tick()
 	m_nDeathTime--;
 	if( !m_nDeathTime )
 	{
-		if( m_pEffect )
+		if( m_strEffect )
 		{
 			ForceUpdateTransform();
 			for( int i = 0; i < m_pChunk->nWidth; i++ )
 			{
 				for( int j = 0; j < m_pChunk->nHeight; j++ )
 				{
-					auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+					auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 					pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 					pEffect->SetState( 2 );

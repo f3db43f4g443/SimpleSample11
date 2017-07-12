@@ -77,6 +77,12 @@ public:
 	template<class T>
 	const T* GetStaticData()
 	{
+		if( m_bTaggedNodePtrInfoDirty )
+		{
+			UpdateTaggedNodePtrInfo();
+			UpdateResPtrInfo();
+			m_bTaggedNodePtrInfoDirty = false;
+		}
 		return (const T*)m_obj.GetObjData();
 	}
 

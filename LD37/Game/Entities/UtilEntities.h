@@ -53,3 +53,14 @@ private:
 	int32 m_nTick;
 	TClassTrigger<CRopeAnimator> m_onTick;
 };
+
+class CSimpleText : public CEntity
+{
+public:
+	CSimpleText( const SClassCreateContext& context ) : CEntity( context ), m_initRect( -1, -1, -1, -1 ) { SET_BASEOBJECT_ID( CSimpleText ); }
+
+	virtual void OnAddedToStage() override;
+	void Set( const char* szText );
+private:
+	CRectangle m_initRect;
+};

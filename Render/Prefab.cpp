@@ -252,6 +252,7 @@ void CPrefabNode::UpdateResPtrInfo()
 	auto pClassData = GetClassData();
 	if( !pClassData )
 		return;
+	auto pStaticData = m_obj.GetObjData();
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
 	{
 		m_vecResPtrInfo.push_back( SResPtrInfo( pData, nOfs ) );
@@ -262,6 +263,8 @@ void CPrefabNode::UpdateResPtrInfo()
 		auto& name = *(CString*)( m_obj.GetObjData() + info.nOfs );
 		info.nOfs += TResourceRef<CPrefab>::GetPtrOfs();
 		info.pResource = CResourceManager::Inst()->CreateResource( info.pMemberData->nFlag >> 16, name.c_str_safe() );
+
+		*( CReference<CResource>* )( pStaticData + info.nOfs ) = info.pResource;
 	}
 }
 

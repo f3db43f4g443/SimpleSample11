@@ -498,6 +498,9 @@
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_1" />
         <ref name="boss1" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
       </node>
     </nodes>
   </level_gen>

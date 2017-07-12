@@ -550,6 +550,7 @@
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="CharacterMove.cpp" />
+    <ClCompile Include="DamageEft.cpp" />
     <ClCompile Include="Effects\CrackMeshGenerator.cpp" />
     <ClCompile Include="Effects\DynamicTextures.cpp" />
     <ClCompile Include="Effects\ParticleArrayEmitter.cpp" />
@@ -630,6 +631,7 @@
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="CharacterMove.h" />
+    <ClInclude Include="DamageEft.h" />
     <ClInclude Include="Effects\CrackMeshGenerator.h" />
     <ClInclude Include="Effects\DynamicTextures.h" />
     <ClInclude Include="Effects\ParticleArrayEmitter.h" />

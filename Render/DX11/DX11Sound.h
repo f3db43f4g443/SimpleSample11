@@ -7,7 +7,7 @@ class CSound : public ISound
 {
 	friend class CSoundTrack;
 public:
-	CSound( IDirectSound* pDSound, void* pData, uint32 nSize, const SWaveFormat& format );
+	CSound( IDirectSound* pDSound, const void* pData, uint32 nSize, const SWaveFormat& format );
 private:
 	CReference<IDirectSoundBuffer> m_pBuffer;
 };

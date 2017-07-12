@@ -71,7 +71,7 @@ private:
 	void Tick();
 	CString m_strCore;
 	CString m_strWall;
-	CString m_strKillEffect;
+	TResourceRef<CPrefab> m_strKillEffect;
 	uint32 m_nKillEffectInterval;
 	uint32 m_nDeathTime;
 
@@ -80,7 +80,6 @@ private:
 	vector<CReference<CChunkObject> > m_vecCores;
 	vector<CFunctionTrigger> m_triggers;
 	TClassTrigger<CLvBarrier1> m_deathTick;
-	CReference<CPrefab> m_pKillEffect;
 	uint32 m_nKillEffectCDLeft;
 	uint32 m_nCoreCount;
 };

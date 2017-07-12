@@ -232,8 +232,8 @@ protected:
 	CRenderObject2D* m_pDamagedEffects[4];
 	uint32 m_nDamagedEffectsCount;
 
-	CString m_strEffect;
-	CReference<CPrefab> m_pEffect;
+	TResourceRef<CPrefab> m_strEffect;
+	TResourceRef<CSoundFile> m_strSoundEffect;
 
 	SChunk* m_pChunk;
 	float m_fHp;

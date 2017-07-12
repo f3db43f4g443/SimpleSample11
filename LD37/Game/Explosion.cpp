@@ -9,6 +9,8 @@ void CExplosion::OnAddedToStage()
 {
 	if( m_nLife )
 		GetStage()->RegisterAfterHitTest( m_nLife, &m_onTick1 );
+	if( m_pSound )
+		m_pSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	uint32 nHitFrame = GetStage()->GetUpdatePhase() == eStageUpdatePhase_AfterHitTest ? m_nHitBeginFrame : m_nHitBeginFrame + 1;
 	if( nHitFrame )
 		GetStage()->RegisterAfterHitTest( nHitFrame, &m_onTick );
@@ -32,7 +34,8 @@ void CExplosion::OnRemovedFromStage()
 
 void CExplosion::OnTick()
 {
-	vector<CReference<CEntity> > hitResult;
+	vector<CReference<CEntity> > result;
+	vector<SHitTestResult> hitResult;
 
 	switch( m_nRangeType )
 	{
@@ -41,7 +44,7 @@ void CExplosion::OnTick()
 		SHitProxyCircle circle;
 		circle.fRadius = m_fInitRange + m_nHitFrame * m_fDeltaRange;
 		circle.center = CVector2( 0, 0 );
-		GetStage()->MultiHitTest( &circle, globalTransform, hitResult );
+		GetStage()->MultiHitTest( &circle, globalTransform, result, &hitResult );
 		break;
 	}
 	default:
@@ -52,13 +55,15 @@ void CExplosion::OnTick()
 		rect.width = m_fInitRange2 + m_nHitFrame * m_fDeltaRange2 - rect.x;
 		rect.height = m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 - rect.y;
 		SHitProxyPolygon polygon( rect );
-		GetStage()->MultiHitTest( &polygon, globalTransform, hitResult );
+		GetStage()->MultiHitTest( &polygon, globalTransform, result, &hitResult );
 		break;
 	}
 	}
 
-	for( auto& pEntity : hitResult )
+	for( int i = 0; i < hitResult.size(); i++ )
 	{
+		CEntity* pEntity = result[i];
+		auto& res = hitResult[i];
 		if( !pEntity->GetStage() )
 			continue;
 		if( m_hit.find( pEntity ) != m_hit.end() )
@@ -67,7 +72,7 @@ void CExplosion::OnTick()
 		int32 nDmg = m_nDamage + m_nHitFrame * m_nDeltaDamage;
 		nDmg = Max( nDmg, 0 );
 
-		CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity.GetPtr() );
+		CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
 		if( pBlockObject )
 		{
 			auto pChunkObject = pBlockObject->GetBlock()->pOwner->pChunkObject;
@@ -93,16 +98,27 @@ void CExplosion::OnTick()
 			continue;
 		}
 
-		if( !m_bHitCreator && pEntity.GetPtr() == m_pCreator )
+		if( !m_bHitCreator && pEntity == m_pCreator )
 			continue;
 
-		CPlayer* pPlayer = SafeCast<CPlayer>( pEntity.GetPtr() );
+		CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
 		if( pPlayer )
 		{
 			if( pPlayer->IsHiding() ? m_bHitHidingPlayer : m_bHitPlayer )
 			{
 				if( nDmg )
-					pPlayer->Damage( nDmg );
+				{
+					CCharacter::SDamageContext context;
+					context.nDamage = nDmg;
+					context.nType = 0;
+					context.nSourceType = 0;
+					context.hitPos = res.hitPoint1;
+					context.hitDir = res.normal;
+					context.nHitType = -1;
+					pPlayer->Damage( context );
+					if( m_pDmgEft )
+						m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
@@ -110,13 +126,24 @@ void CExplosion::OnTick()
 			continue;
 		}
 
-		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity.GetPtr() );
+		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 		if( pEnemy )
 		{
 			if( pEnemy->IsHiding() ? m_bHitHidingEnemy : m_bHitEnemy )
 			{
 				if( nDmg )
-					pEnemy->Damage( nDmg );
+				{
+					CCharacter::SDamageContext context;
+					context.nDamage = nDmg;
+					context.nType = 0;
+					context.nSourceType = 0;
+					context.hitPos = res.hitPoint1;
+					context.hitDir = res.normal;
+					context.nHitType = -1;
+					pEnemy->Damage( context );
+					if( m_pDmgEft )
+						m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );
@@ -124,13 +151,24 @@ void CExplosion::OnTick()
 			continue;
 		}
 
-		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity.GetPtr() );
+		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 		if( pCharacter )
 		{
 			if( pCharacter->IsHiding() ? m_bHitHidingNeutral : m_bHitNeutral )
 			{
 				if( nDmg )
-					pCharacter->Damage( nDmg );
+				{
+					CCharacter::SDamageContext context;
+					context.nDamage = nDmg;
+					context.nType = 0;
+					context.nSourceType = 0;
+					context.hitPos = res.hitPoint1;
+					context.hitDir = res.normal;
+					context.nHitType = -1;
+					pCharacter->Damage( context );
+					if( m_pDmgEft )
+						m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
 					m_hit.insert( pEntity );

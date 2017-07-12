@@ -45,7 +45,7 @@ void CFileExplorer::OnOpen()
 	auto pEditor = CEditor::Inst().SetEditor( szExt );
 	if( pEditor )
 		pEditor->SetFileName( m_strFile.c_str() );
-	else if( !strcmp( szExt, "wav" ) )
+	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) )
 	{
 		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( m_strFile.c_str() )->CreateSoundTrack();
 		pSoundTrack->Play( ESoundPlay_KeepRef );

@@ -54,7 +54,13 @@ void CManHead1::AIFunc()
 			pBarrage->SetPosition( pos );
 			pBarrage->Start();
 
-			Damage( 10 );
+			SDamageContext dmgContext;
+			dmgContext.nDamage = 10;
+			dmgContext.nType = 0;
+			dmgContext.nSourceType = 0;
+			dmgContext.hitPos = dmgContext.hitDir = CVector2( 0, 0 );
+			dmgContext.nHitType = -1;
+			Damage( dmgContext );
 		}
 
 		CVector2 playerPos = pPlayer->GetPosition();
@@ -699,7 +705,13 @@ bool CRat::Knockback( const CVector2 & vec )
 
 void CRat::OnKnockbackPlayer( const CVector2 & vec )
 {
-	Damage( 5 );
+	SDamageContext context;
+	context.nDamage = 5;
+	context.nType = 0;
+	context.nSourceType = 0;
+	context.hitPos = context.hitDir = CVector2( 0, 0 );
+	context.nHitType = -1;
+	Damage( context );
 }
 
 bool CRat::IsKnockback()

@@ -272,11 +272,6 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 	if( pChunk->nSubChunkType == 1 && pChunk->pParentChunk )
 		return;
 
-	if( m_strEffect.length() > 0 )
-	{
-		m_pEffect = CResourceManager::Inst()->CreateResource<CPrefab>( m_strEffect.c_str() );
-	}
-
 	for( auto& block : pChunk->blocks )
 	{
 		block.pEntity = new CBlockObject( &block, this, pLevel );
@@ -369,14 +364,16 @@ void CChunkObject::RemoveChunk()
 
 void CChunkObject::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
-		auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 		ForceUpdateTransform();
 		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		pEffect->SetPosition( globalTransform.GetPosition() );
 		pEffect->SetState( 2 );
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CChunkObject::Damage( float fDmg, uint8 nType )
@@ -451,8 +448,9 @@ void CChunkObject::Kill()
 			pStopEvent->killedFunc( m_pChunk );
 	}
 	m_triggerKilled.Trigger( 0, this );
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	OnKilled();
-	CMyLevel::GetInst()->pHitSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 	auto pChunk = m_pChunk;
 	if( pChunk )
@@ -528,7 +526,6 @@ void CSpecialChunk::OnAddedToStage()
 
 void CSpecialChunk::Trigger()
 {
-	CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CSpecialChunk1::Trigger()
@@ -648,7 +645,6 @@ void CExplosiveChunk::Tick()
 			m_nKillEffectCDLeft--;
 		if( !m_nKillEffectCDLeft )
 		{
-			CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
 			auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
 			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
@@ -729,16 +725,17 @@ void CBarrel::Damage( SDamageContext& context )
 
 void CBarrel::Explode()
 {
-	CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 
-	if( m_pEffect )
+	if( m_strEffect )
 	{
-		auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		pEffect->SetPosition( GetPosition() + center );
 		pEffect->SetState( 2 );
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 	SBarrageContext context;
 	context.pCreator = this;
@@ -922,14 +919,14 @@ void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 
 void CRandomEnemyRoom::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
@@ -975,14 +972,14 @@ void CRandomChunk::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CRandomChunk::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );

@@ -132,14 +132,14 @@ void CTutorialChest::OnRemovedFromStage()
 
 void CTutorialChest::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );

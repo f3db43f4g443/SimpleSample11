@@ -56,7 +56,13 @@ void CFallingObj::OnTick1()
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 		if( pEnemy )
 		{
-			pEnemy->Damage( m_nHitDmg );
+			CCharacter::SDamageContext dmgContext;
+			dmgContext.nDamage = m_nHitDmg;
+			dmgContext.nType = 0;
+			dmgContext.nSourceType = 0;
+			dmgContext.hitPos = dmgContext.hitDir = CVector2( 0, 0 );
+			dmgContext.nHitType = -1;
+			pEnemy->Damage( dmgContext );
 			Destroy();
 			return;
 		}
@@ -64,7 +70,13 @@ void CFallingObj::OnTick1()
 		CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
 		if( pPlayer )
 		{
-			pPlayer->Damage( 1 );
+			CCharacter::SDamageContext dmgContext;
+			dmgContext.nDamage = 1;
+			dmgContext.nType = 0;
+			dmgContext.nSourceType = 0;
+			dmgContext.hitPos = dmgContext.hitDir = CVector2( 0, 0 );
+			dmgContext.nHitType = -1;
+			pPlayer->Damage( dmgContext );
 			Destroy();
 			return;
 		}

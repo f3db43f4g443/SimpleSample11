@@ -5,16 +5,16 @@ class CItem : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	CItem( const SClassCreateContext& context ) : CEntity( context ), m_strKey( context ), m_strUpgrade( context ) { SET_BASEOBJECT_ID( CItem ); }
+	CItem( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CItem ); }
 
 	virtual void Add( CPlayer* pPlayer ) {}
 	virtual void Remove( CPlayer* pPlayer ) {}
 
 	const CString& GetKey() { return m_strKey; }
-	const CString& GetUpgrade() { return m_strUpgrade; }
+	CPrefab* GetUpgrade() { return m_strUpgrade; }
 protected:
 	CString m_strKey;
-	CString m_strUpgrade;
+	TResourceRef<CPrefab> m_strUpgrade;
 private:
 	LINK_LIST_REF( CItem, Item )
 };

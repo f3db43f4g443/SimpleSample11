@@ -50,6 +50,8 @@ protected:
 	uint8 m_nBoundType;
 	CRectangle m_bound;
 
+	TResourceRef<CPrefab> m_pDmgEft;
+
 	CVector2 m_acc;
 	float m_fAngularVelocity;
 

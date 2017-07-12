@@ -538,6 +538,8 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 			nIsSlidingDownWall = -1;
 		if( nIsSlidingDownWall )
 			velocity.y = Max( velocity.y, -fSlideDownSpeed );
+		else
+			ReleaseJump( pCharacter );
 	}
 }
 

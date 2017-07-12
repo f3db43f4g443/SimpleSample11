@@ -139,7 +139,18 @@ void CPlayerBulletMultiHit::OnTickAfterHitTest()
 		if( pEnemy )
 		{
 			CReference<CEntity> pTempRef = pEntity;
-			pEnemy->Damage( m_nDamage );
+
+			CCharacter::SDamageContext context;
+			context.nDamage = m_nDamage;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = pManifold->hitPoint;
+			context.hitDir = CVector2( globalTransform.m00, globalTransform.m10 );
+			context.nHitType = -1;
+			pEnemy->Damage( context );
+			if( m_pDmgEft )
+				m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 			OnHit( pEnemy );
 			m_nHit++;
 			m_nHitCDLeft = m_nHitCD;

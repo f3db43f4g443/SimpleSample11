@@ -2,11 +2,24 @@
 #include "Pickup.h"
 #include "Player.h"
 #include "MyLevel.h"
+#include "Stage.h"
 
 void CPickUp::OnAddedToStage()
 {
 	if( m_pDeathEffect )
 		m_pDeathEffect->SetParentEntity( NULL );
+
+	if( m_pText && GetStage()->GetPlayer() )
+	{
+		GetStage()->GetPlayer()->RegisterItemChanged( &m_onRefreshText );
+	}
+	RefreshText();
+}
+
+void CPickUp::OnRemovedFromStage()
+{
+	if( m_onRefreshText.IsRegistered() )
+		m_onRefreshText.Unregister();
 }
 
 void CPickUp::PickUp( CPlayer* pPlayer )
@@ -45,4 +58,26 @@ void CPickUpItem::PickUp( CPlayer* pPlayer )
 {
 	pPlayer->AddItem( m_pItem );
 	CPickUp::PickUp( pPlayer );
+}
+
+void CPickUpItem::RefreshText()
+{
+	if( !m_pText )
+		return;
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return;
+
+	int32 nLevel = pPlayer->CheckItemLevel( m_pItem );
+	m_pItem->NextItem();
+	char szText[32];
+	if( nLevel > 0 )
+		sprintf( szText, "LV%d", nLevel + 1 );
+	else if( nLevel < 0 )
+		strcpy( szText, "MAX" );
+	else if( m_pItem->GetUpgrade() )
+		sprintf( szText, "LV%d", 1 );
+	else
+		szText[0] = 0;
+	m_pText->Set( szText );
 }

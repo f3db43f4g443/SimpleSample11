@@ -12,7 +12,6 @@ CPlayerWeaponShoot0::CPlayerWeaponShoot0( const SClassCreateContext& context )
 	: CPlayerWeapon( context )
 	, m_bIsFiring( false )
 	, m_nFireCD( 0 )
-	, m_strBulletName( context )
 {
 	SET_BASEOBJECT_ID( CPlayerWeaponShoot0 );
 }
@@ -88,7 +87,8 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 		}
 
 		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
-		CMyLevel::GetInst()->pFireSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+		if( m_strFireSound )
+			m_strFireSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 		m_nFireCD = m_nFireRate;
 	}
@@ -118,6 +118,11 @@ void CPlayerWeaponLaser0::EndFire( CPlayer * pPlayer )
 		m_pLaser->SetParentEntity( NULL );
 		m_pLaser = NULL;
 	}
+	if( m_pSound )
+	{
+		m_pSound->FadeOut( 0.1f );
+		m_pSound = NULL;
+	}
 	m_bIsFiring = false;
 	m_nFireCD = m_nFireRate;
 	pPlayer->SetAimSpeed( 0 );
@@ -142,6 +147,12 @@ void CPlayerWeaponLaser0::Update( CPlayer * pPlayer )
 
 		m_pLaser->SetParentEntity( this );
 		m_pLaser->SetRenderParent( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+
+		if( m_strFireSound )
+		{
+			m_pSound = m_strFireSound->CreateSoundTrack();
+			m_pSound->Play( ESoundPlay_Loop | ESoundPlay_KeepRef );
+		}
 	}
 
 	if( m_pLaser )

@@ -29,14 +29,6 @@ void CGlobalCfg::Load()
 			const char* szPath = XmlGetAttr( pItem, "path", "" );
 			mapPrefabPath[szName] = szPath;
 		}
-
-		auto pSounds = doc.RootElement()->FirstChildElement( "sounds" );
-		for( auto pItem = pSounds->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
-		{
-			const char* szName = XmlGetAttr( pItem, "name", "" );
-			const char* szPath = XmlGetAttr( pItem, "path", "" );
-			mapSoundPath[szName] = szPath;
-		}
 	}
 
 	{

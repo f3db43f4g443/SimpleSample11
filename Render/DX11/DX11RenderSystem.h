@@ -22,7 +22,7 @@ public:
 		bool bIsDynamic = false, bool bBindRenderTarget = false, bool bBindDepthStencil = false ) override;
 	virtual IConstantBuffer* CreateConstantBuffer( uint32 nSize, bool bUsePool ) override;
 
-	virtual ISound* CreateSound( void* pBuffer, uint32 nSize, const SWaveFormat& format ) override;
+	virtual ISound* CreateSound( const void* pBuffer, uint32 nSize, const SWaveFormat& format ) override;
 	virtual ISoundTrack* CreateSoundTrack( ISound* pSound ) override;
 
 	virtual IRenderTarget* GetDefaultRenderTarget() override { return &m_defaultRenderTarget; }

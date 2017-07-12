@@ -216,7 +216,18 @@ void CLightning::OnTick()
 				if( pPlayer->GetCore()->HitTest( &polygon, mat, &hitResult ) )
 				{
 					if( m_nDamage )
-						pPlayer->Damage( m_nDamage );
+					{
+						CCharacter::SDamageContext context;
+						context.nDamage = m_nDamage;
+						context.nType = 0;
+						context.nSourceType = 0;
+						context.hitPos = hitResult.hitPoint1;
+						context.hitDir = endCenter - beginCenter;
+						context.nHitType = -1;
+						pPlayer->Damage( context );
+						if( m_pDmgEft )
+							m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+					}
 					if( m_fKnockback > 0 && pPlayer->CanKnockback() )
 					{
 						CVector2 norm = hitResult.normal;
@@ -264,7 +275,18 @@ void CLightning::OnTick()
 					if( pEnemy )
 					{
 						CReference<CEntity> pTempRef = pEntity;
-						pEnemy->Damage( m_nDamage );
+
+						CCharacter::SDamageContext context;
+						context.nDamage = m_nDamage;
+						context.nType = 0;
+						context.nSourceType = 0;
+						context.hitPos = hitResult.hitPoint;
+						context.hitDir = endCenter - beginCenter;
+						context.nHitType = -1;
+						pEnemy->Damage( context );
+						if( m_pDmgEft )
+							m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 						OnHit( pEnemy );
 						continue;
 					}
@@ -284,7 +306,18 @@ void CLightning::OnTick()
 						if( !m_nDamage2 )
 							continue;
 						if( !SafeCast<CBullet>( pCharacter ) )
-							pCharacter->Damage( m_nDamage2 );
+						{
+							CCharacter::SDamageContext context;
+							context.nDamage = m_nDamage2;
+							context.nType = 0;
+							context.nSourceType = 0;
+							context.hitPos = hitResult.hitPoint;
+							context.hitDir = endCenter - beginCenter;
+							context.nHitType = -1;
+							pCharacter->Damage( context );
+							if( m_pDmgEft )
+								m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+						}
 						OnHit( pCharacter );
 						continue;
 					}
@@ -294,7 +327,18 @@ void CLightning::OnTick()
 						if( !m_nDamage1 && m_fKnockback <= 0 )
 							continue;
 						if( m_nDamage1 )
-							pPlayer->Damage( m_nDamage1 );
+						{
+							CCharacter::SDamageContext context;
+							context.nDamage = m_nDamage1;
+							context.nType = 0;
+							context.nSourceType = 0;
+							context.hitPos = hitResult.hitPoint;
+							context.hitDir = endCenter - beginCenter;
+							context.nHitType = -1;
+							pPlayer->Damage( context );
+							if( m_pDmgEft )
+								m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+						}
 						if( m_fKnockback > 0 && pPlayer->CanKnockback() )
 						{
 							CVector2 norm( d.y, -d.x );

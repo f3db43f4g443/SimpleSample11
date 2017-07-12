@@ -67,6 +67,7 @@ template <class T>
 class TResourceRef : public CString
 {
 public:
+	TResourceRef() {}
 	TResourceRef( const char* c ) : CString( c ) {}
 	TResourceRef( const CString& str ) : CString( str ) {}
 	TResourceRef( const TResourceRef<T>& ref ) : CString( ref ), m_pRef( ref.m_pRef ) {}

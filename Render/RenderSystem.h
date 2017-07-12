@@ -41,7 +41,7 @@ public:
 		bool bIsDynamic = false, bool bBindRenderTarget = false, bool bBindDepthStencil = false ) = 0;
 	virtual IConstantBuffer* CreateConstantBuffer( uint32 nSize, bool bUsePool ) = 0;
 
-	virtual ISound* CreateSound( void* pBuffer, uint32 nSize, const SWaveFormat& format ) = 0;
+	virtual ISound* CreateSound( const void* pBuffer, uint32 nSize, const SWaveFormat& format ) = 0;
 	virtual ISoundTrack* CreateSoundTrack( ISound* pSound ) = 0;
 
 	virtual IRenderTarget* GetDefaultRenderTarget() = 0;

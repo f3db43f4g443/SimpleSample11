@@ -30,6 +30,7 @@ private:
 
 	CVector2 m_fireOfs;
 	float m_fAngularSpeed;
+	TResourceRef<CSoundFile> m_strFireSound;
 
 	bool m_bIsFiring;
 	uint32 m_nFireCD;
@@ -58,9 +59,11 @@ private:
 	float m_fAimSpeed;
 	CVector2 m_fireOfs;
 	float m_fShakePerSec;
+	TResourceRef<CSoundFile> m_strFireSound;
 
 	bool m_bIsFiring;
 	uint32 m_nFireCD;
 
 	CReference<CLightning> m_pLaser;
+	CReference<ISoundTrack> m_pSound;
 };

@@ -68,10 +68,6 @@ public:
 
 	void UpdateBlocksMovement();
 
-	CReference<CSoundFile> pFireSound;
-	CReference<CSoundFile> pHitSound;
-	CReference<CSoundFile> pExpSound;
-
 	CReference<CPrefab> pChunkUIPrefeb;
 protected:
 	void CreateGrids( const char* szNode );

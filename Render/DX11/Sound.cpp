@@ -2,7 +2,7 @@
 #include "DX11Sound.h"
 #include "DX11RenderSystem.h"
 
-CSound::CSound( IDirectSound* pDSound, void* pData, uint32 nSize, const SWaveFormat& format )
+CSound::CSound( IDirectSound* pDSound, const void* pData, uint32 nSize, const SWaveFormat& format )
 	: ISound( format, nSize )
 {	 
 	DSBUFFERDESC dsbdesc;
@@ -102,7 +102,7 @@ void CSoundTrack::OnTimeout()
 	}
 }
 
-ISound* CRenderSystem::CreateSound( void* pBuffer, uint32 nSize, const SWaveFormat& format )
+ISound* CRenderSystem::CreateSound( const void* pBuffer, uint32 nSize, const SWaveFormat& format )
 {
 	return new CSound( m_pDSound, pBuffer, nSize, format );
 }

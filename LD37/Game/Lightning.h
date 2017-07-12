@@ -69,6 +69,7 @@ protected:
 	uint32 m_nDamage1;
 	uint32 m_nDamage2;
 	float m_fKnockback;
+	TResourceRef<CPrefab> m_pDmgEft;
 
 	function<void( CLightning*, CEntity* )> m_onHit;
 

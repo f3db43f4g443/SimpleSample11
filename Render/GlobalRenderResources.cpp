@@ -119,6 +119,7 @@ void InitEngine()
 	CResourceManager::Inst()->RegisterExtension<CPrefab>( "pf" );
 	CResourceManager::Inst()->Register( new TResourceFactory<CSoundFile>() );
 	CResourceManager::Inst()->RegisterExtension<CSoundFile>( "wav" );
+	CResourceManager::Inst()->RegisterExtension<CSoundFile>( "mp3" );
 	CResourceManager::Inst()->Register( new TResourceFactory<CDynamicTexture>() );
 	CResourceManager::Inst()->RegisterExtension<CDynamicTexture>( "dtx" );
 	CTextureFile::InitLoader();

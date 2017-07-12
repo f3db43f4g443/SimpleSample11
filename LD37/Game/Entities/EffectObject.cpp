@@ -35,6 +35,9 @@ void CEffectObject::OnAddedToStage()
 	}
 	if( m_nState <= 2 )
 		SetState( m_nState );
+
+	if( m_strSound )
+		m_strSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CEffectObject::OnRemovedFromStage()

@@ -75,14 +75,14 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CRandomChunkTiled::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
@@ -146,14 +146,14 @@ void CRandomChunk1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CRandomChunk1::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
@@ -299,14 +299,14 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CRandomChunk2::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
@@ -396,14 +396,14 @@ void CRandomChunk3::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CRandomChunk3::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
@@ -559,14 +559,14 @@ void CDefaultRandomRoom::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CDefaultRandomRoom::OnKilled()
 {
-	if( m_pEffect )
+	if( m_strEffect )
 	{
 		ForceUpdateTransform();
 		for( int i = 0; i < m_pChunk->nWidth; i++ )
 		{
 			for( int j = 0; j < m_pChunk->nHeight; j++ )
 			{
-				auto pEffect = SafeCast<CEffectObject>( m_pEffect->GetRoot()->CreateInstance() );
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );

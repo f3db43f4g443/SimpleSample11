@@ -163,7 +163,18 @@ void CBullet::OnTickAfterHitTest()
 			if( pEntity && pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
 			{
 				CReference<CEntity> pTempRef = pEntity;
-				pPlayer->Damage( m_nDamage );
+
+				SDamageContext context;
+				context.nDamage = m_nDamage;
+				context.nType = 0;
+				context.nSourceType = 0;
+				context.hitPos = pManifold->hitPoint;
+				context.hitDir = m_velocity;
+				context.nHitType = -1;
+				pPlayer->Damage( context );
+				if( m_pDmgEft )
+					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 				OnHit( pPlayer );
 				Kill();
 				return;
@@ -184,7 +195,18 @@ void CBullet::OnTickAfterHitTest()
 			if( pEnemy )
 			{
 				CReference<CEntity> pTempRef = pEntity;
-				pEnemy->Damage( m_nDamage );
+
+				SDamageContext context;
+				context.nDamage = m_nDamage;
+				context.nType = 0;
+				context.nSourceType = 0;
+				context.hitPos = pManifold->hitPoint;
+				context.hitDir = m_velocity;
+				context.nHitType = -1;
+				pEnemy->Damage( context );
+				if( m_pDmgEft )
+					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 				OnHit( pEnemy );
 				Kill();
 				return;
@@ -251,7 +273,18 @@ void CBullet::OnTickAfterHitTest()
 				if( SafeCast<CBullet>( pCharacter ) )
 					continue;
 				CReference<CEntity> pTempRef = pEntity;
-				pCharacter->Damage( m_nDamage2 );
+
+				SDamageContext context;
+				context.nDamage = m_nDamage2;
+				context.nType = 0;
+				context.nSourceType = 0;
+				context.hitPos = pManifold->hitPoint;
+				context.hitDir = m_velocity;
+				context.nHitType = -1;
+				pCharacter->Damage( context );
+				if( m_pDmgEft )
+					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 				OnHit( pCharacter );
 				Kill();
 				return;
@@ -297,7 +330,18 @@ void CBullet::OnTickAfterHitTest()
 				if( !m_nDamage1 )
 					continue;
 				CReference<CEntity> pTempRef = pEntity;
-				pPlayer->Damage( m_nDamage1 );
+
+				SDamageContext context;
+				context.nDamage = m_nDamage1;
+				context.nType = 0;
+				context.nSourceType = 0;
+				context.hitPos = pManifold->hitPoint;
+				context.hitDir = m_velocity;
+				context.nHitType = -1;
+				pPlayer->Damage( context );
+				if( m_pDmgEft )
+					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
 				OnHit( pPlayer );
 				Kill();
 				return;
@@ -370,7 +414,13 @@ void CEnemyBullet::OnTickAfterHitTest()
 
 void CEnemyBullet::OnHitPlayer( CPlayer* pPlayer )
 {
-	pPlayer->Damage( 1 );
+	SDamageContext context;
+	context.nDamage = 1;
+	context.nType = 0;
+	context.nSourceType = 0;
+	context.hitPos = context.hitDir = CVector2( 0, 0 );
+	context.nHitType = -1;
+	pPlayer->Damage( context );
 }
 
 void CPlayerBullet::OnTickAfterHitTest()
@@ -400,7 +450,14 @@ void CPlayerBullet::OnHit( CEntity* pEntity )
 	CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 	if( pEnemy )
 	{
-		pEnemy->Damage( m_nDmg );
+		SDamageContext context;
+		context.nDamage = m_nDmg;
+		context.nType = 0;
+		context.nSourceType = 0;
+		context.hitPos = context.hitDir = CVector2( 0, 0 );
+		context.nHitType = -1;
+		pEnemy->Damage( context );
+
 		Kill();
 		return;
 	}

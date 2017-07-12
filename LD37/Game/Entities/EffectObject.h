@@ -24,6 +24,7 @@ private:
 	TClassTrigger<CEffectObject> m_tickBeforeHitTest;
 	
 	CReference<CEntity> m_pStates[3];
+	TResourceRef<CSoundFile> m_strSound;
 	float m_fBirthTime;
 	float m_fDeathTime;
 	float m_fTimeLeft;

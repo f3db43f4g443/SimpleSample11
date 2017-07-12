@@ -115,7 +115,6 @@ void CFuelTank::Kill()
 		pBarrage->Start();
 	}
 
-	CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	CMyLevel::GetInst()->AddShakeStrength( 50 );
 	CEnemy::Kill();
 }
@@ -132,7 +131,6 @@ void CFuelTank::OnTickAfterHitTest()
 				m_nAwakeEffectCD--;
 			if( !m_nAwakeEffectCD )
 			{
-				CMyLevel::GetInst()->pExpSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 				auto localBound = Get_TransformChild()->GetLocalBound();
 				CVector2 center = CVector2( localBound.x + SRand::Inst().Rand( 0.0f, localBound.width ), localBound.y + SRand::Inst().Rand( 0.0f, localBound.height ) );
 				center = Get_TransformChild()->globalTransform.MulVector2Pos( center );
@@ -182,7 +180,15 @@ void CFuelTank::OnTickAfterHitTest()
 						else
 						{
 							CReference<CEntity> temp = this;
-							Damage( m_nMaxHitDamage );
+
+							CCharacter::SDamageContext dmgContext;
+							dmgContext.nDamage = m_nMaxHitDamage;
+							dmgContext.nType = 0;
+							dmgContext.nSourceType = 0;
+							dmgContext.hitPos = dmgContext.hitDir = CVector2( 0, 0 );
+							dmgContext.nHitType = -1;
+							Damage( dmgContext );
+
 							if( !GetParentEntity() )
 								return;
 						}

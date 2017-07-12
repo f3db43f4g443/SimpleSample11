@@ -7,6 +7,7 @@ using namespace std;
 class CString
 {
 public:
+	CString() { if( !m_ptr ) *this = ""; }
 	CString( const char* c );
 	CString( const CString& str );
 	CString( const struct SClassCreateContext& context ) { if( !m_ptr ) *this = ""; }

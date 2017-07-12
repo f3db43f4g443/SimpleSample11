@@ -2,18 +2,24 @@
 #include "Enemy.h"
 #include "Player.h"
 
-void CEnemy::Damage( int32 nDmg )
+void CEnemy::Damage( SDamageContext& context )
 {
+	context.nHitType = m_nHitType;
+	int32 nDmg = context.nDamage;
 	if( m_nHp )
 	{
 		nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
 		m_nHp -= nDmg;
+		context.nDamage = nDmg;
 		if( m_nHp <= 0 )
 		{
+			context.nDamage += m_nHp;
 			m_nHp = 0;
 			Kill();
 		}
 	}
+	else
+		context.nDamage = 0;
 }
 
 void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
@@ -53,12 +59,14 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 	}
 }
 
-void CEnemyPart::Damage( int32 nDmg )
+void CEnemyPart::Damage( SDamageContext& context )
 {
 	CEnemy* pEnemy = SafeCast<CEnemy>( GetParentEntity() );
 	if( pEnemy )
 	{
-		nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
-		pEnemy->Damage( nDmg );
+		uint8 nHitType = m_nHitType;
+		context.nDamage = ceil( context.nDamage * ( 1 - m_fDefence ) );
+		pEnemy->Damage( context );
+		context.nHitType = nHitType;
 	}
 }

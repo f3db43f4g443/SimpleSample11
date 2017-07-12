@@ -4,6 +4,7 @@
 #include "Render/Rope2D.h"
 #include "Common/Rand.h"
 #include "Stage.h"
+#include "Render/DrawableGroup.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -53,4 +54,47 @@ void CRopeAnimator::OnTick()
 			m_nTick--;
 	}
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CSimpleText::OnAddedToStage()
+{
+	if( m_initRect.width < 0 )
+	{
+		m_initRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+		SetRenderObject( new CRenderObject2D );
+	}
+}
+
+void CSimpleText::Set( const char * szText )
+{
+	if( m_initRect.width < 0 )
+	{
+		m_initRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+		SetRenderObject( new CRenderObject2D );
+	}
+
+	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+	auto pRoot = GetRenderObject();
+	pRoot->RemoveAllChild();
+	auto rect = m_initRect;
+	for( const char* c = szText; *c; c++ )
+	{
+		char ch = *c;
+		int32 nIndex = -1;
+		if( ch >= '0' && ch <= '9' )
+			nIndex = ch - '0';
+		else if( ch >= 'A' && ch <= 'Z' )
+			nIndex = ch - 'A' + 10;
+		else
+			continue;
+
+		int32 nRow = nIndex / 8;
+		int32 nColumn = nIndex - nRow * 8;
+		auto pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+		pImage->SetRect( rect );
+		pImage->SetTexRect( CRectangle( nColumn * 0.125f, nRow * 0.125f, 0.125f, 0.125f ) );
+		pRoot->AddChild( pImage );
+
+		rect.x += rect.width;
+	}
 }

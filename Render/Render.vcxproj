@@ -274,6 +274,9 @@
     <ProjectReference Include="..\implib\freetype-2.6.3\builds\windows\vc2010\freetype.vcxproj">
       <Project>{78b079bd-9fc7-4b9e-b4a6-96da0f00248b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\implib\libmad-0.15.1b\msvc++\libmad.vcxproj">
+      <Project>{ef5df351-45f9-4813-a798-d2080c6813af}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

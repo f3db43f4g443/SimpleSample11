@@ -104,13 +104,13 @@ bool CPlayer::IsRolling()
 		return m_flyData.nState == SCharacterFlyData::eState_Rolling;
 }
 
-void CPlayer::Damage( int32 nValue )
+void CPlayer::Damage( SDamageContext& context )
 {
 	if( m_hp <= 0 )
 		return;
 	CMainUI* pMainUI = CMainUI::GetInst();
 
-	m_hp.ModifyCurValue( -nValue );
+	m_hp.ModifyCurValue( -context.nDamage );
 	if( pMainUI )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 	m_fHurtInvincibleTime = 0.5f;
@@ -183,7 +183,14 @@ void CPlayer::Crush()
 
 	if( !chunkObjs.size() )
 	{
-		Damage( 1000 );
+		SDamageContext context;
+		context.nDamage = 1000;
+		context.nType = 0;
+		context.nSourceType = 0;
+		context.hitPos = context.hitDir = CVector2( 0, 0 );
+		context.nHitType = -1;
+		Damage( context );
+
 		return;
 	}
 	std::sort( chunkObjs.begin(), chunkObjs.end() );
@@ -209,7 +216,14 @@ void CPlayer::Crush()
 
 	if( nCostSp > m_sp )
 	{
-		Damage( 1000 );
+		SDamageContext context;
+		context.nDamage = 1000;
+		context.nType = 0;
+		context.nSourceType = 0;
+		context.hitPos = context.hitDir = CVector2( 0, 0 );
+		context.nHitType = -1;
+		Damage( context );
+
 		return;
 	}
 
@@ -218,13 +232,27 @@ void CPlayer::Crush()
 		chunkObjs[i]->Crush();
 	if( !m_walkData.ResolvePenetration( this ) )
 	{
-		Damage( 1000 );
+		SDamageContext context;
+		context.nDamage = 1000;
+		context.nType = 0;
+		context.nSourceType = 0;
+		context.hitPos = context.hitDir = CVector2( 0, 0 );
+		context.nHitType = -1;
+		Damage( context );
+
 		return;
 	}
 
 	IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.5f );
 	//Knockback( CVector2( 0, -1 ) );
-	Damage( ( m_hp + 1 ) >> 1 );
+
+	SDamageContext context;
+	context.nDamage = ( m_hp + 1 ) >> 1;
+	context.nType = 0;
+	context.nSourceType = 0;
+	context.hitPos = context.hitDir = CVector2( 0, 0 );
+	context.nHitType = -1;
+	Damage( context );
 }
 
 bool CPlayer::Knockback( const CVector2& vec )
@@ -285,18 +313,18 @@ void CPlayer::AddItem( CItem * pItem )
 	{
 		auto& pKeyItem = m_mapKeyItems[strKey];
 		if( !pKeyItem )
+		{
 			pKeyItem = pItem;
+			m_mapKeyItemLevels[strKey] = 1;
+		}
 		else
 		{
-			CString strUpgrade = pKeyItem->GetUpgrade();
-			if( strUpgrade.length() )
+			auto pUpgrade = pKeyItem->GetUpgrade();
+			if( pUpgrade )
 			{
-				CPrefab* pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strUpgrade.c_str() );
-				if( pPrefab )
-				{
-					pKeyItem->Remove( this );
-					pKeyItem = SafeCast<CItem>( pPrefab->GetRoot()->CreateInstance() );
-				}
+				pKeyItem->Remove( this );
+				pKeyItem = SafeCast<CItem>( pUpgrade->GetRoot()->CreateInstance() );
+				m_mapKeyItemLevels[strKey]++;
 			}
 
 			pItem = pKeyItem;
@@ -305,6 +333,7 @@ void CPlayer::AddItem( CItem * pItem )
 	Insert_Item( pItem );
 
 	pItem->Add( this );
+	m_onItemChanged.Trigger( 0, NULL );
 }
 
 void CPlayer::RemoveItem( CItem * pItem )
@@ -313,14 +342,33 @@ void CPlayer::RemoveItem( CItem * pItem )
 
 	CString strKey = pItem->GetKey();
 	if( strKey.length() )
+	{
 		m_mapKeyItems.erase( strKey );
+		m_mapKeyItemLevels.erase( strKey );
+	}
 	Remove_Item( pItem );
+	m_onItemChanged.Trigger( 0, NULL );
+}
+
+int32 CPlayer::CheckItemLevel( CItem* pItem )
+{
+	auto itr = m_mapKeyItemLevels.find( pItem->GetKey() );
+	if( itr == m_mapKeyItemLevels.end() )
+		return 0;
+
+	auto itr1 = m_mapKeyItems.find( pItem->GetKey() );
+	if( itr1->second->GetUpgrade() )
+		return itr->second;
+	else
+		return -itr->second;
 }
 
 void CPlayer::SetWeapon( CPlayerWeapon * pWeapon )
 {
 	if( m_pCurWeapon )
 	{
+		if( m_bFiringDown )
+			m_pCurWeapon->EndFire( this );
 		m_pCurWeapon->UnEquip( this );
 		m_pCurWeapon->SetParentEntity( NULL );
 	}
@@ -331,6 +379,8 @@ void CPlayer::SetWeapon( CPlayerWeapon * pWeapon )
 		pWeapon->SetParentEntity( this );
 		pWeapon->Equip( this );
 		pWeapon->Face( m_nAnimState & 2 );
+		if( m_bFiringDown )
+			m_pCurWeapon->BeginFire( this );
 	}
 }
 

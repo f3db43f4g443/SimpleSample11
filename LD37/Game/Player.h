@@ -56,7 +56,7 @@ public:
 		( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Rolling : m_flyData.nState != SCharacterFlyData::eState_Rolling ); }
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
 	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
-	virtual void Damage( int32 nValue ) override;
+	virtual void Damage( SDamageContext& context ) override;
 	void RestoreHp( int32 nValue );
 	void CostSp( int32 nValue );
 	void RecoverSp( int32 nValue );
@@ -70,6 +70,7 @@ public:
 
 	void AddItem( CItem* pItem );
 	void RemoveItem( CItem* pItem );
+	int32 CheckItemLevel( CItem* pItem );
 
 	CChunkObject* GetCurRoom() { return m_pCurRoom; }
 	CPlayerWeapon* GetWeapon() { return m_pCurWeapon; }
@@ -81,6 +82,8 @@ public:
 	virtual void OnAddedToStage() override;
 
 	virtual bool CanTriggerItem() override;
+
+	void RegisterItemChanged( CTrigger* pTrigger ) { m_onItemChanged.Register( 0, pTrigger ); }
 private:
 	void UpdateMove();
 	void UpdateFiring();
@@ -136,6 +139,9 @@ private:
 
 	CPostProcessCrackEffect m_crackEffect;
 
+	CEventTrigger<1> m_onItemChanged;
+
 	map<CString, CItem*> m_mapKeyItems;
+	map<CString, int32> m_mapKeyItemLevels;
 	LINK_LIST_REF_HEAD( m_pItems, CItem, Item )
 };

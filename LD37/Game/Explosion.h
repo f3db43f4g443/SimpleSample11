@@ -47,6 +47,8 @@ private:
 	bool m_bHitHidingEnemy;
 	bool m_bHitHidingNeutral;
 	bool m_bHitCreator;
+	TResourceRef<CPrefab> m_pDmgEft;
+	TResourceRef<CSoundFile> m_pSound;
 
 	uint32 m_nHitFrame;
 	CReference<CEntity> m_pCreator;
