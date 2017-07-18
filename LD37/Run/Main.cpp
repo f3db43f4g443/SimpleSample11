@@ -11,7 +11,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	SDeviceCreateContext context;
-	context.resolution = CVector2( 1280, 960 );
+	context.resolution = CVector2( 1280, 800 );
 	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->CreateDevice( context );
 

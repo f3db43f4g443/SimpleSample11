@@ -18,9 +18,93 @@ void CRandomChunk0::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	texRect.width /= nTileX;
 	texRect.height /= nTileY;
 
+	int32 rx = SRand::Inst().Rand( 0u, nTileX );
+	int32 ry = SRand::Inst().Rand( 0u, nTileY );
+
 	pImage2D->SetRect( rect );
-	pImage2D->SetTexRect( texRect.Offset( CVector2( SRand::Inst().Rand( 0u, nTileX ) * texRect.width, SRand::Inst().Rand( 0u, nTileY ) * texRect.height ) ) );
+	pImage2D->SetTexRect( texRect.Offset( CVector2( rx * texRect.width, ry * texRect.height ) ) );
 }
+
+void CRandomChunkTiledSimple::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+
+	auto rect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+	auto texRect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+
+	CRectangle texRect;
+	int32 nX = pChunk->nWidth > 1 ? 2 : 1;
+	int32 nY = pChunk->nHeight > 1 ? 2 : 1;
+	if( nX > 1 && nY > 1 )
+		texRect = m_texRect4;
+	else if( nX > 1 )
+		texRect = m_texRect2;
+	else if( nY > 1 )
+		texRect = m_texRect3;
+	else
+		texRect = m_texRect1;
+
+	uint32 nTileX = rect0.width / 32;
+	uint32 nTileY = rect0.height / 32;
+	texRect0.width /= nTileX;
+	texRect0.height /= nTileY;
+	texRect.width = texRect0.width;
+	texRect.height = texRect0.height;
+
+	SetRenderObject( new CRenderObject2D );
+	for( int iY = 0; iY < pChunk->nHeight; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth; iX++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+
+			float tX = iX == 0 ? 0 : ( iX == pChunk->nWidth - 1 ? 1 : 0.5f );
+			float tY = iY == 0 ? 0 : ( iY == pChunk->nHeight - 1 ? 1 : 0.5f );
+
+			pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * tX, texRect.height * ( nY - 1 - tY ) ) ) );
+			GetRenderObject()->AddChild( pImage2D );
+
+			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+			{
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+				pImage2D->SetTexRect( pDamageEftTex[i] );
+				m_pDamagedEffects[i]->AddChild( pImage2D );
+			}
+		}
+	}
+
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CRandomChunkTiledSimple::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+}
+
 
 void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 {
@@ -52,8 +136,8 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
 
-				uint32 tX = SRand::Inst().Rand( 1u, nTileX - 1 );
-				uint32 tY = SRand::Inst().Rand( 1u, nTileY - 1 );
+				uint32 tX = SRand::Inst().Rand( 0u, nTileX );
+				uint32 tY = SRand::Inst().Rand( 0u, nTileY );
 
 				pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) ) );
 				GetRenderObject()->AddChild( pImage2D );
@@ -74,6 +158,73 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 }
 
 void CRandomChunkTiled::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+}
+
+void CRandomChunkTiled1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+
+	SetRenderObject( new CRenderObject2D );
+	for( int iY = 0; iY < pChunk->nHeight; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth; iX++ )
+		{
+			uint8 nType = pChunk->GetBlock( iX, iY )->eBlockType;
+			CRectangle texRect = m_texRects[nType];
+			uint32 sizeX = m_sizeX[nType];
+			uint32 sizeY = m_sizeX[nType];
+			if( sizeX && sizeY )
+			{
+				texRect.width /= sizeX;
+				texRect.height /= sizeY;
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+
+				uint32 tX = SRand::Inst().Rand( 0u, sizeX );
+				uint32 tY = SRand::Inst().Rand( 0u, sizeY );
+
+				pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) ) );
+				GetRenderObject()->AddChild( pImage2D );
+			}
+
+			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+			{
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+				pImage2D->SetTexRect( pDamageEftTex[i] );
+				m_pDamagedEffects[i]->AddChild( pImage2D );
+			}
+		}
+	}
+
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CRandomChunkTiled1::OnKilled()
 {
 	if( m_strEffect )
 	{
@@ -574,3 +725,217 @@ void CDefaultRandomRoom::OnKilled()
 		}
 	}
 }
+
+void CRandomRoom1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+	for( int iY = 0; iY < pChunk->nHeight; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth; iX++ )
+		{
+			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+			{
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+				pImage2D->SetTexRect( pDamageEftTex[i] );
+				m_pDamagedEffects[i]->AddChild( pImage2D );
+			}
+		}
+	}
+
+	auto rect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+	texRect.width /= 4;
+	texRect.height /= 4;
+	SetRenderObject( new CRenderObject2D );
+
+	for( int j = 1; j < pChunk->nHeight - 1; j++ )
+	{
+		for( int i = 1; i < pChunk->nWidth - 1; i++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
+			pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * SRand::Inst().Rand( 1, 3 ), texRect.height * SRand::Inst().Rand( 1, 3 ) ) ) );
+			GetRenderObject()->AddChild( pImage2D );
+		}
+	}
+
+	{
+		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( 0, 0, 32, 32 ) );
+		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * 0, texRect.height * 3 ) ) );
+		GetRenderObject()->AddChild( pImage2D );
+
+		pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( ( pChunk->nWidth - 1 ) * 32, 0, 32, 32 ) );
+		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * 3, texRect.height * 3 ) ) );
+		GetRenderObject()->AddChild( pImage2D );
+
+		pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( 0, ( pChunk->nHeight - 1 ) * 32, 32, 32 ) );
+		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * 0, texRect.height * 0 ) ) );
+		GetRenderObject()->AddChild( pImage2D );
+
+		pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( ( pChunk->nWidth - 1 ) * 32, ( pChunk->nHeight - 1 ) * 32, 32, 32 ) );
+		pImage2D->SetTexRect( texRect.Offset( CVector2( texRect.width * 3, texRect.height * 0 ) ) );
+		GetRenderObject()->AddChild( pImage2D );
+	}
+
+	for( int i = 0; i < 2; i++ )
+	{
+		int32 y = i * ( pChunk->nHeight - 1 );
+		float ty = texRect.y + texRect.height * 3 * ( 1 - i );
+		uint8 nType0 = eBlockType_Block;
+		uint8 nBegin = 1;
+		int32 x;
+		for( x = 1; x < pChunk->nWidth - 1; x++ )
+		{
+			uint8 nType = pChunk->GetBlock( x, y )->eBlockType;
+
+			if( nType0 != nType )
+			{
+				if( nType0 == eBlockType_Block )
+				{
+					int32 a = nBegin > 1 ? nBegin * 32 + 16 : 32;
+					int32 b = x * 32 - 16;
+					if( b > a )
+					{
+						CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+						pImage2D->SetRect( CRectangle( a, y * 32, b - a, 32 ) );
+						pImage2D->SetTexRect( CRectangle( texRect.x + texRect.width, ty, texRect.width * 0.25f, texRect.height ) );
+						GetRenderObject()->AddChild( pImage2D );
+					}
+				}
+				else
+				{
+					int32 a = nBegin * 32 + 16;
+					int32 b = x * 32 - 16;
+					if( b > a )
+					{
+						CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+						pImage2D->SetRect( CRectangle( a, y * 32, b - a, 32 ) );
+						pImage2D->SetTexRect( CRectangle( texRect.x + texRect.width * 1.875f, ty, texRect.width * 0.25f, texRect.height ) );
+						GetRenderObject()->AddChild( pImage2D );
+					}
+
+					CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+					pImage2D->SetRect( CRectangle( nBegin * 32 - 16, y * 32, 32, 32 ) );
+					pImage2D->SetTexRect( CRectangle( texRect.x + texRect.width * 1, ty, texRect.width, texRect.height ) );
+					GetRenderObject()->AddChild( pImage2D );
+
+					pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+					pImage2D->SetRect( CRectangle( x * 32 - 16, y * 32, 32, 32 ) );
+					pImage2D->SetTexRect( CRectangle( texRect.x + texRect.width * 2, ty, texRect.width, texRect.height ) );
+					GetRenderObject()->AddChild( pImage2D );
+				}
+
+				nBegin = x;
+				nType0 = nType;
+			}
+		}
+
+		int32 a = nBegin > 1 ? nBegin * 32 + 16 : 32;
+		int32 b = x * 32;
+		if( b > a )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( a, y * 32, b - a, 32 ) );
+			pImage2D->SetTexRect( CRectangle( texRect.x + texRect.width, ty, texRect.width * 0.25f, texRect.height ) );
+			GetRenderObject()->AddChild( pImage2D );
+		}
+	}
+	for( int i = 0; i < 2; i++ )
+	{
+		int32 x = i * ( pChunk->nWidth - 1 );
+		float tx = texRect.x + texRect.width * 3 * i;
+		uint8 nType0 = eBlockType_Block;
+		uint8 nBegin = 1;
+		int32 y;
+		for( y = 1; y < pChunk->nHeight - 1; y++ )
+		{
+			uint8 nType = pChunk->GetBlock( x, y )->eBlockType;
+
+			if( nType0 != nType )
+			{
+				if( nType0 == eBlockType_Block )
+				{
+					int32 a = nBegin > 1 ? nBegin * 32 + 16 : 32;
+					int32 b = y * 32 - 16;
+					if( b > a )
+					{
+						CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+						pImage2D->SetRect( CRectangle( x * 32, a, 32, b - a ) );
+						pImage2D->SetTexRect( CRectangle( tx, texRect.y + texRect.height, texRect.width, texRect.height * 0.25f ) );
+						GetRenderObject()->AddChild( pImage2D );
+					}
+				}
+				else
+				{
+					int32 a = nBegin * 32 + 16;
+					int32 b = y * 32 - 16;
+					if( b > a )
+					{
+						CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+						pImage2D->SetRect( CRectangle( x * 32, a, 32, b - a ) );
+						pImage2D->SetTexRect( CRectangle( tx, texRect.y + texRect.height * 1.875f, texRect.width, texRect.height * 0.25f ) );
+						GetRenderObject()->AddChild( pImage2D );
+					}
+
+					CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+					pImage2D->SetRect( CRectangle( x * 32, nBegin * 32 - 16, 32, 32 ) );
+					pImage2D->SetTexRect( CRectangle( tx, texRect.y + texRect.height * 2, texRect.width, texRect.height ) );
+					GetRenderObject()->AddChild( pImage2D );
+
+					pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+					pImage2D->SetRect( CRectangle( x * 32, y * 32 - 16, 32, 32 ) );
+					pImage2D->SetTexRect( CRectangle( tx, texRect.y + texRect.height * 1, texRect.width, texRect.height ) );
+					GetRenderObject()->AddChild( pImage2D );
+				}
+
+				nBegin = y;
+				nType0 = nType;
+			}
+		}
+
+		int32 a = nBegin > 1 ? nBegin * 32 + 16 : 32;
+		int32 b = y * 32;
+		if( b > a )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( x * 32, a, 32, b - a ) );
+			pImage2D->SetTexRect( CRectangle( tx, texRect.y + texRect.height, texRect.width, texRect.height * 0.25f ) );
+			GetRenderObject()->AddChild( pImage2D );
+		}
+	}
+
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CRandomRoom1::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+}
+

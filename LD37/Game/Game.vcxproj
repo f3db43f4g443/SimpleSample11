@@ -273,6 +273,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;D3DXFX_LARGEADDRESS_HANDLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <AdditionalOptions> %(AdditionalOptions)</AdditionalOptions>
@@ -564,6 +565,7 @@
     <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp" />
     <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp" />
     <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
+    <ClCompile Include="Entities\Blocks\Lv2\SpecialLv2.cpp" />
     <ClCompile Include="Entities\Blocks\LvBarriers.cpp" />
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
@@ -604,7 +606,12 @@
     <ClCompile Include="LevelScrollObj.cpp" />
     <ClCompile Include="Lightning.cpp" />
     <ClCompile Include="MainMenu.cpp" />
-    <ClCompile Include="MyGame.cpp" />
+    <ClCompile Include="MyGame.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="MyLevel.cpp" />
     <ClCompile Include="Physics\HitProxy.cpp" />
     <ClCompile Include="Physics\HitProxyData.cpp" />
@@ -645,6 +652,7 @@
     <ClInclude Include="Entities\BlockItems\BlockItemsLv1.h" />
     <ClInclude Include="Entities\BlockItems\CommonBlockItems.h" />
     <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
+    <ClInclude Include="Entities\Blocks\Lv2\SpecialLv2.h" />
     <ClInclude Include="Entities\Blocks\LvBarriers.h" />
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />

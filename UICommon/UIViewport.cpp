@@ -12,6 +12,7 @@
 CUIViewport::CUIViewport()
 	: m_pRenderer( NULL )
 	, m_pExternalCamera( NULL )
+	, m_pExternalGUICamera( NULL )
 	, m_texSize( 0, 0 )
 	, m_bLight( false )
 	, m_bCustomRender( false )
@@ -71,6 +72,8 @@ void CUIViewport::Render( CRenderContext2D& context )
 			GetCamera().SetViewArea( origRect.Offset( CVector2( m_texSize.x - m_localBound.width, m_texSize.y - m_localBound.height ) * 0.5f ) );
 			GetCamera().SetSize( size.x, size.y );
 		}
+		if( m_pExternalGUICamera )
+			m_pExternalGUICamera->SetSize( GetCamera().GetViewArea().width, GetCamera().GetViewArea().height );
 
 		m_pRenderer->OnRender( context.pRenderSystem );
 
@@ -185,6 +188,8 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 			SLighted2DSubRendererContext context;
 			context.pCamera = pExternalCamera;
 			context.pRoot = pRoot;
+			context.pGUIRoot = m_pGUIRoot;
+			context.pGUICamera = m_pExternalGUICamera;
 			m_pRenderer = new CLighted2DRenderer( context );
 		}
 		else
@@ -197,6 +202,16 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 		}
 		m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
 		m_pRenderer->OnResize( IRenderSystem::Inst(), m_texSize );
+	}
+}
+
+void CUIViewport::SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam )
+{
+	m_pGUIRoot = pRoot;
+	m_pExternalGUICamera = pCam;
+	if( m_bLight && m_pRenderer )
+	{
+		static_cast<CLighted2DRenderer*>( m_pRenderer )->SetGUICamera( pCam, pRoot );
 	}
 }
 

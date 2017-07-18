@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>./;../;../../;../../Common;../../Render;../../Editor;../../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

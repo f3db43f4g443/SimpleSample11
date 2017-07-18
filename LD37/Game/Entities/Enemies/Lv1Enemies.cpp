@@ -31,20 +31,20 @@ void CManHead1::AIFunc()
 			nAttack = 0;
 			SBarrageContext context;
 			context.vecBulletTypes.push_back( m_pBullet );
-			context.nBulletPageSize = 21;
+			context.nBulletPageSize = 20;
 
 			CBarrage* pBarrage = new CBarrage( context );
 			CVector2 pos = GetPosition();
 			pBarrage->AddFunc( []( CBarrage* pBarrage )
 			{
-				for( int i = 0; i < 3; i++ )
+				for( int i = 0; i < 4; i++ )
 				{
 					float fSpeedX = SRand::Inst().Rand( -50.0f, 50.0f );
-					for( int j = 0; j < 7; j++ )
+					for( int j = 0; j < 5; j++ )
 					{
-						float fAngle1 = ( j - 3 ) * 0.12f;
+						float fAngle1 = ( j - 2 ) * 0.18f;
 						float fSpeed = 250.0f + SRand::Inst().Rand( -25.0f, 25.0f );
-						pBarrage->InitBullet( i * 7 + j, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * sin( fAngle1 ) + fSpeedX, fSpeed * -cos( fAngle1 ) ), CVector2( 0, 0 ) );
+						pBarrage->InitBullet( i * 5 + j, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * sin( fAngle1 ) + fSpeedX, fSpeed * -cos( fAngle1 ) ), CVector2( 0, 0 ) );
 					}
 					pBarrage->Yield( 10 );
 				}
@@ -83,10 +83,10 @@ void CManHead2::AIFunc()
 	m_pBullet = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
 	m_flyData.fStablity = 0.35f;
 
-	uint32 n = 8;
+	uint32 n = 10;
 	while( 1 )
 	{
-		if( n == 8 )
+		if( n == 10 )
 		{
 			CRectangle bound = CMyLevel::GetInst()->GetBoundWithLvBarrier();
 			bound.x += 128;
@@ -135,20 +135,20 @@ void CManHead3::Kill()
 		uint32 nBullet = 0;
 		for( int i = 0; i < 5; i++ )
 		{
-			float fAngle = fAngle0 + ( i - 2 ) * 0.45f;
-			pBarrage->InitBullet( nBullet++, 0, -1, CVector2( -sin( fAngle ), cos( fAngle ) ) * 8, CVector2( 120 * cos( fAngle ), 120 * sin( fAngle ) ), CVector2( 0, 0 ) );
+			float fAngle = fAngle0 + ( i - 2 ) * 0.47f;
+			pBarrage->InitBullet( nBullet++, 0, -1, CVector2( -sin( fAngle ), cos( fAngle ) ) * 8, CVector2( cos( fAngle ), sin( fAngle ) ) * 180, CVector2( 0, 0 ) );
 		}
 
 		for( int i = 0; i < 5; i++ )
 		{
-			pBarrage->Yield( 10 );
+			pBarrage->Yield( 8 );
 
 			for( int j = 0; j < 5; j++ )
 			{
 				if( !pBarrage->IsBulletAlive( j ) )
 					continue;
 
-				float fAngle = fAngle0 + ( j - 2 ) * 0.45f;
+				float fAngle = fAngle0 + ( j - 2 ) * 0.5f;
 				CVector2 pos( ( 20 * ( i + 1 ) ) * cos( fAngle ) - 8 * sin( fAngle ), ( 20 * ( i + 1 ) ) * sin( fAngle ) + 8 * cos( fAngle ) );
 				for( int k = 0; k < 3; k++ )
 				{
@@ -236,7 +236,7 @@ void CManHead4::Kill()
 			{
 				float fAngle20 = fAngle10 - j * 0.04f;
 				float fAngle21 = fAngle11 + j * 0.04f;
-				float fSpeed = 190 + j * 10;
+				float fSpeed = 95 + j * 5;
 				float fOfs = ( 1 - j ) * 32.0f;
 
 				for( int k = 0; k < 6; k++ )
@@ -247,7 +247,7 @@ void CManHead4::Kill()
 					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( fOfs * sin( fAngle31 ), fOfs * -cos( fAngle31 ) ), CVector2( fSpeed * cos( fAngle31 ), fSpeed * sin( fAngle31 ) ), CVector2( 0, 0 ) );
 				}
 
-				pBarrage->Yield( j == 2 ? 10 : 5 );
+				pBarrage->Yield( j == 2 ? 20 : 10 );
 			}
 		}
 

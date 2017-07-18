@@ -55,7 +55,7 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 	}
 
 	StopSubStage( m_nMainUISubStage );
-	m_nMainUISubStage = PlaySubStage( "ui.pf", CStageDirector::Inst()->GetSubStageView() );
+	m_nMainUISubStage = PlaySubStage( "ui.pf", CStageDirector::Inst()->GetMainStage() );
 
 	CreatePlayer();
 	
@@ -63,7 +63,7 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 	CStage* pStage = new CStage( this );
 	m_pCurStage = pStage;
 	pStage->Create( &context );
-	enterContext.pViewport = CStageDirector::Inst()->OnPlayMainStage( pStage );
+	enterContext.pViewport = CStageDirector::Inst()->GetMainStage();
 	pStage->Start( m_pCurPlayer, enterContext );
 	CStageDirector::Inst()->AfterPlayMainStage();
 }
@@ -137,10 +137,11 @@ uint32 CWorld::PlaySubStage( const char* szSubStageName, CUIViewport* pViewport 
 	auto& context = m_mapStageContexts[szSubStageName];
 	pStage->Create( &context );
 	SStageEnterContext enterContext;
-	enterContext.pViewport = pViewport;
 	pStage->Start( NULL, enterContext );
 	pSubStage->pStage = pStage;
 	pSubStage->bPaused = false;
+	pViewport->SetGUICamera( pStage->GetRoot(), &pStage->GetCamera() );
+	pSubStage->pViewport = pViewport;
 	return nSlot;
 }
 
@@ -153,4 +154,6 @@ void CWorld::StopSubStage( uint32 nSlot )
 		return;
 	subStage.pStage->Stop();
 	subStage.pStage = NULL;
+	subStage.pViewport->SetGUICamera( NULL, NULL );
+	subStage.pViewport = NULL;
 }

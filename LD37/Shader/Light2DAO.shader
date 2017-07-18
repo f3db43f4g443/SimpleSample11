@@ -90,19 +90,23 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	float2 dHeight = float2( TransmissionTempTex[0].w - TransmissionTempTex[2].w, TransmissionTempTex[1].w - TransmissionTempTex[3].w );
 	dHeight *= 0.5;
 
-	float hOfs = 0;
 	float hScale = 10.0;
+	float hScale1 = 10.0;
 
 	float fDecay = 0.2;
 	float fWeight = ( 1 - fDecay ) * 0.25;
-	outTransmission.xyz = TransmissionMapTex.xyz * fDecay;
+	float fWeight1 = 0;
+	outTransmission.xyz = 0;
 
 	float2 ofs1[4] = { float2( 1, 0 ), float2( 0, 1 ), float2( -1, 0 ), float2( 0, -1 ) };
 	for( int i = 0; i < 4; i++ )
 	{
 		float h0 = dot( dHeight, ofs1[i] ) + TransmissionMapTex.w;
 		float h1 = TransmissionTempTex[i].w;
-		outTransmission.xyz += TransmissionTempTex[i].xyz * saturate( 1 - ( h1 - h0 + hOfs ) * hScale ) * fWeight;
+		float w = saturate( 1 - ( TransmissionMapTex.w - h1 ) * hScale1 ) * fWeight;
+		fWeight1 += w;
+		outTransmission.xyz += TransmissionTempTex[i].xyz * saturate( 1 - ( h1 - h0 ) * hScale ) * w;
 	}
+	outTransmission.xyz += TransmissionMapTex.xyz * ( 1 - fWeight1 );
 	outTransmission.w = 1;
 }

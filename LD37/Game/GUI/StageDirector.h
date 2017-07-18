@@ -13,11 +13,9 @@ public:
 	void OnWorldCreated( CWorld* pWorld );
 	void OnWorldDestroyed( CWorld* pWorld );
 
-	CUIViewport* OnPlayMainStage( CStage* pStage ) { return m_pMainStageViewport; }
+	CUIViewport* GetMainStage() { return m_pMainStageViewport; }
 	void AfterPlayMainStage();
 	void OnStopMainStage( CStage* pStage ) {}
-
-	CUIViewport* GetSubStageView() { return m_pSubStageViewport; }
 	
 	void OnClickMainStage( CVector2* mousePos );
 	void OnMainStageMouseMove( SUIMouseEvent* pEvent );
@@ -29,7 +27,6 @@ protected:
 
 	CWorld* m_pWorld;
 	CReference<CUIViewport> m_pMainStageViewport;
-	CReference<CUIViewport> m_pSubStageViewport;
 	CVector2 m_mousePos;
 
 	TClassTrigger1<CStageDirector, CVector2*> m_onClickMainStage;

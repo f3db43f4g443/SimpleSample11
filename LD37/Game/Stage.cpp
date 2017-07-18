@@ -7,6 +7,7 @@
 #include "Common/xml.h"
 #include "UICommon/UIViewport.h"
 #include "MyLevel.h"
+#include "PlayerData.h"
 #include "Entities/StartPoint.h"
 
 CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_bLight( false ), m_pPlayer( NULL ), m_onPostProcess( this, &CStage::OnPostProcess )
@@ -363,18 +364,36 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 	CMyLevel* pLevel = CMyLevel::GetInst();
 	if( m_pPlayer && pLevel )
 	{
+		int32 nShakeType = CPlayerData::Inst().nShakeType;
+
 		float fHurt = Min( 1.0f, m_pPlayer->GetInvicibleTimeLeft() / 0.25f );
 		CVector2 vecKnockback = m_pPlayer->GetKnockback();
 		float fKnockbackLen = vecKnockback.Length();
 
 		CVector4 texOfs[5];
-		CVector4 weights[5] =
+		CVector4 weightsBase[3][5] =
 		{
-			{ 0.0f, 1, 0, 0.2f },
-			{ 0.0f, 0, 1, 0.2f },
-			{ 1.0f, 0, 0, 0.2f },
-			{ 0.0f, 0, 0, 0.2f },
-			{ 0.0f, 0, 0, 0.2f }
+			{
+				{ 0, 0, 0, 0.2f },
+				{ 0, 0, 0, 0.2f },
+				{ 1, 1, 1, 0.2f },
+				{ 0, 0, 0, 0.2f },
+				{ 0, 0, 0, 0.2f }
+			},
+			{
+				{ 1, 1, 1, 0.2f },
+				{ 0, 0, 0, 0.2f },
+				{ 0, 0, 0, 0.2f },
+				{ 0, 0, 0, 0.2f },
+				{ 0, 0, 0, 0.2f }
+			},
+			{
+				{ 0.0f, 1, 0, 0.2f },
+				{ 0.0f, 0, 1, 0.2f },
+				{ 1.0f, 0, 0, 0.2f },
+				{ 0.0f, 0, 0, 0.2f },
+				{ 0.0f, 0, 0, 0.2f }
+			}
 		};
 		CVector4 weights1[5] =
 		{
@@ -392,9 +411,10 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 			{ 0.0f, 0, 0, 0.2f },
 			{ 0.0f, 0.0f, 0, 0.2f }
 		};
+		CVector4 weights[5];
 		for( int i = 0; i < 5; i++ )
 		{
-			weights[i] = weights[i] * ( 1 - fHurt ) * ( 1 - fKnockbackLen ) + weights1[i] * fHurt + weights2[i] * ( 1 - fHurt ) * fKnockbackLen;
+			weights[i] = weightsBase[nShakeType][i] * ( 1 - fHurt ) * ( 1 - fKnockbackLen ) + weights1[i] * fHurt + weights2[i] * ( 1 - fHurt ) * fKnockbackLen;
 		}
 
 		CVector2 camShake = CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) )

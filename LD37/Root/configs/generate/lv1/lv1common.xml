@@ -99,10 +99,6 @@
         <types>4,4,4,4</types>
       </node>
       
-      <node name="barrel" width="2" height="3" weight="2" destroyweight="14" destroyshake="30" shakedmg="0.25" prefab="data/explosive/barrel.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4</types>
-      </node>
       <node name="fueltank" width="2" height="4" weight="2" destroyweight="14" destroyshake="10" shakedmg="0.25" prefab="data/explosive/fueltank.pf">
         <metadata isdesignvalid="0" />
         <types>4,4,4,4,4,4,4,4</types>

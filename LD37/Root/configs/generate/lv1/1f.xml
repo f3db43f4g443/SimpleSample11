@@ -3,6 +3,9 @@
     <item name="lv1common" />
   </includes>
   <level_gen>
+    <attachs>
+      <node name="window2x2_1" prefab="data/blockitems/window2x2_1.pf" sizex="2" sizey="2" attach_type="0" />
+    </attachs>
     <spawns>
       <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.25" />
       <node name="floor_label_1" prefab="data/blocks/lv1/1.pf" />
@@ -214,7 +217,7 @@
           <ref name="stonebar_room_v2" />
         </wall_v>
         <window>
-          <ref name="window2x2" />
+          <ref name="window2x2_1" />
         </window>
         
       </node>
@@ -266,7 +269,7 @@
           <ref name="stonebar_room_v2" />
         </wall_v>
         <window>
-          <ref name="window2x2" />
+          <ref name="window2x2_1" />
         </window>
 
       </node>

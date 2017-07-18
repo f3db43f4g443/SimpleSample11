@@ -163,6 +163,7 @@ void CLighted2DRenderer::OnRender( IRenderSystem* pSystem )
 	CReference<ITexture> pTempTarget;
 	pPostProcessPass->Register( &renderScenePass );
 	pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
+	pPostProcessPass->SetDepthStencil( m_bIsSubRenderer ? m_pDepthStencil->GetDepthStencil() : pSystem->GetDefaultDepthStencil() );
 	pPostProcessPass->Process( pSystem, pTempTarget, m_pSubRendererTexture ? m_pSubRendererTexture->GetRenderTarget() : pSystem->GetDefaultRenderTarget() );
 	sizeDependentPool.Release( pTempTarget );
 	sizeIndependentPool.Release( m_pOcclusionBuffer );
@@ -186,6 +187,10 @@ void CLighted2DRenderer::RenderColorBuffer( CRenderContext2D& context )
 	if( m_bIsSubRenderer )
 	{
 		pSceneMgr->Render( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+		if( m_subRendererContext.pGUICamera )
+		{
+			pSceneMgr->Render( context, m_subRendererContext.pGUICamera, m_subRendererContext.pGUIRoot, m_renderGroup );
+		}
 		m_curCameraPos = m_subRendererContext.pCamera->GetViewArea().GetCenter();
 	}
 	else
@@ -259,7 +264,8 @@ void CLighted2DRenderer::RenderGUI( CRenderContext2D& context )
 
 	CScene2DManager* pSceneMgr = CScene2DManager::GetGlobalInst();
 	if( m_bIsSubRenderer )
-		pSceneMgr->Flush( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
+		pSceneMgr->Flush( context, m_subRendererContext.pGUICamera ? m_subRendererContext.pGUICamera : m_subRendererContext.pCamera,
+			m_subRendererContext.pGUIRoot ? m_subRendererContext.pGUIRoot : m_subRendererContext.pRoot, m_renderGroup );
 	else
 		pSceneMgr->Flush( context );
 }

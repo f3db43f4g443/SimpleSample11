@@ -20,6 +20,7 @@ public:
 	void ReserveTexSize( const CVector2& size );
 
 	void Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight );
+	void SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam );
 	void SetCustomRender( const CVector2& customRes );
 	void RegisterOnPostProcess( CTrigger* pTrigger ) { m_customRender.RegisterOnPostProcess( pTrigger ); }
 
@@ -37,6 +38,8 @@ private:
 	CCamera2D m_camera;
 	CReference<CRenderObject2D> m_pExternalRoot;
 	CCamera2D* m_pExternalCamera;
+	CReference<CRenderObject2D> m_pGUIRoot;
+	CCamera2D* m_pExternalGUICamera;
 	CVector2 m_texSize;
 	CElement2D m_elem;
 	bool m_bLight;

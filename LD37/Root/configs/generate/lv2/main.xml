@@ -1,0 +1,9 @@
+﻿<root>
+  <includes>
+    <item name="lv2common" />
+  </includes>
+  <level_gen>
+    <nodes>
+    </nodes>
+  </level_gen>
+</root>

@@ -9,6 +9,30 @@ public:
 	virtual void Init( const CVector2& size ) {}
 };
 
+class CDecoratorRandomTex : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorRandomTex( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorRandomTex ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	CVector2 m_texSize;
+	float m_fTexelSize;
+};
+
+class CDecorator9Patch : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecorator9Patch( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecorator9Patch ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	float m_fX1, m_fX2;
+	float m_fY1, m_fY2;
+};
+
 class CDecoratorFiber : public CDecorator
 {
 	friend void RegisterGameClasses();

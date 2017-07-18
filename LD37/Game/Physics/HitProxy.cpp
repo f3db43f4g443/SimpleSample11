@@ -105,10 +105,7 @@ bool HitTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const CMa
 		{
 			float l = sqrt( l2 );
 			if( l > 0.001f )
-			{
-				dv1 = dv1 * ( fRadius / l );
 				pResult->normal = transB.MulVector2Dir( dv1 * ( ( l - fRadius ) / l ) );
-			}
 			else
 				pResult->normal = transB.MulVector2Dir( normals[normalIndex] * ( separation - fRadius ) );
 			pResult->hitPoint2 = transB.MulVector2Pos( v1 );
@@ -125,10 +122,7 @@ bool HitTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const CMa
 		{
 			float l = sqrt( l2 );
 			if( l > 0.001f )
-			{
-				dv2 = dv2 * ( fRadius / l );
 				pResult->normal = transB.MulVector2Dir( dv2 * ( ( l - fRadius ) / l ) );
-			}
 			else
 				pResult->normal = transB.MulVector2Dir( normals[normalIndex] * ( separation - fRadius ) );
 			pResult->hitPoint2 = transB.MulVector2Pos( v2 );
@@ -289,10 +283,7 @@ bool HitTestCircleAndEdge( SHitProxyCircle* a, SHitProxyEdge* b, const CMatrix2D
 		{
 			float l = sqrt( l2 );
 			if( l > 0.001f )
-			{
-				d = d * ( fRadius / l );
 				pResult->normal = transB.MulVector2Dir( d * ( ( l - fRadius ) / l ) );
-			}
 			else
 				pResult->normal = transB.MulVector2Dir( norm * ( s > 0 ? s - fRadius : s + fRadius ) );
 			pResult->hitPoint2 = transB.MulVector2Pos( b->vert0 );
@@ -317,10 +308,7 @@ bool HitTestCircleAndEdge( SHitProxyCircle* a, SHitProxyEdge* b, const CMatrix2D
 		{
 			float l = sqrt( l2 );
 			if( l > 0.001f )
-			{
-				d = d * ( fRadius / l );
 				pResult->normal = transB.MulVector2Dir( d * ( ( l - fRadius ) / l ) );
-			}
 			else
 				pResult->normal = transB.MulVector2Dir( norm * ( s > 0 ? s - fRadius : s + fRadius ) );
 			pResult->hitPoint2 = transB.MulVector2Pos( b->vert1 );
@@ -440,8 +428,8 @@ bool _HitTestPolygons( CVector2 vertices1[MAX_POLYGON_VERTEX_COUNT], CVector2 ve
 		}
 		else
 		{
-			pResult->hitPoint2 = vertices2[a2];
-			pResult->hitPoint1 = vertices2[a2] + hitNormal;
+			pResult->hitPoint2 = vertices2[a2] * -1;
+			pResult->hitPoint1 = vertices2[a2] * -1 + hitNormal;
 		}
 	}
 	return true;
@@ -646,7 +634,7 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 			if( a1 == b1 )
 				pResult->hitPoint = vertices1[a1];
 			else
-				pResult->hitPoint = vertices2[a2] - pResult->normal * sMin;
+				pResult->hitPoint = vertices2[a2] * -1 - pResult->normal * sMin;
 			pResult->fDist = 0;
 		}
 		return true;

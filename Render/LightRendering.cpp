@@ -132,7 +132,7 @@ public:
 		m_shadowScale.Set( pRenderSystem, &fShadowScale );
 		m_shadowMap.Set( pRenderSystem, pShadowMap );
 		m_occlusionMap.Set( pRenderSystem, pOcclusionMap );
-		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
+		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP>() );
 	}
 private:
 	CShaderParam m_lightBaseColor;
@@ -191,7 +191,7 @@ public:
 	{
 		m_shadowMap.Set( pRenderSystem, pShadowMap );
 		m_occlusionMap.Set( pRenderSystem, pOcclusionMap );
-		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
+		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP>() );
 	}
 private:
 	CShaderParamShaderResource m_shadowMap;

@@ -46,6 +46,8 @@ public:
 	bool IsFinalViewport() { return m_bFinalViewport; }
 	TRectangle<int32>& GetFinalViewport() { return m_finalViewport; }
 	void SetFinalViewport( const TRectangle<int32>& rect ) { m_finalViewport = rect; m_bFinalViewport = true; }
+	IDepthStencil* GetDepthStencil() { return m_pDepthStencil; }
+	void SetDepthStencil( IDepthStencil * pDepthStencil ) { m_pDepthStencil = pDepthStencil; }
 
 	static CPostProcessPass* GetPostProcessPass( EPostProcessPass ePass )
 	{
@@ -58,6 +60,7 @@ private:
 	IRenderSystem* m_pSystem;
 	vector<CPostProcess*> m_vecPasses;
 	CReference<ITexture> m_pTarget;
+	CReference<IDepthStencil> m_pDepthStencil;
 	CRenderTargetPool* m_pRenderTargetPool;
 	bool m_bFinalViewport;
 	TRectangle<int32> m_finalViewport;

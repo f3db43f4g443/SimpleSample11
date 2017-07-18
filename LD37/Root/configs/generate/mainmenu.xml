@@ -4,6 +4,9 @@
     <item name="lv1/1f" />
   </includes>
   <level_gen>
+    <attachs>
+      <node name="blackboard" prefab="blackboard.pf" sizex="8" sizey="8" attach_type="0" />
+    </attachs>
     <spawns>
       <node name="mainmenu_label" prefab="mainmenu.pf" />
     </spawns>
@@ -56,10 +59,10 @@
           <ref name="unbreakable" />
         </button_invalid>
         <button_pos>
-          <item x="6" y="6" />
           <item x="12" y="6" />
+          <item x="16" y="6" />
           <item x="20" y="6" />
-          <item x="26" y="6" />
+          <item x="24" y="6" />
         </button_pos>
         <subitem>
           <node type="subregion">
@@ -81,10 +84,11 @@
           <node type="subregion">
             <ref name="wall_deco" x="0" y="0" w="0" h="0" />
             <ref name="mainmenu_label" x="0" y="8" w="32" h="16" />
-            <ref name="floor_label_1" x="5" y="7" w="2" h="2" />
-            <ref name="floor_label_2" x="11" y="7" w="2" h="2" />
+            <ref name="floor_label_1" x="11" y="7" w="2" h="2" />
+            <ref name="floor_label_2" x="15" y="7" w="2" h="2" />
             <ref name="floor_label_3" x="19" y="7" w="2" h="2" />
-            <ref name="floor_label_4" x="25" y="7" w="2" h="2" />
+            <ref name="floor_label_4" x="23" y="7" w="2" h="2" />
+            <ref name="blackboard" x="2" y="0" w="8" h="8" />
           </node>
         </next_level>
       </node>

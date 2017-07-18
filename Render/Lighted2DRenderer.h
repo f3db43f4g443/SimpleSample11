@@ -5,9 +5,11 @@
 
 struct SLighted2DSubRendererContext
 {
-	SLighted2DSubRendererContext() : pCamera( NULL ) {}
+	SLighted2DSubRendererContext() : pCamera( NULL ), pGUICamera( NULL ) {}
 	CCamera2D* pCamera;
+	CCamera2D* pGUICamera;
 	CReference<CRenderObject2D> pRoot;
+	CReference<CRenderObject2D> pGUIRoot;
 };
 
 class CLighted2DRenderer : public IRenderer
@@ -26,6 +28,8 @@ public:
 
 	const CVector2& GetScreenRes() { return m_screenRes; }
 	const CVector2& GetLightMapRes() { return m_lightMapRes; }
+
+	void SetGUICamera( CCamera2D* pCam, CRenderObject2D* pRoot ) { m_subRendererContext.pGUICamera = pCam; m_subRendererContext.pGUIRoot = pRoot; }
 
 	virtual ITexture* GetSubRendererTexture() override { return m_pSubRendererTexture; }
 	virtual void FetchSubRendererTexture( ITexture** ppTex ) override;

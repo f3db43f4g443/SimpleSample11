@@ -6,7 +6,7 @@ enum EBlockType
 {
 	eBlockType_Wall,
 	eBlockType_Ladder,
-	eBlockType_Platform,
+	eBlockType_LowBlock,
 	eBlockType_Door,
 	eBlockType_Block,
 
@@ -16,6 +16,7 @@ enum EBlockType
 struct SBlockBaseInfo
 {
 	EBlockType eBlockType;
+	uint8 nTag;
 	float fDmgPercent;
 };
 
@@ -29,9 +30,10 @@ struct SBlockLayer
 
 struct SBlock
 {
-	SBlock() : eBlockType( eBlockType_Wall ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 )
+	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 )
 	{ layers[0].pParent = layers[1].pParent = this; }
 	uint8 eBlockType;
+	uint8 nTag;
 	float fDmgPercent;
 	struct SChunk* pOwner;
 	uint8 nX, nY;
@@ -104,7 +106,7 @@ struct SChunkBaseInfo
 struct SChunkSpawnInfo
 {
 	CReference<CPrefab> pPrefab;
-	CVector2 pos;
+	CRectangle rect;
 	float r;
 
 	LINK_LIST( SChunkSpawnInfo, SpawnInfo )

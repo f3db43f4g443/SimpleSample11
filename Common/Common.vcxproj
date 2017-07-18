@@ -92,6 +92,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)../implib;$(ProjectDir)../implib/boost</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>Common.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

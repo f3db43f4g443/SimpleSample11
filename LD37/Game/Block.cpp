@@ -15,7 +15,7 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	SET_BASEOBJECT_ID( CBlockObject );
 
 	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * CMyLevel::GetBlockSize() );
-	if( pBlock->eBlockType == eBlockType_Block )
+	if( pBlock->eBlockType == eBlockType_Block || pBlock->eBlockType == eBlockType_LowBlock )
 	{
 		AddRect( CRectangle( 0, 0, CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
 		SetHitType( eEntityHitType_WorldStatic );
@@ -87,6 +87,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 			int y = j == size.y - 1 ? baseInfo.nHeight - 1 : Max<int32>( 0, Min<int32>( j, baseInfo.nHeight - 2 ) );
 			auto& blockInfo = baseInfo.blockInfos[x + y * baseInfo.nWidth];
 			block.eBlockType = blockInfo.eBlockType;
+			block.nTag = blockInfo.nTag;
 			block.fDmgPercent = blockInfo.fDmgPercent;
 		}
 	}
@@ -143,12 +144,12 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 						pDecorator->SetParentEntity( pChunkObject->m_p1 );
 					else
 						pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
-					pDecorator->SetPosition( pSpawnInfo->pos );
-					pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
+					pDecorator->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
+					pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ) );
 				}
 				else
 				{
-					pEntity->SetPosition( pSpawnInfo->pos + spawnPos );
+					pEntity->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) + spawnPos );
 					pEntity->SetRotation( pSpawnInfo->r );
 					pEntity->SetParentBeforeEntity( pChunkObject1->GetParentEntity() );
 				}
@@ -164,6 +165,7 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 			return false;
 		pParentChunk = NULL;
 		pChunkObject->SetChunk( this, pLevel );
+		pChunkObject->ClearHitShake();
 	}
 
 	for( auto pSubChunk = Get_SubChunk(); pSubChunk; )
@@ -203,8 +205,8 @@ void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )
 					pDecorator->SetParentEntity( pChunkObject->m_p1 );
 				else
 					pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
-				pDecorator->SetPosition( pSpawnInfo->pos );
-				pDecorator->Init( CVector2( nWidth, nHeight ) * CMyLevel::GetBlockSize() );
+				pDecorator->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
+				pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ) );
 			}
 		}
 	}
@@ -503,6 +505,12 @@ void CChunkObject::HitShakeTick()
 	CVector2 pos = m_hitShakeVector * cos( m_nHitShakeFrame * 1.275235 ) + CVector2( m_hitShakeVector.y, -m_hitShakeVector.x ) * sin( m_nHitShakeFrame * 1.58792 );
 	pos = CVector2( floor( pos.x + 0.5f ), floor( pos.y + 0.5f ) );
 	HandleHitShake( pos );
+
+	for( auto pSubChunk = m_pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+	{
+		if( pSubChunk->pChunkObject )
+			pSubChunk->pChunkObject->HandleHitShake( pos );
+	}
 
 	m_nHitShakeFrame++;
 	GetStage()->RegisterBeforeHitTest( 1, &m_onHitShakeTick );

@@ -5,8 +5,9 @@
 
 struct SSubStage
 {
-	SSubStage() : pStage( NULL ), bPaused( false ){}
+	SSubStage() : pStage( NULL ), pViewport( NULL ), bPaused( false ) {}
 	CStage* pStage;
+	CUIViewport* pViewport;
 	bool bPaused;
 };
 

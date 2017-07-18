@@ -165,6 +165,9 @@
     <ClCompile Include="Entities\UtilEntities.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\Blocks\Lv2\SpecialLv2.cpp">
+      <Filter>Entities\Blocks\lv2</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -322,6 +325,9 @@
     <ClInclude Include="Entities\UtilEntities.h">
       <Filter>Entities</Filter>
     </ClInclude>
+    <ClInclude Include="Entities\Blocks\Lv2\SpecialLv2.h">
+      <Filter>Entities\Blocks\lv2</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -436,6 +442,9 @@
     </Filter>
     <Filter Include="Entities\Enemies">
       <UniqueIdentifier>{80fac333-5553-4881-a29a-1f94eb78819f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\Blocks\lv2">
+      <UniqueIdentifier>{9cb41a79-1e7a-4b1f-9751-caab05ec7963}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

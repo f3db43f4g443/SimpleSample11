@@ -58,7 +58,8 @@ public:
 	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
 	virtual void Damage( SDamageContext& context ) override;
 	void RestoreHp( int32 nValue );
-	void CostSp( int32 nValue );
+	bool CheckCostSp( int32 nValue, int8 nType );
+	void CostSp( int32 nValue, int8 nType );
 	void RecoverSp( int32 nValue );
 	virtual void Crush() override;
 	virtual bool Knockback( const CVector2& vec ) override;

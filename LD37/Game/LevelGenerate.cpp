@@ -113,7 +113,7 @@ void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<i
 		return;
 	}
 
-	pInfo->pos = pInfo->pos + CVector2( pBlock->pParent->nX * nBlockSize, pBlock->pParent->nY * nBlockSize );
+	pInfo->rect = pInfo->rect.Offset( CVector2( pBlock->pParent->nX * nBlockSize, pBlock->pParent->nY * nBlockSize ) );
 
 	pBlock->pParent->pOwner->Insert_SpawnInfo( pInfo );
 }
@@ -142,6 +142,7 @@ void SLevelBuildContext::Build()
 						if( pBlock->pParent->pOwner->nSubChunkType == 1 )
 						{
 							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
+							pBlock->pParent->nTag = pParentChunk->GetBlock( i, j )->nTag;
 							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
 						}
 						if( pBlock->pParent->nX == 0 && pBlock->pParent->nY == 0 && iLayer == pBlock->pParent->pOwner->GetMinLayer() && pBlock->pParent->pOwner->pPrefab )
@@ -450,6 +451,39 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 		c++;
 	}
 
+	const char* szTag = XmlGetValue( pXml, "tags", "" );
+	if( szTag[0] )
+	{
+		c = szTag;
+		i = 0;
+		while( *c && i < chunk.nWidth * chunk.nHeight )
+		{
+			if( *c >= '0' && *c <= '9' )
+			{
+				int32 n = 0;
+				do
+				{
+					n = n * 10 + *c - '0';
+					c++;
+				}
+				while( *c >= '0' && *c <= '9' );
+
+				int y = i / chunk.nWidth;
+				int x = i % chunk.nWidth;
+				auto& blockInfo = chunk.blockInfos[x + ( chunk.nHeight - y - 1 ) * chunk.nWidth];
+				blockInfo.nTag = n;
+				i++;
+			}
+			else
+				c++;
+		}
+	}
+	else
+	{
+		for( auto& blockInfo : chunk.blockInfos )
+			blockInfo.nTag = 0;
+	}
+
 	auto pSubItem = pXml->FirstChildElement( "subitem" );
 	if( pSubItem && pSubItem->FirstChildElement() )
 	{
@@ -576,7 +610,7 @@ public:
 		if( m_pPrefab->GetRoot()->GetStaticDataSafe<CDecorator>() )
 		{
 			SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-			pSpawnInfo->pos = CVector2( 0, 0 );
+			pSpawnInfo->rect = CRectangle( 0, 0, rect.width, rect.height );
 			pSpawnInfo->pPrefab = m_pPrefab;
 			pSpawnInfo->r = 0;
 			context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
@@ -588,7 +622,7 @@ public:
 			for( int i = 0; i < nCount; i++ )
 			{
 				SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-				pSpawnInfo->pos = CVector2( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ) );
+				pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
 				pSpawnInfo->pPrefab = m_pPrefab;
 				pSpawnInfo->r = 0;
 				context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );

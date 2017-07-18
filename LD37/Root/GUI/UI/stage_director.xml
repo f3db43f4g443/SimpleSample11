@@ -1,6 +1,4 @@
 ﻿<root type="element" alignX="3" alignY="3" >
-  <element name="main" type="viewport" rectX="0" rectY="0" rectWidth="600" rectHeight="600" alignX="3" alignY="3" enableMouseEvent="1">
-  </element>
-  <element name="sub" type="viewport" rectX="600" rectY="0" rectWidth="200" rectHeight="600" alignX="2" alignY="3" enableMouseEvent="1">
+  <element name="main" type="viewport" rectX="0" rectY="0" rectWidth="800" rectHeight="600" alignX="3" alignY="3" enableMouseEvent="1">
   </element>
 </root>

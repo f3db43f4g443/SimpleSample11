@@ -44,6 +44,7 @@ void CBullet::Kill()
 	if( pParent )
 	{
 		globalTransform.Decompose( x, y, r, s );
+		SetTransformIndex( -1 );
 		SetParentBeforeEntity( pParent );
 	}
 }

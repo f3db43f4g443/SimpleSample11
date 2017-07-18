@@ -23,6 +23,7 @@ public:
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) override;
 	virtual void OnChar( uint32 nChar ) override;
 
+	CVector2 GetScreenRes() { return m_screenRes; }
 	float GetElapsedTimePerTick() { return 1.0f / 60; }
 	double GetTotalTime() { return m_dTotalTime; }
 	int32 GetTimeStamp() { return m_trigger.GetTimeStamp(); }
@@ -55,6 +56,7 @@ private:
 	bool m_bIsRightMouse;
 	bool m_bIsRightMouseDown;
 	bool m_bIsRightMouseUp;
+	CVector2 m_screenRes;
 
 	TClassTrigger<CGame> m_beforeRender;
 

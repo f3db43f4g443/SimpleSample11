@@ -141,7 +141,7 @@ private:
 	uint32 m_nKnockbackTime;
 
 	uint8 m_nState;
-	uint8 m_nAnimState;
+	int8 m_nAnimState;
 	int32 m_nTick;
 	CVector2 m_curMoveDir;
 	uint32 m_nKnockBackTimeLeft;

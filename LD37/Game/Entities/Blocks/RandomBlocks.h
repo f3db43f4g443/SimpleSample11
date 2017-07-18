@@ -11,6 +11,23 @@ private:
 	uint32 m_nWidth, m_nHeight;
 };
 
+class CRandomChunkTiledSimple : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRandomChunkTiledSimple( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunkTiledSimple ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint32 m_nHpPerSize;
+
+	CRectangle m_texRect1;
+	CRectangle m_texRect2;
+	CRectangle m_texRect3;
+	CRectangle m_texRect4;
+};
+
 class CRandomChunkTiled : public CChunkObject
 {
 	friend void RegisterGameClasses();
@@ -22,6 +39,21 @@ protected:
 private:
 	uint32 m_nHpPerSize;
 	bool m_bBlockTypeMask[eBlockType_Count];
+};
+
+class CRandomChunkTiled1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRandomChunkTiled1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunkTiled1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint32 m_nHpPerSize;
+	uint32 m_sizeX[eBlockType_Count];
+	uint32 m_sizeY[eBlockType_Count];
+	CRectangle m_texRects[eBlockType_Count];
 };
 
 class CRandomChunk1 : public CChunkObject
@@ -81,6 +113,19 @@ class CDefaultRandomRoom : public CChunkObject
 	friend void RegisterGameClasses();
 public:
 	CDefaultRandomRoom( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CDefaultRandomRoom ); }
+
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint32 m_nHpPerSize;
+};
+
+class CRandomRoom1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRandomRoom1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomRoom1 ); }
 
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 protected:

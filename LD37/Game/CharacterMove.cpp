@@ -802,7 +802,7 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 
 		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
-		if( pBlockObject && pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+		if( pBlockObject && pBlockObject->GetHitType() != eEntityHitType_WorldStatic )
 		{
 			bHitWall = true;
 			break;

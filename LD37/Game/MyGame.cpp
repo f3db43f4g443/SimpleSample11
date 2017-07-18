@@ -34,6 +34,7 @@
 #include "Entities/Blocks/SpecialBlocks.h"
 #include "Entities/Blocks/LvBarriers.h"
 #include "Entities/Blocks/lv1/SpecialLv1.h"
+#include "Entities/Blocks/lv2/SpecialLv2.h"
 #include "Entities/BlockItems/BlockItemsLv1.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
@@ -139,6 +140,7 @@ void CGame::SetCurState( IGameState * pGameState )
 
 void CGame::OnResize( const CVector2& size )
 {
+	m_screenRes = size;
 	if( m_pCurGameState && m_bStarted )
 		m_pCurGameState->HandleResize( size );
 }
@@ -423,13 +425,24 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CMainUI )
 		REGISTER_BASE_CLASS( CEntity )
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar, hp );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, sp );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar, hp/hp1 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pShake, shake );
-		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, minimap );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSkip, skip );
-		REGISTER_MEMBER_TAGGED_PTR( m_pShakeSmallBars[0], minimap/shake );
+		REGISTER_MEMBER_TAGGED_PTR( m_pB, b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pRB, rb );
+		REGISTER_MEMBER_TAGGED_PTR( m_pRT, rt );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarRoot, b/hpbar );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarRoot, b/spbar );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[0], b/hpbar/hp_1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[1], b/hpbar/hp_2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[0], b/hpbar/hp1_1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[1], b/hpbar/hp1_2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[0], b/hpbar/hp_b1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[1], b/hpbar/hp_b2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, b/spbar/sp );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[0], b/spbar/sp_a );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[1], b/spbar/sp_b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pShake, rb/shake );
+		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, rb/minimap );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSkip, rt/skip );
+		REGISTER_MEMBER_TAGGED_PTR( m_pShakeSmallBars[0], rb/minimap/shake );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CChunkUI )
@@ -719,10 +732,27 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nHeight )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CRandomChunkTiledSimple )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_texRect1 )
+		REGISTER_MEMBER( m_texRect2 )
+		REGISTER_MEMBER( m_texRect3 )
+		REGISTER_MEMBER( m_texRect4 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CRandomChunkTiled )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
 		REGISTER_MEMBER( m_bBlockTypeMask )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomChunkTiled1 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_sizeX )
+		REGISTER_MEMBER( m_sizeY )
+		REGISTER_MEMBER( m_texRects )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CRandomChunk1 )
@@ -766,6 +796,11 @@ void RegisterGameClasses()
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CDefaultRandomRoom )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CRandomRoom1 )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
 	REGISTER_CLASS_END()
@@ -829,6 +864,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fMinSpeed )
 		REGISTER_MEMBER( m_fMaxSpeed )
 		REGISTER_MEMBER( m_fShake )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CHousePart )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+	REGISTER_CLASS_END()
+			
+	REGISTER_CLASS_BEGIN( CHouse )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockBuff )
@@ -1199,6 +1244,20 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CDecorator )
 		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDecoratorRandomTex )
+		REGISTER_BASE_CLASS( CDecorator )
+		REGISTER_MEMBER( m_texSize )
+		REGISTER_MEMBER( m_fTexelSize )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDecorator9Patch )
+		REGISTER_BASE_CLASS( CDecorator )
+		REGISTER_MEMBER( m_fX1 )
+		REGISTER_MEMBER( m_fX2 )
+		REGISTER_MEMBER( m_fY1 )
+		REGISTER_MEMBER( m_fY2 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CDecoratorFiber )

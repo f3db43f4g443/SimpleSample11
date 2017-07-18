@@ -41,7 +41,7 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 				OnKnockbackPlayer( vec );
 			}
 		}
-		else if( pPlayer->GetSp() >= m_nKnockbackCostSp )
+		else if( pPlayer->CheckCostSp( m_nKnockbackCostSp, 1 ) )
 		{
 			if( !Knockback( vec ) )
 			{
@@ -49,7 +49,7 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 				OnKnockbackPlayer( vec );
 			}
 			else
-				pPlayer->CostSp( m_nKnockbackCostSp );
+				pPlayer->CostSp( m_nKnockbackCostSp, 1 );
 		}
 		else
 		{

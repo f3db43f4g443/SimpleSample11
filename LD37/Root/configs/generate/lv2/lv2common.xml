@@ -1,0 +1,479 @@
+﻿<root>
+  <includes>
+    <item name="common" public="1" />
+    <item name="misc" public="1" />
+    <item name="pickups" public="1" />
+  </includes>
+  <level_gen>
+    <attachs>
+      <node name="plant" prefab="data/blockitems/plant.pf" sizex="1" sizey="1" attach_type="0" />
+    </attachs>
+    <spawns>
+      <node name="deco_fiber1_a" prefab="data/misc/fiber1_a.pf" />
+      <node name="deco_fiber1_b" prefab="data/misc/fiber1_b.pf" />
+      <node name="deco_fiber1_c" prefab="data/misc/fiber1_c.pf" />
+      <node name="deco_fiber1_d" prefab="data/misc/fiber1_d.pf" />
+      <node name="deco_fiber1_a_1" prefab="data/misc/fiber1_a_1.pf" />
+      <node name="deco_fiber1_b_1" prefab="data/misc/fiber1_b_1.pf" />
+      <node name="deco_fiber1_c_1" prefab="data/misc/fiber1_c_1.pf" />
+      <node name="deco_fiber1_d_1" prefab="data/misc/fiber1_d_1.pf" />
+      <node name="cargo_edge_a" prefab="data/blocks/lv2/cargo_edge_a.pf" />
+      <node name="cargo_edge_b" prefab="data/blocks/lv2/cargo_edge_b.pf" />
+      <node name="cargo_edge_c" prefab="data/blocks/lv2/cargo_edge_c.pf" />
+      <node name="cargo_edge_d" prefab="data/blocks/lv2/cargo_edge_d.pf" />
+      <node name="fence" prefab="data/blocks/lv2/fence.pf" />
+    </spawns>
+    <scrollobjs>
+    </scrollobjs>
+    <nodes>
+      <node name="block0" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv2/block0.pf">
+        <types>0</types>
+      </node>
+      <node name="block0a" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv2/block0a.pf">
+        <types>0</types>
+      </node>
+      <node name="block0b" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv2/block0b.pf">
+        <types>0</types>
+      </node>
+      <node name="block0c" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv2/block0c.pf">
+        <types>0</types>
+      </node>
+      <node name="block0d" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv2/block0d.pf">
+        <types>0</types>
+      </node>
+      <node name="block1a" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv2/block1a.pf">
+        <types>4</types>
+      </node>
+      <node name="block1b" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv2/block1b.pf">
+        <types>4</types>
+      </node>
+      <node name="block1c" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv2/block1c.pf">
+        <types>4</types>
+      </node>
+      <node name="block1d" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv2/block1d.pf">
+        <types>4</types>
+      </node>
+      
+      <node name="block1a_tiled" width="1" height="1" weight="1" destroyweight="3" absorbshakestrength="1" absorbshakestrengthperheight="1"
+           weightperwidth="1" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block1a_tiled.pf">
+        <metadata minx="1" miny="1" maxx="4" maxy="4" />
+        <types>4</types>
+      </node>
+      <node name="block1b_tiled" width="1" height="1" weight="1" destroyweight="3" absorbshakestrength="1" absorbshakestrengthperheight="1"
+           weightperwidth="1" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block1b_tiled.pf">
+        <metadata minx="1" miny="1" maxx="4" maxy="4" />
+        <types>4</types>
+      </node>
+      <node name="block1c_tiled" width="1" height="1" weight="1" destroyweight="3" absorbshakestrength="1" absorbshakestrengthperheight="1"
+           weightperwidth="1" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block1c_tiled.pf">
+        <metadata minx="1" miny="1" maxx="4" maxy="4" />
+        <types>4</types>
+      </node>
+      <node name="block1d_tiled" width="1" height="1" weight="1" destroyweight="3" absorbshakestrength="1" absorbshakestrengthperheight="1"
+           weightperwidth="1" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block1d_tiled.pf">
+        <metadata minx="1" miny="1" maxx="4" maxy="4" />
+        <types>4</types>
+      </node>
+      
+      <node name="road_small" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/road_small.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <types>0</types>
+      </node>
+      <node name="road_large" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/road_large.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <types>0</types>
+      </node>
+      <node name="greenbelt" isroom="1" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/greenbelt.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>2</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="fence" x="0" y="0" w="0" h="0" />
+            <node type="tile" x="0" y="0" w="0" h="0" >
+              <ref name="plant" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      <node name="greenbelt_test" isroom="1" width="16" height="2" weight="16" destroyweight="32"
+            absorbshakestrength="4" destroyshake="20" shakedmg="16" prefab="data/blocks/lv2/greenbelt.pf">
+        <types>
+          2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,
+          2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,
+        </types>
+        <next_level>
+          <node type="subregion">
+            <ref name="fence" x="0" y="0" w="7" h="2" />
+            <ref name="fence" x="9" y="0" w="7" h="2" />
+            <node type="tile" x="0" y="0" w="7" h="2" >
+              <ref name="plant" />
+            </node>
+            <node type="tile" x="9" y="0" w="7" h="2" >
+              <ref name="plant" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="box" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv2/box.pf">
+        <types>4</types>
+      </node>
+    
+      <node name="barrel" width="2" height="3" weight="2" destroyweight="8" destroyshake="30" shakedmg="0.25" prefab="data/blocks/lv2/barrel.pf">
+        <types>4,4,4,4,4,4</types>
+      </node>
+      
+      <node name="cargo_a" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_a.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_a" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo_b" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_b.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_b" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo_c" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_c.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_c" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo_d" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_d.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_d" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="cargo1s_a" width="2" height="2" weight="2.5" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_a.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="cargo1s_b" width="2" height="2" weight="2.5" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_b.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="cargo1s_c" width="2" height="2" weight="2.5" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_c.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="cargo1s_d" width="2" height="2" weight="2.5" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_d.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="cargo1_a" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="2" prefab="data/blocks/lv2/cargo1_a.pf">
+        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="cargo1_b" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="2" prefab="data/blocks/lv2/cargo1_b.pf">
+        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="cargo1_c" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="2" prefab="data/blocks/lv2/cargo1_c.pf">
+        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="cargo1_d" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="2" prefab="data/blocks/lv2/cargo1_d.pf">
+        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="cargo1l_a" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="4" prefab="data/blocks/lv2/cargo1l_a.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+      </node>
+      <node name="cargo1l_b" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="4" prefab="data/blocks/lv2/cargo1l_b.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+      </node>
+      <node name="cargo1l_c" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="4" prefab="data/blocks/lv2/cargo1l_c.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+      </node>
+      <node name="cargo1l_d" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="4" prefab="data/blocks/lv2/cargo1l_d.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+      </node>
+      
+      <node name="cargo2_a" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="5" shakedmgperwidth="1" prefab="data/blocks/lv2/cargo2_a.pf">
+        <metadata minx="6" miny="6" maxx="32" maxy="32" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_edge_a" x="0" y="0" w="0" h="0" />
+            <ref name="deco_fiber1_a_1" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo2_b" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="5" shakedmgperwidth="1" prefab="data/blocks/lv2/cargo2_b.pf">
+        <metadata minx="6" miny="6" maxx="32" maxy="32" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_edge_b" x="0" y="0" w="0" h="0" />
+            <ref name="deco_fiber1_b_1" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo2_c" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="5" shakedmgperwidth="1" prefab="data/blocks/lv2/cargo2_c.pf">
+        <metadata minx="6" miny="6" maxx="32" maxy="32" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_edge_c" x="0" y="0" w="0" h="0" />
+            <ref name="deco_fiber1_c_1" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo2_d" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="5" shakedmgperwidth="1" prefab="data/blocks/lv2/cargo2_d.pf">
+        <metadata minx="6" miny="6" maxx="32" maxy="32" />
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_edge_d" x="0" y="0" w="0" h="0" />
+            <ref name="deco_fiber1_d_1" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+      
+      <node name="room_a_test" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="10" isroom="1" prefab="data/blocks/lv2/room_a.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door1_a_0" x="2" y="0" w="2" h="1" />
+            <ref name="door1_a_2" x="4" y="-1" w="2" h="1" />
+            <ref name="door1_a_3" x="0" y="4" w="1" h="2" />
+            <ref name="door1_a_1" x="-1" y="2" w="1" h="2" />
+            <ref name="door1s_a_0" x="5" y="0" w="1" h="1" />
+            <ref name="door1s_a_2" x="2" y="-1" w="1" h="1" />
+            <ref name="door1s_a_3" x="0" y="2" w="1" h="1" />
+            <ref name="door1s_a_1" x="-1" y="5" w="1" h="1" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_a_1" x="1" y="1" w="-1" h="-1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="room_b_test" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv2/room_b.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door1_b_0" x="2" y="0" w="2" h="1" />
+            <ref name="door1_b_2" x="4" y="-1" w="2" h="1" />
+            <ref name="door1_b_3" x="0" y="4" w="1" h="2" />
+            <ref name="door1_b_1" x="-1" y="2" w="1" h="2" />
+            <ref name="door1s_b_0" x="5" y="0" w="1" h="1" />
+            <ref name="door1s_b_2" x="2" y="-1" w="1" h="1" />
+            <ref name="door1s_b_3" x="0" y="2" w="1" h="1" />
+            <ref name="door1s_b_1" x="-1" y="5" w="1" h="1" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_b_1" x="1" y="1" w="-1" h="-1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="room_c_test" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv2/room_c.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door1_c_0" x="2" y="0" w="2" h="1" />
+            <ref name="door1_c_2" x="4" y="-1" w="2" h="1" />
+            <ref name="door1_c_3" x="0" y="4" w="1" h="2" />
+            <ref name="door1_c_1" x="-1" y="2" w="1" h="2" />
+            <ref name="door1s_c_0" x="5" y="0" w="1" h="1" />
+            <ref name="door1s_c_2" x="2" y="-1" w="1" h="1" />
+            <ref name="door1s_c_3" x="0" y="2" w="1" h="1" />
+            <ref name="door1s_c_1" x="-1" y="5" w="1" h="1" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_c_1" x="1" y="1" w="-1" h="-1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="room_d_test" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv2/room_d.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,0,0,0,0,0,0,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <subitem>
+          <node type="subregion">
+            <ref name="door1_d_0" x="2" y="0" w="2" h="1" />
+            <ref name="door1_d_2" x="4" y="-1" w="2" h="1" />
+            <ref name="door1_d_3" x="0" y="4" w="1" h="2" />
+            <ref name="door1_d_1" x="-1" y="2" w="1" h="2" />
+            <ref name="door1s_d_0" x="5" y="0" w="1" h="1" />
+            <ref name="door1s_d_2" x="2" y="-1" w="1" h="1" />
+            <ref name="door1s_d_3" x="0" y="2" w="1" h="1" />
+            <ref name="door1s_d_1" x="-1" y="5" w="1" h="1" />
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="deco_fiber1_d_1" x="1" y="1" w="-1" h="-1" />
+          </node>
+        </next_level>
+      </node>
+    
+      <node name="housepart_a" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/housepart_a.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="housepart_b" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/housepart_b.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="housepart_c" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/housepart_c.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="housepart_d" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/housepart_d.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      
+      <node name="house_a" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/house_a.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="house_b" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/house_b.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="house_c" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/house_c.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="house_d" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/house_d.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+    
+      <node name="house_a_test" subchunk_type="1" width="8" height="8" weight="9.6" destroyweight="24" absorbshakestrength="10000" shakedmg="8" destroyshake="8" prefab="data/blocks/lv2/house_a.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <tags>
+          2,2,2,2,0,0,0,0,
+          2,3,4,2,0,0,0,0,
+          2,5,6,2,0,0,0,0,
+          2,2,2,2,0,0,0,0,
+          1,1,0,0,0,0,0,0,
+          2,2,2,0,0,0,0,0,
+          2,2,2,0,0,0,2,2,
+          2,2,2,1,1,1,2,2,
+        </tags>
+        <subitem>
+          <node type="subregion">
+            <ref name="housepart_a" x="0" y="4" w="4" h="4" />
+            <ref name="housepart_a" x="0" y="0" w="3" h="3" />
+            <ref name="housepart_a" x="6" y="0" w="2" h="2" />
+          </node>
+        </subitem>
+      </node>
+
+    </nodes>
+  </level_gen>
+</root>

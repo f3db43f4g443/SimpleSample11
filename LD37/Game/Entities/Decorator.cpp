@@ -3,6 +3,66 @@
 #include "Render/DrawableGroup.h"
 #include "Common/Rand.h"
 
+void CDecoratorRandomTex::Init( const CVector2 & size )
+{
+	int32 sizeX = m_texSize.x;
+	int32 sizeY = m_texSize.y;
+	CVector2 maxSize = m_texSize * m_fTexelSize;
+	int32 nX = ceil( size.x / maxSize.x );
+	int32 nY = ceil( size.y / maxSize.y );
+	CVector2 baseTex( SRand::Inst().Rand( 0, sizeX ) * 1.0f / sizeX, SRand::Inst().Rand( 0, sizeY ) * 1.0f / sizeY );
+	if( nX == 1 && nY == 1 )
+	{
+		auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+		pImage->SetRect( CRectangle( 0, 0, size.x, size.y ) );
+		pImage->SetTexRect( CRectangle( baseTex.x, baseTex.y, size.x / maxSize.x, size.y / maxSize.y ) );
+	}
+	else
+	{
+		auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+
+		for( int i = 0; i < nX; i++ )
+		{
+			for( int j = 0; j < nY; j++ )
+			{
+				auto pImage = static_cast<CImage2D*>( pResource->CreateInstance() );
+				CRectangle rect( i * maxSize.x, ( nY - j - 1 ) * maxSize.y, Min( maxSize.x, size.x - i * maxSize.x ), Min( maxSize.y, size.y - ( nY - j - 1 ) * maxSize.y ) );
+				pImage->SetRect( rect );
+				pImage->SetTexRect( CRectangle( baseTex.x, baseTex.y, rect.width / maxSize.x, rect.height / maxSize.y ) );
+				AddChild( pImage );
+			}
+		}
+
+		SetRenderObject( NULL );
+	}
+}
+
+void CDecorator9Patch::Init( const CVector2 & size )
+{
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	CRectangle rect = pImage->GetElem().rect;
+	CRectangle texRect = pImage->GetElem().texRect;
+
+	float fRectX[4] = { 0, rect.width * m_fX1, size.x - rect.width * m_fX2, size.x };
+	float fRectY[4] = { 0, rect.height * m_fY1, size.y - rect.height * m_fY2, size.y };
+	float fTexRectX[4] = { texRect.x, texRect.x + texRect.width * m_fX1, texRect.x + texRect.width * ( 1 - m_fX2 ), texRect.x + texRect.width };
+	float fTexRectY[4] = { texRect.y + texRect.height, texRect.y + texRect.height * ( 1 - m_fY1 ), texRect.y + texRect.height * m_fY2, texRect.y };
+
+	for( int i = 0; i < 3; i++ )
+	{
+		for( int j = 0; j < 3; j++ )
+		{
+			auto pImage = static_cast<CImage2D*>( pResource->CreateInstance() );
+			pImage->SetRect( CRectangle( fRectX[i], fRectY[j], fRectX[i + 1] - fRectX[i], fRectY[j + 1] - fRectY[j] ) );
+			pImage->SetTexRect( CRectangle( fTexRectX[i], fTexRectY[j + 1], fTexRectX[i + 1] - fTexRectX[i], fTexRectY[j] - fTexRectY[j + 1] ) );
+			AddChild( pImage );
+		}
+	}
+
+	SetRenderObject( NULL );
+}
+
 void CDecoratorFiber::Init( const CVector2 & size )
 {
 	auto pResource = static_cast<CDrawableGroup*>( GetResource() );

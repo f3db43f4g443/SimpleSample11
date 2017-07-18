@@ -7,24 +7,30 @@
 #include "Player.h"
 #include "TileMap2D.h"
 #include "MyLevel.h"
+#include "Common/MathUtil.h"
 
 CMainUI* CMainUI::s_pLevel;
 
 CMainUI::CMainUI( const SClassCreateContext& context )
 	: CEntity( context )
 	, m_tick( this, &CMainUI::Tick )
-	, m_tickNewHpBarShake( this, &CMainUI::OnNewHpBarShake )
 {
 }
 
 void CMainUI::OnAddedToStage()
 {
+	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
+	//m_pB->SetPosition( CVector2( 0, -screenRes.y / 2 ) );
+	m_pB->SetPosition( CVector2( 0, 0 ) );
+	m_pRB->SetPosition( CVector2( screenRes.x / 2, -screenRes.y / 2 ) );
+	m_pRT->SetPosition( CVector2( screenRes.x / 2, screenRes.y / 2 ) );
+	//m_pMinimap->bVisible = false;
 	m_pSkip->bVisible = false;
-	m_hpBarOrigPos = m_pHpBar->GetPosition();
-	m_hpBarOrigHeight = static_cast<CImage2D*>( m_pHpBar.GetPtr() )->GetElem().rect.height;
 	m_shakeBarOrigPos = m_pShake->GetPosition();
 	m_shakeBarOrigHeight = static_cast<CImage2D*>( m_pShake.GetPtr() )->GetElem().rect.height;
 	m_shakeBarOrigTexRect = static_cast<CImage2D*>( m_pShake.GetPtr() )->GetElem().texRect;
+	m_spBarOrigPos = m_pSpBarRoot->GetPosition();
+	m_spBarOfs = CVector2( 0, 0 );
 
 	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
 	m_blockTypes.resize( pMinimap->GetWidth() * pMinimap->GetHeight() * 2 );
@@ -33,7 +39,7 @@ void CMainUI::OnAddedToStage()
 	auto pShakeSmallBar = static_cast<CImage2D*>( m_pShakeSmallBars[0].GetPtr() );
 	for( int i = 1; i < ELEM_COUNT( m_pShakeSmallBars ); i++ )
 	{
-		m_pShakeSmallBars[i] = new CImage2D( pShakeSmallBar->GetColorDrawable(), NULL, pShakeSmallBar->GetElem().rect.Offset( CVector2( i * 4, 0 ) ), pShakeSmallBar->GetElem().texRect, false );
+		m_pShakeSmallBars[i] = new CImage2D( pShakeSmallBar->GetGUIDrawable(), NULL, pShakeSmallBar->GetElem().rect.Offset( CVector2( i * 4, 0 ) ), pShakeSmallBar->GetElem().texRect, true );
 		pShakeSmallBar->GetParent()->AddChildAfter( m_pShakeSmallBars[i], m_pShakeSmallBars[i - 1] );
 	}
 
@@ -53,39 +59,82 @@ void CMainUI::OnRemovedFromStage()
 {
 	if( m_tick.IsRegistered() )
 		m_tick.Unregister();
-	if( m_tickNewHpBarShake.IsRegistered() )
-		m_tickNewHpBarShake.Unregister();
 	s_pLevel = NULL;
 }
 
 void CMainUI::OnModifyHp( float fHp, float fMaxHp )
 {
-	float fPercent = fMaxHp > 0? fHp / fMaxHp: 0;
-	fPercent = Max( Min( fPercent, 1.0f ), 0.0f );
-	auto pHp = static_cast<CImage2D*>( m_pHpBar.GetPtr() );
-	auto rect = pHp->GetElem().rect;
-	rect.height = m_hpBarOrigHeight * fPercent;
-	pHp->SetRect( rect );
+	int32 nMaxHp = fMaxHp;
+	int32 nHalfMaxHp[2] = { nMaxHp - nMaxHp / 2, nMaxHp / 2 };
+	int32 nHp = fHp;
+	int32 nHalfHp[2] = { nHp - nHp / 2, nHp / 2 };
+
+	for( int i = 0; i < 2; i++ )
+	{
+		auto pHp = static_cast<CImage2D*>( m_pHpBar[i].GetPtr() );
+		int32 nCeilHp = Pow2Ceil( nHalfHp[i] );
+		auto rect = pHp->GetElem().rect;
+		rect.width = nHalfHp[i] * 8;
+		pHp->SetRect( rect );
+		auto texRect = pHp->GetElem().texRect;
+		texRect.width = nCeilHp ? nHalfHp[i] * 1.0f / nCeilHp : 0;
+		pHp->SetTexRect( texRect );
+		pHp->GetParam()[0] = CVector4( nCeilHp, 1, 0, 0 );
+
+		auto pHpBack = static_cast<CImage2D*>( m_pHpBarBack[i].GetPtr() );
+		int32 nCeilMaxHp = Pow2Ceil( nHalfMaxHp[i] );
+		rect = pHpBack->GetElem().rect;
+		rect.width = nHalfMaxHp[i] * 8;
+		pHpBack->SetRect( rect );
+		texRect = pHpBack->GetElem().texRect;
+		texRect.width = nCeilMaxHp ? nHalfMaxHp[i] * 1.0f / nCeilMaxHp : 0;
+		pHpBack->SetTexRect( texRect );
+		pHpBack->GetParam()[0] = CVector4( nCeilMaxHp, 1, 0, 0 );
+	}
+
+	m_pHpBarRoot->SetPosition( CVector2( -nHalfMaxHp[0] * 4 - 10, m_pHpBarRoot->y ) );
 }
 
 void CMainUI::OnModifySp( float fSp, float fMaxSp )
 {
-	float fPercent = fMaxSp > 0? fSp / fMaxSp: 0;
-	fPercent = Max( Min( fPercent, 1.0f ), 0.0f );
+	int32 nMaxSp = fMaxSp / 20;
+	int32 nSp = fSp / 20;
+
+	for( int i = 0; i < 2; i++ )
+	{
+		auto pSpBack = static_cast<CImage2D*>( m_pSpBarBack[i].GetPtr() );
+		auto rect = pSpBack->GetElem().rect;
+		rect.width = nMaxSp * 2;
+		pSpBack->SetRect( rect );
+		pSpBack->GetParam()[0] = CVector4( nMaxSp / 10, 1, 0, 0 );
+	}
 	auto pSp = static_cast<CImage2D*>( m_pSpBar.GetPtr() );
 	auto rect = pSp->GetElem().rect;
-	rect.height = m_hpBarOrigHeight * fPercent;
+	rect.width = nSp * 2;
 	pSp->SetRect( rect );
+	pSp->GetParam()[0] = CVector4( nSp / 10.0f, 1, 0, 0 );
+
+	m_spBarOrigPos.x = -nMaxSp - 18;
+	m_pSpBarRoot->SetPosition( m_spBarOrigPos + m_spBarOfs );
 }
 
 void CMainUI::OnModifyHpStore( float fHpStore, float fMaxHp )
 {
-	float fPercent = fMaxHp > 0 ? fHpStore / fMaxHp : 0;
-	fPercent = Max( Min( fPercent, 1.0f ), 0.0f );
-	auto pHp = static_cast<CImage2D*>( m_pHpStoreBar.GetPtr() );
-	auto rect = pHp->GetElem().rect;
-	rect.height = m_hpBarOrigHeight * fPercent;
-	pHp->SetRect( rect );
+	int32 nHp = fHpStore;
+	int32 nHalfHp[2] = { nHp - nHp / 2, nHp / 2 };
+
+	for( int i = 0; i < 2; i++ )
+	{
+		auto pHp = static_cast<CImage2D*>( m_pHpStoreBar[i].GetPtr() );
+		int32 nCeilHp = Pow2Ceil( nHalfHp[i] );
+		auto rect = pHp->GetElem().rect;
+		rect.width = nHalfHp[i] * 8;
+		pHp->SetRect( rect );
+		auto texRect = pHp->GetElem().texRect;
+		texRect.width = nCeilHp ? nHalfHp[i] * 1.0f / nCeilHp : 0;
+		pHp->SetTexRect( texRect );
+		pHp->GetParam()[0] = CVector4( nCeilHp, 1, 0, 0 );
+	}
 }
 
 void CMainUI::UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType )
@@ -151,19 +200,31 @@ void CMainUI::HideMinimap()
 	m_pMinimap->bVisible = false;
 }
 
+void CMainUI::AddSpBarShake( const CVector2& dir, uint32 nTime )
+{
+	SSpBarShake newShake;
+	float fAngle = SRand::Inst().Rand<float>( -PI * 0.1f, PI * 0.1f );
+	CMatrix2D mat;
+	mat.Rotate( fAngle );
+	newShake.maxOfs = mat.MulVector2Dir( dir );
+	newShake.nMaxTime = nTime;
+	newShake.t = 0;
+	m_vecSpBarShakes.push_back( newShake );
+}
+
 void CMainUI::Tick()
 {
 	float fElapsedTime = CGame::Inst().GetElapsedTimePerTick();
 
 	CVector2 ofs( 0, 0 );
-	for( int i = m_vecHpBarShakes.size() - 1; i >= 0; i-- )
+	for( int i = m_vecSpBarShakes.size() - 1; i >= 0; i-- )
 	{
-		auto& item = m_vecHpBarShakes[i];
+		auto& item = m_vecSpBarShakes[i];
 		item.t++;
 		if( item.t >= item.nMaxTime )
 		{
-			item = m_vecHpBarShakes.back();
-			m_vecHpBarShakes.pop_back();
+			item = m_vecSpBarShakes.back();
+			m_vecSpBarShakes.pop_back();
 			continue;
 		}
 
@@ -171,11 +232,15 @@ void CMainUI::Tick()
 		t = t * t * t;
 		t = 1 - abs( t - 0.5f ) * 2;
 		ofs = ofs + item.maxOfs * t;
+
+		float t1 = item.t & 7;
+		( t1 = abs( t1 - 4 ) - 2 ) / 2;
+		ofs = ofs * t1;
 	}
-	
-	m_pHpBar->x = m_hpBarOrigPos.x + ofs.x;
-	m_pHpBar->y = m_hpBarOrigPos.y + ofs.y;
-	m_pHpBar->SetTransformDirty();
+	ofs.x = floor( ofs.x + 0.5f );
+	ofs.y = floor( ofs.y + 0.5f );
+	m_spBarOfs = ofs;
+	m_pSpBarRoot->SetPosition( m_spBarOrigPos + m_spBarOfs );
 
 	float fShakeStrength = CMyLevel::GetInst()->GetShakeStrength();
 	float fPercent0 = fShakeStrength / 64.0f;
@@ -194,30 +259,6 @@ void CMainUI::Tick()
 	pShake->SetPosition( m_shakeBarOrigPos + shake );
 
 	CGame::Inst().Register( 1, &m_tick );
-}
-
-void CMainUI::OnNewHpBarShake()
-{
-	float fPercent = 0;
-	CPlayer* pPlayer = GetStage()->GetWorld()->GetPlayer();
-	if( pPlayer )
-	{
-		CVector3 hpPercent;
-		hpPercent.x = 1 - pPlayer->GetHp() * 1.0f / pPlayer->GetMaxHp();
-		hpPercent.y = hpPercent.z = 0;
-		fPercent = hpPercent.Length() / 1.732f;
-		fPercent = sqrt( fPercent );
-	}
-
-	SHpBarShake newShake;
-	float fRadius = SRand::Inst().Rand( 1.0f + 3.0f * fPercent, 1.5f + 4.5f * fPercent );
-	float fAngle = SRand::Inst().Rand<float>( 0, PI * 2 );
-	newShake.maxOfs = CVector2( fRadius * cos( fAngle ) * 0.75f, fRadius * sin( fAngle ) * 1.5f );
-	newShake.nMaxTime = SRand::Inst().Rand( 10, 60 );
-	newShake.t = 0;
-	m_vecHpBarShakes.push_back( newShake );
-
-	CGame::Inst().Register( SRand::Inst().Rand( 50 - 40 * fPercent, 80 - 60 * fPercent ), &m_tickNewHpBarShake );
 }
 
 void Game_ShaderImplement_Dummy_MainUI()

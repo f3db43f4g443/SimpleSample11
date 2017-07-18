@@ -105,6 +105,13 @@ void CMainGameState::UpdateInput()
 		}
 	}
 
+	if( pGame->IsKeyDown( VK_F1 ) )
+		CPlayerData::Inst().nShakeType = 0;
+	if( pGame->IsKeyDown( VK_F2 ) )
+		CPlayerData::Inst().nShakeType = 1;
+	if( pGame->IsKeyDown( VK_F3 ) )
+		CPlayerData::Inst().nShakeType = 2;
+
 	CPlayer* pPlayer = m_pWorld->GetPlayer();
 	if( pPlayer )
 	{

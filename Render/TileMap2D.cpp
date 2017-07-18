@@ -375,13 +375,17 @@ void CTileMap2D::RefreshTile( uint32 x, uint32 y )
 void CTileMap2D::Render( CRenderContext2D& context )
 {
 	uint32 nPass = -1;
+	uint32 nGroup = 0;
 	switch( context.eRenderPass )
 	{
 	case eRenderPass_Color:
 		if( m_pColorDrawable )
 			nPass = 0;
 		else if( m_pGUIDrawable )
+		{
 			nPass = 2;
+			nGroup = 1;
+		}
 		break;
 	case eRenderPass_Occlusion:
 		if( m_pOcclusionDrawable )
@@ -414,7 +418,7 @@ void CTileMap2D::Render( CRenderContext2D& context )
 			{
 				auto& elem = tile.elems[nPass][iLayer];
 				elem.worldMat = globalTransform;
-				context.AddElement( &elem );
+				context.AddElement( &elem, nGroup );
 			}
 		}
 	}

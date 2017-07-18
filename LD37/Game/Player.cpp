@@ -138,7 +138,7 @@ void CPlayer::RestoreHp( int32 nValue )
 		while( m_nHpStore >= m_hp.base )
 		{
 			m_nHpStore -= m_hp.base;
-			m_hp.base++;
+			m_hp.base += 2;
 		}
 		if( pMainUI )
 			pMainUI->OnModifyHpStore( m_nHpStore, m_hp.GetMaxValue() );
@@ -148,12 +148,29 @@ void CPlayer::RestoreHp( int32 nValue )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 }
 
-void CPlayer::CostSp( int32 nValue )
+bool CPlayer::CheckCostSp( int32 nValue, int8 nType )
+{
+	if( m_sp >= nValue )
+		return true;
+
+	CMainUI* pMainUI = CMainUI::GetInst();
+	if( pMainUI )
+	{
+		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+		pMainUI->AddSpBarShake( nType == 0 ? CVector2( -8, 0 ) : CVector2( 0, 8 ), 20 );
+	}
+	return false;
+}
+
+void CPlayer::CostSp( int32 nValue, int8 nType )
 {
 	CMainUI* pMainUI = CMainUI::GetInst();
 	m_sp.ModifyCurValue( -nValue );
 	if( pMainUI )
+	{
 		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+		pMainUI->AddSpBarShake( nType == 0 ? CVector2( -1, 0 ) : CVector2( 0, 2 ), 20 );
+	}
 }
 
 void CPlayer::RecoverSp( int32 nValue )
@@ -214,7 +231,7 @@ void CPlayer::Crush()
 	if( !bCertainlyCrush && IsRolling() )
 		nCostSp = Min<int32>( nCostSp, m_sp );
 
-	if( nCostSp > m_sp )
+	if( !CheckCostSp( nCostSp, 1 ) )
 	{
 		SDamageContext context;
 		context.nDamage = 1000;
@@ -227,7 +244,7 @@ void CPlayer::Crush()
 		return;
 	}
 
-	CostSp( nCostSp );
+	CostSp( nCostSp, 1 );
 	for( i = 0; i < j; i++ )
 		chunkObjs[i]->Crush();
 	if( !m_walkData.ResolvePenetration( this ) )
@@ -258,9 +275,9 @@ void CPlayer::Crush()
 bool CPlayer::Knockback( const CVector2& vec )
 {
 	if( m_bIsWalkOrFly )
-		m_walkData.Knockback( 0.25f, vec * 400 );
+		m_walkData.Knockback( 0.25f, vec * 320 );
 	else
-		m_flyData.Knockback( 0.25f, vec * 400 );
+		m_flyData.Knockback( 0.25f, vec * 320 );
 	m_fKnockbackInvincibleTime = 0.2f;
 	return true;
 }
@@ -434,9 +451,9 @@ void CPlayer::UpdateMove()
 
 	if( m_bRoll )
 	{
-		if( m_sp >= m_nRollSpCost && moveAxis.Length2() > 0 )
+		if( moveAxis.Length2() > 0 && CheckCostSp( m_nRollSpCost, 0 ) )
 		{
-			CostSp( m_nRollSpCost );
+			CostSp( m_nRollSpCost, 0 );
 			if( m_bIsWalkOrFly )
 			{
 				CVector2 axis;
@@ -715,7 +732,7 @@ void CPlayer::OnAddedToStage()
 	{
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 		pMainUI->OnModifyHpStore( m_nHpStore, m_hp.GetMaxValue() );
-		pMainUI->OnModifyHp( m_sp, m_sp.GetMaxValue() );
+		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
 	}
 
 	auto pLevel = CMyLevel::GetInst();

@@ -82,6 +82,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>./;../;../Common;../Render;../implib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

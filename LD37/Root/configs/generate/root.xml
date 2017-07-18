@@ -2,6 +2,7 @@
   <includes>
     <item name="mainmenu" />
     <item name="lv1/main" />
+    <item name="lv2/main" />
     <item name="tutorial/tutorial" />
   </includes>
   <level_gen>

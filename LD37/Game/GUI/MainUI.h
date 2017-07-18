@@ -21,14 +21,23 @@ public:
 	void ShowMinimap();
 	void HideMinimap();
 
+	void AddSpBarShake( const CVector2& dir, uint32 nTime );
+
 	static CMainUI* GetInst() { return s_pLevel; }
 private:
 	void Tick();
-	void OnNewHpBarShake();
 
-	CReference<CRenderObject2D> m_pHpBar;
+	CReference<CRenderObject2D> m_pB;
+	CReference<CRenderObject2D> m_pRB;
+	CReference<CRenderObject2D> m_pRT;
+
+	CReference<CRenderObject2D> m_pHpBarRoot;
+	CReference<CRenderObject2D> m_pSpBarRoot;
+	CReference<CRenderObject2D> m_pHpBar[2];
+	CReference<CRenderObject2D> m_pHpBarBack[2];
+	CReference<CRenderObject2D> m_pHpStoreBar[2];
 	CReference<CRenderObject2D> m_pSpBar;
-	CReference<CRenderObject2D> m_pHpStoreBar;
+	CReference<CRenderObject2D> m_pSpBarBack[2];
 	CReference<CRenderObject2D> m_pShake;
 	CReference<CRenderObject2D> m_pMinimap;
 	CReference<CRenderObject2D> m_pSkip;
@@ -36,22 +45,21 @@ private:
 
 	CReference<CRenderObject2D> m_pShakeSmallBars[32];
 
-	CVector2 m_hpBarOrigPos;
-	float m_hpBarOrigHeight;
 	CVector2 m_shakeBarOrigPos;
 	float m_shakeBarOrigHeight;
 	CRectangle m_shakeBarOrigTexRect;
 
-	struct SHpBarShake
+	struct SSpBarShake
 	{
 		CVector2 maxOfs;
 		uint32 nMaxTime;
 		uint32 t;
 	};
-	vector<SHpBarShake> m_vecHpBarShakes;
+	vector<SSpBarShake> m_vecSpBarShakes;
+	CVector2 m_spBarOrigPos;
+	CVector2 m_spBarOfs;
 
 	TClassTrigger<CMainUI> m_tick;
-	TClassTrigger<CMainUI> m_tickNewHpBarShake;
 
 	static CMainUI* s_pLevel;
 };
