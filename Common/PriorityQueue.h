@@ -89,6 +89,10 @@ public:
 
 	NodeType* Front() { return m_vecNodes.size() ? m_vecNodes[0] : NULL; }
 	NodeType** Head() { return m_vecNodes.size() ? &m_vecNodes[0] - 1 : NULL; }
+
+	void Clear() { m_vecNodes.resize( 0 ); }
+	const vector<NodeType*>& GetAllNodes() { return m_vecNodes; }
+	void Reserve( uint32 nSize ) { m_vecNodes.reserve( nSize ); }
 private:
 	vector<NodeType*> m_vecNodes;
 

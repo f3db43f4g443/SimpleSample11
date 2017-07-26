@@ -435,7 +435,7 @@
         </next_level>
       </node>
 
-      <node name="wall3_empty" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
+      <node name="wall3_empty" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
         <subitem copy_blueprint="1">
@@ -452,7 +452,7 @@
         </next_level>
       </node>
       
-      <node name="wall3" isroom="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
+      <node name="wall3" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
         <subitem copy_blueprint="1">
@@ -529,7 +529,7 @@
         <types>4</types>
       </node>
       
-      <node name="enemyroom_small" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wood.pf">
+      <node name="enemyroom_small" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="10" movetype="1" isroom="1" prefab="data/blocks/lv1/wood.pf">
         <types>
           0,0,0,0,0,0,
           0,0,0,0,0,0,
@@ -558,7 +558,7 @@
         </next_level>
       </node>
       
-      <node name="enemyroom_large" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+      <node name="enemyroom_large" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
         <types>
           0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,
@@ -602,7 +602,7 @@
         </next_level>
       </node>
 
-      <node name="enemyroom_special" width="12" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+      <node name="enemyroom_special" width="12" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,
@@ -646,7 +646,7 @@
         </next_level>
       </node>
 
-      <node name="enemyroom1" type="room1" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" isroom="1" prefab="data/blocks/lv1/wood.pf">
+      <node name="enemyroom1" type="room1" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" movetype="1" isroom="1" prefab="data/blocks/lv1/wood.pf">
         <metadata isdesignvalid="0" />
         <types>
           0,0,0,0,0,0,
@@ -695,7 +695,7 @@
           </node>
         </next_level>
       </node>
-      <node name="enemyroom2" type="room2" width="8" height="8" weight="3" weightperwidth="1" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="20" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+      <node name="enemyroom2" type="room2" width="8" height="8" weight="3" weightperwidth="1" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="20" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
         <metadata isdesignvalid="0" />
         <types>
           0,0,0,0,0,0,0,0,

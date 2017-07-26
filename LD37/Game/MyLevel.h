@@ -4,8 +4,9 @@
 #include "Render/DrawableGroup.h"
 #include "Block.h"
 #include "Render/Sound.h"
+#include "Navigation.h"
 
-class CMyLevel : public CEntity
+class CMyLevel : public CEntity, public INavigationProvider
 {
 	friend void RegisterGameClasses();
 	friend struct SLevelBuildContext;
@@ -23,16 +24,16 @@ public:
 	void KillChunk( SChunk* pChunk, bool bCrush = false );
 
 	void RemoveChunk( SChunk* pChunk );
-	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > > newChunks );
+	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks );
 
-	static uint32 GetBlockSize() { return 32; }
-	float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
-	float GetShakeStrength() { return m_basements[0].fShakeStrength; }
+	FORCE_INLINE static uint32 GetBlockSize() { return 32; }
+	FORCE_INLINE float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
+	FORCE_INLINE float GetShakeStrength() { return m_basements[0].fShakeStrength; }
 	void AddShakeStrength( float fShakeStrength );
 
-	float GetLastScrollPos() { return m_fLastScrollPos; }
-	float GetCurScrollPos() { return m_fCurScrollPos; }
-	uint32 GetCurHeightTag() { return m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0; }
+	FORCE_INLINE float GetLastScrollPos() { return m_fLastScrollPos; }
+	FORCE_INLINE float GetCurScrollPos() { return m_fCurScrollPos; }
+	FORCE_INLINE uint32 GetCurHeightTag() { return m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0; }
 	bool IsReachEnd();
 
 	enum
@@ -49,24 +50,44 @@ public:
 		eBulletLevel_Count,
 	};
 
-	static CMyLevel* GetInst() { return s_pLevel; }
+	FORCE_INLINE static CMyLevel* GetInst() { return s_pLevel; }
 	
-	bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
-	CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
-	CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
-	CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
-	float GetHighGravityHeight() { return 256.0f; }
-	CEntity* GetScrollObjRoot( uint32 i ) { return m_pScrollObjRoot[i]; }
-	CEntity* GetChunkRoot() { return m_pChunkRoot; }
-	CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
-	CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
-	CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }
-	CRenderObject2D* GetBack0() { return m_pBack0; }
-	CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
+	FORCE_INLINE bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
+	FORCE_INLINE CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
+	FORCE_INLINE CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
+	FORCE_INLINE CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
+	FORCE_INLINE float GetHighGravityHeight() { return 256.0f; }
+	FORCE_INLINE CEntity* GetScrollObjRoot( uint32 i ) { return m_pScrollObjRoot[i]; }
+	FORCE_INLINE CEntity* GetChunkRoot() { return m_pChunkRoot; }
+	FORCE_INLINE CEntity* GetChunkRoot1() { return m_pChunkRoot1; }
+	FORCE_INLINE CEntity* GetChunkEffectRoot() { return m_pChunkEffectRoot; }
+	FORCE_INLINE CEntity* GetBulletRoot( uint8 nLevel ) { return m_pBulletRoot[nLevel]; }
+	FORCE_INLINE CRenderObject2D* GetBack0() { return m_pBack0; }
+	FORCE_INLINE CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
 	void UpdateBack0Position( const CVector2& pos );
 	virtual CVector2 GetCamPos();
 
 	void UpdateBlocksMovement();
+	void UpdateBlockRT();
+
+	FORCE_INLINE void OnBlockObjectRemoved( CBlockObject* pBlockObject )
+	{
+		if( pBlockObject->m_nBlockRTIndex >= 0 )
+		{
+			FreeBlockRTRect( pBlockObject->m_nBlockRTIndex );
+			pBlockObject->m_nBlockRTIndex = -1;
+			if( pBlockObject->m_pBlockRTObject )
+			{
+				pBlockObject->m_pBlockRTObject->RemoveThis();
+				pBlockObject->m_pBlockRTObject = NULL;
+			}
+		}
+	}
+	void AddBlockRTElem( CRenderObject2D* pElem ) { pElem->SetRenderParent( m_pBlockElemRoot ); }
+
+	virtual uint8 GetNavigationData( const TVector2<int32>& pos ) override;
+	virtual TRectangle<int32> GetMapRect() override;
+	virtual CVector2 GetGridSize() override { return CVector2( GetBlockSize(), GetBlockSize() ); }
 
 	CReference<CPrefab> pChunkUIPrefeb;
 protected:
@@ -119,6 +140,21 @@ protected:
 	CReference<CEntity> m_pChunkRoot1;
 	CReference<CEntity> m_pChunkEffectRoot;
 	CReference<CEntity> m_pBulletRoot[eBulletLevel_Count];
+
+	TResourceRef<CTextureFile> m_pBlockRT;
+
+	CReference<CRenderObject2D> m_pBlockElemRoot;
+	FORCE_INLINE int16 AllocBlockRTRect()
+	{
+		int16 n = m_freedBlockRTRects.back();
+		m_freedBlockRTRects.pop_back();
+		return n;
+	}
+	FORCE_INLINE void FreeBlockRTRect( int16 n )
+	{
+		m_freedBlockRTRects.push_back( n );
+	}
+	vector<int16> m_freedBlockRTRects;
 
 	static CMyLevel* s_pLevel;
 

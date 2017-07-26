@@ -1266,6 +1266,15 @@ bool CHitProxy::SweepTest( SHitProxy * pProxy1, const CMatrix2D & transform, con
 	return fDist >= 0;
 }
 
+CHitTestMgr::SGrid * CHitTestMgr::GetGrid( const TVector2<int32>& grid )
+{
+	if( grid.x < m_size.x || grid.y < m_size.y || grid.x >= m_size.GetRight() || grid.y >= m_size.GetBottom() )
+		return NULL;
+	uint32 i = grid.x - m_size.x;
+	uint32 j = grid.y - m_size.y;
+	return &m_grids[i + j * m_size.width];
+}
+
 void CHitTestMgr::Add( CHitProxy* pProxy )
 {
 	pProxy->m_bDirty = true;
@@ -1805,7 +1814,7 @@ void CHitTestMgr::SweepTest( SHitProxy * pProxy, const CMatrix2D & transform, co
 	}
 	else
 	{
-		for( int j = 1; j < newRect.height; j++ )
+		for( int j = 0; j < newRect.height; j++ )
 		{
 			int32 y = newRect.y + j;
 			float x0 = ( b1.x - a1.x ) *( y - a1.y ) / ( b1.y - a1.y ) + a1.x;

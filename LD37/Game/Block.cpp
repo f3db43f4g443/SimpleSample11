@@ -10,7 +10,7 @@
 #include "Entities/Decorator.h"
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
-	: m_pBlock( pBlock )
+	: m_pBlock( pBlock ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false )
 {
 	SET_BASEOBJECT_ID( CBlockObject );
 
@@ -29,12 +29,17 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 }
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, uint32 nSize )
-	: m_pBlock( pBlock )
+	: m_pBlock( pBlock ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false )
 {
 	SET_BASEOBJECT_ID( CBlockObject );
 
 	SetPosition( CVector2( pBlock->nX, pBlock->nY ) * nSize );
 	SetParentEntity( pParent );
+}
+
+void CBlockObject::OnRemovedFromStage()
+{
+	CMyLevel::GetInst()->OnBlockObjectRemoved( this );
 }
 
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )
@@ -60,6 +65,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, nLayerType( baseInfo.nLayerType )
 	, bInvulnerable( 0 )
 	, bIsRoom( baseInfo.bIsRoom )
+	, nMoveType( baseInfo.nMoveType )
 	, bIsLevelBarrier( false )
 	, bStopMove( false )
 	, bForceStop( false )
@@ -176,10 +182,6 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 			pSubChunk->CreateChunkObject( pLevel, this );
 		}
 		auto pNext = pSubChunk->NextSubChunk();
-		if( pSubChunk->nSubChunkType == 2 )
-		{
-			pSubChunk->RemoveFrom_SubChunk();
-		}
 		pSubChunk = pNext;
 	}
 	pChunkObject->OnCreateComplete( pLevel );
@@ -247,7 +249,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		pChunk->bSpawned = true;
 		pChunk->pChunkObject = this;
 		SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
-		if( pChunk->bIsRoom )
+		if( pChunk->nMoveType )
 		{
 			AddRect( CRectangle( 0, 0, pChunk->nWidth * CMyLevel::GetBlockSize(), pChunk->nHeight * CMyLevel::GetBlockSize() ) );
 			SetHitType( eEntityHitType_Sensor );
@@ -350,6 +352,58 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 	}
 }
 
+void CChunkObject::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	if( GetRenderObject() )
+	{
+		auto pImage2D = SafeCast<CImage2D>( GetRenderObject() );
+		if( pImage2D )
+		{
+			auto& texRect = pImage2D->GetElem().texRect;
+			for( int i = 0; i < pChunk->nWidth; i++ )
+			{
+				for( int j = 0; j < pChunk->nHeight; j++ )
+				{
+					auto pBlock = GetBlock( i, j );
+					auto& rtRect = pBlock->rtTexRect;
+					rtRect = texRect;
+					rtRect.width /= pChunk->nWidth;
+					rtRect.height /= pChunk->nHeight;
+					rtRect.x += rtRect.width * i;
+					rtRect.y += rtRect.height * ( pChunk->nHeight - 1 - j );
+				}
+			}
+		}
+	}
+}
+
+void CChunkObject::CreateBlockRTLayer( CBlockObject* pBlockObject )
+{
+	CDrawableGroup* pDrawable = m_strBlockRTDrawable;
+	if( !pDrawable )
+		return;
+
+	auto pImage2D = SafeCast<CImage2D>( pDrawable->CreateInstance() );
+	pImage2D->SetRect( CRectangle( pBlockObject->m_pBlock->nX * CMyLevel::GetBlockSize(), pBlockObject->m_pBlock->nY * CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
+	pImage2D->SetTexRect( pBlockObject->GetBlock()->rtTexRect );
+	uint16 nParamCount;
+	CVector4* pParams = pImage2D->GetParam( nParamCount );
+	if( nParamCount )
+	{
+		int32 x = pBlockObject->m_nBlockRTIndex & 63;
+		int32 y = ( pBlockObject->m_nBlockRTIndex >> 6 ) & 31;
+		pParams[nParamCount - 1] = CVector4( x / 64.0f, ( 32 - 1 - y ) / 32.0f, 1 / 64.0f, 1 / 32.0f );
+	}
+	pBlockObject->m_pBlockRTObject = pImage2D;
+
+	CRenderObject2D* pParent;
+	if( m_p1 )
+		pParent = m_p1;
+	else
+		pParent = GetRenderObject();
+	pParent->AddChild( pImage2D );
+}
+
 void CChunkObject::RemoveChunk()
 {
 	if( m_pChunk && CMyLevel::GetInst() )
@@ -357,10 +411,7 @@ void CChunkObject::RemoveChunk()
 		auto pChunk = m_pChunk;
 		m_pChunk = NULL;
 		pChunk->pChunkObject = NULL;
-		if( pChunk->nSubChunkType == 2 )
-			delete pChunk;
-		else
-			CMyLevel::GetInst()->RemoveChunk( pChunk );
+		CMyLevel::GetInst()->RemoveChunk( pChunk );
 	}
 }
 
@@ -459,10 +510,7 @@ void CChunkObject::Kill()
 	{
 		m_pChunk = NULL;
 		pChunk->pChunkObject = NULL;
-		if( pChunk->nSubChunkType == 2 )
-			delete pChunk;
-		else
-			CMyLevel::GetInst()->KillChunk( pChunk );
+		CMyLevel::GetInst()->KillChunk( pChunk );
 	}
 	SetParentEntity( NULL );
 }

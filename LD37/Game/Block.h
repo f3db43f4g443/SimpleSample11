@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include "Common/StringUtil.h"
+#include "Render/DrawableGroup.h"
 
 enum EBlockType
 {
@@ -30,7 +31,7 @@ struct SBlockLayer
 
 struct SBlock
 {
-	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 )
+	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 )
 	{ layers[0].pParent = layers[1].pParent = this; }
 	uint8 eBlockType;
 	uint8 nTag;
@@ -39,6 +40,8 @@ struct SBlock
 	uint8 nX, nY;
 	uint8 nUpperMargin, nLowerMargin;
 	CReference<CEntity> pEntity;
+
+	CRectangle rtTexRect;
 
 	enum
 	{
@@ -56,13 +59,21 @@ struct SBlock
 
 class CBlockObject : public CEntity
 {
+	friend class CMyLevel;
+	friend class CChunkObject;
 public:
-	CBlockObject( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CBlockObject ); }
+	CBlockObject( const SClassCreateContext& context ) : CEntity( context ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false ) { SET_BASEOBJECT_ID( CBlockObject ); }
 	CBlockObject( SBlock* pBlock, CEntity* pParent, class CMyLevel* pLevel );
 	CBlockObject( SBlock* pBlock, CEntity* pParent, uint32 nSize );
 	SBlock* GetBlock() { return m_pBlock; }
+
+	virtual void OnRemovedFromStage() override;
 private:
 	SBlock* m_pBlock;
+
+	int16 m_nBlockRTIndex;
+	CReference<CRenderObject2D> m_pBlockRTObject;
+	bool m_bBlockRTActive;
 };
 
 class CChunkStopEvent : public CReferenceObject
@@ -94,7 +105,8 @@ struct SChunkBaseInfo
 	float fAbsorbShakeStrengthPerHeight;
 
 	uint8 nLayerType;
-	bool bIsRoom;
+	uint8 bIsRoom;
+	uint8 nMoveType;
 	uint8 nSubChunkType;
 
 	vector<SBlockBaseInfo> blockInfos;
@@ -162,7 +174,8 @@ struct SChunk
 	uint8 nVisitFlag : 1;
 
 	uint8 bInvulnerable : 1;
-	uint8 bIsRoom : 2;
+	uint8 bIsRoom : 1;
+	uint8 nMoveType : 2;
 	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 2;
 
@@ -195,14 +208,16 @@ public:
 	};
 
 	CChunkObject( const SClassCreateContext& context ) : CEntity( context ), m_pChunk( NULL ), m_onHitShakeTick( this, &CChunkObject::HitShakeTick ),
-		m_strEffect( context ), m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
+		m_fHp( m_nMaxHp ), m_nDamagedEffectsCount( 0 ), m_hitShakeVector( CVector2( 0, 0 ) ), m_nHitShakeFrame( 0 ) { SET_BASEOBJECT_ID( CChunkObject ); }
 	~CChunkObject() {}
 	SBlock* GetBlock( uint32 x, uint32 y ) { return m_pChunk->GetBlock( x, y ); }
 	SChunk* GetChunk() { return m_pChunk; }
 	void SetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 	void Preview( SChunk* pChunk, CEntity* pParent );
-	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) {}
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
+
+	virtual void CreateBlockRTLayer( CBlockObject* pBlockObject );
 
 	float GetHp() { return m_fHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
@@ -236,6 +251,8 @@ protected:
 
 	TResourceRef<CPrefab> m_strEffect;
 	TResourceRef<CSoundFile> m_strSoundEffect;
+
+	TResourceRef<CDrawableGroup> m_strBlockRTDrawable;
 
 	SChunk* m_pChunk;
 	float m_fHp;

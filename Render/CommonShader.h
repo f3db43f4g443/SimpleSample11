@@ -66,12 +66,18 @@ public:
 		m_tex.Set( pRenderSystem, pTex );
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTex, ISamplerState* pSampler )
+	{
+		m_tex.Set( pRenderSystem, pTex );
+		m_paramLinearSampler.Set( pRenderSystem, pSampler );
+	}
 private:
 	CShaderParamShaderResource m_tex;
 	CShaderParamSampler m_paramLinearSampler;
 };
 
-void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize, float fDepth = -1 );
+void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize,
+	float fDepth = -1, IBlendState* pBlend = NULL );
 
 class CTwoTextureMultiplyPixelShader : public CGlobalShader
 {

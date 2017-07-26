@@ -515,6 +515,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="..\Shader\Blocks.shader" />
     <None Include="..\Shader\Blood.shader">
       <FileType>Document</FileType>
     </None>
@@ -563,6 +564,7 @@
     <ClCompile Include="Entities\Barrage.cpp" />
     <ClCompile Include="Entities\BlockBuffs.cpp" />
     <ClCompile Include="Entities\BlockItems\BlockItemsLv1.cpp" />
+    <ClCompile Include="Entities\BlockItems\BlockItemsLv2.cpp" />
     <ClCompile Include="Entities\BlockItems\CommonBlockItems.cpp" />
     <ClCompile Include="Entities\Blocks\Lv1\SpecialLv1.cpp" />
     <ClCompile Include="Entities\Blocks\Lv2\SpecialLv2.cpp" />
@@ -576,6 +578,7 @@
     <ClCompile Include="Entities\Enemies.cpp" />
     <ClCompile Include="Entities\Enemies\Lv1Boss.cpp" />
     <ClCompile Include="Entities\Enemies\Lv1Enemies.cpp" />
+    <ClCompile Include="Entities\Enemies\Lv2Enemies.cpp" />
     <ClCompile Include="Entities\EnemyCharacters.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
     <ClCompile Include="Entities\Neutral.cpp" />
@@ -613,6 +616,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ClCompile Include="MyLevel.cpp" />
+    <ClCompile Include="Navigation.cpp" />
     <ClCompile Include="Physics\HitProxy.cpp" />
     <ClCompile Include="Physics\HitProxyData.cpp" />
     <ClCompile Include="Pickup.cpp" />
@@ -650,6 +654,7 @@
     <ClInclude Include="Entities\Barrage.h" />
     <ClInclude Include="Entities\BlockBuffs.h" />
     <ClInclude Include="Entities\BlockItems\BlockItemsLv1.h" />
+    <ClInclude Include="Entities\BlockItems\BlockItemsLv2.h" />
     <ClInclude Include="Entities\BlockItems\CommonBlockItems.h" />
     <ClInclude Include="Entities\Blocks\Lv1\SpecialLv1.h" />
     <ClInclude Include="Entities\Blocks\Lv2\SpecialLv2.h" />
@@ -663,6 +668,7 @@
     <ClInclude Include="Entities\Enemies.h" />
     <ClInclude Include="Entities\Enemies\Lv1Boss.h" />
     <ClInclude Include="Entities\Enemies\Lv1Enemies.h" />
+    <ClInclude Include="Entities\Enemies\Lv2Enemies.h" />
     <ClInclude Include="Entities\EnemyCharacters.h" />
     <ClInclude Include="Entities\GlitchEffect.h" />
     <ClInclude Include="Entities\Neutral.h" />
@@ -692,6 +698,7 @@
     <ClInclude Include="MainMenu.h" />
     <ClInclude Include="MyGame.h" />
     <ClInclude Include="MyLevel.h" />
+    <ClInclude Include="Navigation.h" />
     <ClInclude Include="Physics\HitProxy.h" />
     <ClInclude Include="Physics\HitProxyData.h" />
     <ClInclude Include="Pickup.h" />

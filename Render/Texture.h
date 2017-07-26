@@ -83,12 +83,12 @@ public:
 			delete m_pDSV;
 	}
 
-	const CTextureDesc& GetDesc() { return m_desc; }
+	FORCE_INLINE const CTextureDesc& GetDesc() { return m_desc; }
 	virtual uint32 GetData( void** ppData ) = 0;
 
 	virtual IShaderResource* GetShaderResource() override { return m_pSRV; }
-	IRenderTarget* GetRenderTarget() { return m_pRTV; }
-	IDepthStencil* GetDepthStencil() { return m_pDSV; }
+	FORCE_INLINE IRenderTarget* GetRenderTarget() { return m_pRTV; }
+	FORCE_INLINE IDepthStencil* GetDepthStencil() { return m_pDSV; }
 protected:
 	CTextureDesc m_desc;
 	IShaderResource* m_pSRV;
@@ -146,17 +146,20 @@ private:
 	map<CTextureDesc, SItem*> m_mapItems;
 };
 
-class CTextureFile : public CResource
+class CTextureFile : public CResource, public IShaderResourceProxy
 {
 public:
 	enum EType
 	{
 		eResType = eEngineResType_Texture,
 	};
-	CTextureFile( const char* name, int32 type ) : CResource( name, type ) {}
+	FORCE_INLINE CTextureFile( const char* name, int32 type ) : CResource( name, type ) {}
 	void Create();
+	virtual IShaderResource* GetShaderResource() override { return m_pTexture->GetShaderResource(); }
+	FORCE_INLINE IRenderTarget* GetRenderTarget() { return m_pTexture->GetRenderTarget(); }
+	void SwapRenderTarget( CReference<ITexture>& pTexture );
 
-	ITexture* GetTexture() { return m_pTexture; }
+	FORCE_INLINE ITexture* GetTexture() { return m_pTexture; }
 	static void InitLoader();
 
 	static bool SaveTexFile( const char* szFileName, void* pData, uint32 nWidth, uint32 nHeight );

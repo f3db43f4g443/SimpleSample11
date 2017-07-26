@@ -3,7 +3,7 @@
 #include "Material.h"
 #include "Texture.h"
 
-void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize, float fDepth )
+void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITexture* pSrc, const CRectangle& dstRect, const CRectangle& srcRect, const CVector2& dstSize, const CVector2& srcSize, float fDepth, IBlendState* pBlend )
 {
 	if( pDst )
 	{
@@ -13,7 +13,7 @@ void CopyToRenderTarget( IRenderSystem* pRenderSystem, IRenderTarget* pDst, ITex
 	}
 
 	bool bDepth = fDepth >= 0;
-	pRenderSystem->SetBlendState( IBlendState::Get<>() );
+	pRenderSystem->SetBlendState( pBlend ? pBlend : IBlendState::Get<>() );
 	if( !bDepth )
 		pRenderSystem->SetDepthStencilState( IDepthStencilState::Get<>() );
 	pRenderSystem->SetRasterizerState( IRasterizerState::Get<>() );

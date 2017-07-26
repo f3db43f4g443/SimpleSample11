@@ -2,20 +2,20 @@
 
 
 template <typename T>
-TQuaternion<T>::TQuaternion()
+FORCE_INLINE TQuaternion<T>::TQuaternion()
 {
 }
 template <typename T>
-TQuaternion<T>::TQuaternion(T w, T x, T y, T z):w(w), x(x), y(y), z(z)
+FORCE_INLINE TQuaternion<T>::TQuaternion(T w, T x, T y, T z):w(w), x(x), y(y), z(z)
 {
 }
 template <typename T>
-TQuaternion<T>::TQuaternion(const TQuaternion<T>& q):w(q.w), x(q.x), y(q.y), z(q.z)
+FORCE_INLINE TQuaternion<T>::TQuaternion(const TQuaternion<T>& q):w(q.w), x(q.x), y(q.y), z(q.z)
 {
 }
 
 template <typename T>
-TQuaternion<T>& TQuaternion<T>::operator= (const TQuaternion<T>& q)
+FORCE_INLINE TQuaternion<T>& TQuaternion<T>::operator= (const TQuaternion<T>& q)
 {
 	w = q.w;
 	x = q.x;
@@ -24,22 +24,22 @@ TQuaternion<T>& TQuaternion<T>::operator= (const TQuaternion<T>& q)
 	return *this;
 }
 template <typename T>
-bool TQuaternion<T>::operator== (const TQuaternion<T>& q) const
+FORCE_INLINE bool TQuaternion<T>::operator== (const TQuaternion<T>& q) const
 {
 	return w == q.w && x == q.x && y == q.y && z == q.z;
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::operator+ (const TQuaternion<T>& q) const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::operator+ (const TQuaternion<T>& q) const
 {
 	return TQuaternion<T>(w + q.w, x + q.x, y + q.y, z + q.z);
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::operator- (const TQuaternion<T>& q) const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::operator- (const TQuaternion<T>& q) const
 {
 	return TQuaternion<T>(w - q.w, x - q.x, y - q.y, z - q.z);
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::operator* (const TQuaternion<T>& q) const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::operator* (const TQuaternion<T>& q) const
 {
 	TQuaternion<T> result;
     result.w = w*q.w - x*q.x - y*q.y - z*q.z;
@@ -49,23 +49,23 @@ TQuaternion<T> TQuaternion<T>::operator* (const TQuaternion<T>& q) const
     return result;
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::operator* (T scalar) const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::operator* (T scalar) const
 {
 	return TQuaternion<T>(w * scalar, x * scalar, y * scalar, z * scalar);
 }
 
 template <typename T>
-T TQuaternion<T>::Length () const
+FORCE_INLINE T TQuaternion<T>::Length () const
 {
 	return sqrt(x * x + y * y + z * z + w * w);
 }
 template <typename T>
-T TQuaternion<T>::Dot (const TQuaternion<T>& q) const
+FORCE_INLINE T TQuaternion<T>::Dot (const TQuaternion<T>& q) const
 {
 	return x * q.x + y * q.y + z * q.z + w * q.w;
 }
 template <typename T>
-T TQuaternion<T>::Normalize ()
+FORCE_INLINE T TQuaternion<T>::Normalize ()
 {
 	T l = Length();
 	if(l > 0) {
@@ -77,7 +77,7 @@ T TQuaternion<T>::Normalize ()
 	return l;
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::Inverse () const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::Inverse () const
 {
 	TQuaternion<T> inverse;
 
@@ -101,12 +101,12 @@ TQuaternion<T> TQuaternion<T>::Inverse () const
     return inverse;
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::Conjugate () const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::Conjugate () const
 {
     return TQuaternion<T>(w, -x, -y, -z);
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::Exp () const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::Exp () const
 {
     TQuaternion<T> result;
 
@@ -132,7 +132,7 @@ TQuaternion<T> TQuaternion<T>::Exp () const
     return result;
 }
 template <typename T>
-TQuaternion<T> TQuaternion<T>::Log () const
+FORCE_INLINE TQuaternion<T> TQuaternion<T>::Log () const
 {
 	TQuaternion<T> result;
     result.w = 0;
@@ -157,7 +157,7 @@ TQuaternion<T> TQuaternion<T>::Log () const
     return result;
 }
 template <typename T>
-TQuaternion<T>& TQuaternion<T>::Slerp (T t, const TQuaternion<T>& p, const TQuaternion<T>& q)
+FORCE_INLINE TQuaternion<T>& TQuaternion<T>::Slerp (T t, const TQuaternion<T>& p, const TQuaternion<T>& q)
 {
 	T cs = p.Dot(q);
 	T angle = acos(cs);
@@ -187,7 +187,7 @@ TQuaternion<T>& TQuaternion<T>::Slerp (T t, const TQuaternion<T>& p, const TQuat
 }
 
 template <typename T>
-TMatrix<T> TQuaternion<T>::ToMatrix() const
+FORCE_INLINE TMatrix<T> TQuaternion<T>::ToMatrix() const
 {
 	T twoX  = 2*x;
     T twoY  = 2*y;
@@ -208,7 +208,7 @@ TMatrix<T> TQuaternion<T>::ToMatrix() const
 		0, 0, 0, 1);
 }
 template <typename T>
-TEuler<T> TQuaternion<T>::ToEuler() const
+FORCE_INLINE TEuler<T> TQuaternion<T>::ToEuler() const
 {
 	TQuaternion<T> alt(w, -y, x, z);
 	T cy, sy, cx, sx, cz, sz;

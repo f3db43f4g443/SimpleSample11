@@ -302,6 +302,31 @@ CEntity * CStage::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, con
 	return NULL;
 }
 
+CEntity * CStage::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CVector2 & sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
+{
+	SHitProxy* pHitProxy = pEntity->Get_HitProxy();
+	if( !pHitProxy )
+		return NULL;
+	vector<SRaycastResult> result;
+	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
+	for( int i = 0; i < result.size(); i++ )
+	{
+		if( result[i].pHitProxy == pEntity )
+			continue;
+		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
+		if( !hitTypeFilter[pEntity1->GetHitType()] )
+			continue;
+		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
+			continue;
+		if( !pEntity1->CanHit( pEntity ) || !pEntity->CanHit( pEntity1 ) )
+			continue;
+		if( pResult )
+			*pResult = result[i];
+		return pEntity1;
+	}
+	return NULL;
+}
+
 void CStage::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )
 {
 	vector<SRaycastResult> tempResult;

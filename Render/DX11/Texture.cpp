@@ -129,7 +129,7 @@ CTexture::CTexture( ID3D11Device* pDevice, ETextureType eType, int nDim1, int nD
 
 	if( !bBindDepthStencil )
 		m_pSRV = new CShaderResource( pDevice, m_pTexture, NULL, EShaderResourceType::Texture2D, this, bGenerateMips );
-	if( bBindRenderTarget )
+	if( m_desc.bBindRenderTarget )
 		m_pRTV = new CRenderTarget( pDevice, m_pTexture, NULL, this );
 	if( bBindDepthStencil )
 		m_pDSV = new CDepthStencil( pDevice, m_pTexture, NULL, this );

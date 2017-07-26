@@ -5,6 +5,7 @@
 #include "Common/Rand.h"
 #include "Stage.h"
 #include "Render/DrawableGroup.h"
+#include "MyLevel.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -96,5 +97,48 @@ void CSimpleText::Set( const char * szText )
 		pRoot->AddChild( pImage );
 
 		rect.x += rect.width;
+	}
+}
+
+void CBlockRTEft::OnAddedToStage()
+{
+	if( !CMyLevel::GetInst() )
+		return;
+	SetAutoUpdateAnim( true );
+	if( m_nBeginFrame )
+	{
+		GetRenderObject()->SetRenderParent( NULL );
+		GetStage()->RegisterBeforeHitTest( m_nBeginFrame, &m_onTick );
+	}
+	else
+	{
+		m_bStart = true;
+		CMyLevel::GetInst()->AddBlockRTElem( GetRenderObject() );
+		if( m_nLife )
+			GetStage()->RegisterBeforeHitTest( m_nLife, &m_onTick );
+	}
+}
+
+void CBlockRTEft::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CBlockRTEft::OnTick()
+{
+	if( m_bStart )
+	{
+		SetParentEntity( NULL );
+		return;
+	}
+	else
+	{
+		m_bStart = true;
+		CMyLevel::GetInst()->AddBlockRTElem( GetRenderObject() );
+		if( m_nLife )
+		{
+			GetStage()->RegisterBeforeHitTest( m_nLife, &m_onTick );
+		}
 	}
 }

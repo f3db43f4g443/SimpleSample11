@@ -97,7 +97,10 @@ void CMaterial::Load( IBufReader& buf )
 			{
 				CTextureFile* pTexture = static_cast<CTextureFile*>( pResource );
 				m_vecDependentResources.push_back( pTexture );
-				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+				if( pTexture->GetRenderTarget() )
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture ) );
+				else
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
 			}
 			else if( pResource->GetResourceType() == CDynamicTexture::eResType )
 			{
@@ -282,7 +285,10 @@ void CMaterial::LoadXml( TiXmlElement* pRoot )
 				if( !pTexture )
 					continue;
 				m_vecDependentResources.push_back( pTexture );
-				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+				if( pTexture->GetRenderTarget() )
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture ) );
+				else
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
 			}
 		}
 	}

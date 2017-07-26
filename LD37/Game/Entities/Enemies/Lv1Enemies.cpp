@@ -31,19 +31,19 @@ void CManHead1::AIFunc()
 			nAttack = 0;
 			SBarrageContext context;
 			context.vecBulletTypes.push_back( m_pBullet );
-			context.nBulletPageSize = 20;
+			context.nBulletPageSize = 15;
 
 			CBarrage* pBarrage = new CBarrage( context );
 			CVector2 pos = GetPosition();
 			pBarrage->AddFunc( []( CBarrage* pBarrage )
 			{
-				for( int i = 0; i < 4; i++ )
+				for( int i = 0; i < 3; i++ )
 				{
 					float fSpeedX = SRand::Inst().Rand( -50.0f, 50.0f );
 					for( int j = 0; j < 5; j++ )
 					{
-						float fAngle1 = ( j - 2 ) * 0.18f;
-						float fSpeed = 250.0f + SRand::Inst().Rand( -25.0f, 25.0f );
+						float fAngle1 = ( j - 2 ) * 0.2f;
+						float fSpeed = 150.0f + SRand::Inst().Rand( 0.0f, 50.0f );
 						pBarrage->InitBullet( i * 5 + j, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * sin( fAngle1 ) + fSpeedX, fSpeed * -cos( fAngle1 ) ), CVector2( 0, 0 ) );
 					}
 					pBarrage->Yield( 10 );
@@ -571,7 +571,7 @@ void CRat::OnTickAfterHitTest()
 		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 		{
 			CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-			if( pChunkObject && pChunkObject->GetChunk()->bIsRoom )
+			if( pChunkObject && pChunkObject->GetChunk()->nMoveType )
 			{
 				CRectangle rect( pChunkObject->globalTransform.GetPosition().x, pChunkObject->globalTransform.GetPosition().y,
 					pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),

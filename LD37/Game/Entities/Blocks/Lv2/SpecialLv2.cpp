@@ -5,6 +5,7 @@
 #include "Entities/Bullets.h"
 #include "Explosion.h"
 #include "MyLevel.h"
+#include "Entities/EnemyCharacters.h"
 #include "Common/Rand.h"
 
 void CHousePart::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -58,12 +59,21 @@ void CHousePart::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 					tex = tex.Offset( CVector2( 7 * tex.width, 3 * tex.height ) );
 				else
 					tex = tex.Offset( CVector2( 0.5f * tex.width, 0.5f * tex.height ) );
+
+				if( nTag >= 3 && nTag <= 6 )
+				{
+					auto pEntrance = SafeCast<CHouseEntrance>( m_pEntrancePrefabs[nTag - 3]->GetRoot()->CreateInstance() );
+					pEntrance->SetParentEntity( this );
+					pEntrance->SetPosition( CVector2( iX + 0.5f, iY + 0.5f ) * CMyLevel::GetBlockSize() );
+					m_houseEntrances.push_back( pEntrance );
+				}
 			}
 
 			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 			pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
 			pImage2D->SetTexRect( tex );
 			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( iX, iY )->rtTexRect = tex;
 
 			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 			{
@@ -222,6 +232,7 @@ void CHouse::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
 			pImage2D->SetTexRect( tex );
 			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( iX, iY )->rtTexRect = tex;
 
 			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 			{
@@ -235,6 +246,47 @@ void CHouse::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
 	m_fHp = m_nMaxHp;
+}
+
+void CHouse::Enter( CCharacter * pCharacter )
+{
+	m_characters.push_back( pair<CReference<CCharacter>, int32>( pCharacter, 10 ) );
+	pCharacter->SetParentEntity( NULL );
+	m_bAnyoneEntered = true;
+}
+
+void CHouse::OnCreateComplete( CMyLevel * pLevel )
+{
+	uint32 nGrids = m_pChunk->nWidth * m_pChunk->nHeight;
+	for( int i = 0; i < 4; i++ )
+	{
+		if( !m_pInitCharPrefabs[i] )
+			continue;
+		float fCount = m_fInitCharPerGrid[i] * nGrids;
+		int32 nCount = floor( fCount + SRand::Inst().Rand( 0.0f, 1.0f ) );
+		for( int j = 0; j < nCount; j++ )
+		{
+			auto pChar = SafeCast<CCharacter>( m_pInitCharPrefabs[i]->GetRoot()->CreateInstance() );
+			m_characters.push_back( pair<CReference<CCharacter>, int32>( pChar, 0 ) );
+		}
+	}
+
+	for( auto pChild = Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
+	{
+		auto pEntrance = SafeCast<CHouseEntrance>( pChild );
+		if( pEntrance )
+		{
+			m_houseEntrances.push_back( pEntrance );
+			continue;
+		}
+
+		auto pPart = SafeCast<CHousePart>( pChild );
+		if( pPart )
+			m_houseParts.push_back( pPart );
+	}
+
+	if( pLevel )
+		pLevel->GetStage()->RegisterAfterHitTest( 10, &m_onTick );
 }
 
 void CHouse::OnKilled()
@@ -252,6 +304,84 @@ void CHouse::OnKilled()
 				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 				pEffect->SetState( 2 );
+			}
+		}
+	}
+}
+
+void CHouse::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 10, &m_onTick );
+
+	int32 nChar = -1;
+	for( int i = 0; i < m_characters.size(); i++ )
+	{
+		if( m_characters[i].second )
+			m_characters[i].second--;
+		if( nChar == -1 && !m_characters[i].second )
+			nChar = i;
+	}
+	if( nChar >= 0 && m_bAnyoneEntered )
+	{
+		auto pCharacter = m_characters[nChar].first;
+		auto pThug = SafeCast<CThug>( pCharacter.GetPtr() );
+
+		if( pThug && !SRand::Inst().Rand( 0, 2 ) )
+		{
+			SRand::Inst().Shuffle( m_houseParts );
+			for( int i = 0; i < m_houseParts.size(); i++ )
+			{
+				if( !m_houseParts[i]->m_houseEntrances.size() )
+					continue;
+				SRand::Inst().Shuffle( m_houseParts[i]->m_houseEntrances );
+				for( CHouseEntrance* pItem : m_houseParts[i]->m_houseEntrances )
+				{
+					if( pItem->Exit( pThug ) )
+					{
+						int32 nPrefab;
+						for( nPrefab = 0; nPrefab < 4; nPrefab++ )
+						{
+							if( !m_pThrowObjPrefabs[nPrefab] )
+								break;
+						}
+						nPrefab = SRand::Inst().Rand( 0, nPrefab );
+						auto pThrowObj = SafeCast<CCharacter>( m_pThrowObjPrefabs[nPrefab]->GetRoot()->CreateInstance() );
+						pThug->SetThrowObj( pThrowObj, CVector2( 0, -pThrowObj->GetRenderObject()->GetLocalBound().y ), true );
+
+						m_characters[nChar] = m_characters.back();
+						m_characters.pop_back();
+						return;
+					}
+				}
+			}
+		}
+
+		for( int i = m_houseEntrances.size(); i > 0; i-- )
+		{
+			int32 r = SRand::Inst().Rand( 0, i );
+			if( m_houseEntrances[r]->Exit( pCharacter ) )
+			{
+				if( pThug )
+				{
+					int32 nPrefab;
+					for( nPrefab = 0; nPrefab < 4; nPrefab++ )
+					{
+						if( !m_pThrowObjPrefabs[nPrefab] )
+							break;
+					}
+					nPrefab = SRand::Inst().Rand( 0, nPrefab );
+					auto pThrowObj = SafeCast<CCharacter>( m_pThrowObjPrefabs[nPrefab]->GetRoot()->CreateInstance() );
+					pThug->SetThrowObj( pThrowObj, CVector2( 0, -pThrowObj->GetRenderObject()->GetLocalBound().y ), false );
+				}
+
+				m_characters[nChar] = m_characters.back();
+				m_characters.pop_back();
+				break;
+			}
+			else
+			{
+				if( r != i - 1 )
+					swap( m_houseEntrances[r], m_houseEntrances.back() );
 			}
 		}
 	}

@@ -47,7 +47,7 @@ SShaderResourceEditItem::~SShaderResourceEditItem()
 void SShaderResourceEditItem::Create( CUITreeView::CTreeViewContent* pParent )
 {
 	pRoot = CTreeFolder::Create( pTreeView, pParent, param.strName.c_str() );
-	pFileName = CFileNameEdit::Create( "File name", "bmp;jpg;png;tga;dtx" );
+	pFileName = CFileNameEdit::Create( "File name", "bmp;jpg;png;tga;dtx;rt" );
 	pTreeView->AddContentChild( pFileName, pRoot );
 }
 

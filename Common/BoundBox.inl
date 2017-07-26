@@ -1,17 +1,17 @@
 #include "Common.h"
 
 template <typename T>
-TBoundBox<T>::TBoundBox()
+FORCE_INLINE TBoundBox<T>::TBoundBox()
 {
 }
 
 template <typename T>
-TBoundBox<T>::~TBoundBox(void)
+FORCE_INLINE TBoundBox<T>::~TBoundBox(void)
 {
 }
 
 template <typename T>
-void TBoundBox<T>::Set(T x1, T y1, T z1, T x2, T y2, T z2)
+FORCE_INLINE void TBoundBox<T>::Set(T x1, T y1, T z1, T x2, T y2, T z2)
 {
 	m_x1 = x1;
 	m_y1 = y1; 
@@ -22,7 +22,7 @@ void TBoundBox<T>::Set(T x1, T y1, T z1, T x2, T y2, T z2)
 }
 
 template <typename T>
-void TBoundBox<T>::GetAABB(const TMatrix<T>& transform, T& x1, T& y1, T& z1, T& x2, T& y2, T& z2)
+FORCE_INLINE void TBoundBox<T>::GetAABB(const TMatrix<T>& transform, T& x1, T& y1, T& z1, T& x2, T& y2, T& z2)
 {
 	x1 = x2 = transform.m03;
 	if(transform.m00 > 0) {x1 += m_x1 * transform.m00; x2 += m_x2 * transform.m00;}

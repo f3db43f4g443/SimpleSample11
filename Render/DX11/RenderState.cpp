@@ -134,10 +134,10 @@ CSamplerState::CSamplerState( uint32 Filter, uint32 AddressU, uint32 AddressV, u
 	desc.MipLODBias = MipLODBias;
 	desc.MaxAnisotropy = MaxAnisotropy;
 	desc.ComparisonFunc = (D3D11_COMPARISON_FUNC)ComparisonFunc;
-	desc.BorderColor[0] = BorderColor0;
-	desc.BorderColor[1] = BorderColor1;
-	desc.BorderColor[2] = BorderColor2;
-	desc.BorderColor[3] = BorderColor3;
+	desc.BorderColor[0] = BorderColor0 / 255.0f;
+	desc.BorderColor[1] = BorderColor1 / 255.0f;
+	desc.BorderColor[2] = BorderColor2 / 255.0f;
+	desc.BorderColor[3] = BorderColor3 / 255.0f;
 	desc.MinLOD = 0;
 	desc.MaxLOD = FLT_MAX;
 	

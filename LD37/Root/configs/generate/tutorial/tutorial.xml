@@ -159,7 +159,7 @@
         </subitem>
       </node>
       
-      <node name="room_small" type="commonroom" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="40" shakedmg="40" isroom="1" prefab="data/tutorial/room.pf">
+      <node name="room_small" type="commonroom" width="6" height="6" weight="7" destroyweight="33" absorbshakestrength="10000" destroyshake="40" shakedmg="40" movetype="1" isroom="1" prefab="data/tutorial/room.pf">
         <types>
           4,4,4,4,4,4,
           4,0,0,0,0,4,
@@ -182,7 +182,7 @@
         </wall_broken1>
       </node>
       
-      <node name="room_large" type="commonroom" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="50" shakedmg="40" isroom="1" prefab="data/tutorial/room.pf">
+      <node name="room_large" type="commonroom" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="50" shakedmg="40" movetype="1" isroom="1" prefab="data/tutorial/room.pf">
         <types>
           4,4,4,0,0,4,4,4,
           4,0,0,0,0,0,0,4,

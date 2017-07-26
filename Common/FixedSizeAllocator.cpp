@@ -1,7 +1,7 @@
 #include "Common.h"
 #include "FixedSizeAllocator.h"
 
-CFixedSizeAllocator::CFixedSizeAllocator( uint32 nSize, uint32 nChunkSize ) : m_pFreedBlocks( NULL )
+CFixedSizeAllocator::CFixedSizeAllocator( uint32 nSize, uint32 nChunkSize ) : m_pFreedBlocks( NULL ), m_pAllocFunc( NULL ), m_pFreeFunc( NULL )
 {
 	uint32 nBlockSize = nSize + sizeof( SBlock );
 	nBlockSize = ( nBlockSize + 3 ) & ~3;
@@ -16,7 +16,8 @@ void* CFixedSizeAllocator::Alloc()
 	{
 		SBlock* pBlock = m_pFreedBlocks;
 		m_pFreedBlocks = m_pFreedBlocks->pNext;
-		return pBlock + 1;
+		void* pData = pBlock + 1;
+		return pData;
 	}
 	else
 	{
@@ -28,6 +29,9 @@ void* CFixedSizeAllocator::Alloc()
 		for( int i = 0; i < m_nBlockCountInChunk; i++ )
 		{
 			pBlock = (SBlock*)pBlockData;
+			void* pData = pBlock + 1;
+			if( m_pAllocFunc )
+				( *m_pAllocFunc )( pData );
 			pBlockData += m_nBlockSize;
 			pBlock->pNext = (SBlock*)pBlockData;
 		}
@@ -46,6 +50,15 @@ void CFixedSizeAllocator::Free( void* pData )
 
 void CFixedSizeAllocator::Clear()
 {
+	if( m_pFreeFunc )
+	{
+		for( auto pBlock = m_pFreedBlocks; pBlock; pBlock = pBlock->pNext )
+		{
+			void* pData = pBlock + 1;
+			( *m_pFreeFunc )( pData );
+		}
+	}
+
 	for( int i = 0; i < m_chunks.size(); i++ )
 	{
 		free( m_chunks[i].pBlock );

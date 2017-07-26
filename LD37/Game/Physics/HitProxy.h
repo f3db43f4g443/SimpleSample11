@@ -119,6 +119,7 @@ public:
 
 	const CVector2& GetLastPos() { return m_lastPos; }
 	void SetLastPos( const CVector2& pos ) { m_lastPos = pos; }
+	void SetCurPos( const CVector2& pos ) { m_curPos = pos; }
 
 	SHitProxyCircle* AddCircle( float fRadius, const CVector2 &center );
 	SHitProxyPolygon* AddRect( const CRectangle& rect );
@@ -160,6 +161,7 @@ public:
 		friend class CHitTestMgr;
 		LINK_LIST_HEAD( m_pProxyGrid, SHitProxyGrid, InGrid );
 	};
+	SGrid* GetGrid( const TVector2<int32>& grid );
 	static const uint32 nGridSize = 32;
 	
 	void Add( CHitProxy* pProxy );

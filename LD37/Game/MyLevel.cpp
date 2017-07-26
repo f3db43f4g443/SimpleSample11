@@ -10,12 +10,24 @@
 #include "GameState.h"
 #include "LevelDesign.h"
 #include "PlayerData.h"
+#include "Render/Scene2DManager.h"
+#include "Render/GlobalRenderResources.h"
+#include "Render/CommonShader.h"
 
 CMyLevel* CMyLevel::s_pLevel = NULL;
 int8 CMyLevel::s_nTypes[] = { 0, 1, 1, 2, 3 };
 
 void CMyLevel::OnAddedToStage()
 {
+	m_pBlockElemRoot = new CRenderObject2D;
+	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( m_pBlockElemRoot );
+
+	m_freedBlockRTRects.reserve( 32 * 32 * 2 );
+	for( int i = 0; i < 32 * 32 * 2; i++ )
+	{
+		m_freedBlockRTRects.push_back( i );
+	}
+
 	m_basements.resize( m_nWidth );
 	auto pMainUI = CMainUI::GetInst();
 	if( pMainUI )
@@ -89,6 +101,7 @@ void CMyLevel::OnAddedToStage()
 	s_pLevel = this;
 	StartUp();
 	CheckSpawn();
+	GetStage()->SetNavigationProvider( this );
 
 	pChunkUIPrefeb = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().mapPrefabPath["chunk_ui"].c_str() );
 
@@ -101,6 +114,9 @@ void CMyLevel::OnAddedToStage()
 
 void CMyLevel::OnRemovedFromStage()
 {
+	m_pBlockElemRoot->RemoveThis();
+	m_pBlockElemRoot = NULL;
+	GetStage()->SetNavigationProvider( NULL );
 	if( s_pLevel == this )
 		s_pLevel = NULL;
 }
@@ -204,7 +220,7 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 			pChunk->pChunkObject->Kill();
 		return;
 	}
-	if( !pChunk->Get_SubChunk() )
+	if( !pChunk->Get_SubChunk() || pChunk->pParentChunk )
 	{
 		RemoveChunk( pChunk );
 		return;
@@ -214,7 +230,7 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 	uint32 nChunks = 0;
 	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
 	{
-		if( pChunk->nSubChunkType != 2 )
+		if( pSubChunk->nSubChunkType != 2 )
 			nChunks++;
 	}
 	newChunks.resize( nChunks );
@@ -223,8 +239,13 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 		auto pSubChunk = pChunk->Get_SubChunk();
 		if( pSubChunk->nSubChunkType == 2 )
 		{
-			pSubChunk->RemoveFrom_SubChunk();
-			delete pSubChunk;
+			if( pSubChunk->pChunkObject )
+				pSubChunk->pChunkObject->Kill();
+			else
+			{
+				pSubChunk->RemoveFrom_SubChunk();
+				delete pSubChunk;
+			}
 		}
 		else
 		{
@@ -320,7 +341,7 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 	delete pChunk;
 }
 
-void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > > newChunks )
+void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks )
 {
 	uint32 nX = pOldChunk->pos.x / GetBlockSize();
 	uint32 nY = pOldChunk->pos.y / GetBlockSize();
@@ -354,6 +375,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 		{
 			return;
 		}
+
 		for( int iLayer = 0; iLayer < 2; iLayer++ )
 		{
 			if( !item.first->HasLayer( iLayer ) )
@@ -431,6 +453,34 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 			}
 		}
 	}
+
+	if( bSpawned )
+	{
+		for( auto& item : newChunks )
+		{
+			int32 minX = item.second.x / GetBlockSize();
+			int32 minY = item.second.y / GetBlockSize();
+			for( auto& block : item.first->blocks )
+			{
+				auto pOldBlock = pOldChunk->GetBlock( block.nX + minX, block.nY + minY );
+				if( pOldBlock->pEntity )
+				{
+					auto pBlockObject = static_cast<CBlockObject*>( pOldBlock->pEntity.GetPtr() );
+					if( pBlockObject->m_pBlockRTObject )
+					{
+						auto pBlockObject1 = static_cast<CBlockObject*>( block.pEntity.GetPtr() );
+						pBlockObject1->m_nBlockRTIndex = pBlockObject->m_nBlockRTIndex;
+						item.first->pChunkObject->CreateBlockRTLayer( pBlockObject1 );
+
+						pBlockObject->m_nBlockRTIndex = -1;
+						pBlockObject->m_pBlockRTObject->RemoveThis();
+						pBlockObject->m_pBlockRTObject = NULL;
+					}
+				}
+			}
+		}
+	}
+
 	RemoveChunk( pOldChunk );
 }
 
@@ -875,6 +925,8 @@ void CMyLevel::UpdateBlocksMovement()
 			}
 		}
 	}
+	else
+		m_fCurLvBarrierHeight = 100000;
 
 	for( auto pBlockLayer : vecUpdatedBlocks )
 	{
@@ -932,6 +984,218 @@ void CMyLevel::UpdateBlocksMovement()
 		m_fCurScrollPos = Min( m_fCurScrollPos + Max( 1.0f, ceil( ( fTargetScrollPos - m_fCurScrollPos ) * 0.015f ) ), fTargetScrollPos );
 }
 
+class CBlockVertexShader : public CGlobalShader
+{
+	DECLARE_GLOBAL_SHADER( CBlockVertexShader );
+protected:
+	virtual void OnCreated() override
+	{
+		GetShader()->GetShaderInfo().Bind( m_invDstSrcResolution, "InvDstSrcResolution" );
+		GetShader()->GetShaderInfo().Bind( m_depth, "fDepth" );
+		GetShader()->GetShaderInfo().Bind( m_inst, "g_insts", "InstBuffer" );
+	}
+public:
+	void SetParams( IRenderSystem* pRenderSystem, void* pInstData, uint32 nDataSize, const CVector2& DstResolution, const CVector2& SrcResolution, float fDepth = 0 )
+	{
+		CVector4 invDstSrcResolution( 1.0f / DstResolution.x, 1.0f / DstResolution.y, 1.0f / SrcResolution.x, 1.0f / SrcResolution.y );
+		m_invDstSrcResolution.Set( pRenderSystem, &invDstSrcResolution );
+		m_depth.Set( pRenderSystem, &fDepth );
+		m_inst.InvalidConstantBuffer( pRenderSystem );
+		m_inst.Set( pRenderSystem, pInstData, nDataSize );
+	}
+private:
+	CShaderParam m_invDstSrcResolution;
+	CShaderParam m_depth;
+	CShaderParam m_inst;
+};
+
+IMPLEMENT_GLOBAL_SHADER( CBlockVertexShader, "Shader/Blocks.shader", "VSScreen", "vs_5_0" );
+
+void CMyLevel::UpdateBlockRT()
+{
+	if( !m_pBlockElemRoot->Get_RenderChild() )
+		return;
+
+	vector<CReference<CEntity> > hitEntities;
+	vector<CBlockObject*> hitBlocks;
+	for( auto pChild = m_pBlockElemRoot->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		CRectangle& rect = pChild->globalAABB;
+
+		SHitProxyPolygon polygon;
+		polygon.nVertices = 4;
+		polygon.vertices[0] = CVector2( rect.x, rect.y );
+		polygon.vertices[1] = CVector2( rect.x + rect.width, rect.y );
+		polygon.vertices[2] = CVector2( rect.x + rect.width, rect.y + rect.height );
+		polygon.vertices[3] = CVector2( rect.x, rect.y + rect.height );
+		polygon.CalcNormals();
+
+		GetStage()->MultiHitTest( &polygon, globalTransform, hitEntities );
+		for( CEntity* pEntity : hitEntities )
+		{
+			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject && !pBlockObject->m_bBlockRTActive )
+				hitBlocks.push_back( pBlockObject );
+		}
+		hitEntities.resize( 0 );
+	}
+
+	if( !hitBlocks.size() )
+		return;
+
+	CReference<ITexture> pTex;
+	IRenderSystem* pSystem = IRenderSystem::Inst();
+	auto rtDesc = m_pBlockRT->GetTexture()->GetDesc();
+	rtDesc.nDim1 /= 2;
+	auto& rtPool = CRenderTargetPool::GetSizeIndependentPool();
+	{
+		CVector2 rtSize( rtDesc.nDim1, rtDesc.nDim2 );
+		CRenderContext2D context;
+		context.pRenderSystem = pSystem;
+		context.screenRes = rtSize;
+		context.lightMapRes = rtSize;
+		context.dTime = pSystem->GetElapsedTime();
+		context.nTimeStamp = 0;
+		context.eRenderPass = eRenderPass_Color;
+		context.rectScene = CRectangle( 0, 0, 1024, 1024 );
+		context.rectViewport = CRectangle( 0, 0, rtSize.x, rtSize.y );
+		SRenderGroup renderGroup;
+		context.renderGroup = &renderGroup;
+		context.Render( m_pBlockElemRoot );
+
+		rtPool.AllocRenderTarget( pTex, rtDesc );
+		pSystem->SetRenderTarget( pTex->GetRenderTarget(), NULL );
+		pSystem->ClearRenderTarget( CVector4( 0, 0, 0, 0 ) );
+
+		SViewport viewport = {
+			context.rectViewport.x,
+			context.rectViewport.y,
+			context.rectViewport.width,
+			context.rectViewport.height,
+			0,
+			1
+		};
+		pSystem->SetViewports( &viewport, 1 );
+		if( context.GetElemCount() )
+		{
+			context.FlushElements();
+		}
+
+		while( context.pUpdatedObjects )
+		{
+			CRenderObject2D* pObject = context.pUpdatedObjects;
+			pObject->SetUpdated( false );
+			pObject->RemoveFrom_UpdatedObject();
+		}
+	}
+
+	pSystem->SetDepthStencilState( IDepthStencilState::Get<false>() );
+	pSystem->SetRasterizerState( IRasterizerState::Get<>() );
+
+	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
+	pSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
+
+	auto pVertexShader = CBlockVertexShader::Inst();
+	auto pPixelShader = COneTexturePixelShader::Inst();
+	static IShaderBoundState* g_pShaderBoundState = NULL;
+	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
+
+	pSystem->SetRenderTarget( m_pBlockRT->GetRenderTarget(), NULL );
+	SViewport viewport = { 0, 0, rtDesc.nDim1 * 2, rtDesc.nDim2, 0, 1 };
+	pSystem->SetViewports( &viewport, 1 );
+
+	pPixelShader->SetParams( pSystem, pTex->GetShaderResource(),
+		ISamplerState::Get<ESamplerFilterPPP, ETextureAddressModeBorder, ETextureAddressModeBorder, ETextureAddressModeBorder,
+		0, 16, EComparisonNever, 0, 0, 0, 0>() );
+
+	pSystem->SetBlendState( IBlendState::Get<>() );
+	CVector4 instData[4096];
+	int32 nInstData = 0;
+	for( int i = 0; i < hitBlocks.size(); i++ )
+	{
+		auto pBlock = hitBlocks[i];
+
+		pBlock->m_bBlockRTActive = false;
+		auto pInstData = instData + nInstData * 2;
+		if( pBlock->m_nBlockRTIndex < 0 )
+		{
+			pBlock->m_nBlockRTIndex = AllocBlockRTRect();
+			pBlock->GetBlock()->pOwner->pChunkObject->CreateBlockRTLayer( pBlock );
+			pInstData[0] = CVector4( pBlock->m_nBlockRTIndex & 63, 31 - ( ( pBlock->m_nBlockRTIndex >> 6 ) & 31 ), 1, 1 ) * 32;
+			pInstData[1] = CVector4( -1, -1, 0, 0 );
+			nInstData++;
+			if( nInstData >= 2048 )
+			{
+				pVertexShader->SetParams( pSystem, instData, nInstData * sizeof( CVector4 ) * 2, CVector2( 32 * 64, 32 * 32 ), CVector2( 32 * 32, 32 * 32 ), 0 );
+				pSystem->DrawInputInstanced( nInstData );
+				nInstData = 0;
+			}
+		}
+	}
+	if( nInstData )
+	{
+		pVertexShader->SetParams( pSystem, instData, nInstData * sizeof( CVector4 ) * 2, CVector2( 32 * 64, 32 * 32 ), CVector2( 32 * 32, 32 * 32 ), 0 );
+		pSystem->DrawInputInstanced( nInstData );
+		nInstData = 0;
+	}
+
+	pSystem->SetBlendState( IBlendState::Get<false, false, 0xf, EBlendSrcAlpha, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
+	nInstData = 0;
+	for( int i = 0; i < hitBlocks.size(); i++ )
+	{
+		auto pBlock = hitBlocks[i];
+
+		pBlock->m_bBlockRTActive = false;
+		auto pInstData = instData + nInstData * 2;
+
+		pInstData = instData + nInstData * 2;
+		pInstData[0] = CVector4( pBlock->m_nBlockRTIndex & 63, 31 - ( ( pBlock->m_nBlockRTIndex >> 6 ) & 31 ), 1, 1 ) * 32;
+		pInstData[1] = CVector4( pBlock->globalTransform.GetPosition().x, 32 * 32 - 32 - pBlock->globalTransform.GetPosition().y, 32, 32 );
+		nInstData++;
+		if( nInstData >= 2048 )
+		{
+			pVertexShader->SetParams( pSystem, instData, nInstData * sizeof( CVector4 ) * 2, CVector2( 32 * 64, 32 * 32 ), CVector2( 32 * 32, 32 * 32 ), 0 );
+			pSystem->DrawInputInstanced( nInstData );
+			nInstData = 0;
+		}
+	}
+	if( nInstData )
+	{
+		pVertexShader->SetParams( pSystem, instData, nInstData * sizeof( CVector4 ) * 2, CVector2( 32 * 64, 32 * 32 ), CVector2( 32 * 32, 32 * 32 ), 0 );
+		pSystem->DrawInputInstanced( nInstData );
+		nInstData = 0;
+	}
+
+	rtPool.Release( pTex );
+}
+
+uint8 CMyLevel::GetNavigationData( const TVector2<int32>& pos )
+{
+	auto& hitTestMgr = GetStage()->GetHitTestMgr();
+	auto pGrid = hitTestMgr.GetGrid( pos );
+	if( !pGrid )
+		return 0;
+	for( auto pProxyGrid = pGrid->Get_InGrid(); pProxyGrid; pProxyGrid = pProxyGrid->NextInGrid() )
+	{
+		auto pEntity = static_cast<CEntity*>( pProxyGrid->pHitProxy->pOwner );
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			return 0;
+		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+		if( pBlockObject )
+		{
+			if( pBlockObject->GetBlock()->pOwner->nMoveType )
+				return 2;
+		}
+	}
+	return 1;
+}
+
+TRectangle<int32> CMyLevel::GetMapRect()
+{
+	return TRectangle<int32>( 0, 0, m_nWidth, m_nSpawnHeight );
+}
+
 void CMyLevel::UpdateShake()
 {
 	auto pMainUI = CMainUI::GetInst();
@@ -966,4 +1230,10 @@ void CMyLevel::CheckSpawn()
 			}
 		}
 	}
+}
+
+
+void Game_ShaderImplement_Dummy_Level()
+{
+
 }

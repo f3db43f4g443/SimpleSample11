@@ -43,9 +43,9 @@ class CEntity : public CPrefabBaseNode, public CHitProxy
 	friend void RegisterGameClasses();
 public:
 	CEntity() : m_pCurStage( NULL ), m_eHitType( eEntityHitType_WorldStatic ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
 	CEntity( const SClassCreateContext& context ) : CHitProxy( context ), m_pCurStage( NULL ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
 	~CEntity();
 
 	CStage* GetStage() { return m_pCurStage; }
@@ -77,6 +77,9 @@ public:
 	void SetTraverseIndex( uint32 nIndex ) { m_nTraverseIndex = nIndex; }
 
 	uint32 BeforeHitTest( uint32 nTraverseIndex = 0 );
+
+	bool HasHitFilter() { return m_bHasHitFilter; }
+	virtual bool CanHit( CEntity* pEntity ) { return true; }
 	
 	bool CommonMove( float fMoveSpeed, float fTime, const CVector2& dPosition, float fMinDist );
 	bool CommonMove( float fMoveSpeed, float fTurnSpeed, float fTime, const CVector2& dPosition, float fMinDist, float& dRotation );
@@ -98,6 +101,9 @@ private:
 	CStage* m_pCurStage;
 	CEntity* m_pParent;
 	bool m_bIsChangingStage;
+protected:
+	bool m_bHasHitFilter;
+private:
 
 	bool m_bPickable;
 	uint32 m_nTraverseIndex;

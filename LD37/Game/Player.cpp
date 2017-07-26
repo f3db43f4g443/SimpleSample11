@@ -541,7 +541,7 @@ void CPlayer::UpdateRoom()
 		}
 
 		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pChunkObject && pChunkObject->GetChunk()->bIsRoom == 1 )
+		if( pChunkObject && pChunkObject->GetChunk()->nMoveType == 1 )
 		{
 			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
 				pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
@@ -677,25 +677,32 @@ void CPlayer::OnTickAfterHitTest()
 		if( newAnimState != m_nAnimState )
 		{
 			auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+			auto pImage1 = static_cast<CMultiFrameImage2D*>( m_pCore->GetRenderObject() );
 			switch( newAnimState )
 			{
 			case 0:
 				pImage->SetFrames( 0, 1, 0 );
+				pImage1->SetFrames( 0, 1, 0 );
 				break;
 			case 1:
 				pImage->SetFrames( 1, 7, 12 );
+				pImage1->SetFrames( 1, 7, 12 );
 				break;
 			case 2:
 				pImage->SetFrames( 11, 16, 9.9f );
+				pImage1->SetFrames( 11, 16, 9.9f );
 				break;
 			case 3:
 				pImage->SetFrames( 16, 17, 0 );
+				pImage1->SetFrames( 16, 17, 0 );
 				break;
 			case 4:
 				pImage->SetFrames( 17, 23, 12 );
+				pImage1->SetFrames( 17, 23, 12 );
 				break;
 			case 5:
 				pImage->SetFrames( 27, 32, 9.9f );
+				pImage1->SetFrames( 27, 32, 9.9f );
 				break;
 			default:
 				break;
@@ -706,6 +713,7 @@ void CPlayer::OnTickAfterHitTest()
 		}
 	}
 	
+	m_pCore->UpdateAnim( GetStage()->GetElapsedTimePerTick() );
 	CCharacter::OnTickAfterHitTest();
 	GetStage()->TriggerEvent( eStageEvent_PlayerUpdated );
 }

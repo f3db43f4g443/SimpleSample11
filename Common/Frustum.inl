@@ -1,18 +1,18 @@
 #include "Common.h"
 
 template <typename T>
-TFrustum<T>::TFrustum(void)
+FORCE_INLINE TFrustum<T>::TFrustum(void)
 {
 }
 
 template <typename T>
-TFrustum<T>::TFrustum(const TVector3<T>& eye, const TVector3<T>& look, const TVector3<T>& up, T dx, T dy, T zNear, T zFar)
+FORCE_INLINE TFrustum<T>::TFrustum(const TVector3<T>& eye, const TVector3<T>& look, const TVector3<T>& up, T dx, T dy, T zNear, T zFar)
 {
 	Set(eye, look, up, dx, dy, zNear, zFar);
 }
 
 template <typename T>
-TFrustum<T>::~TFrustum(void)
+FORCE_INLINE TFrustum<T>::~TFrustum(void)
 {
 }
 

@@ -6,13 +6,13 @@ template <typename T>
 class TTransform2D
 {
 public:
-	TTransform2D() {}
-	TTransform2D( const TTransform2D& transform )
+	FORCE_INLINE TTransform2D() {}
+	FORCE_INLINE TTransform2D( const TTransform2D& transform )
 		: x( transform.x ), y( transform.y ), r( transform.r ), sx( transform.sx ), sy( transform.sy ) {}
-	TTransform2D( T x, T y, T r, T sx, T sy ) : x( x ), y( y ), r( r ), sx( sx ), sy( sy ) {}
-	TTransform2D( const TMatrix2D<T>& mat ) { mat.Decompose( x, y, r, sx, sy ); }
+	FORCE_INLINE TTransform2D( T x, T y, T r, T sx, T sy ) : x( x ), y( y ), r( r ), sx( sx ), sy( sy ) {}
+	FORCE_INLINE TTransform2D( const TMatrix2D<T>& mat ) { mat.Decompose( x, y, r, sx, sy ); }
 
-	TTransform2D& operator= ( const TTransform2D& transform )
+	FORCE_INLINE TTransform2D& operator= ( const TTransform2D& transform )
 	{
 		x = transform.x;
 		y = transform.y;
@@ -22,14 +22,14 @@ public:
 		return *this;
 	}
 
-	TMatrix2D<T> ToMatrix() const
+	FORCE_INLINE TMatrix2D<T> ToMatrix() const
 	{
 		TMatrix2D<T> mat;
 		mat.Transform( x, y, r, sx, sy );
 		return mat;
 	}
 
-	TTransform2D& Lerp( const TTransform2D& a, const TTransform2D& b, T t, int32 nRotate = 0 )
+	FORCE_INLINE TTransform2D& Lerp( const TTransform2D& a, const TTransform2D& b, T t, int32 nRotate = 0 )
 	{
 		T invt = 1 - t;
 		x = a.x * invt + b.x * t;

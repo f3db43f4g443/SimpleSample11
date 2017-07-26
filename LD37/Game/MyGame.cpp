@@ -36,10 +36,12 @@
 #include "Entities/Blocks/lv1/SpecialLv1.h"
 #include "Entities/Blocks/lv2/SpecialLv2.h"
 #include "Entities/BlockItems/BlockItemsLv1.h"
+#include "Entities/BlockItems/BlockItemsLv2.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
 #include "Entities/Enemies/Lv1Boss.h"
 #include "Entities/Enemies/Lv1Enemies.h"
+#include "Entities/Enemies/Lv2Enemies.h"
 #include "Entities/Tutorial.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
@@ -294,6 +296,13 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( fBounceCoef1 )
 		REGISTER_MEMBER( fRotCoef )
 	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SCharacterVehicleMovementData )
+		REGISTER_MEMBER( fBounce )
+		REGISTER_MEMBER( fCrushSpeed )
+		REGISTER_MEMBER( fFallGravity )
+		REGISTER_MEMBER( fMaxFallSpeed )
+	REGISTER_CLASS_END()
 	
 	REGISTER_ENUM_BEGIN( EEntityHitType )
 		REGISTER_ENUM_ITEM( eEntityHitType_WorldStatic )
@@ -313,6 +322,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CCharacter )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_pKillEffect )
+		REGISTER_MEMBER( m_pCrushEffect )
 		REGISTER_MEMBER( m_pKillSound )
 	REGISTER_CLASS_END()
 	
@@ -386,12 +396,28 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fBulletAngle )
 		REGISTER_MEMBER( m_fSight )
 		REGISTER_MEMBER( m_fShakePerFire )
+		REGISTER_MEMBER( m_fPredict )
 		REGISTER_MEMBER( m_strPrefab )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEnemyCharacterLeader )
 		REGISTER_BASE_CLASS( CEnemyCharacter )
 		REGISTER_MEMBER( m_fRadius )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CCop )
+		REGISTER_BASE_CLASS( CEnemyCharacter )
+		REGISTER_MEMBER( m_fMaxScanDist )
+		REGISTER_MEMBER( m_nGridsPerStep )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CThug )
+		REGISTER_BASE_CLASS( CEnemyCharacter )
+		REGISTER_MEMBER( m_fMaxScanDist )
+		REGISTER_MEMBER( m_nGridsPerStep )
+		REGISTER_MEMBER( m_fThrowSpeed )
+		REGISTER_MEMBER( m_throwObjOfs )
+		REGISTER_MEMBER( m_fThrowDist )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CFuelTank )
@@ -413,6 +439,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nSpawnHeight )
 		REGISTER_MEMBER( m_fFallDistPerSpeedFrame )
+		REGISTER_MEMBER( m_pBlockRT )
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot, chunks );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot1, chunks1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEffectRoot, chunkeffects );
@@ -486,6 +513,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_bExplodeOnHitBlock )
 		REGISTER_MEMBER( m_bExplodeOnHitChar )
 		REGISTER_MEMBER_TAGGED_PTR( m_pExp, exp );
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CThrowObj )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_nLife1 )
 	REGISTER_CLASS_END()
 		
 	REGISTER_CLASS_BEGIN( CBulletWithBlockBuff )
@@ -666,6 +699,7 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strEffect )
 		REGISTER_MEMBER( m_strSoundEffect )
+		REGISTER_MEMBER( m_strBlockRTDrawable )
 		REGISTER_MEMBER( m_nMaxHp )
 		REGISTER_MEMBER( m_nCrushCost )
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, 1 );
@@ -869,11 +903,15 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CHousePart )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_pEntrancePrefabs )
 	REGISTER_CLASS_END()
 			
 	REGISTER_CLASS_BEGIN( CHouse )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_pThrowObjPrefabs )
+		REGISTER_MEMBER( m_pInitCharPrefabs )
+		REGISTER_MEMBER( m_fInitCharPerGrid )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockBuff )
@@ -1121,6 +1159,20 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pLinks[1], link2 )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CCarSpawner )
+		REGISTER_BASE_CLASS( CDetectTrigger )
+		REGISTER_MEMBER( m_carRect )
+		REGISTER_MEMBER( m_carRect1 )
+		REGISTER_MEMBER( m_spawnVel )
+		REGISTER_MEMBER( m_nSpawnCount )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CHouseEntrance )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_spawnRect )
+		REGISTER_MEMBER( m_spawnRect1 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CManHead1 )
 		REGISTER_BASE_CLASS( CEnemy )
 		REGISTER_MEMBER( m_strBullet )
@@ -1171,6 +1223,33 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_flyData )
 		REGISTER_MEMBER( m_strPrefab )
 		REGISTER_MEMBER( m_nKnockbackTime )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CCar )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_moveData )
+		REGISTER_MEMBER( m_fAcc )
+		REGISTER_MEMBER( m_fHitDamage )
+		REGISTER_MEMBER( m_nBurnHp )
+		REGISTER_MEMBER( m_nBurnDamage )
+		REGISTER_MEMBER( m_nBurnDamageInterval )
+		REGISTER_MEMBER( m_strBurnEffect )
+		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_strExplosion )
+		REGISTER_MEMBER( m_strMan )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDoors[0], 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDoors[1], 2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDoors[2], 3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDoors[3], 4 )
+		REGISTER_MEMBER( m_spawnManOfs )
+		REGISTER_MEMBER( m_spawnManRadius )
+		REGISTER_MEMBER( m_nSpawnManTime )
+		REGISTER_MEMBER( m_fSpawnManSpeed )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CThrowBox )
+		REGISTER_BASE_CLASS( CThrowObj )
+		REGISTER_MEMBER( m_pBullet )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSplashElem )
@@ -1314,6 +1393,12 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CSimpleText )
 		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBlockRTEft )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nBeginFrame )
+		REGISTER_MEMBER( m_nLife )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CStartPoint )

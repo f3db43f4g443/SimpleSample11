@@ -1,5 +1,6 @@
 #pragma once
 #include "Bullet.h"
+#include "Enemy.h"
 #include "Explosion.h"
 #include "BlockBuff.h"
 #include "Common/StringUtil.h"
@@ -19,6 +20,26 @@ protected:
 	bool m_bExplodeOnHitWorld;
 	bool m_bExplodeOnHitBlock;
 	bool m_bExplodeOnHitChar;
+};
+
+class CThrowObj : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CThrowObj( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CThrowObj ); }
+
+	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal ) override { if( m_nCurLife >= m_nLife ) Kill(); }
+	uint32 GetLife() { return m_nLife; }
+	uint32 GetLife1() { return m_nLife1; }
+	void SetLife( uint32 nLife ) { m_nLife = nLife; }
+	void SetLife1( uint32 nLife1 ) { m_nLife1 = nLife1; }
+protected:
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+
+	uint32 m_nLife;
+	uint32 m_nLife1;
+	uint32 m_nCurLife;
 };
 
 class CBulletWithBlockBuff : public CBullet

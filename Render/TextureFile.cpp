@@ -39,6 +39,7 @@ void CTextureFile::Create()
 		bool bGenMips = XmlGetAttr( doc.RootElement(), "genmips", 1 );
 		m_pTexture = IRenderSystem::Inst()->CreateTexture( ETextureType::Tex2D, nWidth, nHeight, 1, bGenMips ? 0 : 1,
 			EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+		m_bCreated = true;
 	}
 	else
 	{
@@ -97,4 +98,13 @@ void CTextureFile::Create()
 		ilDeleteImage( img );
 		m_bCreated = true;
 	}
+}
+
+void CTextureFile::SwapRenderTarget( CReference<ITexture>& pTexture )
+{
+	assert( pTexture->GetDesc() == m_pTexture->GetDesc() );
+
+	auto pTemp = m_pTexture;
+	m_pTexture = pTexture;
+	pTexture = pTemp;
 }

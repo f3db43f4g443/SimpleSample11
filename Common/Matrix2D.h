@@ -45,7 +45,7 @@ public:
 	TMatrix2D Inverse() const;
 	TMatrix2D InverseNoScale() const;
 
-	static const TMatrix2D<T>& GetIdentity()
+	FORCE_INLINE static const TMatrix2D<T>& GetIdentity()
 	{
 		static TMatrix2D<T> g_mat( 1, 0, 0, 0, 1, 0, 0, 0, 1 );
 		return g_mat;

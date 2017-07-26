@@ -588,7 +588,7 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 				if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
 				{
 					auto pBlockObject = SafeCast<CBlockObject>( pEntity );
-					if( pBlockObject && pBlockObject->GetBlock()->pOwner->bIsRoom )
+					if( pBlockObject && pBlockObject->GetBlock()->pOwner->nMoveType )
 					{
 						bForceBreak = true;
 						break;

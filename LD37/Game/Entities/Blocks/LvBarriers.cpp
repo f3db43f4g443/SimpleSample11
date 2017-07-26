@@ -127,7 +127,7 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 			if( pChunkObject->GetName() == m_strCore.c_str() )
 				iTrigger++;
 
-			if( pChunk->bIsRoom )
+			if( pChunk->nMoveType )
 				iTrigger += 4;
 		}
 	}
@@ -155,7 +155,7 @@ void CLvBarrier1::OnCreateComplete( CMyLevel* pLevel )
 				pChunkObject->RegisterKilledEvent( &trigger );
 			}
 
-			if( pChunk->bIsRoom )
+			if( pChunk->nMoveType )
 			{
 				m_vecRooms.push_back( pChunkObject );
 				int32 chunkX = pChunk->pos.x / CMyLevel::GetBlockSize();

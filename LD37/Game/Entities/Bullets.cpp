@@ -8,6 +8,7 @@
 #include "Enemy.h"
 #include "Block.h"
 #include "Entities/Door.h"
+#include "MyLevel.h"
 
 void CBomb::OnAddedToStage()
 {
@@ -206,6 +207,49 @@ void CPlayerBulletMultiHit::OnTickAfterHitTest()
 				}
 				else
 					Kill();
+				return;
+			}
+		}
+	}
+}
+
+void CThrowObj::OnTickBeforeHitTest()
+{
+	CEnemy::OnTickBeforeHitTest();
+	if( SafeCast<CCharacter>( GetParentEntity() ) )
+		return;
+	m_nCurLife++;
+	SetPosition( GetPosition() + m_velocity * GetStage()->GetElapsedTimePerTick() );
+}
+
+void CThrowObj::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	if( SafeCast<CCharacter>( GetParentEntity() ) )
+		return;
+	if( m_nCurLife >= m_nLife1 )
+	{
+		Kill();
+		return;
+	}
+
+	CRectangle rect = CMyLevel::GetInst()->GetBoundWithLvBarrier();
+	CRectangle rect0;
+	Get_HitProxy()->CalcBound( globalTransform, rect0 );
+	if( !rect.Contains( rect0 ) )
+	{
+		Kill();
+		return;
+	}
+
+	if( m_nCurLife >= m_nLife )
+	{
+		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			{
+				Kill();
 				return;
 			}
 		}

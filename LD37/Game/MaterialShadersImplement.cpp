@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Material.h"
 
+void Game_ShaderImplement_Dummy_Level();
 void Game_ShaderImplement_Dummy_Effect();
 void Game_ShaderImplement_Dummy_MainUI();
 void Game_ShaderImplement_Dummy_PostEffects();
@@ -8,6 +9,7 @@ void Game_ShaderImplement_Dummy_Splash();
 void Game_ShaderImplement_Dummy()
 {
 	Engine_ShaderImplement_Dummy();
+	Game_ShaderImplement_Dummy_Level();
 	Game_ShaderImplement_Dummy_Effect();
 	Game_ShaderImplement_Dummy_MainUI();
 	Game_ShaderImplement_Dummy_PostEffects();
@@ -28,6 +30,9 @@ protected:
 
 IMPLEMENT_MATERIAL_SHADER( Default2DWithOrigTexVertexShader, "Shader/Default2DWithOrigTex.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithOrigTexVertexShader1, CMyDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWithOrigTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
+
+IMPLEMENT_MATERIAL_SHADER( VSBlockRTLayer, "Shader/Blocks.shader", "VSBlockRTLayer", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSBlockRTLayer, "Shader/Blocks.shader", "PSBlockRTLayer", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSTwoColorLerp, "Shader/Effect.shader", "PSTwoColorLerp", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSSingleColorEmissionClearColorClip, "Shader/Effect.shader", "PSSingleColorEmissionClearColorClip", "ps_5_0" );

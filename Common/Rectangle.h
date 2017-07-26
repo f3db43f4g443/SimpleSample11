@@ -19,32 +19,33 @@ public:
 	TRectangle operator* (const TVector2<T>& vec) const;
 	TRectangle operator* (const TMatrix2D<T>& mat) const;
 
-	T GetLeft() const { return x; }
-	T GetTop() const { return y; }
-	T GetRight() const { return x + width; }
-	T GetBottom() const { return y + height; }
-	void SetLeft( T value ) { width += x - value; x = value; }
-	void SetTop( T value ) { height += y - value; y = value; }
-	void SetRight( T value ) { width = value - x; }
-	void SetBottom( T value ) { height = value - y; }
+	T GetLeft() const;
+	T GetTop() const;
+	T GetRight() const;
+	T GetBottom() const;
+	void SetLeft( T value );
+	void SetTop( T value );
+	void SetRight( T value );
+	void SetBottom( T value );
 
-	T GetCenterX() const { return x + width / 2; }
-	T GetCenterY() const { return y + height / 2; }
-	TVector2<T> GetCenter() const { return TVector2<T>( GetCenterX(), GetCenterY() ); }
-	T GetSizeX() const { return width; }
-	T GetSizeY() const { return height; }
-	TVector2<T> GetSize() const { return TVector2<T>( width, height ); }
-	void SetCenterX( T value ) { x = value - width / 2; }
-	void SetCenterY( T value ) { y = value - height / 2; }
-	void SetCenter( TVector2<T> value ) { SetCenterX( value.x ); SetCenterY( value.y ); }
-	void SetSizeX( T value ) { x -= ( value - width ) / 2; width = value; }
-	void SetSizeY( T value ) { y -= ( value - height ) / 2; height = value; }
-	void SetSize( TVector2<T> value ) { SetSizeX( value.x ); SetSizeY( value.y ); }
+	T GetCenterX() const;
+	T GetCenterY() const;
+	TVector2<T> GetCenter() const;
+	T GetSizeX() const;
+	T GetSizeY() const;
+	TVector2<T> GetSize() const;
+	void SetCenterX( T value );
+	void SetCenterY( T value );
+	void SetCenter( TVector2<T> value );
+	void SetSizeX( T value );
+	void SetSizeY( T value );
+	void SetSize( TVector2<T> value );
 
-	bool Contains( const TVector2<T>& ptr ) const { return ptr.x >= x && ptr.x <= x + width && ptr.y >= y && ptr.y <= y + height; }
-	TRectangle Offset( const TVector2<T>& ofs ) const { return TRectangle<T>( x + ofs.x, y + ofs.y, width, height ); }
-	TRectangle Scale( T s ) { TRectangle<T> rect = *this; rect.SetSizeX( width * s ); rect.SetSizeY( height * s ); return rect; }
-	TRectangle Scale( const TVector2<T>& s ) { TRectangle<T> rect = *this; rect.SetSizeX( width * s.x ); rect.SetSizeY( height * s.y ); return rect; }
+	bool Contains( const TVector2<T>& ptr ) const;
+	bool Contains( const TRectangle<T>& rect ) const;
+	TRectangle Offset( const TVector2<T>& ofs ) const;
+	TRectangle Scale( T s );
+	TRectangle Scale( const TVector2<T>& s );
 
 	TVector2<T> GetTexCoord( const TVector2<T>& s ) const;
 

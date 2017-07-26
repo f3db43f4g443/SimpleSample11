@@ -10,6 +10,8 @@ struct SCharacterMovementData
 	bool ResolvePenetration( CCharacter* pCharacter );
 	bool HasAnyCollision();
 
+	CEntity* DoSweepTest( CCharacter* pChar, const CMatrix2D& trans, const CVector2& sweepOfs, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
+
 	bool bSleep;
 	bool bHitChannel[eEntityHitType_Count];
 };
@@ -239,6 +241,20 @@ struct SCharacterPhysicsMovementData : public SCharacterMovementData
 	float fBounceCoef1;
 	float fRotCoef;
 	float fRot;
+};
+
+struct SCharacterVehicleMovementData : public SCharacterMovementData
+{
+	SCharacterVehicleMovementData( const SClassCreateContext& context ) : bHitWall( false ), fDamage( 0 ) {}
+	void UpdateMove( CCharacter* pCharacter );
+
+	float fBounce;
+	float fCrushSpeed;
+	float fFallGravity;
+	float fMaxFallSpeed;
+
+	bool bHitWall;
+	float fDamage;
 };
 
 struct SCharacterChainMovementData

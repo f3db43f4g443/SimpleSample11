@@ -2,17 +2,17 @@
 
 
 template <typename T>
-TMatrix2D<T>::TMatrix2D ()
+FORCE_INLINE TMatrix2D<T>::TMatrix2D ()
 {
 }
 template <typename T>
-TMatrix2D<T>::TMatrix2D (const TMatrix2D& mat):m00(mat.m00), m01(mat.m01), m02(mat.m02),
+FORCE_INLINE TMatrix2D<T>::TMatrix2D (const TMatrix2D& mat):m00(mat.m00), m01(mat.m01), m02(mat.m02),
 	m10(mat.m10), m11(mat.m11), m12(mat.m12),
 	m20(mat.m20), m21(mat.m21), m22(mat.m22)
 {
 }
 template <typename T>
-TMatrix2D<T>::TMatrix2D (
+FORCE_INLINE TMatrix2D<T>::TMatrix2D (
     T m00, T m01, T m02,
     T m10, T m11, T m12,
     T m20, T m21, T m22):m00(m00), m01(m01), m02(m02),
@@ -22,27 +22,27 @@ TMatrix2D<T>::TMatrix2D (
 }
 
 template <typename T>
-TMatrix2D<T>& TMatrix2D<T>::operator= (const TMatrix2D<T>& mat)
+FORCE_INLINE TMatrix2D<T>& TMatrix2D<T>::operator= (const TMatrix2D<T>& mat)
 {
 	memcpy(this, &mat, sizeof(TMatrix2D<T>));
 	return *this;
 }
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::operator+ (const TMatrix2D<T>& mat) const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::operator+ (const TMatrix2D<T>& mat) const
 {
 	return TMatrix<T>(m00 + mat.m00, m01 + mat.m01, m02 + mat.m02,
 		m10 + mat.m10, m11 + mat.m11, m12 + mat.m12,
 		m20 + mat.m20, m21 + mat.m21, m22 + mat.m22);
 }
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::operator- (const TMatrix2D<T>& mat) const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::operator- (const TMatrix2D<T>& mat) const
 {
 	return TMatrix2D<T>(m00 - mat.m00, m01 - mat.m01, m02 - mat.m02,
 		m10 - mat.m10, m11 - mat.m11, m12 - mat.m12,
 		m20 - mat.m20, m21 - mat.m21, m22 - mat.m22);
 }
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::operator* (T scalar) const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::operator* (T scalar) const
 {
 	return TMatrix2D<T>(m00 * scalar, m01 * scalar, m02 * scalar,
 		m10 * scalar, m11 * scalar, m12 * scalar,
@@ -50,7 +50,7 @@ TMatrix2D<T> TMatrix2D<T>::operator* (T scalar) const
 }
 
 template <typename T>
-bool TMatrix2D<T>::operator== ( const TMatrix2D& mat )
+FORCE_INLINE bool TMatrix2D<T>::operator== ( const TMatrix2D& mat )
 {
 	return m00 == mat.m00 && m01 == mat.m01 && m02 == mat.m02
 		&& m10 == mat.m10 && m11 == mat.m11 && m12 == mat.m12
@@ -58,20 +58,20 @@ bool TMatrix2D<T>::operator== ( const TMatrix2D& mat )
 }
 
 template <typename T>
-bool TMatrix2D<T>::operator!= ( const TMatrix2D& mat )
+FORCE_INLINE bool TMatrix2D<T>::operator!= ( const TMatrix2D& mat )
 {
 	return !( *this == mat );
 }
 
 template <typename T>
-TVector3<T> TMatrix2D<T>::operator* (const TVector3<T>& vec) const
+FORCE_INLINE TVector3<T> TMatrix2D<T>::operator* (const TVector3<T>& vec) const
 {
 	return TVector3<T>(vec.Dot(TVector3<T>(m00, m01, m02)),
 		vec.Dot(TVector3<T>(m10, m11, m12)),
 		vec.Dot(TVector3<T>(m20, m21, m22)));
 }
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::operator* (const TMatrix2D<T>& mat) const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::operator* (const TMatrix2D<T>& mat) const
 {
 	return TMatrix2D<T>(m00 * mat.m00 + m01 * mat.m10 + m02 * mat.m20,
 		m00 * mat.m01 + m01 * mat.m11 + m02 * mat.m21,
@@ -85,14 +85,14 @@ TMatrix2D<T> TMatrix2D<T>::operator* (const TMatrix2D<T>& mat) const
 }
 
 template <typename T>
-TVector2<T> TMatrix2D<T>::MulVector2Pos(const TVector2<T>& vec) const
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulVector2Pos(const TVector2<T>& vec) const
 {
 	TVector3<T> vec3(vec.x, vec.y, 1);
 	TVector3<T> vec3a = *this * vec3;
 	return TVector2<T>(vec3a.x, vec3a.y);
 }
 template <typename T>
-TVector2<T> TMatrix2D<T>::MulVector2Dir(const TVector2<T>& vec) const
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulVector2Dir(const TVector2<T>& vec) const
 {
 	TVector3<T> vec3(vec.x, vec.y, 0);
 	TVector3<T> vec3a = *this * vec3;
@@ -100,40 +100,40 @@ TVector2<T> TMatrix2D<T>::MulVector2Dir(const TVector2<T>& vec) const
 }
 
 template <typename T>
-TVector2<T> TMatrix2D<T>::MulTVector2PosNoScale(const TVector2<T>& vec) const
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulTVector2PosNoScale(const TVector2<T>& vec) const
 {
 	TVector2<T> vec2( vec.x - m02, vec.y - m12 );
 	return TVector2<T>( vec2.Dot( TVector2<T>( m00, m10 ) ), vec2.Dot( TVector2<T>( m01, m11 ) ) );
 }
 
 template <typename T>
-TVector2<T> TMatrix2D<T>::MulTVector2DirNoScale(const TVector2<T>& vec) const
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulTVector2DirNoScale(const TVector2<T>& vec) const
 {
 	TVector2<T> vec2( vec.x, vec.y );
 	return TVector2<T>( vec2.Dot( TVector2<T>( m00, m10 ) ), vec2.Dot( TVector2<T>( m01, m11 ) ) );
 }
 
 template <typename T>
-TVector2<T> TMatrix2D<T>::GetPosition() const
+FORCE_INLINE TVector2<T> TMatrix2D<T>::GetPosition() const
 {
 	return TVector2<T>(m02, m12);
 }
 
 template <typename T>
-void TMatrix2D<T>::SetPosition( TVector2<T> pos )
+FORCE_INLINE void TMatrix2D<T>::SetPosition( TVector2<T> pos )
 {
 	m02 = pos.x;
 	m12 = pos.y;
 }
 
 template <typename T>
-void TMatrix2D<T>::Identity()
+FORCE_INLINE void TMatrix2D<T>::Identity()
 {
 	*this = TMatrix2D<T>( 1, 0, 0, 0, 1, 0, 0, 0, 1 );
 }
 
 template <typename T>
-void TMatrix2D<T>::Transform(T x, T y, T angle, T s)
+FORCE_INLINE void TMatrix2D<T>::Transform(T x, T y, T angle, T s)
 {
 	T cs = cosf(angle);
     T sn = sinf(angle);
@@ -150,7 +150,7 @@ void TMatrix2D<T>::Transform(T x, T y, T angle, T s)
 }
 
 template <typename T>
-void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& s ) const
+FORCE_INLINE void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& s ) const
 {
 	x = m02;
 	y = m12;
@@ -159,7 +159,7 @@ void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& s ) const
 }
 
 template <typename T>
-void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& sx, T& sy ) const
+FORCE_INLINE void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& sx, T& sy ) const
 {
 	x = m02;
 	y = m12;
@@ -169,7 +169,7 @@ void TMatrix2D<T>::Decompose( T& x, T& y, T& angle, T& sx, T& sy ) const
 }
 
 template <typename T>
-void TMatrix2D<T>::Transform(T x, T y, T angle, T sx, T sy)
+FORCE_INLINE void TMatrix2D<T>::Transform(T x, T y, T angle, T sx, T sy)
 {
 	T cs = cosf(angle);
     T sn = sinf(angle);
@@ -186,7 +186,7 @@ void TMatrix2D<T>::Transform(T x, T y, T angle, T sx, T sy)
 }
 
 template <typename T>
-void TMatrix2D<T>::Translate(T x, T y)
+FORCE_INLINE void TMatrix2D<T>::Translate(T x, T y)
 {
 	m00 = 1;
 	m01 = 0;
@@ -199,7 +199,7 @@ void TMatrix2D<T>::Translate(T x, T y)
 	m22 = 1;
 }
 template <typename T>
-void TMatrix2D<T>::Rotate(T angle)
+FORCE_INLINE void TMatrix2D<T>::Rotate(T angle)
 {
 	T cs = cosf(angle);
 	T sn = sinf(angle);
@@ -215,7 +215,7 @@ void TMatrix2D<T>::Rotate(T angle)
 	m22 = 1.0f;
 }
 template <typename T>
-void TMatrix2D<T>::Scale(T s)
+FORCE_INLINE void TMatrix2D<T>::Scale(T s)
 {
 	m00 = s;
 	m01 = 0;
@@ -229,7 +229,7 @@ void TMatrix2D<T>::Scale(T s)
 }
 
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::Inverse() const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::Inverse() const
 {
 	TMatrix2D<T> invTrans;
 	invTrans.Translate( -m02, -m12 );
@@ -239,7 +239,7 @@ TMatrix2D<T> TMatrix2D<T>::Inverse() const
 }
 
 template <typename T>
-TMatrix2D<T> TMatrix2D<T>::InverseNoScale() const
+FORCE_INLINE TMatrix2D<T> TMatrix2D<T>::InverseNoScale() const
 {
 	TMatrix2D<T> invTrans;
 	invTrans.Translate( -m02, -m12 );

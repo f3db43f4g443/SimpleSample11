@@ -98,6 +98,10 @@ void RegisterEngineClasses()
 		REGISTER_BASE_CLASS( CRenderObject2D )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN_ABSTRACT( CImage2D )
+		REGISTER_BASE_CLASS( CRenderObject2D )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN_ABSTRACT( IParticleEmitter )
 	REGISTER_CLASS_END()
 }
@@ -109,6 +113,7 @@ void InitEngine()
 	CResourceManager::Inst()->RegisterExtension<CTextureFile>( "jpg" );
 	CResourceManager::Inst()->RegisterExtension<CTextureFile>( "png" );
 	CResourceManager::Inst()->RegisterExtension<CTextureFile>( "tga" );
+	CResourceManager::Inst()->RegisterExtension<CTextureFile>( "rt" );
 	CResourceManager::Inst()->Register( new TResourceFactory<CDrawableGroup>() );
 	CResourceManager::Inst()->RegisterExtension<CDrawableGroup>( "mtl" );
 	CResourceManager::Inst()->Register( new TResourceFactory<CParticleFile>() );

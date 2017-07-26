@@ -6,6 +6,7 @@ CImage2D::CImage2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, con
 	: m_pColorDrawable( bGUI ? NULL : pDrawable ), m_pOcclusionDrawable( bGUI ? NULL : pOcclusionDrawable ), m_pGUIDrawable( bGUI ? pDrawable : NULL )
 	, m_nColorParamBeginIndex( 0 ), m_nColorParamCount( 0 ), m_nOcclusionParamBeginIndex( 0 ), m_nOcclusionParamCount( 0 ), m_nGUIParamBeginIndex( 0 ), m_nGUIParamCount( 0 )
 {
+	SET_BASEOBJECT_ID( CImage2D );
 	m_element2D.rect = rect;
 	m_element2D.texRect = texRect;
 	m_element2D.pInstData = this;

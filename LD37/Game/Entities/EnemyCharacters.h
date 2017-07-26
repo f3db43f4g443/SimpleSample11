@@ -3,6 +3,7 @@
 #include "Common/StringUtil.h"
 #include "CharacterMove.h"
 #include "Block.h"
+#include "Navigation.h"
 
 class CEnemyCharacter : public CEnemy
 {
@@ -14,8 +15,7 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnTickAfterHitTest() override;
-	virtual bool IsHiding() override { return m_pCurRoom != NULL; }
-	bool CanFire() { return m_nState == 0? true: m_walkData.bLanded; }
+	virtual bool CanFire() { return m_nState == 0? true: m_walkData.bLanded; }
 
 	virtual bool Knockback( const CVector2& vec ) override;
 	virtual bool IsKnockback() override;
@@ -25,6 +25,7 @@ public:
 
 	virtual bool CanTriggerItem() override;
 protected:
+	virtual void UpdateAnimFrame();
 	void UpdateMove();
 	void UpdateFire();
 	virtual void OnBeginFire() {}
@@ -44,6 +45,7 @@ protected:
 	float m_fBulletAngle;
 	float m_fSight;
 	float m_fShakePerFire;
+	float m_fPredict;
 	CString m_strPrefab;
 	CReference<CPrefab> m_pBulletPrefab;
 
@@ -56,8 +58,6 @@ protected:
 	uint32 m_nNextFireTime;
 	uint32 m_nAmmoLeft;
 	bool m_bLeader;
-
-	CReference<CChunkObject> m_pCurRoom;
 };
 
 class CEnemyCharacterLeader : public CEnemyCharacter
@@ -75,4 +75,74 @@ protected:
 	float m_fRadius;
 
 	vector<CReference<CEntity> > m_chars;
+};
+
+class CCop : public CEnemyCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CCop( const SClassCreateContext& context ) : CEnemyCharacter( context ), m_fNearestDist( FLT_MAX )
+		, m_onVisitGrid( this, &CCop::OnVisitGrid ), m_onFindPath( this, &CCop::OnFindPath ) { SET_BASEOBJECT_ID( CCop ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void OnTickAfterHitTest() override;
+private:
+	void OnVisitGrid( CNavigationUnit::SGridData* pGrid );
+	void OnFindPath( CNavigationUnit::SGridData* pGrid );
+
+	float m_fMaxScanDist;
+	uint32 m_nGridsPerStep;
+
+	CNavigationUnit* m_pNav;
+	uint8 m_nState;
+	int32 m_nFindPathDelay;
+	int32 m_nStateChangeTime;
+
+	TVector2<int32> m_nearestGrid;
+	float m_fNearestDist;
+
+	TClassTrigger1<CCop, CNavigationUnit::SGridData*> m_onVisitGrid;
+	TClassTrigger1<CCop, CNavigationUnit::SGridData*> m_onFindPath;
+};
+
+class CThug : public CEnemyCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CThug( const SClassCreateContext& context ) : CEnemyCharacter( context ), m_fNearestDist( FLT_MAX )
+		, m_onVisitGrid( this, &CThug::OnVisitGrid ), m_onFindPath( this, &CThug::OnFindPath ) { SET_BASEOBJECT_ID( CThug ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void OnTickAfterHitTest() override;
+	virtual bool CanFire() override
+	{
+		return !m_pThrowObj && CEnemyCharacter::CanFire();
+	}
+
+	virtual void Kill() override;
+
+	CCharacter* GetThrowObj() { return m_pThrowObj; }
+	void SetThrowObj( CCharacter* pObj, const CVector2& ofs, bool bAtRoof );
+	void ThrowObj( const CVector2& target );
+protected:
+	virtual void UpdateAnimFrame() override;
+private:
+	void OnVisitGrid( CNavigationUnit::SGridData* pGrid );
+	void OnFindPath( CNavigationUnit::SGridData* pGrid );
+
+	float m_fMaxScanDist;
+	uint32 m_nGridsPerStep;
+	float m_fThrowSpeed;
+	CVector2 m_throwObjOfs;
+	float m_fThrowDist;
+
+	CReference<CCharacter> m_pThrowObj;
+
+	CNavigationUnit* m_pNav;
+	TVector2<int32> m_nearestGrid;
+	float m_fNearestDist;
+	uint32 m_nStateTime;
+	bool m_bAtRoof;
+	TClassTrigger1<CThug, CNavigationUnit::SGridData*> m_onVisitGrid;
+	TClassTrigger1<CThug, CNavigationUnit::SGridData*> m_onFindPath;
 };

@@ -38,9 +38,10 @@ void CCharacter::OnRemovedFromStage()
 
 void CCharacter::Kill()
 {
-	if( m_pKillEffect )
+	CPrefab* pKillEffectPrefab = m_bCrushed && m_pCrushEffect ? m_pCrushEffect : m_pKillEffect;
+	if( pKillEffectPrefab )
 	{
-		auto pKillEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
+		auto pKillEffect = SafeCast<CEffectObject>( pKillEffectPrefab->GetRoot()->CreateInstance() );
 		ForceUpdateTransform();
 		pKillEffect->SetState( 2 );
 		pKillEffect->SetPosition( globalTransform.GetPosition() );

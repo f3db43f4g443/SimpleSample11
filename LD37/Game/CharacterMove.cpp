@@ -15,7 +15,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 	CVector2 moveOfs = ofs;
 	if( moveOfs.Normalize() > 0 )
 	{
-		if( !pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), pCharacter->globalTransform, ofs, bHitChannel, &result, true ) )
+		if( !DoSweepTest( pCharacter, pCharacter->globalTransform, ofs, &result, true ) )
 		{
 			pCharacter->SetPosition( pCharacter->GetPosition() + ofs );
 		}
@@ -31,7 +31,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 			if( ofs2.Length2() > 0 )
 			{
 				SRaycastResult result1;
-				if( pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), mat1, ofs2, bHitChannel, &result1, true ) )
+				if( DoSweepTest( pCharacter, mat1, ofs2, &result1, true ) )
 				{
 					if( pHit )
 						pHit[1] = result1;
@@ -47,7 +47,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 						CMatrix2D mat2 = mat1;
 						mat2.SetPosition( mat2.GetPosition() + ofs3 );
 						SRaycastResult result2;
-						if( pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), mat2, ofs4, bHitChannel, &result2, true ) )
+						if( DoSweepTest( pCharacter, mat2, ofs4, &result2, true ) )
 						{
 							if( pHit )
 								pHit[2] = result2;
@@ -75,7 +75,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 	CVector2 moveOfs = ofs;
 	if( moveOfs.Normalize() > 0 )
 	{
-		if( !pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), pCharacter->globalTransform, ofs, bHitChannel, &result, true ) )
+		if( !DoSweepTest( pCharacter, pCharacter->globalTransform, ofs, &result, true ) )
 		{
 			pCharacter->SetPosition( pCharacter->GetPosition() + ofs );
 		}
@@ -92,7 +92,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 			if( ofs2.Length2() > 0 )
 			{
 				SRaycastResult result1;
-				if( pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), mat1, ofs2, bHitChannel, &result1, true ) )
+				if( DoSweepTest( pCharacter, mat1, ofs2, &result1, true ) )
 				{
 					if( pHit )
 						pHit[1] = result1;
@@ -109,7 +109,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 						CMatrix2D mat2 = mat1;
 						mat2.SetPosition( mat2.GetPosition() + ofs3 );
 						SRaycastResult result2;
-						if( pCharacter->GetStage()->SweepTest( pCharacter->Get_HitProxy(), mat2, ofs4, bHitChannel, &result2, true ) )
+						if( DoSweepTest( pCharacter, mat2, ofs4, &result2, true ) )
 						{
 							if( pHit )
 								pHit[2] = result2;
@@ -147,6 +147,11 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 		if( bHitChannel[pEntity->GetHitType()] )
 		{
+			if( pCharacter->HasHitFilter() )
+			{
+				if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+					continue;
+			}
 			SPenetration penetration;
 			penetration.pEntity = pEntity;
 			CVector2 entityOfs = pEntity->globalTransform.GetPosition() - pEntity->GetLastPos();
@@ -207,6 +212,11 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 		for( int i = nPenetrations - 1; i >= 0; i-- )
 		{
 			SHitTestResult result;
+			if( pCharacter->HasHitFilter() )
+			{
+				if( !pCharacter->CanHit( vecPenetrations[i].pEntity ) || !vecPenetrations[i].pEntity->CanHit( pCharacter ) )
+					continue;
+			}
 			if( !pCharacter->HitTest( vecPenetrations[i].pEntity, newTransform, vecPenetrations[i].pEntity->globalTransform, &result ) )
 			{
 				if( i != nPenetrations - 1 )
@@ -229,7 +239,13 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 	bool bHit = false;
 	for( int i = 0; i < hitResult.size(); i++ )
 	{
+		auto pEntity = static_cast<CEntity*>( hitResult[i] );
 		auto eHitType = static_cast<CEntity*>( hitResult[i] )->GetHitType();
+		if( pCharacter->HasHitFilter() )
+		{
+			if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+				continue;
+		}
 		if( bHitChannel[eHitType] && hitTestResult[i].normal.Length2() > 0.05f * 0.05f )
 		{
 			bHit = true;
@@ -253,6 +269,12 @@ bool SCharacterMovementData::HasAnyCollision()
 	return false;
 }
 
+CEntity * SCharacterMovementData::DoSweepTest( CCharacter * pChar, const CMatrix2D & trans, const CVector2 & sweepOfs, SRaycastResult * pResult, bool bIgnoreInverseNormal )
+{
+	return pChar->HasHitFilter() ?
+		pChar->GetStage()->SweepTest( pChar, trans, sweepOfs, bHitChannel, pResult, bIgnoreInverseNormal ) :
+		pChar->GetStage()->SweepTest( pChar->Get_HitProxy(), trans, sweepOfs, bHitChannel, pResult, bIgnoreInverseNormal );
+}
 
 void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis )
 {
@@ -800,6 +822,11 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 	for( auto pManifold = pCharacter->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 	{
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		if( pCharacter->HasHitFilter() )
+		{
+			if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+				continue;
+		}
 
 		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 		if( pBlockObject && pBlockObject->GetHitType() != eEntityHitType_WorldStatic )
@@ -962,6 +989,81 @@ void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
 
 	pCharacter->SetRotation( pCharacter->GetRotation() + dRot );
 	pCharacter->SetVelocity( vel1 );
+}
+
+void SCharacterVehicleMovementData::UpdateMove( CCharacter * pCharacter )
+{
+	float deltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
+	bHitWall = false;
+	bool bHitBlock = false;
+	fDamage = 0;
+	for( auto pManifold = pCharacter->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		if( pCharacter->HasHitFilter() )
+		{
+			if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+			{
+				bHitWall = true;
+				continue;
+			}
+		}
+
+		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+		if( pBlockObject )
+		{
+			if( pBlockObject->GetHitType() != eEntityHitType_WorldStatic )
+				bHitWall = true;
+			else
+			{
+				if( pManifold->normal.y > 0 )
+					pBlockObject->GetBlock()->pOwner->bForceStop = true;
+				fDamage += 500 * deltaTime;
+			}
+		}
+	}
+
+	if( !ResolvePenetration( pCharacter ) )
+	{
+		/*pCharacter->Crush();
+		return;*/
+	}
+
+	CVector2 vel = pCharacter->GetVelocity();
+	if( bHitWall )
+	{
+		CVector2 vel0 = vel;
+		CVector2 ofs = vel * deltaTime;
+		TryMove( pCharacter, ofs, vel );
+		if( vel != vel0 )
+		{
+			vel = vel + ( vel - vel0 ) * fBounce;
+			fDamage += ( vel - vel0 ).Length();
+		}
+	}
+	else
+	{
+		CVector2 vel0 = vel;
+		vel.y = Max( -fMaxFallSpeed, vel.y - fFallGravity * deltaTime );
+		CVector2 ofs = ( vel0 + vel ) * 0.5f * deltaTime;
+
+		SRaycastResult result[3];
+		TryMove( pCharacter, ofs, vel, result );
+		if( result[0].pHitProxy )
+		{
+			pCharacter->Crush();
+			return;
+		}
+	}
+	CVector2 characterVel = vel;
+	if( vel.Length2() > fCrushSpeed * fCrushSpeed )
+	{
+		//This makes hit characters sometimes fails to ResolvePenetration and be crushed by the car.
+		characterVel.Normalize();
+		characterVel = characterVel * fCrushSpeed;
+		pCharacter->SetCurPos( pCharacter->GetPosition() + ( vel - characterVel ) * deltaTime );
+	}
+	pCharacter->SetVelocity( vel );
 }
 
 void SCharacterChainMovementData::SetCharacterCount( uint32 nCount )

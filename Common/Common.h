@@ -18,6 +18,8 @@ typedef unsigned int uint32;
 typedef long long int64;
 typedef unsigned long long uint64;
 
+#define FORCE_INLINE __forceinline
+
 #define INVALID_8BITID 0xff
 #define INVALID_16BITID 0xffff
 #define INVALID_32BITID 0xffffffff

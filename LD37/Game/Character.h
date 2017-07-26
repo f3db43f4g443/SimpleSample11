@@ -15,7 +15,7 @@ public:
 	virtual bool CanTriggerItem() { return false; }
 	virtual void Awake() {}
 	virtual void Kill();
-	virtual void Crush() { Kill(); }
+	virtual void Crush() { m_bCrushed = true; Kill(); }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
 	virtual bool IsKnockback() { return false; }
 
@@ -39,8 +39,10 @@ protected:
 
 	TResourceRef<CPrefab> m_pKillEffect;
 	TResourceRef<CSoundFile> m_pKillSound;
+	TResourceRef<CPrefab> m_pCrushEffect;
 
 	CVector2 m_velocity;
+	bool m_bCrushed;
 private:
 	TClassTrigger<CCharacter> m_tickBeforeHitTest;
 	TClassTrigger<CCharacter> m_tickAfterHitTest;

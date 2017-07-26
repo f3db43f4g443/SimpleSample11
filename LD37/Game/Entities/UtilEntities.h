@@ -64,3 +64,19 @@ public:
 private:
 	CRectangle m_initRect;
 };
+
+class CBlockRTEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CBlockRTEft( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CBlockRTEft::OnTick ) { SET_BASEOBJECT_ID( CBlockRTEft ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnTick();
+	uint32 m_nBeginFrame;
+	uint32 m_nLife;
+	bool m_bStart;
+	TClassTrigger<CBlockRTEft> m_onTick;
+};

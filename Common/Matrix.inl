@@ -2,18 +2,18 @@
 
 
 template <typename T>
-TMatrix<T>::TMatrix ()
+FORCE_INLINE TMatrix<T>::TMatrix ()
 {
 }
 template <typename T>
-TMatrix<T>::TMatrix (const TMatrix& mat):m00(mat.m00), m01(mat.m01), m02(mat.m02), m03(mat.m03),
+FORCE_INLINE TMatrix<T>::TMatrix (const TMatrix& mat):m00(mat.m00), m01(mat.m01), m02(mat.m02), m03(mat.m03),
 	m10(mat.m10), m11(mat.m11), m12(mat.m12), m13(mat.m13),
 	m20(mat.m20), m21(mat.m21), m22(mat.m22), m23(mat.m23),
 	m30(mat.m30), m31(mat.m31), m32(mat.m32), m33(mat.m33)
 {
 }
 template <typename T>
-TMatrix<T>::TMatrix (
+FORCE_INLINE TMatrix<T>::TMatrix (
     T m00, T m01, T m02, T m03,
     T m10, T m11, T m12, T m13,
     T m20, T m21, T m22, T m23,
@@ -25,13 +25,13 @@ TMatrix<T>::TMatrix (
 }
 
 template <typename T>
-TMatrix<T>& TMatrix<T>::operator= (const TMatrix<T>& mat)
+FORCE_INLINE TMatrix<T>& TMatrix<T>::operator= (const TMatrix<T>& mat)
 {
 	memcpy(this, &mat, sizeof(TMatrix<T>));
 	return *this;
 }
 template <typename T>
-TMatrix<T> TMatrix<T>::operator+ (const TMatrix<T>& mat) const
+FORCE_INLINE TMatrix<T> TMatrix<T>::operator+ (const TMatrix<T>& mat) const
 {
 	return TMatrix<T>(m00 + mat.m00, m01 + mat.m01, m02 + mat.m02, m03 + mat.m03,
 		m10 + mat.m10, m11 + mat.m11, m12 + mat.m12, m13 + mat.m13,
@@ -39,7 +39,7 @@ TMatrix<T> TMatrix<T>::operator+ (const TMatrix<T>& mat) const
 		m30 + mat.m30, m31 + mat.m31, m32 + mat.m32, m33 + mat.m33);
 }
 template <typename T>
-TMatrix<T> TMatrix<T>::operator- (const TMatrix<T>& mat) const
+FORCE_INLINE TMatrix<T> TMatrix<T>::operator- (const TMatrix<T>& mat) const
 {
 	return TMatrix<T>(m00 - mat.m00, m01 - mat.m01, m02 - mat.m02, m03 - mat.m03,
 		m10 - mat.m10, m11 - mat.m11, m12 - mat.m12, m13 - mat.m13,
@@ -47,7 +47,7 @@ TMatrix<T> TMatrix<T>::operator- (const TMatrix<T>& mat) const
 		m30 - mat.m30, m31 - mat.m31, m32 - mat.m32, m33 - mat.m33);
 }
 template <typename T>
-TMatrix<T> TMatrix<T>::operator* (T scalar) const
+FORCE_INLINE TMatrix<T> TMatrix<T>::operator* (T scalar) const
 {
 	return TMatrix<T>(m00 * scalar, m01 * scalar, m02 * scalar, m03 * scalar,
 		m10 * scalar, m11 * scalar, m12 * scalar, m13 * scalar,
@@ -56,7 +56,7 @@ TMatrix<T> TMatrix<T>::operator* (T scalar) const
 }
 
 template <typename T>
-TVector4<T> TMatrix<T>::operator* (const TVector4<T>& vec) const
+FORCE_INLINE TVector4<T> TMatrix<T>::operator* (const TVector4<T>& vec) const
 {
 	return TVector4<T>(vec.Dot(TVector4<T>(m00, m01, m02, m03)),
 		vec.Dot(TVector4<T>(m10, m11, m12, m13)),
@@ -64,7 +64,7 @@ TVector4<T> TMatrix<T>::operator* (const TVector4<T>& vec) const
 		vec.Dot(TVector4<T>(m30, m31, m32, m33)));
 }
 template <typename T>
-TMatrix<T> TMatrix<T>::operator* (const TMatrix<T>& mat) const
+FORCE_INLINE TMatrix<T> TMatrix<T>::operator* (const TMatrix<T>& mat) const
 {
 	return TMatrix<T>(m00 * mat.m00 + m01 * mat.m10 + m02 * mat.m20 + m03 * mat.m30,
 		m00 * mat.m01 + m01 * mat.m11 + m02 * mat.m21 + m03 * mat.m31,
@@ -85,7 +85,7 @@ TMatrix<T> TMatrix<T>::operator* (const TMatrix<T>& mat) const
 }
 
 template <typename T>
-TMatrix<T> TMatrix<T>::Transpose ()
+FORCE_INLINE TMatrix<T> TMatrix<T>::Transpose ()
 {
 	return TMatrix<T>(m00, m10, m20, m30,
 		m01, m11, m21, m31,
@@ -93,7 +93,7 @@ TMatrix<T> TMatrix<T>::Transpose ()
 		m03, m13, m23, m33);
 }
 template <typename T>
-TMatrix<T> TMatrix<T>::Inverse ()
+FORCE_INLINE TMatrix<T> TMatrix<T>::Inverse ()
 {
 	T a0 = m00*m11 - m01*m10;
     T a1 = m00*m12 - m02*m10;
@@ -154,14 +154,14 @@ TMatrix<T> TMatrix<T>::Inverse ()
 }
 
 template <typename T>
-TVector3<T> TMatrix<T>::MulVector3Pos(const TVector3<T> vec)
+FORCE_INLINE TVector3<T> TMatrix<T>::MulVector3Pos(const TVector3<T> vec)
 {
 	TVector4<T> vec4(vec.x, vec.y, vec.z, 1);
 	TVector4<T> vec4a = *this * vec4;
 	return TVector3<T>(vec4a.x, vec4a.y, vec4a.z);
 }
 template <typename T>
-TVector3<T> TMatrix<T>::MulVector3Dir(const TVector3<T> vec)
+FORCE_INLINE TVector3<T> TMatrix<T>::MulVector3Dir(const TVector3<T> vec)
 {
 	TVector4<T> vec4(vec.x, vec.y, vec.z, 0);
 	TVector4<T> vec4a = *this * vec4;
@@ -169,19 +169,19 @@ TVector3<T> TMatrix<T>::MulVector3Dir(const TVector3<T> vec)
 }
 
 template <typename T>
-TVector3<T> TMatrix<T>::GetPosition()
+FORCE_INLINE TVector3<T> TMatrix<T>::GetPosition()
 {
 	return TVector3<T>(m03, m13, m23);
 }
 
 template <typename T>
-void TMatrix<T>::Identity()
+FORCE_INLINE void TMatrix<T>::Identity()
 {
 	*this = TMatrix<T>( 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 );
 }
 
 template <typename T>
-void TMatrix<T>::Transform(T x, T y, T z, T ax, T ay, T az, T angle, T sx, T sy, T sz)
+FORCE_INLINE void TMatrix<T>::Transform(T x, T y, T z, T ax, T ay, T az, T angle, T sx, T sy, T sz)
 {
 	T cs = cosf(angle);
     T sn = sinf(angle);
@@ -215,7 +215,7 @@ void TMatrix<T>::Transform(T x, T y, T z, T ax, T ay, T az, T angle, T sx, T sy,
 }
 
 template <typename T>
-void TMatrix<T>::Translate(T x, T y, T z)
+FORCE_INLINE void TMatrix<T>::Translate(T x, T y, T z)
 {
 	m00 = 1;
 	m01 = 0;
@@ -235,14 +235,14 @@ void TMatrix<T>::Translate(T x, T y, T z)
 	m33 = 1;
 }
 template <typename T>
-void TMatrix<T>::Rotate(T ax, T ay, T az, T angle)
+FORCE_INLINE void TMatrix<T>::Rotate(T ax, T ay, T az, T angle)
 {
 	T cs = cosf(angle);
     T sn = sinf(angle);
     Rotate(ax, ay, az, cs, sn);
 }
 template <typename T>
-void TMatrix<T>::Rotate(T ax, T ay, T az, T cs, T sn)
+FORCE_INLINE void TMatrix<T>::Rotate(T ax, T ay, T az, T cs, T sn)
 {
 	T oneMinusCos = 1.0f - cs;
 	T x2 = ax*ax;
@@ -273,7 +273,7 @@ void TMatrix<T>::Rotate(T ax, T ay, T az, T cs, T sn)
 	m33 = 1.0f;
 }
 template <typename T>
-void TMatrix<T>::Scale(T sx, T sy, T sz)
+FORCE_INLINE void TMatrix<T>::Scale(T sx, T sy, T sz)
 {
 	m00 = sx;
 	m01 = 0;
@@ -293,7 +293,7 @@ void TMatrix<T>::Scale(T sx, T sy, T sz)
 	m33 = 1;
 }
 template <typename T>
-void TMatrix<T>::PerspectiveProjection (T originx, T originy, T originz,
+FORCE_INLINE void TMatrix<T>::PerspectiveProjection (T originx, T originy, T originz,
     T normalx, T normaly, T normalz, T eyex, T eyey, T eyez)
 {
 	T dotND = normalx * (eyex - originx) + normaly * (eyey - originy) + normalz * (eyez - originz);
@@ -317,7 +317,7 @@ void TMatrix<T>::PerspectiveProjection (T originx, T originy, T originz,
 }
 
 template <typename T>
-void TMatrix<T>::Decompose(T& x, T& y, T& z, T& ax, T& ay, T& az, T& angle,
+FORCE_INLINE void TMatrix<T>::Decompose(T& x, T& y, T& z, T& ax, T& ay, T& az, T& angle,
 		T& sx, T& sy, T& sz)
 {
 	x = m03;
@@ -364,7 +364,7 @@ void TMatrix<T>::Decompose(T& x, T& y, T& z, T& ax, T& ay, T& az, T& angle,
 }
 
 template <typename T>
-void TMatrix<T>::BillboardX()
+FORCE_INLINE void TMatrix<T>::BillboardX()
 {
 	TVector3<T> myXAxis = TVector3<T>(m00, m10, m20);
 	myXAxis.Normalize();
@@ -391,7 +391,7 @@ void TMatrix<T>::BillboardX()
 }
 
 template <typename T>
-void TMatrix<T>::BillboardX(const TVector3<T>& up)
+FORCE_INLINE void TMatrix<T>::BillboardX(const TVector3<T>& up)
 {
 	TVector3<T> myXAxis = TVector3<T>(m00, m10, m20);
 	myXAxis.Normalize();
@@ -421,7 +421,7 @@ void TMatrix<T>::BillboardX(const TVector3<T>& up)
 }
 
 template <typename T>
-void TMatrix<T>::BillboardY()
+FORCE_INLINE void TMatrix<T>::BillboardY()
 {
 	TVector3<T> myYAxis = TVector3<T>(m01, m11, m21);
 	myYAxis.Normalize();
@@ -448,7 +448,7 @@ void TMatrix<T>::BillboardY()
 }
 
 template <typename T>
-void TMatrix<T>::BillboardY(const TVector3<T>& up)
+FORCE_INLINE void TMatrix<T>::BillboardY(const TVector3<T>& up)
 {
 	TVector3<T> myYAxis = TVector3<T>(m01, m11, m21);
 	myYAxis.Normalize();
@@ -478,7 +478,7 @@ void TMatrix<T>::BillboardY(const TVector3<T>& up)
 }
 
 template <typename T>
-void TMatrix<T>::BillboardXY()
+FORCE_INLINE void TMatrix<T>::BillboardXY()
 {
 	TVector3<T> myZAxis = TVector3<T>(m02, m12, m22);
 	myZAxis.Normalize();
@@ -499,7 +499,7 @@ void TMatrix<T>::BillboardXY()
 }
 
 template <typename T>
-void TMatrix<T>::BillboardXY(const TVector3<T>& up)
+FORCE_INLINE void TMatrix<T>::BillboardXY(const TVector3<T>& up)
 {
 	TVector3<T> myZAxis = TVector3<T>(m02, m12, m22);
 	myZAxis.Normalize();
@@ -520,7 +520,7 @@ void TMatrix<T>::BillboardXY(const TVector3<T>& up)
 }
 
 template <typename T>
-TQuaternion<T> TMatrix<T>::ToQuaternion () const
+FORCE_INLINE TQuaternion<T> TMatrix<T>::ToQuaternion () const
 {
 	T trace = m00 + m11 + m22;
     T root;
@@ -599,7 +599,7 @@ TQuaternion<T> TMatrix<T>::ToQuaternion () const
 }
 
 template <typename T>
-TEuler<T> TMatrix<T>::ToEuler() const
+FORCE_INLINE TEuler<T> TMatrix<T>::ToEuler() const
 {
 	return ToQuaternion().ToEuler();
 }

@@ -74,7 +74,8 @@ public:
 	CEntity* Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL );
 	void MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
 	CEntity* SweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
-	CEntity* SweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
+	CEntity* SweepTest( SHitProxy* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
+	CEntity* SweepTest( CEntity* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
 	void MultiSweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
 
 	void RegisterStageEvent( uint32 nEvent, CTrigger* pTrigger ) { m_events.Register( nEvent, pTrigger ); }
@@ -102,6 +103,8 @@ public:
 	}
 
 	CHitTestMgr& GetHitTestMgr() { return m_hitTestMgr; }
+	class INavigationProvider* GetNavigationProvider() { return m_pNavigationProvider; }
+	void SetNavigationProvider( class INavigationProvider* pProvider ) { m_pNavigationProvider = pProvider; }
 	float GetElapsedTimePerTick() { return 1.0f / 60; }
 	CFootprintMgr* GetFootprintMgr() { return m_pFootprintMgr; }
 private:
@@ -117,6 +120,7 @@ private:
 	CReference<CFootprintMgr> m_pFootprintMgr;
 	map<string, CReference<CEntity> > m_mapStartPoints;
 	SStageEnterContext m_enterContext;
+	class INavigationProvider* m_pNavigationProvider;
 
 	TClassTrigger1<CStage, CPostProcessPass*> m_onPostProcess;
 	CEventTrigger<eStageEvent_Count> m_events;
