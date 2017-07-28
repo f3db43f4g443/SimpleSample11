@@ -89,6 +89,23 @@ void CHousePart::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	m_fHp = m_nMaxHp;
 }
 
+void CHousePart::Explode()
+{
+	for( CHouseEntrance* pEntrance : m_houseEntrances )
+	{
+		auto pExp = SafeCast<CExplosionWithBlockBuff>( m_pExp->GetRoot()->CreateInstance() );
+		pExp->SetPosition( pEntrance->globalTransform.GetPosition() );
+		pExp->SetRotation( pEntrance->GetDir() * PI * 0.5f );
+		pExp->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		CBlockBuff::SContext context;
+		context.nLife = 600;
+		context.nTotalLife = 600;
+		context.fParams[0] = 3;
+		pExp->Set( &context );
+		pExp->SetCreator( this );
+	}
+}
+
 void CHousePart::OnKilled()
 {
 	if( m_strEffect )
@@ -248,8 +265,22 @@ void CHouse::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	m_fHp = m_nMaxHp;
 }
 
-void CHouse::Enter( CCharacter * pCharacter )
+void CHouse::OnRemovedFromStage()
 {
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	CChunkObject::OnRemovedFromStage();
+}
+
+bool CHouse::CanEnter( CCharacter * pCharacter )
+{
+	return !m_bExploded;
+}
+
+bool CHouse::Enter( CCharacter * pCharacter )
+{
+	if( m_bExploded )
+		return false;
 	m_characters.push_back( pair<CReference<CCharacter>, int32>( pCharacter, 10 ) );
 	pCharacter->SetParentEntity( NULL );
 	m_bAnyoneEntered = true;
@@ -285,12 +316,45 @@ void CHouse::OnCreateComplete( CMyLevel * pLevel )
 			m_houseParts.push_back( pPart );
 	}
 
+	for( int i = 0; i < 4; i++ )
+	{
+		if( m_pThrowObjPrefabs[i] )
+		{
+			int32 nCount = SRand::Inst().Rand( m_nThrowObjMin[i], m_nThrowObjMax[i] + 1 );
+			for( int j = 0; j < nCount; j++ )
+				m_throwObjs.push_back( i );
+		}
+	}
+
 	if( pLevel )
 		pLevel->GetStage()->RegisterAfterHitTest( 10, &m_onTick );
 }
 
+void CHouse::Explode()
+{
+	for( CHouseEntrance* pEntrance : m_houseEntrances )
+	{
+		auto pExp = SafeCast<CExplosionWithBlockBuff>( m_pExp->GetRoot()->CreateInstance() );
+		pExp->SetPosition( pEntrance->globalTransform.GetPosition() );
+		pExp->SetRotation( pEntrance->GetDir() * PI * 0.5f );
+		pExp->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		CBlockBuff::SContext context;
+		context.nLife = 600;
+		context.nTotalLife = 600;
+		context.fParams[0] = 3;
+		pExp->Set( &context );
+		pExp->SetCreator( this );
+	}
+	m_bExploded = true;
+}
+
 void CHouse::OnKilled()
 {
+	for( CHousePart* pHousePart : m_houseParts )
+	{
+		pHousePart->Explode();
+	}
+
 	if( m_strEffect )
 	{
 		ForceUpdateTransform();
@@ -311,6 +375,23 @@ void CHouse::OnKilled()
 
 void CHouse::OnTick()
 {
+	if( m_bExploded )
+	{
+		for( CHouseEntrance* pEntrance : m_houseEntrances )
+		{
+			auto pEffect = SafeCast<CEffectObject>( m_pExpEft->GetRoot()->CreateInstance() );
+			pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			pEffect->SetRotation( pEntrance->GetDir() * PI * 0.5f );
+			pEffect->SetPosition( pEntrance->globalTransform.GetPosition() + CVector2( cos( pEffect->r ), sin( pEffect->r ) ) * 16 );
+			pEffect->SetState( 2 );
+		}
+
+		m_nEftCount++;
+		if( m_nEftCount< 30 )
+			GetStage()->RegisterAfterHitTest( 10, &m_onTick );
+		return;
+	}
+
 	GetStage()->RegisterAfterHitTest( 10, &m_onTick );
 
 	int32 nChar = -1;
@@ -338,13 +419,13 @@ void CHouse::OnTick()
 				{
 					if( pItem->Exit( pThug ) )
 					{
-						int32 nPrefab;
-						for( nPrefab = 0; nPrefab < 4; nPrefab++ )
+						if( !m_throwObjs.size() )
 						{
-							if( !m_pThrowObjPrefabs[nPrefab] )
-								break;
+							Explode();
+							return;
 						}
-						nPrefab = SRand::Inst().Rand( 0, nPrefab );
+						int32 nPrefab = m_throwObjs.back();
+						m_throwObjs.pop_back();
 						auto pThrowObj = SafeCast<CCharacter>( m_pThrowObjPrefabs[nPrefab]->GetRoot()->CreateInstance() );
 						pThug->SetThrowObj( pThrowObj, CVector2( 0, -pThrowObj->GetRenderObject()->GetLocalBound().y ), true );
 
@@ -363,13 +444,13 @@ void CHouse::OnTick()
 			{
 				if( pThug )
 				{
-					int32 nPrefab;
-					for( nPrefab = 0; nPrefab < 4; nPrefab++ )
+					if( !m_throwObjs.size() )
 					{
-						if( !m_pThrowObjPrefabs[nPrefab] )
-							break;
+						Explode();
+						return;
 					}
-					nPrefab = SRand::Inst().Rand( 0, nPrefab );
+					int32 nPrefab = m_throwObjs.back();
+					m_throwObjs.pop_back();
 					auto pThrowObj = SafeCast<CCharacter>( m_pThrowObjPrefabs[nPrefab]->GetRoot()->CreateInstance() );
 					pThug->SetThrowObj( pThrowObj, CVector2( 0, -pThrowObj->GetRenderObject()->GetLocalBound().y ), false );
 				}

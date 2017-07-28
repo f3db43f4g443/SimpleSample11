@@ -88,8 +88,6 @@ public:
 	virtual uint8 GetNavigationData( const TVector2<int32>& pos ) override;
 	virtual TRectangle<int32> GetMapRect() override;
 	virtual CVector2 GetGridSize() override { return CVector2( GetBlockSize(), GetBlockSize() ); }
-
-	CReference<CPrefab> pChunkUIPrefeb;
 protected:
 	void CreateGrids( const char* szNode );
 	void CacheNextLevel();

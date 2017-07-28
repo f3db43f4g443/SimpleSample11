@@ -141,6 +141,7 @@ void CParticleSystemData::InitInstanceData( SParticleInstanceData& data )
 	data.nBegin = data.nEnd = 0;
 	data.fTime = 0;
 	data.fEmitTime = 0;
+	data.extRect = CRectangle( 0, 0, 0, 0 );
 }
 
 void CParticleSystemData::Update()
@@ -435,6 +436,25 @@ void CParticleSystemInstance::OnStopped()
 	}
 }
 
+bool CParticleSystemInstance::Update( float fDeltaTime, const CMatrix2D & matGlobal )
+{
+	if( !m_bPaused )
+	{
+		if( m_pEmitter )
+		{
+			m_pEmitter->Update( m_data, fDeltaTime, matGlobal );
+			for( auto pParticle = m_pParticleSystemObjects; pParticle; pParticle = pParticle->NextParticleSystemObject() )
+			{
+				pParticle->SetLocalBound( m_data.origRect + m_data.extRect );
+			}
+		}
+		m_pParticleSystemData->AnimateInstanceData( m_data, matGlobal, fDeltaTime, m_pEmitter );
+		if( m_bAutoRestart && !m_data.isEmitting && m_data.nBegin == m_data.nEnd )
+			Reset();
+	}
+	return true;
+}
+
 void SParticleSystemDataElement::Load( IBufReader& buf )
 {
 	buf.Read( szName );
@@ -701,6 +721,7 @@ CParticleSystemObject* CParticleSystem::CreateParticleSystemObject( CAnimationCo
 	if( m_pParticleSystemData->GetType() != eParticleSystemType_Particle )
 		return NULL;
 	CParticleSystemInstance* pInstance = new CParticleSystemInstance( m_pParticleSystemData );
+	pInstance->GetData().origRect = m_rect;
 	if( pInst )
 	{
 		pInstance->AddRef();
@@ -745,6 +766,7 @@ CRopeObject2D* CParticleSystem::CreateBeamObject( CAnimationController* pAnimCon
 	if( m_pParticleSystemData->GetType() != eParticleSystemType_Beam )
 		return NULL;
 	CParticleSystemInstance* pInstance = new CParticleSystemInstance( m_pParticleSystemData );
+	pInstance->GetData().origRect = m_rect;
 	if( pInst )
 	{
 		pInstance->AddRef();
@@ -782,6 +804,7 @@ CParticleSystemInstance* CParticleSystem::CreateParticleSystemInst( CAnimationCo
 	pAnimController->PlayAnim( pInstance );
 	if( pElem )
 	{
+		pInstance->GetData().origRect = m_rect;
 		CParticleSystemDrawable* pColorPass = m_vecColorPassDrawables[0];
 		pElem->SetDrawable( pColorPass );
 		pElem->pInstData = &pInstance->GetData();

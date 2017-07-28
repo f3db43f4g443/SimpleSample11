@@ -67,10 +67,6 @@ void CPlayer::ModifySp( int32 nValue )
 
 void CPlayer::AimAt( const CVector2& pos )
 {
-	CVector2 pos1 = pos - GetPosition();
-	float l = pos1.Normalize();
-	pos1 = pos1 * Min( l, 400.0f ) + GetPosition();
-
 	CVector2 ofs = pos - GetPosition();
 	if( m_fAimSpeed > 0 )
 	{
@@ -87,6 +83,16 @@ void CPlayer::AimAt( const CVector2& pos )
 
 	CMyLevel::GetInst()->GetCrosshair()->SetPosition( GetAimAt() );
 	CMyLevel::GetInst()->GetCrosshair()->bVisible = m_pCurWeapon != NULL;
+
+	{
+		CVector2 d = m_pBlockDetectUI->GetPosition() - ofs;
+		float l = d.Normalize();
+		float l1 = 1000 * GetStage()->GetElapsedTimePerTick();
+		if( l > l1 )
+			m_pBlockDetectUI->SetPosition( ofs + d * ( l - l1 ) );
+		else
+			m_pBlockDetectUI->SetPosition( ofs );
+	}
 }
 
 void CPlayer::DelayChangeStage( float fTime, const char* szName, const char* szStartPoint )
@@ -563,11 +569,6 @@ void CPlayer::UpdateRoom()
 		}
 		m_pCurRoom = pCurRoom;
 		m_fHidingCurTime = 0;
-		if( pCurRoom )
-		{
-			if( !m_pCurRoomChunkUI )
-				m_pCurRoomChunkUI = SafeCast<CChunkUI>( CMyLevel::GetInst()->pChunkUIPrefeb->GetRoot()->CreateInstance() );
-		}
 		if( m_pCurRoomChunkUI )
 			m_pCurRoomChunkUI->SetChunkObject( pCurRoom );
 	}
@@ -730,6 +731,7 @@ void CPlayer::OnAddedToStage()
 	m_bIsRepairing = false;
 	m_nRepairTimeLeft = 0;
 	m_nRepairIntervalLeft = 0;
+	m_pCurRoomChunkUI->SetChunkObject( NULL );
 
 	AimAt( GetPosition() );
 	m_cam = GetPosition();

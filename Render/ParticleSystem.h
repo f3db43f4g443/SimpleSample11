@@ -49,6 +49,8 @@ struct SParticleInstanceData
 	float fTime;
 	float fEmitTime;
 	bool isEmitting;
+	CRectangle origRect;
+	CRectangle extRect;
 };
 
 enum EParticleSystemType
@@ -148,18 +150,7 @@ public:
 	virtual void QueueAnim( IAnimation* pAnim ) override {}
 	virtual void OnStopped() override;
 
-	virtual bool Update( float fDeltaTime, const CMatrix2D& matGlobal ) override
-	{
-		if( !m_bPaused )
-		{
-			if( m_pEmitter )
-				m_pEmitter->Update( m_data, fDeltaTime, matGlobal );
-			m_pParticleSystemData->AnimateInstanceData( m_data, matGlobal, fDeltaTime, m_pEmitter );
-			if( m_bAutoRestart && !m_data.isEmitting && m_data.nBegin == m_data.nEnd )
-				Reset();
-		}
-		return true;
-	}
+	virtual bool Update( float fDeltaTime, const CMatrix2D& matGlobal ) override;
 	virtual float GetCurTime() override { return 0; }
 	virtual float GetTotalTime() override { return 0; }
 	virtual float GetTimeScale() override { return 0; }
@@ -180,6 +171,7 @@ public:
 		m_data.nBegin = m_data.nEnd = 0;
 		m_data.fTime = 0;
 		m_data.fEmitTime = 0;
+		m_data.extRect = CRectangle( 0, 0, 0, 0 );
 	}
 	IParticleEmitter* GetEmitter() { return m_pEmitter; }
 	void SetEmitter( IParticleEmitter* pEmitter )
@@ -195,6 +187,7 @@ public:
 		m_data.isEmitting = true;
 		m_data.nBegin = m_data.nEnd = 0;
 		m_data.fTime = m_data.fEmitTime = 0;
+		m_data.extRect = CRectangle( 0, 0, 0, 0 );
 		if( m_pEmitter )
 			m_pEmitter->Init( m_data );
 	}

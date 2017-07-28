@@ -574,6 +574,7 @@ void CThug::OnAddedToStage()
 {
 	CEnemyCharacter::OnAddedToStage();
 	m_pNav = CNavigationUnit::Alloc();
+	m_fNearestDist = FLT_MAX;
 	m_pNav->Set( false, m_fMaxScanDist, m_nGridsPerStep );
 	m_pNav->RegisterVisitGridEvent( &m_onVisitGrid );
 	m_pNav->RegisterFindTargetEvent( &m_onFindPath );
@@ -631,11 +632,8 @@ void CThug::OnTickAfterHitTest()
 				auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 
 				auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
-				if( pEntrance )
-				{
-					pEntrance->Enter( this );
+				if( pEntrance && pEntrance->Enter( this ) )
 					return;
-				}
 			}
 		}
 	}
@@ -774,7 +772,7 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 				auto pEntity = static_cast<CEntity*>( pProxyGrid->pHitProxy->pOwner );
 
 				auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
-				if( pEntrance )
+				if( pEntrance && pEntrance->CanEnter( this ) )
 				{
 					if( pGrid->fDist < m_fNearestDist )
 					{

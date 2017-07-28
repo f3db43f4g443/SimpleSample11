@@ -43,9 +43,9 @@ class CEntity : public CPrefabBaseNode, public CHitProxy
 	friend void RegisterGameClasses();
 public:
 	CEntity() : m_pCurStage( NULL ), m_eHitType( eEntityHitType_WorldStatic ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
 	CEntity( const SClassCreateContext& context ) : CHitProxy( context ), m_pCurStage( NULL ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bPickable( false ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
 	~CEntity();
 
 	CStage* GetStage() { return m_pCurStage; }
@@ -106,6 +106,9 @@ protected:
 private:
 
 	bool m_bPickable;
+public:
+	uint8 nPublicFlag;
+private:
 	uint32 m_nTraverseIndex;
 	EEntityHitType m_eHitType;
 

@@ -44,6 +44,7 @@ IMPLEMENT_MATERIAL_SHADER( PSEmissionEffect, "Shader/Effect.shader", "PSEmission
 IMPLEMENT_MATERIAL_SHADER( PSEmissionEffect1, "Shader/Effect.shader", "PSEmissionEffect1", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveColor, "Shader/Effect.shader", "PSParticleDissolveColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveOcc, "Shader/Effect.shader", "PSParticleDissolveOcc", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSEmiRadialFade, "Shader/Effect.shader", "PSEmiRadialFade", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSBloodStain, "Shader/Blood.shader", "PSBloodStain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHpBar, "Shader/HpBar.shader", "PSHpBar", "ps_5_0" );
@@ -62,6 +63,7 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook, "Shader/ParticleFlipbook.shader",
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1, "Shader/ParticleFlipbook1.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1InstData, "Shader/ParticleFlipbook1.shader", "VSParticleInstData", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel, "Shader/ParticleFlipbook1.shader", "VSParticle1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1Splash, "Shader/ParticleFlipbookSplash.shader", "VSParticle1Splash", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2T, "Shader/ParticleFlipbook1.shader", "VSParticle2", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2TL, "Shader/ParticleFlipbook1.shader", "VSParticle2L", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFootprintUpdate, "Shader/Footprint.shader", "PSUpdate", "ps_5_0" );

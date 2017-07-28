@@ -8,7 +8,7 @@ struct SLevelBuildContext
 	SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk = NULL );
 	SLevelBuildContext( uint32 nWidth, uint32 nHeight );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
-	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType );
+	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32> ofs );
 	void PushScrollObj( CPrefab* pPrefab, uint32 nType );
 	void Build();
@@ -19,7 +19,13 @@ struct SLevelBuildContext
 	uint32 nHeight;
 	vector<SBlockLayer*> blocks;
 	vector<SChunk*> chunks;
-	vector<pair<CReference<CPrefab>, TRectangle<int32> > > attachedPrefabs[SBlock::eAttachedPrefab_Count];
+	struct SAttach
+	{
+		CReference<CPrefab> pPrefab;
+		TRectangle<int32> rect;
+		bool bType;
+	};
+	vector<SAttach> attachedPrefabs[SBlock::eAttachedPrefab_Count];
 	vector<CReference<CPrefab> > scrollObjs[3];
 	uint32 nMaxChunkHeight;
 

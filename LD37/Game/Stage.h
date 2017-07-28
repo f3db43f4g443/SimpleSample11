@@ -31,6 +31,7 @@ enum
 	eStageEvent_Stop,
 	eStageEvent_PlayerUpdated,
 	eStageEvent_PostHitTest,
+	eStageEvent_PostUpdate,
 
 	eStageEvent_Count,
 };

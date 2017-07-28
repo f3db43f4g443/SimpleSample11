@@ -77,6 +77,8 @@ public:
 	CPlayerWeapon* GetWeapon() { return m_pCurWeapon; }
 	void SetWeapon( CPlayerWeapon* pWeapon );
 	void RefreshCurRoomUI() { m_pCurRoomChunkUI->SetChunkObject( m_pCurRoom ); }
+	CBlockDetectUI* GetBlockDetectUI() { return m_pBlockDetectUI; }
+	void ToggleBlockUIVisible() { m_pBlockDetectUI->Toggle(); }
 
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
@@ -103,6 +105,7 @@ private:
 	CReference<CPlayerWeapon> m_pCurWeapon;
 	CReference<CChunkObject> m_pCurRoom;
 	CReference<CChunkUI> m_pCurRoomChunkUI;
+	CReference<CBlockDetectUI> m_pBlockDetectUI;
 
 	float m_fCrackEffectTime;
 	float m_fHurtInvincibleTime;

@@ -53,12 +53,24 @@ void CCarSpawner::Trigger()
 	m_nSpawnCount--;
 }
 
-void CHouseEntrance::Enter( CCharacter * pCharacter )
+bool CHouseEntrance::CanEnter( CCharacter * pCharacter )
 {
 	auto pHouse = SafeCast<CHouse>( GetParentEntity() );
 	if( !pHouse )
 		pHouse = SafeCast<CHouse>( GetParentEntity()->GetParentEntity() );
-	pHouse->Enter( pCharacter );
+	if( !pHouse )
+		return false;
+	return pHouse->CanEnter( pCharacter );
+}
+
+bool CHouseEntrance::Enter( CCharacter * pCharacter )
+{
+	auto pHouse = SafeCast<CHouse>( GetParentEntity() );
+	if( !pHouse )
+		pHouse = SafeCast<CHouse>( GetParentEntity()->GetParentEntity() );
+	if( !pHouse )
+		return false;
+	return pHouse->Enter( pCharacter );
 }
 
 bool CHouseEntrance::Exit( CCharacter * pCharacter )

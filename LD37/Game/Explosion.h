@@ -28,6 +28,10 @@ private:
 	uint32 m_nHitFrameCount;
 	int32 m_nDamage;
 	int32 m_nDeltaDamage;
+	int32 m_nDamage1;
+	int32 m_nDeltaDamage1;
+	int32 m_nDamage2;
+	int32 m_nDeltaDamage2;
 	int8 m_nRangeType;
 	float m_fInitRange;
 	float m_fDeltaRange;

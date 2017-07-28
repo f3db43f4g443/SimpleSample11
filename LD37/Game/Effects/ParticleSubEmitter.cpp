@@ -57,6 +57,8 @@ void CParticleSubEmitter::Set()
 		if( m_bRotatea )
 			emitter.a = mat.MulVector2Dir( emitter.a );
 	}
+
+	SRand::Inst().Shuffle( m_subEmitters );
 }
 
 void CParticleSubEmitter::Update( SParticleInstanceData& data, float fTime, const CMatrix2D& transform )
@@ -77,7 +79,8 @@ bool CParticleSubEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 	CVector2 dir = emitter.v + emitter.a * m_fTime;
 	dir.Normalize();
 	float fPercent = m_fTime / m_fLifeTime;
-	dir = dir * ( emitter.size.x + ( emitter.size.y - emitter.size.x ) * fPercent );
+	float fSize = ( emitter.size.x + ( emitter.size.y - emitter.size.x ) * fPercent );
+	dir = dir * fSize;
 	CMatrix2D mat;
 	mat.m00 = dir.x;
 	mat.m01 = -dir.y;
@@ -95,6 +98,9 @@ bool CParticleSubEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 		CMatrix2D mat1 = transform * mat;
 		pParticleSystemData->GenerateSingleParticle( data, pData, mat1 );
 	}
+
+	CRectangle ext = data.origRect.Scale( fSize ).Offset( CVector2( pos.x, pos.y ) );
+	data.extRect = data.extRect + ext;
 
 	m_nCurEmitter++;
 	if( m_nCurEmitter >= m_subEmitters.size() )

@@ -72,6 +72,7 @@ IMPLEMENT_MATERIAL_SHADER( Rope2DVertexShader, "Shader/Rope2D.shader", "VSDefaul
 IMPLEMENT_MATERIAL_SHADER( Rope2DVSStaticData1, "Shader/Rope2D.shader", "VSDefaultStaticData1", "vs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2D.shader", "VSDefaultExtraInstData", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DVertexShader2, CDefault2DVertexShaderExtraInstData<2>, "Shader/Default2D.shader", "VSDefaultExtraInstData", "vs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( Default2DWithPosVertexShader, "Shader/Default2DWithPos.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithPosVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWithPos.shader", "VSDefaultExtraInstData", "vs_5_0" );

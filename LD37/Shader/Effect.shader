@@ -115,3 +115,20 @@ void PSParticleDissolveOcc( in float2 tex : TexCoord0,
 	outColor = float4( 1, 1, 1, lerp( fMinHeight, fMaxHeight, texColor.w ) );
 	clip( fAlpha - 0.001 );
 }
+
+void PSEmiRadialFade( in float2 tex : TexCoord0,
+	in float4 instData : ExtraInstData0,
+	in float4 instData1 : ExtraInstData1,
+	out float4 outColor[2] : SV_Target )
+{
+	float4 texColor = Texture0.Sample( LinearSampler, tex ) * instData1;
+	float2 fadeCenter = instData.xy;
+	float fadeBegin = instData.z;
+	float fadeEnd = instData.w;
+	float fade = length( ( tex - fadeCenter ) );
+	float alpha = saturate( ( fade - fadeEnd ) / ( fadeBegin - fadeEnd ) );
+	texColor.w *= alpha;
+
+	outColor[0] = float4( 0, 0, 0, texColor.w );
+	outColor[1] = texColor;
+}

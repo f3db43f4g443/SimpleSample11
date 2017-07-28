@@ -206,7 +206,7 @@ void CChunkUI::UpdateHp()
 	else if( fPercent > 0.25f )
 		hpColor = ( CVector4( 0.5, 0.5, 0, 1 ) * ( fPercent - 0.25f ) + CVector4( 1, 0, 0, 1 ) * ( 0.75f - fPercent ) ) / 0.5f;
 	else
-		hpColor = ( CVector4( 1, 0, 0, 1 ) * fPercent + CVector4( 0, 0, 0, 1 ) * ( 0.25f - fPercent ) ) * 4;
+		hpColor = ( CVector4( 1, 0, 0, 1 ) * fPercent + CVector4( 0.25f, 0.25f, 0.25f, 1 ) * ( 0.25f - fPercent ) ) * 4;
 	hpColor.w = 1.0f;// 0.5f + 0.5f * m_fRepairPercent;
 	for( int i = 0; i < ELEM_COUNT( m_pFrameImg ); i++ )
 		static_cast<CImage2D*>( m_pFrameImg[i].GetPtr() )->GetParam()[0] = hpColor;
@@ -250,4 +250,130 @@ void CChunkUI::UpdateRepair()
 	int32 nMinY = Max( nMaxY - 8, 0 );
 	m_pRepairImg->bVisible = true;
 	static_cast<CImage2D*>( m_pRepairImg.GetPtr() )->SetRect( CRectangle( 0, nMinY, nWidth, nMaxY - nMinY ) );
+}
+
+void CBlockDetectUI::OnAddedToStage()
+{
+	GetStage()->RegisterStageEvent( eStageEvent_PostUpdate, &m_onTick );
+}
+
+void CBlockDetectUI::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+
+	for( auto pBlock : m_vecBlocks )
+	{
+		if( pBlock->m_pDetectUI )
+		{
+			pBlock->m_pDetectUI->RemoveThis();
+			pBlock->m_pDetectUI = NULL;
+		}
+	}
+	m_vecBlocks.clear();
+	m_vecPool.clear();
+}
+
+void CBlockDetectUI::OnTick()
+{
+	CVector2 center = globalTransform.GetPosition();
+	if( m_bShow )
+		m_fDetectRange = Min( m_fDetectRange + m_fFadeInSpeed * GetStage()->GetElapsedTimePerTick(), m_fMaxDetectRange );
+	else
+		m_fDetectRange = Max( m_fDetectRange - m_fFadeInSpeed * GetStage()->GetElapsedTimePerTick(), 0.0f );
+
+	if( m_fDetectRange > 0 )
+	{
+		SHitProxyCircle circle;
+		circle.center = CVector2( 0, 0 );
+		circle.fRadius = m_fDetectRange;
+		vector<CReference<CEntity> > hitEntities;
+		GetStage()->MultiHitTest( &circle, globalTransform, hitEntities );
+		for( CEntity* pEntity : hitEntities )
+		{
+			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( !pBlockObject )
+				continue;
+
+			pBlockObject->nPublicFlag = 1;
+			if( !pBlockObject->m_pDetectUI )
+			{
+				m_vecBlocks.push_back( pBlockObject );
+				CReference<CRenderObject2D> pUI;
+				if( m_vecPool.size() )
+				{
+					pUI = m_vecPool.back();
+					m_vecPool.pop_back();
+				}
+				else
+				{
+					pUI = m_pUIDrawable->CreateInstance();
+				}
+				pBlockObject->AddChild( pUI );
+				pBlockObject->m_pDetectUI = pUI;
+				pUI->SetRenderParent( this );
+
+				int32 nType;
+				if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block && pBlockObject->GetBlock()->eBlockType != eBlockType_LowBlock )
+				{
+					nType = pBlockObject->GetBlock()->pOwner->HasLayer( 1 ) ? 1 : 0;
+				}
+				else
+				{
+					nType = pBlockObject->GetBlock()->pOwner->HasLayer( 0 ) ? 3 : 2;
+				}
+				static_cast<CImage2D*>( pUI.GetPtr() )->SetTexRect( CRectangle( ( nType & 1 ) * 0.5f, ( nType >> 1 ) * 0.5f, 0.5f, 0.5f ) );
+			}
+		}
+	}
+
+	float fFadeEnd = m_fDetectRange / 32;
+	float fFadeBegin = fFadeEnd - m_fFadeDist / 32;
+	for( int i = m_vecBlocks.size() - 1; i >= 0; i-- )
+	{
+		auto pBlock = m_vecBlocks[i];
+		auto pImage = static_cast<CImage2D*>( pBlock->m_pDetectUI.GetPtr() );
+		auto& imageTexRect = pImage->GetElem().texRect;
+
+		uint8 nPublicFlag = pBlock->nPublicFlag;
+		pBlock->nPublicFlag = 0;
+		if( !nPublicFlag || !pBlock->GetStage() )
+		{
+			m_vecPool.push_back( pBlock->m_pDetectUI );
+			pBlock->m_pDetectUI->RemoveThis();
+			pBlock->m_pDetectUI = NULL;
+
+			if( i != m_vecBlocks.size() - 1 )
+				m_vecBlocks[i] = m_vecBlocks.back();
+			m_vecBlocks.pop_back();
+			continue;
+		}
+
+		CVector2 dPos = center - pBlock->globalTransform.GetPosition();
+		dPos = dPos * ( 1.0f / 32 );
+		dPos.y = 1 - dPos.y;
+		dPos = dPos + CVector2( imageTexRect.x, imageTexRect.y );
+
+		auto& param = pImage->GetParam()[0];
+		param.x = dPos.x;
+		param.y = dPos.y;
+		param.z = fFadeBegin;
+		param.w = fFadeEnd;
+
+		auto pChunkObject = pBlock->GetBlock()->pOwner->pChunkObject;
+		CVector4 hpColor;
+		if( pChunkObject->GetMaxHp() )
+		{
+			float fPercent = pChunkObject->GetHp() * 1.0f / pChunkObject->GetMaxHp();
+			if( fPercent > 0.75f )
+				hpColor = ( CVector4( 0, 1, 0, 0.75f ) * ( fPercent - 0.75f ) + CVector4( 0.5, 0.5, 0, 0.75f ) * ( 1 - fPercent ) ) / 0.25f;
+			else if( fPercent > 0.25f )
+				hpColor = ( CVector4( 0.5, 0.5, 0, 0.75f ) * ( fPercent - 0.25f ) + CVector4( 1, 0, 0, 0.75f ) * ( 0.75f - fPercent ) ) / 0.5f;
+			else
+				hpColor = ( CVector4( 1, 0, 0, 0.75f ) * fPercent + CVector4( 0.5f, 0.5f, 0.5f, 1 ) * ( 0.25f - fPercent ) ) * 4;
+		}
+		else
+			hpColor = CVector4( 1, 1, 1, 0.5f );
+		pImage->GetParam()[1] = hpColor;
+	}
 }

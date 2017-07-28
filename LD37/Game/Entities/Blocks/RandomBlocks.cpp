@@ -199,21 +199,21 @@ void CRandomChunkTiled1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			uint8 nType = pChunk->GetBlock( iX, iY )->eBlockType;
 			CRectangle texRect = m_texRects[nType];
 			uint32 sizeX = m_sizeX[nType];
-			uint32 sizeY = m_sizeX[nType];
+			uint32 sizeY = m_sizeY[nType];
 			uint32 tX = SRand::Inst().Rand( 0u, sizeX );
 			uint32 tY = SRand::Inst().Rand( 0u, sizeY );
-			auto tex = texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) );
 			if( sizeX && sizeY )
 			{
 				texRect.width /= sizeX;
 				texRect.height /= sizeY;
+				auto tex = texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) );
 				CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
 
 				pImage2D->SetTexRect( tex );
 				GetRenderObject()->AddChild( pImage2D );
+				GetBlock( iX, iY )->rtTexRect = tex;
 			}
-			GetBlock( iX, iY )->rtTexRect = tex;
 
 			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 			{

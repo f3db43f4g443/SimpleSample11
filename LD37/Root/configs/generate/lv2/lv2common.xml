@@ -6,7 +6,7 @@
   </includes>
   <level_gen>
     <attachs>
-      <node name="plant" prefab="data/blockitems/plant.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="plant" prefab="data/blockitems/plant.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
       <node name="car1_spawner_0" prefab="data/blockitems/car1_spawner_0.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car1_spawner_1" prefab="data/blockitems/car1_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car1_spawner_2" prefab="data/blockitems/car1_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />

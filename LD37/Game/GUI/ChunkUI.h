@@ -37,3 +37,33 @@ private:
 	CChunkObject* m_pChunkObject;
 	TClassTrigger<CChunkUI> m_onTick;
 };
+
+class CBlockDetectUI : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CBlockDetectUI( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CBlockDetectUI::OnTick )
+	{
+		SET_BASEOBJECT_ID( CBlockDetectUI );
+	}
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+
+	void SetShown( bool bShow ) { m_bShow = bShow; }
+	void Toggle() { m_bShow = !m_bShow; }
+private:
+	void OnTick();
+
+	float m_fMaxDetectRange;
+	float m_fFadeDist;
+	float m_fFadeInSpeed;
+
+	bool m_bShow;
+	float m_fDetectRange;
+
+	TResourceRef<CDrawableGroup> m_pUIDrawable;
+	vector<CReference<CBlockObject> > m_vecBlocks;
+	vector<CReference<CRenderObject2D> > m_vecPool;
+	TClassTrigger<CBlockDetectUI> m_onTick;
+};

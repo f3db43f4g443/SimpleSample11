@@ -6,12 +6,6 @@
 #include "Common/ResourceManager.h"
 #include "Common/Rand.h"
 
-void CBlockBuffAcid::OnAddedToStage()
-{
-	CBlockBuff::OnAddedToStage();
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBulletPrefab.c_str() );
-}
-
 void CBlockBuffAcid::OnTick()
 {
 	CReference<CBlockBuffAcid> pTemp = this;
@@ -47,7 +41,7 @@ void CBlockBuffAcid::OnRemoved( uint8 nReason )
 		CVector2 center = globalTransform.GetPosition();
 		for( int i = 0; i < nBulletCount; i++ )
 		{
-			auto pBullet = SafeCast<CBulletWithBlockBuff>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			auto pBullet = SafeCast<CBulletWithBlockBuff>( m_strBulletPrefab->GetRoot()->CreateInstance() );
 			pBullet->SetCreator( this );
 			pBullet->SetPosition( center );
 			float fAngle = SRand::Inst().Rand( -PI, PI );
@@ -60,5 +54,50 @@ void CBlockBuffAcid::OnRemoved( uint8 nReason )
 			pBullet->Set( &context );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		}
+	}
+}
+
+void CBlockBuffFire::OnTick()
+{
+	CReference<CBlockBuffFire> pTemp = this;
+
+	auto pChunkObject = SafeCast<CBlockObject>( GetParentEntity() )->GetBlock()->pOwner->pChunkObject;
+	pChunkObject->Damage( m_fDamage * GetStage()->GetElapsedTimePerTick() );
+
+	if( m_nExplosionTick )
+		m_nExplosionTick--;
+	if( m_nExplosionTick == 0 )
+	{
+		m_nExplosionTick = SRand::Inst().Rand( 110, 130 );
+
+		auto pBlockObject = SafeCast<CBlockObject>( GetParentEntity() );
+		auto pChunkObject = SafeCast<CChunkObject>( pBlockObject->GetParentEntity() );
+		ForceUpdateTransform();
+		CVector2 center = globalTransform.GetPosition();
+		
+		auto pExp = SafeCast<CExplosionWithBlockBuff>( m_strExplosionPrefab->GetRoot()->CreateInstance() );
+		pExp->SetCreator( this );
+		pExp->SetPosition( center );
+		CBlockBuff::SContext context;
+		context.nLife = m_nLife;
+		context.fParams[0] = m_fDamage;
+		pExp->Set( &context );
+		pExp->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	}
+
+	if( GetStage() )
+		CBlockBuff::OnTick();
+}
+
+void CBlockBuffFire::OnAdded( uint8 nReason, SContext * pContext )
+{
+	if( nReason == eAddedReason_New )
+		m_nExplosionTick = SRand::Inst().Rand( 110, 130 );
+
+	if( m_nLife * m_fDamage < pContext->nLife * pContext->fParams[0] )
+	{
+		m_nTotalLife = Max( m_nTotalLife, pContext->nLife );
+		m_nLife = pContext->nLife;
+		m_fDamage = pContext->fParams[0];
 	}
 }

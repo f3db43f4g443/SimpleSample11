@@ -24,9 +24,12 @@ class CHouseEntrance : public CEntity
 public:
 	CHouseEntrance( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CHouseEntrance ); }
 
-	void Enter( CCharacter* pCharacter );
+	bool CanEnter( CCharacter* pCharacter );
+	bool Enter( CCharacter* pCharacter );
 	bool Exit( CCharacter* pCharacter );
+	uint8 GetDir() { return m_nDir; }
 private:
 	CRectangle m_spawnRect;
 	CRectangle m_spawnRect1;
+	uint8 m_nDir;
 };

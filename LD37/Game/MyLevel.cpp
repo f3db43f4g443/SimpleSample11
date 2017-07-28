@@ -103,8 +103,6 @@ void CMyLevel::OnAddedToStage()
 	CheckSpawn();
 	GetStage()->SetNavigationProvider( this );
 
-	pChunkUIPrefeb = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().mapPrefabPath["chunk_ui"].c_str() );
-
 	for( int i = 0; i < ELEM_COUNT( m_pBulletRoot ); i++ )
 	{
 		m_pBulletRoot[i] = new CEntity;
@@ -150,6 +148,8 @@ void CMyLevel::OnPlayerEntered( CPlayer * pPlayer )
 {
 	auto pWeapon = SafeCast<CPlayerWeapon>( CResourceManager::Inst()->CreateResource<CPrefab>( "weapon.pf" )->GetRoot()->CreateInstance() );
 	pPlayer->AddItem( pWeapon );
+	pPlayer->GetBlockDetectUI()->SetRenderParentBefore( m_pBulletRoot[eBulletLevel_Player] );
+	pPlayer->GetBlockDetectUI()->SetShown( true );
 }
 
 void CMyLevel::CreateGrids( const char* szNode )
@@ -458,6 +458,8 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 	{
 		for( auto& item : newChunks )
 		{
+			if( item.first->nSubChunkType == 1 )
+				continue;
 			int32 minX = item.second.x / GetBlockSize();
 			int32 minY = item.second.y / GetBlockSize();
 			for( auto& block : item.first->blocks )
@@ -1140,7 +1142,7 @@ void CMyLevel::UpdateBlockRT()
 		nInstData = 0;
 	}
 
-	pSystem->SetBlendState( IBlendState::Get<false, false, 0xf, EBlendSrcAlpha, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
+	pSystem->SetBlendState( IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
 	nInstData = 0;
 	for( int i = 0; i < hitBlocks.size(); i++ )
 	{

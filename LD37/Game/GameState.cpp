@@ -137,6 +137,9 @@ void CMainGameState::UpdateInput()
 		{
 			pPlayer->Roll();
 		}
+
+		if( pGame->IsKeyDown( VK_TAB ) )
+			pPlayer->ToggleBlockUIVisible();
 	}
 }
 

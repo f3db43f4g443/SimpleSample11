@@ -156,9 +156,6 @@
     </ClCompile>
     <ClCompile Include="PlayerData.cpp" />
     <ClCompile Include="MainMenu.cpp" />
-    <ClCompile Include="DamageEft.cpp">
-      <Filter>Entities</Filter>
-    </ClCompile>
     <ClCompile Include="Entities\UtilEntities.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
@@ -323,9 +320,6 @@
     </ClInclude>
     <ClInclude Include="PlayerData.h" />
     <ClInclude Include="MainMenu.h" />
-    <ClInclude Include="DamageEft.h">
-      <Filter>Entities</Filter>
-    </ClInclude>
     <ClInclude Include="Entities\UtilEntities.h">
       <Filter>Entities</Filter>
     </ClInclude>

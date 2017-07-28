@@ -379,6 +379,7 @@ void CStage::Update()
 		m_camera.SetPosition( floor( camPos.x + 0.5f ), floor( camPos.y + 0.5f ) );
 		//m_camera.SetExtraOfs( CVector2( floor( camShake.x + 0.5f ), floor( camShake.y + 0.5f ) ) );
 	}
+	m_events.Trigger( eStageEvent_PostUpdate, NULL );
 	PROFILE_END( Update )
 
 	CProfileMgr::Inst()->OnFrameMove();

@@ -20,6 +20,7 @@ public:
 	void ResetTransformDirty() { m_isTransformDirty = false; }
 	void SetBoundDirty();
 	const CRectangle& GetLocalBound() { return m_localBound; }
+	void SetLocalBound( const CRectangle& bound ) { m_localBound = bound; SetBoundDirty(); }
 
 	void AddChild( CRenderObject2D* pNode );
 	void AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter );

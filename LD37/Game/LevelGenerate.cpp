@@ -78,7 +78,7 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 	return pChunk;
 }
 
-void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType )
+void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 )
 {
 	auto r = rect;
 	if( nType > 0 )
@@ -87,7 +87,7 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			if( attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].first )
+			if( attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].pPrefab )
 				return;
 		}
 	}
@@ -96,8 +96,10 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	{
 		for( int i = r.x; i < r.GetRight(); i++ )
 		{
-			attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].first = pPrefab;
-			attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2].second = rect;
+			auto& item = attachedPrefabs[nType][nLayer + ( i + j * nWidth ) * 2];
+			item.pPrefab = pPrefab;
+			item.rect = rect;
+			item.bType = bType1;
 		}
 	}
 }
@@ -266,12 +268,12 @@ void SLevelBuildContext::Build()
 
 				for( int k = 0; k < ELEM_COUNT( attachedPrefabs ); k++ )
 				{
-					pair<CReference<CPrefab>, TRectangle<int32> > attachedPrefabLayers[2] = { attachedPrefabs[k][0 + ( i + j * nWidth ) * 2], attachedPrefabs[k][1 + ( i + j * nWidth ) * 2] };
+					SAttach attachedPrefabLayers[2] = { attachedPrefabs[k][0 + ( i + j * nWidth ) * 2], attachedPrefabs[k][1 + ( i + j * nWidth ) * 2] };
 
-					if( bLayerValid[0] && !bLayerValid[1] && !attachedPrefabLayers[0].first && attachedPrefabLayers[1].first )
+					if( bLayerValid[0] && !bLayerValid[1] && !attachedPrefabLayers[0].pPrefab && attachedPrefabLayers[1].pPrefab )
 					{
 						attachedPrefabLayers[0] = attachedPrefabLayers[1];
-						attachedPrefabLayers[1].first = NULL;
+						attachedPrefabLayers[1].pPrefab = NULL;
 					}
 
 					for( int iLayer = 0; iLayer < 2; iLayer++ )
@@ -298,7 +300,7 @@ void SLevelBuildContext::Build()
 
 						auto& attachedPrefab = attachedPrefabLayers[iLayer];
 						auto pBlock = pBlockLayers[iLayer]->pParent;
-						if( attachedPrefab.second.x == i && attachedPrefab.second.y == j )
+						if( attachedPrefab.rect.x == i && attachedPrefab.rect.y == j )
 						{
 							if( !pBlock->pOwner->pPrefab )
 							{
@@ -307,13 +309,16 @@ void SLevelBuildContext::Build()
 								pBlock = pParentChunk->GetBlock( i, j );
 							}
 
-							pBlock->pAttachedPrefab[k] = attachedPrefab.first;
+							pBlock->pAttachedPrefab[k] = attachedPrefab.pPrefab;
 							if( k == SBlock::eAttachedPrefab_Center )
-								pBlock->attachedPrefabSize = attachedPrefab.second.GetSize();
+								pBlock->attachedPrefabSize = attachedPrefab.rect.GetSize();
 							else if( k == SBlock::eAttachedPrefab_Lower )
-								pBlock->nLowerMargin = attachedPrefab.second.height;
+								pBlock->nLowerMargin = attachedPrefab.rect.height;
 							else
-								pBlock->nUpperMargin = attachedPrefab.second.height;
+								pBlock->nUpperMargin = attachedPrefab.rect.height;
+
+							if( attachedPrefab.bType )
+								pBlock->nAttachType |= 1 << k;
 						}
 					}
 				}
@@ -650,6 +655,7 @@ public:
 		m_size.y = XmlGetAttr( pXml, "sizey", 1 );
 		m_nLayer = XmlGetAttr( pXml, "layer", 1 );
 		m_nType = Min<uint8>( SBlock::eAttachedPrefab_Count, XmlGetAttr( pXml, "attach_type", 0 ) );
+		m_bType1 = XmlGetAttr( pXml, "type1", 0 );
 
 		CLevelGenerateNode::Load( pXml, context );
 	}
@@ -659,7 +665,7 @@ public:
 		{
 			for( int i = region.x; i < region.GetRight(); i += m_size.x )
 			{
-				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nLayer, m_nType );
+				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nLayer, m_nType, m_bType1 );
 			}
 		}
 		CLevelGenerateNode::Generate( context, region );
@@ -669,6 +675,7 @@ protected:
 	TVector2<int32> m_size;
 	uint8 m_nLayer;
 	uint8 m_nType;
+	bool m_bType1;
 };
 
 class CLevelGenerateScrollObjNode : public CLevelGenerateNode

@@ -33,12 +33,13 @@ struct SBlock
 {
 	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 )
 	{ layers[0].pParent = layers[1].pParent = this; }
+	struct SChunk* pOwner;
+	float fDmgPercent;
 	uint8 eBlockType;
 	uint8 nTag;
-	float fDmgPercent;
-	struct SChunk* pOwner;
 	uint8 nX, nY;
 	uint8 nUpperMargin, nLowerMargin;
+	uint8 nAttachType;
 	CReference<CEntity> pEntity;
 
 	CRectangle rtTexRect;
@@ -61,6 +62,7 @@ class CBlockObject : public CEntity
 {
 	friend class CMyLevel;
 	friend class CChunkObject;
+	friend class CBlockDetectUI;
 public:
 	CBlockObject( const SClassCreateContext& context ) : CEntity( context ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false ) { SET_BASEOBJECT_ID( CBlockObject ); }
 	CBlockObject( SBlock* pBlock, CEntity* pParent, class CMyLevel* pLevel );
@@ -68,11 +70,13 @@ public:
 	SBlock* GetBlock() { return m_pBlock; }
 
 	virtual void OnRemovedFromStage() override;
+
 private:
 	SBlock* m_pBlock;
-
 	int16 m_nBlockRTIndex;
+
 	CReference<CRenderObject2D> m_pBlockRTObject;
+	CReference<CRenderObject2D> m_pDetectUI;
 	bool m_bBlockRTActive;
 };
 
