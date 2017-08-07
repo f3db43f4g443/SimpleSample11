@@ -7,6 +7,237 @@
 #include "MyLevel.h"
 #include "Entities/EnemyCharacters.h"
 #include "Common/Rand.h"
+#include "Entities/Barrage.h"
+
+void CBarrel::Damage( SDamageContext& context )
+{
+	if( m_bKilled )
+	{
+		DEFINE_TEMP_REF_THIS();
+		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
+		int32 nPreHp = -m_fHp;
+		CExplosiveChunk::Damage( context );
+		if( !GetParentEntity() )
+			return;
+		int32 nCurHp = -m_fHp;
+		int32 nFireCount = ( nCurHp / m_nDeathDamage ) - ( nPreHp / m_nDeathDamage );
+		if( nFireCount > 0 )
+		{
+			CMyLevel::GetInst()->AddShakeStrength( 10 );
+			SBarrageContext context;
+			context.pCreator = this;
+			context.vecBulletTypes.push_back( m_strBullet.GetPtr() );
+			context.nBulletPageSize = 12 * nFireCount;
+
+			CBarrage* pBarrage = new CBarrage( context );
+			pBarrage->AddFunc( [nFireCount] ( CBarrage* pBarrage )
+			{
+				for( int iFire = 0; iFire < nFireCount; iFire++ )
+				{
+					for( int i = 0; i < 12; i++ )
+					{
+						float fAngle = ( i + SRand::Inst().Rand( -0.5f, 0.5f ) ) * PI / 6;
+						CVector2 dir( cos( fAngle ), sin( fAngle ) );
+						float speed = SRand::Inst().Rand( 300.0f, 500.0f );
+						uint32 nBullet = iFire * 12 + i;
+						pBarrage->InitBullet( nBullet, 0, -1, CVector2( 0, 0 ), dir * speed, dir * speed * -0.5f, true );
+						CVector2 finalSpeed = dir * speed * 0.5f;
+						pBarrage->AddDelayAction( 60, [=] () {
+							auto pContext = pBarrage->GetBulletContext( nBullet );
+							if( pContext )
+								pContext->SetBulletMove( finalSpeed, CVector2( 0, 0 ) );
+						} );
+					}
+					pBarrage->Yield( 5 );
+				}
+				pBarrage->StopNewBullet();
+			} );
+			pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			pBarrage->SetPosition( globalTransform.GetPosition() + center );
+			pBarrage->Start();
+		}
+	}
+	else
+		CExplosiveChunk::Damage( context );
+}
+
+void CBarrel::Explode()
+{
+	CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
+
+	if( m_strEffect )
+	{
+		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		pEffect->SetPosition( GetPosition() + center );
+		pEffect->SetState( 2 );
+	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+
+	SBarrageContext context;
+	context.pCreator = this;
+	context.vecBulletTypes.push_back( m_strBullet.GetPtr() );
+	context.nBulletPageSize = 12 * 5;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	pBarrage->AddFunc( [] ( CBarrage* pBarrage )
+	{
+		for( int i = 0; i < 12; i++ )
+		{
+			float fAngle = ( i + SRand::Inst().Rand( -0.5f, 0.5f ) ) * PI / 6;
+			for( int j = 0; j < 5; j++ )
+			{
+				float fAngle1 = fAngle + ( j - 2 ) * 0.08f;
+				CVector2 dir( cos( fAngle1 ), sin( fAngle1 ) );
+				float fSpeed1 = 400 - abs( j - 2 ) * 25;
+				pBarrage->InitBullet( i * 5 + j, 0, -1, CVector2( 0, 0 ), dir * fSpeed1, CVector2( 0, 0 ), true );
+			}
+		}
+		pBarrage->Yield( 1 );
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->SetPosition( globalTransform.GetPosition() + center );
+	pBarrage->Start();
+
+	auto pExp = SafeCast<CExplosionWithBlockBuff>( m_strExp->GetRoot()->CreateInstance() );
+	pExp->SetPosition( globalTransform.GetPosition() + center );
+	pExp->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	CBlockBuff::SContext buffcontext;
+	buffcontext.nLife = 600;
+	buffcontext.nTotalLife = 600;
+	buffcontext.fParams[0] = 3;
+	pExp->Set( &buffcontext );
+	pExp->SetCreator( this );
+
+	CExplosiveChunk::Explode();
+}
+
+void CBarrel1::Damage( SDamageContext& context )
+{
+	if( m_bKilled )
+	{
+		DEFINE_TEMP_REF_THIS();
+		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
+		int32 nPreHp = -m_fHp;
+		CExplosiveChunk::Damage( context );
+		if( !GetParentEntity() )
+			return;
+		int32 nCurHp = -m_fHp;
+		int32 nFireCount = ( nCurHp / m_nDeathDamage ) - ( nPreHp / m_nDeathDamage );
+
+		for( int i = 0; i < nFireCount; i++ )
+		{
+			CVector2 ofs[2] = { CVector2( 32, 60 ), CVector2( 96, 60 ) };
+			for( int j = 0; j < 2; j++ )
+			{
+				for( int k = 0; k < 3; k++ )
+				{
+					auto pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
+					pBullet->SetPosition( ofs[j] + globalTransform.GetPosition() );
+					pBullet->SetVelocity( CVector2( SRand::Inst().Rand( -200.0f, 200.0f ), SRand::Inst().Rand( 350.0f, 500.0f ) ) );
+					pBullet->SetAcceleration( CVector2( 0, -100 ) );
+					pBullet->SetLife( SRand::Inst().Rand( 60, 70 ) );
+					pBullet->SetCreator( this );
+					pBullet->SetTangentDir( true );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
+			}
+		}
+	}
+	else
+		CExplosiveChunk::Damage( context );
+}
+
+void CBarrel1::OnKilled()
+{
+	CVector2 ofs[2] = { CVector2( 32, 60 ), CVector2( 96, 60 ) };
+	for( int i = 0; i < 2; i++ )
+	{
+		auto pExp = SafeCast<CExplosionWithBlockBuff>( m_strExp->GetRoot()->CreateInstance() );
+		pExp->SetPosition( ofs[i] );
+		pExp->SetParentEntity( this );
+		pExp->SetRenderParentBefore( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		CBlockBuff::SContext buffcontext;
+		buffcontext.nLife = 300;
+		buffcontext.nTotalLife = 300;
+		buffcontext.fParams[0] = 3;
+		pExp->Set( &buffcontext );
+		pExp->SetCreator( this );
+	}
+}
+
+void CBarrel1::Explode()
+{
+	CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
+
+	if( m_strEffect )
+	{
+		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		pEffect->SetPosition( GetPosition() + center );
+		pEffect->SetState( 2 );
+	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+
+	SBarrageContext context;
+	context.pCreator = this;
+	context.vecBulletTypes.push_back( m_strBullet.GetPtr() );
+	context.nBulletPageSize = 12 * 2 * 4;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	pBarrage->AddFunc( [] ( CBarrage* pBarrage )
+	{
+		CVector2 ofs[2] = { CVector2( -32, 32 ), CVector2( 32, 32 ) };
+		uint32 nBullet = 0;
+		float fAngle0 = SRand::Inst().Rand( -PI, PI );
+		for( int i = 0; i < 12; i++ )
+		{
+			float fAngle = i * PI * 2 / 24 + fAngle0;
+			for( int j = 0; j < 2; j++ )
+			{
+				for( int k = 0; k < 4; k++ )
+				{
+					float fAngle1 = ( fAngle + k * PI / 2 ) * ( j > 0 ? 1 : -1 );
+					CVector2 dir( cos( fAngle1 ), sin( fAngle1 ) );
+					pBarrage->InitBullet( nBullet++, 0, -1, ofs[j], dir * 150, ( dir + CVector2( j > 0 ? -1 : 1, 0 ) ) * 150 );
+				}
+			}
+			pBarrage->Yield( 5 );
+		}
+
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->SetPosition( globalTransform.GetPosition() + center );
+	pBarrage->Start();
+
+	CVector2 ofs[2] = { CVector2( 32, 60 ), CVector2( 96, 60 ) };
+	for( int j = 0; j < 2; j++ )
+	{
+		for( int k = 0; k < 3; k++ )
+		{
+			auto pBullet = SafeCast<CBomb>( m_strBullet1->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( ofs[j] + globalTransform.GetPosition() );
+			pBullet->SetVelocity( CVector2( SRand::Inst().Rand( -350.0f, 350.0f ), SRand::Inst().Rand( 350.0f, 500.0f ) ) );
+			pBullet->SetAcceleration( CVector2( 0, -200.0f ) );
+			pBullet->SetTangentDir( true );
+			pBullet->SetCreator( this );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+
+			auto pExp = SafeCast<CExplosionWithBlockBuff>( pBullet->GetExplosion() );
+			CBlockBuff::SContext buffcontext;
+			buffcontext.nLife = 600;
+			buffcontext.nTotalLife = 600;
+			buffcontext.fParams[0] = 3;
+			pExp->Set( &buffcontext );
+		}
+	}
+
+	CExplosiveChunk::Explode();
+}
 
 void CHousePart::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 {

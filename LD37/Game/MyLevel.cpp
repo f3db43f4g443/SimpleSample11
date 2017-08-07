@@ -254,6 +254,9 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 			item.second = item.first->pos;
 			item.first->RemoveFrom_SubChunk();
 			item.first->bIsSubChunk = false;
+
+			if( pSubChunk->bIsLevelBarrier )
+				pChunk->bIsLevelBarrier = false;
 		}
 	}
 	SplitChunks( pChunk, newChunks );

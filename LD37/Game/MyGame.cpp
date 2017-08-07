@@ -39,6 +39,7 @@
 #include "Entities/BlockItems/BlockItemsLv2.h"
 #include "Entities/Bullets.h"
 #include "Entities/BlockBuffs.h"
+#include "Entities/Consumables.h"
 #include "Entities/Enemies/Lv1Boss.h"
 #include "Entities/Enemies/Lv1Enemies.h"
 #include "Entities/Enemies/Lv2Enemies.h"
@@ -455,23 +456,33 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CMainUI )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pB, b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pC, c );
 		REGISTER_MEMBER_TAGGED_PTR( m_pRB, rb );
 		REGISTER_MEMBER_TAGGED_PTR( m_pRT, rt );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarRoot, b/hpbar );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarRoot, b/spbar );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[0], b/hpbar/hp_1 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[1], b/hpbar/hp_2 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[0], b/hpbar/hp1_1 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[1], b/hpbar/hp1_2 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[0], b/hpbar/hp_b1 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[1], b/hpbar/hp_b2 );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, b/spbar/sp );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[0], b/spbar/sp_a );
-		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[1], b/spbar/sp_b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarRoot, c/hpbar );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarRoot, c/spbar );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[0], c/hpbar/hp_1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar[1], c/hpbar/hp_2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[0], c/hpbar/hp1_1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpStoreBar[1], c/hpbar/hp1_2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[0], c/hpbar/hp_b1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarBack[1], c/hpbar/hp_b2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, c/spbar/sp );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[0], c/spbar/sp_a );
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[1], c/spbar/sp_b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pMoney, b/money );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShake, rb/shake );
 		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, rb/minimap );
+		REGISTER_MEMBER_TAGGED_PTR( m_pUse, use );
+		REGISTER_MEMBER_TAGGED_PTR( m_pUseText, use/text );
 		REGISTER_MEMBER_TAGGED_PTR( m_pSkip, rt/skip );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShakeSmallBars[0], rb/minimap/shake );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[0], b/consumables/0 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[1], b/consumables/1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[2], b/consumables/2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[3], b/consumables/3 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[4], b/consumables/4 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[5], b/consumables/5 );
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CChunkUI )
@@ -542,6 +553,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nLife )
 		REGISTER_MEMBER( m_nHitBeginFrame )
 		REGISTER_MEMBER( m_nHitFrameCount )
+		REGISTER_MEMBER( m_nHitInterval )
 		REGISTER_MEMBER( m_nDamage )
 		REGISTER_MEMBER( m_nDeltaDamage )
 		REGISTER_MEMBER( m_nDamage1 )
@@ -590,10 +602,13 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
 		REGISTER_MEMBER_TAGGED_PTR( m_pText, text );
+		REGISTER_MEMBER_TAGGED_PTR( m_pPriceText, price );
+		REGISTER_MEMBER_TAGGED_PTR( m_pPriceText1, price1 );
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickUpCommon )
 		REGISTER_BASE_CLASS( CPickUp )
+		REGISTER_MEMBER( m_nHeal )
 		REGISTER_MEMBER( m_nHpRestore )
 		REGISTER_MEMBER( m_nMoney )
 	REGISTER_CLASS_END()
@@ -601,6 +616,13 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CPickUpItem )
 		REGISTER_BASE_CLASS( CPickUp )
 		REGISTER_MEMBER_TAGGED_PTR( m_pItem, item );
+	REGISTER_CLASS_END()
+	
+	REGISTER_CLASS_BEGIN( CPickUpTemplate )
+		REGISTER_BASE_CLASS( CPickUp )
+		REGISTER_MEMBER( m_ofs )
+		REGISTER_MEMBER( m_fPricePercent )
+		REGISTER_MEMBER_TAGGED_PTR( m_pLight, light );
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickupCarrier )
@@ -661,6 +683,32 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CItem )
 		REGISTER_MEMBER( m_nHp )
 		REGISTER_MEMBER( m_nSp )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CConsumable )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_pIcon )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CConsumableHealing )
+		REGISTER_BASE_CLASS( CConsumable )
+		REGISTER_MEMBER( m_fPercent )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CConsumableRepair )
+		REGISTER_BASE_CLASS( CConsumable )
+		REGISTER_MEMBER( m_fPercent )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CConsumableEffect )
+		REGISTER_BASE_CLASS( CConsumable )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEffect, effect );
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPlayerSpecialEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_nTime )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPlayerWeapon )
@@ -756,7 +804,14 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CBarrel )
 		REGISTER_BASE_CLASS( CExplosiveChunk )
 		REGISTER_MEMBER( m_strBullet )
+		REGISTER_MEMBER( m_strExp )
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CBarrel1 )
+		REGISTER_BASE_CLASS( CExplosiveChunk )
+		REGISTER_MEMBER( m_strBullet )
 		REGISTER_MEMBER( m_strBullet1 )
+		REGISTER_MEMBER( m_strExp )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CRandomEnemyRoom )
@@ -856,6 +911,7 @@ void RegisterGameClasses()
 	REGISTER_CLASS_BEGIN( CLvFloor1 )
 		REGISTER_BASE_CLASS( CRandomChunkTiled )
 		REGISTER_MEMBER( m_strCrate )
+		REGISTER_MEMBER( m_strItemDrop )
 		REGISTER_MEMBER( m_fWeights )
 	REGISTER_CLASS_END()
 
@@ -879,6 +935,7 @@ void RegisterGameClasses()
 
 	REGISTER_CLASS_BEGIN( CLvBarrierReward1 )
 		REGISTER_BASE_CLASS( CRandomChunkTiled )
+		REGISTER_MEMBER( m_strItemDrop )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CGarbageBinRed )
@@ -1144,6 +1201,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strPrefab2 )
 		REGISTER_MEMBER( m_strPrefab3 )
 		REGISTER_MEMBER( m_fChances )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CShop )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_strItemDrop )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPickUpRoot, pickup )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPipe0 )

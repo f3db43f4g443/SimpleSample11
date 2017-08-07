@@ -364,7 +364,7 @@ void CBlockDetectUI::OnTick()
 		CVector4 hpColor;
 		if( pChunkObject->GetMaxHp() )
 		{
-			float fPercent = pChunkObject->GetHp() * 1.0f / pChunkObject->GetMaxHp();
+			float fPercent = Min( 1.0f, Max( 0.0f, pChunkObject->GetHp() * 1.0f / pChunkObject->GetMaxHp() ) );
 			if( fPercent > 0.75f )
 				hpColor = ( CVector4( 0, 1, 0, 0.75f ) * ( fPercent - 0.75f ) + CVector4( 0.5, 0.5, 0, 0.75f ) * ( 1 - fPercent ) ) / 0.25f;
 			else if( fPercent > 0.25f )

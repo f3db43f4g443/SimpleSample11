@@ -172,6 +172,13 @@
       <Filter>Entities\BlockItems</Filter>
     </ClCompile>
     <ClCompile Include="Navigation.cpp" />
+    <ClCompile Include="ItemDrop.cpp" />
+    <ClCompile Include="Entities\Consumables.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\Items\SpecialWeapons.cpp">
+      <Filter>Entities\Items</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -336,6 +343,13 @@
       <Filter>Entities\BlockItems</Filter>
     </ClInclude>
     <ClInclude Include="Navigation.h" />
+    <ClInclude Include="ItemDrop.h" />
+    <ClInclude Include="Entities\Consumables.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\Items\SpecialWeapons0.h">
+      <Filter>Entities\Items</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -456,6 +470,9 @@
     </Filter>
     <Filter Include="Entities\Blocks\lv2">
       <UniqueIdentifier>{9cb41a79-1e7a-4b1f-9751-caab05ec7963}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities\Items">
+      <UniqueIdentifier>{4e7218da-0b11-487c-a34a-338c2b482e92}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

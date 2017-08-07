@@ -16,6 +16,7 @@ public:
 	void SetVelocity( const CVector2& velocity ) { m_velocity = velocity; }
 	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
 	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
+	void SetTangentDir( bool bTangentDir ) { m_bTangentDir = bTangentDir; }
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
 	virtual void OnHit( CEntity* pEntity ) { if( m_onHit ) m_onHit( this, pEntity ); }
 	virtual void Kill();
@@ -42,13 +43,14 @@ protected:
 
 	uint32 m_nLife;
 
-	uint8 m_nType;
 	uint32 m_nDamage;
 	uint32 m_nDamage1;
 	uint32 m_nDamage2;
 
-	uint8 m_nBoundType;
 	CRectangle m_bound;
+	uint8 m_nType;
+	uint8 m_nBoundType;
+	bool m_bTangentDir;
 
 	TResourceRef<CPrefab> m_pDmgEft;
 

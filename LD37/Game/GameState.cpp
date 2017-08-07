@@ -134,8 +134,15 @@ void CMainGameState::UpdateInput()
 			pPlayer->EndRepair();
 
 		if( pGame->IsRightMouseDown() )
-		{
 			pPlayer->Roll();
+
+		if( pGame->IsKeyDown( 'E' ) )
+			pPlayer->Use();
+
+		for( int i = 0; i < 6; i++ )
+		{
+			if( pGame->IsKeyDown( '1' + i ) )
+				pPlayer->UseConsumable( i );
 		}
 
 		if( pGame->IsKeyDown( VK_TAB ) )

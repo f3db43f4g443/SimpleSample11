@@ -9,6 +9,7 @@
 #include "Common/ResourceManager.h"
 #include "Common/Rand.h"
 #include "Pickup.h"
+#include "GlobalCfg.h"
 
 void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 {
@@ -21,7 +22,7 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 				m_vecCrates.push_back( pChunkObject );
 		}
 
-		auto pPickUp = SafeCast<CPickUp>( pEntity );
+		auto pPickUp = SafeCast<CPickUpTemplate>( pEntity );
 		if( pPickUp )
 		{
 			m_vecPickups.push_back( pPickUp );
@@ -31,7 +32,7 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 	m_triggers.resize( m_vecPickups.size() + m_vecCrates.size() );
 	for( int i = 0; i < m_vecPickups.size(); i++ )
 	{
-		CPickUp* pPickUp = SafeCast<CPickUp>( m_vecPickups[i].GetPtr() );
+		CPickUp* pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
 		m_triggers[i].Set( [i, this] () {
 			m_vecPickups[i] = NULL;
 			OnPickUp();
@@ -51,6 +52,21 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 
 void CLvFloor1::OnCrateKilled( int32 i )
 {
+	if( !m_nKilledCrates )
+	{
+		SItemDropContext context;
+		context.nDrop = m_vecPickups.size();
+		auto pNode = CGlobalCfg::Inst().itemDropNodeContext.FindNode( m_strItemDrop );
+		pNode->Generate( context );
+		context.Drop();
+
+		for( int i = 0; i < m_vecPickups.size(); i++ )
+		{
+			auto pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
+			CEntity* pItem = SafeCast<CEntity>( context.dropItems[i].pPrefab->GetRoot()->CreateInstance() );
+			pPickUp->Set( pItem, context.dropItems[i].nPrice );
+		}
+	}
 	m_nKilledCrates++;
 	if( m_pChunk )
 		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
@@ -669,10 +685,22 @@ void CLvBarrierReward1::OnCreateComplete( CMyLevel * pLevel )
 
 void CLvBarrierReward1::OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed )
 {
-	if( m_pChunk->pos.y == 0 )
+	if( m_pChunk->pos.y == 0 && !m_bPickupCreated )
 	{
-		for( auto& pPickUp : m_vecPickups )
+		m_bPickupCreated = true;
+		SItemDropContext context;
+		context.nDrop = m_vecPickups.size();
+		auto pNode = CGlobalCfg::Inst().itemDropNodeContext.FindNode( m_strItemDrop );
+		pNode->Generate( context );
+		context.Drop();
+
+		for( int i = 0; i < m_vecPickups.size(); i++ )
+		{
+			auto pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
+			CEntity* pItem = SafeCast<CEntity>( context.dropItems[i].pPrefab->GetRoot()->CreateInstance() );
 			pPickUp->SetParentEntity( this );
+			pPickUp->Set( pItem, context.dropItems[i].nPrice );
+		}
 	}
 }
 

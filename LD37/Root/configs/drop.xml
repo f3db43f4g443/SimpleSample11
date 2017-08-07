@@ -1,0 +1,25 @@
+﻿<root>
+  <group name="consumable">
+    <item name="data/items/heal_2.pf" p="1" price="20" />
+    <item name="data/items/strength_2.pf" p="1" price="20" />
+    <item name="data/items/boost_2.pf" p="1" price="20" />
+    <item name="data/items/repair_2.pf" p="1" price="20" />
+  </group>
+  <group name="weapon">
+    <item name="data/items/weapons/axe.pf" p="1" price="20" />
+    <item name="data/items/weapons/bottle.pf" p="1" price="20" />
+    <item name="data/items/weapons/flashlight.pf" p="1" price="20" />
+    <item name="data/items/weapons/kitchen_knife.pf" p="1" price="20" />
+    <item name="data/items/weapons/screwdriver.pf" p="1" price="20" />
+  </group>
+  <group name="floor_reward">
+    <item name="data/pickups/hppack.pf" p="1" />
+    <ref name="consumable" p="4" />
+    <ref name="weapon" p="4" />
+  </group>
+  <group name="shop">
+    <item name="data/pickups/hppack.pf" p="1" price="40" />
+    <ref name="consumable" p="4" />
+    <ref name="weapon" p="4" />
+  </group>
+</root>

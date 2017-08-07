@@ -61,8 +61,11 @@ public:
 
 	virtual void OnAddedToStage() override;
 	void Set( const char* szText );
+	const CRectangle& GetTextRect() { return m_textRect; }
 private:
 	CRectangle m_initRect;
+	CRectangle m_textRect;
+	CVector4 m_param;
 };
 
 class CBlockRTEft : public CEntity

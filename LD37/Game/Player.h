@@ -31,7 +31,7 @@ public:
 	void ModifyHp( int32 nValue );
 	void ModifySp( int32 nValue );
 	int32 GetMoney() { return m_nMoney; }
-	void AddMoney( int32 nMoney ) { m_nMoney += nMoney; }
+	void ModifyMoney( int32 nMoney );
 	CEntity* GetCore() { return m_pCore; }
 	bool IsHiding() { return m_fHidingCurTime >= m_fHidingTime; }
 	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
@@ -57,6 +57,7 @@ public:
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
 	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
 	virtual void Damage( SDamageContext& context ) override;
+	void HealHp( int32 nValue );
 	void RestoreHp( int32 nValue );
 	bool CheckCostSp( int32 nValue, int8 nType );
 	void CostSp( int32 nValue, int8 nType );
@@ -68,10 +69,14 @@ public:
 	void EndFire();
 	void BeginRepair();
 	void EndRepair();
+	void Use() { m_bUse = true; }
 
 	void AddItem( CItem* pItem );
 	void RemoveItem( CItem* pItem );
 	int32 CheckItemLevel( CItem* pItem );
+	int8 CanAddConsumable( CConsumable* pConsumable );
+	int8 AddConsumable( CConsumable* pConsumable );
+	bool UseConsumable( int32 i );
 
 	CChunkObject* GetCurRoom() { return m_pCurRoom; }
 	CPlayerWeapon* GetWeapon() { return m_pCurWeapon; }
@@ -86,7 +91,19 @@ public:
 
 	virtual bool CanTriggerItem() override;
 
+	enum
+	{
+		eSpecialFlag_Strength,
+		eSpecialFlag_Boost,
+
+		eSpecialFlag_Count,
+	};
+	void IncSpecialFlag( int8 nFlag ) { m_nSpecialFlags[nFlag]++; }
+	void DecSpecialFlag( int8 nFlag ) { m_nSpecialFlags[nFlag]--; }
+	int32 GetSpecialFlag( int8 nFlag ) { return m_nSpecialFlags[nFlag]; }
+
 	void RegisterItemChanged( CTrigger* pTrigger ) { m_onItemChanged.Register( 0, pTrigger ); }
+	void RegisterMoneyChanged( CTrigger* pTrigger ) { m_onMoneyChanged.Register( 0, pTrigger ); }
 private:
 	void UpdateMove();
 	void UpdateFiring();
@@ -118,6 +135,7 @@ private:
 	bool m_bRoll;
 	bool m_bFiringDown;
 	bool m_bIsRepairing;
+	bool m_bUse;
 	bool m_bCachedJump;
 	float m_fCachedJumpTime;
 
@@ -144,6 +162,11 @@ private:
 	CPostProcessCrackEffect m_crackEffect;
 
 	CEventTrigger<1> m_onItemChanged;
+	CEventTrigger<1> m_onMoneyChanged;
+
+	CReference<CConsumable> m_pConsumables[6];
+
+	int32 m_nSpecialFlags[eSpecialFlag_Count];
 
 	map<CString, CItem*> m_mapKeyItems;
 	map<CString, int32> m_mapKeyItemLevels;

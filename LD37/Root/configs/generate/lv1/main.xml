@@ -231,6 +231,9 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <shop>
+          <ref name="shop" />
+        </shop>
       </node>
 
       <node type="randompick" name="lv1fill1">
@@ -333,6 +336,9 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <shop>
+          <ref name="shop" />
+        </shop>
       </node>
 
       <node type="subregion" name="lv1_2">
@@ -383,6 +389,9 @@
           <crate2>
             <ref name="cage_tile" />
           </crate2>
+          <shop>
+            <ref name="shop" />
+          </shop>
         </node>
         <ref name="2f" x="0" y="120" w="32" h="8" />
         <ref name="lv1_scroll_0" />
@@ -435,6 +444,9 @@
           <window>
             <ref name="window4x4" />
           </window>
+          <shop>
+            <ref name="shop" />
+          </shop>
         </node>
         
         <ref name="lv1floor_8" x="0" y="62" w="32" h="2" />

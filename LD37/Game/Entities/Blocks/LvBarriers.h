@@ -7,13 +7,14 @@ class CLvFloor1 : public CRandomChunkTiled
 {
 	friend void RegisterGameClasses();
 public:
-	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_strCrate( context ), m_nKilledCrates( 0 ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
+	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_nKilledCrates( 0 ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 private:
 	void OnCrateKilled( int32 i );
 	void OnPickUp();
 
 	CString m_strCrate;
+	CString m_strItemDrop;
 	float m_fWeights[4];
 	uint32 m_nKilledCrates;
 	vector<CReference<CChunkObject> > m_vecCrates;
@@ -94,6 +95,8 @@ public:
 private:
 	void OnPickUp();
 
+	CString m_strItemDrop;
 	vector<CReference<CEntity> > m_vecPickups;
 	vector<CFunctionTrigger> m_triggers;
+	bool m_bPickupCreated;
 };

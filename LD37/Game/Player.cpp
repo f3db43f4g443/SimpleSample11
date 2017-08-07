@@ -11,6 +11,7 @@
 #include "Entities/Door.h"
 #include "Pickup.h"
 #include "GameState.h"
+#include "PlayerData.h"
 #include <algorithm>
 
 CPlayer::CPlayer( const SClassCreateContext& context )
@@ -63,6 +64,13 @@ void CPlayer::ModifySp( int32 nValue )
 	CMainUI* pMainUI = CMainUI::GetInst();
 	if( pMainUI )
 		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+}
+
+void CPlayer::ModifyMoney( int32 nMoney )
+{
+	m_nMoney += nMoney;
+	m_onMoneyChanged.Trigger( 0, NULL );
+	CMainUI::GetInst()->OnModifyMoney( m_nMoney );
 }
 
 void CPlayer::AimAt( const CVector2& pos )
@@ -128,6 +136,14 @@ void CPlayer::Damage( SDamageContext& context )
 		IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.25f );
 		CMyLevel::GetInst()->OnPlayerKilled( this );
 	}
+}
+
+void CPlayer::HealHp( int32 nValue )
+{
+	m_hp.ModifyCurValue( nValue );
+	CMainUI* pMainUI = CMainUI::GetInst();
+	if( pMainUI )
+		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 }
 
 void CPlayer::RestoreHp( int32 nValue )
@@ -386,6 +402,45 @@ int32 CPlayer::CheckItemLevel( CItem* pItem )
 		return -itr->second;
 }
 
+int8 CPlayer::CanAddConsumable( CConsumable * pConsumable )
+{
+	for( int i = 0; i < 6; i++ )
+	{
+		if( !m_pConsumables[i] )
+			return i;
+	}
+	return INVALID_8BITID;
+}
+
+int8 CPlayer::AddConsumable( CConsumable * pConsumable )
+{
+	for( int i = 0; i < 6; i++ )
+	{
+		if( !m_pConsumables[i] )
+		{
+			m_pConsumables[i] = pConsumable;
+			auto pMainUI = CMainUI::GetInst();
+			if( pMainUI )
+				pMainUI->OnAddConsumable( pConsumable, i );
+			return i;
+		}
+	}
+	return INVALID_8BITID;
+}
+
+bool CPlayer::UseConsumable( int32 i )
+{
+	if( i >= 6 || !m_pConsumables[i] )
+		return false;
+	if( !m_pConsumables[i]->Use( this ) )
+		return false;
+	m_pConsumables[i] = NULL;
+	auto pMainUI = CMainUI::GetInst();
+	if( pMainUI )
+		pMainUI->OnRemoveConsumable( i );
+	return true;
+}
+
 void CPlayer::SetWeapon( CPlayerWeapon * pWeapon )
 {
 	if( m_pCurWeapon )
@@ -457,9 +512,10 @@ void CPlayer::UpdateMove()
 
 	if( m_bRoll )
 	{
-		if( moveAxis.Length2() > 0 && CheckCostSp( m_nRollSpCost, 0 ) )
+		if( moveAxis.Length2() > 0 && ( m_nSpecialFlags[eSpecialFlag_Boost] || CheckCostSp( m_nRollSpCost, 0 ) ) )
 		{
-			CostSp( m_nRollSpCost, 0 );
+			if( !m_nSpecialFlags[eSpecialFlag_Boost] )
+				CostSp( m_nRollSpCost, 0 );
 			if( m_bIsWalkOrFly )
 			{
 				CVector2 axis;
@@ -483,6 +539,8 @@ void CPlayer::UpdateMove()
 	if( m_bIsWalkOrFly )
 	{
 		m_walkData.UpdateMove( this, moveAxis );
+		if( m_nSpecialFlags[eSpecialFlag_Boost] )
+			RecoverSp( m_nSpRegenPerFrame );
 		if( m_walkData.pLandedEntity )
 			RecoverSp( m_nSpRegenPerFrame );
 		else if( m_walkData.nIsSlidingDownWall )
@@ -531,6 +589,8 @@ void CPlayer::UpdateRoom()
 
 	CChunkObject* pCurRoom = NULL;
 	bool bDoor = false;
+
+	CReference<CEntity> pUseableEntity;
 	LINK_LIST_FOR_EACH_BEGIN( pManifold, m_pManifolds, SHitProxyManifold, Manifold )
 		CEnemy* pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
 		if( pEnemy )
@@ -540,9 +600,12 @@ void CPlayer::UpdateRoom()
 		}
 
 		CPickUp* pPickUp = SafeCast<CPickUp>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-		if( pPickUp )
+		if( pPickUp && pPickUp->CanPickUp( this ) )
 		{
-			pPickUp->PickUp( this );
+			if( !pPickUp->GetPrice() )
+				pPickUp->PickUp( this );
+			else
+				pUseableEntity = pPickUp;
 			continue;
 		}
 
@@ -600,6 +663,32 @@ void CPlayer::UpdateRoom()
 			}
 		}
 	}
+
+	if( pUseableEntity && pUseableEntity->GetStage() )
+	{
+		auto pPickup = SafeCast<CPickUp>( pUseableEntity.GetPtr() );
+		if( pPickup && pPickup->GetPrice() > m_nMoney )
+		{
+			pUseableEntity = NULL;
+			pPickup = NULL;
+		}
+
+		if( pUseableEntity && m_bUse )
+		{
+			if( pPickup )
+			{
+				pPickup->PickUp( this );
+				ModifyMoney( -(int32)pPickup->GetPrice() );
+			}
+			pUseableEntity = NULL;
+		}
+	}
+
+	if( pUseableEntity && pUseableEntity->GetStage() )
+		CMainUI::GetInst()->ShowUseText( pUseableEntity, CVector2( 0, 96 ), "BUY" );
+	else
+		CMainUI::GetInst()->ShowUseText( NULL, CVector2( 0, 0 ), "" );
+	m_bUse = false;
 }
 
 void CPlayer::UpdateRepair()
@@ -732,10 +821,16 @@ void CPlayer::OnAddedToStage()
 	m_nRepairTimeLeft = 0;
 	m_nRepairIntervalLeft = 0;
 	m_pCurRoomChunkUI->SetChunkObject( NULL );
+	m_bUse = false;
 
 	AimAt( GetPosition() );
 	m_cam = GetPosition();
 	m_hp.add2 = 0;
+
+	if( CPlayerData::Inst().bIsDesign )
+	{
+		m_nMoney = 1000;
+	}
 
 	CMainUI* pMainUI = CMainUI::GetInst();
 	if( pMainUI )
@@ -743,6 +838,7 @@ void CPlayer::OnAddedToStage()
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
 		pMainUI->OnModifyHpStore( m_nHpStore, m_hp.GetMaxValue() );
 		pMainUI->OnModifySp( m_sp, m_sp.GetMaxValue() );
+		pMainUI->OnModifyMoney( m_nMoney );
 	}
 
 	auto pLevel = CMyLevel::GetInst();

@@ -365,23 +365,6 @@ protected:
 	TClassTrigger<CExplosiveChunk> m_deathTick;
 };
 
-class CBarrel : public CExplosiveChunk
-{
-	friend void RegisterGameClasses();
-public:
-	CBarrel( const SClassCreateContext& context ) : CExplosiveChunk( context ), m_strBullet( context ), m_strBullet1( context ) { SET_BASEOBJECT_ID( CBarrel ); }
-	virtual void OnAddedToStage() override;
-	virtual void Damage( SDamageContext& context ) override;
-protected:
-	CString m_strBullet;
-	CReference<CPrefab> m_pBulletPrefab;
-	CString m_strBullet1;
-	CReference<CPrefab> m_pBulletPrefab1;
-
-	virtual void OnKilled() override { m_pChunk->bStopMove = true; }
-	virtual void Explode() override;
-};
-
 class CRandomChunk : public CChunkObject
 {
 	friend void RegisterGameClasses();

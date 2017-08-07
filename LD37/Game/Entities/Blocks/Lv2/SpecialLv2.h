@@ -2,6 +2,35 @@
 #include "Block.h"
 #include "Entities/BlockItems/BlockItemsLv2.h"
 
+class CBarrel : public CExplosiveChunk
+{
+	friend void RegisterGameClasses();
+public:
+	CBarrel( const SClassCreateContext& context ) : CExplosiveChunk( context ) { SET_BASEOBJECT_ID( CBarrel ); }
+	virtual void Damage( SDamageContext& context ) override;
+protected:
+	TResourceRef<CPrefab> m_strBullet;
+	TResourceRef<CPrefab> m_strExp;
+
+	virtual void OnKilled() override { m_pChunk->bStopMove = true; }
+	virtual void Explode() override;
+};
+
+class CBarrel1 : public CExplosiveChunk
+{
+	friend void RegisterGameClasses();
+public:
+	CBarrel1( const SClassCreateContext& context ) : CExplosiveChunk( context ) { SET_BASEOBJECT_ID( CBarrel ); }
+	virtual void Damage( SDamageContext& context ) override;
+protected:
+	TResourceRef<CPrefab> m_strBullet;
+	TResourceRef<CPrefab> m_strBullet1;
+	TResourceRef<CPrefab> m_strExp;
+
+	virtual void OnKilled() override;
+	virtual void Explode() override;
+};
+
 class CHousePart : public CChunkObject
 {
 	friend void RegisterGameClasses();

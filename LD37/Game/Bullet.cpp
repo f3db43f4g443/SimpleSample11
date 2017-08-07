@@ -81,7 +81,10 @@ void CBullet::OnTickBeforeHitTest()
 		CVector2 newVelocity = m_velocity + m_acc * GetStage()->GetElapsedTimePerTick();
 		SetPosition( GetPosition() + ( m_velocity + newVelocity ) * ( GetStage()->GetElapsedTimePerTick() * 0.5f ) );
 		m_velocity = newVelocity;
-		SetRotation( r + m_fAngularVelocity * GetStage()->GetElapsedTimePerTick() );
+		if( m_bTangentDir )
+			SetRotation( atan2( m_velocity.y, m_velocity.x ) );
+		else
+			SetRotation( r + m_fAngularVelocity * GetStage()->GetElapsedTimePerTick() );
 	}
 	if( m_nLife )
 	{

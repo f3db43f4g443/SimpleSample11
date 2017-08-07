@@ -3,6 +3,7 @@
 #include "Common/Rand.h"
 #include "Common/Algorithm.h"
 #include "LvGenLib.h"
+#include <algorithm>
 
 void CLevelGenNode1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
@@ -18,6 +19,10 @@ void CLevelGenNode1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext 
 	m_pCrate2Node = CreateNode( pXml->FirstChildElement( "crate2" )->FirstChildElement(), context );
 	m_pWindowNode = CreateNode( pXml->FirstChildElement( "window" )->FirstChildElement(), context );
 
+	auto pShop = pXml->FirstChildElement( "shop" );
+	if( pShop )
+		m_pShopNode = CreateNode( pShop->FirstChildElement(), context );
+
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -31,6 +36,7 @@ void CLevelGenNode1_3::Generate( SLevelBuildContext & context, const TRectangle<
 	GenRestWallChunks();
 	GenWindows();
 	GenObjs();
+	GenShops();
 
 	for( auto& chunk : m_wallChunks )
 	{
@@ -82,6 +88,15 @@ void CLevelGenNode1_3::Generate( SLevelBuildContext & context, const TRectangle<
 		auto rect = room.Offset( TVector2<int32>( region.x, region.y ) );
 		m_pRoomNode->Generate( context, rect );
 	}
+	for( auto& shop : m_shops )
+	{
+		TRectangle<int32> rect = shop;
+		rect.x = SRand::Inst().Rand( 1, rect.width - 6 ) + rect.x;
+		rect.y = SRand::Inst().Rand( 1, rect.height - 4 ) + rect.y;
+		rect.width = 6;
+		rect.height = 4;
+		m_pShopNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
 
 	m_gendata.clear();
 	m_rooms.clear();
@@ -89,6 +104,7 @@ void CLevelGenNode1_3::Generate( SLevelBuildContext & context, const TRectangle<
 	m_wallChunks0.clear();
 	m_wallChunks1.clear();
 	m_windows.clear();
+	m_shops.clear();
 }
 
 void CLevelGenNode1_3::GenBase()
@@ -794,4 +810,47 @@ void CLevelGenNode1_3::GenObjs()
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp, nTypes, ELEM_COUNT( nTypes ) );
 	int8 nTypes1[] = { eType_Crate1, eType_Crate2 };
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp1, nTypes1, ELEM_COUNT( nTypes1 ) );
+}
+
+void CLevelGenNode1_3::GenShops()
+{
+	if( m_pShopNode )
+	{
+		int32 nHeight = m_region.height;
+		struct SLess
+		{
+			bool operator () ( const TRectangle<int32>& left, const TRectangle<int32>& right )
+			{
+				return left.y < right.y;
+			}
+		};
+		std::sort( m_rooms.begin(), m_rooms.end(), SLess() );
+
+		if( m_pShopNode )
+		{
+			int32 nShop = floor( nHeight / 32 + 0.5f );
+			vector<int32> vecPossibleShop;
+			for( int i = 0; i < m_rooms.size(); i++ )
+			{
+				if( m_rooms[i].width >= 8 && m_rooms[i].height >= 6 )
+					vecPossibleShop.push_back( i );
+			}
+
+			int32 n = 0;
+			for( int i = 0; i < nShop; i++ )
+			{
+				int32 h = nHeight / nShop * ( i + SRand::Inst().Rand( 0.5f, 0.75f ) );
+				for( ; n < vecPossibleShop.size(); n++ )
+				{
+					auto& room = m_rooms[vecPossibleShop[n]];
+					if( room.y >= h )
+					{
+						m_shops.push_back( room );
+						n++;
+						break;
+					}
+				}
+			}
+		}
+	}
 }

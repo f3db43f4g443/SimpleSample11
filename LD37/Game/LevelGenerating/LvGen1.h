@@ -153,6 +153,7 @@ public:
 private:
 	void GenAreas();
 	void GenObstacles();
+	void GenShops();
 
 	enum
 	{
@@ -193,6 +194,7 @@ private:
 	vector<TRectangle<int32> > m_bars;
 	vector<TRectangle<int32> > m_stones;
 	vector<TRectangle<int32> > m_wallChunks;
+	int32 m_nShop;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pStoneNode;
@@ -207,6 +209,7 @@ private:
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;
+	CReference<CLevelGenerateNode> m_pShopNode;
 };
 
 class CLevelGenNode1_2 : public CLevelGenerateNode
@@ -236,6 +239,7 @@ private:
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
+	CReference<CLevelGenerateNode> m_pShopNode;
 
 	enum
 	{
@@ -260,6 +264,7 @@ private:
 	struct SRoom
 	{
 		uint8 nType;
+		bool bShop;
 		TRectangle<int32> rect;
 	};
 	vector<SRoom> m_rooms;
@@ -283,6 +288,7 @@ private:
 	void GenRestWallChunks();
 	void GenWindows();
 	void GenObjs();
+	void GenShops();
 
 	uint8 m_nType;
 	CReference<CLevelGenerateNode> m_pWallNode;
@@ -295,6 +301,7 @@ private:
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
 	CReference<CLevelGenerateNode> m_pWindowNode;
+	CReference<CLevelGenerateNode> m_pShopNode;
 
 	enum
 	{
@@ -324,6 +331,7 @@ private:
 	vector<TRectangle<int32> > m_wallChunks;
 	vector<TRectangle<int32> > m_wallChunks1;
 	vector<TRectangle<int32> > m_windows;
+	vector<TRectangle<int32> > m_shops;
 };
 
 class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode

@@ -20,8 +20,8 @@ CMainUI::CMainUI( const SClassCreateContext& context )
 void CMainUI::OnAddedToStage()
 {
 	CVector2 screenRes = IRenderSystem::Inst()->GetScreenRes();
-	//m_pB->SetPosition( CVector2( 0, -screenRes.y / 2 ) );
-	m_pB->SetPosition( CVector2( 0, 0 ) );
+	m_pC->SetPosition( CVector2( 0, 0 ) );
+	m_pB->SetPosition( CVector2( 0, -screenRes.y / 2 ) );
 	m_pRB->SetPosition( CVector2( screenRes.x / 2, -screenRes.y / 2 ) );
 	m_pRT->SetPosition( CVector2( screenRes.x / 2, screenRes.y / 2 ) );
 	//m_pMinimap->bVisible = false;
@@ -31,6 +31,7 @@ void CMainUI::OnAddedToStage()
 	m_shakeBarOrigTexRect = static_cast<CImage2D*>( m_pShake.GetPtr() )->GetElem().texRect;
 	m_spBarOrigPos = m_pSpBarRoot->GetPosition();
 	m_spBarOfs = CVector2( 0, 0 );
+	m_pUse->bVisible = false;
 
 	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
 	m_blockTypes.resize( pMinimap->GetWidth() * pMinimap->GetHeight() * 2 );
@@ -51,6 +52,7 @@ void CMainUI::OnAddedToStage()
 		OnModifyHp( pPlayer->GetHp(), pPlayer->GetMaxHp() );
 		OnModifyHpStore( pPlayer->GetHpStore(), pPlayer->GetMaxHp() );
 		OnModifySp( pPlayer->GetSp(), pPlayer->GetMaxHp() );
+		OnModifyMoney( pPlayer->GetMoney() );
 	}
 	s_pLevel = this;
 }
@@ -59,6 +61,7 @@ void CMainUI::OnRemovedFromStage()
 {
 	if( m_tick.IsRegistered() )
 		m_tick.Unregister();
+	m_pUseTarget = NULL;
 	s_pLevel = NULL;
 }
 
@@ -137,6 +140,14 @@ void CMainUI::OnModifyHpStore( float fHpStore, float fMaxHp )
 	}
 }
 
+void CMainUI::OnModifyMoney( uint32 nMoney )
+{
+	char szText[32];
+	sprintf( szText, "%dG", nMoney );
+	m_pMoney->Set( szText );
+	m_pMoney->SetPosition( CVector2( -m_pMoney->GetTextRect().width / 2, m_pMoney->y ) );
+}
+
 void CMainUI::UpdateMinimap( uint32 x, uint32 y, uint32 z, int8 nType )
 {
 	auto pMinimap = static_cast<CTileMap2D*>( m_pMinimap.GetPtr() );
@@ -190,6 +201,21 @@ void CMainUI::ClearMinimap()
 	}
 }
 
+void CMainUI::ShowUseText( CRenderObject2D * pTarget, const CVector2 & ofs, const char * szText )
+{
+	if( m_pUseTarget == pTarget )
+		return;
+	m_pUseTarget = pTarget;
+	if( pTarget )
+	{
+		m_pUse->bVisible = true;
+		m_pUseText->Set( szText );
+		m_useOfs = ofs;
+	}
+	else
+		m_pUse->bVisible = false;
+}
+
 void CMainUI::ShowMinimap()
 {
 	m_pMinimap->bVisible = true;
@@ -210,6 +236,16 @@ void CMainUI::AddSpBarShake( const CVector2& dir, uint32 nTime )
 	newShake.nMaxTime = nTime;
 	newShake.t = 0;
 	m_vecSpBarShakes.push_back( newShake );
+}
+
+void CMainUI::OnAddConsumable( CConsumable * pConsumable, int8 i )
+{
+	m_pConsumableSlot[i]->AddChild( pConsumable->GetIcon()->CreateInstance() );
+}
+
+void CMainUI::OnRemoveConsumable( int8 i )
+{
+	m_pConsumableSlot[i]->RemoveAllChild();
 }
 
 void CMainUI::Tick()
@@ -257,6 +293,13 @@ void CMainUI::Tick()
 
 	CVector2 shake = fPercent0 > 0? CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) ) * 4.0f : CVector2( 0, 0 );
 	pShake->SetPosition( m_shakeBarOrigPos + shake );
+
+	if( m_pUseTarget )
+	{
+		CRectangle rect = m_pUseText->GetTextRect().Offset( m_pUseText->GetPosition() ) + static_cast<CImage2D*>( m_pUse.GetPtr() )->GetElem().rect;
+		m_pUse->SetPosition( m_useOfs - rect.GetCenter() + m_pUseTarget->globalTransform.GetPosition()
+			- CMyLevel::GetInst()->GetStage()->GetCamera().GetViewArea().GetCenter() );
+	}
 
 	CGame::Inst().Register( 1, &m_tick );
 }

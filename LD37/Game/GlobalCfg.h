@@ -3,6 +3,7 @@
 #include "Render/Prefab.h"
 #include "Block.h"
 #include "LevelGenerate.h"
+#include "ItemDrop.h"
 
 class CGlobalCfg
 {
@@ -15,6 +16,8 @@ public:
 	string strMainLevelPrefab;
 	string strMainMenuLevel;
 	vector<string> vecLevels;
+
+	SItemDropNodeLoadContext itemDropNodeContext;
 
 	void Load();
 

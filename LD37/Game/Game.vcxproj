@@ -571,6 +571,7 @@
     <ClCompile Include="Entities\Blocks\RandomBlocks.cpp" />
     <ClCompile Include="Entities\Blocks\SpecialBlocks.cpp" />
     <ClCompile Include="Entities\Bullets.cpp" />
+    <ClCompile Include="Entities\Consumables.cpp" />
     <ClCompile Include="Entities\Decorator.cpp" />
     <ClCompile Include="Entities\Door.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
@@ -580,6 +581,7 @@
     <ClCompile Include="Entities\Enemies\Lv2Enemies.cpp" />
     <ClCompile Include="Entities\EnemyCharacters.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
+    <ClCompile Include="Entities\Items\SpecialWeapons.cpp" />
     <ClCompile Include="Entities\Neutral.cpp" />
     <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
@@ -597,6 +599,7 @@
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\UIUtils.cpp" />
     <ClCompile Include="Item.cpp" />
+    <ClCompile Include="ItemDrop.cpp" />
     <ClCompile Include="LevelDesign.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
     <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
@@ -660,6 +663,7 @@
     <ClInclude Include="Entities\Blocks\RandomBlocks.h" />
     <ClInclude Include="Entities\Blocks\SpecialBlocks.h" />
     <ClInclude Include="Entities\Bullets.h" />
+    <ClInclude Include="Entities\Consumables.h" />
     <ClInclude Include="Entities\Decorator.h" />
     <ClInclude Include="Entities\Door.h" />
     <ClInclude Include="Entities\EffectObject.h" />
@@ -669,6 +673,7 @@
     <ClInclude Include="Entities\Enemies\Lv2Enemies.h" />
     <ClInclude Include="Entities\EnemyCharacters.h" />
     <ClInclude Include="Entities\GlitchEffect.h" />
+    <ClInclude Include="Entities\Items\SpecialWeapons0.h" />
     <ClInclude Include="Entities\Neutral.h" />
     <ClInclude Include="Entities\FallingObj.h" />
     <ClInclude Include="Entities\StartPoint.h" />
@@ -686,6 +691,7 @@
     <ClInclude Include="GUI\MainUI.h" />
     <ClInclude Include="GUI\UIUtils.h" />
     <ClInclude Include="Item.h" />
+    <ClInclude Include="ItemDrop.h" />
     <ClInclude Include="LevelDesign.h" />
     <ClInclude Include="LevelGenerate.h" />
     <ClInclude Include="LevelGenerating\LvGen1.h" />

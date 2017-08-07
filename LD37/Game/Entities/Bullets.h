@@ -13,6 +13,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnHit( CEntity* pEntity ) override;
 	virtual void Kill() override;
+	CEntity* GetExplosion() { return m_pExp; }
 protected:
 	void Explode();
 	CReference<CEntity> m_pExp;

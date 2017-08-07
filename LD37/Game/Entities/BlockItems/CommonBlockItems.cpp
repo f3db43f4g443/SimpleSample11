@@ -6,6 +6,8 @@
 #include "Block.h"
 #include "Common/ResourceManager.h"
 #include "Common/Rand.h"
+#include "Pickup.h"
+#include "GlobalCfg.h"
 
 void CDetectTrigger::OnAddedToStage()
 {
@@ -277,5 +279,35 @@ void CKillSpawner::Trigger()
 			pEntity->SetRotation( atan2( vel.y, vel.x ) );
 
 		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+	}
+}
+
+void CShop::OnAddedToStage()
+{
+	int32 nPickUp = 0;
+	for( auto pPickUp = m_pPickUpRoot->Get_ChildEntity(); pPickUp; pPickUp = pPickUp->NextChildEntity() )
+	{
+		if( !SafeCast<CPickUpTemplate>( pPickUp ) )
+			continue;
+		nPickUp++;
+	}
+	if( !nPickUp )
+		return;
+
+	SItemDropContext context;
+	context.nDrop = nPickUp;
+	auto pNode = CGlobalCfg::Inst().itemDropNodeContext.FindNode( m_strItemDrop );
+	pNode->Generate( context );
+	context.Drop();
+
+	int32 i = 0;
+	for( auto pPickUp = m_pPickUpRoot->Get_ChildEntity(); pPickUp; pPickUp = pPickUp->NextChildEntity() )
+	{
+		auto p = SafeCast<CPickUpTemplate>( pPickUp );
+		if( !p )
+			continue;
+		CEntity* pItem = SafeCast<CEntity>( context.dropItems[i].pPrefab->GetRoot()->CreateInstance() );
+		p->Set( pItem, context.dropItems[i].nPrice );
+		i++;
 	}
 }

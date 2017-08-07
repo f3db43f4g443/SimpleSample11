@@ -33,7 +33,7 @@ void CEnemy::OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal )
 
 	if( !IsKnockback() && pPlayer->CanKnockback() )
 	{
-		if( pPlayer->IsRolling() )
+		if( pPlayer->IsRolling() || pPlayer->GetSpecialFlag( CPlayer::eSpecialFlag_Strength ) )
 		{
 			if( !Knockback( vec ) )
 			{

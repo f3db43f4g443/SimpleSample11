@@ -35,4 +35,14 @@ void CGlobalCfg::Load()
 		levelGenerateNodeContext.vecPaths.push_back( "configs/generate/" );
 		pRootGenerateFile = levelGenerateNodeContext.LoadFile( "root", "configs/generate/" );
 	}
+
+	{
+		vector<char> content;
+		GetFileContent( content, "configs/drop.xml", true );
+		TiXmlDocument doc;
+		doc.LoadFromBuffer( &content[0] );
+
+		for( auto pNode = doc.RootElement()->FirstChildElement(); pNode; pNode = pNode->NextSiblingElement() )
+			CItemDropNode::CreateNode( pNode, itemDropNodeContext );
+	}
 }

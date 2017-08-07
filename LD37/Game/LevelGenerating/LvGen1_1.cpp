@@ -1936,6 +1936,10 @@ void CLevelGenNode1_1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
 	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 
+	auto pShop = pXml->FirstChildElement( "shop" );
+	if( pShop )
+		m_pShopNode = CreateNode( pShop->FirstChildElement(), context );
+
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -1948,6 +1952,7 @@ void CLevelGenNode1_1_3::Generate( SLevelBuildContext & context, const TRectangl
 
 	GenAreas();
 	GenObstacles();
+	GenShops();
 
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -2003,6 +2008,16 @@ void CLevelGenNode1_1_3::Generate( SLevelBuildContext & context, const TRectangl
 			m_pRoom1Node->Generate( context, room.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 		else
 			m_pRoom2Node->Generate( context, room.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	if( m_nShop >= 0 )
+	{
+		auto& room = m_rooms[m_nShop];
+		TRectangle<int32> rect = room.rect;
+		rect.x = SRand::Inst().Rand( 1, rect.width - 6 ) + rect.x;
+		rect.y = SRand::Inst().Rand( 1, rect.height - 4 ) + rect.y;
+		rect.width = 6;
+		rect.height = 4;
+		m_pShopNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
 
 	m_gendata.clear();
@@ -2165,6 +2180,9 @@ void CLevelGenNode1_1_3::GenAreas()
 	float fChanceXCoef2 = SRand::Inst().Rand( fChanceXCoefMin, fChanceXCoefMax );
 	float fChanceYCoef1 = SRand::Inst().Rand( fChanceYCoefMin, fChanceYCoefMax );
 	float fChanceYCoef2 = SRand::Inst().Rand( fChanceYCoefMin, fChanceYCoefMax );
+	SRand::Inst().Shuffle( m_areas );
+	int32 nWallChunksLim = SRand::Inst().Rand( 2, 4 );
+
 	for( auto& area : m_areas )
 	{
 		float xCenter = area.rect.x + area.rect.width * 0.5f;
@@ -2179,7 +2197,15 @@ void CLevelGenNode1_1_3::GenAreas()
 		else if( ( nHeight - yCenter ) * 2 >= nHeight )
 			area.nType = 1;
 		else
-			area.nType = 2;
+		{
+			if( nWallChunksLim )
+			{
+				area.nType = 2;
+				nWallChunksLim--;
+			}
+			else
+				area.nType = 1;
+		}
 
 		if( area.nType == 0 )
 		{
@@ -2375,4 +2401,22 @@ void CLevelGenNode1_1_3::GenObstacles()
 
 	int8 nTypes[4] = { eType_Block1x, eType_Block1y, eType_Block2x, eType_Block2y };
 	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp, nTypes, 4 );
+}
+
+void CLevelGenNode1_1_3::GenShops()
+{
+	m_nShop = -1;
+	if( m_pShopNode && m_region.height >= 12 )
+	{
+		SRand::Inst().Shuffle( m_rooms );
+		for( int i = 0; i < m_rooms.size(); i++ )
+		{
+			auto& room = m_rooms[i];
+			if( room.rect.width >= 8 && room.rect.height >= 6 )
+			{
+				m_nShop = i;
+				break;
+			}
+		}
+	}
 }

@@ -97,7 +97,7 @@ void CExplosion::OnTick()
 			}
 			OnHit( pEntity );
 			if( pEntity->GetStage() )
-				m_hit.insert( pEntity );
+				m_hit[pEntity] = m_nHitInterval;
 			continue;
 		}
 
@@ -126,7 +126,7 @@ void CExplosion::OnTick()
 				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
-					m_hit.insert( pEntity );
+					m_hit[pEntity] = m_nHitInterval;
 			}
 			continue;
 		}
@@ -153,7 +153,7 @@ void CExplosion::OnTick()
 				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
-					m_hit.insert( pEntity );
+					m_hit[pEntity] = m_nHitInterval;
 			}
 			continue;
 		}
@@ -180,13 +180,30 @@ void CExplosion::OnTick()
 				}
 				OnHit( pEntity );
 				if( pEntity->GetStage() )
-					m_hit.insert( pEntity );
+					m_hit[pEntity] = m_nHitInterval;
 			}
 			continue;
 		}
 	}
 
+	if( m_nHitInterval )
+	{
+		for( auto itr = m_hit.begin(); itr != m_hit.end(); )
+		{
+			itr->second;
+			if( !itr->second )
+				itr = m_hit.erase( itr );
+			else
+				itr++;
+		}
+	}
+
 	m_nHitFrame++;
-	if( m_nHitFrame < m_nHitFrameCount )
-		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	if( m_nHitFrame >= m_nHitFrameCount )
+	{
+		if( !m_nHitInterval )
+			return;
+		m_nHitFrame = m_nHitFrameCount - 1;
+	}
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }

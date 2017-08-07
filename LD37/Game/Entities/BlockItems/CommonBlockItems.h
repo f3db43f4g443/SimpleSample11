@@ -123,3 +123,15 @@ private:
 	TResourceRef<CPrefab> m_strPrefab3;
 	float m_fChances[4];
 };
+
+class CShop : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CShop( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CShop ); }
+
+	virtual void OnAddedToStage() override;
+private:
+	CString m_strItemDrop;
+	CReference<CEntity> m_pPickUpRoot;
+};

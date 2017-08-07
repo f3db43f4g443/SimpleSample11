@@ -17,7 +17,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	void SetCreator( CEntity* pEntity ) { m_pCreator = m_pCreator; }
+	void SetCreator( CEntity* pEntity ) { m_pCreator = pEntity; }
 
 	virtual void OnHit( CEntity* pEntity ) {}
 private:
@@ -55,9 +55,10 @@ private:
 	TResourceRef<CSoundFile> m_pSound;
 
 	uint32 m_nHitFrame;
+	uint32 m_nHitInterval;
 	CReference<CEntity> m_pCreator;
 	TClassTrigger<CExplosion> m_onTick;
 	TClassTrigger<CExplosion> m_onTick1;
 
-	set<CReference<CEntity> > m_hit;
+	map<CReference<CEntity>, int32> m_hit;
 };

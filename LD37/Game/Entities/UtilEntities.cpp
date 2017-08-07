@@ -61,7 +61,12 @@ void CSimpleText::OnAddedToStage()
 {
 	if( m_initRect.width < 0 )
 	{
-		m_initRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+		auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
+		m_initRect = pImage2D->GetElem().rect;
+		uint16 nParam;
+		CVector4* pParam = pImage2D->GetParam( nParam );
+		if( nParam )
+			m_param = *pParam;
 		SetRenderObject( new CRenderObject2D );
 	}
 }
@@ -70,7 +75,12 @@ void CSimpleText::Set( const char * szText )
 {
 	if( m_initRect.width < 0 )
 	{
-		m_initRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+		auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
+		m_initRect = pImage2D->GetElem().rect;
+		uint16 nParam;
+		CVector4* pParam = pImage2D->GetParam( nParam );
+		if( nParam )
+			m_param = *pParam;
 		SetRenderObject( new CRenderObject2D );
 	}
 
@@ -94,10 +104,17 @@ void CSimpleText::Set( const char * szText )
 		auto pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 		pImage->SetRect( rect );
 		pImage->SetTexRect( CRectangle( nColumn * 0.125f, nRow * 0.125f, 0.125f, 0.125f ) );
+		uint16 nParam;
+		CVector4* pParam = pImage->GetParam( nParam );
+		if( nParam )
+			*pParam = m_param;
 		pRoot->AddChild( pImage );
 
 		rect.x += rect.width;
 	}
+
+	m_textRect = m_initRect;
+	m_textRect.SetRight( rect.GetRight() );
 }
 
 void CBlockRTEft::OnAddedToStage()

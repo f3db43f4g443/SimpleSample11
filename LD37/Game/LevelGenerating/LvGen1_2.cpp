@@ -18,6 +18,10 @@ void CLevelGenNode1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext 
 	m_pCrate1Node = CreateNode( pXml->FirstChildElement( "crate1" )->FirstChildElement(), context );
 	m_pCrate2Node = CreateNode( pXml->FirstChildElement( "crate2" )->FirstChildElement(), context );
 
+	auto pShop = pXml->FirstChildElement( "shop" );
+	if( pShop )
+		m_pShopNode = CreateNode( pShop->FirstChildElement(), context );
+
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -84,6 +88,16 @@ void CLevelGenNode1_2::Generate( SLevelBuildContext & context, const TRectangle<
 			m_pRoom2Node->Generate( context, rect );
 		else
 			m_pWallChunkNode->Generate( context, rect );
+
+		if( room.bShop )
+		{
+			TRectangle<int32> rect = room.rect;
+			rect.x = SRand::Inst().Rand( 1, rect.width - 6 ) + rect.x;
+			rect.y = SRand::Inst().Rand( 1, rect.height - 4 ) + rect.y;
+			rect.width = 6;
+			rect.height = 4;
+			m_pShopNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		}
 	}
 
 	m_gendata.clear();
@@ -153,6 +167,7 @@ void CLevelGenNode1_2::GenWallChunks()
 			SRoom room;
 			room.nType = 2;
 			room.rect = rect;
+			room.bShop = false;
 			m_rooms.push_back( room );
 
 			for( int iX = rect.x; iX < rect.GetRight(); iX++ )
@@ -341,6 +356,7 @@ void CLevelGenNode1_2::GenRooms()
 		SRoom room;
 		room.nType = roomRect.width + roomRect.height <= nRoom2Size ? 0 : 1;
 		room.rect = roomRect;
+		room.bShop = false;
 		m_rooms.push_back( room );
 
 		for( int iX = roomRect.x; iX < roomRect.GetRight(); iX++ )
@@ -392,6 +408,33 @@ void CLevelGenNode1_2::GenRooms()
 		}
 	};
 	std::sort( m_rooms.begin(), m_rooms.end(), SLess() );
+
+	if( m_pShopNode )
+	{
+		int32 nShop = floor( nHeight / 32 + 0.5f );
+		vector<int32> vecPossibleShop;
+		for( int i = 0; i < m_rooms.size(); i++ )
+		{
+			if( m_rooms[i].nType < 2 && m_rooms[i].rect.width >= 8 && m_rooms[i].rect.height >= 6 )
+				vecPossibleShop.push_back( i );
+		}
+
+		int32 n = 0;
+		for( int i = 0; i < nShop; i++ )
+		{
+			int32 h = nHeight / nShop * ( i + SRand::Inst().Rand( 0.5f, 0.75f ) );
+			for( ; n < vecPossibleShop.size(); n++ )
+			{
+				auto& room = m_rooms[vecPossibleShop[n]];
+				if( room.rect.y >= h )
+				{
+					room.bShop = true;
+					n++;
+					break;
+				}
+			}
+		}
+	}
 
 	for( int iRoom = 0; iRoom < Min( 3u, m_rooms.size() ); iRoom++ )
 	{
