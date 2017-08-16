@@ -112,6 +112,7 @@ struct SChunkBaseInfo
 	uint8 bIsRoom;
 	uint8 nMoveType;
 	uint8 nSubChunkType;
+	uint8 nShowLevelType;
 
 	vector<SBlockBaseInfo> blockInfos;
 	CReference<CPrefab> pPrefab;
@@ -183,6 +184,7 @@ struct SChunk
 	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 2;
 
+	uint8 nShowLevelType : 1;
 	uint8 nBarrierHeight : 4;
 
 	SChunk* pParentChunk;

@@ -66,6 +66,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, bInvulnerable( 0 )
 	, bIsRoom( baseInfo.bIsRoom )
 	, nMoveType( baseInfo.nMoveType )
+	, nShowLevelType( baseInfo.nShowLevelType )
 	, bIsLevelBarrier( false )
 	, bStopMove( false )
 	, bForceStop( false )
@@ -262,7 +263,7 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 				SetParentEntity( pChunk->pParentChunk->pChunkObject );
 		}
 		else
-			SetParentEntity( pChunk->nLayerType > 1 ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
+			SetParentEntity( pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
 
 		if( m_pDamagedEffectsRoot )
 		{

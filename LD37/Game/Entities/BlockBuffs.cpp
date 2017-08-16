@@ -64,6 +64,9 @@ void CBlockBuffFire::OnTick()
 	auto pChunkObject = SafeCast<CBlockObject>( GetParentEntity() )->GetBlock()->pOwner->pChunkObject;
 	pChunkObject->Damage( m_fDamage * GetStage()->GetElapsedTimePerTick() );
 
+	if( !GetStage() )
+		return;
+
 	if( m_nExplosionTick )
 		m_nExplosionTick--;
 	if( m_nExplosionTick == 0 )

@@ -46,6 +46,8 @@ IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveColor, "Shader/Effect.shader", "PSP
 IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveOcc, "Shader/Effect.shader", "PSParticleDissolveOcc", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSEmiRadialFade, "Shader/Effect.shader", "PSEmiRadialFade", "ps_5_0" );
 
+IMPLEMENT_MATERIAL_SHADER( PSBulletEffect, "Shader/Bullet.shader", "PSBulletEffect", "ps_5_0" );
+
 IMPLEMENT_MATERIAL_SHADER( PSBloodStain, "Shader/Blood.shader", "PSBloodStain", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSHpBar, "Shader/HpBar.shader", "PSHpBar", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFaceSelectArea, "Shader/SelectArea.shader", "PSFaceSelectArea", "ps_5_0" );

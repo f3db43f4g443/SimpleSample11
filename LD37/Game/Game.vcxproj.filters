@@ -176,7 +176,7 @@
     <ClCompile Include="Entities\Consumables.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
-    <ClCompile Include="Entities\Items\SpecialWeapons.cpp">
+    <ClCompile Include="Entities\Items\SpecialWeapons0.cpp">
       <Filter>Entities\Items</Filter>
     </ClCompile>
   </ItemGroup>
@@ -431,6 +431,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Blocks.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Bullet.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

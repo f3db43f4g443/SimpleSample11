@@ -11,6 +11,9 @@
     <item name="data/items/weapons/flashlight.pf" p="1" price="20" />
     <item name="data/items/weapons/kitchen_knife.pf" p="1" price="20" />
     <item name="data/items/weapons/screwdriver.pf" p="1" price="20" />
+    
+    <item name="data/items/weapons/drill.pf" p="1" price="20" />
+    <item name="data/items/weapons/banknote_printer.pf" p="1" price="20" />
   </group>
   <group name="floor_reward">
     <item name="data/pickups/hppack.pf" p="1" />

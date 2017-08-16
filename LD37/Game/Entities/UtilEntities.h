@@ -83,3 +83,19 @@ private:
 	bool m_bStart;
 	TClassTrigger<CBlockRTEft> m_onTick;
 };
+
+class CShakeObject : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CShakeObject() : m_fShakePerSec( 0 ), m_onTick( this, &CShakeObject::OnTick ) {}
+	void OnTick();
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void SetShakePerSec( float fShakePerSec ) { m_fShakePerSec = fShakePerSec; }
+private:
+	float m_fShakePerSec;
+
+	TClassTrigger<CShakeObject> m_onTick;
+};

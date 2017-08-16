@@ -43,6 +43,7 @@
 #include "Entities/Enemies/Lv1Boss.h"
 #include "Entities/Enemies/Lv1Enemies.h"
 #include "Entities/Enemies/Lv2Enemies.h"
+#include "Entities/Items/SpecialWeapons0.h"
 #include "Entities/Tutorial.h"
 #include "GUI/MainUI.h"
 #include "GUI/ChunkUI.h"
@@ -750,6 +751,36 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fAimSpeed )
 		REGISTER_MEMBER( m_fireOfs )
 		REGISTER_MEMBER( m_fShakePerSec )
+		REGISTER_MEMBER( m_strFireSound )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDrill )
+		REGISTER_BASE_CLASS( CBullet )
+		REGISTER_MEMBER( m_nHitCD )
+		REGISTER_MEMBER( m_fSpeedHit1 )
+		REGISTER_MEMBER( m_fSpeedHit2 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBanknotePrinter )
+		REGISTER_BASE_CLASS( CPlayerWeapon )
+		REGISTER_MEMBER( m_strBulletName )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_nDamage1 )
+		REGISTER_MEMBER( m_nDamage2 )
+		REGISTER_MEMBER( m_nMaxBullets )
+		REGISTER_MEMBER( m_nBulletLife )
+		REGISTER_MEMBER( m_fInitSpeed )
+		REGISTER_MEMBER( m_fInitSpeed1 )
+		REGISTER_MEMBER( m_fAcc )
+		REGISTER_MEMBER( m_fTargetSpeed )
+		REGISTER_MEMBER( m_fOrbitRad )
+		REGISTER_MEMBER( m_a )
+		REGISTER_MEMBER( m_b )
+		REGISTER_MEMBER( m_c )
+		REGISTER_MEMBER( m_nFireRate )
+		REGISTER_MEMBER( m_nFireRate1 )
+		REGISTER_MEMBER( m_fShakePerSecBullet )
+		REGISTER_MEMBER( m_fireOfs )
 		REGISTER_MEMBER( m_strFireSound )
 	REGISTER_CLASS_END()
 

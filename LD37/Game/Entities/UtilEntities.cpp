@@ -159,3 +159,21 @@ void CBlockRTEft::OnTick()
 		}
 	}
 }
+
+void CShakeObject::OnTick()
+{
+	if( CMyLevel::GetInst() )
+		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerSec * GetStage()->GetElapsedTimePerTick() );
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTick );
+}
+
+void CShakeObject::OnAddedToStage()
+{
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTick );
+}
+
+void CShakeObject::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}

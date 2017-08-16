@@ -437,6 +437,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.nMoveType = XmlGetAttr( pXml, "movetype", 0 );
 	chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
 	chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
+	chunk.nShowLevelType = XmlGetAttr( pXml, "show_layer_type", chunk.nLayerType > 1 ? 1 : 0 );
 	chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
 	chunk.blockInfos.resize( chunk.nWidth * chunk.nHeight );
 

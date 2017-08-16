@@ -35,7 +35,7 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 
 	if( m_bIsFiring && !m_nFireCD )
 	{
-		CScene2DManager::GetGlobalInst()->UpdateDirty();
+		ForceUpdateTransform();
 
 		if( !m_nBulletCount )
 		{

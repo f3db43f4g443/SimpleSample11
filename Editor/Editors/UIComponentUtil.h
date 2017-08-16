@@ -4,6 +4,7 @@
 #include "UICommon/UITextBox.h"
 #include "FileView.h"
 #include "Common/ClassMetaData.h"
+#include <algorithm>
 
 class CTreeFolder : public CUICheckBox
 {
@@ -116,6 +117,15 @@ public:
 					}
 				};
 				pClassData->FindAllDerivedClasses( func );
+
+				struct SLess
+				{
+					bool operator () ( const SItem & l, const SItem & r )
+					{
+						return l.name < r.name;
+					}
+				};
+				std::sort( items.begin(), items.end(), SLess() );
 			}
 		}
 

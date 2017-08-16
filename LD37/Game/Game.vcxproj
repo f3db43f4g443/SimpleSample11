@@ -519,6 +519,7 @@
     <None Include="..\Shader\Blood.shader">
       <FileType>Document</FileType>
     </None>
+    <None Include="..\Shader\Bullet.shader" />
     <None Include="..\Shader\CrackEffect.shader" />
     <None Include="..\Shader\Decorator.shader" />
     <None Include="..\Shader\Default2DWithOrigTex.shader" />
@@ -581,7 +582,7 @@
     <ClCompile Include="Entities\Enemies\Lv2Enemies.cpp" />
     <ClCompile Include="Entities\EnemyCharacters.cpp" />
     <ClCompile Include="Entities\GlitchEffect.cpp" />
-    <ClCompile Include="Entities\Items\SpecialWeapons.cpp" />
+    <ClCompile Include="Entities\Items\SpecialWeapons0.cpp" />
     <ClCompile Include="Entities\Neutral.cpp" />
     <ClCompile Include="Entities\FallingObj.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
