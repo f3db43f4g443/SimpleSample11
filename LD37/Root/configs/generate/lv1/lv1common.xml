@@ -43,22 +43,22 @@
       <node name="block0_2" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv1/block0_2.pf">
         <types>0</types>
       </node>
-      <node name="block1a" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1a.pf">
+      <node name="block1a" width="1" height="1" weight="1" destroyweight="1.55" prefab="data/blocks/lv1/block1a.pf">
         <types>4</types>
       </node>
-      <node name="block1ax" width="2" height="1" weight="1.25" destroyweight="2.6" prefab="data/blocks/lv1/block1ax.pf">
+      <node name="block1ax" width="2" height="1" weight="1.25" destroyweight="3.1" prefab="data/blocks/lv1/block1ax.pf">
         <types>4,4</types>
       </node>
-      <node name="block1ay" width="1" height="2" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1ay.pf">
+      <node name="block1ay" width="1" height="2" weight="1" destroyweight="1.55" prefab="data/blocks/lv1/block1ay.pf">
         <types>4,4</types>
       </node>
-      <node name="block1b" width="1" height="1" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1b.pf">
+      <node name="block1b" width="1" height="1" weight="1" destroyweight="1.55" prefab="data/blocks/lv1/block1b.pf">
         <types>4</types>
       </node>
-      <node name="block1bx" width="2" height="1" weight="1.25" destroyweight="2.6" prefab="data/blocks/lv1/block1bx.pf">
+      <node name="block1bx" width="2" height="1" weight="1.25" destroyweight="3.1" prefab="data/blocks/lv1/block1bx.pf">
         <types>4,4</types>
       </node>
-      <node name="block1by" width="1" height="2" weight="1" destroyweight="1.3" prefab="data/blocks/lv1/block1by.pf">
+      <node name="block1by" width="1" height="2" weight="1" destroyweight="1.55" prefab="data/blocks/lv1/block1by.pf">
         <types>4,4</types>
       </node>
       
@@ -84,19 +84,19 @@
         <types>4</types>
       </node>
       
-      <node name="box" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/box.pf">
+      <node name="box" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/box.pf">
         <types>4</types>
       </node>
-      <node name="crate" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/crate.pf">
+      <node name="crate" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/crate.pf">
         <types>4</types>
       </node>
-      <node name="crate2x2" width="2" height="2" weight="2" destroyweight="4" layer_type="2" prefab="data/blocks/lv1/crate2x2.pf">
+      <node name="crate2x2" width="2" height="2" weight="1" destroyweight="4" layer_type="2" prefab="data/blocks/lv1/crate2x2.pf">
         <types>4,4,4,4</types>
       </node>
-      <node name="cage" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/cage.pf">
+      <node name="cage" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/cage.pf">
         <types>4</types>
       </node>
-      <node name="cage2x2" width="2" height="2" weight="2" destroyweight="4" layer_type="2" prefab="data/blocks/lv1/cage2x2.pf">
+      <node name="cage2x2" width="2" height="2" weight="1" destroyweight="4" layer_type="2" prefab="data/blocks/lv1/cage2x2.pf">
         <types>4,4,4,4</types>
       </node>
 

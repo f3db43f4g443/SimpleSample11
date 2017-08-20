@@ -295,15 +295,15 @@ void LvGenLib::DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 				int y;
 				for( y = j - 1; y >= 0; y-- )
 				{
-					if( genData[i + j * nWidth] != nSpaceType )
+					if( genData[i + y * nWidth] != nSpaceType )
 						break;
 				}
 
-				if( y < j - 1 )
+				if( y + 1 < j )
 				{
 					genData[i + j * nWidth] = nSpaceType;
-					if( y > 0 )
-						genData[i + y * nWidth] = nObjType;
+					if( y >= 0 )
+						genData[i + ( y + 1 ) * nWidth] = nObjType;
 				}
 			}
 		}

@@ -179,6 +179,9 @@
     <ClCompile Include="Entities\Items\SpecialWeapons0.cpp">
       <Filter>Entities\Items</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen2_1.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -349,6 +352,9 @@
     </ClInclude>
     <ClInclude Include="Entities\Items\SpecialWeapons0.h">
       <Filter>Entities\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelGenerating\LvGen2.h">
+      <Filter>LevelGenerating</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

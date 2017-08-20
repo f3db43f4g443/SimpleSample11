@@ -163,7 +163,7 @@ struct SChunk
 	float GetFallSpeed();
 	bool HasLayer( uint8 i ) { return !!( nLayerType & ( 1 << i ) ); }
 	uint8 GetMinLayer() { return nLayerType == 2 ? 1 : 0; }
-	uint8 GetMaxLayer() { return nLayerType == 1 ? 0 : 2; }
+	uint8 GetMaxLayer() { return nLayerType == 1 ? 1 : 2; }
 
 	bool IsFullyUpdated() { return nUpdateCount == ( nLayerType == 3 ? nWidth * 2 : nWidth ); }
 

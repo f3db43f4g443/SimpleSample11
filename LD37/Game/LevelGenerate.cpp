@@ -12,6 +12,7 @@
 
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
+#include "LevelGenerating/LvGen2.h"
 
 SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 )
 {
@@ -129,15 +130,15 @@ void SLevelBuildContext::Build()
 {
 	if( pParentChunk )
 	{
-		for( int iLayer = 0; iLayer < 2; iLayer++ )
+		for( int j = 0; j < nHeight; j++ )
 		{
-			if( !pParentChunk->HasLayer( iLayer ) )
-				continue;
-
-			for( int j = 0; j < nHeight; j++ )
+			for( int i = 0; i < nWidth; i++ )
 			{
-				for( int i = 0; i < nWidth; i++ )
+				for( int iLayer = 0; iLayer < 2; iLayer++ )
 				{
+					if( !pParentChunk->HasLayer( iLayer ) )
+						continue;
+
 					auto pBlock = GetBlock( i, j, iLayer );
 					if( pBlock )
 					{
@@ -334,7 +335,7 @@ void SLevelBuildContext::Build()
 			{
 				auto pBlock = GetBlock( i, j, iLayer );
 				if( pBlock && !pBlock->pParent->pOwner->pPrefab && pBlock->pParent->nX == pBlock->pParent->pOwner->nWidth - 1 && pBlock->pParent->nY == pBlock->pParent->pOwner->nHeight - 1
-					&& iLayer == pBlock->pParent->pOwner->GetMaxLayer() )
+					&& iLayer == pBlock->pParent->pOwner->GetMaxLayer() - 1 )
 				{
 					delete pBlock->pParent->pOwner;
 				}
@@ -1405,6 +1406,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
 	REGISTER_GENERATE_NODE( "pipes", CPipeNode );
 	REGISTER_GENERATE_NODE( "split", CSplitNode );
+
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
 	REGISTER_GENERATE_NODE( "lv1type1_1", CLevelGenNode1_1_1 );
 	REGISTER_GENERATE_NODE( "lv1type1_2", CLevelGenNode1_1_2 );
@@ -1412,6 +1414,8 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1type2", CLevelGenNode1_2 );
 	REGISTER_GENERATE_NODE( "lv1type3", CLevelGenNode1_3 );
 	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
+
+	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 }
 
 CLevelGenerateNode* CLevelGenerateFactory::LoadNode( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )

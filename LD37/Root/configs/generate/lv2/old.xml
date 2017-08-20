@@ -1,0 +1,44 @@
+﻿<root>
+  <includes>
+    <item name="lv1/lv1common" />
+  </includes>
+  <level_gen>
+
+    <scrollobjs>
+      <node name="lv1_scroll_0" prefab="data/scrollobjs/lv1_0.pf" scrollobj_type="0" />
+      <node name="lv1_scroll_1" prefab="data/scrollobjs/lv1_1.pf" scrollobj_type="1" />
+      <node name="lv1_scroll_2" prefab="data/scrollobjs/lv1_2.pf" scrollobj_type="2" />
+    </scrollobjs>
+    
+    <nodes>
+      <node name="road_old" type="subregion">
+        <ref name="wall3_empty" x="0" y="0" w="0" h="0" />
+      </node>
+
+      <node name="brick_tile_1ax" type="bricktile" ofs="1" >
+        <brick>
+          <ref name="block1a" />
+        </brick>
+        <brick1>
+          <ref name="block1ax" />
+        </brick1>
+      </node>
+      <node name="brick_tile_1bx" type="bricktile" >
+        <brick>
+          <ref name="block1b" />
+        </brick>
+        <brick1>
+          <ref name="block1bx" />
+        </brick1>
+      </node>
+
+      <node name="obj_tile_old" type="randomfill" check_gen_data_name="mask">
+        <ref name="crate2x2" sizeminx="2" sizeminy="2" p="5" />
+        <ref name="cage2x2" sizeminx="2" sizeminy="2" p="5" />
+        <ref name="crate" sizeminx="1" sizeminy="1" p="1" />
+        <ref name="cage" sizeminx="1" sizeminy="1" p="1" />
+      </node>
+    
+    </nodes>
+  </level_gen>
+</root>

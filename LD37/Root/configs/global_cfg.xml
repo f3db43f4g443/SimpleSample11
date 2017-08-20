@@ -4,7 +4,7 @@
     <main name="scene0.pf" />
     <mainmenu name="mainmenu" />
     <gen>
-      <node name="lv1_1" />
+      <node name="lv2_1" />
       <node name="lv1_2" />
       <node name="lv1_3" />
       <node name="lv1_boss" />

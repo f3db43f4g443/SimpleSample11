@@ -238,3 +238,6 @@
 /Render/Release/Render.tlog/*.tlog
 /UICommon/Debug/UICommon.tlog/*.tlog
 /UICommon/Release/UICommon.tlog/*.tlog
+*.dll
+/LD37/Root/Shader/*.sb
+/LD37/.vs/LD37/v14/*.suo
