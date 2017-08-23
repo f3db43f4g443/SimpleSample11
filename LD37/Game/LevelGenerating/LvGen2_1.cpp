@@ -27,7 +27,6 @@ void CLevelGenNode2_1_0::Generate( SLevelBuildContext& context, const TRectangle
 	m_gendata.resize( region.width * region.height );
 	m_gendata1.resize( region.width * region.height );
 
-	SRand::Inst().nSeed = 535256;
 	GenRoad();
 	GenBase();
 	GenChunks();
@@ -109,7 +108,8 @@ void CLevelGenNode2_1_0::GenRoad()
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( 4, 0, nWidth - 8, h0 ), 0 ) );
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( l, h0, w1, h - h0 ), 0 ) );
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( l + w - w2, h0, w2, h - h0 ), 0 ) );
-	m_vecRoads.push_back( SRoad( TRectangle<int32>( l + 1, h, w - 2, nHeight - h - h3 ), 1 ) );
+	m_road1 = TRectangle<int32>( l + 1, h, w - 2, nHeight - h - h3 );
+	m_vecRoads.push_back( SRoad( m_road1, 1 ) );
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( w3, h, l + 1 - w3, h1 ), 0 ) );
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( l + w - 1, h, nWidth - l - w + 1 - w4, h2 ), 0 ) );
 	m_vecRoads.push_back( SRoad( TRectangle<int32>( w5, nHeight - h3, nWidth - w5 - w6, h3 ), 1 ) );
@@ -130,7 +130,7 @@ void CLevelGenNode2_1_0::GenSubArea( const TRectangle<int32>& rect )
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
-	int32 nMinAreaSize = 8;
+	int32 nMinAreaSize = 4;
 	vector<TRectangle<int32> > rects;
 	rects.push_back( rect );
 
@@ -181,7 +181,7 @@ void CLevelGenNode2_1_0::GenSubArea( const TRectangle<int32>& rect )
 
 		rects.push_back( rect1 );
 		rects.push_back( rect2 );
-		m_vecRoads.push_back( SRoad( curRect, 0 ) );
+		m_vecRoads.push_back( SRoad( rectSplit, 0 ) );
 	}
 }
 
@@ -250,6 +250,13 @@ void CLevelGenNode2_1_0::GenChunks()
 
 	vector<TVector2<int32> > vec;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
+	for( int i = m_road1.x; i < m_road1.GetRight(); i++ )
+	{
+		for( int j = m_road1.y; j < m_road1.GetBottom(); j++ )
+		{
+			vec.push_back( TVector2<int32>( i, j ) );
+		}
+	}
 	SRand::Inst().Shuffle( vec );
 
 	for( auto p : vec )
@@ -257,7 +264,9 @@ void CLevelGenNode2_1_0::GenChunks()
 		if( m_gendata1[p.x + p.y * nWidth] != eType1_None )
 			continue;
 		uint8 nType;
-		if( p.x > 0 && m_gendata[p.x - 1 + p.y * nWidth] == eType_Road
+		if( p.x >= m_road1.x && p.x < m_road1.GetRight() && p.y >= m_road1.y && p.y < m_road1.GetBottom() )
+			nType = 1;
+		else if( p.x > 0 && m_gendata[p.x - 1 + p.y * nWidth] == eType_Road
 			|| p.x < nWidth - 1 && m_gendata[p.x + 1 + p.y * nWidth] == eType_Road
 			|| p.y < nHeight - 1 && m_gendata[p.x + ( p.y + 1 ) * nWidth] == eType_Road )
 			nType = 1;

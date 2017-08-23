@@ -633,6 +633,8 @@ void CHouse::OnTick()
 		if( nChar == -1 && !m_characters[i].second )
 			nChar = i;
 	}
+	if( GetHp() < GetMaxHp() * 0.4f )
+		m_bAnyoneEntered = true;
 	if( nChar >= 0 && m_bAnyoneEntered )
 	{
 		auto pCharacter = m_characters[nChar].first;

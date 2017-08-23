@@ -653,7 +653,7 @@ void CMyLevel::UpdateBlocksMovement()
 						nMinY = Max<int32>( nMinY, pBlock->nLowerMargin );
 				}
 
-				if( pChunk->nFallSpeed < 60 )
+				if( pChunk->nFallSpeed < 90 )
 					pChunk->nFallSpeed++;
 				int32 nFallDist = floor( pChunk->nFallSpeed * m_fFallDistPerSpeedFrame );
 				pChunk->pos.y -= nFallDist;
@@ -1214,7 +1214,7 @@ void CMyLevel::UpdateShake()
 			basementLayer.nCurShakeStrength = 0;
 			nShakeHeight = Max( nShakeHeight, basementLayer.nShakeHeight );
 		}
-		basement.fShakeStrength = Max( 0.0f, basement.fShakeStrength * 0.95f - 0.02f );
+		basement.fShakeStrength = Max( 0.0f, basement.fShakeStrength * 0.96f - 0.015f );
 		pMainUI->UpdateShakeSmallBar( i, nShakeHeight >= 0 ? Min( nShakeHeight, (int32)m_nHeight ) : (int32)m_nHeight );
 	}
 }

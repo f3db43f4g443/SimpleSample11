@@ -44,6 +44,7 @@ private:
 	vector<SRoad> m_vecRoads;
 	vector<TRectangle<int32> > m_vecCargoSmall;
 	vector<TRectangle<int32> > m_vecCargoLarge;
+	TRectangle<int32> m_road1;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pRoadNode;
