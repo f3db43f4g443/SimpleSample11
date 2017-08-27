@@ -388,3 +388,423 @@ void CLevelGenNode2_1_0::GenChunks()
 		}
 	}
 }
+
+void CLevelGenNode2_2_0::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	m_pContext = &context;
+	m_region = region;
+	m_gendata.resize( region.width * region.height );
+	m_gendata1.resize( region.width * region.height );
+
+
+	m_gendata.clear();
+	m_gendata1.clear();
+	m_vecRoads.clear();
+}
+
+void CLevelGenNode2_2_0::GenAreas()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	uint8 nType = SRand::Inst().Rand( 0, 3 );
+	m_nType = nType;
+
+	if( nType == 0 )
+	{
+		uint32 w0 = 8;
+		uint32 l0 = SRand::Inst().Rand( ( nWidth - w0 ) / 2 - 1, nWidth - w0 - ( nWidth - w0 ) / 2 + 2 );
+		uint32 h0 = SRand::Inst().Rand( nHeight / 2 - 1, nHeight / 2 + 1 );
+		TRectangle<int32> r0( l0, 0, w0, h0 );
+
+		uint32 lDist = SRand::Inst().Rand( 4, 6 );
+		uint32 rDist = SRand::Inst().Rand( 4, 6 );
+		TRectangle<int32> r1( lDist, h0 - 2, r0.x - lDist, 2 );
+		TRectangle<int32> r2( r0.GetRight(), h0 - 2, nWidth - rDist - r0.GetRight(), 2 );
+
+		TRectangle<int32> r3( r1.x, h0, 2, nHeight - h0 );
+		TRectangle<int32> r4( r2.GetRight() - 2, h0, 2, nHeight - h0 );
+
+		{
+			uint32 w = SRand::Inst().Rand( 3, 5 );
+			uint32 h = SRand::Inst().Rand( h0 / 2 - 1, h0 / 2 + 2 );
+			m_vecArea1.push_back( TRectangle<int32>( r0.x - w, h0 - 2 - h, w, h ) );
+			w = SRand::Inst().Rand( 3, 5 );
+			h = SRand::Inst().Rand( h0 / 2 - 1, h0 / 2 + 2 );
+			m_vecArea1.push_back( TRectangle<int32>( r0.GetRight(), h0 - 2 - h, w, h ) );
+		}
+		{
+			TRectangle<int32> r( r1.x, r1.y, 2, 2 );
+			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
+			r.SetTop( r.y - SRand::Inst().Rand( 2, 4 ) );
+			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r1.SetLeft( r.GetRight() );
+			r3.SetTop( r.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			TRectangle<int32> r( r2.GetRight() - 2, r2.y, 2, 2 );
+			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
+			r.SetTop( r.y - SRand::Inst().Rand( 2, 4 ) );
+			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r2.SetRight( r.GetLeft() );
+			r4.SetTop( r.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			uint32 h = SRand::Inst().Rand( 4, 6 );
+			uint32 l = SRand::Inst().Rand( 4, 6 );
+			uint32 r = SRand::Inst().Rand( 4, 6 );
+			m_vecArea1.push_back( TRectangle<int32>( nWidth / 2 - l, r0.GetBottom(), l + r, h ) );
+			SHouse house( nWidth / 2 - l, r0.GetBottom() + h, l + r, nHeight - r0.GetBottom() + h  );
+			house.exit[1] = TVector2<int32>( ( house.rect.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2, 2 );
+			house.nExitType[1] = 2;
+			m_vecHouses.push_back( house );
+		}
+
+		m_vecRoads.push_back( r0 );
+		m_vecRoads.push_back( r1 );
+		m_vecRoads.push_back( r2 );
+		m_vecRoads.push_back( r3 );
+		m_vecRoads.push_back( r4 );
+	}
+	else if( nType == 1 )
+	{
+		uint32 w0 = 8;
+		uint32 l0 = SRand::Inst().Rand( ( nWidth - w0 ) / 2 - 1, nWidth - w0 - ( nWidth - w0 ) / 2 + 2 );
+		uint32 h0 = SRand::Inst().Rand( 6, 8 );
+		TRectangle<int32> r0( l0, 0, w0, h0 );
+
+		uint32 h00 = h0 / 2 + SRand::Inst().Rand( 0, 2 );
+		uint32 lDist = SRand::Inst().Rand( 3, 5 );
+		uint32 rDist = SRand::Inst().Rand( 3, 5 );
+		TRectangle<int32> r1( lDist, h00, r0.x - lDist, h0 - h00 );
+		TRectangle<int32> r2( r0.GetRight(), h00, nWidth - rDist - r0.GetRight(), h0 - h00 );
+
+		uint32 h1 = SRand::Inst().Rand( 6, 8 );
+		TRectangle<int32> r3( r1.x, h0, 2, nHeight - h1 - h0 );
+		TRectangle<int32> r4( r2.GetRight() - 2, h0, 2, nHeight - h1 - h0 );
+
+		uint32 l = nWidth - rDist - lDist - 4;
+		uint32 w2a = SRand::Inst().Rand( 3, 5 );
+		uint32 w2b = SRand::Inst().Rand( 3, 5 );
+		uint32 l2 = ( l - w2a - w2b ) / 2 - SRand::Inst().Rand( 0, 3 );
+		uint32 l2a = SRand::Inst().Rand( ( l - l2 - w2a - w2b ) / 2 - 1, ( l - l2 - w2a - w2b ) - ( l - l2 - w2a - w2b ) / 2 + 2 );
+		uint32 l2b = l2a + w2a + l2;
+		uint32 h2 = SRand::Inst().Rand( nHeight / 2 + 2, nHeight / 2 + 5 );
+		TRectangle<int32> r5( l2a, nHeight - h2, w2a, h2 );
+		TRectangle<int32> r6( l2b, nHeight - h2, w2b, h2 );
+
+		{
+			TRectangle<int32> r( r1.x, r1.y, 2, 2 );
+			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
+			r.SetTop( r.y - SRand::Inst().Rand( 1, 3 ) );
+			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r1.SetLeft( r.GetRight() );
+			r3.SetTop( r.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			TRectangle<int32> r( r2.GetRight() - 2, r2.y, 2, 2 );
+			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
+			r.SetTop( r.y - SRand::Inst().Rand( 1, 3 ) );
+			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r2.SetRight( r.GetLeft() );
+			r4.SetTop( r.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			TRectangle<int32> r( r1.x, 0, r1.width, r0.y );
+			r.SetLeft( r.GetLeft() + SRand::Inst().Rand( 2, 6 ) );
+			m_vecArea1.push_back( r );
+		}
+		{
+			TRectangle<int32> r( r2.x, 0, r2.width, r0.y );
+			r.SetRight( r.GetRight() - SRand::Inst().Rand( 2, 6 ) );
+			m_vecArea1.push_back( r );
+		}
+		{
+			TRectangle<int32> r( r5.x, r0.GetBottom(), r5.width, 0 );
+			r.SetLeft( Max( r1.x, r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( nWidth / 2, r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetBottom( Min( r5.y, r.y + SRand::Inst().Rand( 4, 8 ) ) );
+			SHouse house( r );
+			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0, r5.width - 1 ) + r5.x - r.x, 2 );
+			house.nExitType[1] = 2;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( r6.x, r0.GetBottom(), r6.width, 0 );
+			r.SetLeft( Max( nWidth - nWidth / 2, r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( r2.GetRight(), r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetBottom( Min( r6.y, r.y + SRand::Inst().Rand( 4, 8 ) ) );
+			SHouse house( r );
+			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0, r6.width - 1 ) + r6.x - r.x, 2 );
+			house.nExitType[1] = 2;
+			m_vecHouses.push_back( house );
+		}
+
+		{
+			TRectangle<int32> r( r3.x, r3.GetBottom(), r3.width, Min<int32>( h1, SRand::Inst().Rand( 4, 7 ) ) );
+			r.SetLeft( Max( 0, r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( r5.x, r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			SHouse house( r );
+			house.exit[3] = TVector2<int32>( SRand::Inst().Rand( 0, r3.width - 1 ) + r3.x - r.x, 2 );
+			house.nExitType[3] = 2;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( r4.x, r4.GetBottom(), r4.width, Min<int32>( h1, SRand::Inst().Rand( 4, 7 ) ) );
+			r.SetLeft( Max( r6.GetRight(), r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( nWidth, r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			SHouse house( r );
+			house.exit[3] = TVector2<int32>( SRand::Inst().Rand( 0, r4.width - 1 ) + r4.x - r.x, 2 );
+			house.nExitType[3] = 2;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( 0, 0, 0, 0 );
+			r.x = r3.GetRight();
+			r.SetRight( r5.GetLeft() );
+			r.y = Max( m_vecArea2[0].GetBottom(), m_vecHouses[0].rect.GetBottom() );
+			r.SetBottom( m_vecHouses[2].rect.GetTop() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			TRectangle<int32> r( 0, 0, 0, 0 );
+			r.x = r6.GetRight();
+			r.SetRight( r4.GetLeft() );
+			r.y = Max( m_vecArea2[1].GetBottom(), m_vecHouses[1].rect.GetBottom() );
+			r.SetBottom( m_vecHouses[3].rect.GetTop() );
+			m_vecArea2.push_back( r );
+		}
+
+		m_vecRoads.push_back( r0 );
+		m_vecRoads.push_back( r1 );
+		m_vecRoads.push_back( r2 );
+		m_vecRoads.push_back( r3 );
+		m_vecRoads.push_back( r4 );
+		m_vecRoads.push_back( r5 );
+		m_vecRoads.push_back( r6 );
+	}
+	else
+	{
+		uint32 w0 = SRand::Inst().Rand( 12, 15 );
+		uint32 l0 = SRand::Inst().Rand( ( nWidth - w0 ) / 2 - 1, nWidth - w0 - ( nWidth - w0 ) / 2 + 2 );
+		uint32 h0 = SRand::Inst().Rand( 3, 5 );
+		TRectangle<int32> r0( l0, 0, w0, h0 );
+
+		uint32 h1 = SRand::Inst().Rand( nHeight / 2 + 2, nHeight / 2 + 5 ) - h0;
+		uint32 w1 = SRand::Inst().Rand( 3, 5 );
+		uint32 w2 = SRand::Inst().Rand( 3, 5 );
+		uint32 ofs1 = SRand::Inst().Rand( 1, 3 );
+		uint32 ofs2 = SRand::Inst().Rand( 1, 3 );
+		TRectangle<int32> r1( l0 - ofs1, h0, w1, h1 );
+		TRectangle<int32> r2( l0 + w0 + ofs2 - w2, h0, w2, h1 );
+
+		uint32 w3 = SRand::Inst().Rand( 2, 3 );
+		uint32 l3 = SRand::Inst().Rand( ( nWidth - w3 ) / 2 - 1, nWidth - w3 - ( nWidth - w3 ) / 2 + 2 );
+		uint32 h2 = SRand::Inst().Rand( 5, 7 );
+		TRectangle<int32> r3( l3, nHeight - h2, w3, h2 );
+
+		uint32 h3 = SRand::Inst().Rand( ( h1 + h0 ) / 2 - 2, ( h1 + h0 ) / 2 + 2 );
+		uint32 lDist = SRand::Inst().Rand( 4, 6 );
+		uint32 rDist = SRand::Inst().Rand( 4, 6 );
+		TRectangle<int32> rc1( lDist, h3, r1.x - lDist, 2 );
+		TRectangle<int32> rc2( r2.GetRight(), h3, nWidth - rDist - r2.GetRight(), 2 );
+
+		{
+			TRectangle<int32> r( r1.x, r1.GetBottom(), r1.width, Min<int32>( h1, SRand::Inst().Rand( 4, 7 ) ) );
+			r.SetLeft( Max( 0, r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( r3.x, r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			SHouse house( r );
+			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0, r1.width - 1 ) + r1.x - r.x, 2 );
+			house.nExitType[1] = 1;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( r2.x, r2.GetBottom(), r2.width, Min<int32>( h1, SRand::Inst().Rand( 4, 7 ) ) );
+			r.SetLeft( Max( r3.GetRight(), r.GetLeft() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetRight( Min( nWidth, r.GetRight() + SRand::Inst().Rand( 2, 4 ) ) );
+			SHouse house( r );
+			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0, r2.width - 1 ) + r2.x - r.x, 2 );
+			house.nExitType[1] = 1;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( 0, rc1.y, rc1.x, rc1.GetBottom() );
+			r.SetTop( Max( 0, r.GetTop() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			SHouse house( r );
+			house.exit[2] = TVector2<int32>( SRand::Inst().Rand( 0, rc1.height - 1 ) + rc1.y - r.y, 2 );
+			house.nExitType[2] = 2;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( rc2.x, rc2.y, nWidth - rc2.x, rc2.GetBottom() );
+			r.SetTop( Max( 0, r.GetTop() - SRand::Inst().Rand( 2, 4 ) ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			SHouse house( r );
+			house.exit[0] = TVector2<int32>( SRand::Inst().Rand( 0, rc2.height - 1 ) + rc2.y - r.y, 2 );
+			house.nExitType[0] = 2;
+			m_vecHouses.push_back( house );
+		}
+		{
+			TRectangle<int32> r( rc1.x, rc1.GetBottom(), rc1.width, m_vecHouses[0].rect.y - rc1.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+		{
+			TRectangle<int32> r( rc2.x, rc2.GetBottom(), rc2.width, m_vecHouses[1].rect.y - rc2.GetBottom() );
+			m_vecArea2.push_back( r );
+		}
+
+		m_vecRoads.push_back( r0 );
+		m_vecRoads.push_back( r1 );
+		m_vecRoads.push_back( r2 );
+		m_vecRoads.push_back( r3 );
+		m_vecRoads.push_back( rc1 );
+		m_vecRoads.push_back( rc2 );
+	}
+
+	for( auto& road : m_vecRoads )
+	{
+		for( int i = road.x; i < road.GetRight(); i++ )
+		{
+			for( int j = road.y; j < road.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Road;
+			}
+		}
+	}
+	for( auto& house : m_vecHouses )
+	{
+		for( int i = house.rect.x; i < house.rect.GetRight(); i++ )
+		{
+			for( int j = house.rect.y; j < house.rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_House;
+			}
+		}
+	}
+	for( auto& rect : m_vecArea1 )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Temp0;
+			}
+		}
+	}
+	for( auto& rect : m_vecArea2 )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Temp1;
+			}
+		}
+	}
+
+	int32 nRoomCount = 2;
+
+	for( int i = 0; i < 2 && nRoomCount; i++ )
+	{
+		vector<TVector2<int32> > vec;
+		uint8 nType = i == 0 ? eType_Temp1 : eType_None;
+		FindAllOfTypesInMap( m_gendata, nWidth, nHeight, nType, vec );
+		SRand::Inst().Shuffle( vec );
+		for( auto& p : vec )
+		{
+			if( m_gendata[p.x + p.y * nWidth] != nType )
+				continue;
+
+			auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 6, 6 ), TVector2<int32>( 8, 8 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Room );
+			if( rect.width > 0 )
+			{
+				m_vecRooms.push_back( rect );
+				nRoomCount--;
+				if( !nRoomCount )
+					break;
+			}
+		}
+	}
+
+	vector<TVector2<int32> > vec;
+	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
+	SRand::Inst().Shuffle( vec );
+	for( auto& p : vec )
+	{
+		if( m_vecHouses.size() >= 8 )
+			break;
+		if( m_gendata[p.x + p.y * nWidth] != eType_None )
+			continue;
+		TVector2<int32> ofs[] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 } };
+		int i;
+		for( i = 0; i < 4; i++ )
+		{
+			auto p1 = p + ofs[i];
+			if( p1.x < 0 || p1.y < 0 || p1.x >= nWidth || p1.y >= nHeight )
+				continue;
+			if( m_gendata[p1.x + p1.y * nWidth] == eType_Road )
+				break;
+		}
+		if( i >= 4 )
+			continue;
+
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 6, 6 ), TVector2<int32>( SRand::Inst().Rand( 8, 11 ), SRand::Inst().Rand( 8, 11 ) ),
+			TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_House );
+		if( rect.width > 0 )
+			m_vecHouses.push_back( rect );
+	}
+
+	for( auto& house : m_vecHouses )
+	{
+		int32 l[4] = { house.rect.width, house.rect.height, house.rect.width, house.rect.height };
+		int32 nLeft[4] = { 1, 0, 1, 0 };
+		int32 nRight[4] = { 3, 2, 3, 2 };
+		for( int i = 0; i < 4; i++ )
+		{
+			if( house.nExitType[i] )
+				continue;
+			int32 iLeft = nLeft[i];
+			int32 iRight = nRight[i];
+			int32 nLeft = house.nExitType[iLeft] == 2 ? 3 : 2;
+			int32 nRight = house.nExitType[iRight] == 2 ? 3 : 2;
+			if( 2 + nLeft + nRight < l[i] )
+				continue;
+
+			vector<TVector2<int32> > q;
+			for( int j = nLeft; j < house.rect.width - nRight; j++ )
+			{
+				TVector2<int32> p[4] = { { 0, j }, { j, 0 }, { nWidth - 1, j }, { j, nHeight - 1 } };
+				TVector2<int32> pt = p[i] + TVector2<int32>( house.rect.x, house.rect.y );
+				q.push_back( pt );
+			}
+
+			if( !q.size() )
+				continue;
+			SRand::Inst().Shuffle( q );
+			TVector2<int32> p = FindPath( m_gendata, nWidth, nHeight, eType_Temp0, eType_Temp0_0, eType_Road, q, m_par );
+			if( p.x < 0 )
+				continue;
+
+			house.exit[i] = TVector2<int32>( nLeft, house.rect.width - nRight - nLeft );
+			house.nExitType[i] = 1;
+			vector<TVector2<int32> > q1;
+			p = m_par[p.x + p.y * nWidth];
+			while( p.x >= 0 && m_gendata[p.x + p.y * nWidth] == eType_Temp0_0 )
+			{
+				q1.push_back( p );
+				p = m_par[p.x + p.y * nWidth];
+			}
+			m_gendata[p.x + p.y * nWidth] = eType_House_Exit1;
+
+			ExpandDist( m_gendata, nWidth, nHeight, eType_Temp0_0, eType_Temp0, 2, q1 );
+		}
+	}
+}
