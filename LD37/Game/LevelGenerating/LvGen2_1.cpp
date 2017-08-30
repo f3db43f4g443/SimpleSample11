@@ -310,56 +310,17 @@ void CLevelGenNode2_1_0::GenChunks()
 		}
 	}
 
-	struct SLess
-	{
-		bool operator () ( const TRectangle<int32>& l, const TRectangle<int32>& r )
-		{
-			return l.y < r.y;
-		}
-	};
-	std::sort( m_vecCargoSmall.begin(), m_vecCargoSmall.end(), SLess() );
-
 	for( auto& rect : m_vecCargoSmall )
 	{
-		auto rect1 = rect;
-		while( rect1.y > 0 )
-		{
-			bool bBreak = false;
-			for( int i = rect.x; i < rect.GetRight(); i++ )
-			{
-				if( m_gendata1[i + ( rect1.y - 1 ) * nWidth] != eType1_None )
-				{
-					bBreak = true;
-					break;
-				}
-			}
-			if( bBreak )
-				break;
-
-			rect1.y--;
-		}
-
 		for( int i = rect.x; i < rect.GetRight(); i++ )
 		{
 			for( int j = rect.y; j < rect.GetBottom(); j++ )
 			{
-				m_gendata[i + j * nWidth] = m_gendata1[i + j * nWidth] = eType1_None;
+				m_gendata[i + j * nWidth] = eType_None;
 			}
 		}
-		if( rect1.y > 0 )
-		{
-			rect = rect1;
-			for( int i = rect.x; i < rect.GetRight(); i++ )
-			{
-				for( int j = rect.y; j < rect.GetBottom(); j++ )
-				{
-					m_gendata1[i + j * nWidth] = eType1_Obj;
-				}
-			}
-		}
-		else
-			rect = TRectangle<int32>( 0, 0, 0, 0 );
 	}
+	LvGenLib::DropObj1( m_gendata1, nWidth, nHeight, m_vecCargoSmall, eType1_None, eType1_Obj );
 
 	for( auto& road : m_vecRoads )
 	{
@@ -389,20 +350,251 @@ void CLevelGenNode2_1_0::GenChunks()
 	}
 }
 
-void CLevelGenNode2_2_0::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+void SHouse::Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8 nType, uint8 nType0, uint8 nType0a, uint8 nType1, uint8 nType2,
+	uint8 nRoadType, uint8 nWalkableType, uint8 nPathType, vector<TVector2<int32> >& par )
+{
+	int32 l[4] = { rect.width, rect.height, rect.width, rect.height };
+	int32 nLeft[4] = { 1, 0, 1, 0 };
+	int32 nRight[4] = { 3, 2, 3, 2 };
+	for( int i = 0; i < 4; i++ )
+	{
+		if( nExitType[i] )
+			continue;
+		int32 iLeft = nLeft[i];
+		int32 iRight = nRight[i];
+		int32 nLeft = nExitType[iLeft] == 2 ? 3 : 2;
+		int32 nRight = nExitType[iRight] == 2 ? 3 : 2;
+		if( 2 + nLeft + nRight < l[i] )
+			continue;
+
+		vector<TVector2<int32> > q;
+		for( int j = nLeft; j < rect.width - nRight; j++ )
+		{
+			TVector2<int32> p[4] = { { 0, j }, { j, 0 }, { rect.width - 1, j }, { j, rect.height - 1 } };
+			TVector2<int32> pt = p[i] + TVector2<int32>( rect.x, rect.y );
+			q.push_back( pt );
+		}
+
+		if( !q.size() )
+			continue;
+		SRand::Inst().Shuffle( q );
+		TVector2<int32> p = FindPath( genData, nWidth, nHeight, nWalkableType, nPathType, nRoadType, q, par );
+		if( p.x < 0 )
+			continue;
+
+		exit[i] = TVector2<int32>( nLeft, rect.width - nRight - nLeft );
+		nExitType[i] = 1;
+		vector<TVector2<int32> > q1;
+		p = par[p.x + p.y * nWidth];
+		while( p.x >= 0 && genData[p.x + p.y * nWidth] == nPathType )
+		{
+			q1.push_back( p );
+			p = par[p.x + p.y * nWidth];
+		}
+		genData[p.x + p.y * nWidth] = nType1;
+
+		ExpandDist( genData, nWidth, nHeight, nWalkableType, nPathType, 2, q1 );
+	}
+	for( int i = 0; i < 4; i++ )
+	{
+		if( !nExitType[i] )
+		{
+			int32 iLeft = nLeft[i];
+			int32 iRight = nRight[i];
+			
+			int32 nLeft = !nExitType[iLeft] ? 0 : ( nExitType[iLeft] == 2 ? 3 : 2 );
+			int32 nRight = !nExitType[iRight] ? 0 : ( nExitType[iRight] == 2 ? 3 : 2 );
+			
+			exit[i] = TVector2<int32>( nLeft, rect.width - nRight - nLeft );
+		}
+	}
+
+	int32 cornerSize[8];
+	for( int i = 0; i < 4; i++ )
+	{
+		if( !nExitType[i] )
+			continue;
+		cornerSize[i * 2] = exit[i].x;
+		cornerSize[i * 2 + 1] = l[i] - exit[i].x - exit[i].y;
+	}
+
+	uint8 extends[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+	uint8 nExtends = 8;
+
+	while( nExtends )
+	{
+		uint32 s = cornerSize[0] * cornerSize[2] + cornerSize[1] * cornerSize[6] + cornerSize[4] * cornerSize[3] + cornerSize[5] * cornerSize[7];
+		if( s >= rect.width * rect.height / 2 )
+			break;
+
+		uint8 r = SRand::Inst().Rand<uint8>( 0, nExtends );
+		uint8 n = extends[r];
+
+		uint8 bMinOrMax = n & 1;
+		uint8 bXOrY = ( n & 2 ) >> 1;
+		uint8 bLOrR = ( n & 4 ) >> 2;
+		int32 nEdgeLen = bXOrY ? rect.width : rect.height;
+		int32 nRandMin = 2;
+		int32 nRandMax = nEdgeLen / 2 + 2;
+
+		bool bSucceed = false;
+		do
+		{
+			if( !cornerSize[n] )
+				break;
+
+			if( cornerSize[n ^ 1] && cornerSize[n] + cornerSize[n ^ 1] >= nEdgeLen - 2 )
+				break;
+			if( cornerSize[n] + cornerSize[n ^ 5] >= nEdgeLen - 1 )
+				break;
+			TVector2<int32> p( 0, cornerSize[n] );
+			if( bMinOrMax )
+				p.y = nEdgeLen - p.y - 1;
+			if( bLOrR )
+				p.x = ( bXOrY ? rect.height : rect.width ) - 1;
+			if( bXOrY )
+				swap( p.x, p.y );
+
+			p = p + TVector2<int32>( rect.x, rect.y );
+			if( genData[p.x + p.y * nWidth] == nType1 || genData[p.x + p.y * nWidth] == nType2 )
+				break;
+
+			cornerSize[n]++;
+			bSucceed = true;
+		} while( 0 );
+
+		if( !bSucceed )
+		{
+			extends[r] = extends[nExtends - 1];
+			nExtends--;
+		}
+	}
+
+	for( int i = 0; i < 8; i++ )
+	{
+		int32 nEdgeLen = !!( i & 2 ) ? rect.width : rect.height;
+		if( !cornerSize[i ^ 1] && cornerSize[i] == nEdgeLen - 1 )
+			cornerSize[i] = nEdgeLen;
+	}
+
+	for( int i = 0; i < 4; i++ )
+	{
+		if( !nExitType[i] )
+			continue;
+		exit[i].x = cornerSize[i * 2];
+		exit[i].y = l[i] - cornerSize[i * 2 + 1] - exit[i].x;
+		uint8 t = nExitType[i] == 2 ? nType2 : nType1;
+		for( int j = exit[i].x; j < exit[i].x + exit[i].y; j++ )
+		{
+			TVector2<int32> p[4] = { { 0, j }, { j, 0 }, { rect.width - 1, j }, { j, rect.height - 1 } };
+			TVector2<int32> pt = p[i] + TVector2<int32>( rect.x, rect.y );
+			genData[pt.x + pt.y * nWidth] = t;
+			if( nExitType[i] == 2 )
+			{
+				TVector2<int32> p1[4] = { { 1, j }, { j, 1 }, { rect.width - 2, j }, { j, rect.height - 2 } };
+				pt = p1[i] + TVector2<int32>( rect.x, rect.y );
+					genData[pt.x + pt.y * nWidth] = t;
+			}
+		}
+	}
+
+	uint8 arr[4][2] = { { 2, 0 }, { 6, 1 }, { 3, 4 }, { 7, 5 } };
+	for( int i = 0; i < 4; i++ )
+	{
+		int32 w = cornerSize[arr[i][0]];
+		int32 h = cornerSize[arr[i][1]];
+		int32 x = !!( arr[i][0] & 1 ) ? rect.width - w : 0;
+		int32 y = !!( arr[i][1] & 1 ) ? rect.height - h : 0;
+
+		for( int iX = 0; iX < w; iX++ )
+		{
+			for( int iY = 0; iY < h; iY++ )
+			{
+				genData[iX + x + rect.x + ( iY + y + rect.y ) * nWidth] = nType0;
+			}
+		}
+
+		if( w >= 4 && h >= 4 )
+		{
+			int32 nX = x + ( w - SRand::Inst().Rand( 0, 2 ) ) / 2;
+			int32 nY = y + ( h - SRand::Inst().Rand( 0, 2 ) ) / 2;
+			genData[nX + nY * nWidth] = nType0a;
+		}
+	}
+}
+
+void CLevelGenNode2_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+}
+
+void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
 	m_pContext = &context;
 	m_region = region;
 	m_gendata.resize( region.width * region.height );
 	m_gendata1.resize( region.width * region.height );
+	m_par.resize( region.width * region.height );
 
+	for( auto& rect : m_vecRoads )
+	{
+		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+
+	for( int i = 0; i < region.width; i++ )
+	{
+		for( int j = 0; j < region.height; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData;
+
+			if( genData == eType_Unwalkable )
+				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			else if( genData >= eType_Walkable_a && genData <= eType_Walkable_d )
+				m_pWalkableNodes[genData - eType_Walkable_a]->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+			else if( genData >= eType_Block_a && genData <= eType_Block_d )
+				m_pBlockNodes[genData - eType_Block_a]->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+		}
+	}
+
+	context.mapTags["mask"] = eType_Block;
+	m_pBlockNode->Generate( context, region );
+
+	context.mapTags["door"] = eType_Door;
+	for( auto& room : m_vecRooms )
+	{
+		m_pRoomNode->Generate( context, room.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& house : m_vecHouses )
+	{
+		m_pRoomNode->Generate( context, house.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+
+	for( auto& rect : m_vecCargoSmall )
+	{
+		if( !rect.width )
+			continue;
+		m_pCargoNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_vecCargoLarge )
+	{
+		m_pCargo2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
 
 	m_gendata.clear();
 	m_gendata1.clear();
+	m_par.clear();
 	m_vecRoads.clear();
+	m_vecArea1.clear();
+	m_vecArea2.clear();
+	m_vecRooms.clear();
+	m_vecHouses.clear();
+	m_vecCargoSmall.clear();
+	m_vecCargoLarge.clear();
 }
 
-void CLevelGenNode2_2_0::GenAreas()
+void CLevelGenNode2_1_1::GenAreas()
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
@@ -734,6 +926,31 @@ void CLevelGenNode2_2_0::GenAreas()
 		}
 	}
 
+	for( auto& room : m_vecRooms )
+	{
+		for( int i = 0; i < room.width; i++ )
+		{
+			for( int j = 0; j < room.height; j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Room;
+			}
+		}
+
+		int32 x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+		int32 y = room.y;
+		m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+		x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+		y = room.GetBottom() - 1;
+		m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+
+		x = room.x;
+		y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+		m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+		x = room.GetRight() - 1;
+		y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+		m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+	}
+
 	vector<TVector2<int32> > vec;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
 	SRand::Inst().Shuffle( vec );
@@ -764,47 +981,161 @@ void CLevelGenNode2_2_0::GenAreas()
 
 	for( auto& house : m_vecHouses )
 	{
-		int32 l[4] = { house.rect.width, house.rect.height, house.rect.width, house.rect.height };
-		int32 nLeft[4] = { 1, 0, 1, 0 };
-		int32 nRight[4] = { 3, 2, 3, 2 };
-		for( int i = 0; i < 4; i++ )
+		house.Generate( m_gendata, nWidth, nHeight, eType_House, eType_House_1, eType_House_2, eType_House_Exit1, eType_House_Exit2, eType_Road, eType_Temp0, eType_Temp0_0, m_par );
+	}
+}
+
+void CLevelGenNode2_1_1::GenObjs()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+
+	vector<TVector2<int32> > vec;
+	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
+	SRand::Inst().Shuffle( vec );
+	for( auto& rect : m_vecArea2 )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
 		{
-			if( house.nExitType[i] )
-				continue;
-			int32 iLeft = nLeft[i];
-			int32 iRight = nRight[i];
-			int32 nLeft = house.nExitType[iLeft] == 2 ? 3 : 2;
-			int32 nRight = house.nExitType[iRight] == 2 ? 3 : 2;
-			if( 2 + nLeft + nRight < l[i] )
-				continue;
-
-			vector<TVector2<int32> > q;
-			for( int j = nLeft; j < house.rect.width - nRight; j++ )
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
 			{
-				TVector2<int32> p[4] = { { 0, j }, { j, 0 }, { nWidth - 1, j }, { j, nHeight - 1 } };
-				TVector2<int32> pt = p[i] + TVector2<int32>( house.rect.x, house.rect.y );
-				q.push_back( pt );
+				if( m_gendata[i + j * nWidth] == eType_Temp1 )
+					m_gendata[i + j * nWidth] = eType_None;
 			}
-
-			if( !q.size() )
-				continue;
-			SRand::Inst().Shuffle( q );
-			TVector2<int32> p = FindPath( m_gendata, nWidth, nHeight, eType_Temp0, eType_Temp0_0, eType_Road, q, m_par );
-			if( p.x < 0 )
-				continue;
-
-			house.exit[i] = TVector2<int32>( nLeft, house.rect.width - nRight - nLeft );
-			house.nExitType[i] = 1;
-			vector<TVector2<int32> > q1;
-			p = m_par[p.x + p.y * nWidth];
-			while( p.x >= 0 && m_gendata[p.x + p.y * nWidth] == eType_Temp0_0 )
-			{
-				q1.push_back( p );
-				p = m_par[p.x + p.y * nWidth];
-			}
-			m_gendata[p.x + p.y * nWidth] = eType_House_Exit1;
-
-			ExpandDist( m_gendata, nWidth, nHeight, eType_Temp0_0, eType_Temp0, 2, q1 );
 		}
+	}
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( m_gendata[i + j * nWidth] > eType_Road )
+				m_gendata1[i + j * nWidth] = eType1_Block;
+		}
+	}
+
+	for( auto p : vec )
+	{
+		if( m_gendata1[p.x + p.y * nWidth] != eType1_None )
+			continue;
+		uint8 nType = 0;
+		if( p.x > 0 && m_gendata[p.x - 1 + p.y * nWidth] == eType_Road
+			|| p.x < nWidth - 1 && m_gendata[p.x + 1 + p.y * nWidth] == eType_Road
+			|| p.y < nHeight - 1 && m_gendata[p.x + ( p.y + 1 ) * nWidth] == eType_Road )
+			nType = 1;
+
+		PlaceChunk( p, nType );
+	}
+
+	for( auto& rect : m_vecArea2 )
+	{
+		vec.clear();
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( m_gendata[i + j * nWidth] == eType_None )
+					vec.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+		SRand::Inst().Shuffle( vec );
+		int32 s = vec.size() / 2;
+
+		for( auto p : vec )
+		{
+			if( m_gendata1[p.x + p.y * nWidth] != eType1_None )
+				continue;
+			uint8 nType = 0;
+			if( p.x > 0 && m_gendata[p.x - 1 + p.y * nWidth] == eType_Road
+				|| p.x < nWidth - 1 && m_gendata[p.x + 1 + p.y * nWidth] == eType_Road
+				|| p.y < nHeight - 1 && m_gendata[p.x + ( p.y + 1 ) * nWidth] == eType_Road )
+				nType = 1;
+			else
+				nType = SRand::Inst().Rand( 0, 2 );
+
+			auto chunk = PlaceChunk( p, nType );
+			s -= chunk.width * chunk.height;
+			if( s <= 0 )
+				break;
+		}
+	}
+
+	for( auto& rect : m_vecCargoSmall )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_None;
+			}
+		}
+	}
+	LvGenLib::DropObj1( m_gendata1, nWidth, nHeight, m_vecCargoSmall, eType1_None, eType1_Obj );
+
+	for( auto& rect : m_vecArea2 )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( m_gendata[i + j * nWidth] == eType_None )
+					m_gendata[i + j * nWidth] = eType_Unwalkable;
+			}
+		}
+	}
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( m_gendata[i + j * nWidth] == eType_None )
+				m_gendata[i + j * nWidth] = eType_Block;
+		}
+	}
+
+	int8 nTypes[4] = { eType_Walkable_a, eType_Walkable_b, eType_Walkable_c, eType_Walkable_d };
+	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 64, 128, eType_Temp0_0, nTypes, 4 );
+	int8 nTypes1[4] = { eType_Block_a, eType_Block_b, eType_Block_c, eType_Block_d };
+	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 64, 128, eType_Temp0, nTypes, 4 );
+}
+
+TRectangle<int32> CLevelGenNode2_1_1::PlaceChunk( TVector2<int32>& p, uint8 nType )
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	if( nType == 1 )
+	{
+		auto rect = PutRect( m_gendata1, nWidth, nHeight, p, TVector2<int32>( 2, 2 ), TVector2<int32>( 2, 2 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType1_Obj );
+		if( rect.width > 0 )
+		{
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+				{
+					m_gendata[i + j * nWidth] = eType_Temp1;
+					m_gendata1[i + j * nWidth] = eType1_Obj;
+				}
+			}
+			m_vecCargoSmall.push_back( rect );
+		}
+		return rect;
+	}
+	else
+	{
+		TVector2<int32> maxSize;
+		maxSize.x = SRand::Inst().Rand( 5, 9 );
+		maxSize.y = Min( maxSize.x, SRand::Inst().Rand( 4, 8 ) );
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 3, 2 ), maxSize, TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Chunk );
+		if( rect.width > 0 )
+		{
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+				{
+					m_gendata[i + j * nWidth] = eType_Chunk;
+					m_gendata1[i + j * nWidth] = eType1_Obj;
+				}
+			}
+			m_vecCargoLarge.push_back( rect );
+		}
+		return rect;
 	}
 }

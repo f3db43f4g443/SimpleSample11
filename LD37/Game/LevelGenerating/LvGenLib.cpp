@@ -2,6 +2,7 @@
 #include "LvGenLib.h"
 #include "Common/Algorithm.h"
 #include "Common/Rand.h"
+#include <algorithm>
 
 void LvGenLib::FillBlocks( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nFillSizeMin, int32 nFillSizeMax, int8 nTypeBack, int8* nTypes, int8 nTypeCount )
 {
@@ -321,5 +322,60 @@ void LvGenLib::Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8
 				genData[i + j * nWidth] = nFillType;
 			}
 		}
+	}
+}
+
+void LvGenLib::DropObj1( vector<int8> gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> > objs,
+	int8 nTypeNone, int8 nTypeObj )
+{
+	struct SLess
+	{
+		bool operator () ( const TRectangle<int32>& l, const TRectangle<int32>& r )
+		{
+			return l.y < r.y;
+		}
+	};
+	std::sort( objs.begin(), objs.end(), SLess() );
+
+	for( auto& rect : objs )
+	{
+		auto rect1 = rect;
+		while( rect1.y > 0 )
+		{
+			bool bBreak = false;
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				if( gendata[i + ( rect1.y - 1 ) * nWidth] != nTypeNone )
+				{
+					bBreak = true;
+					break;
+				}
+			}
+			if( bBreak )
+				break;
+
+			rect1.y--;
+		}
+
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				gendata[i + j * nWidth] = nTypeNone;
+			}
+		}
+		if( rect1.y > 0 )
+		{
+			rect = rect1;
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+				{
+					gendata[i + j * nWidth] = nTypeObj;
+				}
+			}
+		}
+		else
+			rect = TRectangle<int32>( 0, 0, 0, 0 );
 	}
 }
