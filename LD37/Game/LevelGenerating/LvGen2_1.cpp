@@ -568,7 +568,7 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	}
 	for( auto& house : m_vecHouses )
 	{
-		m_pRoomNode->Generate( context, house.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		m_pHouseNode->Generate( context, house.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
 
 	for( auto& rect : m_vecCargoSmall )
