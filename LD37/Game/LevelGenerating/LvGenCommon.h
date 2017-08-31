@@ -86,3 +86,15 @@ private:
 	CReference<CLevelGenerateNode> m_pSplitNode;
 	CReference<CLevelGenerateNode> m_pSpaceNode;
 };
+
+class CHouseNode : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pBrokenNode;
+	CReference<CLevelGenerateNode> m_pSubChunkNode;
+	CReference<CLevelGenerateNode> m_pCarSpawnerNode[4];
+	CReference<CLevelGenerateNode> m_pEntranceNode[4];
+};

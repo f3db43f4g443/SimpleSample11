@@ -676,3 +676,167 @@ void CSplitNode::Generate( SLevelBuildContext & context, const TRectangle<int32>
 
 	CLevelGenerateNode::Generate( context, region );
 }
+
+
+void CHouseNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_pBrokenNode = CreateNode( pXml->FirstChildElement( "broken" )->FirstChildElement(), context );
+	m_pSubChunkNode = CreateNode( pXml->FirstChildElement( "subchunk" )->FirstChildElement(), context );
+	m_pCarSpawnerNode[0] = CreateNode( pXml->FirstChildElement( "car_spawner_0" )->FirstChildElement(), context );
+	m_pCarSpawnerNode[1] = CreateNode( pXml->FirstChildElement( "car_spawner_1" )->FirstChildElement(), context );
+	m_pCarSpawnerNode[2] = CreateNode( pXml->FirstChildElement( "car_spawner_2" )->FirstChildElement(), context );
+	m_pCarSpawnerNode[3] = CreateNode( pXml->FirstChildElement( "car_spawner_3" )->FirstChildElement(), context );
+	m_pEntranceNode[0] = CreateNode( pXml->FirstChildElement( "entrance_0" )->FirstChildElement(), context );
+	m_pEntranceNode[1] = CreateNode( pXml->FirstChildElement( "entrance_1" )->FirstChildElement(), context );
+	m_pEntranceNode[2] = CreateNode( pXml->FirstChildElement( "entrance_2" )->FirstChildElement(), context );
+	m_pEntranceNode[3] = CreateNode( pXml->FirstChildElement( "entrance_3" )->FirstChildElement(), context );
+}
+
+void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+
+		int8 n1 = context.mapTags["1"];
+		int8 n2 = context.mapTags["2"];
+		int8 nExit1 = context.mapTags["exit1"];
+		int8 nExit2 = context.mapTags["exit2"];
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+
+		for( int i = 0; i < region.width; i++ )
+		{
+			uint32 x = i + region.x;
+			uint32 y = region.y;
+			uint8 nType = context.blueprint[x + y * context.nWidth];
+			if( nType == nExit1 )
+			{
+				pChunk->GetBlock( i, 0 )->nTag = 1;
+				m_pEntranceNode[3]->Generate( tempContext, TRectangle<int32>( i, 0, 1, 1 ) );
+			}
+			else if( nType == nExit2 )
+			{
+				pChunk->GetBlock( i, 0 )->nTag = 1;
+				pChunk->GetBlock( i, 1 )->nTag = 1;
+				pChunk->GetBlock( i + 1, 0 )->nTag = 1;
+				pChunk->GetBlock( i + 1, 1 )->nTag = 1;
+				m_pCarSpawnerNode[3]->Generate( tempContext, TRectangle<int32>( i, 0, 2, 2 ) );
+				i++;
+			}
+		}
+		for( int i = 0; i < region.width; i++ )
+		{
+			uint32 x = i + region.x;
+			uint32 y = region.y + region.height - 1;
+			uint8 nType = context.blueprint[x + y * context.nWidth];
+			if( nType == nExit1 )
+			{
+				pChunk->GetBlock( i, region.height - 1 )->nTag = 1;
+				m_pEntranceNode[1]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 1, 1 ) );
+			}
+			else if( nType == nExit2 )
+			{
+				pChunk->GetBlock( i, region.height - 2 )->nTag = 1;
+				pChunk->GetBlock( i, region.height - 1 )->nTag = 1;
+				pChunk->GetBlock( i + 1, region.height - 2 )->nTag = 1;
+				pChunk->GetBlock( i + 1, region.height - 1 )->nTag = 1;
+				m_pCarSpawnerNode[1]->Generate( tempContext, TRectangle<int32>( i, region.height - 2, 2, 2 ) );
+				i++;
+			}
+		}
+		for( int j = 0; j < region.height; j++ )
+		{
+			uint32 x = region.x;
+			uint32 y = j + region.y;
+			uint8 nType = context.blueprint[x + y * context.nWidth];
+			if( nType == nExit1 )
+			{
+				pChunk->GetBlock( 0, j )->nTag = 1;
+				m_pEntranceNode[2]->Generate( tempContext, TRectangle<int32>( 0, j, 1, 1 ) );
+			}
+			else if( nType == nExit2 )
+			{
+				pChunk->GetBlock( 0, j )->nTag = 1;
+				pChunk->GetBlock( 1, j )->nTag = 1;
+				pChunk->GetBlock( 0, j + 1 )->nTag = 1;
+				pChunk->GetBlock( 1, j + 1 )->nTag = 1;
+				m_pCarSpawnerNode[3]->Generate( tempContext, TRectangle<int32>( 0, j, 2, 2 ) );
+				j++;
+			}
+		}
+		for( int j = 0; j < region.height; j++ )
+		{
+			uint32 x = region.x + region.height - 1;
+			uint32 y = j + region.y;
+			uint8 nType = context.blueprint[x + y * context.nWidth];
+			if( nType == nExit1 )
+			{
+				pChunk->GetBlock( region.width - 1, j )->nTag = 1;
+				m_pEntranceNode[0]->Generate( tempContext, TRectangle<int32>( region.width - 1, j, 1, 1 ) );
+			}
+			else if( nType == nExit2 )
+			{
+				pChunk->GetBlock( region.width - 2, j )->nTag = 1;
+				pChunk->GetBlock( region.width - 1, j )->nTag = 1;
+				pChunk->GetBlock( region.width - 2, j + 1 )->nTag = 1;
+				pChunk->GetBlock( region.width - 1, j + 1 )->nTag = 1;
+				m_pCarSpawnerNode[1]->Generate( tempContext, TRectangle<int32>( region.width - 2, j, 2, 2 ) );
+				j++;
+			}
+		}
+
+		for( int ix = 0; ix < 2; ix++ )
+		{
+			for( int iy = 0; iy < 2; iy++ )
+			{
+				TVector2<int32> p( ix * ( region.width - 1 ), iy * ( region.height - 1 ) );
+				TVector2<int32> p1( 1 - ix * 2, 1 - iy * 2 );
+
+				if( context.blueprint[region.x + p.x + ( region.y + p.y ) * context.nWidth] == n1 && !pChunk->GetBlock( p.x, p.y )->nTag )
+				{
+					int32 w = 0;
+					int32 h = 0;
+					for( ; w < region.width; w++ )
+					{
+						if( context.blueprint[p.x + w * p1.x + region.x + ( p.y + region.y ) * context.nWidth] != n1 )
+							break;
+					}
+					for( ; h < region.height; h++ )
+					{
+						if( context.blueprint[p.x + region.x + ( p.y + h * p1.y + region.y ) * context.nWidth] != n1 )
+							break;
+					}
+
+					int32 x = p.x + w * p1.x;
+					int32 y = p.y + h * p1.y;
+					for( int i = 0; i < w; i++ )
+					{
+						for( int j = 0; j < h; j++ )
+						{
+							if( context.blueprint[i + x + region.x + ( j + y + region.y ) * context.nWidth] )
+								pChunk->GetBlock( i + x, j + y )->nTag = 3 + ( i * 2 < w ? 0 : 2 ) + ( j * 2 < h ? 0 : 1 );
+							else
+								pChunk->GetBlock( i + x, j + y )->nTag = 2;
+						}
+					}
+					m_pSubChunkNode->Generate( tempContext, TRectangle<int32>( x, y, w, h ) );
+				}
+
+			}
+		}
+
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				m_pBrokenNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+			}
+		}
+
+		tempContext.Build();
+	}
+}

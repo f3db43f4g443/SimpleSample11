@@ -525,6 +525,23 @@ void SHouse::Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8
 
 void CLevelGenNode2_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
+	m_pWallNode = CreateNode( pXml->FirstChildElement( "wall" )->FirstChildElement(), context );
+	m_pRoadNode = CreateNode( pXml->FirstChildElement( "road" )->FirstChildElement(), context );
+	m_pWalkableNodes[0] = CreateNode( pXml->FirstChildElement( "walkable_a" )->FirstChildElement(), context );
+	m_pWalkableNodes[1] = CreateNode( pXml->FirstChildElement( "walkable_b" )->FirstChildElement(), context );
+	m_pWalkableNodes[2] = CreateNode( pXml->FirstChildElement( "walkable_c" )->FirstChildElement(), context );
+	m_pWalkableNodes[3] = CreateNode( pXml->FirstChildElement( "walkable_d" )->FirstChildElement(), context );
+	m_pBlockNode = CreateNode( pXml->FirstChildElement( "block" )->FirstChildElement(), context );
+	m_pBlockNodes[0] = CreateNode( pXml->FirstChildElement( "block_a" )->FirstChildElement(), context );
+	m_pBlockNodes[1] = CreateNode( pXml->FirstChildElement( "block_b" )->FirstChildElement(), context );
+	m_pBlockNodes[2] = CreateNode( pXml->FirstChildElement( "block_c" )->FirstChildElement(), context );
+	m_pBlockNodes[3] = CreateNode( pXml->FirstChildElement( "block_d" )->FirstChildElement(), context );
+	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
+	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
+	m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
+	m_pCargo2Node = CreateNode( pXml->FirstChildElement( "cargo2" )->FirstChildElement(), context );
+
+	CLevelGenerateNode::Load( pXml, context );
 }
 
 void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
@@ -566,6 +583,10 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	{
 		m_pRoomNode->Generate( context, room.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	context.mapTags["1"] = eType_House_1;
+	context.mapTags["2"] = eType_House_2;
+	context.mapTags["exit1"] = eType_House_Exit1;
+	context.mapTags["exit2"] = eType_House_Exit2;
 	for( auto& house : m_vecHouses )
 	{
 		m_pHouseNode->Generate( context, house.rect.Offset( TVector2<int32>( region.x, region.y ) ) );
@@ -582,6 +603,7 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 		m_pCargo2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
 
+	context.mapTags.clear();
 	m_gendata.clear();
 	m_gendata1.clear();
 	m_par.clear();
