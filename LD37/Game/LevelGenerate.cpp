@@ -1402,11 +1402,13 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
 	REGISTER_GENERATE_NODE( "commonroom", CCommonRoomNode );
+	REGISTER_GENERATE_NODE( "room0", CRoom0Node );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
 	REGISTER_GENERATE_NODE( "pipes", CPipeNode );
 	REGISTER_GENERATE_NODE( "split", CSplitNode );
 	REGISTER_GENERATE_NODE( "house", CHouseNode );
+	REGISTER_GENERATE_NODE( "fence", CFenceNode );
 
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
 	REGISTER_GENERATE_NODE( "lv1type1_1", CLevelGenNode1_1_1 );

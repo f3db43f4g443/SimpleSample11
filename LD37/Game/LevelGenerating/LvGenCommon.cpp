@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LvGenCommon.h"
 #include "Common/Rand.h"
+#include "Common/Algorithm.h"
 
 void CBrickTileNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
@@ -82,6 +83,102 @@ void CCommonRoomNode::Generate( SLevelBuildContext & context, const TRectangle<i
 					m_pWallBroken1->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
 				else
 					m_pWallBroken->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+			}
+		}
+
+		tempContext.Build();
+	}
+}
+
+void CRoom0Node::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_pDoor1[0] = CreateNode( pXml->FirstChildElement( "door1_0" )->FirstChildElement(), context );
+	m_pDoor1[1] = CreateNode( pXml->FirstChildElement( "door1_1" )->FirstChildElement(), context );
+	m_pDoor1[2] = CreateNode( pXml->FirstChildElement( "door1_2" )->FirstChildElement(), context );
+	m_pDoor1[3] = CreateNode( pXml->FirstChildElement( "door1_3" )->FirstChildElement(), context );
+	m_pDoor2[0] = CreateNode( pXml->FirstChildElement( "door2_0" )->FirstChildElement(), context );
+	m_pDoor2[1] = CreateNode( pXml->FirstChildElement( "door2_1" )->FirstChildElement(), context );
+	m_pDoor2[2] = CreateNode( pXml->FirstChildElement( "door2_2" )->FirstChildElement(), context );
+	m_pDoor2[3] = CreateNode( pXml->FirstChildElement( "door2_3" )->FirstChildElement(), context );
+}
+
+void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+
+		int8 nDoor = context.mapTags["door"];
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+
+		{
+			uint32 nMaxLen = 0;
+			int i;
+			for( i = 1; i < region.width - 1; i++ )
+			{
+				if( context.blueprint[i + region.x + region.y * context.nWidth] == nDoor )
+				{
+					if( i + 1 < region.width && context.blueprint[i + 1 + region.x + region.y * context.nWidth] == nDoor )
+					{
+						m_pDoor2[0]->Generate( tempContext, TRectangle<int32>( i, 0, 2, 1 ) );
+						i++;
+					}
+					else
+						m_pDoor1[0]->Generate( tempContext, TRectangle<int32>( i, 0, 1, 1 ) );
+				}
+			}
+		}
+		{
+			int i;
+			for( i = 1; i < region.width - 1; i++ )
+			{
+				if( context.blueprint[i + region.x + ( region.y + region.height - 1 ) * context.nWidth] == nDoor )
+				{
+					if( i + 1 < region.width && context.blueprint[i + 1 + region.x + ( region.y + region.height - 1 ) * context.nWidth] == nDoor )
+					{
+						m_pDoor2[2]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 2, 1 ) );
+						i++;
+					}
+					else
+						m_pDoor1[2]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 1, 1 ) );
+				}
+			}
+		}
+
+		{
+			int i;
+			for( i = 1; i < region.height - 1; i++ )
+			{
+				if( context.blueprint[region.x + ( i + region.y ) * context.nWidth] == nDoor )
+				{
+					if( i + 1 < region.height - 1 && context.blueprint[region.x + ( i + 1 + region.y ) * context.nWidth] == nDoor )
+					{
+						m_pDoor2[1]->Generate( tempContext, TRectangle<int32>( 0, i, 1, 2 ) );
+						i++;
+					}
+					else
+						m_pDoor1[1]->Generate( tempContext, TRectangle<int32>( 0, i, 1, 1 ) );
+				}
+			}
+		}
+		{
+			int i;
+			for( i = 1; i < region.height - 1; i++ )
+			{
+				if( context.blueprint[region.x + region.width - 1 + ( i + region.y ) * context.nWidth] == nDoor )
+				{
+					if( i + 1 < region.height - 1 && context.blueprint[region.x + region.width - 1 + ( i + 1 + region.y ) * context.nWidth] == nDoor )
+					{
+						m_pDoor2[3]->Generate( tempContext, TRectangle<int32>( region.width - 1, i, 1, 2 ) );
+						i++;
+					}
+					else
+						m_pDoor1[3]->Generate( tempContext, TRectangle<int32>( region.width - 1, i, 1, 1 ) );
+				}
 			}
 		}
 
@@ -835,6 +932,62 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			{
 				m_pBrokenNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
 			}
+		}
+
+		tempContext.Build();
+	}
+}
+
+void CFenceNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_nType0 = XmlGetAttr( pXml, "type0", 0 );
+	m_nType1 = XmlGetAttr( pXml, "type1", 2 );
+	if( pXml->FirstChildElement( "fence" ) )
+		m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "tile" ) )
+		m_pFenceNode = CreateNode( pXml->FirstChildElement( "tile" )->FirstChildElement(), context );
+}
+
+void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	vector<int8> vecType;
+	vecType.resize( region.width * region.height );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+
+		int8 n1 = context.mapTags["1"];
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				if( context.blueprint[i + region.x + ( j + region.y ) * context.nWidth] == n1 )
+				{
+					pChunk->GetBlock( i, j )->eBlockType = m_nType1;
+					m_pTileNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+					vecType[i + j * region.width] = 1;
+				}
+				else
+					pChunk->GetBlock( i, j )->eBlockType = m_nType0;
+			}
+		}
+
+		vector<TVector2<int32> > vec;
+		FindAllOfTypesInMap( vecType, region.width, region.height, 1, vec );
+		for( auto& p : vec )
+		{
+			if( vecType[p.x + p.y * region.width] != 1 )
+				continue;
+			auto rect = PutRect( vecType, region.width, region.height, p, TVector2<int32>( 1, 1 ), TVector2<int32>( region.width, region.height ),
+				TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
+			if( rect.width && rect.height )
+				m_pFenceNode->Generate( tempContext, rect );
 		}
 
 		tempContext.Build();

@@ -537,9 +537,12 @@ void CLevelGenNode2_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pBlockNodes[2] = CreateNode( pXml->FirstChildElement( "block_c" )->FirstChildElement(), context );
 	m_pBlockNodes[3] = CreateNode( pXml->FirstChildElement( "block_d" )->FirstChildElement(), context );
 	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
-	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
-	m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
-	m_pCargo2Node = CreateNode( pXml->FirstChildElement( "cargo2" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "room" ) )
+		m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "cargo" ) )
+		m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "cargo2" ) )
+		m_pCargo2Node = CreateNode( pXml->FirstChildElement( "cargo2" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -551,6 +554,9 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	m_gendata.resize( region.width * region.height );
 	m_gendata1.resize( region.width * region.height );
 	m_par.resize( region.width * region.height );
+
+	GenAreas();
+	GenObjs();
 
 	for( auto& rect : m_vecRoads )
 	{

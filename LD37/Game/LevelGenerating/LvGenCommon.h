@@ -23,6 +23,16 @@ private:
 	CReference<CLevelGenerateNode> m_pWallBroken1;
 };
 
+class CRoom0Node : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pDoor1[4];
+	CReference<CLevelGenerateNode> m_pDoor2[4];
+};
+
 class CRoom1Node : public CLevelGenerateSimpleNode
 {
 public:
@@ -97,4 +107,16 @@ private:
 	CReference<CLevelGenerateNode> m_pSubChunkNode;
 	CReference<CLevelGenerateNode> m_pCarSpawnerNode[4];
 	CReference<CLevelGenerateNode> m_pEntranceNode[4];
+};
+
+class CFenceNode : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	uint8 m_nType0;
+	uint8 m_nType1;
+	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pTileNode;
 };
