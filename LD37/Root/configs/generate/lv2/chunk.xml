@@ -154,7 +154,7 @@
       </node>
 
       <node name="room_a" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="10"
-            movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_a.pf">
+            weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_a.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,0,0,0,0,0,0,4,
@@ -192,11 +192,12 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_a_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
       <node name="room_b" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10"
-            movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_b.pf">
+            weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_b.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,0,0,0,0,0,0,4,
@@ -234,11 +235,12 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_b_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
       <node name="room_c" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10"
-            movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_c.pf">
+            weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_c.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,0,0,0,0,0,0,4,
@@ -276,11 +278,12 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_c_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
       <node name="room_d" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="10"
-            movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_d.pf">
+            weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_d.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,0,0,0,0,0,0,4,
@@ -318,6 +321,7 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_d_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>

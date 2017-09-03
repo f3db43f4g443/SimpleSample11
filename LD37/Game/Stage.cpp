@@ -396,62 +396,52 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 		CVector2 vecKnockback = m_pPlayer->GetKnockback();
 		float fKnockbackLen = vecKnockback.Length();
 
-		CVector4 texOfs[5];
-		CVector4 weightsBase[3][5] =
+		CVector4 texOfs[3];
+		CVector4 weightsBase[3][3] =
 		{
 			{
-				{ 0, 0, 0, 0.2f },
-				{ 0, 0, 0, 0.2f },
-				{ 1, 1, 1, 0.2f },
-				{ 0, 0, 0, 0.2f },
-				{ 0, 0, 0, 0.2f }
+				{ 1, 1, 1, 1 },
+				{ 0, 0, 0, 0 },
+				{ 0, 0, 0, 0 },
 			},
 			{
-				{ 1, 1, 1, 0.2f },
-				{ 0, 0, 0, 0.2f },
-				{ 0, 0, 0, 0.2f },
-				{ 0, 0, 0, 0.2f },
-				{ 0, 0, 0, 0.2f }
+				{ 0, 0, 0, 1 },
+				{ 0, 0, 0, 0 },
+				{ 1, 1, 1, 0 },
 			},
 			{
-				{ 0.0f, 1, 0, 0.2f },
-				{ 0.0f, 0, 1, 0.2f },
-				{ 1.0f, 0, 0, 0.2f },
-				{ 0.0f, 0, 0, 0.2f },
-				{ 0.0f, 0, 0, 0.2f }
+				{ 1, 0, 0, 1 },
+				{ 0, 0, 1, 0 },
+				{ 0, 1, 0, 0 },
 			}
 		};
-		CVector4 weights1[5] =
+		CVector4 weights1[3] =
 		{
-			{ 0.0f, 0.25f, 0, 0.2f },
-			{ 0.0f, 0, 0, 0.2f },
-			{ 1.0f, 0, 0, 0.2f },
-			{ 0.0f, 0, 0, 0.2f },
-			{ 0.0f, 0, 0.25f, 0.2f }
+			{ 1.0f, 0, 0, 1 },
+			{ 0.0f, 0, 0.25f, 0 },
+			{ 0.0f, 0.25f, 0, 0 },
 		};
-		CVector4 weights2[5] =
+		CVector4 weights2[3] =
 		{
-			{ 0.5f, 0.5f, 0.5f, 0.2f },
-			{ 0.5f, 0.5f, 0.5f, 0.2f },
-			{ 0.5f, 0.5f, 0.5f, 0.2f },
-			{ 0.0f, 0, 0, 0.2f },
-			{ 0.0f, 0.0f, 0, 0.2f }
+			{ 0.5f, 0.5f, 0.5f, 1 },
+			{ 0.5f, 0.5f, 0.5f, 0 },
+			{ 0.5f, 0.5f, 0.5f, 0 },
 		};
-		CVector4 weights[5];
-		for( int i = 0; i < 5; i++ )
+		CVector4 weights[3];
+		for( int i = 0; i < 3; i++ )
 		{
 			weights[i] = weightsBase[nShakeType][i] * ( 1 - fHurt ) * ( 1 - fKnockbackLen ) + weights1[i] * fHurt + weights2[i] * ( 1 - fHurt ) * fKnockbackLen;
 		}
 
 		CVector2 camShake = CVector2( cos( IRenderSystem::Inst()->GetTotalTime() * 1.3592987 * 60 ), cos( IRenderSystem::Inst()->GetTotalTime() * 1.4112051 * 60 ) )
 			* ( Min( pLevel->GetShakeStrength() / 64.0f, 1.0f ) + fHurt );
-		camShake = camShake + vecKnockback * 5;
+		camShake = camShake + vecKnockback * 10;
 		CVector2 ofs = camShake;
 
 		CVector2 ofs1 = CVector2( ofs.y, -ofs.x );
-		for( int i = 0; i < 5; i++ )
+		for( int i = 0; i < 3; i++ )
 		{
-			texOfs[i] = CVector4( ofs.x, ofs.y, ofs1.x, ofs1.y ) * ( i - 2 );
+			texOfs[i] = CVector4( ofs.x, ofs.y, ofs1.x, ofs1.y ) * i;
 		}
 
 		static CPostProcessDizzyEffect effect;

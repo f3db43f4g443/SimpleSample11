@@ -166,7 +166,7 @@ CRectangle CNavigationUnit::GridToRect( const TVector2<int32>& grid )
 	return CRectangle( ( grid.x + m_mapRect.x ) * m_gridSize.x, ( grid.y + m_mapRect.y ) * m_gridSize.y, m_gridSize.x, m_gridSize.y );
 }
 
-void CNavigationUnit::BuildPath( SGridData * pGridData )
+void CNavigationUnit::BuildPath( SGridData * pGridData, CCharacter* pCharacter )
 {
 	ClearPath();
 
@@ -174,6 +174,15 @@ void CNavigationUnit::BuildPath( SGridData * pGridData )
 	{
 		m_curPath.push_back( pGridData->pos );
 		pGridData = &GetGrid( pGridData->par );
+	}
+	if( !m_curPath.size() )
+		return;
+
+	bool hitTypeFilter[eEntityHitType_Count] = { true, false };
+	if( pCharacter->GetStage()->SweepTest( pCharacter, pCharacter->globalTransform,
+		GridToRect( m_curPath.back() ).GetCenter() - pCharacter->GetPosition(), hitTypeFilter ) )
+	{
+		m_curPath.push_back( GetGridByPos( pCharacter->GetPosition() ) );
 	}
 }
 

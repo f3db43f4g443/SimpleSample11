@@ -177,7 +177,7 @@ protected:
 	void HandleRoll( CCharacter* pCharacter, const CVector2& moveAxis );
 
 	void FallOff();
-	void OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D& oldTrans, const CMatrix2D& newTrans );
+	CVector2 OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D& oldTrans, const CMatrix2D& newTrans );
 	void FindFloor( CCharacter* pCharacter );
 };
 

@@ -8,7 +8,7 @@ struct SRand
 
 	uint32 Rand()
 	{
-		return( ( (nSeed = nSeed * 214013L + 2531011L ) >> 16 ) & 0x7fff );
+		return( ( (nSeed = nSeed * 214013L + 2531011L ) ) & 0x7fff );
 	}
 
 	template<typename T>

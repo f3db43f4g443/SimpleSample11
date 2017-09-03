@@ -206,6 +206,13 @@ void CEnemyCharacter::UpdateMove()
 					return;
 			}
 		}
+		else
+		{
+			m_flyData.UpdateMove( this, CVector2( 0, 0 ) );
+			if( !GetStage() )
+				return;
+		}
+
 		if( !m_flyData.pLandedEntity )
 		{
 			m_flyData.bHitChannel[eEntityHitType_Platform] = true;
@@ -474,11 +481,11 @@ void CCop::OnTickAfterHitTest()
 	{
 		if( !m_pNav->HasPath() && m_nState == 1 )
 		{
-			m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+			m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 		}
 		if( m_nFindPathDelay >= 120 )
 		{
-			m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+			m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 			m_nFindPathDelay = 0;
 		}
 	}
@@ -496,7 +503,7 @@ void CCop::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 		if( m_nState == 0 )
 		{
 			if( m_fNearestDist != FLT_MAX )
-				m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+				m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 			else
 			{
 				float r = SRand::Inst().Rand( -PI, PI );
@@ -559,9 +566,9 @@ void CCop::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 void CCop::OnFindPath( CNavigationUnit::SGridData* pGrid )
 {
 	if( pGrid )
-		m_pNav->BuildPath( pGrid );
+		m_pNav->BuildPath( pGrid, this );
 	else if( m_fNearestDist != FLT_MAX )
-		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 	else
 	{
 		float r = SRand::Inst().Rand( -PI, PI );
@@ -743,7 +750,7 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 		if( !m_pThrowObj )
 		{
 			if( m_fNearestDist != FLT_MAX )
-				m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+				m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 			else
 			{
 				float r = SRand::Inst().Rand( -PI, PI );
@@ -788,9 +795,9 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 void CThug::OnFindPath( CNavigationUnit::SGridData * pGrid )
 {
 	if( pGrid )
-		m_pNav->BuildPath( pGrid );
+		m_pNav->BuildPath( pGrid, this );
 	else if( m_fNearestDist != FLT_MAX )
-		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ) );
+		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
 	else
 	{
 		float r = SRand::Inst().Rand( -PI, PI );

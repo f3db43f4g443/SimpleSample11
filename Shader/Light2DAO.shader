@@ -34,12 +34,10 @@ void VSPreTransmission( in float2 pos : Position,
 void PSPreTransmission( in float2 tex : TexCoord0, //color
 	in float2 tex1 : TexCoord1, //occlusion
 	in float2 tex2 : TexCoord2, //transmission
-	out float4 outScene : SV_Target0,
-	out float4 outTrans : SV_Target1,
-	out float4 outTransTemp : SV_Target2 )
+	out float4 outTrans : SV_Target0,
+	out float4 outTransTemp : SV_Target1 )
 {
 	float4 LightMapTex = LightMap.Sample( PointSampler, tex );
-	float4 ColorMapTex = ColorMap.Sample( PointSampler, tex );
 	float4 EmissionMapTex = EmissionMap.Sample( PointSampler, tex );
 	float4 TransmissionMapTex = TransmissionMap.Sample( PointSampler, tex2 );
 	float4 OcclusionMapTex = OcclusionMap.Sample( PointSampler, tex1 );
@@ -47,10 +45,6 @@ void PSPreTransmission( in float2 tex : TexCoord0, //color
 	float fPercent = 0.8;
 	float fLInject1 = 0.65;
 	float fEInject1 = 1;
-	float fLightMapCoef = 0.35;
-
-	outScene.xyz = ( LightMapTex.xyz * fLightMapCoef + TransmissionMapTex.xyz ) * ColorMapTex.xyz + EmissionMapTex.xyz;
-	outScene.w = 1;
 
 	outTrans = TransmissionMapTex;
 	outTransTemp.xyz = TransmissionMapTex.xyz * fPercent + ( LightMapTex.xyz * fLInject1 + EmissionMapTex.xyz * ( fEInject1 + ( 1 - OcclusionMapTex.xyz ) * ( 1 - fEInject1 ) ) ) * ( 1 - fPercent );
@@ -75,8 +69,12 @@ float2 InvSrcRes;
 
 void PSTransmission( in float2 tex : TexCoord0, //color
 	in float2 tex1 : TexCoord1, //randomnormal
-	out float4 outTransmission : SV_Target0 )
+	out float4 outScene : SV_Target0,
+	out float4 outTransmission : SV_Target1 )
 {
+	float4 LightMapTex = LightMap.Sample( PointSampler, tex );
+	float4 EmissionMapTex = EmissionMap.Sample( PointSampler, tex );
+	float4 ColorMapTex = ColorMap.Sample( PointSampler, tex );
 	float2 dTex = InvSrcRes.xy;
 	float4 TransmissionMapTex = TransmissionMap.Sample( PointSampler, tex );
 
@@ -90,19 +88,27 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	float2 dHeight = float2( TransmissionTempTex[0].w - TransmissionTempTex[2].w, TransmissionTempTex[1].w - TransmissionTempTex[3].w );
 	dHeight *= 0.5;
 
-	float hOfs = 0;
 	float hScale = 10.0;
+	float hScale1 = 10.0;
 
 	float fDecay = 0.2;
 	float fWeight = ( 1 - fDecay ) * 0.25;
-	outTransmission.xyz = TransmissionMapTex.xyz * fDecay;
+	float fWeight1 = 0;
+	outTransmission.xyz = 0;
 
 	float2 ofs1[4] = { float2( 1, 0 ), float2( 0, 1 ), float2( -1, 0 ), float2( 0, -1 ) };
 	for( int i = 0; i < 4; i++ )
 	{
 		float h0 = dot( dHeight, ofs1[i] ) + TransmissionMapTex.w;
 		float h1 = TransmissionTempTex[i].w;
-		outTransmission.xyz += TransmissionTempTex[i].xyz * saturate( 1 - ( h1 - h0 + hOfs ) * hScale ) * fWeight;
+		float w = saturate( 1 - ( TransmissionMapTex.w - h1 ) * hScale1 ) * fWeight;
+		fWeight1 += w;
+		outTransmission.xyz += TransmissionTempTex[i].xyz * saturate( 1 - ( h1 - h0 ) * hScale ) * w;
 	}
+	outTransmission.xyz += TransmissionMapTex.xyz * ( 1 - fWeight1 );
 	outTransmission.w = 1;
+
+	float fLightMapCoef = 0.35;
+	outScene.xyz = ( LightMapTex.xyz * fLightMapCoef + outTransmission.xyz ) * ColorMapTex.xyz + EmissionMapTex.xyz;
+	outScene.w = 1;
 }

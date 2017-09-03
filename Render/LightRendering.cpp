@@ -627,18 +627,16 @@ protected:
 	virtual void OnCreated() override
 	{
 		GetShader()->GetShaderInfo().Bind( m_light, "LightMap" );
-		GetShader()->GetShaderInfo().Bind( m_color, "ColorMap" );
 		GetShader()->GetShaderInfo().Bind( m_emission, "EmissionMap" );
 		GetShader()->GetShaderInfo().Bind( m_transmission, "TransmissionMap" );
 		GetShader()->GetShaderInfo().Bind( m_occlusion, "OcclusionMap" );
 		GetShader()->GetShaderInfo().Bind( m_paramPointSampler, "PointSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pLight, IShaderResource* pColor,
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pLight,
 		IShaderResource* pEmission, IShaderResource* pTransmission, IShaderResource* pOcclusion )
 	{
 		m_light.Set( pRenderSystem, pLight );
-		m_color.Set( pRenderSystem, pColor );
 		m_emission.Set( pRenderSystem, pEmission );
 		m_transmission.Set( pRenderSystem, pTransmission );
 		m_occlusion.Set( pRenderSystem, pOcclusion );
@@ -646,7 +644,6 @@ public:
 	}
 private:
 	CShaderParamShaderResource m_light;
-	CShaderParamShaderResource m_color;
 	CShaderParamShaderResource m_emission;
 	CShaderParamShaderResource m_transmission;
 	CShaderParamShaderResource m_occlusion;
@@ -698,6 +695,9 @@ class CTransmissionPS : public CGlobalShader
 protected:
 	virtual void OnCreated() override
 	{
+		GetShader()->GetShaderInfo().Bind( m_light, "LightMap" );
+		GetShader()->GetShaderInfo().Bind( m_color, "ColorMap" );
+		GetShader()->GetShaderInfo().Bind( m_emission, "EmissionMap" );
 		GetShader()->GetShaderInfo().Bind( m_transmission, "TransmissionMap" );
 		GetShader()->GetShaderInfo().Bind( m_transmissionTemp, "TransmissionTemp" );
 		GetShader()->GetShaderInfo().Bind( m_randomnormal, "RandomNormalMap" );
@@ -707,8 +707,12 @@ protected:
 		GetShader()->GetShaderInfo().Bind( m_paramLinearSampler, "LinearSampler" );
 	}
 public:
-	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTransmission, IShaderResource* pTransmissionTemp, IShaderResource* pRandomNormal, const CVector2& srcRes )
+	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pLight, IShaderResource* pColor, IShaderResource* pEmission,
+		IShaderResource* pTransmission, IShaderResource* pTransmissionTemp, IShaderResource* pRandomNormal, const CVector2& srcRes )
 	{
+		m_light.Set( pRenderSystem, pLight );
+		m_color.Set( pRenderSystem, pColor );
+		m_emission.Set( pRenderSystem, pEmission );
 		m_transmission.Set( pRenderSystem, pTransmission );
 		m_transmissionTemp.Set( pRenderSystem, pTransmissionTemp );
 		m_randomnormal.Set( pRenderSystem, pRandomNormal );
@@ -719,6 +723,9 @@ public:
 		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
 	}
 private:
+	CShaderParamShaderResource m_light;
+	CShaderParamShaderResource m_color;
+	CShaderParamShaderResource m_emission;
 	CShaderParamShaderResource m_transmission;
 	CShaderParamShaderResource m_transmissionTemp;
 	CShaderParamShaderResource m_randomnormal;
@@ -743,7 +750,7 @@ void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTa
 	pSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
 
 	{
-		IRenderTarget* targets[] = { pTarget, m_pTransmissionBuffer1->GetRenderTarget(), m_pTransmissionBufferTemp->GetRenderTarget() };
+		IRenderTarget* targets[] = { m_pTransmissionBuffer1->GetRenderTarget(), m_pTransmissionBufferTemp->GetRenderTarget() };
 		pSystem->SetRenderTargets( targets, ELEM_COUNT( targets ), NULL );
 
 		auto pVertexShader = CPreTransmissionVS::Inst();
@@ -759,14 +766,15 @@ void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTa
 		occRect.SetSizeY( m_screenRes.y );
 		pVertexShader->SetParams( pSystem, CRectangle( 0, 0, m_screenRes.x, m_screenRes.y ), CRectangle( 0, 0, m_screenRes.x, m_screenRes.y ),
 			occRect, CRectangle( m_cameraOfs.x, -m_cameraOfs.y, m_screenRes.x, m_screenRes.y ), srcRes, srcRes, occRes, srcRes );
-		pPixelShader->SetParams( pSystem, m_pLightAccumulationBuffer->GetShaderResource(), m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(),
+		pPixelShader->SetParams( pSystem, m_pLightAccumulationBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(),
 			m_pTransmissionBuffer->GetShaderResource(), m_pOcclusionBuffer->GetShaderResource() );
 
 		pSystem->DrawInput();
 	}
 
 	{
-		pSystem->SetRenderTarget( m_pTransmissionBuffer->GetRenderTarget(), NULL );
+		IRenderTarget* targets[] = { pTarget, m_pTransmissionBuffer->GetRenderTarget() };
+		pSystem->SetRenderTargets( targets, ELEM_COUNT( targets ), NULL );
 
 		auto pVertexShader = CTransmissionVS::Inst();
 		auto pPixelShader = CTransmissionPS::Inst();
@@ -780,7 +788,8 @@ void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTa
 		CRectangle randomRect( SRand::Inst().Rand( 0, 64 ), SRand::Inst().Rand( 0, 64 ), m_screenRes.x, m_screenRes.y );
 
 		pVertexShader->SetParams( pSystem, dstRect, srcRect, randomRect, dstRect.GetSize(), srcRect.GetSize(), randomSize );
-		pPixelShader->SetParams( pSystem, m_pTransmissionBuffer1->GetShaderResource(), m_pTransmissionBufferTemp->GetShaderResource(), CGlobalRenderResources::Inst()->GetRandomNorm()->GetShaderResource(), m_screenRes );
+		pPixelShader->SetParams( pSystem, m_pLightAccumulationBuffer->GetShaderResource(), m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(),
+			m_pTransmissionBuffer1->GetShaderResource(), m_pTransmissionBufferTemp->GetShaderResource(), CGlobalRenderResources::Inst()->GetRandomNorm()->GetShaderResource(), m_screenRes );
 
 		pSystem->DrawInput();
 	}

@@ -34,12 +34,10 @@ void VSPreTransmission( in float2 pos : Position,
 void PSPreTransmission( in float2 tex : TexCoord0, //color
 	in float2 tex1 : TexCoord1, //occlusion
 	in float2 tex2 : TexCoord2, //transmission
-	out float4 outScene : SV_Target0,
-	out float4 outTrans : SV_Target1,
-	out float4 outTransTemp : SV_Target2 )
+	out float4 outTrans : SV_Target0,
+	out float4 outTransTemp : SV_Target1 )
 {
 	float4 LightMapTex = LightMap.Sample( PointSampler, tex );
-	float4 ColorMapTex = ColorMap.Sample( PointSampler, tex );
 	float4 EmissionMapTex = EmissionMap.Sample( PointSampler, tex );
 	float4 TransmissionMapTex = TransmissionMap.Sample( PointSampler, tex2 );
 	float4 OcclusionMapTex = OcclusionMap.Sample( PointSampler, tex1 );
@@ -47,10 +45,6 @@ void PSPreTransmission( in float2 tex : TexCoord0, //color
 	float fPercent = 0.8;
 	float fLInject1 = 0.65;
 	float fEInject1 = 1;
-	float fLightMapCoef = 0.35;
-
-	outScene.xyz = ( LightMapTex.xyz * fLightMapCoef + TransmissionMapTex.xyz ) * ColorMapTex.xyz + EmissionMapTex.xyz;
-	outScene.w = 1;
 
 	outTrans = TransmissionMapTex;
 	outTransTemp.xyz = TransmissionMapTex.xyz * fPercent + ( LightMapTex.xyz * fLInject1 + EmissionMapTex.xyz * ( fEInject1 + ( 1 - OcclusionMapTex.xyz ) * ( 1 - fEInject1 ) ) ) * ( 1 - fPercent );
@@ -75,8 +69,12 @@ float2 InvSrcRes;
 
 void PSTransmission( in float2 tex : TexCoord0, //color
 	in float2 tex1 : TexCoord1, //randomnormal
-	out float4 outTransmission : SV_Target0 )
+	out float4 outScene : SV_Target0,
+	out float4 outTransmission : SV_Target1 )
 {
+	float4 LightMapTex = LightMap.Sample( PointSampler, tex );
+	float4 EmissionMapTex = EmissionMap.Sample( PointSampler, tex );
+	float4 ColorMapTex = ColorMap.Sample( PointSampler, tex );
 	float2 dTex = InvSrcRes.xy;
 	float4 TransmissionMapTex = TransmissionMap.Sample( PointSampler, tex );
 
@@ -109,4 +107,8 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	}
 	outTransmission.xyz += TransmissionMapTex.xyz * ( 1 - fWeight1 );
 	outTransmission.w = 1;
+
+	float fLightMapCoef = 0.35;
+	outScene.xyz = ( LightMapTex.xyz * fLightMapCoef + outTransmission.xyz ) * ColorMapTex.xyz + EmissionMapTex.xyz;
+	outScene.w = 1;
 }

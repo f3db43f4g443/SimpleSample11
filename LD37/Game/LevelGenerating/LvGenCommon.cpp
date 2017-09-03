@@ -813,7 +813,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			if( nType == nExit1 )
 			{
 				pChunk->GetBlock( i, 0 )->nTag = 1;
-				m_pEntranceNode[3]->Generate( tempContext, TRectangle<int32>( i, 0, 1, 1 ) );
+				m_pEntranceNode[3]->Generate( context, TRectangle<int32>( i + region.x, 0 + region.y, 1, 1 ) );
 			}
 			else if( nType == nExit2 )
 			{
@@ -821,7 +821,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				pChunk->GetBlock( i, 1 )->nTag = 1;
 				pChunk->GetBlock( i + 1, 0 )->nTag = 1;
 				pChunk->GetBlock( i + 1, 1 )->nTag = 1;
-				m_pCarSpawnerNode[3]->Generate( tempContext, TRectangle<int32>( i, 0, 2, 2 ) );
+				m_pCarSpawnerNode[3]->Generate( context, TRectangle<int32>( i + region.x, 0 + region.y, 2, 4 ) );
 				i++;
 			}
 		}
@@ -833,7 +833,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			if( nType == nExit1 )
 			{
 				pChunk->GetBlock( i, region.height - 1 )->nTag = 1;
-				m_pEntranceNode[1]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 1, 1 ) );
+				m_pEntranceNode[1]->Generate( context, TRectangle<int32>( i + region.x, region.height - 1 + region.y, 1, 1 ) );
 			}
 			else if( nType == nExit2 )
 			{
@@ -841,7 +841,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				pChunk->GetBlock( i, region.height - 1 )->nTag = 1;
 				pChunk->GetBlock( i + 1, region.height - 2 )->nTag = 1;
 				pChunk->GetBlock( i + 1, region.height - 1 )->nTag = 1;
-				m_pCarSpawnerNode[1]->Generate( tempContext, TRectangle<int32>( i, region.height - 2, 2, 2 ) );
+				m_pCarSpawnerNode[1]->Generate( context, TRectangle<int32>( i + region.x, region.height - 4 + region.y, 2, 4 ) );
 				i++;
 			}
 		}
@@ -853,7 +853,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			if( nType == nExit1 )
 			{
 				pChunk->GetBlock( 0, j )->nTag = 1;
-				m_pEntranceNode[2]->Generate( tempContext, TRectangle<int32>( 0, j, 1, 1 ) );
+				m_pEntranceNode[2]->Generate( context, TRectangle<int32>( 0 + region.x, j + region.y, 1, 1 ) );
 			}
 			else if( nType == nExit2 )
 			{
@@ -861,19 +861,19 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				pChunk->GetBlock( 1, j )->nTag = 1;
 				pChunk->GetBlock( 0, j + 1 )->nTag = 1;
 				pChunk->GetBlock( 1, j + 1 )->nTag = 1;
-				m_pCarSpawnerNode[3]->Generate( tempContext, TRectangle<int32>( 0, j, 2, 2 ) );
+				m_pCarSpawnerNode[2]->Generate( context, TRectangle<int32>( 0 + region.x, j + region.y, 4, 2 ) );
 				j++;
 			}
 		}
 		for( int j = 0; j < region.height; j++ )
 		{
-			uint32 x = region.x + region.height - 1;
+			uint32 x = region.x + region.width - 1;
 			uint32 y = j + region.y;
 			uint8 nType = context.blueprint[x + y * context.nWidth];
 			if( nType == nExit1 )
 			{
 				pChunk->GetBlock( region.width - 1, j )->nTag = 1;
-				m_pEntranceNode[0]->Generate( tempContext, TRectangle<int32>( region.width - 1, j, 1, 1 ) );
+				m_pEntranceNode[0]->Generate( context, TRectangle<int32>( region.width - 1 + region.x, j + region.y, 1, 1 ) );
 			}
 			else if( nType == nExit2 )
 			{
@@ -881,7 +881,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				pChunk->GetBlock( region.width - 1, j )->nTag = 1;
 				pChunk->GetBlock( region.width - 2, j + 1 )->nTag = 1;
 				pChunk->GetBlock( region.width - 1, j + 1 )->nTag = 1;
-				m_pCarSpawnerNode[1]->Generate( tempContext, TRectangle<int32>( region.width - 2, j, 2, 2 ) );
+				m_pCarSpawnerNode[0]->Generate( context, TRectangle<int32>( region.width - 4 + region.x, j + region.y, 4, 2 ) );
 				j++;
 			}
 		}
@@ -893,28 +893,29 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				TVector2<int32> p( ix * ( region.width - 1 ), iy * ( region.height - 1 ) );
 				TVector2<int32> p1( 1 - ix * 2, 1 - iy * 2 );
 
-				if( context.blueprint[region.x + p.x + ( region.y + p.y ) * context.nWidth] == n1 && !pChunk->GetBlock( p.x, p.y )->nTag )
+				int32 t = context.blueprint[region.x + p.x + ( region.y + p.y ) * context.nWidth];
+				if( t >= n1 && t < n1 + 4 && !pChunk->GetBlock( p.x, p.y )->nTag )
 				{
 					int32 w = 0;
 					int32 h = 0;
 					for( ; w < region.width; w++ )
 					{
-						if( context.blueprint[p.x + w * p1.x + region.x + ( p.y + region.y ) * context.nWidth] != n1 )
+						if( context.blueprint[p.x + w * p1.x + region.x + ( p.y + region.y ) * context.nWidth] != t )
 							break;
 					}
 					for( ; h < region.height; h++ )
 					{
-						if( context.blueprint[p.x + region.x + ( p.y + h * p1.y + region.y ) * context.nWidth] != n1 )
+						if( context.blueprint[p.x + region.x + ( p.y + h * p1.y + region.y ) * context.nWidth] != t )
 							break;
 					}
 
-					int32 x = p.x + w * p1.x;
-					int32 y = p.y + h * p1.y;
+					int32 x = p.x - ( w - 1 ) * ix;
+					int32 y = p.y - ( h - 1 ) * iy;
 					for( int i = 0; i < w; i++ )
 					{
 						for( int j = 0; j < h; j++ )
 						{
-							if( context.blueprint[i + x + region.x + ( j + y + region.y ) * context.nWidth] )
+							if( context.blueprint[i + x + region.x + ( j + y + region.y ) * context.nWidth] == n2 )
 								pChunk->GetBlock( i + x, j + y )->nTag = 3 + ( i * 2 < w ? 0 : 2 ) + ( j * 2 < h ? 0 : 1 );
 							else
 								pChunk->GetBlock( i + x, j + y )->nTag = 2;
@@ -946,7 +947,7 @@ void CFenceNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 	if( pXml->FirstChildElement( "fence" ) )
 		m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
 	if( pXml->FirstChildElement( "tile" ) )
-		m_pFenceNode = CreateNode( pXml->FirstChildElement( "tile" )->FirstChildElement(), context );
+		m_pTileNode = CreateNode( pXml->FirstChildElement( "tile" )->FirstChildElement(), context );
 }
 
 void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
@@ -970,7 +971,8 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				if( context.blueprint[i + region.x + ( j + region.y ) * context.nWidth] == n1 )
 				{
 					pChunk->GetBlock( i, j )->eBlockType = m_nType1;
-					m_pTileNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+					if( m_pTileNode )
+						m_pTileNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
 					vecType[i + j * region.width] = 1;
 				}
 				else
@@ -986,7 +988,7 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				continue;
 			auto rect = PutRect( vecType, region.width, region.height, p, TVector2<int32>( 1, 1 ), TVector2<int32>( region.width, region.height ),
 				TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
-			if( rect.width && rect.height )
+			if( rect.width && rect.height && m_pFenceNode )
 				m_pFenceNode->Generate( tempContext, rect );
 		}
 

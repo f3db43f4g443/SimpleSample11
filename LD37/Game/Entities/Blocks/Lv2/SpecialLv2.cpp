@@ -515,6 +515,7 @@ bool CHouse::Enter( CCharacter * pCharacter )
 	m_characters.push_back( pair<CReference<CCharacter>, int32>( pCharacter, 10 ) );
 	pCharacter->SetParentEntity( NULL );
 	m_bAnyoneEntered = true;
+	return true;
 }
 
 void CHouse::OnCreateComplete( CMyLevel * pLevel )

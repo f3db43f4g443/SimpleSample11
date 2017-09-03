@@ -66,7 +66,7 @@ struct SHouse
 	TVector2<int32> exit[4];
 	uint8 nExitType[4];
 
-	void Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8 nType, uint8 nType0, uint8 nType0a, uint8 nType1, uint8 nType2,
+	bool Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8 nType, uint8 nType0, uint8 nType0a, uint8 nType1, uint8 nType2,
 		uint8 nRoadType, uint8 nWalkableType, uint8 nPathType, vector<TVector2<int32> >& par );
 };
 
@@ -102,7 +102,7 @@ private:
 		eType_Door,
 		eType_House,
 		eType_House_1,
-		eType_House_2,
+		eType_House_2 = eType_House_1 + 4,
 		eType_House_Exit1,
 		eType_House_Exit2,
 	};

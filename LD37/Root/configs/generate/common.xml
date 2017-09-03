@@ -3,6 +3,7 @@
     <spawns>
       <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.125" />
       <node name="villager" prefab="data/enemies/villager.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.025" />
+      <node name="thug" prefab="data/enemies/thug.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.07" />
     </spawns>
     <attachs>
       <node name="e10" prefab="e10.pf" />

@@ -374,6 +374,7 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_a_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
@@ -404,6 +405,7 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_b_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
@@ -434,6 +436,7 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_c_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
@@ -464,6 +467,7 @@
         <next_level>
           <node type="subregion">
             <ref name="deco_fiber1_d_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
@@ -632,6 +636,38 @@
           <node type="subregion">
             <ref name="house_entrance_0" x="7" y="2" w="1" h="1" />
             <ref name="house_entrance_0" x="7" y="3" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="house_d_test" movetype="2" width="10" height="4" weight="12" destroyweight="30" absorbshakestrength="10000" shakedmg="10" destroyshake="40" prefab="data/blocks/lv2/house_d.pf">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <tags>
+          2,2,2,2,1,1,2,2,2,2,
+          2,2,2,2,0,0,2,2,2,2,
+          2,2,2,2,0,0,2,2,2,2,
+          2,2,2,2,1,1,2,2,2,2,
+        </tags>
+        <subitem>
+          <node type="subregion">
+            <ref name="housepart_d" x="0" y="0" w="4" h="4" />
+            <ref name="housepart_d" x="6" y="0" w="4" h="4" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="house_broken_b" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="house_entrance_3" x="4" y="0" w="1" h="1" />
+            <ref name="house_entrance_3" x="5" y="0" w="1" h="1" />
+            <ref name="house_entrance_1" x="4" y="3" w="1" h="1" />
+            <ref name="house_entrance_1" x="5" y="3" w="1" h="1" />
           </node>
         </next_level>
       </node>

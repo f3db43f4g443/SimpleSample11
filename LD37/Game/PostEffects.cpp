@@ -88,8 +88,8 @@ protected:
 	virtual void OnCreated() override
 	{
 		GetShader()->GetShaderInfo().Bind( m_paramPercent, "fInvertPercent" );
-		GetShader()->GetShaderInfo().BindArray( m_texOfs, 5, "texofs" );
-		GetShader()->GetShaderInfo().BindArray( m_weights, 5, "weights" );
+		GetShader()->GetShaderInfo().BindArray( m_texOfs, 3, "texofs" );
+		GetShader()->GetShaderInfo().BindArray( m_weights, 3, "weights" );
 		GetShader()->GetShaderInfo().BindArray( m_t, 2, "t" );
 		GetShader()->GetShaderInfo().BindArray( m_tx, 2, "tx" );
 		GetShader()->GetShaderInfo().BindArray( m_ty, 2, "ty" );
@@ -102,7 +102,7 @@ public:
 		CVector4* t, CVector4* tx, CVector4* ty, CVector4* tb )
 	{
 		m_paramPercent.Set( pRenderSystem, &fPercent );
-		for( int i = 0; i < 5; i++ )
+		for( int i = 0; i < 3; i++ )
 		{
 			m_texOfs[i].Set( pRenderSystem, &texOfs[i] );
 			m_weights[i].Set( pRenderSystem, &weights[i] );
@@ -119,8 +119,8 @@ public:
 	}
 private:
 	CShaderParam m_paramPercent;
-	CShaderParam m_texOfs[5];
-	CShaderParam m_weights[5];
+	CShaderParam m_texOfs[3];
+	CShaderParam m_weights[3];
 	CShaderParam m_t[2], m_tx[2], m_ty[2], m_tb[2];
 	CShaderParamShaderResource m_tex;
 	CShaderParamSampler m_paramLinearSampler;

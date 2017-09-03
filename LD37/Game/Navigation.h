@@ -51,7 +51,7 @@ public:
 		return grid;
 	}
 
-	void BuildPath( SGridData* pGridData );
+	void BuildPath( SGridData* pGridData, CCharacter* pCharacter );
 	void ClearPath();
 	CVector2 FollowPath( CCharacter* pCharacter );
 	bool HasPath() { return m_curPath.size() > 0; }

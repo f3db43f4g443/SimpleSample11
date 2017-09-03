@@ -2,7 +2,7 @@ Texture2D Texture0;
 SamplerState LinearSampler;
 float fInvertPercent;
 
-#define SAMPLE_COUNT 5
+#define SAMPLE_COUNT 3
 float4 texofs[SAMPLE_COUNT];
 float4 weights[SAMPLE_COUNT];
 

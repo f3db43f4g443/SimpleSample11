@@ -278,6 +278,7 @@ CEntity * SCharacterMovementData::DoSweepTest( CCharacter * pChar, const CMatrix
 
 void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis )
 {
+	CVector2 landedEntityOfs( 0, 0 );
 	if( pLandedEntity )
 	{
 		if( pLandedEntity->GetStage() != pCharacter->GetStage() )
@@ -290,10 +291,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 			CVector2 oldPos = pCharacter->globalTransform.GetPosition();
 			CVector2 localPos = lastLandedEntityTransform.MulTVector2PosNoScale( oldPos );
 			CVector2 newPos = pLandedEntity->globalTransform.MulVector2Pos( localPos );
-
-			pCharacter->SetPosition( newPos );
-			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
-			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+			landedEntityOfs = newPos - oldPos;
 			lastLandedEntityTransform = pLandedEntity->globalTransform;
 			bSleep = false;
 		}
@@ -330,6 +328,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 				moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fDeltaTime );
 			}
 
+			moveOfs = moveOfs + landedEntityOfs;
 			CVector2 velocity = moveOfs;
 			TryMove( pCharacter, moveOfs, velocity );
 			finalMoveAxis = velocity;
@@ -353,6 +352,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 			moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fTime );
 		}
 
+		moveOfs = moveOfs + landedEntityOfs;
 		TryMove( pCharacter, moveOfs );
 
 		if( fRollTime >= fRollMaxTime )
@@ -443,6 +443,7 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
 	}
 
+	CVector2 landedEntityOfs( 0, 0 );
 	if( pLandedEntity )
 	{
 		if( pLandedEntity->GetStage() != pCharacter->GetStage() )
@@ -453,9 +454,7 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		}
 		else if( lastLandedEntityTransform != pLandedEntity->globalTransform )
 		{
-			OnLandedEntityMoved( pCharacter, lastLandedEntityTransform, pLandedEntity->globalTransform );
-			pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
-			pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+			landedEntityOfs = OnLandedEntityMoved( pCharacter, lastLandedEntityTransform, pLandedEntity->globalTransform );
 			bSleep = false;
 		}
 	}
@@ -544,6 +543,7 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	float fExtraGravity = 2 * Max( 0.0f, pCharacter->globalTransform.GetPosition().y -
 		( CMyLevel::GetInst()->GetBound().GetBottom() - CMyLevel::GetInst()->GetHighGravityHeight() ) );
 	dPos = dPos + CVector2( 0, -fExtraGravity * fDeltaTime );
+	dPos = dPos + landedEntityOfs;
 
 	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
@@ -652,7 +652,7 @@ void SCharacterWalkData::FallOff()
 {
 }
 
-void SCharacterWalkData::OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D & oldTrans, const CMatrix2D & newTrans )
+CVector2 SCharacterWalkData::OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D & oldTrans, const CMatrix2D & newTrans )
 {
 	CVector2 oldPos = pCharacter->globalTransform.GetPosition();
 	CVector2 localPos = oldTrans.MulTVector2PosNoScale( oldPos );
@@ -666,16 +666,15 @@ void SCharacterWalkData::OnLandedEntityMoved( CCharacter* pCharacter, const CMat
 	if( fNormalSpeed > fMaxFallSpeed )
 	{
 		pLandedEntity = NULL;
-		return;
+		return CVector2( 0, 0 );
 	}
 
 	CVector2 normalVelocity = gravityDir * fNormalSpeed;
 	velocity = velocity + normalVelocity;
 
-	pCharacter->globalTransform.SetPosition( newPos );
-	pCharacter->SetPosition( newPos );
-	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+	CVector2 ofs = newPos - oldPos;
 	lastLandedEntityTransform = pLandedEntity->globalTransform;
+	return ofs;
 }
 
 void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
