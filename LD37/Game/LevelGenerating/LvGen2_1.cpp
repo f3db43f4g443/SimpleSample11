@@ -749,7 +749,7 @@ void CLevelGenNode2_1_1::GenAreas()
 			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
 			r.SetTop( r.y - SRand::Inst().Rand( 1, 3 ) );
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
-			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 3, 4 ) );
 			r1.SetLeft( r.GetRight() );
 			r3.SetTop( r.GetBottom() );
 			m_vecArea2.push_back( r );
@@ -759,7 +759,7 @@ void CLevelGenNode2_1_1::GenAreas()
 			r.SetLeft( r.x - SRand::Inst().Rand( 2, 4 ) );
 			r.SetTop( r.y - SRand::Inst().Rand( 1, 3 ) );
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
-			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 2, 4 ) );
+			r.SetBottom( r.GetBottom() + SRand::Inst().Rand( 3, 4 ) );
 			r2.SetRight( r.GetLeft() );
 			r4.SetTop( r.GetBottom() );
 			m_vecArea2.push_back( r );
