@@ -962,7 +962,6 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 n1 = context.mapTags["1"];
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
 
 		for( int i = 0; i < region.width; i++ )
 		{
@@ -972,7 +971,7 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				{
 					pChunk->GetBlock( i, j )->eBlockType = m_nType1;
 					if( m_pTileNode )
-						m_pTileNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+						m_pTileNode->Generate( context, TRectangle<int32>( i + region.x, j + region.y, 1, 1 ) );
 					vecType[i + j * region.width] = 1;
 				}
 				else
@@ -989,9 +988,7 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			auto rect = PutRect( vecType, region.width, region.height, p, TVector2<int32>( 1, 1 ), TVector2<int32>( region.width, region.height ),
 				TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
 			if( rect.width && rect.height && m_pFenceNode )
-				m_pFenceNode->Generate( tempContext, rect );
+				m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 		}
-
-		tempContext.Build();
 	}
 }

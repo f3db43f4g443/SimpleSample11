@@ -97,6 +97,7 @@ private:
 		eType_Block_c,
 		eType_Block_d,
 		eType_Chunk,
+		eType_Chunk1,
 
 		eType_Room,
 		eType_Door,
@@ -120,6 +121,8 @@ private:
 	vector<TVector2<int32> > m_par;
 	uint8 m_nType;
 	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecFences;
+	vector<TRectangle<int32> > m_vecFenceBlock;
 	vector<TRectangle<int32> > m_vecArea1;
 	vector<TRectangle<int32> > m_vecArea2;
 	vector<TRectangle<int32> > m_vecRooms;
@@ -130,6 +133,7 @@ private:
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pRoadNode;
+	CReference<CLevelGenerateNode> m_pFenceNode;
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
 	CReference<CLevelGenerateNode> m_pBlockNode;
 	CReference<CLevelGenerateNode> m_pBlockNodes[4];
