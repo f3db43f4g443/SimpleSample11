@@ -586,6 +586,17 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	GenAreas();
 	GenObjs();
 
+
+	for( int i = 0; i < region.width; i++ )
+	{
+		for( int j = 0; j < region.height; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData;
+		}
+	}
 	for( auto& rect : m_vecRoads )
 	{
 		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
@@ -603,7 +614,6 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 			int32 x = region.x + i;
 			int32 y = region.y + j;
 			int8 genData = m_gendata[i + j * region.width];
-			context.blueprint[x + y * context.nWidth] = genData;
 
 			if( genData == eType_Unwalkable )
 				m_pWallNode->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
@@ -662,9 +672,14 @@ void CLevelGenNode2_1_1::GenAreas()
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
-	uint8 nType = SRand::Inst().Rand( 0, 3 );
+	uint8 nType;
+	if( !m_pFenceNode )
+		nType = SRand::Inst().Rand( 0, 3 );
+	else
+		nType = SRand::Inst().Rand( 3, 5 );
 	m_nType = nType;
 
+	vector<TRectangle<int32> > tempRect;
 	if( nType == 0 )
 	{
 		uint32 w0 = 8;
@@ -928,7 +943,7 @@ void CLevelGenNode2_1_1::GenAreas()
 	{
 		uint32 w = SRand::Inst().Rand( 14, 19 );
 		uint32 l = ( nWidth - w + SRand::Inst().Rand( 0, 2 ) ) / 2;
-		uint32 r = nWidth - l - r;
+		uint32 r = nWidth - l - w;
 		uint32 w1 = ( w - 4 + SRand::Inst().Rand( 0, 3 ) ) / 3;
 		uint32 w2 = ( w - 4 + SRand::Inst().Rand( 0, 3 ) ) / 3;
 		uint32 w3 = w - 4 - w1 - w2;
@@ -946,12 +961,13 @@ void CLevelGenNode2_1_1::GenAreas()
 		m_vecRoads.push_back( TRectangle<int32>( l, 0, w1, nHeight - h0 ) );
 		m_vecRoads.push_back( TRectangle<int32>( l + w1 + 2, 0, w3, nHeight - h1 ) );
 		m_vecRoads.push_back( TRectangle<int32>( l + w1 + w3 + 4, 0, w2, nHeight - h0 ) );
-		m_vecFences.push_back( TRectangle<int32>( l + 2, 0, 2, nHeight - h0 ) );
+		m_vecFences.push_back( TRectangle<int32>( l + w1, 0, 2, nHeight - h0 ) );
 		m_vecFences.push_back( TRectangle<int32>( l + w1 + w3 + 2, 0, 2, nHeight - h0 ) );
-		m_vecFenceBlock.push_back( TRectangle<int32>( l + 2, 0, 2, nHeight - h2 - 2 ) );
-		m_vecFenceBlock.push_back( TRectangle<int32>( l + 2, nHeight - h2, 2, h2 - h0 ) );
+		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1, 0, 2, nHeight - h2 - 2 ) );
+		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1, nHeight - h2, 2, h2 - h0 ) );
 		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1 + w3 + 2, 0, 2, nHeight - h2 - 2 ) );
 		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1 + w3 + 2, nHeight - h2, 2, h2 - h0 ) );
+		tempRect.push_back( TRectangle<int32>( l + w1, nHeight - h1, w - w1 - w2, h1 ) );
 
 		{
 			TRectangle<int32> r( l, nHeight - h0, w1, h0 );
@@ -959,7 +975,7 @@ void CLevelGenNode2_1_1::GenAreas()
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
 			SHouse house( r );
 			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w1 - 1 ) + l - r.x, 2 );
-			house.nExitType[1] = 1;
+			house.nExitType[1] = 2;
 			m_vecHouses.push_back( house );
 		}
 		{
@@ -968,9 +984,53 @@ void CLevelGenNode2_1_1::GenAreas()
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
 			SHouse house( r );
 			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w2 - 1 ) + l + w - w2 - r.x, 2 );
-			house.nExitType[1] = 1;
+			house.nExitType[1] = 2;
 			m_vecHouses.push_back( house );
 		}
+	}
+	else if( nType == 4 )
+	{
+		uint32 w = SRand::Inst().Rand( 14, 19 );
+		uint32 l = ( nWidth - w + SRand::Inst().Rand( 0, 2 ) ) / 2;
+		uint32 r = nWidth - l - w;
+		uint32 w1 = SRand::Inst().Rand( 2, 3 );
+		uint32 w2 = SRand::Inst().Rand( 2, 3 );
+		uint32 w3 = w - 4 - w1 - w2;
+		uint32 h0 = SRand::Inst().Rand( nHeight / 2 - 4, nHeight / 2 - 1 );
+		uint32 h1 = SRand::Inst().Rand( 4, 6 );
+		uint32 h2 = SRand::Inst().Rand( 4, 6 );
+		uint32 h3 = 4;
+
+		m_vecRoads.push_back( TRectangle<int32>( l, h0, w1, nHeight - h0 - h1 ) );
+		m_vecRoads.push_back( TRectangle<int32>( l + w1 + 2, h0, w3, nHeight - h0 - h3 ) );
+		m_vecRoads.push_back( TRectangle<int32>( l + w1 + w3 + 4, h0, w2, nHeight - h0 - h2 ) );
+		m_vecFences.push_back( TRectangle<int32>( l + w1, h0, 2, nHeight - h0 - h3 ) );
+		m_vecFences.push_back( TRectangle<int32>( l + w1 + w3 + 2, h0, 2, nHeight - h0 - h3 ) );
+		m_vecFenceBlock.push_back( m_vecFences[0] );
+		m_vecFenceBlock.push_back( m_vecFences[1] );
+		m_vecFenceBlock[0].SetTop( m_vecFenceBlock[0].y + SRand::Inst().Rand( 0, 3 ) );
+		m_vecFenceBlock[1].SetTop( m_vecFenceBlock[1].y + SRand::Inst().Rand( 0, 3 ) );
+		tempRect.push_back( TRectangle<int32>( l, nHeight - h1, w1, h1 ) );
+		tempRect.push_back( TRectangle<int32>( l + w - w2, nHeight - h2, w2, h2 ) );
+
+		{
+			TRectangle<int32> r( l + w1, nHeight - h3, w3 + 4, h3 );
+			r.SetLeft( r.GetLeft() - SRand::Inst().Rand( 2, 4 ) );
+			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
+			SHouse house( r );
+			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w3 - 1 ) + l + w1 + 2 - r.x, 2 );
+			house.nExitType[1] = 2;
+			m_vecHouses.push_back( house );
+		}
+
+		m_vecRoads.push_back( TRectangle<int32>( l, 0, w1 + 2, h0 ) );
+		m_vecRoads.push_back( TRectangle<int32>( l + w - w2 - 2, 0, w2 + 2, h0 ) );
+		TRectangle<int32> rect( l + w1 + 2, 0, w - w1 - w2 - 4, h0 );
+		m_vecFences.push_back( rect );
+		rect.SetLeft( rect.x + SRand::Inst().Rand( 0, 2 ) );
+		rect.SetRight( rect.GetRight() - SRand::Inst().Rand( 0, 2 ) );
+		rect.height -= SRand::Inst().Rand( 0, 3 );
+		m_vecFenceBlock.push_back( rect );
 	}
 
 	for( auto& road : m_vecRoads )
@@ -1088,12 +1148,23 @@ void CLevelGenNode2_1_1::GenAreas()
 		}
 	}
 
+	for( auto& rect : tempRect )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( !m_gendata[i + j * nWidth] )
+					m_gendata[i + j * nWidth] = eType_Temp2;
+			}
+		}
+	}
 	vector<TVector2<int32> > vec;
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vec );
 	SRand::Inst().Shuffle( vec );
 	for( auto& p : vec )
 	{
-		if( m_vecHouses.size() >= 6 )
+		if( nType < 3 && m_vecHouses.size() >= 6 )
 			break;
 		if( m_gendata[p.x + p.y * nWidth] != eType_None )
 			continue;
@@ -1129,6 +1200,17 @@ void CLevelGenNode2_1_1::GenAreas()
 				}
 			}
 			house.rect.width = house.rect.height = 0;
+		}
+	}
+	for( auto& rect : tempRect )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( m_gendata[i + j * nWidth] == eType_Temp2 )
+					m_gendata[i + j * nWidth] = eType_None;
+			}
 		}
 	}
 }

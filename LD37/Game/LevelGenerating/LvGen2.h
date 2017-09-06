@@ -91,6 +91,7 @@ private:
 		eType_Road,
 		eType_Temp0,
 		eType_Temp1,
+		eType_Temp2,
 		eType_Block,
 		eType_Block_a,
 		eType_Block_b,

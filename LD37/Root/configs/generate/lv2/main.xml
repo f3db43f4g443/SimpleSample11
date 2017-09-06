@@ -97,21 +97,76 @@
           <ref name="cargo" />
         </cargo2>
       </node>
+      
+      <node type="lv2type1_1" name="lv2style3">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <road>
+          <ref name="road_large" />
+        </road>
+        <walkable_a>
+          <ref name="block0a" />
+        </walkable_a>
+        <walkable_b>
+          <ref name="block0b" />
+        </walkable_b>
+        <walkable_c>
+          <ref name="block0c" />
+        </walkable_c>
+        <walkable_d>
+          <ref name="block0d" />
+        </walkable_d>
+        <block>
+          <node type="randomfill" check_gen_data_name="mask">
+            <ref name="block1_tiled" sizeminx="2" sizeminy="2" sizemaxx="4" sizemaxy="4" p="1" />
+            <ref name="block1_tiled" sizeminx="2" sizeminy="1" sizemaxx="4" sizemaxy="1" p="1" />
+            <ref name="block1_tiled" sizeminx="1" sizeminy="2" sizemaxx="1" sizemaxy="4" p="1" />
+            <ref name="block1" sizeminx="1" sizeminy="1" p="1" />
+          </node>
+        </block>
+        <block_a>
+          <ref name="block1a" />
+        </block_a>
+        <block_b>
+          <ref name="block1b" />
+        </block_b>
+        <block_c>
+          <ref name="block1c" />
+        </block_c>
+        <block_d>
+          <ref name="block1d" />
+        </block_d>
+
+        <house>
+          <ref name="house" />
+        </house>
+        <fence>
+          <ref name="greenbelt" />
+        </fence>
+        
+        <cargo>
+          <ref name="cargo1s" />
+        </cargo>
+        <cargo2>
+          <ref name="cargo" />
+        </cargo2>
+      </node>
     
       <node type="subregion" name="lv2_1">
-        <ref name="lv2style2" x="0" y="0" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="0" w="32" h="22" />
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <ref name="lv2style2" x="0" y="24" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="24" w="32" h="22" />
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <ref name="lv2style2" x="0" y="48" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="48" w="32" h="22" />
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <ref name="lv2style2" x="0" y="72" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="72" w="32" h="22" />
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <ref name="lv2style2" x="0" y="96" w="32" h="24" />
+        <ref name="lv2style3" x="0" y="96" w="32" h="24" />
         <ref name="1f" x="0" y="120" w="32" h="8" />
         
         <ref name="lv1_scroll_0" />
