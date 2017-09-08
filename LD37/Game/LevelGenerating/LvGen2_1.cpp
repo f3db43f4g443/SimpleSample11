@@ -571,6 +571,10 @@ void CLevelGenNode2_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 		m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
 	if( pXml->FirstChildElement( "cargo2" ) )
 		m_pCargo2Node = CreateNode( pXml->FirstChildElement( "cargo2" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "barrel" ) )
+		m_pBarrelNode = CreateNode( pXml->FirstChildElement( "barrel" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "barrel1" ) )
+		m_pBarrel1Node = CreateNode( pXml->FirstChildElement( "barrel1" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -585,7 +589,6 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 
 	GenAreas();
 	GenObjs();
-
 
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -636,6 +639,7 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	context.mapTags["2"] = eType_House_2;
 	context.mapTags["exit1"] = eType_House_Exit1;
 	context.mapTags["exit2"] = eType_House_Exit2;
+	context.mapTags["s"] = m_nType >= 4 ? 1 : 0;
 	for( auto& house : m_vecHouses )
 	{
 		if( house.rect.width )
@@ -652,6 +656,14 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	{
 		m_pCargo2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	for( auto& rect : m_vecBarrels )
+	{
+		m_pBarrelNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_vecBarrels1 )
+	{
+		m_pBarrel1Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
 
 	context.mapTags.clear();
 	m_gendata.clear();
@@ -666,6 +678,8 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	m_vecHouses.clear();
 	m_vecCargoSmall.clear();
 	m_vecCargoLarge.clear();
+	m_vecBarrels.clear();
+	m_vecBarrels1.clear();
 }
 
 void CLevelGenNode2_1_1::GenAreas()
@@ -941,7 +955,7 @@ void CLevelGenNode2_1_1::GenAreas()
 	}
 	else if( nType == 3 )
 	{
-		uint32 w = SRand::Inst().Rand( 14, 19 );
+		uint32 w = SRand::Inst().Rand( 15, 18 );
 		uint32 l = ( nWidth - w + SRand::Inst().Rand( 0, 2 ) ) / 2;
 		uint32 r = nWidth - l - w;
 		uint32 w1 = ( w - 4 + SRand::Inst().Rand( 0, 3 ) ) / 3;
@@ -956,6 +970,8 @@ void CLevelGenNode2_1_1::GenAreas()
 
 		uint32 h0 = 4;
 		uint32 h1 = SRand::Inst().Rand( 7, 10 );
+		if( w3 < 4 )
+			h1 = Max( h1, h0 + 4 );
 		uint32 h2 = Min<uint32>( nHeight / 2 + SRand::Inst().Rand( -1, 2 ), h1 + SRand::Inst().Rand( 2, 5 ) );
 
 		m_vecRoads.push_back( TRectangle<int32>( l, 0, w1, nHeight - h0 ) );
@@ -967,14 +983,19 @@ void CLevelGenNode2_1_1::GenAreas()
 		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1, nHeight - h2, 2, h2 - h0 ) );
 		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1 + w3 + 2, 0, 2, nHeight - h2 - 2 ) );
 		m_vecFenceBlock.push_back( TRectangle<int32>( l + w1 + w3 + 2, nHeight - h2, 2, h2 - h0 ) );
+
 		tempRect.push_back( TRectangle<int32>( l + w1, nHeight - h1, w - w1 - w2, h1 ) );
+		if( w3 >= 4 )
+			m_vecBarrels1.push_back( TRectangle<int32>( SRand::Inst().Rand( m_vecRoads[1].x, m_vecRoads[1].GetRight() - 3 ), nHeight - h1 + 1, 4, 2 ) );
+		else
+			m_vecBarrels.push_back( TRectangle<int32>( SRand::Inst().Rand( m_vecRoads[1].x, m_vecRoads[1].GetRight() - 1 ), nHeight - h1 + 1, 2, 3 ) );
 
 		{
 			TRectangle<int32> r( l, nHeight - h0, w1, h0 );
 			r.SetLeft( r.GetLeft() - SRand::Inst().Rand( 2, 4 ) );
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
 			SHouse house( r );
-			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w1 - 1 ) + l - r.x, 2 );
+			house.exit[1] = TVector2<int32>( ( w1 - 1 ) / 2 + l - r.x, 2 );
 			house.nExitType[1] = 2;
 			m_vecHouses.push_back( house );
 		}
@@ -983,53 +1004,55 @@ void CLevelGenNode2_1_1::GenAreas()
 			r.SetLeft( r.GetLeft() - SRand::Inst().Rand( 2, 4 ) );
 			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
 			SHouse house( r );
-			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w2 - 1 ) + l + w - w2 - r.x, 2 );
+			house.exit[1] = TVector2<int32>( ( w2 - 2 ) / 2 + l + w - w2 - r.x, 2 );
 			house.nExitType[1] = 2;
 			m_vecHouses.push_back( house );
 		}
 	}
 	else if( nType == 4 )
 	{
-		uint32 w = SRand::Inst().Rand( 14, 19 );
+		uint32 w = SRand::Inst().Rand( 15, 18 );
 		uint32 l = ( nWidth - w + SRand::Inst().Rand( 0, 2 ) ) / 2;
 		uint32 r = nWidth - l - w;
-		uint32 w1 = SRand::Inst().Rand( 2, 3 );
-		uint32 w2 = SRand::Inst().Rand( 2, 3 );
+		uint32 w1 = 3;
+		uint32 w2 = 3;
 		uint32 w3 = w - 4 - w1 - w2;
-		uint32 h0 = SRand::Inst().Rand( nHeight / 2 - 4, nHeight / 2 - 1 );
-		uint32 h1 = SRand::Inst().Rand( 4, 6 );
-		uint32 h2 = SRand::Inst().Rand( 4, 6 );
+		uint32 h0 = SRand::Inst().Rand( nHeight / 2 - 3, nHeight / 2 + 1 );
+		uint32 h00 = h0 - 2;
+		uint32 h1 = SRand::Inst().Rand( 6, 8 );
+		uint32 h2 = SRand::Inst().Rand( 6, 8 );
 		uint32 h3 = 4;
 
 		m_vecRoads.push_back( TRectangle<int32>( l, h0, w1, nHeight - h0 - h1 ) );
-		m_vecRoads.push_back( TRectangle<int32>( l + w1 + 2, h0, w3, nHeight - h0 - h3 ) );
+		m_vecRoads.push_back( TRectangle<int32>( l + w1 + 2, h00, w3, nHeight - h00 - h3 ) );
 		m_vecRoads.push_back( TRectangle<int32>( l + w1 + w3 + 4, h0, w2, nHeight - h0 - h2 ) );
 		m_vecFences.push_back( TRectangle<int32>( l + w1, h0, 2, nHeight - h0 - h3 ) );
 		m_vecFences.push_back( TRectangle<int32>( l + w1 + w3 + 2, h0, 2, nHeight - h0 - h3 ) );
 		m_vecFenceBlock.push_back( m_vecFences[0] );
 		m_vecFenceBlock.push_back( m_vecFences[1] );
-		m_vecFenceBlock[0].SetTop( m_vecFenceBlock[0].y + SRand::Inst().Rand( 0, 3 ) );
-		m_vecFenceBlock[1].SetTop( m_vecFenceBlock[1].y + SRand::Inst().Rand( 0, 3 ) );
+		m_vecFenceBlock[0].SetTop( m_vecFenceBlock[0].y + SRand::Inst().Rand( 2, 4 ) );
+		m_vecFenceBlock[1].SetTop( m_vecFenceBlock[1].y + SRand::Inst().Rand( 2, 4 ) );
 		tempRect.push_back( TRectangle<int32>( l, nHeight - h1, w1, h1 ) );
 		tempRect.push_back( TRectangle<int32>( l + w - w2, nHeight - h2, w2, h2 ) );
 
+		m_vecBarrels.push_back( TRectangle<int32>( SRand::Inst().Rand( l, l + w1 - 1 ), nHeight - h1 + 1, 2, 3 ) );
+		m_vecBarrels.push_back( TRectangle<int32>( SRand::Inst().Rand( l + w - w2, l + w - 1 ), nHeight - h2 + 1, 2, 3 ) );
+
 		{
 			TRectangle<int32> r( l + w1, nHeight - h3, w3 + 4, h3 );
-			r.SetLeft( r.GetLeft() - SRand::Inst().Rand( 2, 4 ) );
-			r.SetRight( r.GetRight() + SRand::Inst().Rand( 2, 4 ) );
 			SHouse house( r );
-			house.exit[1] = TVector2<int32>( SRand::Inst().Rand( 0u, w3 - 1 ) + l + w1 + 2 - r.x, 2 );
+			house.exit[1] = TVector2<int32>( ( w3 - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2 + l + w1 + 2 - r.x, 2 );
 			house.nExitType[1] = 2;
 			m_vecHouses.push_back( house );
 		}
 
 		m_vecRoads.push_back( TRectangle<int32>( l, 0, w1 + 2, h0 ) );
 		m_vecRoads.push_back( TRectangle<int32>( l + w - w2 - 2, 0, w2 + 2, h0 ) );
-		TRectangle<int32> rect( l + w1 + 2, 0, w - w1 - w2 - 4, h0 );
+		TRectangle<int32> rect( l + w1 + 2, 0, w - w1 - w2 - 4, h00 );
 		m_vecFences.push_back( rect );
-		rect.SetLeft( rect.x + SRand::Inst().Rand( 0, 2 ) );
-		rect.SetRight( rect.GetRight() - SRand::Inst().Rand( 0, 2 ) );
-		rect.height -= SRand::Inst().Rand( 0, 3 );
+		rect.SetLeft( rect.x + 1 );
+		rect.SetRight( rect.GetRight() - 1 );
+		rect.height -= SRand::Inst().Rand( 1, 3 );
 		m_vecFenceBlock.push_back( rect );
 	}
 
@@ -1095,30 +1118,63 @@ void CLevelGenNode2_1_1::GenAreas()
 			}
 		}
 	}
+	for( auto& rect : m_vecBarrels )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Unwalkable;
+			}
+		}
+	}
+	for( auto& rect : m_vecBarrels1 )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Unwalkable;
+			}
+		}
+	}
 
 	if( m_pRoomNode )
 	{
-		int32 nRoomCount = 2;
-
-		for( int i = 0; i < 2 && nRoomCount; i++ )
+		if( m_nType < 3 )
 		{
-			vector<TVector2<int32> > vec;
-			uint8 nType = i == 0 ? eType_Temp1 : eType_None;
-			FindAllOfTypesInMap( m_gendata, nWidth, nHeight, nType, vec );
-			SRand::Inst().Shuffle( vec );
-			for( auto& p : vec )
+			int32 nRoomCount = 2;
+			for( int i = 0; i < 2 && nRoomCount; i++ )
 			{
-				if( m_gendata[p.x + p.y * nWidth] != nType )
-					continue;
-
-				auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 6, 6 ), TVector2<int32>( 8, 8 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Room );
-				if( rect.width > 0 )
+				vector<TVector2<int32> > vec;
+				uint8 nType = i == 0 ? eType_Temp1 : eType_None;
+				FindAllOfTypesInMap( m_gendata, nWidth, nHeight, nType, vec );
+				SRand::Inst().Shuffle( vec );
+				for( auto& p : vec )
 				{
-					m_vecRooms.push_back( rect );
-					nRoomCount--;
-					if( !nRoomCount )
-						break;
+					if( m_gendata[p.x + p.y * nWidth] != nType )
+						continue;
+
+					auto rect = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 6, 6 ), TVector2<int32>( 8, 8 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Room );
+					if( rect.width > 0 )
+					{
+						m_vecRooms.push_back( rect );
+						nRoomCount--;
+						if( !nRoomCount )
+							break;
+					}
 				}
+			}
+		}
+		else
+		{
+			TVector2<int32> p[2] = { { 0, nHeight / 2 }, { nWidth - 1, nHeight / 2 } };
+			for( int i = 0; i < 2; i++ )
+			{
+				auto rect = PutRect( m_gendata, nWidth, nHeight, p[i], TVector2<int32>( 4, 6 ), TVector2<int32>( SRand::Inst().Rand( 4, 7 ), SRand::Inst().Rand( 6, 9 ) ),
+					TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Room );
+				if( rect.width > 0 )
+					m_vecRooms.push_back( rect );
 			}
 		}
 
@@ -1132,19 +1188,25 @@ void CLevelGenNode2_1_1::GenAreas()
 				}
 			}
 
-			int32 x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
-			int32 y = room.y;
-			m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
-			x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
-			y = room.GetBottom() - 1;
-			m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+			if( room.width >= 6 )
+			{
+				int32 x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+				int32 y = room.y;
+				m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+				x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+				y = room.GetBottom() - 1;
+				m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+			}
 
-			x = room.x;
-			y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
-			m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
-			x = room.GetRight() - 1;
-			y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
-			m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+			if( room.height >= 6 )
+			{
+				int32 x = room.x;
+				int32 y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+				m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+				x = room.GetRight() - 1;
+				y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+				m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+			}
 		}
 	}
 
@@ -1181,9 +1243,14 @@ void CLevelGenNode2_1_1::GenAreas()
 		if( i >= 4 )
 			continue;
 
-		auto rect = PutRect( m_gendata, nWidth, nHeight, p, i == 0 || i == 2 ? TVector2<int32>( 4, 6 ) : TVector2<int32>( 6, 4 ),
-			TVector2<int32>( SRand::Inst().Rand( 8, 11 ), SRand::Inst().Rand( 8, 11 ) ),
-			TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_House );
+		TVector2<int32> sizeMin = i == 0 || i == 2 ? TVector2<int32>( 4, 6 ) : TVector2<int32>( 6, 4 );
+		TVector2<int32> sizeMax;
+		if( nType < 3 )
+			sizeMax = TVector2<int32>( SRand::Inst().Rand( 8, 11 ), SRand::Inst().Rand( 8, 11 ) );
+		else
+			sizeMax = sizeMin + TVector2<int32>( SRand::Inst().Rand( 0, 3 ), SRand::Inst().Rand( 0, 3 ) );
+
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, sizeMin, sizeMax, TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_House );
 		if( rect.width > 0 )
 			m_vecHouses.push_back( rect );
 	}

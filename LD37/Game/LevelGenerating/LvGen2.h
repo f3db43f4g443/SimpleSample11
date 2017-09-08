@@ -131,6 +131,8 @@ private:
 	vector<SHouse> m_vecHouses;
 	vector<TRectangle<int32> > m_vecCargoSmall;
 	vector<TRectangle<int32> > m_vecCargoLarge;
+	vector<TRectangle<int32> > m_vecBarrels;
+	vector<TRectangle<int32> > m_vecBarrels1;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pRoadNode;
@@ -142,4 +144,6 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pCargoNode;
 	CReference<CLevelGenerateNode> m_pCargo2Node;
+	CReference<CLevelGenerateNode> m_pBarrelNode;
+	CReference<CLevelGenerateNode> m_pBarrel1Node;
 };

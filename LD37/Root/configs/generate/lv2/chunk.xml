@@ -16,16 +16,28 @@
           <ref name="housepart_a" />
         </subchunk>
         <car_spawner_0>
-          <ref name="car1_spawner_0" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_0" case="0" />
+            <ref name="car2_spawner_0" case="1" />
+          </node>
         </car_spawner_0>
         <car_spawner_1>
-          <ref name="car1_spawner_1" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_1" case="0" />
+            <ref name="car2_spawner_1" case="1" />
+          </node>
         </car_spawner_1>
         <car_spawner_2>
-          <ref name="car1_spawner_2" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_2" case="0" />
+            <ref name="car2_spawner_2" case="1" />
+          </node>
         </car_spawner_2>
         <car_spawner_3>
-          <ref name="car1_spawner_3" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_3" case="0" />
+            <ref name="car2_spawner_3" case="1" />
+          </node>
         </car_spawner_3>
         <entrance_0>
           <ref name="house_entrance_0" />
@@ -51,16 +63,28 @@
           <ref name="housepart_b" />
         </subchunk>
         <car_spawner_0>
-          <ref name="car1_spawner_0" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_0" case="0" />
+            <ref name="car2_spawner_0" case="1" />
+          </node>
         </car_spawner_0>
         <car_spawner_1>
-          <ref name="car1_spawner_1" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_1" case="0" />
+            <ref name="car2_spawner_1" case="1" />
+          </node>
         </car_spawner_1>
         <car_spawner_2>
-          <ref name="car1_spawner_2" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_2" case="0" />
+            <ref name="car2_spawner_2" case="1" />
+          </node>
         </car_spawner_2>
         <car_spawner_3>
-          <ref name="car1_spawner_3" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_3" case="0" />
+            <ref name="car2_spawner_3" case="1" />
+          </node>
         </car_spawner_3>
         <entrance_0>
           <ref name="house_entrance_0" />
@@ -85,17 +109,30 @@
         <subchunk>
           <ref name="housepart_c" />
         </subchunk>
+
         <car_spawner_0>
-          <ref name="car1_spawner_0" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_0" case="0" />
+            <ref name="car2_spawner_0" case="1" />
+          </node>
         </car_spawner_0>
         <car_spawner_1>
-          <ref name="car1_spawner_1" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_1" case="0" />
+            <ref name="car2_spawner_1" case="1" />
+          </node>
         </car_spawner_1>
         <car_spawner_2>
-          <ref name="car1_spawner_2" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_2" case="0" />
+            <ref name="car2_spawner_2" case="1" />
+          </node>
         </car_spawner_2>
         <car_spawner_3>
-          <ref name="car1_spawner_3" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_3" case="0" />
+            <ref name="car2_spawner_3" case="1" />
+          </node>
         </car_spawner_3>
         <entrance_0>
           <ref name="house_entrance_0" />
@@ -120,17 +157,30 @@
         <subchunk>
           <ref name="housepart_d" />
         </subchunk>
+
         <car_spawner_0>
-          <ref name="car1_spawner_0" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_0" case="0" />
+            <ref name="car2_spawner_0" case="1" />
+          </node>
         </car_spawner_0>
         <car_spawner_1>
-          <ref name="car1_spawner_1" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_1" case="0" />
+            <ref name="car2_spawner_1" case="1" />
+          </node>
         </car_spawner_1>
         <car_spawner_2>
-          <ref name="car1_spawner_2" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_2" case="0" />
+            <ref name="car2_spawner_2" case="1" />
+          </node>
         </car_spawner_2>
         <car_spawner_3>
-          <ref name="car1_spawner_3" />
+          <node type="switch" str="s">
+            <ref name="car1_spawner_3" case="0" />
+            <ref name="car2_spawner_3" case="1" />
+          </node>
         </car_spawner_3>
         <entrance_0>
           <ref name="house_entrance_0" />

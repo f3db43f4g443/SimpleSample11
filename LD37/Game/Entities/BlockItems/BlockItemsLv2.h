@@ -11,11 +11,13 @@ public:
 	CCarSpawner( const SClassCreateContext& context ) : CDetectTrigger( context ) { SET_BASEOBJECT_ID( CCarSpawner ); }
 protected:
 	virtual void Trigger() override;
+	virtual bool CheckTrigger() override;
 
 	CRectangle m_carRect;
 	CRectangle m_carRect1;
 	CVector2 m_spawnVel;
-	uint32 m_nSpawnCount;
+	TResourceRef<CPrefab> m_pCarPrefabs[4];
+	uint32 m_nSpawnCounts[4];
 };
 
 class CHouseEntrance : public CEntity

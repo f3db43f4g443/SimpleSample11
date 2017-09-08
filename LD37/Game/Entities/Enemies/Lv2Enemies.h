@@ -39,6 +39,7 @@ protected:
 	float m_spawnManRadius;
 	uint32 m_nSpawnManTime;
 	float m_fSpawnManSpeed;
+	uint8 m_nExpType;
 
 	CReference<CChunkObject> m_pExcludeChunkObject;
 	TRectangle<int32> m_excludeRect;

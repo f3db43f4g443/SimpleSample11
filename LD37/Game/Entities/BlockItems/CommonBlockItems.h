@@ -14,6 +14,7 @@ public:
 protected:
 	void OnTick();
 	virtual void Trigger() {}
+	virtual bool CheckTrigger() { return true; }
 
 	CRectangle m_detectRect;
 	CRectangle m_detectRect1;

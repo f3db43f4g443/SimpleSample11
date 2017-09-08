@@ -51,33 +51,69 @@ void CCar::Kill()
 	pExplosion->SetPosition( GetPosition() );
 	pExplosion->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 
-	SBarrageContext context;
-	context.vecBulletTypes.push_back( m_strBullet.GetPtr() );
-	context.nBulletPageSize = 50;
-
-	CBarrage* pBarrage = new CBarrage( context );
-	pBarrage->AddFunc( [] ( CBarrage* pBarrage )
+	switch( m_nExpType )
+	{
+	case 0:
 	{
 		float r = SRand::Inst().Rand( -PI, PI );
-		int32 nBullet = 0;
-		for( int i = 0; i < 2; i++ )
+		for( int i = 0; i < 24; i++ )
 		{
-			for( int j = 0; j < 25; j++ )
-			{
-				float v = j / 5.0f;
-				v = ( v - floor( v ) ) * 2 - 1;
-				v = v * v * 125 + 125;
-				float fAngle = r + j * PI / 12;
-				CVector2 dir( cos( fAngle ), sin( fAngle ) );
-				pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), dir * v, CVector2( dir.y, -dir.x ) * v * ( i * 2 - 1 ) );
-			}
-			pBarrage->Yield( 15 );
+			CBullet* pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
+			float fAngle = i * PI / 12 + r;
+			pBullet->SetPosition( GetPosition() );
+			pBullet->SetRotation( fAngle );
+			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * ( 150 + 50 * ( i & 1 ) ) );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
-		pBarrage->StopNewBullet();
-	} );
-	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( GetPosition() );
-	pBarrage->Start();
+		break;
+	}
+	case 1:
+	{
+		float r = SRand::Inst().Rand( -PI, PI );
+		for( int i = 0; i < 6; i++ )
+		{
+			CBullet* pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
+			float fAngle = i * PI / 3 + r;
+			pBullet->SetPosition( GetPosition() );
+			pBullet->SetRotation( fAngle );
+			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 100 );
+			pBullet->SetLife( 200 );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+		break;
+	}
+	case 2:
+	{
+		SBarrageContext context;
+		context.vecBulletTypes.push_back( m_strBullet.GetPtr() );
+		context.nBulletPageSize = 50;
+
+		CBarrage* pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [] ( CBarrage* pBarrage )
+		{
+			float r = SRand::Inst().Rand( -PI, PI );
+			int32 nBullet = 0;
+			for( int i = 0; i < 2; i++ )
+			{
+				for( int j = 0; j < 25; j++ )
+				{
+					float v = j / 5.0f;
+					v = ( v - floor( v ) ) * 2 - 1;
+					v = v * v * 125 + 125;
+					float fAngle = r + j * PI / 12;
+					CVector2 dir( cos( fAngle ), sin( fAngle ) );
+					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), dir * v, CVector2( dir.y, -dir.x ) * v * ( i * 2 - 1 ) );
+				}
+				pBarrage->Yield( 15 );
+			}
+			pBarrage->StopNewBullet();
+		} );
+		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		pBarrage->SetPosition( GetPosition() );
+		pBarrage->Start();
+		break;
+	}
+	}
 
 	CEnemy::Kill();
 }

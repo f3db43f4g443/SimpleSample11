@@ -875,6 +875,49 @@ private:
 	uint32 m_nTotalWeight;
 };
 
+class CLevelGenerateSwitchNode : public CLevelGenerateNode
+{
+public:
+	struct SSubNodeInfo
+	{
+		int32 nValue;
+		CReference<CLevelGenerateNode> pNode;
+	};
+
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		m_strSwitchValue = XmlGetAttr( pXml, "str", "" );
+		for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
+		{
+			auto pNode = CreateNode( pChild, context );
+			if( !pNode )
+				continue;
+			m_infos.resize( m_infos.size() + 1 );
+			auto& item = m_infos.back();
+			item.pNode = pNode;
+			item.nValue = XmlGetAttr( pChild, "case", -1 );
+		}
+
+		CLevelGenerateNode::Load( pXml, context );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		uint8 nValue = context.mapTags[m_strSwitchValue];
+		for( auto& info : m_infos )
+		{
+			if( info.nValue == nValue || info.nValue == -1 )
+			{
+				info.pNode->Generate( context, region );
+				break;
+			}
+		}
+		CLevelGenerateNode::Generate( context, region );
+	}
+private:
+	vector<SSubNodeInfo> m_infos;
+	string m_strSwitchValue;
+};
+
 class CLevelGenerateFrameNode : public CLevelGenerateNode
 {
 public:
@@ -1395,6 +1438,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "tile", CLevelGenerateTileNode );
 	REGISTER_GENERATE_NODE( "subregion", CLevelGenerateSubRegionNode );
 	REGISTER_GENERATE_NODE( "randompick", CLevelGenerateRandomPickNode );
+	REGISTER_GENERATE_NODE( "switch", CLevelGenerateSwitchNode );
 	REGISTER_GENERATE_NODE( "frame", CLevelGenerateFrameNode );
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
 

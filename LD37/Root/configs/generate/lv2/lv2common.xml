@@ -11,6 +11,10 @@
       <node name="car1_spawner_1" prefab="data/blockitems/car1_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car1_spawner_2" prefab="data/blockitems/car1_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car1_spawner_3" prefab="data/blockitems/car1_spawner_3.pf" sizex="2" sizey="4" attach_type="0" />
+      <node name="car2_spawner_0" prefab="data/blockitems/car2_spawner_0.pf" sizex="4" sizey="2" attach_type="0" />
+      <node name="car2_spawner_1" prefab="data/blockitems/car2_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
+      <node name="car2_spawner_2" prefab="data/blockitems/car2_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
+      <node name="car2_spawner_3" prefab="data/blockitems/car2_spawner_3.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="house_entrance_0" prefab="data/blockitems/house_entrance_0.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="house_entrance_1" prefab="data/blockitems/house_entrance_1.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="house_entrance_2" prefab="data/blockitems/house_entrance_2.pf" sizex="1" sizey="1" attach_type="0" />

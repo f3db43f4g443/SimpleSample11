@@ -141,6 +141,9 @@
         <house>
           <ref name="house" />
         </house>
+        <room>
+          <ref name="room" />
+        </room>
         <fence>
           <ref name="greenbelt" />
         </fence>
@@ -151,6 +154,12 @@
         <cargo2>
           <ref name="cargo" />
         </cargo2>
+        <barrel>
+          <ref name="barrel" />
+        </barrel>
+        <barrel1>
+          <ref name="barrel1" />
+        </barrel1>
       </node>
     
       <node type="subregion" name="lv2_1">

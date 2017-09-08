@@ -12,7 +12,13 @@
 
 void CCarSpawner::Trigger()
 {
-	if( !m_nSpawnCount )
+	uint8 nCar;
+	for( nCar = 0; nCar < 4; nCar++ )
+	{
+		if( m_nSpawnCounts[nCar] )
+			break;
+	}
+	if( nCar >= 4 )
 		return;
 
 	auto rect1 = m_carRect1;
@@ -44,13 +50,22 @@ void CCarSpawner::Trigger()
 	excludeRect.y = floor( rect.y / CMyLevel::GetBlockSize() );
 	excludeRect.width = ceil( rect.GetRight() / CMyLevel::GetBlockSize() ) - excludeRect.x;
 	excludeRect.height = ceil( rect.GetBottom() / CMyLevel::GetBlockSize() ) - excludeRect.y;
-	auto pCar = SafeCast<CCar>( m_strPrefab->GetRoot()->CreateInstance() );
+	auto pCar = SafeCast<CCar>( m_pCarPrefabs[nCar]->GetRoot()->CreateInstance() );
 	pCar->SetExcludeChunk( SafeCast<CChunkObject>( GetParentEntity() ), excludeRect );
 	pCar->SetPosition( globalTransform.GetPosition() );
 	pCar->SetVelocity( m_spawnVel );
 	pCar->SetRotation( atan2( m_spawnVel.y, m_spawnVel.x ) );
 	pCar->SetParentAfterEntity( CMyLevel::GetInst()->GetChunkRoot1() );
-	m_nSpawnCount--;
+	m_nSpawnCounts[nCar]--;
+	m_detectRect = m_detectRect1 = CRectangle( -10000, -10000, 20000, 20000 );
+}
+
+bool CCarSpawner::CheckTrigger()
+{
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunkObject->GetHp() < pChunkObject->GetMaxHp() )
+		m_detectRect = m_detectRect1 = CRectangle( -10000, -10000, 20000, 20000 );
+	return pChunkObject->GetChunk()->nFallSpeed < 10;
 }
 
 bool CHouseEntrance::CanEnter( CCharacter * pCharacter )

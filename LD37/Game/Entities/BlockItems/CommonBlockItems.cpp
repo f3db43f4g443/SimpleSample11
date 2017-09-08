@@ -48,24 +48,27 @@ void CDetectTrigger::OnTick()
 		return;
 	}
 
-	CPlayer* pPlayer = GetStage()->GetPlayer();
-	if( pPlayer )
+	if( CheckTrigger() )
 	{
-		CVector2 pos = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
-		if( m_detectRect1.Contains( pos ) )
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer )
 		{
-			m_nFireCountLeft = m_nFireCount;
-			if( m_nFireCountLeft )
-				m_nFireCountLeft--;
-			GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
-			Trigger();
-			return;
-		}
+			CVector2 pos = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
+			if( m_detectRect1.Contains( pos ) )
+			{
+				m_nFireCountLeft = m_nFireCount;
+				if( m_nFireCountLeft )
+					m_nFireCountLeft--;
+				GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
+				Trigger();
+				return;
+			}
 
-		if( m_detectRect.Contains( pos ) )
-		{
-			GetStage()->RegisterAfterHitTest( 1, &m_onTick );
-			return;
+			if( m_detectRect.Contains( pos ) )
+			{
+				GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+				return;
+			}
 		}
 	}
 	GetStage()->RegisterAfterHitTest( 15, &m_onTick );
