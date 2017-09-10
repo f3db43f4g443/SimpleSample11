@@ -17,6 +17,7 @@ void CEnemyCharacter::OnAddedToStage()
 	m_nState = 0;
 	float angle = SRand::Inst().Rand( -PI, PI );
 	m_curMoveDir = CVector2( cos( angle ), sin( angle ) );
+	UpdateAnimFrame();
 
 	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab );
 }
@@ -31,7 +32,8 @@ void CEnemyCharacter::OnTickAfterHitTest()
 		return;
 	UpdateFire();
 
-	UpdateAnimFrame();
+	auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	pImage->SetFrames( 0, 1, 0 );
 }
 
 void CEnemyCharacter::UpdateAnimFrame()

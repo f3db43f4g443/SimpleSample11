@@ -100,7 +100,12 @@
       
       <node type="lv2type1_1" name="lv2style3">
         <wall>
-          <ref name="block0" />
+          <node type="randompick">
+            <ref name="block0a" p="1" />
+            <ref name="block0b" p="1" />
+            <ref name="block0c" p="1" />
+            <ref name="block0d" p="1" />
+          </node>
         </wall>
         <road>
           <ref name="road_large" />

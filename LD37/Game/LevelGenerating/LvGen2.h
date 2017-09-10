@@ -67,7 +67,7 @@ struct SHouse
 	uint8 nExitType[4];
 
 	bool Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8 nType, uint8 nType0, uint8 nType0a, uint8 nType1, uint8 nType2,
-		uint8 nRoadType, uint8 nWalkableType, uint8 nPathType, vector<TVector2<int32> >& par );
+		vector<int8>& genData1, uint8 nRoadType, uint8 nWalkableType, uint8 nPathType, vector<TVector2<int32> >& par );
 };
 
 class CLevelGenNode2_1_1 : public CLevelGenerateNode

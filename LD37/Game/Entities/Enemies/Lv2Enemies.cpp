@@ -212,13 +212,14 @@ void CCar::OnTickAfterHitTest()
 
 void CThrowBox::Kill()
 {
+	CVector2 pos = globalTransform.GetPosition();
 	float fAngle = SRand::Inst().Rand( -PI, PI );
 	CVector2 dir( cos( fAngle ), sin( fAngle ) );
 	CVector2 dirs[4] = { { dir.x, dir.y }, { -dir.y, dir.x }, { -dir.x, -dir.y }, { dir.y, -dir.x } };
 	for( int i = 0; i < 4; i++ )
 	{
 		auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
-		pBullet->SetPosition( GetPosition() );
+		pBullet->SetPosition( pos );
 		pBullet->SetVelocity( dirs[i] * 150 );
 		pBullet->SetLife( 60 );
 		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
