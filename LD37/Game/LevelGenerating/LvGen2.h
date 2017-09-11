@@ -147,3 +147,82 @@ private:
 	CReference<CLevelGenerateNode> m_pBarrelNode;
 	CReference<CLevelGenerateNode> m_pBarrel1Node;
 };
+
+
+class CLevelGenNode2_1_2 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenAreas();
+	void GenObjs();
+	TRectangle<int32> PlaceChunk( TVector2<int32>& p, uint8 nType );
+	enum
+	{
+		eType_None,
+		eType_Unwalkable,
+		eType_Temp0_0,
+		eType_Walkable_a,
+		eType_Walkable_b,
+		eType_Walkable_c,
+		eType_Walkable_d,
+		eType_Road,
+		eType_Temp0,
+		eType_Temp1,
+		eType_Temp2,
+		eType_Block,
+		eType_Block_a,
+		eType_Block_b,
+		eType_Block_c,
+		eType_Block_d,
+		eType_Chunk,
+		eType_Chunk1,
+
+		eType_Room,
+		eType_Door,
+		eType_House,
+		eType_House_1,
+		eType_House_2 = eType_House_1 + 4,
+		eType_House_Exit1,
+		eType_House_Exit2,
+	};
+	enum
+	{
+		eType1_None,
+		eType1_Block,
+		eType1_Obj,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<int8> m_gendata1;
+	vector<TVector2<int32> > m_par;
+	uint8 m_nType;
+	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecFences;
+	vector<TRectangle<int32> > m_vecFenceBlock;
+	vector<TRectangle<int32> > m_vecArea1;
+	vector<TRectangle<int32> > m_vecArea2;
+	vector<TRectangle<int32> > m_vecRooms;
+
+	vector<SHouse> m_vecHouses;
+	vector<TRectangle<int32> > m_vecCargoSmall;
+	vector<TRectangle<int32> > m_vecCargoLarge;
+	vector<TRectangle<int32> > m_vecBarrels;
+	vector<TRectangle<int32> > m_vecBarrels1;
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pRoadNode;
+	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
+	CReference<CLevelGenerateNode> m_pBlockNode;
+	CReference<CLevelGenerateNode> m_pBlockNodes[4];
+	CReference<CLevelGenerateNode> m_pHouseNode;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo2Node;
+	CReference<CLevelGenerateNode> m_pBarrelNode;
+	CReference<CLevelGenerateNode> m_pBarrel1Node;
+};
