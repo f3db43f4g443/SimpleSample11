@@ -166,21 +166,46 @@
           <ref name="barrel1" />
         </barrel1>
       </node>
+
+      <node type="lv2type1_2" name="lv2style4">
+        <road>
+          <ref name="road_large" />
+        </road>
+        <walkable_a>
+          <ref name="block0a" />
+        </walkable_a>
+        <walkable_b>
+          <ref name="block0b" />
+        </walkable_b>
+        <walkable_c>
+          <ref name="block0c" />
+        </walkable_c>
+        <walkable_d>
+          <ref name="block0d" />
+        </walkable_d>
+
+        <house>
+          <ref name="house" />
+        </house>
+        <fence>
+          <ref name="greenbelt" />
+        </fence>
+      </node>
     
       <node type="subregion" name="lv2_1">
-        <ref name="lv2style3" x="0" y="0" w="32" h="22" />
+        <ref name="lv2style4" x="0" y="0" w="32" h="22" />
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <ref name="lv2style3" x="0" y="24" w="32" h="22" />
+        <ref name="lv2style4" x="0" y="24" w="32" h="22" />
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <ref name="lv2style3" x="0" y="48" w="32" h="22" />
+        <ref name="lv2style4" x="0" y="48" w="32" h="22" />
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <ref name="lv2style3" x="0" y="72" w="32" h="22" />
+        <ref name="lv2style4" x="0" y="72" w="32" h="22" />
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
-        <ref name="lv2style3" x="0" y="96" w="32" h="24" />
+        <ref name="lv2style4" x="0" y="96" w="32" h="24" />
         <ref name="1f" x="0" y="120" w="32" h="8" />
         
         <ref name="lv1_scroll_0" />
