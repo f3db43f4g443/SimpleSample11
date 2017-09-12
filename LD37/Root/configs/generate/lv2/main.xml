@@ -193,16 +193,16 @@
       </node>
     
       <node type="subregion" name="lv2_1">
-        <ref name="lv2style4" x="0" y="0" w="32" h="22" />
+        <ref name="lv2style1" x="0" y="0" w="32" h="22" />
         <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
 
-        <ref name="lv2style4" x="0" y="24" w="32" h="22" />
+        <ref name="lv2style2" x="0" y="24" w="32" h="22" />
         <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
 
-        <ref name="lv2style4" x="0" y="48" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="48" w="32" h="22" />
         <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
 
-        <ref name="lv2style4" x="0" y="72" w="32" h="22" />
+        <ref name="lv2style3" x="0" y="72" w="32" h="22" />
         <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
 
         <ref name="lv2style4" x="0" y="96" w="32" h="24" />

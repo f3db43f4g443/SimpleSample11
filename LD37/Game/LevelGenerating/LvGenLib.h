@@ -12,6 +12,6 @@ public:
 	static void GenObjs1( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nBlockType, int8 nSpaceType, int8 nObjType );
 	static void DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nObjType );
 	static void Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nFlattenType, int8 nFillType );
-	static void DropObj1( vector<int8> gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> > objs,
+	static void DropObj1( vector<int8>& gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& objs,
 		int8 nTypeNone, int8 nTypeObj );
 };

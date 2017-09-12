@@ -325,7 +325,7 @@ void LvGenLib::Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8
 	}
 }
 
-void LvGenLib::DropObj1( vector<int8> gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> > objs,
+void LvGenLib::DropObj1( vector<int8>& gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& objs,
 	int8 nTypeNone, int8 nTypeObj )
 {
 	struct SLess

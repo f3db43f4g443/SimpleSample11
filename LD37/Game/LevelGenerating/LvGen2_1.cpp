@@ -1587,7 +1587,7 @@ void CLevelGenNode2_1_2::GenAreas()
 	h0 += 2;
 
 	uint32 h1 = 4;
-	TRectangle<int32> centerRect( l, h0, r - l, h1 - h0 );
+	TRectangle<int32> centerRect( l, h0, nWidth - r - l, nHeight - h1 - h0 );
 
 	uint32 w1[3] = { ( centerRect.width - 4 ) / 3, ( centerRect.width - 3 ) / 3, ( centerRect.width - 2 ) / 3 };
 	SRand::Inst().Shuffle( w1, ELEM_COUNT( w1 ) );
@@ -1629,7 +1629,7 @@ void CLevelGenNode2_1_2::GenAreas()
 
 		{
 			TRectangle<int32> houseRect( i * centerRect.GetRight(), centerRect.y - 2,
-				i == 0 ? centerRect.x : nWidth - centerRect.GetRight(), nSplit );
+				i == 0 ? centerRect.x : nWidth - centerRect.GetRight(), nSplit - ( centerRect.y - 2 ) );
 			SHouse house( houseRect );
 			/*uint32 nExitLen = SRand::Inst().Rand( 2, houseRect.height - 3 );
 			house.exit[2 - i * 2] = TVector2<int32>( 2 + SRand::Inst().Rand( 0u, houseRect.height - 3 - nExitLen ), nExitLen );
@@ -1638,8 +1638,8 @@ void CLevelGenNode2_1_2::GenAreas()
 		}
 
 		{
-			TRectangle<int32> houseRect( i * centerRect.GetRight(), nSplit + 2,
-				i == 0 ? centerRect.x : nWidth - centerRect.GetRight(), centerRect.GetBottom() - 2 - nSplit - 2 );
+			TRectangle<int32> houseRect( i * centerRect.GetRight(), nSplit + hSplit,
+				i == 0 ? centerRect.x : nWidth - centerRect.GetRight(), centerRect.GetBottom() - 2 - nSplit - hSplit );
 			if( houseRect.width > 4 && SRand::Inst().Rand( 0, 2 ) )
 			{
 				houseRect.width--;
@@ -1774,17 +1774,17 @@ void CLevelGenNode2_1_2::GenObjs()
 	FindAllOfTypesInMap( m_gendata, nWidth, nHeight, eType_None, vecTemp );
 	SRand::Inst().Shuffle( vecTemp );
 	TVector2<int32> sizeMin[2] = { { 3, 1 }, { 1, 3 } };
-	TVector2<int32> sizeMax[2] = { { 100, 2 }, { 2, 100 } };
+	TVector2<int32> sizeMax[2] = { { 5, 1 }, { 1, 5 } };
 	for( auto& p : vecTemp )
 	{
 		if( m_gendata[p.x + p.y * nWidth] != eType_None )
 			continue;
 
 		int32 i = SRand::Inst().Rand( 0, 2 );
-		auto rect = PutRect( m_gendata, nWidth, nHeight, p, sizeMin[i], sizeMax[i], TRectangle<int32>(), -1, eType_Chunk );
+		auto rect = PutRect( m_gendata, nWidth, nHeight, p, sizeMin[i], sizeMax[i], TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Chunk );
 		if( !rect.width )
 		{
-			rect = PutRect( m_gendata, nWidth, nHeight, p, sizeMin[1 - i], sizeMax[1 - i], TRectangle<int32>(), -1, eType_Chunk );
+			rect = PutRect( m_gendata, nWidth, nHeight, p, sizeMin[1 - i], sizeMax[1 - i], TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Chunk );
 			if( !rect.width )
 				continue;
 		}
@@ -1797,7 +1797,7 @@ void CLevelGenNode2_1_2::GenObjs()
 		for( int j = 0; j < nHeight; j++ )
 		{
 			if( m_gendata[i + j * nWidth] == eType_None )
-				m_gendata1[i + j * nWidth] = eType_Temp0;
+				m_gendata[i + j * nWidth] = eType_Temp0;
 		}
 	}
 

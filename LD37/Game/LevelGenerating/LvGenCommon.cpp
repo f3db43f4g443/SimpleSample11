@@ -960,6 +960,23 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
+		if( m_pSubChunk )
+		{
+			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			tempContext.Build();
+			if( m_bCopyBlueprint )
+			{
+				for( int i = 0; i < tempContext.nWidth; i++ )
+				{
+					for( int j = 0; j < tempContext.nHeight; j++ )
+					{
+						context.blueprint[i + region.x + ( j + region.y ) * context.nWidth]
+							= tempContext.blueprint[i + j * tempContext.nWidth];
+					}
+				}
+			}
+		}
 
 		int8 n1 = context.mapTags["1"];
 

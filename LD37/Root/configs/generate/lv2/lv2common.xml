@@ -140,6 +140,11 @@
             absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/greenbelt.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>2</types>
+        <subitem>
+          <node type="tile">
+            <ref name="block0" />
+          </node>
+        </subitem>
         <fence>
           <ref name="fence" />
         </fence>
@@ -153,6 +158,11 @@
           2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,
           2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,
         </types>
+        <subitem>
+          <node type="tile">
+            <ref name="block0" />
+          </node>
+        </subitem>
         <next_level>
           <node type="subregion">
             <ref name="fence" x="0" y="0" w="7" h="2" />
