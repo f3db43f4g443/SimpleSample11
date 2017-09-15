@@ -61,3 +61,88 @@ public:
 private:
 	TResourceRef<CPrefab> m_pBullet;
 };
+
+class CWheel : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CWheel( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CWheel ); }
+
+	virtual void OnAddedToStage() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual void OnKnockbackPlayer( const CVector2 & vec ) override { Kill(); }
+	virtual bool IsKnockback() override { return m_nKnockBackTimeLeft > 0; }
+	virtual void Kill() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	SCharacterSurfaceWalkData m_moveData;
+	float m_fAIStepTimeMin;
+	float m_fAIStepTimeMax;
+	uint32 m_nKnockbackTime;
+	float m_fFallChance;
+	float m_fRotSpeed;
+
+	TResourceRef<CPrefab> m_pBullet;
+
+	uint32 m_nAIStepTimeLeft;
+	int8 m_nDir;
+	uint32 m_nKnockBackTimeLeft;
+};
+
+class CSawBlade : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CSawBlade( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CSawBlade ); }
+
+	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	SCharacterPhysicsFlyData1 m_moveData;
+	float m_fRotSpeed;
+	uint32 m_nDamage;
+};
+
+class CGear : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CGear( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CGear ); }
+	
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override { return m_nKnockBackTimeLeft > 0; }
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	SCharacterPhysicsFlyData1 m_moveData;
+	float m_fMoveSpeed;
+	float m_fRotSpeed;
+	uint32 m_nKnockbackTime;
+	uint32 m_nDamage;
+	TResourceRef<CPrefab> m_pBullet;
+	
+	uint32 m_nTargetDir;
+	uint32 m_nKnockBackTimeLeft;
+};
+
+class CExplosiveBall : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CExplosiveBall( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CExplosiveBall ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
+	virtual void Kill() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	SCharacterPhysicsFlyData m_moveData;
+	uint32 m_nAITick;
+	TResourceRef<CPrefab> m_pBullet;
+
+	CVector2 m_moveTarget;
+	uint32 m_nAITickLeft;
+};

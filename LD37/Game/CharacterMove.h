@@ -192,6 +192,16 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 	CVector2 dVelocity;
 };
 
+struct SCharacterPhysicsFlyData1 : public SCharacterMovementData
+{
+	SCharacterPhysicsFlyData1( const SClassCreateContext& context ) : bHit( false ) {}
+	void UpdateMove( CCharacter* pCharacter );
+
+	float fMaxAcc;
+	bool bHit;
+	CVector2 dVelocity;
+};
+
 struct SCharacterCreepData : public SCharacterMovementData
 {
 	SCharacterCreepData( const SClassCreateContext& context ) : bHitWall( true ), fKnockbackTime( 0 ) {}

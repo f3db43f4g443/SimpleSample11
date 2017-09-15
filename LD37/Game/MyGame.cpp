@@ -276,6 +276,10 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( fStablity )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( SCharacterPhysicsFlyData1 )
+		REGISTER_MEMBER( fMaxAcc )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( SCharacterCreepData )
 		REGISTER_MEMBER( fSpeed )
 		REGISTER_MEMBER( fTurnSpeed )

@@ -792,6 +792,43 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 	pCharacter->SetVelocity( curVelocity );
 }
 
+void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter )
+{
+	bool bHasAnyCollision = HasAnyCollision();
+
+	if( bHasAnyCollision && !ResolvePenetration( pCharacter ) )
+	{
+		pCharacter->Crush();
+		return;
+	}
+
+	CVector2 lastVelocity = pCharacter->GetVelocity();
+	CVector2 curVelocity = lastVelocity;
+	float l = curVelocity.Normalize();
+	curVelocity = curVelocity * Max( l - fMaxAcc * pCharacter->GetStage()->GetElapsedTimePerTick(), 0.0f );
+
+	CVector2 dPos = ( lastVelocity + curVelocity ) * ( 0.5f * pCharacter->GetStage()->GetElapsedTimePerTick() );
+	bHit = false;
+	if( bHasAnyCollision )
+	{
+		CVector2 curVelocity0 = curVelocity;
+		CVector2 prePos = pCharacter->GetPosition();
+		SRaycastResult hits[3];
+		TryMove( pCharacter, dPos, curVelocity, hits );
+		if( hits[0].pHitProxy )
+		{
+			bHit = true;
+			dVelocity = curVelocity - curVelocity0;
+			curVelocity = curVelocity + dVelocity;
+			dVelocity = dVelocity * 2;
+			pCharacter->SetPosition( pCharacter->GetPosition() * 2 - ( prePos + dPos ) );
+		}
+	}
+	else
+		pCharacter->SetPosition( pCharacter->GetPosition() + dPos );
+	pCharacter->SetVelocity( curVelocity );
+}
+
 void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 {
 	if( !ResolvePenetration( pCharacter ) )
