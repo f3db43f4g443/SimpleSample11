@@ -10,6 +10,7 @@
 #include "Common/Rand.h"
 #include "Pickup.h"
 #include "GlobalCfg.h"
+#include "Enemy.h"
 
 void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 {
@@ -99,6 +100,186 @@ void CLvFloor1::OnPickUp()
 	}
 
 	Kill();
+}
+
+void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto rect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+	auto texRect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+
+	SetRenderObject( new CRenderObject2D );
+	for( int i = 0; i < pChunk->nWidth; i += 2 )
+	{
+		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImage2D->SetRect( CRectangle( i * 32, 0, 64, 64 ) );
+		pImage2D->SetTexRect( texRect0 );
+		GetRenderObject()->AddChild( pImage2D );
+		for( int iX = i; iX < i + 2; iX++ )
+		{
+			for( int iY = 0; iY < 2; iY++ )
+			{
+				GetBlock( iX, iY )->rtTexRect = CRectangle( texRect0.x + iX * texRect0.width / 2, texRect0.y + iY * texRect0.height / 2,
+					texRect0.width / 2, texRect0.height / 2 );
+			}
+		}
+	}
+
+	m_triggers.resize( m_vecPickups.size() + m_vecCrates.size() );
+	for( int i = 0; i < m_vecPickups.size(); i++ )
+	{
+		CPickUp* pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
+		m_triggers[i].Set( [i, this] () {
+			m_vecPickups[i] = NULL;
+			OnPickUp();
+		} );
+		pPickUp->RegisterPickupEvent( &m_triggers[i] );
+		pPickUp->bVisible = false;
+	}
+	for( int i = 0; i < m_vecCrates.size(); i++ )
+	{
+		CChunkObject* pCrate = SafeCast<CChunkObject>( m_vecCrates[i].GetPtr() );
+		m_triggers[i + m_vecPickups.size()].Set( [this, i] () {
+			OnCrateKilled( i );
+		} );
+		pCrate->RegisterKilledEvent( &m_triggers[i + m_vecPickups.size()] );
+	}
+}
+
+void CLvFloor2::OnCreateComplete( CMyLevel * pLevel )
+{
+	if( !pLevel )
+		return;
+	for( int i = 0; i < 8; i++ )
+	{
+		CEntity* pEntity;
+		if( ( i & 1 ) == 0 )
+			pEntity = SafeCast<CEntity>( m_pPrefab->GetRoot()->CreateInstance() );
+		else
+		{
+			pEntity = SafeCast<CEntity>( m_pPrefab1->GetRoot()->CreateInstance() );
+			auto pPickUp = SafeCast<CEntity>( m_pItemDropPrefab->GetRoot()->CreateInstance() );
+			m_vecPickups.push_back( pPickUp );
+			pPickUp->SetParentEntity( pEntity );
+			auto pCrate = SafeCast<CEntity>( m_pCrate->GetRoot()->CreateInstance() );
+			m_vecCrates.push_back( pCrate );
+			pCrate->SetParentEntity( pEntity );
+		}
+
+		pEntity->SetPosition( CVector2( ( i * 4 + 2 ) * 32, 32 ) );
+		pEntity->SetParentBeforeEntity( GetRenderObject() );
+		pEntity->bVisible = i >= 1 && i <= 6;
+		m_vecSegs.push_back( pEntity );
+	}
+	m_nDir = SRand::Inst().Rand( 0, 2 );
+}
+
+void CLvFloor2::OnAddedToStage()
+{
+	if( CMyLevel::GetInst() )
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CLvFloor2::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CLvFloor2::OnCrateKilled( int32 i )
+{
+	if( !m_nKilledCrates )
+	{
+		SItemDropContext context;
+		context.nDrop = m_vecPickups.size();
+		auto pNode = CGlobalCfg::Inst().itemDropNodeContext.FindNode( m_strItemDrop );
+		pNode->Generate( context );
+		context.Drop();
+
+		for( int i = 0; i < m_vecPickups.size(); i++ )
+		{
+			auto pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
+			CEntity* pItem = SafeCast<CEntity>( context.dropItems[i].pPrefab->GetRoot()->CreateInstance() );
+			pPickUp->Set( pItem, context.dropItems[i].nPrice );
+		}
+	}
+	m_nKilledCrates++;
+	if( m_pChunk )
+		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
+	m_vecPickups[m_vecPickups.size() - 1 - i]->bVisible = true;
+}
+
+void CLvFloor2::OnPickUp()
+{
+	for( auto& trigger : m_triggers )
+	{
+		if( trigger.IsRegistered() )
+			trigger.Unregister();
+	}
+
+	for( auto& pCrate : m_vecCrates )
+	{
+		if( pCrate && pCrate->GetParentEntity() )
+		{
+			SafeCast<CEnemy>( pCrate.GetPtr() )->Kill();
+			pCrate = NULL;
+		}
+	}
+	for( auto& pPickUp : m_vecPickups )
+	{
+		if( pPickUp )
+		{
+			SafeCast<CPickUp>( pPickUp.GetPtr() )->Kill();
+			pPickUp = NULL;
+		}
+	}
+	m_bPicked = true;
+	m_pChunk->fWeight = 1000000;
+}
+
+void CLvFloor2::OnTick()
+{
+	if( !m_bPicked )
+	{
+		uint32 nSpeeds[] = { 1, 2, 3, 5, 8 };
+		uint32 nSpeed = nSpeeds[m_nKilledCrates] * ( ( m_nKilledCrates & 1 ) == 0 ? 1 : -1 ) * ( m_nDir ? 1 : -1 );
+		for( int i = 0; i < m_vecSegs.size(); i++ )
+		{
+			float posX = m_vecSegs[i]->x + nSpeed;
+			uint32 nWidth = m_pChunk->nWidth * CMyLevel::GetBlockSize();
+			if( posX < 0 )
+				posX += nWidth;
+			else if( posX > nWidth )
+				posX -= nWidth;
+			m_vecSegs[i]->SetPosition( CVector2( posX, m_vecSegs[i]->y ) );
+			m_vecSegs[i]->bVisible = posX > 32 && posX < nWidth - 32;
+		}
+	}
+
+	if( y <= 0 )
+	{
+		Kill();
+		return;
+	}
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CLvFloor2::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
 }
 
 void CLvBarrier1::OnRemovedFromStage()

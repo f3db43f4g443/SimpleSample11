@@ -22,6 +22,39 @@ private:
 	vector<CFunctionTrigger> m_triggers;
 };
 
+class CLvFloor2 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLvFloor2( const SClassCreateContext& context ) : CChunkObject( context ), m_nKilledCrates( 0 ), m_onTick( this, &CLvFloor2::OnTick ) { SET_BASEOBJECT_ID( CLvFloor2 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+protected:
+	void OnCrateKilled( int32 i );
+	void OnPickUp();
+	void OnTick();
+	virtual void OnKilled() override;
+
+	CString m_strItemDrop;
+	float m_fWeights[4];
+	TResourceRef<CPrefab> m_pPrefab;
+	TResourceRef<CPrefab> m_pPrefab1;
+	TResourceRef<CPrefab> m_pCrate;
+	TResourceRef<CPrefab> m_pItemDropPrefab;
+
+	uint32 m_nKilledCrates;
+	vector<CReference<CEntity> > m_vecSegs;
+	vector<CReference<CEntity> > m_vecCrates;
+	vector<CReference<CEntity> > m_vecPickups;
+	TClassTrigger<CLvFloor2> m_onTick;
+	vector<CFunctionTrigger> m_triggers;
+	uint8 m_nDir;
+	bool m_bPicked;
+};
+
 class CLvBarrier1Core : public CChunkObject
 {
 	friend void RegisterGameClasses();
