@@ -1,6 +1,7 @@
 ﻿<root>
   <includes>
     <item name="lv1/lv1common" />
+    <item name="lv2common" />
   </includes>
   <level_gen>
     <attachs>
@@ -67,98 +68,28 @@
         </subitem>
       </node>
 
-      <node name="lv1floorcrate" width="2" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/floor_crate.pf">
+
+      <node name="lv2_floor_l" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv2/floor_l.pf">
         <metadata isdesignvalid="0" />
-        <types>4,4,4,4</types>
+        <types>4,4,4,4,4,4,4,4</types>
+      </node>
+      <node name="lv2_floor_r" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv2/floor_r.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4,4,4,4,4</types>
       </node>
 
-      <node name="lv1floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
-            absorbshakestrength="10000" shakedmg="5" show_layer_type="0" prefab="data/blocks/lv1/floor.pf">
+      <node name="lv2floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
+            absorbshakestrength="10000" shakedmg="5" show_layer_type="0" prefab="data/blocks/lv2/floor.pf">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         </types>
         <subitem>
           <node type="subregion">
-            <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="floor_broken" />
-            </node>
-            <ref name="lv1floorcrate" x="3" y="0" w="2" h="2" />
-            <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
-            <ref name="lv1floorcrate" x="19" y="0" w="2" h="2" />
-            <ref name="lv1floorcrate" x="27" y="0" w="2" h="2" />
+            <ref name="lv2_floor_l" x="0" y="0" w="4" h="2" />
+            <ref name="lv2_floor_r" x="28" y="0" w="4" h="2" />
           </node>
         </subitem>
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="pickup_templ_reward" x="3" y="0" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="11" y="0" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="19" y="0" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="27" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      
-      <node name="lv1floor_1" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_1" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      <node name="lv1floor_2" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_2" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      <node name="lv1floor_3" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_3" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      <node name="lv1floor_4" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_4" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      <node name="lv1floor_6" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_6" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
-      </node>
-      <node name="lv1floor_8" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_8" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
       </node>
       
       <node name="reward_floor" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000"

@@ -124,26 +124,6 @@ void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			}
 		}
 	}
-
-	m_triggers.resize( m_vecPickups.size() + m_vecCrates.size() );
-	for( int i = 0; i < m_vecPickups.size(); i++ )
-	{
-		CPickUp* pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
-		m_triggers[i].Set( [i, this] () {
-			m_vecPickups[i] = NULL;
-			OnPickUp();
-		} );
-		pPickUp->RegisterPickupEvent( &m_triggers[i] );
-		pPickUp->bVisible = false;
-	}
-	for( int i = 0; i < m_vecCrates.size(); i++ )
-	{
-		CChunkObject* pCrate = SafeCast<CChunkObject>( m_vecCrates[i].GetPtr() );
-		m_triggers[i + m_vecPickups.size()].Set( [this, i] () {
-			OnCrateKilled( i );
-		} );
-		pCrate->RegisterKilledEvent( &m_triggers[i + m_vecPickups.size()] );
-	}
 }
 
 void CLvFloor2::OnCreateComplete( CMyLevel * pLevel )
@@ -172,6 +152,26 @@ void CLvFloor2::OnCreateComplete( CMyLevel * pLevel )
 		m_vecSegs.push_back( pEntity );
 	}
 	m_nDir = SRand::Inst().Rand( 0, 2 );
+
+	m_triggers.resize( m_vecPickups.size() + m_vecCrates.size() );
+	for( int i = 0; i < m_vecPickups.size(); i++ )
+	{
+		CPickUp* pPickUp = SafeCast<CPickUpTemplate>( m_vecPickups[i].GetPtr() );
+		m_triggers[i].Set( [i, this] () {
+			m_vecPickups[i] = NULL;
+			OnPickUp();
+		} );
+		pPickUp->RegisterPickupEvent( &m_triggers[i] );
+		pPickUp->bVisible = false;
+	}
+	for( int i = 0; i < m_vecCrates.size(); i++ )
+	{
+		CEnemy* pCrate = SafeCast<CEnemy>( m_vecCrates[i].GetPtr() );
+		m_triggers[i + m_vecPickups.size()].Set( [this, i] () {
+			OnCrateKilled( i );
+		} );
+		pCrate->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_triggers[i + m_vecPickups.size()] );
+	}
 }
 
 void CLvFloor2::OnAddedToStage()
@@ -206,7 +206,7 @@ void CLvFloor2::OnCrateKilled( int32 i )
 	m_nKilledCrates++;
 	if( m_pChunk )
 		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
-	m_vecPickups[m_vecPickups.size() - 1 - i]->bVisible = true;
+	m_vecPickups[i]->bVisible = true;
 }
 
 void CLvFloor2::OnPickUp()
@@ -241,8 +241,8 @@ void CLvFloor2::OnTick()
 {
 	if( !m_bPicked )
 	{
-		uint32 nSpeeds[] = { 1, 2, 3, 5, 8 };
-		uint32 nSpeed = nSpeeds[m_nKilledCrates] * ( ( m_nKilledCrates & 1 ) == 0 ? 1 : -1 ) * ( m_nDir ? 1 : -1 );
+		uint32 nSpeeds[] = { 1, 2, 3, 4, 5 };
+		int32 nSpeed = nSpeeds[m_nKilledCrates] * ( ( m_nKilledCrates & 1 ) == 0 ? 1 : -1 ) * ( m_nDir ? 1 : -1 );
 		for( int i = 0; i < m_vecSegs.size(); i++ )
 		{
 			float posX = m_vecSegs[i]->x + nSpeed;
@@ -252,7 +252,7 @@ void CLvFloor2::OnTick()
 			else if( posX > nWidth )
 				posX -= nWidth;
 			m_vecSegs[i]->SetPosition( CVector2( posX, m_vecSegs[i]->y ) );
-			m_vecSegs[i]->bVisible = posX > 32 && posX < nWidth - 32;
+			m_vecSegs[i]->bVisible = posX > 64 && posX < nWidth - 64;
 		}
 	}
 

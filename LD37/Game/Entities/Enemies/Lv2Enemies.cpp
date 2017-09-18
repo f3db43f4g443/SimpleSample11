@@ -245,6 +245,7 @@ bool CWheel::Knockback( const CVector2& vec )
 		SetVelocity( GetVelocity() + vecKnockback );
 
 	m_nKnockBackTimeLeft = m_nKnockbackTime;
+	return true;
 }
 
 void CWheel::Kill()
@@ -330,6 +331,7 @@ bool CGear::Knockback( const CVector2& vec )
 {
 	SetVelocity( vec * m_fMoveSpeed );
 	m_nKnockBackTimeLeft = m_nKnockbackTime;
+	return true;
 }
 
 void CGear::OnTickAfterHitTest()
