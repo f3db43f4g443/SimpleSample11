@@ -619,7 +619,7 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 		}
 		else
 			dVelocity = CVector2( 0, 1 );
-		dVelocity = dVelocity * ( fJumpHoldingTime / fJumpMaxHoldTime * fJumpMaxSpeed );
+		dVelocity = dVelocity * ( fJumpHoldingTime * fJumpHoldingTime * fJumpMaxSpeed / ( fJumpMaxHoldTime * fJumpMaxHoldTime ) );
 		velocity = velocity + dVelocity;
 		bSleep = false;
 		nState = eState_Normal;
@@ -641,7 +641,13 @@ void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxi
 	{
 		nState = eState_Rolling;
 		fRollTime = 0;
-		rollDir = moveAxis;
+
+		CVector2 v = velocity / fMoveSpeed;
+		float l2 = v.Length2();
+		if( l2 >= 1 )
+			rollDir = v;
+		else
+			rollDir = v + moveAxis * ( 1 - l2 );
 		bRollingAcrossWall = false;
 		pLandedEntity = NULL;
 		return;

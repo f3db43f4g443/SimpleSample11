@@ -241,7 +241,7 @@ void CLvFloor2::OnTick()
 {
 	if( !m_bPicked )
 	{
-		uint32 nSpeeds[] = { 1, 2, 3, 4, 5 };
+		uint32 nSpeeds[] = { 1, 1, 2, 2, 3 };
 		int32 nSpeed = nSpeeds[m_nKilledCrates] * ( ( m_nKilledCrates & 1 ) == 0 ? 1 : -1 ) * ( m_nDir ? 1 : -1 );
 		for( int i = 0; i < m_vecSegs.size(); i++ )
 		{

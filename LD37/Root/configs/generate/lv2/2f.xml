@@ -19,7 +19,7 @@
       <node name="thanks_label" prefab="thanks.pf" />
     </spawns>
     <nodes>
-      <node name="floor_broken" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" layer_type="1" prefab="data/blocks/lv1/floor_broken.pf">
+      <node name="floor_broken" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" layer_type="1" prefab="data/blocks/lv2/floor_broken.pf">
         <metadata isdesignvalid="0" />
         <types>0</types>
       </node>
@@ -88,6 +88,9 @@
           <node type="subregion">
             <ref name="lv2_floor_l" x="0" y="0" w="4" h="2" />
             <ref name="lv2_floor_r" x="28" y="0" w="4" h="2" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="floor_broken" />
+            </node>
           </node>
         </subitem>
       </node>
