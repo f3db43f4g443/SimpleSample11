@@ -11,7 +11,7 @@ class CEnemyCharacter : public CEnemy
 public:
 	CEnemyCharacter( const SClassCreateContext& context )
 		: CEnemy( context ), m_walkData( context ), m_flyData( context ), m_strPrefab( context ), m_fOrigFlySpeed( m_flyData.fMoveSpeed ), m_nState( 0 )
-		, m_nAnimState( 0 ), m_curMoveDir( 0, 0 ), m_nFireCDLeft( 0 ), m_nFireStopTimeLeft( 0 ), m_nNextFireTime( 0 ), m_nAmmoLeft( 0 ), m_bLeader( false ) { SET_BASEOBJECT_ID( CEnemyCharacter ); }
+		, m_nAnimState( -1 ), m_curMoveDir( 0, 0 ), m_nFireCDLeft( 0 ), m_nFireStopTimeLeft( 0 ), m_nNextFireTime( 0 ), m_nAmmoLeft( 0 ), m_bLeader( false ) { SET_BASEOBJECT_ID( CEnemyCharacter ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnTickAfterHitTest() override;

@@ -44,6 +44,8 @@ protected:
 	TResourceRef<CPrefab> m_pPrefab1;
 	TResourceRef<CPrefab> m_pCrate;
 	TResourceRef<CPrefab> m_pItemDropPrefab;
+	TResourceRef<CPrefab> m_pKillEffect;
+	uint32 m_nKillEffectInterval;
 
 	uint32 m_nKilledCrates;
 	vector<CReference<CEntity> > m_vecSegs;
@@ -51,6 +53,7 @@ protected:
 	vector<CReference<CEntity> > m_vecPickups;
 	TClassTrigger<CLvFloor2> m_onTick;
 	vector<CFunctionTrigger> m_triggers;
+	uint32 m_nKillEffectCDLeft;
 	uint8 m_nDir;
 	bool m_bPicked;
 };

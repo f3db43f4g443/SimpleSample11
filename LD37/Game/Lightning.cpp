@@ -116,6 +116,8 @@ void CLightning::OnTick()
 				CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
 				if( pBlockObject )
 				{
+					if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+						continue;
 					auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
 					if( pChunk == m_pCreator )
 						continue;

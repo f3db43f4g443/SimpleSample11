@@ -31,9 +31,6 @@ void CEnemyCharacter::OnTickAfterHitTest()
 	if( !GetStage() )
 		return;
 	UpdateFire();
-
-	auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
-	pImage->SetFrames( 0, 1, 0 );
 }
 
 void CEnemyCharacter::UpdateAnimFrame()

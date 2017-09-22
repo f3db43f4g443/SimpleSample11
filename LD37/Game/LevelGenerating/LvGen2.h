@@ -169,6 +169,8 @@ private:
 		eType_Chunk,
 		eType_Chunk1,
 
+		eType_Room,
+		eType_Door,
 		eType_House,
 		eType_House_1,
 		eType_House_2 = eType_House_1 + 4,
@@ -188,6 +190,7 @@ private:
 	vector<int8> m_gendata1;
 	vector<TVector2<int32> > m_par;
 	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecRooms;
 	vector<TRectangle<int32> > m_vecFences;
 	vector<TRectangle<int32> > m_vecFenceBlock;
 	vector<SHouse> m_vecHouses;
@@ -195,5 +198,6 @@ private:
 	CReference<CLevelGenerateNode> m_pRoadNode;
 	CReference<CLevelGenerateNode> m_pFenceNode;
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
+	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pHouseNode;
 };

@@ -1489,6 +1489,7 @@ void CLevelGenNode2_1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pWalkableNodes[1] = CreateNode( pXml->FirstChildElement( "walkable_b" )->FirstChildElement(), context );
 	m_pWalkableNodes[2] = CreateNode( pXml->FirstChildElement( "walkable_c" )->FirstChildElement(), context );
 	m_pWalkableNodes[3] = CreateNode( pXml->FirstChildElement( "walkable_d" )->FirstChildElement(), context );
+	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
 	m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
 
@@ -1539,6 +1540,11 @@ void CLevelGenNode2_1_2::Generate( SLevelBuildContext & context, const TRectangl
 		}
 	}
 
+	context.mapTags["door"] = eType_Door;
+	for( auto& room : m_vecRooms )
+	{
+		m_pRoomNode->Generate( context, room.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
 	context.mapTags["1"] = eType_House_1;
 	context.mapTags["2"] = eType_House_2;
 	context.mapTags["exit1"] = eType_House_Exit1;
@@ -1557,6 +1563,7 @@ void CLevelGenNode2_1_2::Generate( SLevelBuildContext & context, const TRectangl
 	m_vecRoads.clear();
 	m_vecFences.clear();
 	m_vecFenceBlock.clear();
+	m_vecRooms.clear();
 	m_vecHouses.clear();
 }
 
@@ -1674,12 +1681,11 @@ void CLevelGenNode2_1_2::GenAreas()
 
 	TRectangle<int32> centerRect1( centerRect.x + w1[0] + 2, centerRect.y, w1[1], centerRect.height );
 	{
-		uint32 nHouseWidth = Min( centerRect.width, SRand::Inst().Rand( 4, 7 ) );
-		uint32 nHouseHeight = SRand::Inst().Rand( 6, 8 );
-		TRectangle<int32> houseRect( centerRect1.x + ( centerRect1.width + SRand::Inst().Rand( 0, 2 ) - nHouseWidth ) / 2,
+		uint32 nHouseWidth = Min( centerRect1.width, SRand::Inst().Rand( 6, 9 ) );
+		uint32 nHouseHeight = SRand::Inst().Rand( 6, 9 );
+		TRectangle<int32> rect( centerRect1.x + ( centerRect1.width + SRand::Inst().Rand( 0, 2 ) - nHouseWidth ) / 2,
 			centerRect1.y + ( centerRect1.height + SRand::Inst().Rand( 0, 2 ) - nHouseHeight ) / 2, nHouseWidth, nHouseHeight );
-		SHouse house( houseRect );
-		m_vecHouses.push_back( house );
+		m_vecRooms.push_back( rect );
 	}
 
 	for( auto& road : m_vecRoads )
@@ -1712,6 +1718,38 @@ void CLevelGenNode2_1_2::GenAreas()
 			}
 		}
 	}
+
+	for( auto& room : m_vecRooms )
+	{
+		for( int i = room.x; i < room.GetRight(); i++ )
+		{
+			for( int j = room.y; j < room.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Room;
+			}
+		}
+
+		if( room.width >= 6 )
+		{
+			int32 x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			int32 y = room.y;
+			m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+			x = room.x + ( room.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			y = room.GetBottom() - 1;
+			m_gendata[x + y * nWidth] = m_gendata[x + 1 + y * nWidth] = eType_Door;
+		}
+
+		if( room.height >= 6 )
+		{
+			int32 x = room.x;
+			int32 y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+			x = room.GetRight() - 1;
+			y = room.y + ( room.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			m_gendata[x + y * nWidth] = m_gendata[x + ( y + 1 ) * nWidth] = eType_Door;
+		}
+	}
+
 	for( auto& house : m_vecHouses )
 	{
 		for( int i = house.rect.x; i < house.rect.GetRight(); i++ )

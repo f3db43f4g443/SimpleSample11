@@ -958,6 +958,8 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_pPrefab1 )
 		REGISTER_MEMBER( m_pCrate )
 		REGISTER_MEMBER( m_pItemDropPrefab )
+		REGISTER_MEMBER( m_pKillEffect )
+		REGISTER_MEMBER( m_nKillEffectInterval )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CLvBarrier1Core )

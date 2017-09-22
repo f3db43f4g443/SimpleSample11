@@ -184,6 +184,9 @@
           <ref name="block0d" />
         </walkable_d>
 
+        <room>
+          <ref name="room" />
+        </room>
         <house>
           <ref name="house" />
         </house>

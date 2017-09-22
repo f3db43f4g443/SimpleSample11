@@ -512,7 +512,7 @@ bool CHouse::Enter( CCharacter * pCharacter )
 {
 	if( m_bExploded )
 		return false;
-	m_characters.push_back( pair<CReference<CCharacter>, int32>( pCharacter, 10 ) );
+	m_characters.push_back( pair<CReference<CCharacter>, int32>( pCharacter, 5 ) );
 	pCharacter->SetParentEntity( NULL );
 	m_bAnyoneEntered = true;
 	return true;
@@ -624,7 +624,7 @@ void CHouse::OnTick()
 		return;
 	}
 
-	GetStage()->RegisterAfterHitTest( 10, &m_onTick );
+	GetStage()->RegisterAfterHitTest( 20, &m_onTick );
 
 	int32 nChar = -1;
 	for( int i = 0; i < m_characters.size(); i++ )

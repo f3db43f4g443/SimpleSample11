@@ -255,6 +255,23 @@ void CLvFloor2::OnTick()
 			m_vecSegs[i]->bVisible = posX > 64 && posX < nWidth - 64;
 		}
 	}
+	else
+	{
+		if( m_pKillEffect )
+		{
+			if( m_nKillEffectCDLeft )
+				m_nKillEffectCDLeft--;
+			if( !m_nKillEffectCDLeft )
+			{
+				CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
+				auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( GetPosition() + center );
+				pEffect->SetState( 2 );
+				m_nKillEffectCDLeft = m_nKillEffectInterval;
+			}
+		}
+	}
 
 	if( y <= 0 )
 	{
