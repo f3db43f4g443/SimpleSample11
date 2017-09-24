@@ -39,7 +39,7 @@ void PSBlockRTLayer( in float2 tex : TexCoord0,
 	float4 texColor = Texture0.Sample( Sampler, tex1 );
 	float4 texMask = TextureMask.Sample( Sampler, tex );
 	clip( texMask.w - 0.001 );
-	texColor.w -= texMask.w;
+	texColor *= 1 - texMask.w;
 	outColor[0] = texColor;
 	outColor[1] = float4( 0, 0, 0, 0 );
 }
