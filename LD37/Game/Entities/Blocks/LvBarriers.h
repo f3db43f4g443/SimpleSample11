@@ -136,3 +136,15 @@ private:
 	vector<CFunctionTrigger> m_triggers;
 	bool m_bPickupCreated;
 };
+
+class CLvBarrier2 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+protected:
+
+	CVector2 m_blockTex;
+};

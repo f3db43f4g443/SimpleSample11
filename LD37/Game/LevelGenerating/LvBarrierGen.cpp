@@ -403,12 +403,59 @@ void CLvBarrierNodeGen1::GenWindows()
 
 void CLvBarrierNodeGen2::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
 {
-
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_pLabelNode = CreateNode( pXml->FirstChildElement( "label" )->FirstChildElement(), context );
+	m_pCoreNode = CreateNode( pXml->FirstChildElement( "core" )->FirstChildElement(), context );
 }
 
 void CLvBarrierNodeGen2::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		m_pContext = &context;
+		m_region = region;
+		m_gendata.resize( region.width * region.height );
 
+		GenBlocks();
+
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+		m_pLabelNode->Generate( context, m_labelRect.Offset( TVector2<int32>( region.x, region.y ) ) );
+
+		if( m_pSubChunk )
+		{
+			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			if( m_pSubChunk )
+				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			tempContext.Build();
+		}
+
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				if( m_gendata[i + j * region.width] == eType_Blocked )
+				{
+					pChunk->GetBlock( i, j )->nTag = 2;
+					pChunk->GetBlock( i, j )->eBlockType = eBlockType_Block;
+				}
+				else if( m_gendata[i + j * region.width] == eType_Rail )
+					pChunk->GetBlock( i, j )->nTag = 1;
+				else if( m_gendata[i + j * region.width] == eType_Core )
+					m_pCoreNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+			}
+		}
+		for( auto pChunk : tempContext.chunks )
+		{
+			pChunk->nSubChunkType = 2;
+		}
+		tempContext.Build();
+
+		m_gendata.clear();
+	}
 }
 
 void CLvBarrierNodeGen2::GenBlocks()

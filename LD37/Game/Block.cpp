@@ -463,14 +463,17 @@ void CChunkObject::Damage( float fDmg, uint8 nType )
 
 void CChunkObject::Damage( SDamageContext& context )
 {
-	if( m_pChunk->bInvulnerable )
-		return;
-	if( !m_nMaxHp )
+	if( m_pChunk )
 	{
-		auto pParentChunk = m_pChunk->pParentChunk;
-		if( pParentChunk && m_pChunk->nSubChunkType == 2 )
-			pParentChunk->pChunkObject->Damage( context );
-		return;
+		if( m_pChunk->bInvulnerable )
+			return;
+		if( !m_nMaxHp )
+		{
+			auto pParentChunk = m_pChunk->pParentChunk;
+			if( pParentChunk && m_pChunk->nSubChunkType == 2 )
+				pParentChunk->pChunkObject->Damage( context );
+			return;
+		}
 	}
 	if( m_fHp <= 0 )
 		return;

@@ -920,3 +920,49 @@ void CLvBarrierReward1::OnPickUp()
 
 	Kill();
 }
+
+void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto rect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+	auto texRect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+
+	SetRenderObject( new CRenderObject2D );
+	for( int i = 0; i < pChunk->nWidth; i++ )
+	{
+		for( int j = 0; j < pChunk->nHeight; j++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
+
+			CRectangle texRect;
+			if( GetBlock( i, j )->eBlockType == eBlockType_Block )
+			{
+				int32 nTexX = ( i > 0 && GetBlock( i - 1, j )->eBlockType == eBlockType_Block ? 1 : 0 )
+					| ( i < pChunk->nWidth - 1 || GetBlock( i + 1, j )->eBlockType == eBlockType_Block ? 2 : 0 );
+				int32 nTexY = ( j > 0 && GetBlock( i, j - 1 )->eBlockType == eBlockType_Block ? 1 : 0 )
+					| ( j < pChunk->nHeight - 1 || GetBlock( i, j + 1 )->eBlockType == eBlockType_Block ? 2 : 0 );
+				static int32 t1[4] = { 3, 2, 0, 1 };
+				static int32 t2[4] = { 3, 0, 2, 1 };
+				nTexX = t1[nTexX];
+				nTexY = t2[nTexY];
+				texRect = CRectangle( m_blockTex.x + nTexX * texRect0.width / 4, m_blockTex.y + nTexY * texRect0.height / 4,
+					nTexX * texRect0.width / 4, nTexY * texRect0.height / 4 );
+				if( SRand::Inst().Rand( 0, 2 ) )
+					texRect.x += texRect0.width;
+			}
+			else
+			{
+
+			}
+
+			pImage2D->SetTexRect( texRect );
+			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( i, j )->rtTexRect = texRect;
+		}
+	}
+}
+
+void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
+{
+}
