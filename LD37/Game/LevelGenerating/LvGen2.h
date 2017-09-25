@@ -201,3 +201,29 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pHouseNode;
 };
+
+class CLvBarrierNodeGen2 : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenBlocks();
+
+	CReference<CLevelGenerateNode> m_pChunkNode;
+	CReference<CLevelGenerateNode> m_pCoreNode;
+	CReference<CLevelGenerateNode> m_pLabelNode;
+
+	enum
+	{
+		eType_None,
+		eType_Blocked,
+		eType_Rail,
+		eType_Core,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	TRectangle<int32> m_labelRect;
+};

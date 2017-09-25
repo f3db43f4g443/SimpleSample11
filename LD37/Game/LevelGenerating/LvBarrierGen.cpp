@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LvGen1.h"
+#include "LvGen2.h"
 #include "Common/Rand.h"
 #include "Algorithm.h"
 
@@ -89,9 +90,6 @@ void CLvBarrierNodeGen1::GenBase()
 	const uint32 nLabelWidth = 6;
 	const uint32 nLabelWidth1 = 10;
 
-	const uint32 nCoreCountMin = 6;
-	const uint32 nCoreCountMax = 8;
-
 	uint32 nWidth = m_region.width;
 	uint32 nHeight = m_region.height;
 
@@ -105,7 +103,7 @@ void CLvBarrierNodeGen1::GenBase()
 	m_labelRect.x += 1;
 	m_labelRect.width -= 2;
 
-	uint32 nCoreCount = SRand::Inst().Rand( nCoreCountMin, nCoreCountMax + 1 );
+	uint32 nCoreCount = 7;
 	uint32 nCoreSegWidth = nWidth / nCoreCount;
 	uint32 nMod = nWidth - nCoreSegWidth * nCoreCount;
 
@@ -399,6 +397,164 @@ void CLvBarrierNodeGen1::GenWindows()
 					break;
 				}
 			}
+		}
+	}
+}
+
+void CLvBarrierNodeGen2::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+
+}
+
+void CLvBarrierNodeGen2::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+
+}
+
+void CLvBarrierNodeGen2::GenBlocks()
+{
+	uint32 nLabelWidth = 6;
+	uint32 nLabelWidth1 = 10;
+	uint32 nWidth = m_region.width;
+	uint32 nHeight = m_region.height;
+
+	uint32 n1 = SRand::Inst().Rand( nLabelWidth, nLabelWidth1 + 1 );
+	uint32 n0 = ( nWidth - 1 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+	for( int i = 0; i < nWidth; i++ )
+		m_gendata[i + ( nHeight - 1 ) * nWidth] = eType_Blocked;
+	for( int i = n0; i < n0 + n1; i++ )
+		m_gendata[i + ( nHeight - 2 ) * nWidth] = eType_Blocked;
+	for( int i = 0; i < nHeight; i++ )
+	{
+		m_gendata[0 + i * nWidth] = eType_Blocked;
+		m_gendata[( nWidth - 1 ) + i * nWidth] = eType_Blocked;
+	}
+	m_gendata[1 + ( nHeight - 2 ) * nWidth] = m_gendata[( nWidth - 2 ) + ( nHeight - 2 ) * nWidth] = eType_Blocked;
+	m_labelRect = TRectangle<int32>( n0 + SRand::Inst().Rand( 0u, n1 - nLabelWidth + 1 ), nHeight - 2, nLabelWidth, 2 );
+	m_labelRect.x += 1;
+	m_labelRect.width -= 2;
+
+	uint32 nOut0 = SRand::Inst().Rand( 4, 7 );
+	uint32 nOut1 = SRand::Inst().Rand( 6, 8 );
+
+	{
+		uint32 w1 = nWidth - n1 - 4;
+		uint32 nSegWidth = w1 / nOut1;
+		uint32 nMod = w1 - nSegWidth * nOut1;
+
+		int8* pCResult = (int8*)alloca( nOut1 + nMod );
+		SRand::Inst().C( nMod, nOut1 + nMod, pCResult );
+
+		uint32* pOfs = (uint32*)alloca( nOut1 * sizeof( int32 ) );
+		for( int i = 0; i < nOut1; i++ )
+		{
+			pOfs[i] = SRand::Inst().Rand( 0u, nSegWidth );
+		}
+
+		uint32 iCurX = 0;
+		int32 iSeg = 0;
+		for( int i = 0; i < nOut1 + nMod; i++ )
+		{
+			if( pCResult[i] )
+				iCurX++;
+			else
+			{
+				int32 nX = iCurX + pOfs[iSeg++];
+				iCurX += nSegWidth;
+				nX = nX >= n0 - 2 ? nX + 2 + n1 : nX + 2;
+				
+				m_gendata[nX + ( nHeight - 2 ) * nWidth] = eType_Rail;
+			}
+		}
+
+		int32 nCurLen = 0;
+		int32 iX;
+		for( iX = 2; iX < nWidth - 2; iX++ )
+		{
+			if( m_gendata[iX + ( nHeight - 2 ) * nWidth] == eType_None )
+				nCurLen++;
+			else
+			{
+				if( nCurLen )
+				{
+					int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
+					int32 nBeg = iX - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
+					for( int32 iX1 = nBeg; iX1 < nBeg + nLen; iX1++ )
+						m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Rail;
+				}
+				nCurLen = 0;
+			}
+		}
+		if( nCurLen )
+		{
+			int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
+			int32 nBeg = iX - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
+			for( int32 iX1 = nBeg; iX1 < nBeg + nLen; iX1++ )
+				m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Rail;
+		}
+	}
+
+	uint32 nOut00[2];
+	nOut00[0] = ( nOut0 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+	nOut00[1] = nOut0 - nOut00[0];
+
+	for( int32 i = 0; i < 2; i++ )
+	{
+		int32 nX0 = i * ( nWidth - 1 );
+		int32 nX1 = nX0 + 1 - i * 2;
+		
+		uint32 w1 = nHeight - 2;
+		uint32 nSegWidth = w1 / nOut00[i];
+		uint32 nMod = w1 - nSegWidth * nOut1;
+
+		int8* pCResult = (int8*)alloca( nOut1 + nMod );
+		SRand::Inst().C( nMod, nOut1 + nMod, pCResult );
+
+		uint32* pOfs = (uint32*)alloca( nOut1 * sizeof( int32 ) );
+		for( int i = 0; i < nOut1; i++ )
+		{
+			pOfs[i] = SRand::Inst().Rand( 0u, nSegWidth );
+		}
+
+		uint32 iCurY = 0;
+		int32 iSeg = 0;
+		for( int i = 0; i < nOut1 + nMod; i++ )
+		{
+			if( pCResult[i] )
+				iCurY++;
+			else
+			{
+				int32 nY = iCurY + pOfs[iSeg++];
+				iCurY += nSegWidth;
+				
+				m_gendata[nX1 + nY * nWidth] = eType_Rail;
+			}
+		}
+
+		int32 nCurLen = 0;
+		int32 iY;
+		for( iY = 0; iY < nHeight - 2; iY++ )
+		{
+			if( m_gendata[nX1 + iY * nWidth] == eType_None )
+				nCurLen++;
+			else
+			{
+				if( nCurLen )
+				{
+					int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
+					int32 nBeg = iY - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
+					for( int32 iY1 = nBeg; iY1 < nBeg + nLen; iY1++ )
+						m_gendata[nX1 + iY1 * nWidth] = eType_Rail;
+				}
+				nCurLen = 0;
+			}
+		}
+		if( nCurLen )
+		{
+			int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
+			int32 nBeg = iY - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
+			for( int32 iY1 = nBeg; iY1 < nBeg + nLen; iY1++ )
+				m_gendata[nX1 + iY1 * nWidth] = eType_Rail;
 		}
 	}
 }
