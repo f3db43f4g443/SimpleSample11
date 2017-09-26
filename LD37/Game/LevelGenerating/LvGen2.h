@@ -209,6 +209,7 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
 	void GenBlocks();
+	void GenRails( SChunk* pChunk );
 
 	CReference<CLevelGenerateNode> m_pChunkNode;
 	CReference<CLevelGenerateNode> m_pCoreNode;

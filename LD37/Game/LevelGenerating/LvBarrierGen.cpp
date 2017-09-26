@@ -438,16 +438,21 @@ void CLvBarrierNodeGen2::Generate( SLevelBuildContext& context, const TRectangle
 			for( int j = 0; j < region.height; j++ )
 			{
 				if( m_gendata[i + j * region.width] == eType_Blocked )
-				{
-					pChunk->GetBlock( i, j )->nTag = 2;
 					pChunk->GetBlock( i, j )->eBlockType = eBlockType_Block;
-				}
 				else if( m_gendata[i + j * region.width] == eType_Rail )
 					pChunk->GetBlock( i, j )->nTag = 1;
 				else if( m_gendata[i + j * region.width] == eType_Core )
+				{
+					pChunk->GetBlock( i, j )->nTag = 2;
 					m_pCoreNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
+				}
 			}
 		}
+		GenRails( pChunk );
+
+		context.mapTags["mask"] = eType_None;
+		m_pChunkNode->Generate( tempContext, TRectangle<int32>( 0, 0, region.width, region.height ) );
+
 		for( auto pChunk : tempContext.chunks )
 		{
 			pChunk->nSubChunkType = 2;
@@ -602,6 +607,151 @@ void CLvBarrierNodeGen2::GenBlocks()
 			int32 nBeg = iY - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
 			for( int32 iY1 = nBeg; iY1 < nBeg + nLen; iY1++ )
 				m_gendata[nX1 + iY1 * nWidth] = eType_Rail;
+		}
+	}
+
+	uint32 nCoreCount = 5;
+	{
+		uint32 w1 = nWidth - 4;
+		uint32 nSegWidth = w1 / nCoreCount;
+		uint32 nMod = w1 - nSegWidth * nCoreCount;
+
+		int8* pCResult = (int8*)alloca( nCoreCount + nMod );
+		SRand::Inst().C( nMod, nCoreCount + nMod, pCResult );
+
+		uint32* pOfs = (uint32*)alloca( nCoreCount * sizeof( int32 ) );
+		for( int i = 0; i < nCoreCount; i++ )
+		{
+			pOfs[i] = SRand::Inst().Rand( 0u, nSegWidth );
+		}
+
+		uint32 iCurX = 0;
+		int32 iSeg = 0;
+		for( int i = 0; i < nCoreCount + nMod; i++ )
+		{
+			if( pCResult[i] )
+				iCurX++;
+			else
+			{
+				int32 nX = iCurX + pOfs[iSeg++] + 2;
+				iCurX += nSegWidth;
+				
+				m_gendata[nX + ( nHeight - 4 ) * nWidth] = eType_Core;
+			}
+		}
+	}
+}
+
+void CLvBarrierNodeGen2::GenRails( SChunk* pChunk )
+{
+	vector<int8> gendata;
+	int32 nWidth = pChunk->nWidth;
+	int32 nHeight = pChunk->nHeight;
+	gendata.resize( nWidth * nHeight );
+
+	vector<TVector2<int32> > p[3];
+	int32 n0 = SRand::Inst().Rand( 0, 2 );
+	for( int32 i = 0; i < nWidth; i++ )
+	{
+		for( int32 j = 0; j < nHeight; j++ )
+		{
+			if( pChunk->GetBlock( i, j )->eBlockType == eBlockType_Block || pChunk->GetBlock( i, j )->nTag == 2 )
+				gendata[i + j * nWidth] = 2;
+			else if( pChunk->GetBlock( i, j )->nTag == 1 )
+			{
+				if( j >= nHeight - 2 )
+					p[2].push_back( TVector2<int32>( i, j ) );
+				if( i < nWidth / 2 )
+					p[n0].push_back( TVector2<int32>( i, j ) );
+				else
+					p[1 - n0].push_back( TVector2<int32>( i, j ) );
+			}
+			pChunk->GetBlock( i, j )->nTag = 0;
+		}
+	}
+	SRand::Inst().Shuffle( p[0] );
+	SRand::Inst().Shuffle( p[1] );
+	SRand::Inst().Shuffle( p[2] );
+
+	vector<pair<TVector2<int32>, TVector2<int32> > > vecPairs;
+	for( int i = Min( p[0].size(), p[1].size() ) - 1; i >= 0; i-- )
+	{
+		auto p0 = p[0][i];
+		auto p1 = p[1][i];
+		vecPairs.push_back( pair<TVector2<int32>, TVector2<int32> >( p0, p1 ) );
+	}
+	for( int k = 0; k < 2; k++ )
+	{
+		for( int i = Min( p[0].size(), p[1].size() ); i < p[k].size(); i++ )
+		{
+			auto p0 = p[k][i];
+			auto p1 = p[2][SRand::Inst().Rand( 0u, p[2].size() )];
+			vecPairs.push_back( pair<TVector2<int32>, TVector2<int32> >( p0, p1 ) );
+		}
+	}
+	for( int i = 0; i < p[2].size(); i++ )
+	{
+		auto p0 = p[2][i];
+		auto p1 = p[0][SRand::Inst().Rand( 0u, p[0].size() )];
+		auto p2 = p[1][SRand::Inst().Rand( 0u, p[1].size() )];
+		if( abs( p2.x - p0.x ) + abs( p2.y - p0.y ) > abs( p1.x - p0.x ) + abs( p1.y - p0.y ) )
+			p1 = p2;
+		vecPairs.push_back( pair<TVector2<int32>, TVector2<int32> >( p0, p1 ) );
+	}
+
+	vector<TVector2<int32> > par;
+	for( auto& pair : vecPairs )
+	{
+		auto p0 = pair.first;
+		auto p1 = pair.second;
+
+		gendata[p1.x + p1.y * nWidth] = 3;
+		FindPath( gendata, nWidth, nHeight, p0, 1, 3, par );
+
+		auto p = p1;
+		while( 1 )
+		{
+			gendata[p.x + p.y * nWidth] = 0;
+
+			if( p == p0 )
+				break;
+			auto pp = par[p.x + p.y * nWidth];
+			if( pp.x == p.x - 1 )
+			{
+				pChunk->GetBlock( p.x, p.y )->nTag |= 1;
+				pChunk->GetBlock( pp.x, pp.y )->nTag |= 2;
+			}
+			else if( pp.x == p.x + 1 )
+			{
+				pChunk->GetBlock( p.x, p.y )->nTag |= 2;
+				pChunk->GetBlock( pp.x, pp.y )->nTag |= 1;
+			}
+			else if( pp.y == p.y - 1 )
+			{
+				pChunk->GetBlock( p.x, p.y )->nTag |= 4;
+				pChunk->GetBlock( pp.x, pp.y )->nTag |= 8;
+			}
+			else if( pp.y == p.y + 1 )
+			{
+				pChunk->GetBlock( p.x, p.y )->nTag |= 8;
+				pChunk->GetBlock( pp.x, pp.y )->nTag |= 4;
+			}
+
+			p = pp;
+		}
+		gendata[p0.x + p0.y * nWidth] = 0;
+	}
+
+	for( int k = 0; k < 3; k++ )
+	{
+		for( int i = 0; i < p[k].size(); i++ )
+		{
+			if( p[k][i].x < 2 )
+				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 1;
+			else if( p[k][i].x >= nWidth - 2 )
+				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 2;
+			else
+				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 8;
 		}
 	}
 }

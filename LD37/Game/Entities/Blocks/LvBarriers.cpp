@@ -11,6 +11,7 @@
 #include "Pickup.h"
 #include "GlobalCfg.h"
 #include "Enemy.h"
+#include "Common/Algorithm.h"
 
 void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 {
@@ -936,14 +937,14 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
 
 			CRectangle texRect;
+			static int32 t1[4] = { 3, 2, 0, 1 };
+			static int32 t2[4] = { 3, 0, 2, 1 };
 			if( GetBlock( i, j )->eBlockType == eBlockType_Block )
 			{
 				int32 nTexX = ( i > 0 && GetBlock( i - 1, j )->eBlockType == eBlockType_Block ? 1 : 0 )
 					| ( i < pChunk->nWidth - 1 || GetBlock( i + 1, j )->eBlockType == eBlockType_Block ? 2 : 0 );
 				int32 nTexY = ( j > 0 && GetBlock( i, j - 1 )->eBlockType == eBlockType_Block ? 1 : 0 )
 					| ( j < pChunk->nHeight - 1 || GetBlock( i, j + 1 )->eBlockType == eBlockType_Block ? 2 : 0 );
-				static int32 t1[4] = { 3, 2, 0, 1 };
-				static int32 t2[4] = { 3, 0, 2, 1 };
 				nTexX = t1[nTexX];
 				nTexY = t2[nTexY];
 				texRect = CRectangle( m_blockTex.x + nTexX * texRect0.width / 4, m_blockTex.y + nTexY * texRect0.height / 4,
@@ -953,7 +954,12 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			}
 			else
 			{
-
+				int32 nTexX = GetBlock( i, j )->nTag & 3;
+				int32 nTexY = GetBlock( i, j )->nTag >> 2;
+				nTexX = t1[nTexX];
+				nTexY = t2[nTexY];
+				texRect = CRectangle( texRect0.x + nTexX * texRect0.width / 4, texRect0.y + nTexY * texRect0.height / 4,
+					nTexX * texRect0.width / 4, nTexY * texRect0.height / 4 );
 			}
 
 			pImage2D->SetTexRect( texRect );
