@@ -145,6 +145,17 @@ public:
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 protected:
+	void Move();
+	struct SGrid
+	{
+		CReference<CChunkObject> pChunkObject;
+		TVector2<int32> par;
+		bool bDirs[4];
+		int8 nType;
+		int8 nParType;
+	};
+	vector<SGrid> m_grids;
+	vector<TVector2<int32> > m_q;
 
 	CVector2 m_blockTex;
 };

@@ -971,4 +971,128 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 {
+	if( !pLevel )
+		return;
+	int32 nWidth = m_pChunk->nWidth;
+	int32 nHeight = m_pChunk->nHeight;
+	m_grids.resize( nWidth * nHeight );
+
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			m_grids[i + j * nWidth].nType = 1;
+			uint8 nTag = GetBlock( i, j )->nTag;
+			if( nTag > 0 )
+			{
+				m_grids[i + j * nWidth].nType = 0;
+				for( int i = 0; i < 4; i++ )
+				{
+					m_grids[i + j * nWidth].bDirs[i] = !!( nTag & ( 1 << i ) );
+				}
+
+				if( i < 2 || i >= nWidth - 2 || j >= nHeight - 2 )
+					m_q.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+	}
+	SRand::Inst().Shuffle( m_q );
+
+	for( auto pSubChunk = m_pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+	{
+		int32 nX = pSubChunk->pos.x / CMyLevel::GetBlockSize();
+		int32 nY = pSubChunk->pos.y / CMyLevel::GetBlockSize();
+		if( pSubChunk->nWidth == 1 && pSubChunk->nHeight == 1 && pSubChunk->nSubChunkType == 2 )
+		{
+			if( m_grids[nX + nY * nWidth].nType == 0 )
+				m_grids[nX + nY * nWidth].pChunkObject = pSubChunk->pChunkObject;
+		}
+		else
+		{
+			for( int32 i = 0; i < pSubChunk->nWidth; i++ )
+			{
+				for( int32 j = 0; j < pSubChunk->nHeight; j++ )
+				{
+					m_grids[i + nX + ( j + nY ) * nWidth].nType = 1;
+				}
+			}
+		}
+	}
+}
+
+void CLvBarrier2::Move()
+{
+	int32 nWidth = m_pChunk->nWidth;
+	int32 nHeight = m_pChunk->nHeight;
+	vector<TVector2<int32> > q;
+	for( auto& p : m_q )
+	{
+		m_grids[p.x + p.y * nWidth].nType = 2;
+		m_grids[p.x + p.y * nWidth].nParType = -1;
+		q.push_back( p );
+	}
+
+	TVector2<int32> ofs[4] = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+	for( int i = 0; i < q.size(); i++ )
+	{
+		auto p = q[i];
+		auto& grid = m_grids[p.x + p.y * nWidth];
+
+		int8 dirs[4];
+		int8 nDirs;
+		if( grid.nParType < 0 )
+		{
+			for( int k = 0; k < 4; k++ )
+				dirs[k] = k;
+			nDirs = 4;
+			SRand::Inst().Shuffle( dirs, 4  );
+		}
+		else
+		{
+			dirs[0] = grid.nParType;
+			dirs[1] = grid.nParType == 0 ? 3 : grid.nParType - 1;
+			dirs[2] = grid.nParType == 3 ? 0 : grid.nParType + 1;
+			if( SRand::Inst().Rand( 0, 2 ) )
+				swap( dirs[1], dirs[2] );
+			nDirs = 3;
+		}
+
+		for( int j = 0; j < nDirs; j++ )
+		{
+			int8 nDir = dirs[j];
+			if( !grid.bDirs[nDir] )
+				continue;
+			auto p1 = p + ofs[nDir];
+			if( p1.x < 0 || p1.y < 0 || p1.x >= nWidth || p1.y >= nHeight )
+				continue;
+			auto& grid = m_grids[p1.x + p1.y * nWidth];
+			if( grid.nType > 0 )
+				continue;
+
+			grid.nType = 2;
+			grid.nParType = nDir;
+			grid.par = p;
+			q.push_back( p1 );
+		}
+	}
+
+	for( int i = q.size() - 1; i >= 0; i-- )
+	{
+		auto& p = q[i];
+		auto& grid = m_grids[p.x + p.y * nWidth];
+		grid.nType = 0;
+
+		if( grid.nParType == -1 )
+		{
+			continue;
+		}
+
+		auto& p1 = grid.par;
+		auto& grid1 = m_grids[p1.x + p1.y * nWidth];
+		if( grid1.pChunkObject && !grid.pChunkObject )
+		{
+			grid.pChunkObject = grid1.pChunkObject;
+			grid1.pChunkObject = NULL;
+		}
+	}
 }

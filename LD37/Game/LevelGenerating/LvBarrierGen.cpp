@@ -741,17 +741,4 @@ void CLvBarrierNodeGen2::GenRails( SChunk* pChunk )
 		}
 		gendata[p0.x + p0.y * nWidth] = 0;
 	}
-
-	for( int k = 0; k < 3; k++ )
-	{
-		for( int i = 0; i < p[k].size(); i++ )
-		{
-			if( p[k][i].x < 2 )
-				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 1;
-			else if( p[k][i].x >= nWidth - 2 )
-				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 2;
-			else
-				pChunk->GetBlock( p[k][i].x, p[k][i].y )->nTag |= 8;
-		}
-	}
 }
