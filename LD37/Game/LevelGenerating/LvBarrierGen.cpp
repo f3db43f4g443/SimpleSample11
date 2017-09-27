@@ -405,6 +405,7 @@ void CLvBarrierNodeGen2::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 {
 	CLevelGenerateSimpleNode::Load( pXml, context );
 	m_pLabelNode = CreateNode( pXml->FirstChildElement( "label" )->FirstChildElement(), context );
+	m_pChunkNode = CreateNode( pXml->FirstChildElement( "chunk" )->FirstChildElement(), context );
 	m_pCoreNode = CreateNode( pXml->FirstChildElement( "core" )->FirstChildElement(), context );
 }
 
@@ -440,17 +441,21 @@ void CLvBarrierNodeGen2::Generate( SLevelBuildContext& context, const TRectangle
 				if( m_gendata[i + j * region.width] == eType_Blocked )
 					pChunk->GetBlock( i, j )->eBlockType = eBlockType_Block;
 				else if( m_gendata[i + j * region.width] == eType_Rail )
+				{
 					pChunk->GetBlock( i, j )->nTag = 1;
+					m_gendata[i + j * region.width] = eType_None;
+				}
 				else if( m_gendata[i + j * region.width] == eType_Core )
 				{
 					pChunk->GetBlock( i, j )->nTag = 2;
 					m_pCoreNode->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
 				}
+				tempContext.blueprint[i + j * region.width] = m_gendata[i + j * region.width];
 			}
 		}
 		GenRails( pChunk );
 
-		context.mapTags["mask"] = eType_None;
+		tempContext.mapTags["mask"] = eType_None;
 		m_pChunkNode->Generate( tempContext, TRectangle<int32>( 0, 0, region.width, region.height ) );
 
 		for( auto pChunk : tempContext.chunks )
@@ -532,7 +537,7 @@ void CLvBarrierNodeGen2::GenBlocks()
 					int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
 					int32 nBeg = iX - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
 					for( int32 iX1 = nBeg; iX1 < nBeg + nLen; iX1++ )
-						m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Rail;
+						m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Blocked;
 				}
 				nCurLen = 0;
 			}
@@ -542,7 +547,7 @@ void CLvBarrierNodeGen2::GenBlocks()
 			int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
 			int32 nBeg = iX - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
 			for( int32 iX1 = nBeg; iX1 < nBeg + nLen; iX1++ )
-				m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Rail;
+				m_gendata[iX1 + ( nHeight - 2 ) * nWidth] = eType_Blocked;
 		}
 	}
 
@@ -557,22 +562,22 @@ void CLvBarrierNodeGen2::GenBlocks()
 		
 		uint32 w1 = nHeight - 2;
 		uint32 nSegWidth = w1 / nOut00[i];
-		uint32 nMod = w1 - nSegWidth * nOut1;
+		uint32 nMod = w1 - nSegWidth * nOut00[i];
 
-		int8* pCResult = (int8*)alloca( nOut1 + nMod );
-		SRand::Inst().C( nMod, nOut1 + nMod, pCResult );
+		int8* pCResult = (int8*)alloca( nOut00[i] + nMod );
+		SRand::Inst().C( nMod, nOut00[i] + nMod, pCResult );
 
-		uint32* pOfs = (uint32*)alloca( nOut1 * sizeof( int32 ) );
-		for( int i = 0; i < nOut1; i++ )
+		uint32* pOfs = (uint32*)alloca( nOut00[i] * sizeof( int32 ) );
+		for( int j = 0; j < nOut00[i]; j++ )
 		{
-			pOfs[i] = SRand::Inst().Rand( 0u, nSegWidth );
+			pOfs[j] = SRand::Inst().Rand( 0u, nSegWidth );
 		}
 
 		uint32 iCurY = 0;
 		int32 iSeg = 0;
-		for( int i = 0; i < nOut1 + nMod; i++ )
+		for( int j = 0; j < nOut00[i] + nMod; j++ )
 		{
-			if( pCResult[i] )
+			if( pCResult[j] )
 				iCurY++;
 			else
 			{
@@ -596,7 +601,7 @@ void CLvBarrierNodeGen2::GenBlocks()
 					int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
 					int32 nBeg = iY - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
 					for( int32 iY1 = nBeg; iY1 < nBeg + nLen; iY1++ )
-						m_gendata[nX1 + iY1 * nWidth] = eType_Rail;
+						m_gendata[nX1 + iY1 * nWidth] = eType_Blocked;
 				}
 				nCurLen = 0;
 			}
@@ -606,13 +611,13 @@ void CLvBarrierNodeGen2::GenBlocks()
 			int32 nLen = SRand::Inst().Rand( Max( nCurLen - 3, 1 ), nCurLen + 1 );
 			int32 nBeg = iY - nCurLen + SRand::Inst().Rand( 0, nCurLen - nLen + 1 );
 			for( int32 iY1 = nBeg; iY1 < nBeg + nLen; iY1++ )
-				m_gendata[nX1 + iY1 * nWidth] = eType_Rail;
+				m_gendata[nX1 + iY1 * nWidth] = eType_Blocked;
 		}
 	}
 
 	uint32 nCoreCount = 5;
 	{
-		uint32 w1 = nWidth - 4;
+		uint32 w1 = nWidth - 6;
 		uint32 nSegWidth = w1 / nCoreCount;
 		uint32 nMod = w1 - nSegWidth * nCoreCount;
 
@@ -633,7 +638,7 @@ void CLvBarrierNodeGen2::GenBlocks()
 				iCurX++;
 			else
 			{
-				int32 nX = iCurX + pOfs[iSeg++] + 2;
+				int32 nX = iCurX + pOfs[iSeg++] + 3;
 				iCurX += nSegWidth;
 				
 				m_gendata[nX + ( nHeight - 4 ) * nWidth] = eType_Core;
@@ -661,7 +666,7 @@ void CLvBarrierNodeGen2::GenRails( SChunk* pChunk )
 			{
 				if( j >= nHeight - 2 )
 					p[2].push_back( TVector2<int32>( i, j ) );
-				if( i < nWidth / 2 )
+				else if( i < nWidth / 2 )
 					p[n0].push_back( TVector2<int32>( i, j ) );
 				else
 					p[1 - n0].push_back( TVector2<int32>( i, j ) );
@@ -700,6 +705,7 @@ void CLvBarrierNodeGen2::GenRails( SChunk* pChunk )
 	}
 
 	vector<TVector2<int32> > par;
+	par.resize( nWidth * nHeight );
 	for( auto& pair : vecPairs )
 	{
 		auto p0 = pair.first;

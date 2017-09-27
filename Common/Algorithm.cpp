@@ -461,5 +461,6 @@ TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVecto
 	int8 nBackType = vec[src.x + src.y * nWidth];
 	vector<TVector2<int32> > q;
 	q.push_back( src );
+	vec[src.x + src.y * nWidth] = nPathType;
 	return FindPath( vec, nWidth, nHeight, nBackType, nPathType, nDstType, q, par, pOfs, nOfs );
 }

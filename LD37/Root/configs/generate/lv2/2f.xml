@@ -68,7 +68,6 @@
         </subitem>
       </node>
 
-
       <node name="lv2_floor_l" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv2/floor_l.pf">
         <metadata isdesignvalid="0" />
         <types>4,4,4,4,4,4,4,4</types>
@@ -129,8 +128,21 @@
         </next_level>
 
       </node>
+      
+      <node name="box_barrier" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv2/box_barrier.pf">
+        <types>4</types>
+      </node>
+      <node name="chunk_tile" type="randomfill" check_gen_data_name="mask">
+        <ref name="cargo" sizeminx="3" sizemaxx="5" sizeminy="3" p="1" />
+        <ref name="cargo" sizeminx="2" sizemaxx="4" sizeminy="2" p="1" />
+        <ref name="box_barrier" sizeminx="1" sizeminy="1" p="1" />
+      </node>
+      <node name="core" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv2/core.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
 
-      <node name="1f" type="barrier1" show_layer_type="0" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
+      <node name="1f" type="barrier2" show_layer_type="0" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv2/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -148,37 +160,15 @@
           </node>
         </subitem>
 
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
-          </node>
-        </next_level>
-
         <label>
           <ref name="label_1f" />
         </label>
-        <fill>
-          <ref name="stonebar_room_corner2" />
-        </fill>
-        <base>
-          <ref name="unbreakable" />
-        </base>
+        <chunk>
+          <ref name="chunk_tile" />
+        </chunk>
         <core>
           <ref name="core" />
         </core>
-        <room>
-          <ref name="vroom" />
-        </room>
-        <wall_h>
-          <ref name="stonebar_room_h2" />
-        </wall_h>
-        <wall_v>
-          <ref name="stonebar_room_v2" />
-        </wall_v>
-        <window>
-          <ref name="window2x2_1" />
-        </window>
         
       </node>
 

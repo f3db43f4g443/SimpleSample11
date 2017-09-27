@@ -942,13 +942,13 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			if( GetBlock( i, j )->eBlockType == eBlockType_Block )
 			{
 				int32 nTexX = ( i > 0 && GetBlock( i - 1, j )->eBlockType == eBlockType_Block ? 1 : 0 )
-					| ( i < pChunk->nWidth - 1 || GetBlock( i + 1, j )->eBlockType == eBlockType_Block ? 2 : 0 );
+					| ( i < pChunk->nWidth - 1 && GetBlock( i + 1, j )->eBlockType == eBlockType_Block ? 2 : 0 );
 				int32 nTexY = ( j > 0 && GetBlock( i, j - 1 )->eBlockType == eBlockType_Block ? 1 : 0 )
-					| ( j < pChunk->nHeight - 1 || GetBlock( i, j + 1 )->eBlockType == eBlockType_Block ? 2 : 0 );
+					| ( j < pChunk->nHeight - 1 && GetBlock( i, j + 1 )->eBlockType == eBlockType_Block ? 2 : 0 );
 				nTexX = t1[nTexX];
 				nTexY = t2[nTexY];
 				texRect = CRectangle( m_blockTex.x + nTexX * texRect0.width / 4, m_blockTex.y + nTexY * texRect0.height / 4,
-					nTexX * texRect0.width / 4, nTexY * texRect0.height / 4 );
+					texRect0.width / 4, texRect0.height / 4 );
 				if( SRand::Inst().Rand( 0, 2 ) )
 					texRect.x += texRect0.width;
 			}
@@ -959,7 +959,7 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				nTexX = t1[nTexX];
 				nTexY = t2[nTexY];
 				texRect = CRectangle( texRect0.x + nTexX * texRect0.width / 4, texRect0.y + nTexY * texRect0.height / 4,
-					nTexX * texRect0.width / 4, nTexY * texRect0.height / 4 );
+					texRect0.width / 4, texRect0.height / 4 );
 			}
 
 			pImage2D->SetTexRect( texRect );
@@ -1036,7 +1036,7 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 			}
 		}
 
-		auto pCore = SafeCast<CLvBarrier2Core>( pSubChunk->Get_SubChunk() );
+		auto pCore = SafeCast<CLvBarrier2Core>( pSubChunk->pChunkObject );
 		if( pCore )
 		{
 			class CTemp : public CEntity

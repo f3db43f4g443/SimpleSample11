@@ -196,6 +196,11 @@
 
       </node>
 
+      <node name="core" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/core.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+
       <node name="1f" type="barrier1" show_layer_type="0" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
