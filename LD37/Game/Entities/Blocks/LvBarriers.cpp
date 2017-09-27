@@ -964,6 +964,7 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 			pImage2D->SetTexRect( texRect );
 			GetRenderObject()->AddChild( pImage2D );
+			pImage2D->SetRenderParent( this );
 			GetBlock( i, j )->rtTexRect = texRect;
 		}
 	}
@@ -982,6 +983,7 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 		for( int j = 0; j < nHeight; j++ )
 		{
 			m_grids[i + j * nWidth].nType = 1;
+			m_grids[i + j * nWidth].nColor = -1;
 			uint8 nTag = GetBlock( i, j )->nTag;
 			if( nTag > 0 )
 			{
@@ -1009,6 +1011,22 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 		}
 		else
 		{
+			class CTemp : public CEntity
+			{
+			public:
+				virtual void OnRemovedFromStage() override
+				{
+					if( pOwner->GetStage() )
+						pOwner->OnChunkRemove( SafeCast<CChunkObject>( GetParentEntity() ) );
+					pOwner = NULL;
+				}
+
+				CReference<CLvBarrier2> pOwner;
+			};
+			CTemp* pTemp = new CTemp;
+			pTemp->pOwner = this;
+			pTemp->SetParentEntity( pSubChunk->pChunkObject );
+
 			for( int32 i = 0; i < pSubChunk->nWidth; i++ )
 			{
 				for( int32 j = 0; j < pSubChunk->nHeight; j++ )
@@ -1017,18 +1035,132 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 				}
 			}
 		}
+
+		auto pCore = SafeCast<CLvBarrier2Core>( pSubChunk->Get_SubChunk() );
+		if( pCore )
+		{
+			class CTemp : public CEntity
+			{
+			public:
+				virtual void OnRemovedFromStage() override
+				{
+					if( pOwner->GetStage() )
+						pOwner->OnCoreDestroyed();
+					pOwner = NULL;
+				}
+
+				CReference<CLvBarrier2> pOwner;
+			};
+			CTemp* pTemp = new CTemp;
+			pTemp->pOwner = this;
+			pTemp->SetParentEntity( pCore );
+			m_nCoreCount++;
+		}
+	}
+
+	m_pAI = new AI();
+	m_pAI->SetParentEntity( this );
+}
+
+void CLvBarrier2::Kill()
+{
+	if( m_bKilled )
+		return;
+	m_triggerKilled.Trigger( 0, this );
+	m_bKilled = true;
+	m_fHp = 0;
+	AddHitShake( CVector2( 8, 0 ) );
+	KillTick();
+	OnKilled();
+}
+
+void CLvBarrier2::KillTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_deathTick );
+
+	if( m_strKillEffect )
+	{
+		if( m_nKillEffectCDLeft )
+			m_nKillEffectCDLeft--;
+		if( !m_nKillEffectCDLeft )
+		{
+			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
+			auto pEffect = SafeCast<CEffectObject>( m_strKillEffect->GetRoot()->CreateInstance() );
+			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			pEffect->SetPosition( GetPosition() + center );
+			pEffect->SetState( 2 );
+			m_nKillEffectCDLeft = m_nKillEffectInterval;
+		}
+	}
+
+	m_nDeathTime--;
+	if( !m_nDeathTime )
+	{
+		if( m_strEffect )
+		{
+			ForceUpdateTransform();
+			for( int i = 0; i < m_pChunk->nWidth; i++ )
+			{
+				for( int j = 0; j < m_pChunk->nHeight; j++ )
+				{
+					auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+					pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+					pEffect->SetState( 2 );
+				}
+			}
+		}
+
+		auto pChunk = m_pChunk;
+		if( pChunk )
+		{
+			m_pChunk = NULL;
+			pChunk->pChunkObject = NULL;
+			if( pChunk->nSubChunkType == 2 )
+				delete pChunk;
+			else
+				CMyLevel::GetInst()->KillChunk( pChunk );
+		}
+		SetParentEntity( NULL );
 	}
 }
 
-void CLvBarrier2::Move()
+void CLvBarrier2::OnCoreDestroyed()
 {
+	if( !GetStage() )
+		return;
+	m_nCoreCount--;
+	if( !m_nCoreCount )
+		Kill();
+}
+
+void CLvBarrier2::OnChunkRemove( CChunkObject* pChunkObject )
+{
+	int32 nX = pChunkObject->GetChunk()->pos.x / CMyLevel::GetBlockSize();
+	int32 nY = pChunkObject->GetChunk()->pos.y / CMyLevel::GetBlockSize();
+	int32 nWidth = pChunkObject->GetChunk()->nWidth;
+	int32 nHeight = pChunkObject->GetChunk()->nHeight;
+	for( int i = nX; i < nX + nWidth; i++ )
+	{
+		for( int j = nY; j < nY + nHeight; j++ )
+		{
+			m_grids[i + j * GetChunk()->nWidth].nType = 0;
+		}
+	}
+}
+
+void CLvBarrier2::Move( bool bSpawnChunk )
+{
+	m_vecMovingGrids.clear();
 	int32 nWidth = m_pChunk->nWidth;
 	int32 nHeight = m_pChunk->nHeight;
 	vector<TVector2<int32> > q;
-	for( auto& p : m_q )
+	for( int i = 0; i < m_q.size(); i++ )
 	{
+		auto& p = m_q[i];
 		m_grids[p.x + p.y * nWidth].nType = 2;
 		m_grids[p.x + p.y * nWidth].nParType = -1;
+		m_grids[p.x + p.y * nWidth].nColor = i;
 		q.push_back( p );
 	}
 
@@ -1065,13 +1197,16 @@ void CLvBarrier2::Move()
 			auto p1 = p + ofs[nDir];
 			if( p1.x < 0 || p1.y < 0 || p1.x >= nWidth || p1.y >= nHeight )
 				continue;
-			auto& grid = m_grids[p1.x + p1.y * nWidth];
-			if( grid.nType > 0 )
+			auto& grid1 = m_grids[p1.x + p1.y * nWidth];
+			if( grid1.nType > 0 )
+				continue;
+			if( grid1.nColor >= 0 && grid1.nColor != grid.nColor && !grid.pChunkObject )
 				continue;
 
-			grid.nType = 2;
-			grid.nParType = nDir;
-			grid.par = p;
+			grid1.nType = 2;
+			grid1.nParType = nDir;
+			grid1.par = p;
+			grid1.nColor = grid.nColor;
 			q.push_back( p1 );
 		}
 	}
@@ -1084,6 +1219,22 @@ void CLvBarrier2::Move()
 
 		if( grid.nParType == -1 )
 		{
+			if( bSpawnChunk )
+			{
+				auto pChunkObject = SafeCast<CChunkObject>( m_pPrefab->GetRoot()->CreateInstance() );
+				pChunkObject->SetParentBeforeEntity( GetRenderObject() );
+				CVector2 pos( p.x * CMyLevel::GetBlockSize(), p.y * CMyLevel::GetBlockSize() );
+				if( p.x < 2 )
+					pos.x -= CMyLevel::GetBlockSize();
+				else if( p.x >= nWidth - 2 )
+					pos.x += CMyLevel::GetBlockSize();
+				else
+					pos.y += CMyLevel::GetBlockSize();
+
+				pChunkObject->SetPosition( pos );
+				grid.pChunkObject = pChunkObject;
+				m_vecMovingGrids.push_back( p );
+			}
 			continue;
 		}
 
@@ -1093,6 +1244,52 @@ void CLvBarrier2::Move()
 		{
 			grid.pChunkObject = grid1.pChunkObject;
 			grid1.pChunkObject = NULL;
+			m_vecMovingGrids.push_back( p );
+		}
+	}
+}
+
+void CLvBarrier2::AIFunc()
+{
+	m_pAI->Yield( 1.0f, true );
+	int32 nWidth = m_pChunk->nWidth;
+	int32 nHeight = m_pChunk->nHeight;
+	int32 i = 0;
+	while( 1 )
+	{
+		Move( i == 0 );
+		if( i == 0 )
+			i = m_nCoreCount;
+		i--;
+
+		for( int i = 0; i < 32; i++ )
+		{
+			for( auto& p : m_vecMovingGrids )
+			{
+				auto& grid = m_grids[p.x + p.y * nWidth];
+				auto pChunkObject = grid.pChunkObject;
+				if( !pChunkObject )
+					continue;
+				if( !pChunkObject->GetStage() )
+				{
+					grid.pChunkObject = NULL;
+					continue;
+				}
+
+				CVector2 targetPos( p.x * CMyLevel::GetBlockSize(), p.y * CMyLevel::GetBlockSize() );
+				CVector2 p = grid.pChunkObject->GetPosition();
+				if( p.x < targetPos.x )
+					p.x += 1;
+				else if( p.x > targetPos.x )
+					p.x -= 1;
+				if( p.y < targetPos.y )
+					p.y += 1;
+				else if( p.y > targetPos.y )
+					p.y -= 1;
+				grid.pChunkObject->SetPosition( p );
+			}
+			
+			m_pAI->Yield( 0, true );
 		}
 	}
 }

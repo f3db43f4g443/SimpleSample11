@@ -69,7 +69,7 @@ public:
 
 	void SetPhase( uint8 nPhase ) { m_nPhase = nPhase; }
 protected:
-	virtual void AIFunc();
+	void AIFunc();
 	class AI : public CAIObject
 	{
 	protected:
@@ -137,25 +137,57 @@ private:
 	bool m_bPickupCreated;
 };
 
+class CLvBarrier2Core : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrier2Core( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLvBarrier2Core ); }
+};
+
 class CLvBarrier2 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
+	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ), m_deathTick( this, &CLvBarrier2::KillTick ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+
+	virtual void Kill() override;
 protected:
-	void Move();
+	virtual void OnKilled() {}
+	void KillTick();
+	void OnCoreDestroyed();
+	void OnChunkRemove( CChunkObject* pChunkObject );
+	void Move( bool bSpawnChunk );
+
+	void AIFunc();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CLvBarrier2*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+
 	struct SGrid
 	{
 		CReference<CChunkObject> pChunkObject;
 		TVector2<int32> par;
 		bool bDirs[4];
+		int8 nColor;
 		int8 nType;
 		int8 nParType;
 	};
 	vector<SGrid> m_grids;
+	vector<TVector2<int32> > m_vecMovingGrids;
 	vector<TVector2<int32> > m_q;
+	uint32 m_nCoreCount;
+	bool m_bKilled;
+	uint32 m_nKillEffectCDLeft;
+	TClassTrigger<CLvBarrier2> m_deathTick;
 
 	CVector2 m_blockTex;
+	TResourceRef<CPrefab> m_pPrefab;
+	TResourceRef<CPrefab> m_strKillEffect;
+	uint32 m_nKillEffectInterval;
+	uint32 m_nDeathTime;
 };
