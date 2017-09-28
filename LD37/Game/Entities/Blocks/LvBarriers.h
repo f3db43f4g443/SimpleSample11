@@ -149,6 +149,7 @@ class CLvBarrier2 : public CChunkObject
 	friend void RegisterGameClasses();
 public:
 	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ), m_deathTick( this, &CLvBarrier2::KillTick ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
+	virtual void OnRemovedFromStage() override;
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 
@@ -157,7 +158,7 @@ protected:
 	virtual void OnKilled() {}
 	void KillTick();
 	void OnCoreDestroyed();
-	void OnChunkRemove( CChunkObject* pChunkObject );
+	void OnChunkRemove( const TRectangle<int32>& rect );
 	void Move( bool bSpawnChunk );
 
 	void AIFunc();

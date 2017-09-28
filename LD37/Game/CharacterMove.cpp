@@ -482,7 +482,10 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		if( fJumpHoldingTime >= fJumpMaxHoldTime )
 		{
 			fJumpHoldingTime = fJumpMaxHoldTime;
-			ReleaseJump( pCharacter );
+			if( pLandedEntity || nIsSlidingDownWall )
+				ReleaseJump( pCharacter );
+			else
+				FallOff();
 		}
 	}
 
@@ -549,6 +552,7 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 	CVector2 v0 = velocity;
 	TryMove( pCharacter, dPos, velocity );
+	bool bPreLandedEntity = pLandedEntity != NULL;
 	FindFloor( pCharacter );
 
 	nIsSlidingDownWall = 0;
@@ -560,7 +564,7 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 			nIsSlidingDownWall = -1;
 		if( nIsSlidingDownWall )
 			velocity.y = Max( velocity.y, -fSlideDownSpeed );
-		else
+		if( bPreLandedEntity )
 			ReleaseJump( pCharacter );
 	}
 }
@@ -595,7 +599,7 @@ void SCharacterWalkData::HandleRoll( CCharacter* pCharacter, const CVector2& mov
 
 void SCharacterWalkData::Jump( CCharacter * pCharacter )
 {
-	if( ( pLandedEntity || nIsSlidingDownWall ) && nState == eState_Normal && fKnockbackTime <= 0 )
+	if( nState == eState_Normal && fKnockbackTime <= 0 )
 	{
 		nState = eState_JumpHolding;
 		fJumpHoldingTime = 0;
@@ -619,7 +623,7 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 		}
 		else
 			dVelocity = CVector2( 0, 1 );
-		dVelocity = dVelocity * ( fJumpHoldingTime * fJumpHoldingTime * fJumpMaxSpeed / ( fJumpMaxHoldTime * fJumpMaxHoldTime ) );
+		dVelocity = dVelocity * ( sqrt( fJumpHoldingTime / fJumpMaxHoldTime ) * fJumpMaxSpeed );
 		velocity = velocity + dVelocity;
 		bSleep = false;
 		nState = eState_Normal;
@@ -656,6 +660,8 @@ void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxi
 
 void SCharacterWalkData::FallOff()
 {
+	nState = eState_Normal;
+	fJumpHoldingTime = 0;
 }
 
 CVector2 SCharacterWalkData::OnLandedEntityMoved( CCharacter* pCharacter, const CMatrix2D & oldTrans, const CMatrix2D & newTrans )

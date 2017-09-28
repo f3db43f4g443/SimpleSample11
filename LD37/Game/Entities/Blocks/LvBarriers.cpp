@@ -922,6 +922,13 @@ void CLvBarrierReward1::OnPickUp()
 	Kill();
 }
 
+void CLvBarrier2::OnRemovedFromStage()
+{
+	if( m_onHitShakeTick.IsRegistered() )
+		m_onHitShakeTick.Unregister();
+	CChunkObject::OnRemovedFromStage();
+}
+
 void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 {
 	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
@@ -988,9 +995,9 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 			if( nTag > 0 )
 			{
 				m_grids[i + j * nWidth].nType = 0;
-				for( int i = 0; i < 4; i++ )
+				for( int k = 0; k < 4; k++ )
 				{
-					m_grids[i + j * nWidth].bDirs[i] = !!( nTag & ( 1 << i ) );
+					m_grids[i + j * nWidth].bDirs[k] = !!( nTag & ( 1 << k ) );
 				}
 
 				if( i < 2 || i >= nWidth - 2 || j >= nHeight - 2 )
@@ -1002,9 +1009,11 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 
 	for( auto pSubChunk = m_pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
 	{
+		if( pSubChunk->nSubChunkType != 2 )
+			continue;
 		int32 nX = pSubChunk->pos.x / CMyLevel::GetBlockSize();
 		int32 nY = pSubChunk->pos.y / CMyLevel::GetBlockSize();
-		if( pSubChunk->nWidth == 1 && pSubChunk->nHeight == 1 && pSubChunk->nSubChunkType == 2 )
+		if( pSubChunk->nWidth == 1 && pSubChunk->nHeight == 1 )
 		{
 			if( m_grids[nX + nY * nWidth].nType == 0 )
 				m_grids[nX + nY * nWidth].pChunkObject = pSubChunk->pChunkObject;
@@ -1014,18 +1023,26 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 			class CTemp : public CEntity
 			{
 			public:
+				CTemp( SChunk* pChunk )
+				{
+					SetParentEntity( pChunk->pChunkObject );
+					m_rect = TRectangle<int32>( pChunk->pos.x / CMyLevel::GetBlockSize(),
+						pChunk->pos.y / CMyLevel::GetBlockSize(),
+						pChunk->nWidth,
+						pChunk->nHeight );
+				}
 				virtual void OnRemovedFromStage() override
 				{
 					if( pOwner->GetStage() )
-						pOwner->OnChunkRemove( SafeCast<CChunkObject>( GetParentEntity() ) );
+						pOwner->OnChunkRemove( m_rect );
 					pOwner = NULL;
 				}
 
 				CReference<CLvBarrier2> pOwner;
+				TRectangle<int32> m_rect;
 			};
-			CTemp* pTemp = new CTemp;
+			CTemp* pTemp = new CTemp( pSubChunk );
 			pTemp->pOwner = this;
-			pTemp->SetParentEntity( pSubChunk->pChunkObject );
 
 			for( int32 i = 0; i < pSubChunk->nWidth; i++ )
 			{
@@ -1134,15 +1151,11 @@ void CLvBarrier2::OnCoreDestroyed()
 		Kill();
 }
 
-void CLvBarrier2::OnChunkRemove( CChunkObject* pChunkObject )
+void CLvBarrier2::OnChunkRemove( const TRectangle<int32>& rect )
 {
-	int32 nX = pChunkObject->GetChunk()->pos.x / CMyLevel::GetBlockSize();
-	int32 nY = pChunkObject->GetChunk()->pos.y / CMyLevel::GetBlockSize();
-	int32 nWidth = pChunkObject->GetChunk()->nWidth;
-	int32 nHeight = pChunkObject->GetChunk()->nHeight;
-	for( int i = nX; i < nX + nWidth; i++ )
+	for( int i = rect.x; i < rect.GetRight(); i++ )
 	{
-		for( int j = nY; j < nY + nHeight; j++ )
+		for( int j = rect.y; j < rect.GetBottom(); j++ )
 		{
 			m_grids[i + j * GetChunk()->nWidth].nType = 0;
 		}
@@ -1158,6 +1171,8 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 	for( int i = 0; i < m_q.size(); i++ )
 	{
 		auto& p = m_q[i];
+		if( m_grids[p.x + p.y * nWidth].nType )
+			continue;
 		m_grids[p.x + p.y * nWidth].nType = 2;
 		m_grids[p.x + p.y * nWidth].nParType = -1;
 		m_grids[p.x + p.y * nWidth].nColor = i;
@@ -1219,7 +1234,7 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 
 		if( grid.nParType == -1 )
 		{
-			if( bSpawnChunk )
+			if( bSpawnChunk && !grid.pChunkObject )
 			{
 				auto pChunkObject = SafeCast<CChunkObject>( m_pPrefab->GetRoot()->CreateInstance() );
 				pChunkObject->SetParentBeforeEntity( GetRenderObject() );
