@@ -2,6 +2,7 @@
 #include "Block.h"
 #include "RandomBlocks.h"
 #include "Entities/AIObject.h"
+#include "LevelGenerate.h"
 
 class CLvFloor1 : public CRandomChunkTiled
 {
@@ -187,7 +188,8 @@ protected:
 	TClassTrigger<CLvBarrier2> m_deathTick;
 
 	CVector2 m_blockTex;
-	TResourceRef<CPrefab> m_pPrefab;
+	CString m_strCreateNode;
+	CReference<CLevelGenerateNode> m_pCreateNode;
 	TResourceRef<CPrefab> m_strKillEffect;
 	uint32 m_nKillEffectInterval;
 	uint32 m_nDeathTime;

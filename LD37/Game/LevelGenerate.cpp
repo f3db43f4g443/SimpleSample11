@@ -105,7 +105,7 @@ void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect,
 	}
 }
 
-void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<int32> ofs )
+void SLevelBuildContext::AddSpawnInfo( SChunkSpawnInfo * pInfo, const TVector2<int32>& ofs )
 {
 	auto pBlock = GetBlock( ofs.x, ofs.y, 1 );
 	if( !pBlock )
@@ -1499,6 +1499,25 @@ CLevelGenerateNode* CLevelGenerateNode::CreateNode( TiXmlElement* pXml, SLevelGe
 		return pNode;
 	}
 	return NULL;
+}
+
+SChunk* CLevelGenerateNode::AddSubChunk( CChunkObject* pChunkObject, const TRectangle<int32>& region )
+{
+	SLevelBuildContext context( region.width, region.height );
+	Generate( context, TRectangle<int32>( 0, 0, region.width, region.height ) );
+	context.Build();
+
+	assert( context.chunks.size() == 1 );
+	auto pChunk = context.chunks[0];
+	assert( pChunk->nWidth == region.width && pChunk->nHeight == region.height );
+
+	pChunk->pos.x = region.x * 32;
+	pChunk->pos.y = region.y * 32;
+	pChunk->bIsSubChunk = true;
+	pChunk->nSubChunkType = 2;
+	pChunkObject->GetChunk()->Insert_SubChunk( pChunk );
+	pChunk->CreateChunkObject( CMyLevel::GetInst(), pChunkObject->GetChunk() );
+	return pChunk;
 }
 
 void SLevelGenerateFileContext::AddInclude( SLevelGenerateFileContext* pContext, bool bPublic )

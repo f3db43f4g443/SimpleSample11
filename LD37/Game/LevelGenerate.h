@@ -9,7 +9,7 @@ struct SLevelBuildContext
 	SLevelBuildContext( uint32 nWidth, uint32 nHeight );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 );
-	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32> ofs );
+	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32>& ofs );
 	void PushScrollObj( CPrefab* pPrefab, uint32 nType );
 	void Build();
 
@@ -74,6 +74,7 @@ public:
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 
+	SChunk* AddSubChunk( CChunkObject* pChunkObject, const TRectangle<int32>& region );
 protected:
 	int32 m_nFillBlueprint;
 	CReference<CLevelGenerateNode> m_pNextLevel;

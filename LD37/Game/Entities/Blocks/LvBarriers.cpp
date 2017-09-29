@@ -1236,18 +1236,16 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 		{
 			if( bSpawnChunk && !grid.pChunkObject )
 			{
-				auto pChunkObject = SafeCast<CChunkObject>( m_pPrefab->GetRoot()->CreateInstance() );
-				pChunkObject->SetParentBeforeEntity( GetRenderObject() );
-				CVector2 pos( p.x * CMyLevel::GetBlockSize(), p.y * CMyLevel::GetBlockSize() );
+				TVector2<int32> pos = p;
 				if( p.x < 2 )
-					pos.x -= CMyLevel::GetBlockSize();
+					pos.x--;
 				else if( p.x >= nWidth - 2 )
-					pos.x += CMyLevel::GetBlockSize();
+					pos.x++;
 				else
-					pos.y += CMyLevel::GetBlockSize();
+					pos.y++;
+				auto pSubChunk = m_pCreateNode->AddSubChunk( this, TRectangle<int32>( p.x, p.y, 1, 1 ) );
 
-				pChunkObject->SetPosition( pos );
-				grid.pChunkObject = pChunkObject;
+				grid.pChunkObject = pSubChunk->pChunkObject;
 				m_vecMovingGrids.push_back( p );
 			}
 			continue;
@@ -1266,7 +1264,15 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 
 void CLvBarrier2::AIFunc()
 {
+	string str = m_strCreateNode;
+	int32 n = str.find( '.' );
+	if( n != string::npos )
+	{
+		str[n] = 0;
+		m_pCreateNode = CGlobalCfg::Inst().levelGenerateNodeContext.FindFile( &str[0] )->FindNode( &str[n + 1] );
+	}
 	m_pAI->Yield( 1.0f, true );
+
 	int32 nWidth = m_pChunk->nWidth;
 	int32 nHeight = m_pChunk->nHeight;
 	int32 i = 0;
