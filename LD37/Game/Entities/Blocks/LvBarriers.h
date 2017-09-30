@@ -161,6 +161,7 @@ protected:
 	void OnCoreDestroyed();
 	void OnChunkRemove( const TRectangle<int32>& rect );
 	void Move( bool bSpawnChunk );
+	void Move1();
 
 	void AIFunc();
 	class AI : public CAIObject
@@ -182,6 +183,7 @@ protected:
 	vector<SGrid> m_grids;
 	vector<TVector2<int32> > m_vecMovingGrids;
 	vector<TVector2<int32> > m_q;
+	vector<CReference<CChunkObject> > m_bigChunks;
 	uint32 m_nCoreCount;
 	bool m_bKilled;
 	uint32 m_nKillEffectCDLeft;

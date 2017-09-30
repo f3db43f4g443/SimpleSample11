@@ -1051,6 +1051,8 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 					m_grids[i + nX + ( j + nY ) * nWidth].nType = 1;
 				}
 			}
+
+			m_bigChunks.push_back( pSubChunk->pChunkObject );
 		}
 
 		auto pCore = SafeCast<CLvBarrier2Core>( pSubChunk->pChunkObject );
@@ -1074,6 +1076,7 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 			m_nCoreCount++;
 		}
 	}
+	SRand::Inst().Shuffle( m_bigChunks );
 
 	m_pAI = new AI();
 	m_pAI->SetParentEntity( this );
@@ -1262,6 +1265,86 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 	}
 }
 
+void CLvBarrier2::Move1()
+{
+	int32 nWidth = m_pChunk->nWidth;
+	int32 nHeight = m_pChunk->nHeight;
+	for( auto& pChunkObject : m_bigChunks )
+	{
+		if( pChunkObject && !pChunkObject->GetStage() )
+			pChunkObject = NULL;
+		if( !pChunkObject )
+			continue;
+		TRectangle<int32> rect( pChunkObject->GetChunk()->pos.x / CMyLevel::GetBlockSize(),
+			pChunkObject->GetChunk()->pos.y / CMyLevel::GetBlockSize(),
+			pChunkObject->GetChunk()->nWidth, pChunkObject->GetChunk()->nHeight );
+
+		TVector2<int32> dirs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		SRand::Inst().Shuffle( dirs, 4 );
+		for( int i = 0; i < 4; i++ )
+		{
+			auto dir = dirs[i];
+			if( rect.x + dir.x < 0 || rect.GetRight() + dir.x > nWidth || rect.y + dir.y < 0 || rect.GetBottom() + dir.y > nHeight )
+				continue;
+
+			TRectangle<int32> r, r1;
+			if( dir.x < 0 )
+			{
+				r = TRectangle<int32>( rect.x - 1, rect.y, 1, rect.height );
+				r1 = TRectangle<int32>( rect.GetRight(), rect.y, 1, rect.height );
+			}
+			else if( dir.x > 0 )
+			{
+				r = TRectangle<int32>( rect.GetRight(), rect.y, 1, rect.height );
+				r1 = TRectangle<int32>( rect.x - 1, rect.y, 1, rect.height );
+			}
+			else if( dir.y < 0 )
+			{
+				r = TRectangle<int32>( rect.x, rect.y - 1, rect.width, 1 );
+				r1 = TRectangle<int32>( rect.x, rect.GetBottom(), rect.width, 1 );
+			}
+			else
+			{
+				r = TRectangle<int32>( rect.x, rect.GetBottom(), rect.width, 1 );
+				r1 = TRectangle<int32>( rect.x, rect.y - 1, rect.width, 1 );
+			}
+
+			bool bBlocked = false;
+			for( int iX = r.x; iX < r.GetRight(); iX++ )
+			{
+				for( int iY = r.y; iY < r.GetBottom(); iY++ )
+				{
+					if( m_grids[iX + iY * nWidth].nType )
+					{
+						bBlocked = true;
+						break;
+					}
+				}
+				if( bBlocked )
+					break;
+			}
+			if( bBlocked )
+				continue;
+
+			for( int iX = r.x; iX < r.GetRight(); iX++ )
+			{
+				for( int iY = r.y; iY < r.GetBottom(); iY++ )
+				{
+					m_grids[iX + iY * nWidth].nType = 1;
+				}
+			}
+			for( int iX = r1.x; iX < r1.GetRight(); iX++ )
+			{
+				for( int iY = r1.y; iY < r1.GetBottom(); iY++ )
+				{
+					m_grids[iX + iY * nWidth].nType = 0;
+				}
+			}
+			pChunkObject->GetChunk()->pos = pChunkObject->GetChunk()->pos + dir * CMyLevel::GetBlockSize();
+		}
+	}
+}
+
 void CLvBarrier2::AIFunc()
 {
 	string str = m_strCreateNode;
@@ -1275,15 +1358,11 @@ void CLvBarrier2::AIFunc()
 
 	int32 nWidth = m_pChunk->nWidth;
 	int32 nHeight = m_pChunk->nHeight;
-	int32 i = 0;
+	int32 iCount = 0;
 	while( 1 )
 	{
-		Move( i == 0 );
-		if( i == 0 )
-			i = m_nCoreCount;
-		i--;
-
-		for( int i = 0; i < 32; i++ )
+		Move( iCount == 0 );
+		for( int i = 0; i < 16; i++ )
 		{
 			for( auto& p : m_vecMovingGrids )
 			{
@@ -1307,10 +1386,39 @@ void CLvBarrier2::AIFunc()
 					p.y += 1;
 				else if( p.y > targetPos.y )
 					p.y -= 1;
-				grid.pChunkObject->SetPosition( p );
+				if( p != targetPos )
+					grid.pChunkObject->SetPosition( p );
 			}
 			
 			m_pAI->Yield( 0, true );
 		}
+
+		Move1();
+		for( int i = 0; i < 16; i++ )
+		{
+			for( auto& pChunkObject : m_bigChunks )
+			{
+				if( pChunkObject && !pChunkObject->GetStage() )
+					pChunkObject = NULL;
+				if( !pChunkObject )
+					continue;
+
+				auto targetPos = pChunkObject->GetChunk()->pos;
+				CVector2 p = pChunkObject->GetPosition();
+				if( p.x < targetPos.x )
+					p.x += 1;
+				else if( p.x > targetPos.x )
+					p.x -= 1;
+				if( p.y < targetPos.y )
+					p.y += 1;
+				else if( p.y > targetPos.y )
+					p.y -= 1;
+				pChunkObject->SetPosition( p );
+			}
+		}
+
+		if( iCount == 0 )
+			iCount = m_nCoreCount;
+		iCount--;
 	}
 }
