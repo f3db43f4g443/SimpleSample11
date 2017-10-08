@@ -209,18 +209,17 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
 	void GenBlocks();
-	void GenRails( SChunk* pChunk );
+	void GenTracks( SChunk* pChunk );
 
+	CReference<CLevelGenerateNode> m_pBlockNode;
 	CReference<CLevelGenerateNode> m_pChunkNode;
-	CReference<CLevelGenerateNode> m_pCoreNode;
 	CReference<CLevelGenerateNode> m_pLabelNode;
 
 	enum
 	{
 		eType_None,
 		eType_Blocked,
-		eType_Rail,
-		eType_Core,
+		eType_Track,
 	};
 
 	SLevelBuildContext* m_pContext;

@@ -5,11 +5,13 @@
 
 CBlockBuff* CBlockBuff::AddBuff( CPrefab* pPrefab, CBlockObject* pBlock, SContext* pContext )
 {
+	if( pBlock->GetBlock()->bImmuneToBlockBuff )
+		return NULL;
 	auto pBlockBuff = pPrefab->GetRoot()->GetStaticData<CBlockBuff>();
 	if( !pBlockBuff )
 		return NULL;
 
-	pBlockBuff->Add( pPrefab, pBlock, pContext );
+	return pBlockBuff->Add( pPrefab, pBlock, pContext );
 }
 
 CBlockBuff* CBlockBuff::Add( CPrefab* pPrefab, CBlockObject* pBlock, SContext* pContext ) const

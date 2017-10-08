@@ -196,6 +196,7 @@
       <node name="unbreakable" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/unbreakable.pf">
         <metadata isdesignvalid="0" />
         <types>4</types>
+        <immune_to_block_buff>1</immune_to_block_buff>
       </node>
       <node name="wall1block" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/wall1block.pf">
         <metadata isdesignvalid="0" />

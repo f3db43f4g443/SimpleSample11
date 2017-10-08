@@ -96,6 +96,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 			block.eBlockType = blockInfo.eBlockType;
 			block.nTag = blockInfo.nTag;
 			block.fDmgPercent = blockInfo.fDmgPercent;
+			block.bImmuneToBlockBuff = blockInfo.bImmuneToBlockBuff;
 		}
 	}
 }

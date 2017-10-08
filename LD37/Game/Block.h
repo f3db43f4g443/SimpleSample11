@@ -18,6 +18,7 @@ struct SBlockBaseInfo
 {
 	EBlockType eBlockType;
 	uint8 nTag;
+	uint8 bImmuneToBlockBuff;
 	float fDmgPercent;
 };
 
@@ -31,7 +32,7 @@ struct SBlockLayer
 
 struct SBlock
 {
-	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 )
+	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 ), bImmuneToBlockBuff( 0 )
 	{ layers[0].pParent = layers[1].pParent = this; }
 	struct SChunk* pOwner;
 	float fDmgPercent;
@@ -40,6 +41,9 @@ struct SBlock
 	uint8 nX, nY;
 	uint8 nUpperMargin, nLowerMargin;
 	uint8 nAttachType;
+
+	uint8 bImmuneToBlockBuff : 1;
+
 	CReference<CEntity> pEntity;
 
 	CRectangle rtTexRect;

@@ -3,11 +3,14 @@
 
 struct SBarrageContext
 {
+	SBarrageContext() : fTimeScale( 60 ), bAutoDeletePages( true ) {}
 	CReference<CEntity> pCreator;
 	vector<CReference<CPrefab> > vecBulletTypes;
 	vector<CReference<CPrefab> > vecLightningTypes;
+	float fTimeScale;
 	uint32 nBulletPageSize;
 	uint32 nLightningPageSize;
+	bool bAutoDeletePages;
 };
 
 struct SBulletContext

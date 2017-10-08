@@ -120,25 +120,28 @@ void CBarrage::OnTickBeforeHitTest()
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
 
 	bool bDeletedBulletPage = false;
-	for( auto pBulletPage = m_pBulletPages; pBulletPage;  )
+	if( bAutoDeletePages || m_bStopNewBullet )
 	{
-		if( pBulletPage->nAliveBulletCount )
-			break;
-		auto pBulletPage1 = pBulletPage->NextPage();
-		pBulletPage->RemoveFrom_Page();
-		delete pBulletPage;
-		pBulletPage = pBulletPage1;
-		bDeletedBulletPage = true;
-	}
+		for( auto pBulletPage = m_pBulletPages; pBulletPage; )
+		{
+			if( pBulletPage->nAliveBulletCount )
+				break;
+			auto pBulletPage1 = pBulletPage->NextPage();
+			pBulletPage->RemoveFrom_Page();
+			delete pBulletPage;
+			pBulletPage = pBulletPage1;
+			bDeletedBulletPage = true;
+		}
 
-	for( auto pLightningPage = m_pLightningPages; pLightningPage; )
-	{
-		if( pLightningPage->nAliveLightningCount )
-			break;
-		auto pLightningPage1 = pLightningPage->NextLightningPage();
-		pLightningPage->RemoveFrom_LightningPage();
-		delete pLightningPage;
-		pLightningPage = pLightningPage1;
+		for( auto pLightningPage = m_pLightningPages; pLightningPage; )
+		{
+			if( pLightningPage->nAliveLightningCount )
+				break;
+			auto pLightningPage1 = pLightningPage->NextLightningPage();
+			pLightningPage->RemoveFrom_LightningPage();
+			delete pLightningPage;
+			pLightningPage = pLightningPage1;
+		}
 	}
 	
 	if( !m_pBulletPages && !m_pLightningPages )
@@ -313,7 +316,7 @@ void CBarrage::OnTickBeforeHitTest()
 
 void CBarrage::OnTransformUpdated()
 {
-	if( !m_bReadyUpdateTransforms )
+	if( !m_bReadyUpdateTransforms || !m_pBulletPages )
 		return;
 	m_bReadyUpdateTransforms = false;
 	uint32 nIndex = 0;
@@ -339,12 +342,12 @@ void CBarrage::OnTransformUpdated()
 			}
 
 			const CMatrix2D& par = nParentTransform == -1 ? globalTransform : m_vecTransforms[nParentTransform];
-			float t = ( m_nCurFrame - bullet.nBeginFrame ) / 60.0f;
+			float t = ( m_nCurFrame - bullet.nBeginFrame ) / fTimeScale;
 			CVector2 pos = bullet.p0 + bullet.v * t + bullet.a * ( t * t * 0.5f );
 			CMatrix2D mat;
 			if( !bullet.bTangentAngle )
 			{
-				float t1 = ( m_nCurFrame - bullet.nBeginFrame1 ) / 60.0f;
+				float t1 = ( m_nCurFrame - bullet.nBeginFrame1 ) / fTimeScale;
 				float fAngle = bullet.fAngle0 + bullet.fAngleV * t1 + bullet.fAngleA * ( t1 * t1 * 0.5f );
 				mat.Transform( pos.x, pos.y, fAngle, 1 );
 			}
@@ -412,7 +415,7 @@ void SBulletContext::SetBulletMove( const CVector2& p0, const CVector2& v, const
 
 void SBulletContext::SetBulletMove( const CVector2& v, const CVector2& a )
 {
-	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / 60.0f;
+	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / pPage->pOwner->fTimeScale;
 	this->p0 = this->p0 + this->v * t + this->a * ( t * t * 0.5f );
 	this->v = v;
 	this->a = a;
@@ -429,7 +432,7 @@ void SBulletContext::SetBulletMoveA( float fAngle0, float fAngleV, float fAngleA
 
 void SBulletContext::SetBulletMoveA( float fAngleV, float fAngleA )
 {
-	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame1 ) / 60.0f;
+	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame1 ) / pPage->pOwner->fTimeScale;
 	this->fAngle0 = this->fAngle0 + this->fAngleV * t + this->fAngleA * ( t * t * 0.5f );
 	this->fAngleV = fAngleV;
 	this->fAngleA = fAngleA;
@@ -438,9 +441,9 @@ void SBulletContext::SetBulletMoveA( float fAngleV, float fAngleA )
 
 void SBulletContext::MoveTowards( const CVector2 & p0, uint32 nTime )
 {
-	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / 60.0f;
+	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / pPage->pOwner->fTimeScale;
 	this->p0 = this->p0 + this->v * t + this->a * ( t * t * 0.5f );
-	this->v = ( p0 - this->p0 ) * ( 60.0f / nTime );
+	this->v = ( p0 - this->p0 ) * ( pPage->pOwner->fTimeScale / nTime );
 	this->a = CVector2( 0, 0 );
 	nBeginFrame = pPage->pOwner->m_nCurFrame;
 }
@@ -454,7 +457,7 @@ bool SBulletContext::Reflect()
 		return false;
 
 	bool bReflect = false;
-	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / 60.0f;
+	float t = ( pPage->pOwner->m_nCurFrame - nBeginFrame ) / pPage->pOwner->fTimeScale;
 	CVector2 v1 = v + a * t;
 	for( ; pManifold; pManifold = pManifold->NextManifold() )
 	{

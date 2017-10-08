@@ -147,6 +147,7 @@ void SLevelBuildContext::Build()
 							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
 							pBlock->pParent->nTag = pParentChunk->GetBlock( i, j )->nTag;
 							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
+							pParentChunk->GetBlock( i, j )->bImmuneToBlockBuff = pBlock->pParent->bImmuneToBlockBuff;
 						}
 						if( pBlock->pParent->nX == 0 && pBlock->pParent->nY == 0 && iLayer == pBlock->pParent->pOwner->GetMinLayer() && pBlock->pParent->pOwner->pPrefab )
 						{
@@ -425,7 +426,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
 	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
 	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
-	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0 );
+	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0.0F );
 	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
 	chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
 	chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );
@@ -490,6 +491,30 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	{
 		for( auto& blockInfo : chunk.blockInfos )
 			blockInfo.nTag = 0;
+	}
+
+	const char* szImmuneToBlockBuff = XmlGetValue( pXml, "immune_to_block_buff", "" );
+	if( szImmuneToBlockBuff[0] )
+	{
+		c = szImmuneToBlockBuff;
+		i = 0;
+		while( *c && i < chunk.nWidth * chunk.nHeight )
+		{
+			if( *c >= '0' && *c <= '9' )
+			{
+				int y = i / chunk.nWidth;
+				int x = i % chunk.nWidth;
+				auto& blockInfo = chunk.blockInfos[x + ( chunk.nHeight - y - 1 ) * chunk.nWidth];
+				blockInfo.bImmuneToBlockBuff = *c != '0';
+				i++;
+			}
+			c++;
+		}
+	}
+	else
+	{
+		for( auto& blockInfo : chunk.blockInfos )
+			blockInfo.bImmuneToBlockBuff = 0;
 	}
 
 	auto pSubItem = pXml->FirstChildElement( "subitem" );

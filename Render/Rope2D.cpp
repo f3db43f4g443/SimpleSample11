@@ -370,6 +370,23 @@ void SRopeData::Update( const CMatrix2D& globalTransform )
 		const CMatrix2D& worldMat = data.pRefObj ? ( data.nRefTransformIndex >= 0 ? data.pRefObj->GetTransform( data.nRefTransformIndex ) : data.pRefObj->globalTransform ) : globalTransform;
 		data.worldCenter = worldMat.MulVector2Pos( data.center );
 	}
+	if( data.size() >= 3 )
+	{
+		if( data[0].bBegin )
+		{
+			CVector2 dWorldCenter = data[2].worldCenter - data[1].worldCenter;
+			dWorldCenter.Normalize();
+			data[0].worldCenter = data[1].worldCenter + CVector2( data[0].center.x * dWorldCenter.x - data[0].center.y * dWorldCenter.y,
+				data[0].center.x * dWorldCenter.y + data[0].center.y * dWorldCenter.x );
+		}
+		if( data.back().bEnd )
+		{
+			CVector2 dWorldCenter = data[data.size() - 2].worldCenter - data[data.size() - 3].worldCenter;
+			dWorldCenter.Normalize();
+			data.back().worldCenter = data[data.size() - 2].worldCenter + CVector2( data.back().center.x * dWorldCenter.x - data.back().center.y * dWorldCenter.y,
+				data.back().center.x * dWorldCenter.y + data.back().center.y * dWorldCenter.x );
+		}
+	}
 }
 
 bool CRopeObject2D::CalcAABB()

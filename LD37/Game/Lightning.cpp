@@ -191,7 +191,8 @@ void CLightning::OnTick()
 
 	if( !GetStage() )
 		return;
-	if( fHitWidth > 0 && !m_nHitCDLeft )
+	auto dCenter = endCenter - beginCenter;
+	if( fHitWidth > 0 && !m_nHitCDLeft && dCenter.Length2() > 0.01f )
 	{
 		switch( m_nType )
 		{
@@ -200,7 +201,6 @@ void CLightning::OnTick()
 			{
 				SHitProxyPolygon polygon;
 				polygon.nVertices = 4;
-				auto dCenter = endCenter - beginCenter;
 				dCenter.Normalize();
 				dCenter = CVector2( dCenter.y, -dCenter.x ) * fHitWidth * 0.5f;
 
@@ -245,7 +245,6 @@ void CLightning::OnTick()
 		{
 			SHitProxyPolygon polygon;
 			polygon.nVertices = 4;
-			auto dCenter = endCenter - beginCenter;
 			dCenter.Normalize();
 			CVector2 d = dCenter;
 			dCenter = CVector2( dCenter.y, -dCenter.x ) * fHitWidth * 0.5f;
@@ -412,25 +411,23 @@ void CLightning::UpdateRenderObject()
 	if( bBegin )
 	{
 		auto& begin0 = data.data[0];
-		CVector2 d = begin.center - end.center;
-		d.Normalize();
-		begin0.center = begin.center + d * m_fBeginLen;
+		begin0.center = CVector2( -m_fEndLen, 0 );
 		begin0.fWidth = begin.fWidth;
 		begin0.tex0.x = begin.tex0.x;
 		begin0.tex1.x = begin.tex1.x;
 		begin0.tex0.y = begin0.tex1.y = 0;
+		begin0.bBegin = true;
 		begin.tex0.y = begin.tex1.y = m_fBeginTexLen;
 	}
 	if( bEnd )
 	{
 		auto& end0 = data.data.back();
-		CVector2 d = end.center - begin.center;
-		d.Normalize();
-		end0.center = end.center + d * m_fEndLen;
+		end0.center = CVector2( m_fEndLen, 0 );
 		end0.fWidth = end.fWidth;
 		end0.tex0.x = end.tex0.x;
 		end0.tex1.x = end.tex1.x;
 		end0.tex0.y = end0.tex1.y = 1;
+		end0.bEnd = true;
 		end.tex0.y = end.tex1.y = 1 - m_fEndTexLen;
 	}
 
