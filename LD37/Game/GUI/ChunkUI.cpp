@@ -200,13 +200,18 @@ void CChunkUI::OnTick()
 void CChunkUI::UpdateHp()
 {
 	CVector4 hpColor;
-	float fPercent = m_pChunkObject->GetHp() * 1.0f / m_pChunkObject->GetMaxHp();
-	if( fPercent > 0.75f )
-		hpColor = ( CVector4( 0, 1, 0, 1 ) * ( fPercent - 0.75f ) + CVector4( 0.5, 0.5, 0, 1 ) * ( 1 - fPercent ) ) / 0.25f;
-	else if( fPercent > 0.25f )
-		hpColor = ( CVector4( 0.5, 0.5, 0, 1 ) * ( fPercent - 0.25f ) + CVector4( 1, 0, 0, 1 ) * ( 0.75f - fPercent ) ) / 0.5f;
+	if( m_pChunkObject->GetMaxHp() == 0 )
+		hpColor = CVector4( 1, 1, 1, 1 );
 	else
-		hpColor = ( CVector4( 1, 0, 0, 1 ) * fPercent + CVector4( 0.25f, 0.25f, 0.25f, 1 ) * ( 0.25f - fPercent ) ) * 4;
+	{
+		float fPercent = m_pChunkObject->GetHp() * 1.0f / m_pChunkObject->GetMaxHp();
+		if( fPercent > 0.75f )
+			hpColor = ( CVector4( 0, 1, 0, 1 ) * ( fPercent - 0.75f ) + CVector4( 0.5, 0.5, 0, 1 ) * ( 1 - fPercent ) ) / 0.25f;
+		else if( fPercent > 0.25f )
+			hpColor = ( CVector4( 0.5, 0.5, 0, 1 ) * ( fPercent - 0.25f ) + CVector4( 1, 0, 0, 1 ) * ( 0.75f - fPercent ) ) / 0.5f;
+		else
+			hpColor = ( CVector4( 1, 0, 0, 1 ) * fPercent + CVector4( 0.25f, 0.25f, 0.25f, 1 ) * ( 0.25f - fPercent ) ) * 4;
+	}
 	hpColor.w = 1.0f;// 0.5f + 0.5f * m_fRepairPercent;
 	for( int i = 0; i < ELEM_COUNT( m_pFrameImg ); i++ )
 		static_cast<CImage2D*>( m_pFrameImg[i].GetPtr() )->GetParam()[0] = hpColor;

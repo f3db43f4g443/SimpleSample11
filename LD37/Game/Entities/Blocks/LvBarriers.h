@@ -139,6 +139,20 @@ private:
 	bool m_bPickupCreated;
 };
 
+class CLvBarrier2Box : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrier2Box( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLvBarrier2Box ); }
+	virtual void Kill() override;
+	virtual void Crush() override;
+private:
+	uint32 m_nMaxHp1;
+	CVector2 m_texOfs;
+
+	uint8 m_nState;
+};
+
 class CLvBarrier2Core : public CRandomChunkTiledSimple
 {
 	friend class CLvBarrier2;
@@ -153,7 +167,6 @@ public:
 private:
 	int32 m_nIndex;
 	uint8 m_nDmgTime;
-	uint32 m_nFireCD;
 };
 
 class CLvBarrier2 : public CChunkObject
@@ -168,7 +181,7 @@ public:
 
 	virtual void Kill() override;
 	void OnChunkRemove( uint32 nIndex );
-
+	void OnBoxKilled( CChunkObject* pChunkObject );
 protected:
 	virtual void OnKilled() {}
 	void KillTick();
@@ -284,4 +297,5 @@ protected:
 	TResourceRef<CPrefab> m_pLightning0;
 	uint32 m_nKillEffectInterval;
 	uint32 m_nDeathTime;
+	uint32 m_nFireCD;
 };

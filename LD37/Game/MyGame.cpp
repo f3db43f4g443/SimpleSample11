@@ -985,6 +985,12 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strItemDrop )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CLvBarrier2Box )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nMaxHp1 )
+		REGISTER_MEMBER( m_texOfs )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CLvBarrier2Core )
 		REGISTER_BASE_CLASS( CRandomChunkTiledSimple )
 	REGISTER_CLASS_END()

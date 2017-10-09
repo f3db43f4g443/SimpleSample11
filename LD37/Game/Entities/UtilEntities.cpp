@@ -14,9 +14,22 @@ void CTexRectRandomModifier::OnAddedToStage()
 
 	uint32 nCol = SRand::Inst().Rand( 0u, m_nCols );
 	uint32 nRow = SRand::Inst().Rand( 0u, m_nRows );
-	texRect = texRect.Offset( CVector2( nCol * m_fWidth, nRow * m_fHeight ) );
-
+	CVector2 ofs( nCol * m_fWidth, nRow * m_fHeight );
+	texRect = texRect.Offset( ofs );
 	pImage2D->SetTexRect( texRect );
+
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunkObject )
+	{
+		for( int i = 0; i < pChunkObject->GetChunk()->nWidth; i++ )
+		{
+			for( int j = 0; j < pChunkObject->GetChunk()->nHeight; j++ )
+			{
+				pChunkObject->GetBlock( i, j )->rtTexRect = pChunkObject->GetBlock( i, j )->rtTexRect.Offset( ofs );
+			}
+		}
+	}
+
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }
 

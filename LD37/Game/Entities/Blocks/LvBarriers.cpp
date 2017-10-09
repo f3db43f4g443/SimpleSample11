@@ -936,6 +936,8 @@ void CLvBarrier2::OnRemovedFromStage()
 {
 	if( m_onHitShakeTick.IsRegistered() )
 		m_onHitShakeTick.Unregister();
+	if( m_deathTick.IsRegistered() )
+		m_deathTick.Unregister();
 	CChunkObject::OnRemovedFromStage();
 }
 
@@ -1126,6 +1128,10 @@ void CLvBarrier2::OnChunkRemove( uint32 nIndex )
 		Kill();
 }
 
+void CLvBarrier2::OnBoxKilled( CChunkObject * pChunkObject )
+{
+}
+
 void CLvBarrier2::Move( bool bSpawnChunk )
 {
 	m_vecMovingGrids.clear();
@@ -1269,13 +1275,9 @@ void CLvBarrier2::Move1()
 				CreateExplosion( rect.x, iY, pChunkObject );
 				CreateExplosion( rect.GetRight() - 1, iY, pChunkObject );
 			}
-			if( !pCore->m_nFireCD )
-			{
-				pCore->m_nFireCD = GenBarrage2( 0, rect );
-			}
+			if( !m_nFireCD )
+				m_nFireCD = GenBarrage2( 0, rect );
 		}
-		if( pCore->m_nFireCD )
-			pCore->m_nFireCD--;
 
 		TVector2<int32> dirs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
 		SRand::Inst().Shuffle( dirs, 4 );
@@ -1334,7 +1336,7 @@ void CLvBarrier2::Move1()
 					m_grids[iX + iY * nWidth].nType = 1;
 					if( m_grids[iX + iY * nWidth].pChunkObject )
 					{
-						m_grids[iX + iY * nWidth].pChunkObject->Kill();
+						m_grids[iX + iY * nWidth].pChunkObject->Crush();
 						if( !b )
 							CreateExplosion( iX, iY, pChunkObject );
 					}
@@ -1348,11 +1350,13 @@ void CLvBarrier2::Move1()
 				}
 			}
 			bigChunk.rect = rect.Offset( dir );
-			if( !b )
+			if( b )
 				GenBarrage1( 0, r, CVector2( dir.x, dir.y ) );
 			break;
 		}
 	}
+	if( m_nFireCD )
+		m_nFireCD--;
 }
 
 void CLvBarrier2::CreateExplosion( int32 iX, int32 iY, CChunkObject* pCreator )
@@ -1457,6 +1461,37 @@ void CLvBarrier2::AIFunc()
 			iCount = m_nCoreSize * 4 / m_nMaxCoreSize + 1;
 		iCount--;
 	}
+}
+
+void CLvBarrier2Box::Kill()
+{
+	if( m_nState )
+	{
+		CChunkObject::Kill();
+		return;
+	}
+
+	m_nState = 1;
+	m_fHp = m_nMaxHp = m_nMaxHp1;
+	auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
+	pImage2D->SetTexRect( pImage2D->GetElem().texRect.Offset( m_texOfs ) );
+	for( auto& block : GetChunk()->blocks )
+	{
+		CMyLevel::GetInst()->OnBlockObjectRemoved( SafeCast<CBlockObject>( block.pEntity.GetPtr() ) );
+		block.rtTexRect = block.rtTexRect.Offset( m_texOfs );
+		block.eBlockType = eBlockType_Wall;
+	}
+	SafeCast<CLvBarrier2>( GetParentEntity() )->OnBoxKilled( this );
+}
+
+void CLvBarrier2Box::Crush()
+{
+	if( m_nState == 0 )
+	{
+		m_nState = 1;
+		SafeCast<CLvBarrier2>( GetParentEntity() )->OnBoxKilled( this );
+	}
+	CChunkObject::Crush();
 }
 
 void CLvBarrier2Core::OnRemovedFromStage()
@@ -1595,7 +1630,16 @@ int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
 			float v0 = 64;
 			float v1 = 64;
 			int32 nWaves = 5;
-			pBarrage->InitBullet( 0, 0, -1, CVector2( 0, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ) );
+			CVector2 vel;
+			float dx = pBarrage->GetPosition().x - 512;
+			float r = SRand::Inst().Rand( 0, 1024 );
+			if( r < dx - 256 )
+				vel = CVector2( -8, SRand::Inst().Rand() & 1 ? 12 : -12 );
+			else if( r >= dx + 256 )
+				vel = CVector2( 8, SRand::Inst().Rand() & 1 ? 12 : -12 );
+			else
+				vel = CVector2( 0, SRand::Inst().Rand() & 1 ? 14 : -14 );
+			pBarrage->InitBullet( 0, 0, -1, CVector2( 0, 0 ), vel, CVector2( 0, 0 ), false );
 
 			for( int k = 0; k <= nWaves; k++ )
 			{
@@ -1690,6 +1734,7 @@ int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
 				pBarrage->GetBulletContext( nBullet1 + 1 + n + i )->SetBulletMove( CVector2( v1, 0 ), CVector2( 0, 0 ) );
 				pBarrage->DestroyLightning( i );
 			}
+			pBarrage->DestroyBullet( 0 );
 
 			pBarrage->Yield( 2 );
 			pBarrage->StopNewBullet();
@@ -1697,7 +1742,7 @@ int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
 		pBarrage->SetPosition( CVector2( rect.GetCenterX(), rect.GetCenterY() ) * CMyLevel::GetBlockSize() + GetPosition() );
 		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		pBarrage->Start();
-		return 15;
+		return 24;
 	}
 	}
 	return 0;
