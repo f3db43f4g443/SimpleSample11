@@ -4,6 +4,7 @@
 #include "Entities/AIObject.h"
 #include "Entities/Barrage.h"
 #include "LevelGenerate.h"
+#include "CharacterMove.h"
 
 class CLvFloor1 : public CRandomChunkTiled
 {
@@ -173,7 +174,7 @@ class CLvBarrier2 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ), m_deathTick( this, &CLvBarrier2::KillTick ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
+	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ), m_energyEftFlyData( context ), m_deathTick( this, &CLvBarrier2::KillTick ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
@@ -187,6 +188,7 @@ protected:
 	void KillTick();
 	void Move( bool bSpawnChunk );
 	void Move1();
+	void UpdateEnergyEfts();
 	void CreateExplosion( int32 iX, int32 iY, CChunkObject* pCreator );
 
 	class CBarrage1 : public CBarrage
@@ -278,6 +280,7 @@ protected:
 		CReference<CChunkObject> pChunk;
 		TRectangle<int32> rect;
 	};
+	CReference<CRenderObject2D> m_pBoxLayer;
 	vector<SBigChunk> m_bigChunks;
 	uint32 m_nCoreSize;
 	uint32 m_nMaxCoreSize;
@@ -285,10 +288,15 @@ protected:
 	uint32 m_nKillEffectCDLeft;
 	CReference<CBarrage1> m_pBarrages1[4];
 	TClassTrigger<CLvBarrier2> m_deathTick;
+	vector<CReference<CEntity> > m_vecEnergyEfts;
+	uint32 m_nEnergy;
+	uint32 m_nFireCD;
 
 	CVector2 m_blockTex;
 	CString m_strCreateNode;
 	CReference<CLevelGenerateNode> m_pCreateNode;
+	TResourceRef<CPrefab> m_pEnergyEft;
+	SCharacterPhysicsFlyData m_energyEftFlyData;
 	TResourceRef<CPrefab> m_strKillEffect;
 	TResourceRef<CPrefab> m_pExplosion;
 	TResourceRef<CPrefab> m_pBullet;
@@ -297,5 +305,4 @@ protected:
 	TResourceRef<CPrefab> m_pLightning0;
 	uint32 m_nKillEffectInterval;
 	uint32 m_nDeathTime;
-	uint32 m_nFireCD;
 };

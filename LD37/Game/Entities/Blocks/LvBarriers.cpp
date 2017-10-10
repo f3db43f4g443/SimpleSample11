@@ -984,10 +984,12 @@ void CLvBarrier2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 			pImage2D->SetTexRect( texRect );
 			GetRenderObject()->AddChild( pImage2D );
 			if( GetBlock( i, j )->eBlockType == eBlockType_Block )
-				pImage2D->SetRenderParent( this );
+				pImage2D->SetRenderParentBefore( m_p1 );
 			GetBlock( i, j )->rtTexRect = texRect;
 		}
 	}
+	m_pBoxLayer = new CRenderObject2D;
+	m_p1->AddChild( m_pBoxLayer );
 }
 
 void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
@@ -1058,6 +1060,11 @@ void CLvBarrier2::Kill()
 	m_bKilled = true;
 	m_fHp = 0;
 	AddHitShake( CVector2( 8, 0 ) );
+	for( auto& pEft : m_vecEnergyEfts )
+	{
+		SafeCast<CCharacter>( pEft.GetPtr() )->Kill();
+	}
+	m_vecEnergyEfts.clear();
 	KillTick();
 	OnKilled();
 }
@@ -1130,6 +1137,14 @@ void CLvBarrier2::OnChunkRemove( uint32 nIndex )
 
 void CLvBarrier2::OnBoxKilled( CChunkObject * pChunkObject )
 {
+	CVector2 pos = pChunkObject->GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize();
+	auto pEft = SafeCast<CCharacter>( m_pEnergyEft->GetRoot()->CreateInstance() );
+	pEft->SetPosition( pos + GetPosition() );
+	float rad = SRand::Inst().Rand( 32.0f, 64.0f );
+	float angle = SRand::Inst().Rand( -PI, PI );
+	pEft->SetVelocity( CVector2( cos( angle ), sin( angle ) ) * rad );
+	pEft->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+	m_vecEnergyEfts.push_back( pEft );
 }
 
 void CLvBarrier2::Move( bool bSpawnChunk )
@@ -1240,7 +1255,7 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 			auto pSubChunk = m_pCreateNode->AddSubChunk( this, TRectangle<int32>( pos.x, pos.y, 1, 1 ) );
 
 			grid.pChunkObject = pSubChunk->pChunkObject;
-			grid.pChunkObject->SetRenderParentBefore( GetRenderObject() );
+			grid.pChunkObject->SetRenderParent( m_pBoxLayer );
 			m_vecMovingGrids.push_back( p );
 		}
 	}
@@ -1275,8 +1290,6 @@ void CLvBarrier2::Move1()
 				CreateExplosion( rect.x, iY, pChunkObject );
 				CreateExplosion( rect.GetRight() - 1, iY, pChunkObject );
 			}
-			if( !m_nFireCD )
-				m_nFireCD = GenBarrage2( 0, rect );
 		}
 
 		TVector2<int32> dirs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
@@ -1355,8 +1368,33 @@ void CLvBarrier2::Move1()
 			break;
 		}
 	}
+
+	if( m_nEnergy >= 100 && !m_nFireCD )
+	{
+		m_nFireCD = GenBarrage2( 0, TRectangle<int32>( 14, 6, 4, 2 ) );
+		m_nEnergy -= m_nFireCD * 4;
+	}
 	if( m_nFireCD )
 		m_nFireCD--;
+}
+
+void CLvBarrier2::UpdateEnergyEfts()
+{
+	for( int32 i = m_vecEnergyEfts.size() - 1; i >= 0; i-- )
+	{
+		CVector2 targetPos( 512, 224 );
+		targetPos = targetPos + GetPosition();
+		auto pCharacter = SafeCast<CCharacter>( m_vecEnergyEfts[i].GetPtr() );
+
+		m_energyEftFlyData.UpdateMove( pCharacter, targetPos );
+		if( ( pCharacter->GetPosition() - targetPos ).Length2() < 8 * 8 )
+		{
+			pCharacter->Kill();
+			m_vecEnergyEfts[i] = m_vecEnergyEfts.back();
+			m_vecEnergyEfts.pop_back();
+			m_nEnergy = Min( m_nEnergy + 1, 100u );
+		}
+	}
 }
 
 void CLvBarrier2::CreateExplosion( int32 iX, int32 iY, CChunkObject* pCreator )
