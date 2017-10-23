@@ -14,6 +14,7 @@ struct SRopeData
 		~SData() {}
 		CVector2 center;
 		CVector2 worldCenter;
+		CMatrix2D worldMat;
 		float fWidth;
 		CVector2 tex0;
 		CVector2 tex1;
@@ -70,6 +71,8 @@ public:
 	void SetDataCount( uint32 nCount ) { m_data.SetDataCount( nCount ); }
 	void SetData( uint32 nData, const CVector2& center, float fWidth, const CVector2& tex0, const CVector2& tex1, uint16 nTransformIndex = INVALID_16BITID );
 	void SetExtraData( void* pData ) { m_data.pExtraData = pData; }
+
+	virtual const CMatrix2D& GetTransform( uint16 nIndex ) override;
 
 	virtual bool CalcAABB() override;
 	virtual void Render( CRenderContext2D& context ) override;

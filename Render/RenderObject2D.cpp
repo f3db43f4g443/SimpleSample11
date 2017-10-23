@@ -8,7 +8,8 @@ CRenderObject2D::CRenderObject2D()
 	SET_BASEOBJECT_ID( CRenderObject2D );
 	m_pTransformParent = m_pRenderParent = NULL;
 	m_pTransformChildren = m_pRenderChildren = NULL;
-	m_depth = -1;
+	m_nDepth = -1;
+	m_nRenderDepth = -1;
 	m_isTransformDirty = false;
 	m_isAABBDirty = false;
 	m_bUpdated = false;
@@ -30,7 +31,7 @@ CRenderObject2D::~CRenderObject2D()
 
 void CRenderObject2D::SetTransformDirty()
 {
-	if( m_depth >= 0 && !m_isTransformDirty )
+	if( m_nDepth >= 0 && !m_isTransformDirty )
 	{
 		CScene2DManager::GetGlobalInst()->AddDirtyRenderObject(this);
 		m_isTransformDirty = true;
@@ -39,7 +40,7 @@ void CRenderObject2D::SetTransformDirty()
 
 void CRenderObject2D::SetBoundDirty()
 {
-	if( m_depth >= 0 && !m_isAABBDirty )
+	if( m_nRenderDepth >= 0 && !m_isAABBDirty )
 	{
 		m_isAABBDirty = true;
 		CScene2DManager::GetGlobalInst()->AddDirtyAABB(this);
@@ -49,7 +50,8 @@ void CRenderObject2D::SetBoundDirty()
 void CRenderObject2D::AddChild( CRenderObject2D* pNode )
 {
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
-	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
+	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 	OnAddChild(pNode);
 	pNode->OnAdded();
 
@@ -70,7 +72,8 @@ void CRenderObject2D::AddChild( CRenderObject2D* pNode )
 void CRenderObject2D::AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter )
 {
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
-	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
+	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 	pNode->m_nZOrder = pAfter->m_nZOrder;
 	OnAddChild(pNode);
 	pNode->OnAdded();
@@ -82,7 +85,8 @@ void CRenderObject2D::AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pA
 void CRenderObject2D::AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore )
 {
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
-	pNode->_setDepth(m_depth < 0? -1: m_depth + 1);
+	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 	pNode->m_nZOrder = pBefore->m_nZOrder;
 	OnAddChild(pNode);
 	pNode->OnAdded();
@@ -94,7 +98,7 @@ void CRenderObject2D::AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* p
 void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
 {
 	pNode->m_pTransformParent = this;
-	pNode->_setDepth( m_depth < 0 ? -1 : m_depth + 1 );
+	pNode->_setDepth( m_nDepth < 0 ? -1 : m_nDepth + 1 );
 	OnAddChild( pNode );
 	pNode->OnAdded();
 	Insert_TransformChild( pNode );
@@ -104,6 +108,7 @@ void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
 void CRenderObject2D::AddRenderChild( CRenderObject2D * pNode )
 {
 	pNode->m_pRenderParent = this;
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
 	CRenderObject2D** pInsertTo = &m_pRenderChildren;
 	while( true )
@@ -120,6 +125,7 @@ void CRenderObject2D::AddRenderChild( CRenderObject2D * pNode )
 void CRenderObject2D::AddRenderChildAfter( CRenderObject2D * pNode, CRenderObject2D * pAfter )
 {
 	pNode->m_pRenderParent = this;
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
 	pNode->m_nZOrder = pAfter->m_nZOrder;
 	pAfter->InsertAfter_RenderChild( pNode );
@@ -129,6 +135,7 @@ void CRenderObject2D::AddRenderChildAfter( CRenderObject2D * pNode, CRenderObjec
 void CRenderObject2D::AddRenderChildBefore( CRenderObject2D * pNode, CRenderObject2D * pBefore )
 {
 	pNode->m_pRenderParent = this;
+	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
 	pNode->m_nZOrder = pBefore->m_nZOrder;
 	pBefore->InsertBefore_RenderChild( pNode );
@@ -147,6 +154,7 @@ void CRenderObject2D::RemoveTransformChild( CRenderObject2D* pNode )
 void CRenderObject2D::RemoveRenderChild( CRenderObject2D * pNode )
 {
 	pNode->m_pRenderParent = NULL;
+	pNode->_setRenderDepth( -1 );
 	Remove_RenderChild( pNode );
 	SetBoundDirty();
 }
@@ -228,12 +236,12 @@ void CRenderObject2D::SetZOrder( int32 nZOrder )
 
 CRenderObject2D* CRenderObject2D::FindCommonParent( CRenderObject2D* a, CRenderObject2D* b )
 {
-	if( a->m_depth < 0 || b->m_depth < 0 )
+	if( a->m_nDepth < 0 || b->m_nDepth < 0 )
 		return NULL;
 
-	while( a->m_depth > b->m_depth )
+	while( a->m_nDepth > b->m_nDepth )
 		a = a->GetParent();
-	while( b->m_depth > a->m_depth )
+	while( b->m_nDepth > a->m_nDepth )
 		b = b->GetParent();
 	while( a && a != b )
 	{
@@ -299,7 +307,7 @@ void CRenderObject2D::SetAutoUpdateAnim( bool bAutoUpdateAnim )
 	if( m_bAutoUpdateAnim == bAutoUpdateAnim )
 		return;
 	m_bAutoUpdateAnim = bAutoUpdateAnim;
-	if( m_depth >= 0 )
+	if( m_nDepth >= 0 )
 	{
 		if( bAutoUpdateAnim )
 			CScene2DManager::GetGlobalInst()->Insert_AutoUpdateAnimObject( this );
@@ -382,7 +390,7 @@ void CRenderObject2D::Dispose()
 bool CRenderObject2D::ForceUpdateTransform()
 {
 	bool bParentUpdated = false;
-	if( m_depth > 0 )
+	if( m_nDepth > 0 )
 		bParentUpdated = GetParent()->ForceUpdateTransform();
 	if( bParentUpdated || m_isTransformDirty )
 	{
@@ -394,20 +402,33 @@ bool CRenderObject2D::ForceUpdateTransform()
 
 void CRenderObject2D::_setDepth(int depth)
 {
-	if( m_depth == depth )
+	if( m_nDepth == depth )
 		return;
-	m_depth = depth;
+	m_nDepth = depth;
 	if( m_bAutoUpdateAnim )
 	{
-		if( m_depth >= 0 )
+		if( m_nDepth >= 0 )
 			CScene2DManager::GetGlobalInst()->Insert_AutoUpdateAnimObject( this );
 		else
 			RemoveFrom_AutoUpdateAnimObject();
 	}
 	for( CRenderObject2D* pChild = m_pTransformChildren; pChild; pChild = pChild->NextTransformChild() ) {
-		pChild->_setDepth(m_depth < 0? -1: m_depth + 1);
+		pChild->_setDepth( m_nDepth < 0? -1: m_nDepth + 1 );
 	}
 	
+	if( depth < 0 && m_pRenderParent && m_pRenderParent != m_pTransformParent )
+		m_pRenderParent->RemoveRenderChild( this );
+}
+
+void CRenderObject2D::_setRenderDepth( int depth )
+{
+	if( m_nRenderDepth == depth )
+		return;
+	m_nRenderDepth = depth;
+	for( CRenderObject2D* pChild = m_pTransformChildren; pChild; pChild = pChild->NextTransformChild() ) {
+		pChild->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
+	}
+
 	if( depth < 0 && m_pRenderParent && m_pRenderParent != m_pTransformParent )
 		m_pRenderParent->RemoveRenderChild( this );
 }

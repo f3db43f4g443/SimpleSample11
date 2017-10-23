@@ -192,7 +192,7 @@ void CChunkUI::OnTick()
 	UpdateEft();
 	UpdateHp();
 
-	SetPosition( m_pChunkObject->GetPosition() );
+	SetPosition( m_pChunkObject->globalTransform.GetPosition() );
 
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }
@@ -301,18 +301,21 @@ void CBlockDetectUI::OnTick()
 				continue;
 
 			pBlockObject->nPublicFlag = 1;
-			if( !pBlockObject->m_pDetectUI )
+			if( !pBlockObject->m_pDetectUI || !pBlockObject->m_pDetectUI->GetParent() )
 			{
-				m_vecBlocks.push_back( pBlockObject );
-				CReference<CRenderObject2D> pUI;
-				if( m_vecPool.size() )
+				CReference<CRenderObject2D> pUI = pBlockObject->m_pDetectUI;
+				if( !pUI )
 				{
-					pUI = m_vecPool.back();
-					m_vecPool.pop_back();
-				}
-				else
-				{
-					pUI = m_pUIDrawable->CreateInstance();
+					m_vecBlocks.push_back( pBlockObject );
+					if( m_vecPool.size() )
+					{
+						pUI = m_vecPool.back();
+						m_vecPool.pop_back();
+					}
+					else
+					{
+						pUI = m_pUIDrawable->CreateInstance();
+					}
 				}
 				pBlockObject->AddChild( pUI );
 				pBlockObject->m_pDetectUI = pUI;

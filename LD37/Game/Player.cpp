@@ -612,9 +612,10 @@ void CPlayer::UpdateRoom()
 		CChunkObject* pChunkObject = SafeCast<CChunkObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
 		if( pChunkObject && pChunkObject->GetChunk()->nMoveType == 1 )
 		{
-			CRectangle rect( pChunkObject->GetChunk()->pos.x, pChunkObject->GetChunk()->pos.y,
+			CRectangle rect( 0, 0,
 				pChunkObject->GetChunk()->nWidth * CMyLevel::GetBlockSize(),
 				pChunkObject->GetChunk()->nHeight * CMyLevel::GetBlockSize() );
+			rect = rect.Offset( pChunkObject->GetGlobalTransform().GetPosition() );
 			if( rect.Contains( GetPosition() ) )
 				pCurRoom = pChunkObject;
 		}

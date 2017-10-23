@@ -21,7 +21,8 @@ CScene2DManager::~CScene2DManager()
 void CScene2DManager::_init()
 {
 	m_pRoot = new CRenderObject2D();
-	m_pRoot->m_depth = 0;
+	m_pRoot->m_nDepth = 0;
+	m_pRoot->m_nRenderDepth = 0;
 	m_pRoot->SetTransformDirty();
 }
 
@@ -73,7 +74,7 @@ void CScene2DManager::UpdateDirty()
 	{
 		CRenderObject2D* pNode = itr.Get();
 		if(!pNode->m_isTransformDirty) continue;
-		if(pNode->m_depth < 0)
+		if(pNode->m_nDepth < 0)
 		{
 			pNode->m_isTransformDirty = false;
 			continue;
@@ -83,12 +84,12 @@ void CScene2DManager::UpdateDirty()
 	}
 	m_dirtySceneNodes.clear();
 
-	for( TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerDepth>::rev_iterator itr = m_dirtyAABBSceneNodes.rev_begin();
+	for( TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerRenderDepth>::rev_iterator itr = m_dirtyAABBSceneNodes.rev_begin();
 		!itr.End(); itr.Next())
 	{
 		CRenderObject2D* pNode = itr.Get();
 		pNode->m_isAABBDirty = false;
-		if( pNode->m_depth >= 0 && pNode->CalcAABB())
+		if( pNode->m_nRenderDepth >= 0 && pNode->CalcAABB())
 		{
 			if( pNode->m_pRenderParent != NULL && !pNode->m_pRenderParent->m_isAABBDirty )
 			{

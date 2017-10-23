@@ -119,21 +119,29 @@ public:
 	{
 		unsigned int operator () (CRenderObject2D* pNode)
 		{
-			return pNode->m_depth;
+			return pNode->m_nDepth;
 		}
 	};
 	struct PointerLessDepth
 	{
 		bool operator () (CRenderObject2D* pLeft, CRenderObject2D* pRight)
 		{
-			return pLeft->m_depth < pRight->m_depth;
+			return pLeft->m_nDepth < pRight->m_nDepth;
 		}
 	};
 	struct PointerGreaterDepth
 	{
 		bool operator () (CRenderObject2D* pLeft, CRenderObject2D* pRight)
 		{
-			return pLeft->m_depth > pRight->m_depth;
+			return pLeft->m_nDepth > pRight->m_nDepth;
+		}
+	};
+
+	struct PointerRenderDepth
+	{
+		unsigned int operator () ( CRenderObject2D* pNode )
+		{
+			return pNode->m_nRenderDepth;
 		}
 	};
 protected:
@@ -149,11 +157,13 @@ protected:
 private:
 	void OnChildZOrderChanged( CRenderObject2D* pChild );
 	void _setDepth(int depth);
+	void _setRenderDepth( int depth );
 
 	CRenderObject2D* m_pTransformParent;
 	CRenderObject2D* m_pRenderParent;
 	int32 m_nZOrder;
-	int32 m_depth;
+	int16 m_nDepth;
+	int16 m_nRenderDepth;
 	bool m_isTransformDirty;
 	bool m_isAABBDirty;
 	bool m_bUpdated;

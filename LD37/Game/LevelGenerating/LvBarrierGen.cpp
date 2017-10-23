@@ -470,7 +470,7 @@ void CLvBarrierNodeGen2::GenBlocks()
 	uint32 nHeight = m_region.height;
 
 	uint32 n1 = SRand::Inst().Rand( nLabelWidth, nLabelWidth1 + 1 );
-	uint32 n0 = ( nWidth - 1 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+	uint32 n0 = ( nWidth - n1 + SRand::Inst().Rand( 0, 2 ) ) / 2;
 	for( int i = 0; i < nWidth; i++ )
 		m_gendata[i + ( nHeight - 1 ) * nWidth] = eType_Blocked;
 	for( int i = n0; i < n0 + n1; i++ )

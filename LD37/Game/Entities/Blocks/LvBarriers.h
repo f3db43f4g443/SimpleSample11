@@ -147,6 +147,7 @@ public:
 	CLvBarrier2Box( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLvBarrier2Box ); }
 	virtual void Kill() override;
 	virtual void Crush() override;
+	uint8 GetState() { return m_nState; }
 private:
 	uint32 m_nMaxHp1;
 	CVector2 m_texOfs;
@@ -170,9 +171,23 @@ private:
 	uint8 m_nDmgTime;
 };
 
+class CLvBarrier2Label : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CLvBarrier2Label( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CLvBarrier2Label ); }
+	virtual void OnAddedToStage() override;
+
+	void UpdatePercent( float fPercent );
+private:
+	CRectangle m_origRect;
+	CRectangle m_origTexRect;
+};
+
 class CLvBarrier2 : public CChunkObject
 {
 	friend void RegisterGameClasses();
+	friend class CLvBarrier2Label;
 public:
 	CLvBarrier2( const SClassCreateContext& context ) : CChunkObject( context ), m_energyEftFlyData( context ), m_deathTick( this, &CLvBarrier2::KillTick ) { SET_BASEOBJECT_ID( CLvBarrier2 ); }
 	virtual void OnAddedToStage() override;
@@ -252,7 +267,7 @@ protected:
 	};
 	void InitBarrage1();
 	void GenBarrage1( uint32 nType, const TRectangle<int32>& rect, const CVector2& dir );
-	int32 GenBarrage2( uint32 nType, const TRectangle<int32>& rect );
+	int32 GenBarrage2( uint32 nType, const CVector2& pos );
 
 	void AIFunc();
 	class AI : public CAIObject
@@ -280,6 +295,7 @@ protected:
 		CReference<CChunkObject> pChunk;
 		TRectangle<int32> rect;
 	};
+	CReference<CLvBarrier2Label> m_pLabel;
 	CReference<CRenderObject2D> m_pBoxLayer;
 	vector<SBigChunk> m_bigChunks;
 	uint32 m_nCoreSize;
@@ -291,6 +307,7 @@ protected:
 	vector<CReference<CEntity> > m_vecEnergyEfts;
 	uint32 m_nEnergy;
 	uint32 m_nFireCD;
+	uint32 m_nAttackType;
 
 	CVector2 m_blockTex;
 	CString m_strCreateNode;
@@ -301,8 +318,11 @@ protected:
 	TResourceRef<CPrefab> m_pExplosion;
 	TResourceRef<CPrefab> m_pBullet;
 	TResourceRef<CPrefab> m_pBullet1;
+	TResourceRef<CPrefab> m_pBullet2;
+	TResourceRef<CPrefab> m_pBullet3;
 	TResourceRef<CPrefab> m_pLightning;
 	TResourceRef<CPrefab> m_pLightning0;
+	TResourceRef<CPrefab> m_pBeam;
 	uint32 m_nKillEffectInterval;
 	uint32 m_nDeathTime;
 };

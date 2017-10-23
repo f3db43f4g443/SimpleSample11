@@ -607,7 +607,7 @@ void CLvBarrier1Core::AIFunc()
 						float fAngle1 = ( SRand::Inst().Rand( -0.25f, 0.25f ) + i - 2 ) * 0.15f + fAngle;
 						pBullet->SetRotation( fAngle1 );
 						pBullet->SetVelocity( CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 200 );
-						pBullet->SetParentEntity( CMyLevel::GetInst() );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					}
 					fYield = 1.0f;
 					break;
@@ -759,7 +759,7 @@ void CLvBarrier1Core::AIFunc()
 					pBullet->SetPosition( center );
 					pBullet->SetRotation( atan2( dir.y, dir.x ) );
 					pBullet->SetVelocity( dir * 200 );
-					pBullet->SetParentEntity( CMyLevel::GetInst() );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					fYield = 1.0f;
 					break;
 				}
@@ -773,7 +773,7 @@ void CLvBarrier1Core::AIFunc()
 						float fAngle1 = fAngle + ( i - 1 ) * 0.3f;
 						pBullet->SetRotation( fAngle1 );
 						pBullet->SetVelocity( CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 185 );
-						pBullet->SetParentEntity( CMyLevel::GetInst() );
+						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 					}
 					fYield = 1.0f;
 					break;
@@ -920,6 +920,26 @@ void CLvBarrierReward1::OnPickUp()
 	}
 
 	Kill();
+}
+
+void CLvBarrier2Label::OnAddedToStage()
+{
+	auto pRenderObject = static_cast<CImage2D*>( GetRenderObject() );
+	m_origRect = pRenderObject->GetElem().rect;
+	m_origTexRect = pRenderObject->GetElem().texRect;
+	UpdatePercent( 0 );
+	SafeCast<CLvBarrier2>( GetParentEntity() )->m_pLabel = this;
+}
+
+void CLvBarrier2Label::UpdatePercent( float fPercent )
+{
+	auto pRenderObject = static_cast<CImage2D*>( GetRenderObject() );
+	auto rect = m_origRect;
+	rect.height = m_origRect.height * fPercent;
+	auto texRect = m_origTexRect;
+	texRect.SetTop( texRect.GetBottom() - texRect.height * fPercent );
+	pRenderObject->SetRect( rect );
+	pRenderObject->SetTexRect( texRect );
 }
 
 void CLvBarrier2::OnAddedToStage()
@@ -1137,6 +1157,8 @@ void CLvBarrier2::OnChunkRemove( uint32 nIndex )
 
 void CLvBarrier2::OnBoxKilled( CChunkObject * pChunkObject )
 {
+	if( m_bKilled )
+		return;
 	CVector2 pos = pChunkObject->GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize();
 	auto pEft = SafeCast<CCharacter>( m_pEnergyEft->GetRoot()->CreateInstance() );
 	pEft->SetPosition( pos + GetPosition() );
@@ -1229,11 +1251,25 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 
 		auto& p1 = grid.par;
 		auto& grid1 = m_grids[p1.x + p1.y * nWidth];
-		if( grid1.pChunkObject && !grid.pChunkObject )
+		if( grid1.pChunkObject )
 		{
-			grid.pChunkObject = grid1.pChunkObject;
-			grid1.pChunkObject = NULL;
-			m_vecMovingGrids.push_back( p );
+			if( grid.pChunkObject )
+			{
+				auto pBox = SafeCast<CLvBarrier2Box>( grid.pChunkObject.GetPtr() );
+				auto pBox1 = SafeCast<CLvBarrier2Box>( grid1.pChunkObject.GetPtr() );
+				if( pBox->GetState() && !pBox1->GetState() )
+				{
+					grid.pChunkObject->Damage( 1 );
+					if( !grid.pChunkObject->GetParentEntity() )
+						grid.pChunkObject = NULL;
+				}
+			}
+			if( !grid.pChunkObject )
+			{
+				grid.pChunkObject = grid1.pChunkObject;
+				grid1.pChunkObject = NULL;
+				m_vecMovingGrids.push_back( p );
+			}
 		}
 	}
 
@@ -1243,20 +1279,33 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 		auto& grid = m_grids[p.x + p.y * nWidth];
 		grid.nType = 0;
 
-		if( bSpawnChunk && grid.nParType == -1 && !grid.pChunkObject )
+		if( bSpawnChunk && grid.nParType == -1 )
 		{
-			TVector2<int32> pos = p;
-			if( p.x < 2 )
-				pos.x--;
-			else if( p.x >= nWidth - 2 )
-				pos.x++;
-			else
-				pos.y++;
-			auto pSubChunk = m_pCreateNode->AddSubChunk( this, TRectangle<int32>( pos.x, pos.y, 1, 1 ) );
+			if( grid.pChunkObject )
+			{
+				auto pBox = SafeCast<CLvBarrier2Box>( grid.pChunkObject.GetPtr() );
+				if( pBox->GetState() )
+				{
+					grid.pChunkObject->Damage( 1 );
+					if( !grid.pChunkObject->GetParentEntity() )
+						grid.pChunkObject = NULL;
+				}
+			}
+			if( !grid.pChunkObject )
+			{
+				TVector2<int32> pos = p;
+				if( p.x < 2 )
+					pos.x--;
+				else if( p.x >= nWidth - 2 )
+					pos.x++;
+				else
+					pos.y++;
+				auto pSubChunk = m_pCreateNode->AddSubChunk( this, TRectangle<int32>( pos.x, pos.y, 1, 1 ) );
 
-			grid.pChunkObject = pSubChunk->pChunkObject;
-			grid.pChunkObject->SetRenderParent( m_pBoxLayer );
-			m_vecMovingGrids.push_back( p );
+				grid.pChunkObject = pSubChunk->pChunkObject;
+				grid.pChunkObject->SetRenderParent( m_pBoxLayer );
+				m_vecMovingGrids.push_back( p );
+			}
 		}
 	}
 }
@@ -1364,15 +1413,21 @@ void CLvBarrier2::Move1()
 			}
 			bigChunk.rect = rect.Offset( dir );
 			if( b )
-				GenBarrage1( 0, r, CVector2( dir.x, dir.y ) );
+				GenBarrage1( m_nAttackType, r, CVector2( dir.x, dir.y ) );
 			break;
 		}
 	}
 
 	if( m_nEnergy >= 100 && !m_nFireCD )
 	{
-		m_nFireCD = GenBarrage2( 0, TRectangle<int32>( 14, 6, 4, 2 ) );
+		m_nFireCD = GenBarrage2( m_nAttackType, m_pLabel->GetPosition() );
 		m_nEnergy -= m_nFireCD * 4;
+		m_pLabel->UpdatePercent( m_nEnergy / 100.0f );
+
+		uint32 nAttackType = SRand::Inst().Rand( 0, 2 );
+		if( nAttackType >= m_nAttackType )
+			nAttackType++;
+		m_nAttackType = nAttackType;
 	}
 	if( m_nFireCD )
 		m_nFireCD--;
@@ -1380,10 +1435,10 @@ void CLvBarrier2::Move1()
 
 void CLvBarrier2::UpdateEnergyEfts()
 {
+	CVector2 targetPos = m_pLabel->GetPosition();
+	targetPos = targetPos + GetPosition();
 	for( int32 i = m_vecEnergyEfts.size() - 1; i >= 0; i-- )
 	{
-		CVector2 targetPos( 512, 224 );
-		targetPos = targetPos + GetPosition();
 		auto pCharacter = SafeCast<CCharacter>( m_vecEnergyEfts[i].GetPtr() );
 
 		m_energyEftFlyData.UpdateMove( pCharacter, targetPos );
@@ -1393,6 +1448,7 @@ void CLvBarrier2::UpdateEnergyEfts()
 			m_vecEnergyEfts[i] = m_vecEnergyEfts.back();
 			m_vecEnergyEfts.pop_back();
 			m_nEnergy = Min( m_nEnergy + 1, 100u );
+			m_pLabel->UpdatePercent( m_nEnergy / 100.0f );
 		}
 	}
 }
@@ -1412,6 +1468,7 @@ void CLvBarrier2::CreateExplosion( int32 iX, int32 iY, CChunkObject* pCreator )
 
 void CLvBarrier2::AIFunc()
 {
+	m_nAttackType = SRand::Inst().Rand( 0, 3 );
 	InitBarrage1();
 	string str = m_strCreateNode;
 	int32 n = str.find( '.' );
@@ -1460,6 +1517,7 @@ void CLvBarrier2::AIFunc()
 				grid.pChunkObject->SetPosition( p );
 			}
 			
+			UpdateEnergyEfts();
 			m_pAI->Yield( 0, true );
 		}
 
@@ -1492,6 +1550,7 @@ void CLvBarrier2::AIFunc()
 				pChunkObject->SetPosition( p );
 			}
 
+			UpdateEnergyEfts();
 			m_pAI->Yield( 0, true );
 		}
 
@@ -1515,9 +1574,13 @@ void CLvBarrier2Box::Kill()
 	pImage2D->SetTexRect( pImage2D->GetElem().texRect.Offset( m_texOfs ) );
 	for( auto& block : GetChunk()->blocks )
 	{
-		CMyLevel::GetInst()->OnBlockObjectRemoved( SafeCast<CBlockObject>( block.pEntity.GetPtr() ) );
+		auto pBlockObject = SafeCast<CBlockObject>( block.pEntity.GetPtr() );
+		pBlockObject->ClearBuffs();
+		pBlockObject->ClearEfts();
 		block.rtTexRect = block.rtTexRect.Offset( m_texOfs );
 		block.eBlockType = eBlockType_Wall;
+		block.pEntity->SetHitType( eEntityHitType_Sensor );
+		block.bImmuneToBlockBuff = 1;
 	}
 	SafeCast<CLvBarrier2>( GetParentEntity() )->OnBoxKilled( this );
 }
@@ -1551,79 +1614,175 @@ void CLvBarrier2Core::Damage( SDamageContext & context )
 
 void CLvBarrier2::InitBarrage1()
 {
-	class CBarrage1_1 : public CBarrage1
 	{
-	public:
-		CBarrage1_1( const SBarrageContext& context ) : CBarrage1( context ) {}
-
-		const int32 nBulletCount = 2;
-		const int32 nLightningCount = 1;
-	protected:
-		virtual void UpdateItem( uint32 nIndex )
+		class CBarrage1_1 : public CBarrage1
 		{
-			int32 nBullet = nIndex * nBulletCount;
-			int32 nLightning = nIndex * nLightningCount;
-			auto& item = m_items[nIndex];
+		public:
+			CBarrage1_1( const SBarrageContext& context ) : CBarrage1( context ) {}
 
-			switch( item.nState )
+			const int32 nBulletCount = 2;
+			const int32 nLightningCount = 1;
+		protected:
+			virtual void UpdateItem( uint32 nIndex )
 			{
-			case 0:
+				int32 nBullet = nIndex * nBulletCount;
+				int32 nLightning = nIndex * nLightningCount;
+				auto& item = m_items[nIndex];
+
+				switch( item.nState )
+				{
+				case 0:
+				{
+					if( m_nTick == 0 )
+					{
+						CVector2 pos( item.initRect.x + 0.5f, item.initRect.y + 0.5f );
+						pos = pos * CMyLevel::GetBlockSize();
+						InitBullet( nBullet, 0, -1, pos, CVector2( 0, 0 ), CVector2( 0, 0 ) );
+						InitBullet( nBullet + 1, 0, -1, pos, CVector2( 0, 0 ), CVector2( 0, 0 ) );
+						InitLightning( nLightning, 0, nBullet, nBullet + 1, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
+					}
+					break;
+				}
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				{
+					if( m_nTick == 0 )
+					{
+						CVector2 dirs[3] = { { 2, 0 }, { 1, 1 }, { 1, -1 } };
+						CVector2 dir = dirs[SRand::Inst().Rand( 0, 3 )];
+						GetBulletContext( nBullet )->SetBulletMove( CVector2( dir.x * item.dir.x - dir.y * item.dir.y, dir.x * item.dir.y + dir.y * item.dir.x ) * 64, CVector2( 0, 0 ) );
+						GetBulletContext( nBullet + 1 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+					}
+					else if( m_nTick == 16 )
+					{
+						auto pBullet0 = GetBulletContext( nBullet );
+						pBullet0->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+						GetBulletContext( nBullet + 1 )->MoveTowards( pBullet0->p0, 16 );
+					}
+					break;
+				}
+				case 5:
+				{
+					if( m_nTick == 0 )
+					{
+						DestroyBullet( nBullet );
+						DestroyBullet( nBullet + 1 );
+						DestroyLightning( nLightning );
+						FreeItem( nIndex );
+					}
+				}
+				}
+			}
+		};
+		SBarrageContext context;
+		context.pCreator = GetParentEntity();
+		context.vecBulletTypes.push_back( m_pBullet1.GetPtr() );
+		context.vecLightningTypes.push_back( m_pLightning.GetPtr() );
+		context.nBulletPageSize = 100;
+		context.nLightningPageSize = 50;
+		context.fTimeScale = 32;
+		context.bAutoDeletePages = false;
+		m_pBarrages1[0] = new CBarrage1_1( context );
+		m_pBarrages1[0]->SetParentEntity( this );
+		m_pBarrages1[0]->SetRenderParent( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		m_pBarrages1[0]->Start();
+	}
+	{
+		class CBarrage1_3 : public CBarrage1
+		{
+		public:
+			CBarrage1_3( const SBarrageContext& context ) : CBarrage1( context ) {}
+
+			const int32 nBulletCount = 6;
+		protected:
+			virtual void UpdateItem( uint32 nIndex )
 			{
-				if( m_nTick == 0 )
+				int32 nBullet = nIndex * nBulletCount;
+				auto& item = m_items[nIndex];
+				CVector2 dir1[4];
+
+				switch( item.nState )
 				{
-					CVector2 pos( item.initRect.x + 0.5f, item.initRect.y + 0.5f );
-					pos = pos * CMyLevel::GetBlockSize();
-					InitBullet( nBullet, 0, -1, pos, CVector2( 0, 0 ), CVector2( 0, 0 ) );
-					InitBullet( nBullet + 1, 0, -1, pos, CVector2( 0, 0 ), CVector2( 0, 0 ) );
-					InitLightning( nLightning, 0, nBullet, nBullet + 1, CVector2( 0, 0 ), CVector2( 0, 0 ), true );
-				}
-				break;
-			}
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			{
-				if( m_nTick == 0 )
+				case 0:
 				{
-					CVector2 dirs[3] = { { 2, 0 }, { 1, 1 }, { 1, -1 } };
-					CVector2 dir = dirs[SRand::Inst().Rand( 0, 3 )];
-					GetBulletContext( nBullet )->SetBulletMove( CVector2( dir.x * item.dir.x - dir.y * item.dir.y, dir.x * item.dir.y + dir.y * item.dir.x ) * 64, CVector2( 0, 0 ) );
-					GetBulletContext( nBullet + 1 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+					if( m_nTick == 0 )
+					{
+						CVector2 pos( item.initRect.x + item.initRect.width * ( item.dir.x + item.dir.y + 1 ) * 0.5f,
+							item.initRect.y + item.initRect.height * ( item.dir.y - item.dir.x + 1 ) * 0.5f );
+						CVector2 pos1( item.initRect.x + item.initRect.width * ( item.dir.x - item.dir.y + 1 ) * 0.5f,
+							item.initRect.y + item.initRect.height * ( item.dir.x + item.dir.y + 1 ) * 0.5f );
+						pos = pos * CMyLevel::GetBlockSize();
+						pos1 = pos1 * CMyLevel::GetBlockSize();
+						InitBullet( nBullet, 0, -1, pos, item.dir * 32, CVector2( 0, 0 ) );
+						InitBullet( nBullet + 1, 0, -1, pos1, item.dir * 32, CVector2( 0, 0 ) );
+					}
+					break;
 				}
-				else if( m_nTick == 16 )
+				case 1:
+				case 2:
 				{
-					auto pBullet0 = GetBulletContext( nBullet );
-					pBullet0->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
-					GetBulletContext( nBullet + 1 )->MoveTowards( pBullet0->p0, 16 );
+					nBullet += ( item.nState - 1 ) * 2;
+					if( m_nTick == 0 )
+					{
+						if( GetBulletContext( nBullet )->pEntity )
+						{
+							GetBulletContext( nBullet )->SetBulletMove( item.dir * 160, CVector2( 0, 0 ) );
+							GetBulletContext( nBullet )->SetBulletMove( item.dir * 160, CVector2( 0, 0 ) );
+							InitBullet( nBullet + 2, 0, -1, GetBulletContext( nBullet )->p0, CVector2( 0, 0 ), CVector2( 0, 0 ) );
+							GetBulletContext( nBullet + 2 )->MoveTowards( GetBulletContext( nBullet )->p0 + item.dir * 32
+								+ CVector2( -item.dir.y, item.dir.x ) * SRand::Inst().Rand( 1, 3 ) * 16, 16 );
+						}
+						if( GetBulletContext( nBullet + 1 )->pEntity )
+						{
+							GetBulletContext( nBullet + 1 )->SetBulletMove( item.dir * 160, CVector2( 0, 0 ) );
+							GetBulletContext( nBullet + 1 )->SetBulletMove( item.dir * 160, CVector2( 0, 0 ) );
+							InitBullet( nBullet + 3, 0, -1, GetBulletContext( nBullet + 1 )->p0, CVector2( 0, 0 ), CVector2( 0, 0 ) );
+							GetBulletContext( nBullet + 3 )->MoveTowards( GetBulletContext( nBullet + 1 )->p0 + item.dir * 32
+								+ CVector2( item.dir.y, -item.dir.x ) * SRand::Inst().Rand( 1, 3 ) * 16, 16 );
+						}
+					}
+					else if( m_nTick == 16 )
+					{
+						if( GetBulletContext( nBullet + 2 )->pEntity )
+							GetBulletContext( nBullet + 2 )->SetBulletMove( item.dir * 128, CVector2( 0, 0 ) );
+						if( GetBulletContext( nBullet + 3 )->pEntity )
+							GetBulletContext( nBullet + 3 )->SetBulletMove( item.dir * 128, CVector2( 0, 0 ) );
+					}
+					break;
 				}
-				break;
-			}
-			case 5:
-			{
-				if( m_nTick == 0 )
+				default:
 				{
-					DestroyBullet( nBullet );
-					DestroyBullet( nBullet + 1 );
-					DestroyLightning( nLightning );
-					FreeItem( nIndex );
+					if( m_nTick == 0 )
+					{
+						for( int i = 0; i < nBulletCount; i++ )
+						{
+							auto pBulletContext = GetBulletContext( nBullet + i );
+							if( pBulletContext && pBulletContext->pEntity )
+								return;
+						}
+						for( int i = 0; i < nBulletCount; i++ )
+							DestroyBullet( nBullet + i );
+						FreeItem( nIndex );
+					}
+					break;
+				}
 				}
 			}
-			}
-		}
-	};
-	SBarrageContext context;
-	context.pCreator = GetParentEntity();
-	context.vecBulletTypes.push_back( m_pBullet1.GetPtr() );
-	context.vecLightningTypes.push_back( m_pLightning.GetPtr() );
-	context.nBulletPageSize = 100;
-	context.nLightningPageSize = 50;
-	context.fTimeScale = 32;
-	context.bAutoDeletePages = false;
-	m_pBarrages1[0] = new CBarrage1_1( context );
-	m_pBarrages1[0]->SetParentEntity( this );
-	m_pBarrages1[0]->SetRenderParent( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	m_pBarrages1[0]->Start();
+		};
+		SBarrageContext context;
+		context.pCreator = GetParentEntity();
+		context.vecBulletTypes.push_back( m_pBullet3.GetPtr() );
+		context.nBulletPageSize = 100;
+		context.nLightningPageSize = 50;
+		context.fTimeScale = 32;
+		context.bAutoDeletePages = false;
+		m_pBarrages1[2] = new CBarrage1_3( context );
+		m_pBarrages1[2]->SetParentEntity( this );
+		m_pBarrages1[2]->SetRenderParent( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		m_pBarrages1[2]->Start();
+	}
 }
 
 void CLvBarrier2::GenBarrage1( uint32 nType, const TRectangle<int32>& rect, const CVector2& dir )
@@ -1639,12 +1798,52 @@ void CLvBarrier2::GenBarrage1( uint32 nType, const TRectangle<int32>& rect, cons
 				m_pBarrages1[nType]->Fire( r, dir );
 			}
 		}
+		break;
+	case 1:
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				CVector2 pos = CVector2( i, j ) * CMyLevel::GetBlockSize() + GetPosition();
+				CVector2 vel;
+				if( dir.y > 0 )
+				{
+					float v = SRand::Inst().Rand( 140.0f, 160.0f );
+					float angle = SRand::Inst().Rand( PI * 0.3f, PI * 0.7f );
+					vel = CVector2( cos( angle ), sin( angle ) ) * v;
+				}
+				else if( dir.y < 0 )
+				{
+					vel = CVector2( SRand::Inst().Rand( -150.0f, -300.0f ) * ( SRand::Inst().Rand( 0, 2 ) - 0.5f ), SRand::Inst().Rand( -60.0f, -80.0f ) );
+				}
+				else
+				{
+					float v = SRand::Inst().Rand( 120.0f, 140.0f );
+					float angle = SRand::Inst().Rand( PI * 0.0f, PI * 0.3f );
+					vel = CVector2( cos( angle ), sin( angle ) ) * v;
+					if( dir.x < 0 )
+						vel.x = -vel.x;
+				}
+
+				auto pBullet = SafeCast<CBullet>( m_pBullet2->GetRoot()->CreateInstance() );
+				pBullet->SetPosition( pos );
+				pBullet->SetRotation( SRand::Inst().Rand( -PI, PI ) );
+				pBullet->SetAngularVelocity( ( SRand::Inst().Rand( 0, 2 ) - 0.5f ) * 6.0f );
+				pBullet->SetVelocity( vel );
+				pBullet->SetAcceleration( CVector2( 0, -150.0f ) );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			}
+		}
+		break;
+	case 2:
+		m_pBarrages1[nType]->Fire( rect, dir );
+		break;
 	default:
 		break;
 	}
 }
 
-int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
+int32 CLvBarrier2::GenBarrage2( uint32 nType, const CVector2& pos )
 {
 	switch( nType )
 	{
@@ -1672,11 +1871,11 @@ int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
 			float dx = pBarrage->GetPosition().x - 512;
 			float r = SRand::Inst().Rand( 0, 1024 );
 			if( r < dx - 256 )
-				vel = CVector2( -8, SRand::Inst().Rand() & 1 ? 12 : -12 );
+				vel = CVector2( -8, -12 );
 			else if( r >= dx + 256 )
-				vel = CVector2( 8, SRand::Inst().Rand() & 1 ? 12 : -12 );
+				vel = CVector2( 8, -12 );
 			else
-				vel = CVector2( 0, SRand::Inst().Rand() & 1 ? 14 : -14 );
+				vel = CVector2( 0, -14 );
 			pBarrage->InitBullet( 0, 0, -1, CVector2( 0, 0 ), vel, CVector2( 0, 0 ), false );
 
 			for( int k = 0; k <= nWaves; k++ )
@@ -1777,7 +1976,195 @@ int32 CLvBarrier2::GenBarrage2( uint32 nType, const TRectangle<int32>& rect )
 			pBarrage->Yield( 2 );
 			pBarrage->StopNewBullet();
 		} );
-		pBarrage->SetPosition( CVector2( rect.GetCenterX(), rect.GetCenterY() ) * CMyLevel::GetBlockSize() + GetPosition() );
+		pBarrage->SetPosition( pos + GetPosition() );
+		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		pBarrage->Start();
+		return 24;
+	}
+	case 1:
+	{
+		SBarrageContext context;
+		context.pCreator = GetParentEntity();
+		context.vecBulletTypes.push_back( m_pBullet.GetPtr() );
+		context.vecBulletTypes.push_back( m_pBullet2.GetPtr() );
+		context.nBulletPageSize = 400;
+		context.fTimeScale = 64;
+
+		CVector2 beginPos = pos + GetPosition();
+		CBarrage* pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [beginPos] ( CBarrage* pBarrage )
+		{
+			CVector2 p[16];
+			p[0] = beginPos;
+			p[1] = CVector2( SRand::Inst().Rand( 0.4f, 0.6f ) * 1024, 768 );
+			for( int i = 0; i < 2; i++ )
+				p[i + 2] = CVector2( ( SRand::Inst().Rand( 0.4f, 0.6f ) + i ) * 0.5f * 1024, 512 );
+			for( int i = 0; i < 4; i++ )
+				p[i + 4] = CVector2( ( SRand::Inst().Rand( 0.4f, 0.6f ) + ( i >> 1 ) + ( i & 1 ) * 2 ) * 0.25f * 1024, 384 );
+			for( int i = 0; i < 8; i++ )
+				p[i + 8] = CVector2( ( SRand::Inst().Rand( 0.4f, 0.6f ) + ( i >> 1 ) + ( i & 1 ) * 4 ) * 0.125f * 1024, 256 );
+			CVector2 a( 0, -2400.0f );
+			CVector2 a1( 0, -200.0f );
+			float t = 1.0f;
+			CVector2 v[16];
+			for( int i = 1; i < 16; i++ )
+			{
+				CVector2 dPos = CVector2( p[i].x, 0 ) - p[i >> 1];
+				v[i] = dPos / t - a * ( t * 0.5f );
+			}
+
+			int32 nB1 = 16;
+			for( int iWave = 0; iWave < 4; iWave++ )
+			{
+				int32 nBegin = 1 << iWave;
+				for( int iBullet = nBegin; iBullet < nBegin * 2; iBullet++ )
+				{
+					pBarrage->InitBullet( iBullet, 0, -1, p[iBullet >> 1], v[iBullet], a, false );
+				}
+
+				pBarrage->Yield( 2 );
+				for( int iTime = 0; iTime < 16; iTime++ )
+				{
+					float t = ( iTime * 2 + 1 ) / 32.0f;
+					for( int iBullet = nBegin; iBullet < nBegin * 2; iBullet++ )
+					{
+						pBarrage->InitBullet( nB1++, 1, -1, p[iBullet >> 1] + v[iBullet] * t + a * ( 0.5f * t * t ),
+							CVector2( 0, 0 ), a1, false, iTime * PI / 8 );
+					}
+					if( iTime < 15 )
+						pBarrage->Yield( 4 );
+				}
+				pBarrage->Yield( 2 );
+
+				for( int iBullet = nBegin; iBullet < nBegin * 2; iBullet++ )
+				{
+					pBarrage->GetBulletContext( iBullet )->SetBulletMove( CVector2( p[iBullet].x, 0 ), CVector2( 0, p[iBullet].y ), CVector2( 0, 0 ) );
+				}
+				pBarrage->Yield( 2 );
+				for( int iTime = 0; iTime < 16; iTime++ )
+				{
+					float t = ( iTime * 2 + 1 ) / 32.0f;
+					for( int iBullet = nBegin; iBullet < nBegin * 2; iBullet++ )
+					{
+						pBarrage->InitBullet( nB1++, 1, -1, CVector2( p[iBullet].x, p[iBullet].y * t ),
+							CVector2( 160 - iWave * 32, 64 ) * ( ( 1 - t ) * ( 1 - t ) ), a1, false, iTime * PI / 8, 6.0f * ( 1 - t ) );
+						pBarrage->InitBullet( nB1++, 1, -1, CVector2( p[iBullet].x, p[iBullet].y * t ),
+							CVector2( -160 + iWave * 32, 64 ) * ( ( 1 - t ) * ( 1 - t ) ), a1, false, iTime * PI / 8, -6.0f * ( 1 - t ) );
+					}
+					if( iTime < 15 )
+						pBarrage->Yield( 4 );
+				}
+				pBarrage->Yield( 2 );
+				for( int iBullet = nBegin; iBullet < nBegin * 2; iBullet++ )
+				{
+					pBarrage->DestroyBullet( iBullet );
+				}
+			}
+
+			pBarrage->Yield( 2 );
+			pBarrage->StopNewBullet();
+		} );
+		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		pBarrage->Start();
+		return 24;
+	}
+	case 2:
+	{
+		SBarrageContext context;
+		context.pCreator = GetParentEntity();
+		context.vecBulletTypes.push_back( m_pBullet.GetPtr() );
+		context.vecBulletTypes.push_back( m_pBullet3.GetPtr() );
+		context.vecLightningTypes.push_back( m_pBeam.GetPtr() );
+		context.nBulletPageSize = 400;
+		context.nLightningPageSize = 2;
+		context.fTimeScale = 64;
+
+		CVector2 beginPos = pos + GetPosition();
+		CBarrage* pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [beginPos] ( CBarrage* pBarrage )
+		{
+			CVector2 p = beginPos;
+			CVector2 playerPos( 512, 0 );
+			pBarrage->InitBullet( 0, 0, -1, p, CVector2( 0, 0 ), CVector2( 0, 0 ), false );
+			uint32 nBullet1 = 3;
+			uint32 nBullet2 = 3 + 32;
+			
+			for( int i = 0; i < 2; i++ )
+			{
+				if( pBarrage->GetStage()->GetPlayer() )
+					playerPos = pBarrage->GetStage()->GetPlayer()->GetPosition();
+
+				CVector2 dPos = p - playerPos;
+				float l = dPos.Length();
+				float dl = SRand::Inst().Rand( 200.0f, 250.0f );
+				float fTargetl = SRand::Inst().Rand( Min( l + dl, Max( l - dl, 496.0f ) ), Min( l + dl, Max( l - dl, 560.0f ) ) );
+				float fAngle = atan2( dPos.y, dPos.x );
+				fAngle += SRand::Inst().Rand( 0.9f, 1.1f ) * 400.0f / ( fTargetl + 1.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
+				CVector2 p1( cos( fAngle ), sin( fAngle ) );
+				p1 = p1 * fTargetl + playerPos;
+				pBarrage->GetBulletContext( 0 )->MoveTowards( p1, 32 );
+				CVector2 dir = playerPos - ( p + p1 ) * 0.5f;
+				dir.Normalize();
+				for( int i = 0; i < 32; i++ )
+				{
+					pBarrage->InitBullet( nBullet1 + i, 1, -1, ( p * ( 31 - i ) + p1 * i ) / 32, dir * SRand::Inst().Rand( 35.0f, 75.0f ), CVector2( 0, 0 ) );
+					pBarrage->Yield( 1 );
+				}
+
+				pBarrage->GetBulletContext( 0 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+				for( int i = 0; i < 32; i++ )
+				{
+					CVector2 v = pBarrage->GetBulletContext( nBullet1 + i )->v;
+					pBarrage->GetBulletContext( nBullet1 + i )->SetBulletMove( v * 3, CVector2( 0, 0 ) );
+					pBarrage->Yield( 1 );
+				}
+
+				p = p1;
+				if( pBarrage->GetStage()->GetPlayer() )
+					playerPos = pBarrage->GetStage()->GetPlayer()->GetPosition();
+				dPos = playerPos - p;
+				if( dPos.Normalize() < 0.01f )
+					dPos = CVector2( 1, 0 );
+				CVector2 dir1( -dPos.x + dPos.y, -dPos.y - dPos.x );
+				CVector2 dir2( -dPos.x - dPos.y, -dPos.y + dPos.x );
+				pBarrage->InitBullet( 1, 0, -1, p, dir1 * 384, CVector2( 0, 0 ), false );
+				pBarrage->InitBullet( 2, 0, -1, p, dir2 * 384, CVector2( 0, 0 ), false );
+				pBarrage->Yield( 16 );
+
+				pBarrage->GetBulletContext( 1 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+				pBarrage->GetBulletContext( 2 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+				pBarrage->InitLightning( 0, 0, 1, 1, CVector2( 0, 0 ), dPos * 1024, false );
+				pBarrage->InitLightning( 1, 0, 2, 2, CVector2( 0, 0 ), dPos * 1024, false );
+				pBarrage->Yield( 16 );
+
+				pBarrage->GetBulletContext( 0 )->SetBulletMove( dPos * 1024, CVector2( 0, 0 ) );
+				for( int i = 0; i < 32; i++ )
+				{
+					pBarrage->InitBullet( nBullet2 + i, 1, -1, p + dPos * 32 * i, dir1 * 8, CVector2( 0, 0 ) );
+					pBarrage->InitBullet( nBullet2 + 32 + i, 1, -1, p + dPos * 32 * i, dir2 * 8, CVector2( 0, 0 ) );
+					pBarrage->Yield( 2 );
+				}
+
+				for( int i = 0; i < 32; i++ )
+				{
+					pBarrage->InitBullet( nBullet2 + i, 1, -1, p + dPos * 32 * i, dir1 * 128, CVector2( 0, 0 ) );
+					pBarrage->InitBullet( nBullet2 + 32 + i, 1, -1, p + dPos * 32 * i, dir2 * 128, CVector2( 0, 0 ) );
+					pBarrage->Yield( 2 );
+				}
+				pBarrage->GetBulletContext( 0 )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+				pBarrage->DestroyLightning( 0 );
+				pBarrage->DestroyLightning( 1 );
+				pBarrage->DestroyBullet( 1 );
+				pBarrage->DestroyBullet( 2 );
+				nBullet1 += 96;
+				nBullet2 += 96;
+				p = dPos * 1024 + p;
+			}
+
+			pBarrage->DestroyBullet( 0 );
+			pBarrage->Yield( 2 );
+			pBarrage->StopNewBullet();
+		} );
 		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		pBarrage->Start();
 		return 24;

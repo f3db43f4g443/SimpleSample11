@@ -8,6 +8,7 @@
 #include "Stage.h"
 #include "BlockItem.h"
 #include "Entities/Decorator.h"
+#include "BlockBuff.h"
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	: m_pBlock( pBlock ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false )
@@ -40,6 +41,22 @@ CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, uint32 nSize )
 void CBlockObject::OnRemovedFromStage()
 {
 	CMyLevel::GetInst()->OnBlockObjectRemoved( this );
+}
+
+void CBlockObject::ClearBuffs()
+{
+	LINK_LIST_FOR_EACH_BEGIN( pChild, m_pChildrenEntity, CEntity, ChildEntity )
+		auto pBuff = SafeCast<CBlockBuff>( pChild );
+		if( pBuff )
+			pBuff->SetParentEntity( NULL );
+	LINK_LIST_FOR_EACH_END( pChild, m_pChildrenEntity, CEntity, ChildEntity )
+}
+
+void CBlockObject::ClearEfts()
+{
+	CMyLevel::GetInst()->OnBlockObjectRemoved( this );
+	if( m_pDetectUI )
+		m_pDetectUI->RemoveThis();
 }
 
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )

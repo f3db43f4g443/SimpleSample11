@@ -43,6 +43,8 @@ void CLightning::Set( CEntity * pBegin, CEntity * pEnd, const CVector2 & begin, 
 	}
 	m_begin = begin;
 	m_end = end;
+	m_nBeginTransIndex = nBeginTransIndex;
+	m_nEndTransIndex = nEndTransIndex;
 	m_bSet = true;
 	UpdateRenderObject();
 }
@@ -186,6 +188,7 @@ void CLightning::OnTick()
 			endCenter = begin + dir * pResult->fDist;
 
 		m_beamEnd = globalTransform.MulTVector2PosNoScale( endCenter );
+		m_fBeamLen = pResult ? pResult->fDist : l;
 		m_bIsBeamInited = true;
 	}
 
@@ -400,13 +403,19 @@ void CLightning::UpdateRenderObject()
 
 	end.fWidth = m_fWidth;
 	if( m_bIsBeam )
+	{
 		end.center = m_beamEnd;
+		end.pRefObj = NULL;
+		end.nRefTransformIndex = -1;
+	}
 	else
+	{
 		end.center = m_end;
-	end.pRefObj = m_pEnd;
-	end.nRefTransformIndex = m_nEndTransIndex;
+		end.pRefObj = m_pEnd;
+		end.nRefTransformIndex = m_nEndTransIndex;
+	}
 	if( m_fTexYTileLen > 0 )
-		end.tex0.y = end.tex1.y = ( end.center - begin.center ).Length() / m_fTexYTileLen;
+		end.tex0.y = end.tex1.y = ( m_bIsBeam ? m_fBeamLen : ( end.center - begin.center ).Length() ) / m_fTexYTileLen;
 
 	if( bBegin )
 	{
@@ -434,12 +443,22 @@ void CLightning::UpdateRenderObject()
 	if( m_pBeginEft )
 	{
 		m_pBeginEft->bVisible = true;
-		m_pBeginEft->SetPosition( begin.center );
+		if( m_pBeginEft->GetParent() != pRope )
+		{
+			m_pBeginEft->RemoveThis();
+			pRope->AddChild( m_pBeginEft );
+		}
+		m_pBeginEft->SetTransformIndex( 0 );
 	}
 	if( m_pEndEft )
 	{
 		m_pEndEft->bVisible = true;
-		m_pEndEft->SetPosition( end.center );
+		if( m_pEndEft->GetParent() != pRope )
+		{
+			m_pEndEft->RemoveThis();
+			pRope->AddChild( m_pEndEft );
+		}
+		m_pEndEft->SetTransformIndex( 1 );
 	}
 }
 

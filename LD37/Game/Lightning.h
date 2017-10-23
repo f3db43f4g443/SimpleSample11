@@ -56,6 +56,7 @@ protected:
 	CVector2 m_begin;
 	CVector2 m_end;
 	CVector2 m_beamEnd;
+	float m_fBeamLen;
 	int32 m_nFrame;
 	int16 m_nBeginTransIndex;
 	int16 m_nEndTransIndex;

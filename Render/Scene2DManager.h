@@ -58,7 +58,7 @@ private:
 
 	set<CDrawable2D*> m_pDrawables;
 	TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerDepth> m_dirtySceneNodes;
-	TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerDepth> m_dirtyAABBSceneNodes;
+	TSortedList<CReference<CRenderObject2D>, CRenderObject2D::PointerRenderDepth> m_dirtyAABBSceneNodes;
 	CReference<CRenderObject2D> m_pRoot;
 
 	struct SCameraLess

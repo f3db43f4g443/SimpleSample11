@@ -59,8 +59,8 @@ void VSParticle_local( in float2 tex : Position,
 	float2 dir = instData1.zw;
 	pos = center + dir * t + pos + g_specialOfs;
 
-	pos.x = dot( float3( pos, 1 ), g_matWorld[0].xyz );
-	pos.y = dot( float3( pos, 1 ), g_matWorld[1].xyz );
+	pos = float2( dot( float3( pos, 1 ), g_matWorld[0].xyz ),
+		dot( float3( pos, 1 ), g_matWorld[1].xyz ) );
 
 	outTex = tex;
 	outPos = mul( g_matView, float4( pos, g_zOrder, 1.0 ) );

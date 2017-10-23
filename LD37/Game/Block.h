@@ -74,7 +74,8 @@ public:
 	SBlock* GetBlock() { return m_pBlock; }
 
 	virtual void OnRemovedFromStage() override;
-
+	void ClearBuffs();
+	void ClearEfts();
 private:
 	SBlock* m_pBlock;
 	int16 m_nBlockRTIndex;

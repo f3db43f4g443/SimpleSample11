@@ -6,6 +6,7 @@
   <level_gen>
     <attachs>
       <node name="window2x2_1" prefab="data/blockitems/window2x2_1.pf" sizex="2" sizey="2" attach_type="0" />
+      <node name="label_1f" prefab="data/blocks/lv2/barrier_label_1.pf" sizex="4" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
       <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.25" />
@@ -16,17 +17,12 @@
       <node name="floor_label_6" prefab="data/blocks/lv1/6.pf" />
       <node name="floor_label_8" prefab="data/blocks/lv1/8.pf" />
       <node name="floor_label_f" prefab="data/blocks/lv1/f.pf" />
-      <node name="thanks_label" prefab="thanks.pf" />
     </spawns>
     <nodes>
       <node name="floor_broken" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" layer_type="1" prefab="data/blocks/lv2/floor_broken.pf">
         <metadata isdesignvalid="0" />
         <types>0</types>
         <immune_to_block_buff>1</immune_to_block_buff>
-      </node>
-      <node name="label_1f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_1f.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4,4,4</types>
       </node>
       <node name="label_2f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_2f.pf">
         <metadata isdesignvalid="0" />
@@ -137,7 +133,7 @@
 
       </node>
       
-      <node name="box_barrier" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv2/box_barrier.pf">
+      <node name="box_barrier" movetype="1" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv2/box_barrier.pf">
         <types>4</types>
       </node>
       <node name="cargo_a_barrier" width="1" height="1" weight="1.2" subchunk_type="2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
@@ -172,8 +168,8 @@
       </node>
       <node name="chunk_tile" type="subregion">
         <node type="randomfill" check_gen_data_name="mask" x="0" y="0" w="0" h="-2">
-          <ref name="cargo_barrier" sizeminx="3" sizemaxx="5" sizeminy="3" p="0.6" />
-          <ref name="cargo_barrier" sizeminx="2" sizemaxx="4" sizeminy="2" p="0.6" />
+          <ref name="cargo_barrier" sizeminx="3" sizemaxx="4" sizeminy="3" p="0.6" />
+          <ref name="cargo_barrier" sizeminx="2" sizemaxx="5" sizeminy="2" p="0.6" />
           <ref name="box_barrier" sizeminx="1" sizeminy="1" p="1" />
         </node>
         <node type="randomfill" check_gen_data_name="mask" x="0" y="-2" w="0" h="2">
@@ -210,7 +206,7 @@
         </subitem>
 
         <label>
-          <ref name="floor_label_1" />
+          <ref name="label_1f" />
         </label>
         <chunk>
           <ref name="chunk_tile" />
@@ -295,39 +291,6 @@
           </node>
         </next_level>
 
-      </node>
-      
-      <node name="lv1bossfloor" show_layer_type="0" width="32" height="12" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/floor.pf" islevelbarrier="1" levelbarrierheight="10">
-        <types>
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        </types>
-        <subitem>
-          <node type="subregion">
-            <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="floor_broken" />
-            </node>
-            <node type="tile" x="0" y="10" w="0" h="2">
-              <ref name="unbreakable" />
-            </node>
-          </node>
-        </subitem>
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="thanks_label" x="0" y="2" w="32" h="8" />
-          </node>
-        </next_level>
       </node>
     
     </nodes>
