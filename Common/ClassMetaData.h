@@ -308,6 +308,8 @@ const T* SafeCast( const T1* t )
 	pData->strDisplayName = #Class; \
 	pData->nObjSize = sizeof( Class );
 
+#define REGISTER_INTERFACE_BEGIN( Class ) REGISTER_CLASS_BEGIN_ABSTRACT( Class )
+
 #define REGISTER_MEMBER( Name ) \
 	pData->AddMemberData<decltype( ( (__cur_class*)NULL )->Name )>( #Name, MEMBER_OFFSET( __cur_class, Name ) );
 
@@ -325,6 +327,8 @@ const T* SafeCast( const T1* t )
 
 #define REGISTER_CLASS_END() \
 }
+
+#define REGISTER_INTERFACE_END() REGISTER_CLASS_END()
 
 #define REGISTER_ENUM_BEGIN( Enum ) \
 { \

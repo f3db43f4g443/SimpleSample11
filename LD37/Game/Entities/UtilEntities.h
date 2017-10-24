@@ -99,3 +99,16 @@ private:
 
 	TClassTrigger<CShakeObject> m_onTick;
 };
+
+class COperatingArea : public CEntity
+{
+public:
+	COperatingArea( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( COperatingArea ); }
+
+	virtual void OnRemovedFromStage() override { m_pCharacter = NULL; }
+	bool CanOperate( CCharacter* pCharacter );
+	bool Operate( CCharacter* pCharacter );
+	void SetOperator( CCharacter* pCharacter ) { m_pCharacter = pCharacter; }
+private:
+	CReference<CCharacter> m_pCharacter;
+};

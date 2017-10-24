@@ -1171,6 +1171,22 @@ void CHitProxy::CalcBounds()
 	}
 }
 
+bool CHitProxy::HitTest( const CVector2& pos )
+{
+	SHitProxyCircle circle;
+	circle.center = CVector2( 0, 0 );
+	circle.fRadius = 0;
+	CMatrix2D transform;
+	transform.Identity();
+	const CMatrix2D& mat = GetGlobalTransform();
+	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )
+	{
+		if( SHitProxy::HitTest( pProxy, &circle, mat, transform, NULL ) )
+			return true;
+	}
+	return false;
+}
+
 bool CHitProxy::HitTest( CHitProxy* pOther, const CMatrix2D& transform, const CMatrix2D& transform1, SHitTestResult* pResult )
 {
 	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )

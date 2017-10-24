@@ -6,6 +6,7 @@
 #include "Stage.h"
 #include "Render/DrawableGroup.h"
 #include "MyLevel.h"
+#include "Interfaces.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -189,4 +190,37 @@ void CShakeObject::OnRemovedFromStage()
 {
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
+}
+
+bool COperatingArea::CanOperate( CCharacter* pCharacter )
+{
+	auto pOperateable = SafeCast<IOperateable>( GetParentEntity() );
+	if( !pOperateable )
+		return false;
+	if( m_pCharacter && !m_pCharacter->GetStage() )
+		m_pCharacter = NULL;
+	if( m_pCharacter && m_pCharacter != pCharacter )
+		return false;
+	CVector2 operatorPos = pCharacter->globalTransform.GetPosition();
+	if( pOperateable->IsOperateable( operatorPos ) > 0 )
+		return false;
+	return true;
+}
+
+bool COperatingArea::Operate( CCharacter* pCharacter )
+{
+	auto pOperateable = SafeCast<IOperateable>( GetParentEntity() );
+	if( !pOperateable )
+		return false;
+	if( m_pCharacter && !m_pCharacter->GetStage() )
+		m_pCharacter = NULL;
+	if( m_pCharacter && m_pCharacter != pCharacter )
+		return false;
+	CVector2 operatorPos = pCharacter->globalTransform.GetPosition();
+	if( !HitTest( operatorPos ) )
+		return false;
+	if( pOperateable->IsOperateable( operatorPos ) )
+		return false;
+	pOperateable->Operate( operatorPos );
+	return true;
 }

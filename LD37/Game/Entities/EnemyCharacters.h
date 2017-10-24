@@ -4,6 +4,7 @@
 #include "CharacterMove.h"
 #include "Block.h"
 #include "Navigation.h"
+#include "Entities/UtilEntities.h"
 
 class CEnemyCharacter : public CEnemy
 {
@@ -46,8 +47,7 @@ protected:
 	float m_fSight;
 	float m_fShakePerFire;
 	float m_fPredict;
-	CString m_strPrefab;
-	CReference<CPrefab> m_pBulletPrefab;
+	TResourceRef<CPrefab> m_strPrefab;
 
 	uint8 m_nState;
 	uint8 m_nAnimState;
@@ -145,4 +145,39 @@ private:
 	bool m_bAtRoof;
 	TClassTrigger1<CThug, CNavigationUnit::SGridData*> m_onVisitGrid;
 	TClassTrigger1<CThug, CNavigationUnit::SGridData*> m_onFindPath;
+};
+
+class CWorker : public CEnemyCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CWorker( const SClassCreateContext& context ) : CEnemyCharacter( context ), m_fNearestDist( FLT_MAX )
+		, m_onVisitGrid( this, &CWorker::OnVisitGrid ), m_onFindPath( this, &CWorker::OnFindPath ) { SET_BASEOBJECT_ID( CThug ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void OnTickAfterHitTest() override;
+	virtual bool CanFire() override
+	{
+		return !m_nStateTime && CEnemyCharacter::CanFire();
+	}
+protected:
+	virtual void UpdateAnimFrame() override;
+	virtual void OnFire() override;
+private:
+	void OnVisitGrid( CNavigationUnit::SGridData* pGrid );
+	void OnFindPath( CNavigationUnit::SGridData* pGrid );
+	void SetTarget( COperatingArea* pOperatingArea );
+	
+	float m_fMaxScanDist;
+	uint32 m_nGridsPerStep;
+	uint32 m_nOperateTime;
+	uint32 m_nOperatePoint;
+	
+	CNavigationUnit* m_pNav;
+	TVector2<int32> m_nearestGrid;
+	float m_fNearestDist;
+	uint32 m_nStateTime;
+	CReference<COperatingArea> m_pTarget;
+	TClassTrigger1<CWorker, CNavigationUnit::SGridData*> m_onVisitGrid;
+	TClassTrigger1<CWorker, CNavigationUnit::SGridData*> m_onFindPath;
 };

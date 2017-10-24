@@ -131,6 +131,7 @@ public:
 	void UnpackData( IBufReader& buf, bool bWithMetaData );
 	
 	void CalcBounds();
+	bool HitTest( const CVector2& pos );
 	bool HitTest( CHitProxy* pOther, const CMatrix2D& transform, const CMatrix2D& transform1, SHitTestResult* pResult = NULL );
 	bool HitTest( CHitProxy* pOther, SHitTestResult* pResult = NULL );
 	bool HitTest( SHitProxy* pProxy1, const CMatrix2D& transform, SHitTestResult* pResult = NULL );

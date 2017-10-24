@@ -692,6 +692,7 @@
     <ClInclude Include="GUI\HpBar.h" />
     <ClInclude Include="GUI\MainUI.h" />
     <ClInclude Include="GUI\UIUtils.h" />
+    <ClInclude Include="Interfaces.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="ItemDrop.h" />
     <ClInclude Include="LevelDesign.h" />

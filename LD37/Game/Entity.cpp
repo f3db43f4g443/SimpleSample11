@@ -102,6 +102,15 @@ uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 	return nTraverseIndex;
 }
 
+void CEntity::SetTransparentRec( bool bTransparent )
+{
+	SetTransparent( bTransparent );
+	for( auto pEntity = Get_ChildEntity(); pEntity; pEntity = pEntity->NextChildEntity() )
+	{
+		pEntity->SetTransparentRec( bTransparent );
+	}
+}
+
 bool CEntity::CommonMove( float fMoveSpeed, float fTime, const CVector2& dPosition, float fMinDist )
 {
 	if( dPosition.Dot( dPosition ) > fMinDist * fMinDist )

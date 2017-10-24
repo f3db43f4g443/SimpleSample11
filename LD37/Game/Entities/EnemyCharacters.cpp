@@ -8,6 +8,7 @@
 #include "Bullet.h"
 #include "Common/ResourceManager.h"
 #include "Entities/Bullets.h"
+#include "Entities/Barrage.h"
 #include "Entities/BlockItems/BlockItemsLv2.h"
 
 void CEnemyCharacter::OnAddedToStage()
@@ -18,8 +19,6 @@ void CEnemyCharacter::OnAddedToStage()
 	float angle = SRand::Inst().Rand( -PI, PI );
 	m_curMoveDir = CVector2( cos( angle ), sin( angle ) );
 	UpdateAnimFrame();
-
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab );
 }
 
 void CEnemyCharacter::OnTickAfterHitTest()
@@ -296,7 +295,7 @@ void CEnemyCharacter::UpdateFire()
 
 			for( int i = 0; i < m_nBulletCount; i++ )
 			{
-				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+				auto pBullet = SafeCast<CBullet>( m_strPrefab->GetRoot()->CreateInstance() );
 				pBullet->SetPosition( globalTransform.GetPosition() );
 				float r = fAngle + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
 				pBullet->SetRotation( r );
@@ -397,7 +396,7 @@ void CEnemyCharacterLeader::OnFire()
 
 		for( int i = 0; i < m_nBulletCount; i++ )
 		{
-			auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+			auto pBullet = SafeCast<CBullet>( m_strPrefab->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( pChar->globalTransform.GetPosition() );
 			float angle = atan2( p1.y, p1.x ) + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
 			pBullet->SetRotation( angle );
@@ -802,4 +801,160 @@ void CThug::OnFindPath( CNavigationUnit::SGridData * pGrid )
 		float r = SRand::Inst().Rand( -PI, PI );
 		m_curMoveDir = CVector2( cos( r ), sin( r ) );
 	}
+}
+
+void CWorker::OnAddedToStage()
+{
+	CEnemyCharacter::OnAddedToStage();
+	m_pNav = CNavigationUnit::Alloc();
+	m_fNearestDist = FLT_MAX;
+	m_pNav->Set( false, m_fMaxScanDist, m_nGridsPerStep );
+	m_pNav->RegisterVisitGridEvent( &m_onVisitGrid );
+	m_pNav->RegisterFindTargetEvent( &m_onFindPath );
+}
+
+void CWorker::OnRemovedFromStage()
+{
+	if( m_onVisitGrid.IsRegistered() )
+		m_onVisitGrid.Unregister();
+	if( m_onFindPath.IsRegistered() )
+		m_onFindPath.Unregister();
+	SetTarget( NULL );
+	m_pNav->Clear();
+	CNavigationUnit::Free( m_pNav );
+	CEnemyCharacter::OnRemovedFromStage();
+}
+
+void CWorker::OnTickAfterHitTest()
+{
+	if( m_nStateTime )
+		m_nStateTime--;
+	if( m_pTarget && !m_pTarget->GetStage() )
+		SetTarget( NULL );
+	
+	m_pNav->Step( this );
+	if( !m_nStateTime )
+	{
+		if( m_pNav->HasPath() )
+			m_curMoveDir = m_pNav->FollowPath( this );
+
+		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+
+			auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
+			if( pEntrance && pEntrance->Enter( this ) )
+				return;
+		}
+		
+		if( m_pTarget && m_pTarget->CanOperate( this ) )
+		{
+			m_nStateTime = m_nOperateTime;
+		}
+	}
+	if( m_nStateTime == m_nOperateTime - m_nOperatePoint )
+		m_pTarget->Operate( this );
+
+	CEnemyCharacter::OnTickAfterHitTest();
+}
+
+void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
+{
+	if( pGrid->nType == 2 )
+	{
+		auto pHitTestGrid = GetStage()->GetHitTestMgr().GetGrid( pGrid->pos );
+		for( auto pProxyGrid = pHitTestGrid->Get_InGrid(); pProxyGrid; pProxyGrid = pProxyGrid->NextInGrid() )
+		{
+			auto pEntity = static_cast<CEntity*>( pProxyGrid->pHitProxy->pOwner );
+
+			auto pOperatingArea = SafeCast<COperatingArea>( pEntity );
+			if( pOperatingArea && pOperatingArea->CanOperate( this ) )
+			{
+				if( pGrid->fDist < m_fNearestDist )
+				{
+					SetTarget( pOperatingArea );
+					m_fNearestDist = pGrid->fDist;
+					m_nearestGrid = pGrid->pos;
+				}
+			}
+		}
+	}
+}
+
+void CWorker::OnFindPath( CNavigationUnit::SGridData* pGrid )
+{
+	if( pGrid )
+		m_pNav->BuildPath( pGrid, this );
+	else if( m_pTarget && m_fNearestDist != FLT_MAX )
+		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
+	else
+	{
+		SetTarget( NULL );
+		float r = SRand::Inst().Rand( -PI, PI );
+		m_curMoveDir = CVector2( cos( r ), sin( r ) );
+	}
+}
+
+void CWorker::SetTarget( COperatingArea* pOperatingArea )
+{
+	if( m_pTarget && m_pTarget->GetStage() )
+		m_pTarget->SetOperator( NULL );
+	m_pTarget = pOperatingArea;
+	if( m_pTarget )
+		m_pTarget->SetOperator( this );
+}
+
+void CWorker::UpdateAnimFrame()
+{
+
+}
+
+void CWorker::OnFire()
+{
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return;
+	CVector2 dPos = pPlayer->GetPosition();
+
+	SBarrageContext context;
+	context.pCreator = GetParentEntity();
+	context.vecBulletTypes.push_back( m_strPrefab.GetPtr() );
+	context.nBulletPageSize = 10;
+
+	CBarrage* pBarrage = new CBarrage( context );
+	pBarrage->AddFunc( [dPos] ( CBarrage* pBarrage )
+	{
+		CVector2 dir = dPos;
+		float l = dir.Normalize();
+		if( l <= 0.01f )
+		{
+			dir = CVector2( 1, 0 );
+			l = 1.0f;
+		}
+		float l1 = SRand::Inst().Rand( -0.33f, 0.33f ) * l;
+		float t = l / 100.0f;
+		float a = -50.0f;
+		float v = l / t - a * t * 0.5f;
+		float a1 = SRand::Inst().Rand( -50.0f, 50.0f );
+		float v1 = a1 * t * 0.5f;
+
+		pBarrage->InitBullet( 0, -1, -1, CVector2( 0, 0 ), dir * v + CVector2( -dir.y, dir.x ) * v1, dir * a + CVector2( -dir.y, dir.x ) * a1,
+			false, SRand::Inst().Rand( -PI, PI ), 3.0f * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) );
+		for( int i = 0; i < 6; i++ )
+		{
+			float fAngle = PI * ( i - 2.5f ) / 5.0f;
+			pBarrage->InitBullet( i + 1, 0, 0, CVector2( cos( fAngle ), sin( fAngle ) ) * 50.0f, CVector2( 0, 0 ), CVector2( 0, 0 ), false );
+		}
+		for( int i = 1; i < 4; i++ )
+		{
+			float fAngle = PI * ( i - 2.0f ) / 4.0f;
+			pBarrage->InitBullet( i + 6, 0, 0, CVector2( cos( fAngle ) * 35.0f, sin( fAngle ) * 50.0f ), CVector2( 0, 0 ), CVector2( 0, 0 ), false );
+		}
+
+		pBarrage->Yield( 2 );
+		pBarrage->StopNewBullet();
+	} );
+	pBarrage->SetPosition( GetPosition() );
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->Start();
 }

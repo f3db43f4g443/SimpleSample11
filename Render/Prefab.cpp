@@ -360,6 +360,15 @@ CRenderObject2D * CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst
 	}
 	else if( !pRenderObject )
 		pRenderObject = new CRenderObject2D;
+	else
+	{
+		auto p = SafeCast<CPrefabBaseNode>( pRenderObject );
+		if( p )
+		{
+			if( m_strName.length() )
+				p->SetName( m_strName );
+		}
+	}
 
 	pRenderObject->x = x;
 	pRenderObject->y = y;
