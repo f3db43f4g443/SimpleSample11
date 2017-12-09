@@ -608,6 +608,7 @@
     <ClCompile Include="LevelGenerating\LvGen1_2.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_3.cpp" />
     <ClCompile Include="LevelGenerating\LvGen2_1.cpp" />
+    <ClCompile Include="LevelGenerating\LvGen2_2.cpp" />
     <ClCompile Include="LevelGenerating\LvGenCommon.cpp" />
     <ClCompile Include="LevelGenerating\LvGenLib.cpp" />
     <ClCompile Include="LevelScrollObj.cpp" />

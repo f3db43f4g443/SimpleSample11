@@ -182,6 +182,9 @@
     <ClCompile Include="LevelGenerating\LvGen2_1.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen2_2.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -356,6 +359,7 @@
     <ClInclude Include="LevelGenerating\LvGen2.h">
       <Filter>LevelGenerating</Filter>
     </ClInclude>
+    <ClInclude Include="Interfaces.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">

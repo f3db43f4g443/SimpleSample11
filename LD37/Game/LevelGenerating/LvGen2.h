@@ -148,7 +148,6 @@ private:
 	CReference<CLevelGenerateNode> m_pBarrel1Node;
 };
 
-
 class CLevelGenNode2_1_2 : public CLevelGenerateNode
 {
 public:
@@ -200,6 +199,93 @@ private:
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pHouseNode;
+};
+
+class CTruckNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pBaseNode[2];
+	CReference<CLevelGenerateNode> m_pControlRoomNode[2];
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo2Node;
+};
+
+class CLevelGenNode2_2_1 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenChunks();
+	void GenHouses();
+	void GenObjs();
+
+	enum
+	{
+		eType_None,
+		eType_Walkable_a,
+		eType_Walkable_b,
+		eType_Walkable_c,
+		eType_Walkable_d,
+		eType_Road,
+		eType_Temp,
+		eType_Temp1,
+		eType_Chunk,
+
+		eType_Room,
+		eType_Door,
+		eType_House,
+		eType_House_1,
+		eType_House_2 = eType_House_1 + 4,
+		eType_House_Exit1,
+		eType_House_Exit2,
+	};
+	
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<TVector2<int32> > m_par;
+
+	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecFences;
+	vector<TRectangle<int32> > m_vecFenceBlock;
+	vector<TRectangle<int32> > m_vecRooms;
+	vector<SHouse> m_vecHouses;
+
+	vector<TRectangle<int32> > m_vecCargos;
+	vector<TRectangle<int32> > m_vecControlRooms;
+	vector<TRectangle<int32> > m_vecTrucks;
+	vector<TRectangle<int32> > m_vecObjs;
+
+	CReference<CLevelGenerateNode> m_pRoadNode;
+	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
+	CReference<CLevelGenerateNode> m_pBlockNode;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pHouseNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo2Node;
+	CReference<CLevelGenerateNode> m_pCargoSmallNode;
+	CReference<CLevelGenerateNode> m_pBarrelNode;
+	CReference<CLevelGenerateNode> m_pBarrel1Node;
+	CReference<CLevelGenerateNode> m_pControlRoomNode;
+	CReference<CLevelGenerateNode> m_pTruckNode;
+};
+
+class CLevelGenNode2_2_2 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenPath();
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
 };
 
 class CLvBarrierNodeGen2 : public CLevelGenerateSimpleNode
