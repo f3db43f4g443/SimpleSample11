@@ -113,6 +113,7 @@ public:
 	bool IsStarted() { return m_bStarted; }
 	void Yield( uint32 nFrame = 1 );
 
+	CEntity* GetCreator() { return pCreator; }
 	uint32 GetCurFrame() { return m_nCurFrame; }
 	SBulletPage* CreatePage( uint32 nPage );
 	SLightningPage* CreateLightningPage( uint32 nPage );
@@ -182,6 +183,7 @@ private:
 class CBarrageAutoStopHolder : public CReference<CBarrage>
 {
 public:
+	CBarrageAutoStopHolder() {}
 	CBarrageAutoStopHolder( const CBarrageAutoStopHolder& r ) : CReference<CBarrage>( r ) {}
 	CBarrageAutoStopHolder( CBarrage* p ) : CReference<CBarrage>( p ) {}
 	~CBarrageAutoStopHolder()

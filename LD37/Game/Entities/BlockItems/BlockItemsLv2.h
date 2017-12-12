@@ -42,7 +42,7 @@ class CThruster : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	CThruster( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, CThruster::OnTick ) { SET_BASEOBJECT_ID( CThruster ); }
+	CThruster( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CThruster::OnTick ) { SET_BASEOBJECT_ID( CThruster ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 private:
@@ -65,6 +65,8 @@ class COperateableTurret1 : public CEnemy, public IOperateable
 public:
 	COperateableTurret1( const SClassCreateContext& context ) : CEnemy( context ), m_onTick( this, &COperateableTurret1::OnTick )
 	{ SET_BASEOBJECT_ID( COperateableTurret1 ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 	virtual int8 IsOperateable( const CVector2& pos ) override;
 	virtual void Operate( const CVector2& pos ) override;
 private:
@@ -76,6 +78,7 @@ private:
 	float m_fBulletSpeed;
 	float m_fBulletAngle;
 	float m_fShakePerFire;
+	CReference<CEntity> m_pDetectArea;
 	TResourceRef<CPrefab> m_pBulletPrefab;
 
 	uint32 m_nAmmoLeft;
@@ -86,8 +89,10 @@ class CWindow3 : public CEnemy
 {
 	friend void RegisterGameClasses();
 public:
+	CWindow3( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CWindow3 ); }
 	virtual void OnAddedToStage() override;
 	virtual void Kill() override;
+	bool IsKilled() { return m_bKilled; }
 
 	CAIObject* TryPlay();
 protected:
@@ -99,12 +104,16 @@ protected:
 	};
 	CReference<AI> m_pAI;
 	uint8 m_nDir;
+	bool m_bKilled;
 
 	CReference<CEnemyPart> m_pParts[4];
 	CReference<CEntity> m_pDetectArea[4];
-	CVector2 m_fireOfs[2];
+	CVector2 m_fireOfs[4];
 	TResourceRef<CPrefab> m_pBullet;
 	TResourceRef<CPrefab> m_pBullet1;
+	TResourceRef<CPrefab> m_pBullet2;
+	TResourceRef<CPrefab> m_pBullet3;
+	TResourceRef<CPrefab> m_pBeam;
 };
 
 class CWindow3Controller : public CEntity

@@ -12,7 +12,7 @@ protected:
 	TResourceRef<CPrefab> m_strBullet;
 	TResourceRef<CPrefab> m_strExp;
 
-	virtual void OnKilled() override { m_pChunk->bStopMove = true; }
+	virtual void OnKilled() override { m_pChunk->bStopMove = true; CExplosiveChunk::OnKilled(); }
 	virtual void Explode() override;
 };
 
@@ -86,4 +86,78 @@ private:
 	vector<int8> m_throwObjs;
 
 	TClassTrigger<CHouse> m_onTick;
+};
+
+class CControlRoom : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CControlRoom( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CControlRoom ); }
+
+	virtual void OnSetChunk( SChunk * pChunk, CMyLevel * pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+
+	virtual void Damage( SDamageContext& context ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint8 m_nType;
+	uint8 m_nAltX, m_nAltY;
+	uint32 m_nHpPerSize;
+	TResourceRef<CPrefab> m_pWindow[4];
+	CReference<CEntity> m_pDmgParticles[4];
+	int32 m_nDmgParticles;
+};
+
+class CHouse2 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CHouse2( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CHouse2 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+	virtual void Kill() override;
+	virtual void Crush() override;
+	virtual void Damage( SDamageContext& context ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	void GenObjs();
+	void GenObj( const CVector2& p, uint8 nType );
+
+	void AIFunc();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CHouse2*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+
+	uint32 m_nHp1;
+	uint32 m_nHpPerSize;
+	uint32 m_nHpPerSize1;
+	CRectangle m_texRect;
+	CRectangle m_texRect1;
+	CRectangle m_texRect2;
+	TResourceRef<CPrefab> m_pObjPrefab[3];
+	CReference<CEntity> m_pDecorator;
+	uint32 m_nDecoTexSize;
+	CReference<CEntity> m_pObj[3];
+	CReference<CEntity> m_pObj1[3];
+	CReference<CEntity> m_pDoor;
+	TResourceRef<CPrefab> m_pBullet[4];
+
+	static void CreateBarrage( uint32 nType, CEntity* pRef, const CVector2& ofs, CPrefab* pBullets[4] );
+
+	struct SObj
+	{
+		CReference<CRenderObject2D> pImg;
+		CReference<CRenderObject2D> pImg1;
+		CVector2 ofs;
+		uint8 nType;
+	};
+	vector<SObj> m_vecObj;
+	vector<CReference<CRenderObject2D> > m_vecBlock1;
+	uint8 m_nState;
+	bool m_bDamaged;
 };

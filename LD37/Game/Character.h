@@ -15,6 +15,7 @@ public:
 	virtual bool CanTriggerItem() { return false; }
 	virtual void Awake() {}
 	virtual void Kill();
+	void KillEffect();
 	virtual void Crush() { m_bCrushed = true; Kill(); }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
 	virtual bool IsKnockback() { return false; }

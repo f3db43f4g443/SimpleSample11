@@ -101,6 +101,15 @@ void CRoom0Node::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 	m_pDoor2[1] = CreateNode( pXml->FirstChildElement( "door2_1" )->FirstChildElement(), context );
 	m_pDoor2[2] = CreateNode( pXml->FirstChildElement( "door2_2" )->FirstChildElement(), context );
 	m_pDoor2[3] = CreateNode( pXml->FirstChildElement( "door2_3" )->FirstChildElement(), context );
+
+	for( int i = 0; i < 4; i++ )
+	{
+		char sz[64];
+		sprintf( sz, "obj_%d", i );
+		auto pElem = pXml->FirstChildElement( sz );
+		if( pElem )
+			m_pObj[i] = CreateNode( pElem->FirstChildElement(), context );
+	}
 }
 
 void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
@@ -130,6 +139,8 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 					else
 						m_pDoor1[0]->Generate( tempContext, TRectangle<int32>( i, 0, 1, 1 ) );
 				}
+				else if( m_pObj[0] )
+					m_pObj[0]->Generate( context, TRectangle<int32>( i + region.x, region.y, 1, 1 ) );
 			}
 		}
 		{
@@ -146,6 +157,8 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 					else
 						m_pDoor1[2]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 1, 1 ) );
 				}
+				else if( m_pObj[2] )
+					m_pObj[2]->Generate( context, TRectangle<int32>( i + region.x, region.y + region.height - 1, 1, 1 ) );
 			}
 		}
 
@@ -163,6 +176,8 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 					else
 						m_pDoor1[1]->Generate( tempContext, TRectangle<int32>( 0, i, 1, 1 ) );
 				}
+				else if( m_pObj[1] )
+					m_pObj[1]->Generate( context, TRectangle<int32>( region.x, i + region.y, 1, 1 ) );
 			}
 		}
 		{
@@ -179,6 +194,8 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 					else
 						m_pDoor1[3]->Generate( tempContext, TRectangle<int32>( region.width - 1, i, 1, 1 ) );
 				}
+				else if( m_pObj[3] )
+					m_pObj[3]->Generate( context, TRectangle<int32>( region.x + region.width - 1, i + region.y, 1, 1 ) );
 			}
 		}
 

@@ -1276,7 +1276,7 @@ void CLevelDesignGameState::EnterState()
 	CUIMgrGameState::EnterState();
 
 	m_pDesignStage = new CStage( NULL );
-	SStageContext context;
+	static SStageContext context;
 	context.bLight = true;
 	m_pDesignStage->Create( &context );
 	SStageEnterContext enterContext;

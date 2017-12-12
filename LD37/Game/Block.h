@@ -227,6 +227,7 @@ public:
 	void Preview( SChunk* pChunk, CEntity* pParent );
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
+	CRectangle GetRect();
 
 	virtual void CreateBlockRTLayer( CBlockObject* pBlockObject );
 

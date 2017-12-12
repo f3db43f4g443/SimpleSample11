@@ -31,6 +31,7 @@ public:
 private:
 	CReference<CLevelGenerateNode> m_pDoor1[4];
 	CReference<CLevelGenerateNode> m_pDoor2[4];
+	CReference<CLevelGenerateNode> m_pObj[4];
 };
 
 class CRoom1Node : public CLevelGenerateSimpleNode

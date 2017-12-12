@@ -1,5 +1,5 @@
 #pragma once
-#include "Entity.h"
+#include "Character.h"
 
 class CTexRectRandomModifier : public CEntity
 {
@@ -107,7 +107,7 @@ public:
 
 	virtual void OnRemovedFromStage() override { m_pCharacter = NULL; }
 	bool CanOperate( CCharacter* pCharacter );
-	bool Operate( CCharacter* pCharacter );
+	bool Operate( CCharacter* pCharacter, bool bCheck = false );
 	void SetOperator( CCharacter* pCharacter ) { m_pCharacter = pCharacter; }
 private:
 	CReference<CCharacter> m_pCharacter;

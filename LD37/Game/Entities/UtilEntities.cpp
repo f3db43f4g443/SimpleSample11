@@ -194,7 +194,7 @@ void CShakeObject::OnRemovedFromStage()
 
 bool COperatingArea::CanOperate( CCharacter* pCharacter )
 {
-	auto pOperateable = SafeCast<IOperateable>( GetParentEntity() );
+	auto pOperateable = SafeCastToInterface<IOperateable>( GetParentEntity() );
 	if( !pOperateable )
 		return false;
 	if( m_pCharacter && !m_pCharacter->GetStage() )
@@ -202,14 +202,14 @@ bool COperatingArea::CanOperate( CCharacter* pCharacter )
 	if( m_pCharacter && m_pCharacter != pCharacter )
 		return false;
 	CVector2 operatorPos = pCharacter->globalTransform.GetPosition();
-	if( pOperateable->IsOperateable( operatorPos ) > 0 )
+	if( !!( pOperateable->IsOperateable( operatorPos ) & 1 ) )
 		return false;
 	return true;
 }
 
-bool COperatingArea::Operate( CCharacter* pCharacter )
+bool COperatingArea::Operate( CCharacter* pCharacter, bool bCheck )
 {
-	auto pOperateable = SafeCast<IOperateable>( GetParentEntity() );
+	auto pOperateable = SafeCastToInterface<IOperateable>( GetParentEntity() );
 	if( !pOperateable )
 		return false;
 	if( m_pCharacter && !m_pCharacter->GetStage() )
@@ -219,8 +219,9 @@ bool COperatingArea::Operate( CCharacter* pCharacter )
 	CVector2 operatorPos = pCharacter->globalTransform.GetPosition();
 	if( !HitTest( operatorPos ) )
 		return false;
-	if( pOperateable->IsOperateable( operatorPos ) )
+	if( !!( pOperateable->IsOperateable( operatorPos ) & 2 ) )
 		return false;
-	pOperateable->Operate( operatorPos );
+	if( !bCheck )
+		pOperateable->Operate( operatorPos );
 	return true;
 }

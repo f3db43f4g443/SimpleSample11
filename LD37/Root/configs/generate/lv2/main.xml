@@ -224,6 +224,102 @@
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
+
+      <node type="lv2type2_1" name="lv2style5">
+        <road>
+          <ref name="road_large" />
+        </road>
+        <walkable_a>
+          <ref name="block0a" />
+        </walkable_a>
+        <walkable_b>
+          <ref name="block0b" />
+        </walkable_b>
+        <walkable_c>
+          <ref name="block0c" />
+        </walkable_c>
+        <walkable_d>
+          <ref name="block0d" />
+        </walkable_d>
+        <block>
+          <node type="randomfill" check_gen_data_name="mask">
+            <ref name="block1_tiled" sizeminx="2" sizeminy="2" sizemaxx="4" sizemaxy="4" p="1" />
+            <ref name="block1_tiled" sizeminx="2" sizeminy="1" sizemaxx="4" sizemaxy="1" p="1" />
+            <ref name="block1_tiled" sizeminx="1" sizeminy="2" sizemaxx="1" sizemaxy="4" p="1" />
+            <ref name="block1" sizeminx="1" sizeminy="1" p="1" />
+          </node>
+        </block>
+
+        <house>
+          <ref name="house" />
+        </house>
+        <room>
+          <ref name="room_1" />
+        </room>
+        <fence>
+          <ref name="greenbelt" />
+        </fence>
+        
+        <cargo>
+          <ref name="cargo" />
+        </cargo>
+        <cargo2>
+          <ref name="cargo1s" />
+        </cargo2>
+        <barrel>
+          <ref name="barrel" />
+        </barrel>
+        <barrel1>
+          <ref name="barrel1" />
+        </barrel1>
+        <control_room>
+          <ref name="control_room_1" />
+        </control_room>
+        <truck>
+          <node type="trucknode">
+            <base0>
+              <ref name="bar_truck_a" />
+            </base0>
+            <base1>
+              <ref name="bar_truck_b" />
+            </base1>
+            <room0>
+              <ref name="control_room_2" />
+            </room0>
+            <room1>
+              <ref name="control_room_3" />
+            </room1>
+            <cargo>
+              <ref name="cargo" />
+            </cargo>
+            <cargo2>
+              <ref name="cargo2_a" />
+            </cargo2>
+          </node>
+        </truck>
+      </node>
+
+      <node type="subregion" name="lv2_2">
+        <ref name="lv2style5" x="0" y="0" w="32" h="58" />
+        <ref name="lv2floor" x="0" y="58" w="32" h="2" />
+
+        <ref name="lv2style5" x="0" y="60" w="32" h="60" />
+        <ref name="2f" x="0" y="120" w="32" h="8" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
+      
     </nodes>
   </level_gen>
 </root>

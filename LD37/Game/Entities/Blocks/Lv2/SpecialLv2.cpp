@@ -8,6 +8,8 @@
 #include "Entities/EnemyCharacters.h"
 #include "Common/Rand.h"
 #include "Entities/Barrage.h"
+#include "Effects/ParticleArrayEmitter.h"
+#include "Common/Algorithm.h"
 
 void CBarrel::Damage( SDamageContext& context )
 {
@@ -44,7 +46,7 @@ void CBarrel::Damage( SDamageContext& context )
 						CVector2 finalSpeed = dir * speed * 0.5f;
 						pBarrage->AddDelayAction( 60, [=] () {
 							auto pContext = pBarrage->GetBulletContext( nBullet );
-							if( pContext )
+							if( pContext->IsValid() )
 								pContext->SetBulletMove( finalSpeed, CVector2( 0, 0 ) );
 						} );
 					}
@@ -166,6 +168,7 @@ void CBarrel1::OnKilled()
 		pExp->Set( &buffcontext );
 		pExp->SetCreator( this );
 	}
+	CChunkObject::OnKilled();
 }
 
 void CBarrel1::Explode()
@@ -353,6 +356,8 @@ void CHousePart::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CHouse::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -603,6 +608,8 @@ void CHouse::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CHouse::OnTick()
@@ -700,4 +707,1070 @@ void CHouse::OnTick()
 			}
 		}
 	}
+}
+
+void CControlRoom::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+
+	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+	texRect.x += SRand::Inst().Rand<int32>( 0, m_nAltX ) * texRect.width;
+	texRect.y += SRand::Inst().Rand<int32>( 0, m_nAltY ) * texRect.height;
+	texRect.width /= 4;
+	texRect.height /= 4;
+
+	SetRenderObject( new CRenderObject2D );
+	for( int iY = 0; iY < pChunk->nHeight; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth; iX++ )
+		{
+			CRectangle tex = texRect;
+
+			switch( m_nType )
+			{
+			case 0:
+			{
+				int32 nY;
+				if( iY > 0 )
+					nY = Min<int32>( 2, pChunk->nHeight - iY - 1 );
+				else
+					nY = 3;
+				tex.y += tex.height * nY;
+
+				if( nY > 0 )
+				{
+					int32 nX;
+					if( iX < pChunk->nWidth - 1 )
+						nX = Min( iX, 2 );
+					else
+						nX = 3;
+					tex.x += tex.width * nX;
+				}
+				else
+				{
+					if( iX == 0 )
+						;
+					else if( iX == pChunk->nWidth - 1 )
+						tex.x += tex.width * 3;
+					else
+					{
+						if( iX * 2 + 1 < pChunk->nWidth )
+						{
+							if( iX * 2 + 2 == pChunk->nWidth )
+								tex.x += tex.width;
+							else
+							{
+								tex.x += tex.width;
+								tex.width /= 2;
+							}
+						}
+						else if( iX * 2 + 1 > pChunk->nWidth )
+						{
+							if( iX * 2 == pChunk->nWidth )
+								tex.x += tex.width * 2;
+							else
+							{
+								tex.x += tex.width * 2.5f;
+								tex.width /= 2;
+							}
+						}
+						else
+							tex.x += tex.width * 1.5f;
+					}
+				}
+				break;
+			}
+			case 1:
+			case 2:
+				tex.y += tex.height * Min<int32>( 3, pChunk->nHeight - iY - 1 );
+				tex.x += tex.width * iX;
+				break;
+			}
+
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+			pImage2D->SetTexRect( tex );
+			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( iX, iY )->rtTexRect = tex;
+		}
+	}
+
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		m_pDmgParticles[i] = static_cast<CEntity*>( m_pDamagedEffects[i] );
+		m_pDamagedEffects[i] = NULL;
+		auto pParticle = static_cast<CParticleFile*>( m_pDmgParticles[i]->GetResource() );
+		int32 n = pChunk->nWidth * pChunk->nHeight / 8;
+		for( int k = 0; k < n; k++ )
+		{
+			auto p = pParticle->CreateInstance( NULL );
+			p->GetInstanceData()->GetData().isEmitting = false;
+			p->SetPosition( CVector2( SRand::Inst().Rand<float>( 0, ( pChunk->nWidth - 4 ) * CMyLevel::GetBlockSize() ) + 2 * CMyLevel::GetBlockSize(),
+				SRand::Inst().Rand<float>( 0, ( pChunk->nHeight - 4 ) * CMyLevel::GetBlockSize() ) + 2 * CMyLevel::GetBlockSize() ) );
+			m_pDmgParticles[i]->AddChild( p );
+		}
+
+		m_pDmgParticles[i]->SetRenderObject( NULL );
+	}
+	m_nDmgParticles = m_nDamagedEffectsCount;
+	m_nDamagedEffectsCount = 0;
+	m_pDamagedEffectsRoot = NULL;
+
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CControlRoom::OnCreateComplete( CMyLevel * pLevel )
+{
+	if( !pLevel )
+		return;
+
+	CWindow3Controller* pController = new CWindow3Controller;
+	pController->SetParentEntity( this );
+
+	switch( m_nType )
+	{
+	case 0:
+	{
+		/*auto pWindow = SafeCast<CWindow3>( m_pWindow[0]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( ( m_pChunk->nWidth * 0.5f + 1 ) * CMyLevel::GetBlockSize() / 2 - 6, m_pChunk->nHeight * CMyLevel::GetBlockSize() - 14 ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+
+		pWindow = SafeCast<CWindow3>( m_pWindow[1]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( ( m_pChunk->nWidth * 1.5f - 1 ) * CMyLevel::GetBlockSize() / 2 + 6, m_pChunk->nHeight * CMyLevel::GetBlockSize() - 14 ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );*/
+
+		auto pWindow = SafeCast<CWindow3>( m_pWindow[2]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( 12, ( m_pChunk->nHeight - 1 ) * CMyLevel::GetBlockSize() / 2 ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+
+		pWindow = SafeCast<CWindow3>( m_pWindow[3]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( m_pChunk->nWidth * CMyLevel::GetBlockSize() - 12, ( m_pChunk->nHeight - 1 ) * CMyLevel::GetBlockSize() / 2 ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+		break;
+	}
+	case 1:
+	{
+		auto pWindow = SafeCast<CWindow3>( m_pWindow[0]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( ( m_pChunk->nWidth - 1.5f ) * CMyLevel::GetBlockSize(), ( m_pChunk->nHeight - 2 ) * CMyLevel::GetBlockSize() ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+
+		pWindow = SafeCast<CWindow3>( m_pWindow[3]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( m_pChunk->nWidth * CMyLevel::GetBlockSize() - 10, ( m_pChunk->nHeight - 2 ) * CMyLevel::GetBlockSize() ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+		break;
+	}
+	case 2:
+	{
+		auto pWindow = SafeCast<CWindow3>( m_pWindow[1]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( 1.5f * CMyLevel::GetBlockSize(), ( m_pChunk->nHeight - 2 ) * CMyLevel::GetBlockSize() ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+
+		pWindow = SafeCast<CWindow3>( m_pWindow[2]->GetRoot()->CreateInstance() );
+		pWindow->SetPosition( CVector2( 10, ( m_pChunk->nHeight - 2 ) * CMyLevel::GetBlockSize() ) );
+		pWindow->SetParentEntity( this );
+		pWindow->SetRenderParentBefore( pLevel->GetChunkEffectRoot() );
+		pController->Add( pWindow );
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+void CControlRoom::Damage( SDamageContext & context )
+{
+	DEFINE_TEMP_REF_THIS();
+	uint32 nLastDamageFrame = Min<float>( m_nDmgParticles, Max<float>( ( m_fHp * ( m_nDmgParticles + 1 ) - 1 ) / m_nMaxHp, 0 ) );
+	CChunkObject::Damage( context );
+	if( !GetStage() )
+		return;
+	int32 nDamageFrame = Min<float>( m_nDmgParticles, Max<float>( ( m_fHp * ( m_nDmgParticles + 1 ) - 1 ) / m_nMaxHp, 0 ) );
+	
+	for( int i = nLastDamageFrame - 1; i >= nDamageFrame; i-- )
+	{
+		m_pDmgParticles[i]->bVisible = true;
+		for( auto pChild = m_pDmgParticles[i]->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		{
+			auto pParticle = static_cast<CParticleSystemObject*>( pChild );
+			pParticle->SetAutoUpdateAnim( true );
+			pParticle->GetInstanceData()->GetData().isEmitting = true;
+		}
+	}
+}
+
+void CControlRoom::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+}
+
+void CHouse2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+
+	CRectangle texRect1 = m_texRect1;
+	texRect1.width /= 3;
+	texRect1.height /= 2;
+	SetRenderObject( new CRenderObject2D );
+	for( int iY = 0; iY < pChunk->nHeight; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth; iX++ )
+		{
+			CRectangle tex;
+			if( iY == pChunk->nHeight - 1 )
+				tex = m_texRect;
+			else
+			{
+				tex = texRect1;
+				if( iX == pChunk->nWidth - 1 )
+					tex.x += tex.width * 2;
+				else if( iX )
+					tex.x += tex.width;
+				if( iY == 0 )
+					tex.y += tex.height;
+			}
+
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+			pImage2D->SetTexRect( tex );
+			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( iX, iY )->rtTexRect = tex;
+			if( iY < pChunk->nHeight - 1 )
+				m_vecBlock1.push_back( pImage2D );
+
+			for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+			{
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 32, 32 ) );
+				pImage2D->SetTexRect( pDamageEftTex[i] );
+				m_pDamagedEffects[i]->AddChild( pImage2D );
+			}
+		}
+	}
+
+	GenObjs();
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+	m_nHp1 += m_nHpPerSize1 * pChunk->nWidth * pChunk->nHeight;
+
+	for( int i = 0; i < 3; i++ )
+	{
+		m_pObj[i]->SetParentEntity( NULL );
+		m_pObj[i] = NULL;
+		m_pObj1[i]->SetParentEntity( NULL );
+		m_pObj1[i] = NULL;
+	}
+	m_pDecorator->SetParentEntity( NULL );
+	m_pDecorator = NULL;
+	m_pDoor->SetParentEntity( NULL );
+	m_pDoor = NULL;
+}
+
+void CHouse2::OnCreateComplete( CMyLevel * pLevel )
+{
+	if( pLevel )
+	{
+		m_pAI = new AI();
+		m_pAI->SetParentEntity( this );
+	}
+}
+
+void CHouse2::GenObjs()
+{
+	uint32 nWidth = GetChunk()->nWidth;
+	uint32 nHeight = GetChunk()->nHeight - 1;
+	if( nWidth < 4 || nHeight < 2 )
+		return;
+
+	vector<TVector2<int32> > vecObjs;
+	uint32 l[] = { 3, 4, 6 };
+	int32 l0 = nWidth - floor( nWidth * SRand::Inst().Rand( 0.0f, 0.2f ) );
+	int32 nMaxWidth = -1;
+	const char* patterns[] = { "102", "201", "210", "101", "1102", "2011" };
+	const char* pattern;
+	if( nHeight >= 4 )
+	{
+		SRand::Inst().Shuffle( patterns, ELEM_COUNT( patterns ) );
+		int32 nMaxPattern = -1;
+		for( int i = 0; i < ELEM_COUNT( patterns ); i++ )
+		{
+			const char* pattern = patterns[i];
+			int32 nLen = strlen( pattern );
+			int32 w = 0, k = 0;
+			while( w + l[pattern[k] - '0'] <= l0 )
+			{
+				w += l[pattern[k] - '0'];
+				k++;
+				if( k >= nLen )
+					k = 0;
+			}
+			if( w > nMaxWidth )
+			{
+				nMaxWidth = w;
+				nMaxPattern = i;
+			}
+		}
+		pattern = patterns[nMaxPattern];
+	}
+	else
+	{
+		pattern = "2";
+		nMaxWidth = nWidth / 6 * 6;
+	}
+
+	{
+		int32 nLen = strlen( pattern );
+		int32 w = 0, k = 0;
+		while( w + l[pattern[k] - '0'] <= l0 )
+		{
+			vecObjs.push_back( TVector2<int32>( w, pattern[k] - '0' ) );
+			w += l[pattern[k] - '0'];
+			k++;
+			if( k >= nLen )
+				k = 0;
+		}
+	}
+
+	{
+		int32 w = 0, k = 0;
+		uint32 nWidthLeft = nWidth - nMaxWidth;
+		int8* c = (int8*)alloca( nWidthLeft + vecObjs.size() );
+		SRand::Inst().C( nWidthLeft, nWidthLeft + vecObjs.size(), c );
+		for( int i = 0; i < nWidthLeft + vecObjs.size(); i++ )
+		{
+			if( c[i] )
+				w++;
+			else
+				vecObjs[k++].x += w;
+		}
+
+		if( SRand::Inst().Rand( 0, 2 ) )
+		{
+			for( auto& v : vecObjs )
+				v.x = nWidth - v.x - l[v.y];
+		}
+	}
+
+	vector<int8> data;
+	data.resize( nWidth * nHeight );
+
+	int32 h1 = nHeight - ( nHeight - 4 ) / 2 - 4;
+	int32 h2 = nHeight - 2;
+	for( auto& v : vecObjs )
+	{
+		TRectangle<int32> rect;
+		switch( v.y )
+		{
+		case 0:
+			rect = TRectangle<int32>( v.x, 0, 3, 4 );
+			break;
+		case 1:
+			rect = TRectangle<int32>( v.x, h1, 4, 4 );
+			break;
+		case 2:
+			rect = TRectangle<int32>( v.x, h2, 6, 2 );
+			break;
+		}
+
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				data[i + j * nWidth] = 1;
+			}
+		}
+		GenObj( CVector2( rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f ) * CMyLevel::GetBlockSize(), v.y );
+	}
+
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( m_pDecorator->GetResource() );
+	vector<int32> vec;
+	for( int i = 0; i < nWidth; i++ )
+		vec.push_back( i );
+	SRand::Inst().Shuffle( vec );
+	vector<TVector2<int32> > vec1;
+	CRectangle r0( 6, 2, nWidth * CMyLevel::GetBlockSize() - 12, nHeight * CMyLevel::GetBlockSize() - 2 );
+	for( int i = 0; i < nWidth; i++ )
+	{
+		int32 x = vec[i];
+		if( data[x] )
+			continue;
+		auto rect = PutRect( data, nWidth, nHeight, TVector2<int32>( x, 0 ), TVector2<int32>( 1, 1 ),
+			TVector2<int32>( SRand::Inst().Rand<int32>( 1, 4 ), SRand::Inst().Rand<int32>( 2, nHeight ) ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, 2 );
+		if( rect.width > 0 )
+		{
+			CRectangle rt( rect.x * CMyLevel::GetBlockSize(), rect.y * CMyLevel::GetBlockSize(), rect.width * CMyLevel::GetBlockSize(), rect.height * CMyLevel::GetBlockSize() );
+			rt.height += SRand::Inst().Rand( -16, 16 );
+			rt = rt * r0;
+			uint32 n = Max<uint32>( 1, floor( SRand::Inst().Rand( rt.height / 96, rt.height / 32 ) ) );
+			for( int i = 0; i < n; i++ )
+			{
+				float h0 = floor( ( rt.height * i / n - SRand::Inst().Rand( 0, 8 ) ) * 0.5f ) * 2;
+				float h1 = floor( ( rt.height * ( i + 1 ) / n + SRand::Inst().Rand( 0, 8 ) ) * 0.5f ) * 2;
+				CRectangle rt1( rt.x, rt.y + h0, rt.width, h1 - h0 );
+
+				float fOfs = SRand::Inst().Rand( -16, 16 );
+				rt1.x += fOfs;
+				rt1.SetSizeX( SRand::Inst().Rand( rt1.width - 16 + abs( fOfs ),
+					rt1.width + 16 - abs( fOfs ) ) );
+				rt1 = rt1 * r0;
+
+				auto pImage = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+				pImage->SetRect( rt );
+				pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0u, m_nDecoTexSize ), SRand::Inst().Rand( 0u, m_nDecoTexSize ),
+					rt.width, rt.height ) * ( 1.0f / m_nDecoTexSize ) );
+				CVector4& param = *pImage->GetParam();
+				param = CVector4( SRand::Inst().Rand( 0.93f, 1.07f ), SRand::Inst().Rand( 0.93f, 1.07f ), SRand::Inst().Rand( 0.93f, 1.07f ), 1 )
+					* SRand::Inst().Rand( 0.5f, 1.0f );
+				param.w = 1;
+				m_p1->AddChild( pImage );
+
+				for( int k = rect.y; k < rect.GetBottom(); k++ )
+				{
+					vec1.push_back( TVector2<int32>( rect.x, k ) );
+					vec1.push_back( TVector2<int32>( rect.GetRight() - 1, k ) );
+				}
+				for( int k = rect.x; k < rect.GetRight(); k++ )
+				{
+					vec1.push_back( TVector2<int32>( k, rect.GetBottom() - 1 ) );
+				}
+			}
+		}
+	}
+	for( auto& n : data )
+	{
+		if( n == 2 )
+			n = 0;
+	}
+
+	SRand::Inst().Shuffle( vec1 );
+	for( auto& p : vec1 )
+	{
+		if( data[p.x + p.y * nWidth] )
+			continue;
+
+		TVector2<int32> sizeMax;
+		sizeMax.x = sizeMax.y = SRand::Inst().Rand<int32>( 3, 5 );
+		auto rect = PutRect( data, nWidth, nHeight, p, TVector2<int32>( 2, 2 ), sizeMax,
+			TRectangle<int32>( 0, p.y, nWidth, nHeight - p.y ), -1, 2 );
+		if( rect.width > 0 )
+		{
+			CRectangle rt( rect.x * CMyLevel::GetBlockSize(), rect.y * CMyLevel::GetBlockSize(), rect.width * CMyLevel::GetBlockSize(), rect.height * CMyLevel::GetBlockSize() );
+			float fOfs = SRand::Inst().Rand( -16, 16 );
+			rt.x += fOfs;
+			rt.SetSizeX( SRand::Inst().Rand( rt.width - 16 + abs( fOfs ),
+				rt.width + 16 - abs( fOfs ) ) );
+			fOfs = SRand::Inst().Rand( -16, 16 );
+			rt.y += fOfs;
+			rt.SetSizeY( SRand::Inst().Rand( rt.height - 16 + abs( fOfs ),
+				rt.height + 16 - abs( fOfs ) ) );
+			rt = rt * r0;
+
+			CVector2 center = rt.GetCenter();
+			float k = SRand::Inst().Rand( 0.0f, Min( rt.width / rt.height, rt.height / rt.width ) * 0.15f );
+			float r = atan( k );
+			float w = floor( ( rt.width - k * rt.height ) / sqrt( 1 - k * k ) / 2 ) * 2;
+			float h = floor( ( rt.height - k * rt.width ) / sqrt( 1 - k * k ) / 2 ) * 2;
+			if( SRand::Inst().Rand( 0, 3 ) )
+			{
+				swap( w, h );
+				r += PI * 0.5f;
+			}
+
+			auto pImage = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage->SetRect( CRectangle( -w * 0.5f, -h * 0.5f, w, h ) );
+			pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0u, m_nDecoTexSize ), SRand::Inst().Rand( 0u, m_nDecoTexSize ),
+				w, h ) * ( 1.0f / m_nDecoTexSize ) );
+			pImage->SetPosition( center );
+			pImage->SetRotation( SRand::Inst().Rand( 0, 2 ) ? -r : r );
+			CVector4& param = *pImage->GetParam();
+			param = CVector4( SRand::Inst().Rand( 0.93f, 1.07f ), SRand::Inst().Rand( 0.93f, 1.07f ), SRand::Inst().Rand( 0.93f, 1.07f ), 1 )
+				* SRand::Inst().Rand( 0.5f, 1.0f );
+			param.w = 1;
+			m_p1->AddChild( pImage );
+		}
+	}
+}
+
+void CHouse2::GenObj( const CVector2& p, uint8 nType )
+{
+	m_vecObj.resize( m_vecObj.size() + 1 );
+	auto& obj = m_vecObj.back();
+	obj.nType = nType;
+	obj.ofs = p;
+	{
+		CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( m_pObj[nType]->GetResource() );
+		CImage2D* pImg = static_cast<CImage2D*>( m_pObj[nType]->GetRenderObject() );
+		CImage2D* pImg1 = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+		pImg1->SetRect( pImg->GetElem().rect );
+		pImg1->SetTexRect( pImg->GetElem().texRect );
+		pImg1->SetPosition( p );
+		m_p1->AddChild( pImg1 );
+	}
+
+	{
+		CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( m_pObj1[nType]->GetResource() );
+		CMultiFrameImage2D* pImg = static_cast<CMultiFrameImage2D*>( m_pObj1[nType]->GetRenderObject() );
+		CMultiFrameImage2D* pImg1 = static_cast<CMultiFrameImage2D*>( pDrawableGroup->CreateInstance() );
+		pImg1->SetFrames( pImg->GetFrameBegin(), pImg->GetFrameBegin() + 1, 0 );
+		pImg1->SetPosition( p );
+		m_p1->AddChild( pImg1 );
+		pImg1->SetRenderParent( this );
+		pImg1->SetAutoUpdateAnim( true );
+		obj.pImg = pImg1;
+	}
+
+	if( nType == 0 )
+	{
+		CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( m_pDoor->GetResource() );
+		CMultiFrameImage2D* pImg1 = static_cast<CMultiFrameImage2D*>( pDrawableGroup->CreateInstance() );
+		pImg1->SetFrames( 0, 1, 0 );
+		pImg1->SetPosition( p );
+		m_p1->AddChild( pImg1 );
+		pImg1->SetRenderParent( this );
+		pImg1->SetAutoUpdateAnim( true );
+		obj.pImg1 = pImg1;
+	}
+	else
+	{
+		CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( m_pDecorator->GetResource() );
+		CImage2D* pImg1 = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+
+		CRectangle rect;
+		if( nType == 1 )
+			rect = CRectangle( -32, -32, 64, 64 );
+		else
+			rect = CRectangle( -64, -8, 128, 16 );
+
+		pImg1->SetRect( rect );
+		pImg1->SetTexRect( CRectangle( SRand::Inst().Rand( 0u, m_nDecoTexSize ), SRand::Inst().Rand( 0u, m_nDecoTexSize ),
+			rect.width, rect.height ) * ( 1.0f / m_nDecoTexSize ) );
+		pImg1->SetPosition( p );
+		m_p1->AddChild( pImg1 );
+		pImg1->SetRenderParent( this );
+		obj.pImg1 = pImg1;
+	}
+}
+
+void CHouse2::AIFunc()
+{
+	while( true )
+	{
+		//closed
+		while( true )
+		{
+			m_pAI->Yield( 0.1f, true );
+			if( globalTransform.GetPosition().y + GetChunk()->nHeight * CMyLevel::GetBlockSize()
+				<= CMyLevel::GetInst()->GetBoundWithLvBarrier().GetBottom() )
+			{
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( pPlayer )
+				{
+					CRectangle rect( -128, -384, GetChunk()->nWidth * CMyLevel::GetBlockSize() + 256,
+						GetChunk()->nHeight * CMyLevel::GetBlockSize() + 768 );
+					rect = rect.Offset( globalTransform.GetPosition() );
+					if( rect.Contains( pPlayer->GetPosition() ) )
+						break;
+				}
+			}
+			if( m_bDamaged )
+				break;
+		}
+		//open
+		for( auto& obj : m_vecObj )
+		{
+			auto pImage = static_cast<CMultiFrameImage2D*>( obj.pImg.GetPtr() );
+			pImage->SetFrames( pImage->GetFrameBegin(), pImage->GetFrameBegin() + 4, 8 );
+			pImage->SetPlaySpeed( 1, false );
+			if( obj.nType == 0 )
+			{
+				auto pImage1 = static_cast<CMultiFrameImage2D*>( obj.pImg1.GetPtr() );
+				pImage1->SetFrames( 0, 4, 8 );
+				pImage1->SetPlaySpeed( 1, false );
+			}
+		}
+		for( int i = 31; i >= 0; i-- )
+		{
+			m_pAI->Yield( 0, true );
+			for( auto& obj : m_vecObj )
+			{
+				if( obj.nType == 0 )
+					continue;
+				auto pImage = static_cast<CImage2D*>( obj.pImg1.GetPtr() );
+				auto rect = pImage->GetElem().rect;
+				auto texRect = pImage->GetElem().texRect;
+				float h = obj.nType == 1 ? i * 2 : floor( i * 0.5f );
+				rect.SetTop( rect.GetBottom() - h );
+				texRect.height = h / m_nDecoTexSize;
+				pImage->SetRect( rect );
+				pImage->SetTexRect( texRect );
+			}
+		}
+		m_pAI->Yield( 0.5f, true );
+
+		//attack
+		int32 nType[3];
+		for( int i = 0; i < 3; i++ )
+			nType[i] = SRand::Inst().Rand( 0, 2 );
+		for( int i = 0; i < 3; i++ )
+		{
+			for( auto& obj : m_vecObj )
+			{
+				CPrefab* pPrefabs[4] = { m_pBullet[0].GetPtr(), m_pBullet[1].GetPtr(), m_pBullet[2].GetPtr(), m_pBullet[3].GetPtr() };
+				CreateBarrage( obj.nType + nType[obj.nType] * 3, m_p1, obj.ofs, pPrefabs );
+			}
+
+			m_pAI->Yield( 2.5f, true );
+		}
+
+		//close
+		for( auto& obj : m_vecObj )
+		{
+			auto pImage = static_cast<CMultiFrameImage2D*>( obj.pImg.GetPtr() );
+			pImage->SetFrames( pImage->GetFrameBegin(), pImage->GetFrameBegin() + 4, 8 );
+			pImage->SetPlayPercent( 1.0f );
+			pImage->SetPlaySpeed( -1, false );
+			if( obj.nType == 0 )
+			{
+				auto pImage1 = static_cast<CMultiFrameImage2D*>( obj.pImg1.GetPtr() );
+				pImage1->SetFrames( 0, 4, 8 );
+				pImage1->SetPlayPercent( 1.0f );
+				pImage1->SetPlaySpeed( -1, false );
+			}
+		}
+		for( int i = 1; i <= 32; i++ )
+		{
+			m_pAI->Yield( 0, true );
+			for( auto& obj : m_vecObj )
+			{
+				if( obj.nType == 0 )
+					continue;
+				auto pImage = static_cast<CImage2D*>( obj.pImg1.GetPtr() );
+				auto rect = pImage->GetElem().rect;
+				auto texRect = pImage->GetElem().texRect;
+				float h = obj.nType == 1 ? i * 2 : floor( i * 0.5f );
+				rect.SetTop( rect.GetBottom() - h );
+				texRect.height = h / m_nDecoTexSize;
+				pImage->SetRect( rect );
+				pImage->SetTexRect( texRect );
+			}
+		}
+
+		m_bDamaged = false;
+		m_pAI->Yield( 4.0f, true );
+	}
+}
+
+void CHouse2::CreateBarrage( uint32 nType, CEntity * pRef, const CVector2 & ofs, CPrefab* pBullets[4] )
+{
+	CReference<CEntity> pEntity = pRef;
+
+	SBarrageContext context;
+	context.pCreator = pRef;
+	CBarrage* pBarrage;
+	switch( nType )
+	{
+	case 0:
+		context.vecBulletTypes.push_back( pBullets[0] );
+		context.nBulletPageSize = 30;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs - CVector2( 0, 16 ) );
+			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
+			float fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			for( int i = 0; i < 6; i++ )
+			{
+				float fAngle1 = fAngle + SRand::Inst().Rand( -1.25f, 1.25f );
+				pBarrage->InitBullet( i * 5, -1, -1, p0, CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 200.0f, CVector2( 0, 0 ), false,
+					0, SRand::Inst().Rand( 1.2f, 1.5f ) * ( SRand::Inst().Rand( 0, 2 ) ? -1 : 1 ) );
+				for( int j = 0; j < 4; j++ )
+				{
+					float f = j - 1.5f;
+					pBarrage->InitBullet( i * 5 + 1 + j, 0, i * 5, CVector2( 0, f * 24 ), CVector2( 0, f * 12 ), CVector2( 0, 0 ) );
+				}
+				pBarrage->Yield( 25 );
+				if( !pBarrage->GetCreator()->GetStage() )
+					break;
+				p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+				pPlayer = pBarrage->GetStage()->GetPlayer();
+				float fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			}
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	case 1:
+		context.vecBulletTypes.push_back( pBullets[3] );
+		context.nBulletPageSize = 18;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
+			float fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			int32 nBullet = 0;
+			for( int i = 0; i < 2; i++ )
+			{
+				for( int j = 0; j < 3; j++ )
+				{
+					uint32 n = 3;
+					for( int k = 0; k < n; k++ )
+					{
+						float fAngle1 = fAngle + ( k - ( n - 1 ) * 0.5f ) * 0.5f;
+						pBarrage->InitBullet( nBullet++, 0, -1, p0, CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 320, CVector2( 0, 0 ) );
+					}
+					pBarrage->Yield( 25 );
+					if( !pBarrage->GetCreator()->GetStage() )
+						break;
+					p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+				}
+				pPlayer = pBarrage->GetStage()->GetPlayer();
+				fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			}
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	case 2:
+		context.vecBulletTypes.push_back( pBullets[0] );
+		context.vecBulletTypes.push_back( pBullets[2] );
+		context.nBulletPageSize = 48;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
+			CVector2 d = pPlayer ? pPlayer->GetPosition() - p0 : CVector2( 0, -300 );
+			CVector2 d1 = d;
+			d.x *= SRand::Inst().Rand( 0.1f, 0.3f );
+			d.Normalize();
+			d = d * 100.0f + CVector2( SRand::Inst().Rand( -50.0f, 50.0f ), SRand::Inst().Rand( -50.0f, 50.0f ) );
+			d1.x *= SRand::Inst().Rand( 0.1f, 0.3f );
+			d1.Normalize();
+			d1 = d1 * 300.0f + CVector2( SRand::Inst().Rand( -100.0f, 100.0f ), SRand::Inst().Rand( -100.0f, 100.0f ) );
+			d1 = d1 - d;
+			if( d1.Normalize() < 0.01f )
+				d1 = CVector2( 0, -1 );
+			d1 = d1 * SRand::Inst().Rand( 180.0f, 220.0f );
+
+			CVector2 d2 = d1;
+			d1 = d1 * SRand::Inst().Rand( 0.4f, 0.6f ) + CVector2( d1.y, -d1.x ) * SRand::Inst().Rand( -0.4f, 0.4f );
+
+			float h1 = Min( d2.y, Min( d.y, d1.y ) ) + p0.y;
+			if( h1 < 10.0f )
+			{
+				d.y += 10.0f - h1;
+				d1.y += 10.0f - h1;
+				d2.y += 10.0f - h1;
+			}
+
+			float fDir = SRand::Inst().Rand( 0, 2 ) ? 1 : -1;
+			for( int i = 0; i < 12; i++ )
+			{
+				float t = ( i + 0.5f ) / 12.0f;
+				pBarrage->InitBullet( i, -1, -1, p0 + CVector2( fDir * ( t - 0.5f ) * 128, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ),
+					false, SRand::Inst().Rand( -PI, PI ), SRand::Inst().Rand( -2.0f, 2.0f ) );
+				pBarrage->GetBulletContext( i )->MoveTowards( p0 + d + d1 * ( 2 * t * ( 1 - t ) ) + d2 * t * t, 60 );
+				for( int j = 0; j < 3; j++ )
+				{
+					pBarrage->InitBullet( i + 12 + j * 12, 0, i, CVector2( SRand::Inst().Rand( -8.0f, 8.0f ), SRand::Inst().Rand( -8.0f, 8.0f ) ), CVector2( 0, 0 ), CVector2( 0, 0 ) );
+				}
+				pBarrage->Yield( 1 );
+				p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+			}
+			pBarrage->Yield( 60 );
+
+			float fAngle = SRand::Inst().Rand( -PI, PI );
+			float dAngle = PI / 18 * ( SRand::Inst().Rand( 0, 2 ) ? 1 : -1 )
+				+ PI * 2 / 3 * ( SRand::Inst().Rand( 0, 2 ) ? 1 : -1 );
+			for( int k = 0; k < 3; k++ )
+			{
+				for( int i = 0; i < 12; i++ )
+				{
+					auto pContext = pBarrage->GetBulletContext( i );
+					pContext->SetBulletMove( pContext->v, pContext->a );
+					auto pContext1 = pBarrage->GetBulletContext( i + 12 + k * 12 );
+					if( pContext1->pEntity && pContext1->pEntity->GetParentEntity() )
+						pBarrage->InitBullet( i + 12 + k * 12, 1, -1, pContext->p0, CVector2( cos( fAngle ), sin( fAngle ) ) * ( 150 + i * 10 ), CVector2( 0, 0 ),
+							false, 0, 5.0f );
+
+					fAngle += dAngle;
+					pBarrage->Yield( 1 );
+				}
+				pBarrage->Yield( 8 );
+			}
+
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	case 3:
+		context.vecBulletTypes.push_back( pBullets[0] );
+		context.vecBulletTypes.push_back( pBullets[1] );
+		context.nBulletPageSize = 48;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs - CVector2( 0, 64 ) );
+
+			for( int i = 0; i < 12; i++ )
+			{
+				if( pBarrage->GetCreator()->GetStage() )
+				{
+					CVector2 v( SRand::Inst().Rand( -60.0f, 60.0f ), SRand::Inst().Rand( -300.0f, -100.0f ) );
+					pBarrage->InitBullet( i, -1, -1, p0 + CVector2( 0, SRand::Inst().Rand( 0.0f, 96.0f ) ),
+						v, v * -0.5f, false, SRand::Inst().Rand( -PI, PI ), SRand::Inst().Rand( -2.0f, 2.0f ) );
+					for( int j = 0; j < 3; j++ )
+					{
+						pBarrage->InitBullet( i + 12 + j * 12, 0, i, CVector2( SRand::Inst().Rand( -8.0f, 8.0f ), SRand::Inst().Rand( -8.0f, 8.0f ) ), CVector2( 0, 0 ), CVector2( 0, 0 ) );
+					}
+				}
+				pBarrage->Yield( 3 );
+				p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs - CVector2( 0, 64 ) );
+			}
+			pBarrage->Yield( 120 - 12 * 3 );
+
+			for( int i = 0; i < 12; i++ )
+			{
+				auto pContext = pBarrage->GetBulletContext( i );
+				if( pContext->IsValid() )
+				{
+					pContext->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
+					for( int k = 0; k < 3; k++ )
+					{
+						auto pContext1 = pBarrage->GetBulletContext( i + 12 + k * 12 );
+						if( pContext1->pEntity && pContext1->pEntity->GetParentEntity() )
+						{
+							float fAngle = SRand::Inst().Rand( -PI, PI );
+							pBarrage->InitBullet( i + 12 + k * 12, 1, -1, pContext->p0, CVector2( cos( fAngle ), sin( fAngle ) ) * SRand::Inst().Rand( 150.0f, 200.0f ), CVector2( 0, 0 ) );
+						}
+					}
+					pBarrage->DestroyBullet( i );
+				}
+
+				pBarrage->Yield( 3 );
+			}
+
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	case 4:
+		context.vecBulletTypes.push_back( pBullets[3] );
+		context.nBulletPageSize = 10;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
+			float fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			int32 nBullet = 0;
+			for( int j = 0; j < 10; j++ )
+			{
+				uint32 n = 3;
+				float fAngle1 = fAngle + SRand::Inst().Rand( -0.25f, 0.25f );
+				pBarrage->InitBullet( nBullet++, 0, -1, p0, CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 320, CVector2( 0, 0 ) );
+				pBarrage->Yield( 15 );
+				if( !pBarrage->GetCreator()->GetStage() )
+					break;
+				p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+			}
+			pPlayer = pBarrage->GetStage()->GetPlayer();
+			fAngle = pPlayer ? atan2( pPlayer->y - p0.y, pPlayer->x - p0.x ) : -PI / 2;
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	case 5:
+		context.vecBulletTypes.push_back( pBullets[1] );
+		context.nBulletPageSize = 33;
+
+		pBarrage = new CBarrage( context );
+		pBarrage->AddFunc( [ofs] ( CBarrage* pBarrage )
+		{
+			uint32 nBullet = 0;
+			CVector2 p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+
+			for( int i = 0; i < 3; i++ )
+			{
+				CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
+				uint8 b = SRand::Inst().Rand( 0, 2 );
+				CVector2 d[3] = { { b ? 1.0f : -1.0f, 0.2f }, { SRand::Inst().Rand( -0.3f, 0.3f ), 0.6f }, { b ? -1.0f : 1.0f, 0.2f } };
+				for( int i = 0; i < 3; i++ )
+				{
+					d[i] = pPlayer ? ( pPlayer->GetPosition() - ( p0 + CVector2( d[i].x * 64, 0 ) ) ) * d[i].y : CVector2( 0, 0 );
+					if( d[i].Length2() < 1 )
+						d[i] = CVector2( 0, -200 );
+				}
+
+				for( int i = 0; i < 11; i++ )
+				{
+					float t = i / 10.0f;
+					CVector2 p = p0 + CVector2( ( b ? -1 : 1 ) * ( -64 + 128 * t ), 0 );
+					CVector2 target = p0 + d[0] + d[1] * ( 2 * t * ( 1 - t ) ) + d[2] * t * t;
+					CVector2 v = target - p;
+					if( v.Normalize() < 0 )
+						v = CVector2( 0, -1 );
+					v = v * ( 225.0f - ( i - 5 ) * ( i - 5 ) * 2 );
+					pBarrage->InitBullet( nBullet++, 0, -1, p, v, CVector2( 0, 0 ) );
+					pBarrage->Yield( 2 );
+					if( !pBarrage->GetCreator()->GetStage() )
+						break;
+					p0 = pBarrage->GetCreator()->globalTransform.MulVector2Pos( ofs );
+				}
+				pBarrage->Yield( 32 );
+				if( !pBarrage->GetCreator()->GetStage() )
+					break;
+			}
+
+			pBarrage->StopNewBullet();
+		} );
+		break;
+	}
+	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	pBarrage->Start();
+}
+
+void CHouse2::Kill()
+{
+	if( m_pAI )
+	{
+		m_pAI->SetParentEntity( NULL );
+		m_pAI = NULL;
+	}
+
+	if( m_nState )
+	{
+		CChunkObject::Kill();
+		return;
+	}
+
+	m_nState = 1;
+	m_nMaxHp = m_nHp1;
+	Repair( -1 );
+
+	m_p1->SetParentEntity( NULL );
+	m_p1 = NULL;
+	CVector2 texOfs( m_texRect2.x - m_texRect1.x, m_texRect2.y - m_texRect1.y );
+	for( auto& pRenderObject : m_vecBlock1 )
+	{
+		auto pImage2D = static_cast<CImage2D*>( pRenderObject.GetPtr() );
+		pImage2D->SetTexRect( pImage2D ->GetElem().texRect.Offset( texOfs ) );
+	}
+
+	for( int i = 0; i < GetChunk()->nWidth; i++ )
+	{
+		for( int j = 0; j < GetChunk()->nHeight - 1; j++ )
+		{
+			auto& block = *GetChunk()->GetBlock( i, j );
+			auto pBlockObject = SafeCast<CBlockObject>( block.pEntity.GetPtr() );
+			pBlockObject->ClearBuffs();
+			pBlockObject->ClearEfts();
+			block.rtTexRect = block.rtTexRect.Offset( texOfs );
+			block.eBlockType = eBlockType_LowBlock;
+		}
+	}
+
+	for( auto& obj : m_vecObj )
+	{
+		auto pEntity = SafeCast<CEntity>( m_pObjPrefab[obj.nType]->GetRoot()->CreateInstance() );
+		pEntity->SetPosition( obj.ofs );
+		pEntity->SetParentEntity( this );
+
+		class AI1 : public CAIObject
+		{
+		public:
+			AI1( uint8 nType, CPrefab* pBullets[4] ) : m_nType( nType )
+			{ for( int i = 0; i < 4; i++ ) m_pBullets[i] = pBullets[i]; }
+		protected:
+			virtual void AIFunc() override
+			{
+				Yield( 0.5f, true );
+				while( true )
+				{
+					CPrefab* pPrefabs[4] = { m_pBullets[0].GetPtr(), m_pBullets[1].GetPtr(), m_pBullets[2].GetPtr(), m_pBullets[3].GetPtr() };
+					CreateBarrage( m_nType + SRand::Inst().Rand( 0, 2 ) * 3, GetParentEntity(), CVector2( 0, 0 ), pPrefabs );
+
+					Yield( 4.0f, true );
+				}
+			}
+			CReference<CPrefab> m_pBullets[4];
+			uint8 m_nType;
+		};
+		CPrefab* pPrefabs[4] = { m_pBullet[0].GetPtr(), m_pBullet[1].GetPtr(), m_pBullet[2].GetPtr(), m_pBullet[3].GetPtr() };
+		auto pAI1 = new AI1( obj.nType, pPrefabs );
+		pAI1->SetParentEntity( pEntity );
+	}
+	m_vecObj.clear();
+
+	OnKilled();
+}
+
+void CHouse2::Crush()
+{
+	m_triggerCrushed.Trigger( 0, this );
+	CChunkObject::Kill();
+}
+
+void CHouse2::Damage( SDamageContext & context )
+{
+	m_bDamaged = true;
+	CChunkObject::Damage( context );
+}
+
+void CHouse2::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }

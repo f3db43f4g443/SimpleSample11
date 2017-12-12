@@ -108,6 +108,20 @@ private:
 	bool m_bBlockTypeMask[eBlockType_Count];
 };
 
+class CRandomChunk4 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRandomChunk4( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunk4 ); }
+
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
+private:
+	uint32 m_nHpPerSize;
+	uint32 m_nTexWidth, m_nTexHeight, m_nLeft, m_nRight, m_nTop, m_nBottom;
+};
+
 class CDefaultRandomRoom : public CChunkObject
 {
 	friend void RegisterGameClasses();

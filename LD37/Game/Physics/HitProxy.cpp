@@ -1174,7 +1174,7 @@ void CHitProxy::CalcBounds()
 bool CHitProxy::HitTest( const CVector2& pos )
 {
 	SHitProxyCircle circle;
-	circle.center = CVector2( 0, 0 );
+	circle.center = pos;
 	circle.fRadius = 0;
 	CMatrix2D transform;
 	transform.Identity();
@@ -1321,7 +1321,8 @@ void CHitTestMgr::Remove( CHitProxy* pProxy )
 void CHitTestMgr::ReAdd( CHitProxy* pProxy )
 {
 	pProxy->m_bDirty = true;
-	pProxy->RemoveFrom_HitProxy();
+	if( pProxy->m_pMgr )
+		pProxy->RemoveFrom_HitProxy();
 	if( pProxy->m_bBulletMode )
 		pProxy->InsertTo_HitProxy( m_pHitProxyBulletMode );
 	else

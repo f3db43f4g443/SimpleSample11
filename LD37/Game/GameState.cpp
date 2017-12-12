@@ -122,9 +122,7 @@ void CMainGameState::UpdateInput()
 		pPlayer->Move( moveAxis.x, moveAxis.y );
 
 		if( pGame->IsMouseDown() )
-		{
 			pPlayer->BeginFire();
-		}
 		if( pGame->IsMouseUp() )
 			pPlayer->EndFire();
 

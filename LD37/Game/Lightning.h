@@ -25,6 +25,7 @@ public:
 	void SetDamage2( uint32 nDamage ) { m_nDamage2 = nDamage; }
 	void SetLife( uint32 nLife ) { m_nLife = nLife; }
 	void SetHitCD( int32 nCD ) { m_nHitCD = nCD; }
+	const CVector2& GetBeamEnd() { return m_beamEnd; }
 protected:
 	void OnTick();
 	void UpdateRenderObject();

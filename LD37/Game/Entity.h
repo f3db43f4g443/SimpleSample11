@@ -80,6 +80,7 @@ public:
 
 	bool HasHitFilter() { return m_bHasHitFilter; }
 	virtual bool CanHit( CEntity* pEntity ) { return true; }
+	void SetTransparent( bool bTransparent );
 	void SetTransparentRec( bool bTransparent );
 	
 	bool CommonMove( float fMoveSpeed, float fTime, const CVector2& dPosition, float fMinDist );

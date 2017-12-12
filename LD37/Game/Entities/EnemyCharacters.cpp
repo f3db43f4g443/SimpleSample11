@@ -30,6 +30,7 @@ void CEnemyCharacter::OnTickAfterHitTest()
 	if( !GetStage() )
 		return;
 	UpdateFire();
+	UpdateAnimFrame();
 }
 
 void CEnemyCharacter::UpdateAnimFrame()
@@ -37,14 +38,7 @@ void CEnemyCharacter::UpdateAnimFrame()
 	uint8 newAnimState = 0;
 	if( !m_nFireStopTimeLeft && ( m_curMoveDir.x != 0 || m_curMoveDir.y != 0 ) )
 		newAnimState = 1;
-	if( m_nState == 1 )
-	{
-		newAnimState += m_curMoveDir.x > 0 ? 0 : 2;
-	}
-	else
-	{
-		newAnimState += m_curMoveDir.x > 0 ? 0 : 2;
-	}
+	newAnimState += m_curMoveDir.x > 0 ? 0 : 2;
 
 	if( newAnimState != m_nAnimState )
 	{
@@ -696,14 +690,7 @@ void CThug::UpdateAnimFrame()
 		newAnimState = 1;
 	if( m_pThrowObj )
 		newAnimState += 2;
-	if( m_nState == 1 )
-	{
-		newAnimState += m_curMoveDir.x > 0 ? 0 : 4;
-	}
-	else
-	{
-		newAnimState += m_curMoveDir.x > 0 ? 0 : 4;
-	}
+	newAnimState += m_curMoveDir.x > 0 ? 0 : 2;
 
 	if( newAnimState != m_nAnimState )
 	{
@@ -827,39 +814,49 @@ void CWorker::OnRemovedFromStage()
 
 void CWorker::OnTickAfterHitTest()
 {
+	DEFINE_TEMP_REF_THIS();
 	if( m_nStateTime )
 		m_nStateTime--;
 	if( m_pTarget && !m_pTarget->GetStage() )
 		SetTarget( NULL );
 	
-	m_pNav->Step( this );
 	if( !m_nStateTime )
 	{
+		m_pNav->Step( this );
 		if( m_pNav->HasPath() )
 			m_curMoveDir = m_pNav->FollowPath( this );
 
-		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		if( m_pTarget && m_pTarget->Operate( this, true ) )
 		{
-			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
-
-			auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
-			if( pEntrance && pEntrance->Enter( this ) )
-				return;
-		}
-		
-		if( m_pTarget && m_pTarget->CanOperate( this ) )
-		{
+			m_pNav->Reset();
 			m_nStateTime = m_nOperateTime;
 		}
 	}
-	if( m_nStateTime == m_nOperateTime - m_nOperatePoint )
+	else
+		m_curMoveDir = CVector2( 0, 0 );
+	if( m_nStateTime == m_nOperateTime - m_nOperatePoint && m_pTarget )
 		m_pTarget->Operate( this );
 
-	CEnemyCharacter::OnTickAfterHitTest();
+	if( GetStage() )
+		CEnemyCharacter::OnTickAfterHitTest();
 }
 
 void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 {
+	if( !pGrid )
+	{
+		if( m_fNearestDist != FLT_MAX )
+			m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
+		else
+		{
+			SetTarget( NULL );
+			float r = SRand::Inst().Rand( -PI, PI );
+			m_curMoveDir = CVector2( cos( r ), sin( r ) );
+		}
+		m_fNearestDist = FLT_MAX;
+		return;
+	}
+
 	if( pGrid->nType == 2 )
 	{
 		auto pHitTestGrid = GetStage()->GetHitTestMgr().GetGrid( pGrid->pos );
@@ -870,6 +867,13 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 			auto pOperatingArea = SafeCast<COperatingArea>( pEntity );
 			if( pOperatingArea && pOperatingArea->CanOperate( this ) )
 			{
+				if( m_nState == 0 && m_flyData.pLandedEntity )
+				{
+					auto pRoom = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() );
+					if( pRoom && pRoom->GetChunk()->bIsRoom && !pRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
+						continue;
+				}
+
 				if( pGrid->fDist < m_fNearestDist )
 				{
 					SetTarget( pOperatingArea );
@@ -906,7 +910,44 @@ void CWorker::SetTarget( COperatingArea* pOperatingArea )
 
 void CWorker::UpdateAnimFrame()
 {
+	uint8 newAnimState = 0;
+	if( m_nStateTime )
+		newAnimState = 2;
+	else if( !m_nFireStopTimeLeft && ( m_curMoveDir.x != 0 || m_curMoveDir.y != 0 ) )
+		newAnimState = 1;
+	if( !m_nStateTime )
+		newAnimState += m_curMoveDir.x > 0 ? 0 : 3;
+	else
+		newAnimState += m_nAnimState >= 3 ? 3 : 0;
 
+	if( newAnimState != m_nAnimState )
+	{
+		auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+		switch( newAnimState )
+		{
+		case 0:
+			pImage->SetFrames( 0, 1, 0 );
+			break;
+		case 1:
+			pImage->SetFrames( 1, 7, 12 );
+			break;
+		case 2:
+			pImage->SetFrames( 7, 11, 12 );
+			break;
+		case 3:
+			pImage->SetFrames( 11, 12, 0 );
+			break;
+		case 4:
+			pImage->SetFrames( 12, 18, 12 );
+			break;
+		case 5:
+			pImage->SetFrames( 18, 22, 12 );
+			break;
+		default:
+			break;
+		}
+		m_nAnimState = newAnimState;
+	}
 }
 
 void CWorker::OnFire()
@@ -914,7 +955,7 @@ void CWorker::OnFire()
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 	if( !pPlayer )
 		return;
-	CVector2 dPos = pPlayer->GetPosition();
+	CVector2 dPos = pPlayer->GetPosition() - GetPosition();
 
 	SBarrageContext context;
 	context.pCreator = GetParentEntity();
@@ -931,12 +972,11 @@ void CWorker::OnFire()
 			dir = CVector2( 1, 0 );
 			l = 1.0f;
 		}
-		float l1 = SRand::Inst().Rand( -0.33f, 0.33f ) * l;
-		float t = l / 100.0f;
-		float a = -50.0f;
+		float t = l / 200.0f;
+		float a = -150.0f;
 		float v = l / t - a * t * 0.5f;
-		float a1 = SRand::Inst().Rand( -50.0f, 50.0f );
-		float v1 = a1 * t * 0.5f;
+		float a1 = SRand::Inst().Rand( -180.0f, 180.0f );
+		float v1 = -a1 * t * 0.5f;
 
 		pBarrage->InitBullet( 0, -1, -1, CVector2( 0, 0 ), dir * v + CVector2( -dir.y, dir.x ) * v1, dir * a + CVector2( -dir.y, dir.x ) * a1,
 			false, SRand::Inst().Rand( -PI, PI ), 3.0f * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) );

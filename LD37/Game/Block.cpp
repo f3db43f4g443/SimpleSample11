@@ -421,6 +421,12 @@ void CChunkObject::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	}
 }
 
+CRectangle CChunkObject::GetRect()
+{
+	return CRectangle( globalTransform.GetPosition().x, globalTransform.GetPosition().y,
+		m_pChunk->nWidth * CMyLevel::GetBlockSize(), m_pChunk->nHeight * CMyLevel::GetBlockSize() );
+}
+
 void CChunkObject::CreateBlockRTLayer( CBlockObject* pBlockObject )
 {
 	CDrawableGroup* pDrawable = m_strBlockRTDrawable;
@@ -526,7 +532,7 @@ float CChunkObject::Repair( float fAmount )
 {
 	uint32 nLastDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	float fLastHp = m_fHp;
-	m_fHp = Min<float>( m_fHp + fAmount, m_nMaxHp );
+	m_fHp = fAmount >= 0 ? Min<float>( m_fHp + fAmount, m_nMaxHp ) : m_nMaxHp;
 	uint32 nDamageFrame = Min<float>( m_nDamagedEffectsCount, Max<float>( ( m_fHp * ( m_nDamagedEffectsCount + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	if( nLastDamageFrame != nDamageFrame )
 	{

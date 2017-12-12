@@ -18,6 +18,7 @@
 #include "GlobalCfg.h"
 #include "LevelDesign.h"
 #include "MainMenu.h"
+#include "Interfaces.h"
 
 #include "Entities/Enemies.h"
 #include "Entities/EnemyCharacters.h"
@@ -96,9 +97,9 @@ void CGame::Stop()
 #include "Profile.h"
 void CGame::Update()
 {
-	if( m_keyDown.GetBit( '1' ) )
+	if( m_keyDown.GetBit( VK_F1 ) )
 		CProfileMgr::Inst()->BeginProfile();
-	if( m_keyDown.GetBit( '2' ) )
+	if( m_keyDown.GetBit( VK_F2 ) )
 		CProfileMgr::Inst()->EndProfile();
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
@@ -221,6 +222,9 @@ void Game_ShaderImplement_Dummy();
 
 void RegisterGameClasses()
 {
+	REGISTER_CLASS_BEGIN_ABSTRACT( IOperateable )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( SAttribute )
 		REGISTER_MEMBER( base )
 	REGISTER_CLASS_END()
@@ -426,6 +430,14 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fThrowSpeed )
 		REGISTER_MEMBER( m_throwObjOfs )
 		REGISTER_MEMBER( m_fThrowDist )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CWorker )
+		REGISTER_BASE_CLASS( CEnemyCharacter )
+		REGISTER_MEMBER( m_fMaxScanDist )
+		REGISTER_MEMBER( m_nGridsPerStep )
+		REGISTER_MEMBER( m_nOperateTime )
+		REGISTER_MEMBER( m_nOperatePoint )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CFuelTank )
@@ -925,6 +937,17 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_bBlockTypeMask )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CRandomChunk4 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_nTexWidth )
+		REGISTER_MEMBER( m_nTexHeight )
+		REGISTER_MEMBER( m_nLeft )
+		REGISTER_MEMBER( m_nRight )
+		REGISTER_MEMBER( m_nTop )
+		REGISTER_MEMBER( m_nBottom )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CTriggerChunk )
 		REGISTER_BASE_CLASS( CChunkObject )
 		REGISTER_MEMBER( m_nTriggerType )
@@ -1068,6 +1091,36 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fInitCharPerGrid )
 		REGISTER_MEMBER( m_pExp )
 		REGISTER_MEMBER( m_pExpEft )
+	REGISTER_CLASS_END()
+			
+	REGISTER_CLASS_BEGIN( CControlRoom )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_nAltX )
+		REGISTER_MEMBER( m_nAltY )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_pWindow )
+	REGISTER_CLASS_END()
+			
+	REGISTER_CLASS_BEGIN( CHouse2 )
+		REGISTER_BASE_CLASS( CChunkObject )
+		REGISTER_MEMBER( m_nHp1 )
+		REGISTER_MEMBER( m_nHpPerSize )
+		REGISTER_MEMBER( m_nHpPerSize1 )
+		REGISTER_MEMBER( m_texRect )
+		REGISTER_MEMBER( m_texRect1 )
+		REGISTER_MEMBER( m_texRect2 )
+		REGISTER_MEMBER( m_pObjPrefab )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDecorator, deco )
+		REGISTER_MEMBER( m_nDecoTexSize )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj[0], obj_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj[1], obj_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj[2], obj_3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj1[0], obj1_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj1[1], obj1_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pObj1[2], obj1_3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDoor, door )
+		REGISTER_MEMBER( m_pBullet )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CBlockBuff )
@@ -1342,6 +1395,38 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nDir )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( COperateableTurret1 )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_BASE_CLASS( IOperateable )
+		REGISTER_MEMBER( m_nFireCD )
+		REGISTER_MEMBER( m_nFireInterval )
+		REGISTER_MEMBER( m_nAmmoCount )
+		REGISTER_MEMBER( m_nBulletCount )
+		REGISTER_MEMBER( m_fBulletSpeed )
+		REGISTER_MEMBER( m_fBulletAngle )
+		REGISTER_MEMBER( m_fShakePerFire )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetectArea, hit )
+		REGISTER_MEMBER( m_pBulletPrefab )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CWindow3 )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_fireOfs )
+		REGISTER_MEMBER( m_pBullet )
+		REGISTER_MEMBER( m_pBullet1 )
+		REGISTER_MEMBER( m_pBullet2 )
+		REGISTER_MEMBER( m_pBullet3 )
+		REGISTER_MEMBER( m_pBeam )
+		REGISTER_MEMBER_TAGGED_PTR( m_pParts[0], p0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pParts[1], p1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pParts[2], p2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pParts[3], p3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetectArea[0], a0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetectArea[1], a1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetectArea[2], a2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetectArea[3], a3 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CManHead1 )
 		REGISTER_BASE_CLASS( CEnemy )
 		REGISTER_MEMBER( m_strBullet )
@@ -1569,6 +1654,10 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nBeginFrame )
 		REGISTER_MEMBER( m_nLife )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COperatingArea )
+		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CStartPoint )

@@ -106,6 +106,8 @@ void CRandomChunkTiledSimple::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 
@@ -177,6 +179,8 @@ void CRandomChunkTiled::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CRandomChunkTiled1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -245,6 +249,8 @@ void CRandomChunkTiled1::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CRandomChunk1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -318,6 +324,8 @@ void CRandomChunk1::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -484,6 +492,8 @@ void CRandomChunk2::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CRandomChunk3::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -583,6 +593,87 @@ void CRandomChunk3::OnKilled()
 			}
 		}
 	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+}
+
+void CRandomChunk4::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
+{
+	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	CDrawableGroup* pDamageEftDrawableGroups[4];
+	CRectangle pDamageEftTex[4];
+	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
+	{
+		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
+		pDamageEftTex[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
+		pDamageEftTex[i].width /= m_nTexWidth;
+		pDamageEftTex[i].height /= m_nTexHeight;
+		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
+	}
+
+	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+	SetRenderObject( new CRenderObject2D );
+	texRect.width /= m_nTexWidth;
+	texRect.height /= m_nTexHeight;
+
+	for( int j = 0; j < pChunk->nHeight; j++ )
+	{
+		for( int i = 0; i < pChunk->nWidth; i++ )
+		{
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
+			uint32 tX, tY;
+			if( i < m_nLeft )
+				tX = i;
+			else if( i >= pChunk->nWidth - m_nRight )
+				tX = m_nTexWidth - pChunk->nWidth + i;
+			else
+				tX = SRand::Inst().Rand( m_nLeft, m_nTexWidth - m_nRight );
+			if( j < m_nTop )
+				tY = j;
+			else if( j >= pChunk->nHeight - m_nBottom )
+				tY = m_nTexHeight - pChunk->nHeight + j;
+			else
+				tY = SRand::Inst().Rand( m_nTop, m_nTexHeight - m_nBottom );
+			tY = m_nTexHeight - 1 - tY;
+
+			auto tex = texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) );
+			pImage2D->SetTexRect( tex );
+			GetRenderObject()->AddChild( pImage2D );
+			GetBlock( i, j )->rtTexRect = tex;
+
+			for( int n = 0; n < m_nDamagedEffectsCount; n++ )
+			{
+				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[n]->CreateInstance() );
+				pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
+				pImage2D->SetTexRect( pDamageEftTex[n].Offset( CVector2( pDamageEftTex[n].width * tX, pDamageEftTex[n].height * tY ) ) );
+				m_pDamagedEffects[n]->AddChild( pImage2D );
+			}
+		}
+	}
+
+	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
+	m_fHp = m_nMaxHp;
+}
+
+void CRandomChunk4::OnKilled()
+{
+	if( m_strEffect )
+	{
+		ForceUpdateTransform();
+		for( int i = 0; i < m_pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < m_pChunk->nHeight; j++ )
+			{
+				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
+				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+				pEffect->SetState( 2 );
+			}
+		}
+	}
+	if( m_strSoundEffect )
+		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
 void CDefaultRandomRoom::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )

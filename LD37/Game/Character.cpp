@@ -38,6 +38,12 @@ void CCharacter::OnRemovedFromStage()
 
 void CCharacter::Kill()
 {
+	KillEffect();
+	SetParentEntity( NULL );
+}
+
+void CCharacter::KillEffect()
+{
 	CPrefab* pKillEffectPrefab = m_bCrushed && m_pCrushEffect ? m_pCrushEffect : m_pKillEffect;
 	if( pKillEffectPrefab )
 	{
@@ -49,7 +55,6 @@ void CCharacter::Kill()
 	}
 	if( m_pKillSound )
 		m_pKillSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
-	SetParentEntity( NULL );
 }
 
 void CCharacter::OnTickBeforeHitTest()

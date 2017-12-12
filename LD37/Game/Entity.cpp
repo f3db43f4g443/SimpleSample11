@@ -102,6 +102,13 @@ uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 	return nTraverseIndex;
 }
 
+void CEntity::SetTransparent( bool bTransparent )
+{
+	CHitProxy::SetTransparent( bTransparent );
+	if( !bTransparent && GetStage() )
+		GetStage()->GetHitTestMgr().ReAdd( this );
+}
+
 void CEntity::SetTransparentRec( bool bTransparent )
 {
 	SetTransparent( bTransparent );

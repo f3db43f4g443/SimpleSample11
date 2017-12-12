@@ -11,6 +11,7 @@ public:
 	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal );
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) {}
 	int32 GetHp() { return m_nHp; }
+	void SetHp( int32 nHp ) { m_nHp = nHp; }
 
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
 protected:
