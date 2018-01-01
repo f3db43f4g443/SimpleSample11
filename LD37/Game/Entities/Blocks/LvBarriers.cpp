@@ -945,7 +945,7 @@ void CLvBarrier2Label::UpdatePercent( float fPercent )
 void CLvBarrier2::OnAddedToStage()
 {
 	CChunkObject::OnAddedToStage();
-	if( m_grids.size() )
+	if( m_grids.size() && !m_pAI )
 	{
 		m_pAI = new AI();
 		m_pAI->SetParentEntity( this );
@@ -1069,6 +1069,12 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 	for( int i = 0; i < m_bigChunks.size(); i++ )
 	{
 		SafeCast<CLvBarrier2Core>( m_bigChunks[i].pChunk.GetPtr() )->Set( i );
+	}
+
+	if( GetStage() && !m_pAI )
+	{
+		m_pAI = new AI();
+		m_pAI->SetParentEntity( this );
 	}
 }
 

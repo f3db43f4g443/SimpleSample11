@@ -42,8 +42,9 @@ protected:
 	int32 m_nHitFrameBegin;
 	int32 m_nHitFrameCount;
 	int32 m_nHitCD;
-	bool m_bBurst;
 	int32 m_nLife;
+	bool m_bBurst;
+	uint8 m_nEftType;
 	float m_fHitWidthPerFrame;
 	float m_fBeginLen;
 	float m_fEndLen;

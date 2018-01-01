@@ -256,6 +256,28 @@ public:
 		return (const T*)t;
 	}
 
+	template< typename T, typename T1 >
+	T* SafeCastToInterface( T1* t )
+	{
+		uint32 nDerived = t->GetTypeID();
+		uint32 nBase = CClassMetaDataMgr::Inst().GetClassID<T>();
+		int32 nOfs = CClassMetaDataMgr::Inst().GetClassData( nDerived )->GetBaseClassOfs( CClassMetaDataMgr::Inst().GetClassData( nBase ) );
+		if( nOfs < 0 )
+			return NULL;
+		return (T*)( ( (uint8*)t ) + nOfs );
+	}
+
+	template< typename T, typename T1 >
+	const T* SafeCastToInterface( const T1* t )
+	{
+		uint32 nDerived = t->GetTypeID();
+		uint32 nBase = CClassMetaDataMgr::Inst().GetClassID<T>();
+		int32 nOfs = CClassMetaDataMgr::Inst().GetClassData( nDerived )->GetBaseClassOfs( CClassMetaDataMgr::Inst().GetClassData( nBase ) );
+		if( nOfs < 0 )
+			return NULL;
+		return (const T*)( ( (const uint8*)t ) + nOfs );
+	}
+
 	DECLARE_GLOBAL_INST_REFERENCE( CClassMetaDataMgr )
 private:
 	template <typename T>
@@ -288,6 +310,18 @@ template< typename T, typename T1 >
 const T* SafeCast( const T1* t )
 {
 	return t? CClassMetaDataMgr::Inst().SafeCast<T>( t ) : NULL;
+}
+
+template< typename T, typename T1 >
+T* SafeCastToInterface( T1* t )
+{
+	return t ? CClassMetaDataMgr::Inst().SafeCastToInterface<T>( t ) : NULL;
+}
+
+template< typename T, typename T1 >
+const T* SafeCastToInterface( const T1* t )
+{
+	return t ? CClassMetaDataMgr::Inst().SafeCastToInterface<T>( t ) : NULL;
 }
 
 #define REGISTER_CLASS_BEGIN( Class ) \

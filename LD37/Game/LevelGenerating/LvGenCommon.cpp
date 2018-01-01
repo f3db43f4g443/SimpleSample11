@@ -93,6 +93,7 @@ void CCommonRoomNode::Generate( SLevelBuildContext & context, const TRectangle<i
 void CRoom0Node::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
 {
 	CLevelGenerateSimpleNode::Load( pXml, context );
+	m_pWallBroken = CreateNode( pXml->FirstChildElement( "wall_broken" )->FirstChildElement(), context );
 	m_pDoor1[0] = CreateNode( pXml->FirstChildElement( "door1_0" )->FirstChildElement(), context );
 	m_pDoor1[1] = CreateNode( pXml->FirstChildElement( "door1_1" )->FirstChildElement(), context );
 	m_pDoor1[2] = CreateNode( pXml->FirstChildElement( "door1_2" )->FirstChildElement(), context );
@@ -196,6 +197,14 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 				}
 				else if( m_pObj[3] )
 					m_pObj[3]->Generate( context, TRectangle<int32>( region.x + region.width - 1, i + region.y, 1, 1 ) );
+			}
+		}
+
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				m_pWallBroken->Generate( tempContext, TRectangle<int32>( i, j, 1, 1 ) );
 			}
 		}
 

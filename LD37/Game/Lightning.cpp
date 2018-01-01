@@ -100,9 +100,18 @@ void CLightning::OnTick()
 		float l = dCenter.Normalize();
 		CVector2 dir = dCenter;
 		CVector2 begin = beginCenter + dir * fHitWidth * 0.5f;
+
+		SHitProxyPolygon polygon;
+		polygon.nVertices = 3;
+		polygon.vertices[0] = CVector2( 0, 0 );
+		polygon.vertices[1] = ( CVector2( -dir.y, dir.x ) - dir ) * fHitWidth * 0.5f;
+		polygon.vertices[2] = ( CVector2( dir.y, -dir.x ) - dir ) * fHitWidth * 0.5f;
+		polygon.CalcNormals();
 		vector<CReference<CEntity> > result;
 		vector<SRaycastResult> raycastResult;
-		GetStage()->MultiRaycast( begin, endCenter, result, &raycastResult );
+		CMatrix2D trans;
+		trans.Translate( begin.x, begin.y );
+		GetStage()->MultiSweepTest( &polygon, trans, endCenter - begin, result, &raycastResult );
 
 		CEntity* pHitEntity = NULL;
 		CReference<CEntity> pDamageEntity = NULL;
@@ -416,6 +425,8 @@ void CLightning::UpdateRenderObject()
 	}
 	if( m_fTexYTileLen > 0 )
 		end.tex0.y = end.tex1.y = ( m_bIsBeam ? m_fBeamLen : ( end.center - begin.center ).Length() ) / m_fTexYTileLen;
+	if( m_nEftType == 1 )
+		begin.tex1.x = end.tex1.x = end.tex0.y;
 
 	if( bBegin )
 	{

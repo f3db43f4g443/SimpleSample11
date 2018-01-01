@@ -192,7 +192,7 @@ void CNavigationUnit::ClearPath()
 	m_curPath.clear();
 }
 
-CVector2 CNavigationUnit::FollowPath( CCharacter * pCharacter )
+CVector2 CNavigationUnit::FollowPath( CCharacter * pCharacter, float fSpeed )
 {
 	if( !m_curPath.size() )
 		return CVector2( 0, 0 );
@@ -203,7 +203,14 @@ CVector2 CNavigationUnit::FollowPath( CCharacter * pCharacter )
 	pCharacter->Get_HitProxy()->CalcBound( pCharacter->globalTransform, charRect );
 	if( targetRect.Contains( charRect ) )
 		m_curPath.pop_back();
-	res.Normalize();
+
+	if( fSpeed > 0 )
+	{
+		float fMaxDist = fSpeed * pCharacter->GetStage()->GetElapsedTimePerTick();
+		float l = res.Normalize();
+		if( l < fMaxDist )
+			res = res * ( l / fMaxDist );
+	}
 	return res;
 }
 

@@ -336,6 +336,11 @@ bool CEnemyCharacter::IsKnockback()
 	return false;
 }
 
+float CEnemyCharacter::GetCurMoveSpeed()
+{
+	return m_nState == 1 ? m_walkData.fMoveSpeed : m_flyData.fMoveSpeed;
+}
+
 bool CEnemyCharacter::CanTriggerItem()
 {
 	return m_nState == 0;
@@ -483,7 +488,7 @@ void CCop::OnTickAfterHitTest()
 	}
 
 	if( m_pNav->HasPath() )
-		m_curMoveDir = m_pNav->FollowPath( this );
+		m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
 
 	CEnemyCharacter::OnTickAfterHitTest();
 }
@@ -605,7 +610,7 @@ void CThug::OnTickAfterHitTest()
 
 		m_pNav->Step( this );
 		if( m_pNav->HasPath() )
-			m_curMoveDir = m_pNav->FollowPath( this );
+			m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
 		if( pPlayer && !m_nStateTime )
 		{
 			CVector2 dPos = pPlayer->GetPosition() - globalTransform.GetPosition();
@@ -624,7 +629,7 @@ void CThug::OnTickAfterHitTest()
 		if( !m_nStateTime )
 		{
 			if( m_pNav->HasPath() )
-				m_curMoveDir = m_pNav->FollowPath( this );
+				m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
 
 			for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 			{
@@ -690,7 +695,7 @@ void CThug::UpdateAnimFrame()
 		newAnimState = 1;
 	if( m_pThrowObj )
 		newAnimState += 2;
-	newAnimState += m_curMoveDir.x > 0 ? 0 : 2;
+	newAnimState += m_curMoveDir.x > 0 ? 0 : 4;
 
 	if( newAnimState != m_nAnimState )
 	{
@@ -824,12 +829,20 @@ void CWorker::OnTickAfterHitTest()
 	{
 		m_pNav->Step( this );
 		if( m_pNav->HasPath() )
-			m_curMoveDir = m_pNav->FollowPath( this );
+			m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
 
-		if( m_pTarget && m_pTarget->Operate( this, true ) )
+		if( m_pTarget )
 		{
-			m_pNav->Reset();
-			m_nStateTime = m_nOperateTime;
+			if( IsFlee() )
+			{
+				m_pTarget = NULL;
+				m_pNav->Reset();
+			}
+			else if( m_pTarget->Operate( this, true ) )
+			{
+				m_pNav->Reset();
+				m_nStateTime = m_nOperateTime;
+			}
 		}
 	}
 	else
@@ -839,6 +852,13 @@ void CWorker::OnTickAfterHitTest()
 
 	if( GetStage() )
 		CEnemyCharacter::OnTickAfterHitTest();
+}
+
+bool CWorker::CanFire()
+{
+	if( IsFlee() )
+		return false;
+	return !m_nStateTime && CEnemyCharacter::CanFire();
 }
 
 void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
@@ -857,8 +877,18 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 		return;
 	}
 
+	bool bFlee = IsFlee();
 	if( pGrid->nType == 2 )
 	{
+		CChunkObject* pCurRoom = NULL;
+		CChunkObject* pPlayerRoom = NULL;
+		if( m_nState == 0 && m_flyData.pLandedEntity )
+			pCurRoom = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() );
+		bool bPlayerRoom = false;
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer )
+			pPlayerRoom = pPlayer->GetCurRoom();
+
 		auto pHitTestGrid = GetStage()->GetHitTestMgr().GetGrid( pGrid->pos );
 		for( auto pProxyGrid = pHitTestGrid->Get_InGrid(); pProxyGrid; pProxyGrid = pProxyGrid->NextInGrid() )
 		{
@@ -867,10 +897,16 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 			auto pOperatingArea = SafeCast<COperatingArea>( pEntity );
 			if( pOperatingArea && pOperatingArea->CanOperate( this ) )
 			{
-				if( m_nState == 0 && m_flyData.pLandedEntity )
+				if( !bFlee && pCurRoom && pCurRoom->GetChunk() && pCurRoom->GetChunk()->bIsRoom )
 				{
-					auto pRoom = SafeCast<CChunkObject>( m_flyData.pLandedEntity.GetPtr() );
-					if( pRoom && pRoom->GetChunk()->bIsRoom && !pRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
+					if( !pCurRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
+						continue;
+				}
+				if( pPlayer )
+				{
+					auto pPlayerRoom = pPlayer->GetCurRoom();
+					if( pPlayerRoom && pPlayerRoom->GetChunk() && pPlayerRoom->GetChunk()->bIsRoom
+						&& pPlayerRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
 						continue;
 				}
 
@@ -880,6 +916,19 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 					m_fNearestDist = pGrid->fDist;
 					m_nearestGrid = pGrid->pos;
 				}
+			}
+
+			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pPlayerRoom && pBlockObject && pBlockObject->GetParentEntity() == pPlayerRoom )
+				bPlayerRoom = true;
+		}
+
+		if( !m_pTarget && IsFlee() && !bPlayerRoom )
+		{
+			if( pGrid->fDist < m_fNearestDist )
+			{
+				m_fNearestDist = pGrid->fDist;
+				m_nearestGrid = pGrid->pos;
 			}
 		}
 	}
@@ -906,6 +955,25 @@ void CWorker::SetTarget( COperatingArea* pOperatingArea )
 	m_pTarget = pOperatingArea;
 	if( m_pTarget )
 		m_pTarget->SetOperator( this );
+}
+
+bool CWorker::IsFlee()
+{
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return false;
+	auto pPlayerRoom = pPlayer->GetCurRoom();
+	if( pPlayerRoom && pPlayerRoom->GetChunk() && pPlayerRoom->GetChunk()->bIsRoom )
+	{
+		auto rect = pPlayerRoom->GetRect();
+		rect.x -= 32;
+		rect.y -= 32;
+		rect.width += 64;
+		rect.height += 64;
+		return rect.Contains( globalTransform.GetPosition() );
+	}
+
+	return false;
 }
 
 void CWorker::UpdateAnimFrame()

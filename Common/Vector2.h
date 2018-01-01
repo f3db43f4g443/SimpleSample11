@@ -24,5 +24,7 @@ public:
     T Dot (const TVector2& vec) const;
     T Normalize ();
 
+	TVector2& Slerp( T t, const TVector2& p, const TVector2& q );
+
 	T x, y;
 };

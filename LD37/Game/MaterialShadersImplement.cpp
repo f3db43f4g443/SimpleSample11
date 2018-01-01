@@ -73,7 +73,8 @@ IMPLEMENT_MATERIAL_SHADER( PSFootprintAlphaToOcclusion, "Shader/Footprint.shader
 IMPLEMENT_MATERIAL_SHADER( PSFootprintLiquidColor, "Shader/FootprintLiquid.shader", "PSColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSFootprintLiquidOcclusion, "Shader/FootprintLiquid.shader", "PSOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSFootprintLiquidParticle, "Shader/FootprintLiquid.shader", "VSParticle", "vs_5_0" );
-IMPLEMENT_MATERIAL_SHADER( VSSpiderWebSilkParticle, "Shader/SpiderWebSilk.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSThruster, "Shader/Beams.shader", "VSThruster", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSThruster, "Shader/Beams.shader", "PSThruster", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle, "Shader/Laser.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticleOcclusion, "Shader/Laser.shader", "PSParticleOcclusion", "ps_5_0" );

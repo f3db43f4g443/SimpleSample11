@@ -53,7 +53,7 @@ public:
 
 	void BuildPath( SGridData* pGridData, CCharacter* pCharacter );
 	void ClearPath();
-	CVector2 FollowPath( CCharacter* pCharacter );
+	CVector2 FollowPath( CCharacter* pCharacter, float fSpeed );
 	bool HasPath() { return m_curPath.size() > 0; }
 
 	void RegisterVisitGridEvent( CTrigger* pTrigger ) { m_trigger.Register( 0, pTrigger ); }

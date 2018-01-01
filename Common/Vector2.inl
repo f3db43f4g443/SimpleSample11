@@ -95,3 +95,29 @@ FORCE_INLINE T TVector2<T>::Normalize ()
 	}
 	return l;
 }
+
+template <typename T>
+FORCE_INLINE TVector2<T>& TVector2<T>::Slerp( T t, const TVector2<T>& p, const TVector2<T>& q )
+{
+	T cs = Min<T>( 1, p.Dot( q ) );
+	T angle = acos( cs );
+
+	if( angle != 0 )
+	{
+		T sn = sin( angle );
+		T invSn = 1.0 / sn;
+		T tAngle = t*angle;
+		T coeff0 = sin( angle - tAngle )*invSn;
+		T coeff1 = sin( tAngle )*invSn;
+
+		x = coeff0*p.x + coeff1*q.x;
+		y = coeff0*p.y + coeff1*q.y;
+	}
+	else
+	{
+		x = p.x;
+		y = p.y;
+	}
+
+	return *this;
+}

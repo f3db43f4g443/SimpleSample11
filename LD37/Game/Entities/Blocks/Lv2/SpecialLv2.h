@@ -59,6 +59,7 @@ public:
 	bool CanEnter( CCharacter* pCharacter );
 	bool Enter( CCharacter* pCharacter );
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+	void DelayExplode();
 	void Explode();
 protected:
 	virtual void OnKilled() override;
@@ -76,10 +77,12 @@ private:
 
 	TResourceRef<CPrefab> m_pExp;
 	TResourceRef<CPrefab> m_pExpEft;
+	TResourceRef<CPrefab> m_pEft1;
 
 	bool m_bAnyoneEntered;
+	bool m_bExploding;
 	bool m_bExploded;
-	int32 m_nEftCount;
+	int32 m_nCount;
 	vector<pair<CReference<CCharacter>, int32> > m_characters;
 	vector<CReference<CHousePart> > m_houseParts;
 	vector<CReference<CHouseEntrance> > m_houseEntrances;

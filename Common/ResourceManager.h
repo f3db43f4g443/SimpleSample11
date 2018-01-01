@@ -77,6 +77,7 @@ public:
 	{
 		CString::operator=( rhs );
 		m_pRef = rhs.m_pRef;
+		return *this;
 	}
 
 	T& operator * () const {

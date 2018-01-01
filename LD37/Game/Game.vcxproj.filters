@@ -386,9 +386,6 @@
     <None Include="..\Shader\FootprintLiquid.shader">
       <Filter>Shader</Filter>
     </None>
-    <None Include="..\Shader\SpiderWebSilk.shader">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="..\Shader\Laser.shader">
       <Filter>Shader</Filter>
     </None>
@@ -444,6 +441,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\Bullet.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Beams.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

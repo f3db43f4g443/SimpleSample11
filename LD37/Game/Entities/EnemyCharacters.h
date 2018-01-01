@@ -23,6 +23,7 @@ public:
 
 	bool HasLeader() { return m_bLeader; }
 	void SetLeader( bool bLeader ) { m_bLeader = bLeader; }
+	float GetCurMoveSpeed();
 
 	virtual bool CanTriggerItem() override;
 protected:
@@ -156,11 +157,9 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void OnTickAfterHitTest() override;
-	virtual bool CanFire() override
-	{
-		return !m_nStateTime && CEnemyCharacter::CanFire();
-	}
+	virtual bool CanFire() override;
 protected:
+	bool IsFlee();
 	virtual void UpdateAnimFrame() override;
 	virtual void OnFire() override;
 private:

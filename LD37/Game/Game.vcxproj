@@ -540,7 +540,7 @@
     <None Include="..\Shader\ParticleFlipbook.shader" />
     <None Include="..\Shader\PostProcessDizzyEffect.shader" />
     <None Include="..\Shader\PostProcessInvertColor.shader" />
-    <None Include="..\Shader\SpiderWebSilk.shader" />
+    <None Include="..\Shader\Beams.shader" />
     <None Include="..\Shader\TutorialGame.shader" />
     <None Include="..\Shader\ParticleCommon.shader" />
     <None Include="..\Shader\TutorialGame_Particle.shader" />

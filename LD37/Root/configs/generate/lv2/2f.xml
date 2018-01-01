@@ -7,6 +7,7 @@
     <attachs>
       <node name="window2x2_1" prefab="data/blockitems/window2x2_1.pf" sizex="2" sizey="2" attach_type="0" />
       <node name="label_1f" prefab="data/blocks/lv2/barrier_label_1.pf" sizex="4" sizey="2" attach_type="0" />
+      <node name="label_2f" prefab="data/blocks/lv2/barrier_label_2.pf" sizex="4" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
       <node name="enemycharacter" prefab="data/enemies/man.pf" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.25" />
@@ -23,10 +24,6 @@
         <metadata isdesignvalid="0" />
         <types>0</types>
         <immune_to_block_buff>1</immune_to_block_buff>
-      </node>
-      <node name="label_2f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_2f.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4,4,4</types>
       </node>
       <node name="label_3f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_3f.pf">
         <metadata isdesignvalid="0" />
@@ -243,14 +240,11 @@
         </subitem>
 
         <label>
-          <ref name="floor_label_2" />
+          <ref name="label_2f" />
         </label>
         <chunk>
           <ref name="chunk_tile" />
         </chunk>
-        <core>
-          <ref name="core" />
-        </core>
         
       </node>
       

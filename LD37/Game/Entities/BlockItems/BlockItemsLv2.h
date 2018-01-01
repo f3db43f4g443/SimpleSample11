@@ -28,11 +28,15 @@ class CHouseEntrance : public CEntity
 public:
 	CHouseEntrance( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CHouseEntrance ); }
 
+	virtual void OnAddedToStage() override;
+	void SetState( uint8 nState );
 	bool CanEnter( CCharacter* pCharacter );
 	bool Enter( CCharacter* pCharacter );
 	bool Exit( CCharacter* pCharacter );
 	uint8 GetDir() { return m_nDir; }
 private:
+	CReference<CRenderObject2D> m_pSign;
+	CReference<CRenderObject2D> m_pLight;
 	CRectangle m_spawnRect;
 	CRectangle m_spawnRect1;
 	uint8 m_nDir;
@@ -50,9 +54,11 @@ private:
 	bool CheckEnabled();
 	float m_fEnableHeight;
 	uint32 m_nEnableSpeed;
+	uint32 m_nDecelerate;
 	uint32 m_nDuration;
 	TResourceRef<CPrefab> m_pEftPrefab;
 	float m_fMaxEftHeight;
+	CVector2 m_ofs;
 
 	CReference<CLightning> m_pLightning;
 	TClassTrigger<CThruster> m_onTick;
@@ -69,6 +75,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 	virtual int8 IsOperateable( const CVector2& pos ) override;
 	virtual void Operate( const CVector2& pos ) override;
+	virtual void Kill() override;
 private:
 	void OnTick();
 	uint32 m_nFireCD;
@@ -80,6 +87,7 @@ private:
 	float m_fShakePerFire;
 	CReference<CEntity> m_pDetectArea;
 	TResourceRef<CPrefab> m_pBulletPrefab;
+	TResourceRef<CPrefab> m_pBulletPrefab1;
 
 	uint32 m_nAmmoLeft;
 	TClassTrigger<COperateableTurret1> m_onTick;
@@ -94,13 +102,16 @@ public:
 	virtual void Kill() override;
 	bool IsKilled() { return m_bKilled; }
 
-	CAIObject* TryPlay();
+	CAIObject* TryPlay( uint8 nType );
 protected:
-	void AIFunc();
+	void AIFunc( uint8 nType );
 	class AI : public CAIObject
 	{
+	public:
+		AI( uint8 nType ) : m_nType( nType ) {}
 	protected:
-		virtual void AIFunc() override { static_cast<CWindow3*>( GetParentEntity() )->AIFunc(); }
+		virtual void AIFunc() override { static_cast<CWindow3*>( GetParentEntity() )->AIFunc( m_nType ); }
+		uint8 m_nType;
 	};
 	CReference<AI> m_pAI;
 	uint8 m_nDir;
@@ -113,12 +124,14 @@ protected:
 	TResourceRef<CPrefab> m_pBullet1;
 	TResourceRef<CPrefab> m_pBullet2;
 	TResourceRef<CPrefab> m_pBullet3;
+	TResourceRef<CPrefab> m_pBullet4;
 	TResourceRef<CPrefab> m_pBeam;
 };
 
 class CWindow3Controller : public CEntity
 {
 public:
+	CWindow3Controller( uint8 nType ) : m_nType( nType ) {}
 	virtual void OnAddedToStage() override;
 	void Add( CWindow3* pWindow ) { m_vecWindow3.push_back( pWindow ); }
 protected:
@@ -129,6 +142,7 @@ protected:
 		virtual void AIFunc() override { static_cast<CWindow3Controller*>( GetParentEntity() )->AIFunc(); }
 	};
 	CReference<AI> m_pAI;
+	uint8 m_nType;
 
 	vector<CReference<CWindow3> > m_vecWindow3;
 };

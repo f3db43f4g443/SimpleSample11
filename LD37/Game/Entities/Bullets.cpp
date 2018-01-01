@@ -23,6 +23,11 @@ void CBomb::OnHit( CEntity * pEntity )
 		if( m_bExplodeOnHitBlock )
 			Explode();
 	}
+	else if( SafeCast<CChunkObject>( pEntity ) )
+	{
+		if( m_bExplodeOnHitBlock )
+			Explode();
+	}
 	else if( SafeCast<CCharacter>( pEntity ) )
 	{
 		if( m_bExplodeOnHitChar )

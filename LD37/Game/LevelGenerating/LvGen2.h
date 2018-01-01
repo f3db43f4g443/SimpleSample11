@@ -247,9 +247,11 @@ private:
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
+	vector<int8> m_gendata1;
 	vector<TVector2<int32> > m_par;
 
 	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecRoads1;
 	vector<TRectangle<int32> > m_vecFences;
 	vector<TRectangle<int32> > m_vecFenceBlock;
 	vector<TRectangle<int32> > m_vecRooms;
@@ -283,9 +285,33 @@ public:
 private:
 	void GenPath();
 
+	void AddRoad( const TRectangle<int32>& r );
+	void AddRoom( const TRectangle<int32>& r );
+	void AddBar( const TRectangle<int32>& r );
+	void AddBigChunk( const TRectangle<int32>& r, int8 nType );
+
+	enum
+	{
+		eType_None,
+		eType_Road,
+		eType_Temp,
+		eType_Temp1,
+		eType_Chunk,
+
+		eType_Room,
+		eType_Door,
+	};
+
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
+
+	vector<TRectangle<int32> > m_vecBars;
+	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecBigChunk1;
+	vector<TRectangle<int32> > m_vecBigChunk1_1;
+	vector<TRectangle<int32> > m_vecBigChunk2;
+	vector<TRectangle<int32> > m_vecRooms;
 };
 
 class CLvBarrierNodeGen2 : public CLevelGenerateSimpleNode
