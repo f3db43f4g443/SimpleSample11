@@ -289,6 +289,8 @@ private:
 	void AddRoom( const TRectangle<int32>& r );
 	void AddBar( const TRectangle<int32>& r );
 	void AddBigChunk( const TRectangle<int32>& r, int8 nType );
+	void ProcessTempBar( const vector<TRectangle<int32> > v );
+	void ProcessTempChunks( const vector<TRectangle<int32> > v );
 
 	enum
 	{
