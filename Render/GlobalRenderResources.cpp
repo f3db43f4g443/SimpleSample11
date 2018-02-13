@@ -78,8 +78,8 @@ void CGlobalRenderResources::Init( IRenderSystem* pRenderSystem )
 	uint8 norm[64 * 64 * 2];
 	for( int i = 0; i < 64 * 64; i++ )
 	{
-		float fAngle = SRand::Inst().Rand( -PI, PI );
-		float fRad = SRand::Inst().Rand( 0, 1 );
+		float fAngle = SRand::Inst<eRand_Render>().Rand( -PI, PI );
+		float fRad = SRand::Inst<eRand_Render>().Rand( 0, 1 );
 		fRad = sqrt( 1 - fRad * fRad );
 		norm[i * 2] = floor( ( cos( fAngle ) * fRad + 1 ) * 0.5f * 255 + 0.5f );
 		norm[i * 2 + 1] = floor( ( sin( fAngle ) * fRad + 1 ) * 0.5f * 255 + 0.5f );

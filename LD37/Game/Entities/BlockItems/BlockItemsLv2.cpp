@@ -206,6 +206,7 @@ bool CThruster::CheckEnabled()
 	if( !pChunk->nFallSpeed )
 		pParent->GetChunk()->bForceStop = true;
 	m_nDuration--;
+	CMyLevel::GetInst()->AddShakeStrength( m_fShake );
 	return true;
 }
 

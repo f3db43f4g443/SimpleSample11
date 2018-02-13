@@ -9,11 +9,13 @@ public:
 	{ SET_BASEOBJECT_ID( CTexRectRandomModifier ); }
 	virtual void OnAddedToStage() override;
 private:
+	void Apply( CRenderObject2D* pImage, const CVector2& ofs );
 	void OnTick() { SetParentEntity( NULL ); }
 	uint32 m_nCols;
 	uint32 m_nRows;
 	float m_fWidth;
 	float m_fHeight;
+	bool m_bApplyToAllImgs;
 	TClassTrigger<CTexRectRandomModifier> m_onTick;
 };
 

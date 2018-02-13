@@ -544,6 +544,58 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 
 }
 
+void CBillboardNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+
+	auto pNode = pXml->FirstChildElement( "nodes" );
+	for( auto pItem = pNode->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+	{
+		m_vecSubNodes.push_back( CreateNode( pItem, context ) );
+	}
+}
+
+void CBillboardNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	if( pChunk )
+	{
+		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+		CLevelGenerateNode::Generate( context, region );
+
+		vector<int8> vecTypes;
+		vecTypes.resize( m_vecSubNodes.size() );
+		for( int i = 0; i < vecTypes.size(); i++ )
+		{
+			char buf[32];
+			sprintf( buf, "%d", i + 1 );
+			vecTypes[i] = context.mapTags[buf];
+		}
+		SLevelBuildContext tempContext( context.pLevel, pChunk );
+
+		for( int i = region.x; i < region.GetRight(); i++ )
+		{
+			for( int j = region.y; j < region.GetBottom(); j++ )
+			{
+				int8 nType = context.blueprint[i + j * context.nWidth];
+				for( int k = 0; k < vecTypes.size(); k++ )
+				{
+					if( vecTypes[k] == nType )
+					{
+						m_vecSubNodes[k]->Generate( tempContext, TRectangle<int32>( i - region.x, j - region.y, 1, 1 ) );
+						break;
+					}
+				}
+			}
+		}
+
+		if( m_pSubChunk )
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+		tempContext.Build();
+	}
+}
+
 void CPipeNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	m_fBeginPointCountPercent = XmlGetAttr( pXml, "begin_percent", 0.2f );

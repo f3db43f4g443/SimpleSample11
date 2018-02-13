@@ -19,25 +19,35 @@ void CTruckNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 void CTruckNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
 	bool b = region.x * 2 + region.GetRight() > context.nWidth + SRand::Inst().Rand( 0, 2 ) - 0.5f;
+	int32 nBaseHeight = region.height > 4 ? 2 : 0;
 	TRectangle<int32> rect1;
 	TRectangle<int32> controlRoomRect;
-	if( b )
+	if( region.width < 10 )
 	{
-		rect1 = TRectangle<int32>( 4, 2, region.width - 4, region.height - 2 );
-		controlRoomRect = TRectangle<int32>( 0, 2, 4, region.height - 2 );
+		nBaseHeight = 0;
+		rect1 = TRectangle<int32>( 0, 0, region.width, region.height );
+		controlRoomRect = TRectangle<int32>( 0, 0, 0, 0 );
+	}
+	else if( b )
+	{
+		rect1 = TRectangle<int32>( 4, nBaseHeight, region.width - 4, region.height - nBaseHeight );
+		controlRoomRect = TRectangle<int32>( 0, nBaseHeight, 4, region.height - nBaseHeight );
 	}
 	else
 	{
-		rect1 = TRectangle<int32>( 0, 2, region.width - 4, region.height - 2 );
-		controlRoomRect = TRectangle<int32>( region.width - 4, 2, 4, region.height - 2 );
+		rect1 = TRectangle<int32>( 0, nBaseHeight, region.width - 4, region.height - nBaseHeight );
+		controlRoomRect = TRectangle<int32>( region.width - 4, nBaseHeight, 4, region.height - nBaseHeight );
 	}
-	TRectangle<int32> rect0( region.x, region.y, region.width, 2 );
-	
-	m_pBaseNode[b ? 1 : 0]->Generate( context, rect0 );
-	m_pControlRoomNode[b ? 1 : 0]->Generate( context, controlRoomRect.Offset( TVector2<int32>( region.x, region.y ) ) );
-	uint32 h1 = rect1.height - 2;
+	if( nBaseHeight )
+	{
+		TRectangle<int32> rect0( region.x, region.y, region.width, 2 );
+		m_pBaseNode[b ? 1 : 0]->Generate( context, rect0 );
+	}
+	if( controlRoomRect.width > 0 )
+		m_pControlRoomNode[b ? 1 : 0]->Generate( context, controlRoomRect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	uint32 h1 = rect1.height - nBaseHeight;
 	uint32 l = rect1.width;
-	uint32 n = l / Max( h1 + 2, 6u );
+	uint32 n = Max( 1u, l / Max( h1 + 2, 6u ) );
 	vector<int32> vec;
 	for( int i = 0; i < n; i++ )
 		vec.push_back( ( l + i ) / n );
@@ -62,6 +72,7 @@ void CLevelGenNode2_2_1::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 	m_pBlockNode = CreateNode( pXml->FirstChildElement( "block" )->FirstChildElement(), context );
 	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
 	m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
+	m_pPlantNode = CreateNode( pXml->FirstChildElement( "plant" )->FirstChildElement(), context );
 	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
 	m_pCargo2Node = CreateNode( pXml->FirstChildElement( "cargo2" )->FirstChildElement(), context );
@@ -103,11 +114,12 @@ void CLevelGenNode2_2_1::Generate( SLevelBuildContext& context, const TRectangle
 	{
 		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
-	context.mapTags["1"] = eType_Chunk;
+	context.mapTags["1"] = eType_Chunk_Plant;
 	for( auto& rect : m_vecFences )
 	{
 		m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	m_pPlantNode->Generate( context, region );
 	
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -400,7 +412,7 @@ void CLevelGenNode2_2_1::GenChunks()
 		{
 			for( int y = rect.y; y < rect.GetBottom(); y++ )
 			{
-				m_gendata[x + y * nWidth] = eType_Chunk;
+				m_gendata[x + y * nWidth] = eType_Chunk_Plant;
 			}
 		}
 	}
@@ -712,10 +724,87 @@ void CLevelGenNode2_2_1::GenObjs()
 
 void CLevelGenNode2_2_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
+	m_pChunkNode = CreateNode( pXml->FirstChildElement( "chunk" )->FirstChildElement(), context );
+	m_pBarNode = CreateNode( pXml->FirstChildElement( "bar" )->FirstChildElement(), context );
+	m_pSupportANode = CreateNode( pXml->FirstChildElement( "support_a" )->FirstChildElement(), context );
+	m_pSupportBNode = CreateNode( pXml->FirstChildElement( "support_b" )->FirstChildElement(), context );
+	m_pRoadNode = CreateNode( pXml->FirstChildElement( "road" )->FirstChildElement(), context );
+	m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
+	m_pBigChunk1Node = CreateNode( pXml->FirstChildElement( "big_chunk_1" )->FirstChildElement(), context );
+	m_pBigChunk2Node = CreateNode( pXml->FirstChildElement( "big_chunk_2" )->FirstChildElement(), context );
+	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
+	m_pThrusterNode = CreateNode( pXml->FirstChildElement( "thruster" )->FirstChildElement(), context );
+	m_pFill1Node = CreateNode( pXml->FirstChildElement( "fill1" )->FirstChildElement(), context );
+	m_pFill2Node = CreateNode( pXml->FirstChildElement( "fill2" )->FirstChildElement(), context );
+
+	CLevelGenerateNode::Load( pXml, context );
 }
 
 void CLevelGenNode2_2_2::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
+	m_pContext = &context;
+	m_region = region;
+	m_gendata.resize( region.width * region.height );
+
+	GenPath();
+	GenObjs();
+
+	for( int i = 0; i < region.width; i++ )
+	{
+		for( int j = 0; j < region.height; j++ )
+		{
+			int32 x = region.x + i;
+			int32 y = region.y + j;
+			int8 genData = m_gendata[i + j * region.width];
+			context.blueprint[x + y * context.nWidth] = genData;
+		}
+	}
+	for( auto& rect : m_vecChunks )
+		m_pChunkNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecBars )
+		m_pBarNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecSupports )
+	{
+		if( !!( rect.y & 1 ) )
+			m_pSupportANode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		else
+			m_pSupportBNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_vecRoads )
+		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecCargos )
+		m_pCargoNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecThrusters )
+		m_pThrusterNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecBigChunk2 )
+		m_pBigChunk2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+
+	context.mapTags["door"] = eType_Door;
+	for( auto& rect : m_vecRooms )
+		m_pRoomNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	context.mapTags["1"] = eType_Chunk1;
+	for( auto& rect : m_vecBigChunk1 )
+		m_pBigChunk1Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	for( auto& rect : m_vecBigChunk1_1 )
+		m_pBigChunk1Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+
+	context.mapTags["mask"] = eType_None;
+	m_pFill1Node->Generate( context, region );
+	context.mapTags["mask"] = eType_Blocked;
+	m_pFill2Node->Generate( context, region );
+
+	context.mapTags.clear();
+	m_gendata.clear();
+	m_vecChunks.clear();
+	m_vecBars.clear();
+	m_vecSupports.clear();
+	m_vecRoads.clear();
+	m_vecCargos.clear();
+	m_vecBigChunk1.clear();
+	m_vecBigChunk1_1.clear();
+	m_vecBigChunk2.clear();
+	m_vecRooms.clear();
+	m_vecThrusters.clear();
 }
 
 void CLevelGenNode2_2_2::GenPath()
@@ -759,7 +848,7 @@ void CLevelGenNode2_2_2::GenPath()
 			if( nHeight - p.y <= 7 )
 				p.z = nHeight - p.y;
 			else
-				p.z = Min( nHeight - 4 - p.y, SRand::Inst().Rand( 4, 6 ) );
+				p.z = Min( nHeight - 4 - p.y, 5 );
 			vecPath.push_back( p );
 		}
 	}
@@ -774,7 +863,7 @@ void CLevelGenNode2_2_2::GenPath()
 	vector<TRectangle<int32> > vecTempChunks;
 	vector<TRectangle<int32> > vecTempBars;
 	TRectangle<int32> r;
-	int32 k1 = SRand::Inst().Rand( 2, 4 ), k2 = SRand::Inst().Rand( 4, 6 );
+	int32 k1 = SRand::Inst().Rand( 1, 3 ), k2 = SRand::Inst().Rand( 2, 5 );
 	for( int i = 0; i < vecPath.size(); i++ )
 	{
 		auto& cur = vecPath[i];
@@ -785,7 +874,7 @@ void CLevelGenNode2_2_2::GenPath()
 			r1.SetBottom( cur.y + cur.z );
 			r1.SetTop( Max( r.GetTop(), cur.y ) );
 			if( r1.height >= 5 )
-				AddRoom( r1 );
+				AddRoom( r1, true, true, true, true );
 			if( r.y < r1.y )
 				AddRoad( TRectangle<int32>( r.x, r.y, r.width, r1.y - r.y ) );
 			break;
@@ -794,7 +883,7 @@ void CLevelGenNode2_2_2::GenPath()
 
 		if( i == 0 )
 		{
-			r = TRectangle<int32>( nxt.x, nxt.y + 1, 1, nxt.z - 1 );
+			r = TRectangle<int32>( nxt.x, nxt.y, 1, nxt.z );
 			if( nxt.x < cur.x )
 				r.SetRight( Min( r.GetRight() + SRand::Inst().Rand( 8, 10 ), cur.x - 3 ) );
 			else
@@ -809,16 +898,12 @@ void CLevelGenNode2_2_2::GenPath()
 			else
 			{
 				r1 = TRectangle<int32>( r.x, 0, 0, cur.z );
-				r1.SetLeft( Max( cur.x + SRand::Inst().Rand( 3, 7 ), 4 ) );
+				r1.SetLeft( Max( cur.x - SRand::Inst().Rand( 3, 7 ), 4 ) );
 			}
 			r1 = r1 + r;
 			vecTempChunks.push_back( TRectangle<int32>( 0, r1.y, r1.x, r1.GetBottom() ) );
 			vecTempChunks.push_back( TRectangle<int32>( r1.GetRight(), r1.y, nWidth - r1.GetRight(), r1.GetBottom() ) );
 
-			TRectangle<int32> r2( r.x, 0, r.width, 1 );
-			r2.SetLeft( Max( 0, r2.x - SRand::Inst().Rand( 0, 3 ) ) );
-			r2.SetRight( Min( nWidth, r2.GetRight() + SRand::Inst().Rand( 0, 3 ) ) );
-			AddBar( r2 );
 			continue;
 		}
 
@@ -867,10 +952,15 @@ void CLevelGenNode2_2_2::GenPath()
 
 						r1 = TRectangle<int32>( nxt.x < cur.x ? r.GetLeft(): r.GetRight(), cur.y, 0, Max( cur.z, SRand::Inst().Rand( 5, 7 ) ) );
 						if( nxt.x < cur.x )
-							r1.SetRight( r1.GetRight() + SRand::Inst().Rand( 5, 8 ) );
-						else
+						{
 							r1.SetLeft( r1.GetLeft() - SRand::Inst().Rand( 5, 8 ) );
-						AddRoom( r1 );
+							AddRoom( r1, false, true, false, true );
+						}
+						else
+						{
+							r1.SetRight( r1.GetRight() + SRand::Inst().Rand( 5, 8 ) );
+							AddRoom( r1, true, false, false, true );
+						}
 
 						if( nxt.x < cur.x )
 						{
@@ -915,17 +1005,17 @@ void CLevelGenNode2_2_2::GenPath()
 							r2.SetLeft( r.GetRight() );
 					}
 
-					r = TRectangle<int32>( nxt.x, nxt.y, 0, nxt.z );
+					r = TRectangle<int32>( nxt.x + ( nxt.x > cur.x ? 1 : 0 ), nxt.y, 0, nxt.z );
 					if( nxt.x < cur.x )
 					{
-						r.SetRight( Min( r.GetRight() + SRand::Inst().Rand( 5, 8 ), nWidth + 2 ) );
+						r.SetRight( Min( r.GetRight() + SRand::Inst().Rand( 5, 8 ), nWidth - 2 ) );
 						if( r.x > 0 )
 							vecTempChunks.push_back( TRectangle<int32>( 0, r.y, r.x, 1 ) );
 					}
 					else
 					{
-						r.SetLeft( Max( r.GetLeft() - SRand::Inst().Rand( 5, 8 ), nWidth - 2 ) );
-						if( r.GetRight < nWidth )
+						r.SetLeft( Max( r.GetLeft() - SRand::Inst().Rand( 5, 8 ), 2 ) );
+						if( r.GetRight() < nWidth )
 							vecTempChunks.push_back( TRectangle<int32>( r.GetRight(), r.y, nWidth - r.GetRight(), 1 ) );
 					}
 					if( bRoadAtEnd )
@@ -964,15 +1054,9 @@ void CLevelGenNode2_2_2::GenPath()
 					bRoomBegin = true;
 					bRoomEnd = true;
 				}
-				else if( nLen >= 17 )
-				{
-					bool b = SRand::Inst().Rand( 0, 2 ) > 0;
-					bRoomBegin = !b;
-					bRoomEnd = b;
-				}
 				else
 				{
-					bRoomBegin = false;
+					bRoomBegin = SRand::Inst().Rand() > 0;
 					bRoomEnd = false;
 				}
 
@@ -983,8 +1067,12 @@ void CLevelGenNode2_2_2::GenPath()
 				if( r1.GetBottom() - r.y <= SRand::Inst().Rand( 8, 12 ) )
 				{
 					r1.SetTop( r.y );
+					if( nxt.x > cur.x )
+						r1.SetRight( Min( nWidth, Max( r1.GetLeft() + 5, r1.GetRight() - SRand::Inst().Rand( 2, 4 ) ) ) );
+					else
+						r1.SetLeft( Max( 0, Min( r1.GetRight() - 5, r1.GetLeft() + SRand::Inst().Rand( 2, 4 ) ) ) );
 					if( bRoomBegin )
-						AddRoom( r1 );
+						AddRoom( r1, nxt.x < cur.x, nxt.x > cur.x, true, false );
 					else
 						AddBigChunk( r1, 1 );
 				}
@@ -992,11 +1080,14 @@ void CLevelGenNode2_2_2::GenPath()
 				{
 					if( r.height > 0 )
 					{
-						r1.SetTop( Min( r1.GetBottom() - 5, r1.y + SRand::Inst().Rand( -2, 2 ) ) );
 						r.SetBottom( r1.y );
 						AddRoad( r );
 					}
-					AddRoom( r1 );
+					if( nxt.x > cur.x )
+						r1.SetRight( Min( nWidth, Max( r1.GetLeft() + 5, r1.GetRight() - SRand::Inst().Rand( 2, 4 ) ) ) );
+					else
+						r1.SetLeft( Max( 0, Min( r1.GetRight() - 5, r1.GetLeft() + SRand::Inst().Rand( 2, 4 ) ) ) );
+					AddRoom( r1, nxt.x < cur.x, nxt.x > cur.x, true, false );
 				}
 				else
 				{
@@ -1006,32 +1097,32 @@ void CLevelGenNode2_2_2::GenPath()
 				vecTempChunks.push_back( TRectangle<int32>( r1.x, r1.GetBottom(), r1.width, 0 ) );
 
 				if( nxt.x < cur.x )
-					r2.SetRight( r.x );
+					r2.SetRight( r1.x );
 				else
-					r2.SetLeft( r.GetRight() );
+					r2.SetLeft( r1.GetRight() );
 
-				r = TRectangle<int32>( nxt.x, nxt.y, 0, nxt.z );
+				r = TRectangle<int32>( nxt.x + ( nxt.x > cur.x ? 1 : 0 ), nxt.y, 0, nxt.z );
 				if( nxt.x < cur.x )
 				{
-					r.SetRight( Min( r.GetRight() + SRand::Inst().Rand( 5, 8 ), nWidth + 2 ) );
+					r.SetRight( Min( r.GetRight() + SRand::Inst().Rand( 5, 8 ), nWidth - 2 ) );
 					if( r.x > 0 )
 						vecTempChunks.push_back( TRectangle<int32>( 0, r.y, r.x, 1 ) );
 				}
 				else
 				{
-					r.SetLeft( Max( r.GetLeft() - SRand::Inst().Rand( 5, 8 ), nWidth - 2 ) );
-					if( r.GetRight < nWidth )
+					r.SetLeft( Max( r.GetLeft() - SRand::Inst().Rand( 5, 8 ), 2 ) );
+					if( r.GetRight() < nWidth )
 						vecTempChunks.push_back( TRectangle<int32>( r.GetRight(), r.y, nWidth - r.GetRight(), 1 ) );
 				}
-				if( nxt.x < cur.x )
-					r2.SetLeft( r.GetRight() );
-				else
-					r2.SetRight( r.GetLeft() );
 				if( bRoomEnd )
 				{
-					AddRoom( r );
-					r.SetBottom( r.GetTop() );
+					AddRoom( r, nxt.x > cur.x, nxt.x < cur.x, false, true );
+					if( nxt.x < cur.x )
+						r2.SetLeft( r.GetRight() );
+					else
+						r2.SetRight( r.GetLeft() );
 				}
+				r.SetTop( r.GetBottom() );
 				AddBigChunk( r2, 2 );
 			}
 			else
@@ -1044,11 +1135,10 @@ void CLevelGenNode2_2_2::GenPath()
 					AddRoad( r );
 				}
 
-				r1.SetLeft( Max( 0, r1.GetLeft() - SRand::Inst().Rand( 0, 2 ) ) );
-				r1.SetRight( Min( nWidth, r1.GetRight() - SRand::Inst().Rand( 0, 2 ) ) );
-				AddRoom( r1 );
 				if( r1.GetLeft() < 4 )
 				{
+					r1.SetRight( Min( nWidth, Max( r1.x + 5, r1.GetRight() - SRand::Inst().Rand( 1, 3 ) ) ) );
+					AddRoom( r1, true, true, true, true );
 					TRectangle<int32> r2( r1.GetRight(), cur.y, 0, cur.z );
 					r2.SetRight( Min( nWidth, r2.GetRight() + SRand::Inst().Rand( 15, 18 ) ) );
 					AddBigChunk( r2, SRand::Inst().Rand( 0, 2 ) ? 0 : 2 );
@@ -1057,20 +1147,28 @@ void CLevelGenNode2_2_2::GenPath()
 				}
 				else if( r1.GetRight() >= nWidth - 4 )
 				{
+					r1.SetLeft( Max( 0, Min( r1.GetRight() - 5, r1.GetLeft() + 1 ) ) );
+					AddRoom( r1, true, true, true, true );
 					TRectangle<int32> r2( r1.GetLeft(), cur.y, 0, cur.z );
-					r2.SetRight( Max( 0, r2.GetLeft() - SRand::Inst().Rand( 15, 18 ) ) );
+					r2.SetLeft( Max( 0, r2.GetRight() - SRand::Inst().Rand( 15, 18 ) ) );
 					AddBigChunk( r2, SRand::Inst().Rand( 0, 2 ) ? 0 : 2 );
 					if( r2.GetLeft() > 0 )
 						vecTempChunks.push_back( TRectangle<int32>( 0, r2.y, nWidth - r2.GetLeft(), r2.height ) );
 				}
 				else
 				{
+					r1.SetRight( Min( nWidth, r1.GetRight() - 1 ) );
+					r1.SetLeft( Max( 0, r1.GetLeft() + 1 ) );
+					if( r1.width > 4 )
+						AddRoom( r1, true, true, true, true );
+					else
+						AddRoad( r1 );
 					bool b = SRand::Inst().Rand( 0, 2 );;
 					AddBigChunk( TRectangle<int32>( 0, cur.y, r1.x, cur.z ), b ? 0 : 2 );
 					AddBigChunk( TRectangle<int32>( r1.GetRight(), cur.y, nWidth - r1.GetRight(), cur.z ), b ? 2 : 0 );
 				}
 
-				r = TRectangle<int32>( r.x, r1.GetBottom(), r.width, r1.GetBottom() );
+				r = TRectangle<int32>( r.x, r1.GetBottom(), r.width, 0 );
 			}
 
 			k2 = SRand::Inst().Rand( 3, 5 );
@@ -1080,10 +1178,24 @@ void CLevelGenNode2_2_2::GenPath()
 		{
 			if( cur.y + cur.z < nHeight )
 			{
-				auto& nxt1 = vecPath[i + 2];
-
 				if( cur.y == nxt.y )
 				{
+					if( cur.z > 4 && i + 2 < vecPath.size() )
+					{
+						auto& nxt1 = vecPath[i + 2];
+						int32 h1 = cur.z - 4;
+						cur.z = 4;
+						nxt1.y -= h1;
+						nxt1.z += h1;
+						for( int j = i + 3; j < vecPath.size() && vecPath[j].y == nxt1.y; j++ )
+						{
+							auto& nxt2 = vecPath[j];
+							nxt2.y -= h1;
+							nxt2.z += h1;
+						}
+					}
+
+					auto& nxt1 = vecPath[i + 2];
 					if( r.height > 0 )
 						AddRoad( r );
 					TRectangle<int32> r1 = r;
@@ -1092,7 +1204,7 @@ void CLevelGenNode2_2_2::GenPath()
 					r1.SetLeft( Min( r1.GetLeft(), nxt.x ) );
 					r1.SetRight( Max( r1.GetRight(), nxt.x + 1 ) );
 					AddRoad( r1 );
-					r.y = r1.y;
+					r.y = r1.GetBottom();
 					r.height = 0;
 
 					nxt.x = cur.x;
@@ -1101,9 +1213,9 @@ void CLevelGenNode2_2_2::GenPath()
 					if( k2 > 1 )
 					{
 						r.height = nxt.z;
-						r.SetLeft( Max( 0, r.GetLeft() + SRand::Inst().Rand( 0, 3 ) ) );
-						r.SetRight( Min( nWidth, r.GetRight() - SRand::Inst().Rand( 0, 3 ) ) );
-						AddRoom( r );
+						r.SetLeft( Max( 0, r.GetLeft() - SRand::Inst().Rand( 0, 3 ) ) );
+						r.SetRight( Min( nWidth, r.GetRight() + SRand::Inst().Rand( 0, 3 ) ) );
+						AddRoom( r, nxt1.x < cur.x, nxt1.x > cur.x, true, false );
 
 						if( nxt.x < nxt1.x )
 						{
@@ -1113,7 +1225,7 @@ void CLevelGenNode2_2_2::GenPath()
 								vecTempChunks.push_back( r1 );
 
 							r = TRectangle<int32>( r.GetRight(), nxt.y, nWidth - r.GetRight(), 1 );
-							AddBar( r );
+							AddChunk( r, m_vecBars );
 							r.y++;
 							r.height = nxt.z - 1;
 							r.SetLeft( Max( r.GetLeft(), r.GetRight() - SRand::Inst().Rand( 5, 8 ) ) );
@@ -1126,7 +1238,7 @@ void CLevelGenNode2_2_2::GenPath()
 								vecTempChunks.push_back( r1 );
 
 							r = TRectangle<int32>( 0, nxt.y, r.x, 1 );
-							AddBar( r );
+							AddChunk( r, m_vecBars );
 							r.y++;
 							r.height = nxt.z - 1;
 							r.SetRight( Min( r.GetRight(), r.GetLeft() + SRand::Inst().Rand( 5, 8 ) ) );
@@ -1140,10 +1252,13 @@ void CLevelGenNode2_2_2::GenPath()
 				}
 				else
 				{
-					if( r.height > 0 )
-						AddRoad( r );
-					if( nxt.y == nxt1.y || k2 <= 1 )
+					TRectangle<int32> r0 = r;
+					if( i + 2 < vecPath.size() && nxt.y == vecPath[i + 2].y || k2 <= 1 )
 					{
+						if( r.x + r.GetRight() + SRand::Inst().Rand( 0, 2 ) > nWidth )
+							r.x = Min( nWidth - r.width, r.x + SRand::Inst().Rand( 2, 4 ) );
+						else
+							r.x = Max( 0, r.x - SRand::Inst().Rand( 2, 4 ) );
 						r.SetTop( cur.y );
 						r.SetBottom( nxt.y );
 						AddBigChunk( r, 1 );
@@ -1160,13 +1275,15 @@ void CLevelGenNode2_2_2::GenPath()
 						r1.width += w;
 						r1.x = Max( 0, Min( nWidth - r1.width, r1.x - SRand::Inst().Rand( 1, w ) ) );
 						AddBigChunk( r1, 1 );
-						if( r.x > 0 )
+						if( r.x >= 7 )
 						{
 							int32 l = Min( r.x, SRand::Inst().Rand( 9, 13 ) );
-							vecTempBars.push_back( TRectangle<int32>( r.x - l, cur.y - 1, l, 1 ) );
-							TRectangle<int32> r2( r.x - l + SRand::Inst().Rand( 1, 4 ), cur.y, 0, cur.z );
+							int32 l1 = Min( r.width / 2 - 1, SRand::Inst().Rand( 1, 3 ) );
+							vecTempBars.push_back( TRectangle<int32>( r.x - l, cur.y - 1, l + l1, 1 ) );
+							TRectangle<int32> r2( r.x - l + SRand::Inst().Rand( 1, 3 ), cur.y, 0, cur.z );
 							r2.SetRight( Min( r2.GetRight() + SRand::Inst().Rand( 4, 5 ), r1.GetLeft() ) );
 							r2.height += SRand::Inst().Rand( 0, 3 );
+							AddBigChunk( r2, 1 );
 							if( r2.x > 0 )
 								vecTempChunks.push_back( TRectangle<int32>( 0, cur.y, r2.x, 1 ) );
 
@@ -1177,17 +1294,20 @@ void CLevelGenNode2_2_2::GenPath()
 								vecTempBars.push_back( TRectangle<int32>( r2.x - l, h1 - 1, l, 1 ) );
 								TRectangle<int32> r3( r2.x - l + SRand::Inst().Rand( 0, 3 ), h1, 0, nxt.y + nxt.z - h1 );
 								r3.SetRight( Min( r3.GetRight() + SRand::Inst().Rand( 4, 5 ), r2.GetLeft() ) );
+								AddBigChunk( r3, 1 );
 								if( r3.x > 0 )
 									vecTempChunks.push_back( TRectangle<int32>( 0, r3.y, r3.x, 1 ) );
 							}
 						}
-						if( r.GetRight() < nWidth )
+						if( r.GetRight() <= nWidth - 7 )
 						{
 							int32 l = Min( nWidth - r.GetRight(), SRand::Inst().Rand( 9, 13 ) );
-							vecTempBars.push_back( TRectangle<int32>( r.GetRight(), cur.y - 1, l, 1 ) );
-							TRectangle<int32> r2( r.GetRight() + l - SRand::Inst().Rand( 1, 4 ), cur.y, 0, cur.z );
-							r2.SetLeft( Min( r2.GetLeft() - SRand::Inst().Rand( 4, 5 ), r1.GetRight() ) );
+							int32 l1 = Min( r.width / 2 - 1, SRand::Inst().Rand( 1, 3 ) );
+							vecTempBars.push_back( TRectangle<int32>( r.GetRight() - l1, cur.y - 1, l + l1, 1 ) );
+							TRectangle<int32> r2( r.GetRight() + l - SRand::Inst().Rand( 1, 3 ), cur.y, 0, cur.z );
+							r2.SetLeft( Max( r2.GetLeft() - SRand::Inst().Rand( 4, 5 ), r1.GetRight() ) );
 							r2.height += SRand::Inst().Rand( 0, 3 );
+							AddBigChunk( r2, 1 );
 							if( r2.GetRight() < nWidth )
 								vecTempChunks.push_back( TRectangle<int32>( r2.GetRight(), cur.y, nWidth - r2.GetRight(), 1 ) );
 
@@ -1196,8 +1316,9 @@ void CLevelGenNode2_2_2::GenPath()
 								l = Min( nWidth - r2.GetRight(), SRand::Inst().Rand( 7, 11 ) );
 								int32 h1 = cur.y + cur.z - Min( cur.z - 4, SRand::Inst().Rand( 0, 3 ) );
 								vecTempBars.push_back( TRectangle<int32>( r2.GetRight(), h1 - 1, l, 1 ) );
-								TRectangle<int32> r3( r2.GetRight() + l + SRand::Inst().Rand( 0, 3 ), h1, 0, nxt.y + nxt.z - h1 );
+								TRectangle<int32> r3( r2.GetRight() + l - SRand::Inst().Rand( 0, 3 ), h1, 0, nxt.y + nxt.z - h1 );
 								r3.SetLeft( Max( r3.GetLeft() - SRand::Inst().Rand( 4, 5 ), r2.GetRight() ) );
+								AddBigChunk( r3, 1 );
 								if( r3.GetRight() < nWidth )
 									vecTempChunks.push_back( TRectangle<int32>( r3.GetRight(), r3.y, nWidth - r3.GetRight(), 1 ) );
 							}
@@ -1208,6 +1329,12 @@ void CLevelGenNode2_2_2::GenPath()
 						i++;
 						k2--;
 						k1 = SRand::Inst().Rand( 2, 4 );
+
+						if( r0.height > 1 )
+						{
+							r0.height--;
+							AddRoad( r0 );
+						}
 						continue;
 					}
 				}
@@ -1218,6 +1345,21 @@ void CLevelGenNode2_2_2::GenPath()
 
 		if( cur.y == nxt.y )
 		{
+			if( cur.z > 4 && i + 2 < vecPath.size() )
+			{
+				auto& nxt1 = vecPath[i + 2];
+				int32 h1 = cur.z - 4;
+				cur.z = 4;
+				nxt1.y -= h1;
+				nxt1.z += h1;
+				for( int j = i + 3; j < vecPath.size() && vecPath[j].y == nxt1.y; j++ )
+				{
+					auto& nxt2 = vecPath[j];
+					nxt2.y -= h1;
+					nxt2.z += h1;
+				}
+			}
+
 			if( r.height > 0 )
 				AddRoad( r );
 			TRectangle<int32> r1 = r;
@@ -1227,7 +1369,7 @@ void CLevelGenNode2_2_2::GenPath()
 			r1.SetRight( Max( r1.GetRight(), nxt.x + 1 ) );
 			AddRoad( r1 );
 
-			r.y = r1.y;
+			r.y = r1.GetBottom();
 			r.width = SRand::Inst().Rand( 5, 8 );
 			if( nxt.x > cur.x )
 				r.x = r1.GetRight() - r.width;
@@ -1247,36 +1389,83 @@ void CLevelGenNode2_2_2::GenPath()
 	ProcessTempChunks( vecTempChunks );
 }
 
+void CLevelGenNode2_2_2::GenObjs()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+
+	for( auto& r : m_vecBigChunk1 )
+	{
+		GenBigChunk( r, 0 );
+		AddThrusters( r );
+	}
+	for( auto& r : m_vecBigChunk1_1 )
+		GenBigChunk( r, 1 );
+	for( auto& r : m_vecBigChunk2 )
+		AddThrusters( r );
+	for( auto& r : m_vecBars )
+		AddThrusters( r );
+}
+
 void CLevelGenNode2_2_2::AddRoad( const TRectangle<int32>& r )
 {
 	m_vecRoads.push_back( r );
 	for( int i = r.x; i < r.GetRight(); i++ )
 	{
-		for( int j = r.y; j < r.GetRight(); j++ )
+		for( int j = r.y; j < r.GetBottom(); j++ )
 		{
 			m_gendata[i + j * m_region.width] = eType_Road;
 		}
 	}
 }
 
-void CLevelGenNode2_2_2::AddRoom( const TRectangle<int32>& r )
+void CLevelGenNode2_2_2::AddRoom( const TRectangle<int32>& r, bool bLeft, bool bRight, bool bTop, bool bBottom )
 {
 	m_vecRooms.push_back( r );
 	for( int i = r.x; i < r.GetRight(); i++ )
 	{
-		for( int j = r.y; j < r.GetRight(); j++ )
+		for( int j = r.y; j < r.GetBottom(); j++ )
 		{
 			m_gendata[i + j * m_region.width] = eType_Room;
 		}
 	}
+
+	if( bLeft && r.height >= 5 )
+	{
+		int32 i = r.height > 5 ? ( r.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2 : 2;
+		m_gendata[r.x + ( i + r.y ) * m_region.width] = eType_Door;
+		if( r.height > 5 )
+			m_gendata[r.x + ( i + r.y + 1 ) * m_region.width] = eType_Door;
+	}
+	if( bRight && r.height >= 5 )
+	{
+		int32 i = r.height > 5 ? ( r.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2 : 2;
+		m_gendata[r.GetRight() - 1 + ( i + r.y ) * m_region.width] = eType_Door;
+		if( r.height > 5 )
+			m_gendata[r.GetRight() - 1 + ( i + r.y + 1 ) * m_region.width] = eType_Door;
+	}
+	if( bTop && r.width >= 5 )
+	{
+		int32 i = r.width > 5 ? ( r.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2 : 2;
+		m_gendata[i + r.x + r.y * m_region.width] = eType_Door;
+		if( r.width > 5 )
+			m_gendata[i + r.x + 1 + r.y * m_region.width] = eType_Door;
+	}
+	if( bBottom && r.width >= 5 )
+	{
+		int32 i = r.width > 5 ? ( r.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2 : 2;
+		m_gendata[i + r.x + ( r.GetBottom() - 1 ) * m_region.width] = eType_Door;
+		if( r.width > 5 )
+			m_gendata[i + r.x + 1 + ( r.GetBottom() - 1 ) * m_region.width] = eType_Door;
+	}
 }
 
-void CLevelGenNode2_2_2::AddBar( const TRectangle<int32>& r )
+void CLevelGenNode2_2_2::AddChunk( const TRectangle<int32>& r, vector<TRectangle<int32> >& chunks )
 {
-	m_vecBars.push_back( r );
+	chunks.push_back( r );
 	for( int i = r.x; i < r.GetRight(); i++ )
 	{
-		for( int j = r.y; j < r.GetRight(); j++ )
+		for( int j = r.y; j < r.GetBottom(); j++ )
 		{
 			m_gendata[i + j * m_region.width] = eType_Chunk;
 		}
@@ -1293,19 +1482,96 @@ void CLevelGenNode2_2_2::AddBigChunk( const TRectangle<int32>& r, int8 nType )
 		m_vecBigChunk2.push_back( r );
 	for( int i = r.x; i < r.GetRight(); i++ )
 	{
-		for( int j = r.y; j < r.GetRight(); j++ )
+		for( int j = r.y; j < r.GetBottom(); j++ )
 		{
 			m_gendata[i + j * m_region.width] = eType_Chunk;
 		}
 	}
 }
 
-void CLevelGenNode2_2_2::ProcessTempBar( const vector<TRectangle<int32> > v )
+void CLevelGenNode2_2_2::AddThruster( const TRectangle<int32>& r )
 {
+	m_vecThrusters.push_back( r );
+	for( int i = r.x; i < r.GetRight(); i++ )
+	{
+		for( int j = r.y; j < r.GetBottom(); j++ )
+		{
+			m_gendata[i + j * m_region.width] = eType_Thruster;
+		}
+	}
+}
+
+void CLevelGenNode2_2_2::AddSupport( const TRectangle<int32>& r )
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	if( r.x < 0 || r.x >= nWidth || r.y < 0 || r.y >= nHeight )
+		return;
+
+	auto rect = r;
+	while( rect.y > 0 )
+	{
+		if( m_gendata[rect.x + ( rect.y - 1 ) * nWidth] || m_gendata[rect.x + 1 + ( rect.y - 1 ) * nWidth] )
+			break;
+		rect.y--;
+		rect.height++;
+	}
+	if( rect.height <= 0 )
+		return;
+	AddChunk( TRectangle<int32>( rect.x, rect.GetBottom() - 1, rect.width, 1 ), m_vecChunks );
+	rect.height--;
+
+	int32 nBaseHeight = Max( 0, rect.height - SRand::Inst().Rand( 0, 5 ) ) / 4;
+	for( int i = nBaseHeight; i < rect.height; i++ )
+	{
+		AddChunk( TRectangle<int32>( rect.x, rect.y + i, 2, 1 ), m_vecSupports );
+	}
+
+	vector<TVector2<int32> > vecTemp;
+	int32 x0 = rect.x, x1 = rect.GetRight() - 1, y = rect.y + nBaseHeight - 1;
+	int32 y0 = y;
+	while( y0 >= 0 )
+	{
+		int32 nMin = nWidth, nMax = -1;
+		for( int x = x0; x <= x1; x++ )
+		{
+			if( ( y == y0 || m_gendata[x + ( y0 + 1 ) * nWidth] == eType_Chunk1 ) && !m_gendata[x + y0 * nWidth] )
+			{
+				m_gendata[x + y0 * nWidth] = eType_Chunk1;
+				vecTemp.push_back( TVector2<int32>( x, y0 ) );
+				nMin = Min( x, nMin );
+				nMax = Max( x, nMax );
+			}
+		}
+		if( nMin > nMax )
+			break;
+
+		if( nMin > 0 && nMin == x0 && !SRand::Inst().Rand( 0, 2 ) && !m_gendata[nMin - 1 + y0 * nWidth] )
+		{
+			m_gendata[nMin - 1 + y0 * nWidth] = eType_Chunk1;
+			vecTemp.push_back( TVector2<int32>( nMin - 1, y0 ) );
+			nMin--;
+		}
+		if( nMax < nWidth - 1 && nMax == x1 && !SRand::Inst().Rand( 0, 2 ) && !m_gendata[nMax + 1 + y0 * nWidth] )
+		{
+			m_gendata[nMax + 1 + y0 * nWidth] = eType_Chunk1;
+			vecTemp.push_back( TVector2<int32>( nMax + 1, y0 ) );
+			nMax++;
+		}
+		x0 = nMin;
+		x1 = nMax;
+		y0--;
+	}
+	for( auto& p : vecTemp )
+		m_gendata[p.x + p.y * nWidth] = eType_Blocked;
+}
+
+void CLevelGenNode2_2_2::ProcessTempBar( const vector<TRectangle<int32> >& v )
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
 	for( auto rect : v )
 	{
-		int32 nWidth = m_region.width;
-		int32 nHeight = m_region.height;
 		bool bContinue = false;
 		for( int i = rect.x; i < rect.GetRight(); i++ )
 		{
@@ -1320,22 +1586,272 @@ void CLevelGenNode2_2_2::ProcessTempBar( const vector<TRectangle<int32> > v )
 
 		if( rect.width <= 2 )
 		{
-			int32 nBegin = rect.x;
-			int32 nEnd = rect.GetRight() - 1;
-			while( nBegin > 0 && !m_gendata[nBegin - 1] )
+			int32 nBegin = rect.x + 1;
+			int32 nEnd = rect.GetRight() - 2;
+			while( nBegin > 0 && !m_gendata[nBegin - 1 + rect.y * nWidth] )
 				nBegin--;
-			while( nEnd < nWidth + 1 && !m_gendata[nEnd + 1] )
+			while( nEnd < nWidth - 1 && !m_gendata[nEnd + 1 + rect.y * nWidth] )
 				nEnd++;
+			if( nEnd - nBegin < 1 )
+				continue;
 			int32 nLen = Min<int32>( 2 + floor( ( nEnd - nBegin - 1 ) * SRand::Inst().Rand( 0.75f, 0.99f ) ), SRand::Inst().Rand( 10, 16 ) );
 			rect.x -= ( nLen - rect.width + SRand::Inst().Rand( 0, 2 ) ) / 2;
 			rect.width = nLen;
 			rect.x = Max( rect.x, nBegin );
 			rect.x = Min( rect.x, nEnd - nLen + 1 );
 		}
-		AddBar( rect );
+		AddChunk( rect, m_vecBars );
 	}
 }
 
-void CLevelGenNode2_2_2::ProcessTempChunks( const vector<TRectangle<int32>> v )
+void CLevelGenNode2_2_2::ProcessTempChunks( const vector<TRectangle<int32> >& v )
 {
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	for( auto& r : v )
+	{
+		for( int j = r.y; j < r.GetBottom(); j++ )
+		{
+			for( int i = r.x; i < r.GetRight(); i++ )
+			{
+				if( !m_gendata[i + j * m_region.width] )
+					m_gendata[i + j * m_region.width] = eType_Blocked;
+			}
+		}
+	}
+
+	float f = 0.5f;
+	for( int i = 0; i < nHeight; i++ )
+	{
+		if( m_gendata[i * nWidth] == eType_Blocked )
+		{
+			f = 0.5f;
+			for( int x = 0; x < nWidth / 2; x++ )
+			{
+				if( m_gendata[x + i * nWidth] != eType_Blocked )
+					break;
+				f += 1;
+			}
+		}
+		else
+		{
+			f = Max( 0.0f, Min( nWidth / 2.0f - 0.5f, f + SRand::Inst().Rand( -0.3f, 0.3f ) ) );
+			int32 n = floor( f );
+			int x;
+			for( x = 0; x < n; x++ )
+			{
+				if( m_gendata[x + i * nWidth] )
+					break;
+				m_gendata[x + i * nWidth] = eType_Blocked;
+			}
+			f = Min( x + 0.5f, f );
+		}
+	}
+
+	f = 0.5f;
+	for( int i = 0; i < nHeight; i++ )
+	{
+		if( m_gendata[nWidth - 1 + i * nWidth] == eType_Blocked )
+		{
+			f = 0.5f;
+			for( int x = 0; x < nWidth / 2; x++ )
+			{
+				if( m_gendata[nWidth - 1 - x + i * nWidth] != eType_Blocked )
+					break;
+				f += 1;
+			}
+		}
+		else
+		{
+			f = Max( 0.0f, Min( nWidth / 2.0f - 0.5f, f + SRand::Inst().Rand( -0.3f, 0.3f ) ) );
+			int32 n = floor( f );
+			int x;
+			for( x = 0; x < n; x++ )
+			{
+				if( m_gendata[nWidth - 1 - x + i * nWidth] )
+					break;
+				m_gendata[nWidth - 1 - x + i * nWidth] = eType_Blocked;
+			}
+			f = Min( x + 0.5f, f );
+		}
+	}
+}
+
+void CLevelGenNode2_2_2::AddThrusters( const TRectangle<int32>& r )
+{
+	if( r.y < 12 )
+		return;
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	int32 maxl = 0, maxn = 0;
+	int32 nCur = 0;
+	uint8 bDir = SRand::Inst().Rand( 0, 2 );
+	for( int i = 0; i < r.width; i++ )
+	{
+		int32 x = bDir ? i + r.x : r.GetRight() - i - 1;
+		bool b = true;
+		for( int j = r.y - 1; j >= r.y - 4; j-- )
+		{
+			if( m_gendata[x + j * nWidth] )
+			{
+				b = false;
+				break;
+			}
+		}
+		if( b )
+		{
+			nCur++;
+			if( nCur > maxl )
+			{
+				maxl = nCur;
+				maxn = i;
+			}
+		}
+		else
+			nCur = 0;
+	}
+
+	if( maxl < 10 )
+		return;
+	maxn = maxn + 1 - maxl;
+
+	int32 nType = SRand::Inst().Rand( 0, 3 );
+	switch( nType )
+	{
+	case 0:
+	{
+		int32 l = ( maxl + 2 ) / 4 * 4 - 2;
+		int32 ofs = SRand::Inst().Rand( 0, maxl - l + 1 );
+
+		for( int i = 0; i < l; i += 4 )
+		{
+			int32 x = i + ofs + maxn;
+			x = bDir ? x + r.x : r.GetRight() - 2 - x;
+			AddThruster( TRectangle<int32>( x, r.y - 2, 2, 2 ) );
+			AddSupport( TRectangle<int32>( x, r.y - 2, 2, 0 ) );
+		}
+
+		break;
+	}
+	case 1:
+	{
+		int32 l = ( maxl + 3 ) / 7 * 7 - 3;
+		int32 ofs = SRand::Inst().Rand( 0, maxl - l + 1 );
+
+		for( int i = 0; i < l; i += 7 )
+		{
+			int32 x = i + ofs + maxn;
+			x = bDir ? x + r.x : r.GetRight() - 4 - x;
+			AddThruster( TRectangle<int32>( x, r.y - 2, 2, 2 ) );
+			AddThruster( TRectangle<int32>( x + 2, r.y - 2, 2, 2 ) );
+			AddSupport( TRectangle<int32>( x + 1, r.y - 2, 2, 0 ) );
+		}
+
+		break;
+	}
+	case 2:
+	{
+		int32 l = ( maxl + 4 ) / 8 * 8 - 4;
+		int32 ofs = SRand::Inst().Rand( 0, maxl - l + 1 );
+
+		for( int i = 0; i < l; i += 8 )
+		{
+			int32 x = i + ofs + maxn;
+			x = bDir ? x + r.x : r.GetRight() - 4 - x;
+			AddThruster( TRectangle<int32>( x, r.y - 2, 2, 2 ) );
+			AddThruster( TRectangle<int32>( x + 2, r.y - 2, 2, 2 ) );
+			AddThruster( TRectangle<int32>( x + 1, r.y - 4, 2, 2 ) );
+			AddSupport( TRectangle<int32>( x + 1, r.y - 4, 2, 0 ) );
+		}
+		break;
+	}
+	}
+}
+
+void CLevelGenNode2_2_2::GenBigChunk( const TRectangle<int32>& r, int8 nType )
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	if( nType == 0 )
+	{
+		int32 nSubType = SRand::Inst().Rand( 0, 2 );
+		for( int i = r.x; i < r.GetRight(); i++ )
+		{
+			m_gendata[i + r.y * nWidth] = eType_Chunk1;
+			m_gendata[i + ( r.GetBottom() - 1 ) * nWidth] = eType_Chunk1;
+		}
+
+		uint8 bDir = SRand::Inst().Rand( 0, 2 );
+		if( nSubType == 0 )
+		{
+			int n = SRand::Inst().Rand( 1, 4 );
+			int32 h0 = r.height - 2;
+			int32 hMin = Max( 1, h0 / 2 );
+			int32 hMax = Max( hMin, h0 * 3 / 4 );
+			for( ; n < r.width - 1; n += SRand::Inst().Rand( 4, 6 ) )
+			{
+				int32 x = bDir ? r.x + n : r.GetRight() - 1 - n;
+				int32 h = SRand::Inst().Rand( hMin, hMax + 1 );
+				int32 y1 = SRand::Inst().Rand( 0, h + 1 );
+				for( int y = r.y + 1; y < r.y + y1 + 1; y++ )
+					m_gendata[x + y * nWidth] = eType_Chunk1;
+				for( int y = r.GetBottom() - 2; y > r.GetBottom() - ( h - y1 ) - 2; y-- )
+					m_gendata[x + y * nWidth] = eType_Chunk1;
+			}
+		}
+		else
+		{
+			uint8 bDir1 = SRand::Inst().Rand( 0, 2 );
+			int n = SRand::Inst().Rand( 1, 3 );
+			int32 h0 = r.height - 2;
+			int32 hMin = Max( 1, h0 * 2 / 3 );
+			int32 hMax = Max( hMin, h0 * 3 / 4 );
+			for( ; n < r.width - 1; n += SRand::Inst().Rand( 3, 5 ) )
+			{
+				int32 x = bDir ? r.x + n : r.GetRight() - 1 - n;
+				int32 h = SRand::Inst().Rand( hMin, hMax + 1 );
+				if( bDir1 )
+				{
+					for( int y = r.y + 1; y < r.y + h + 1; y++ )
+						m_gendata[x + y * nWidth] = eType_Chunk1;
+				}
+				else
+				{
+					for( int y = r.GetBottom() - 2; y > r.GetBottom() - h - 2; y-- )
+						m_gendata[x + y * nWidth] = eType_Chunk1;
+				}
+			}
+
+		}
+	}
+	else
+	{
+		uint8 bDir = SRand::Inst().Rand( 0, 2 );
+		int n = SRand::Inst().Rand( 0, 3 );
+		int32 x0 = SRand::Inst().Rand( 0, r.width );
+		int32 wMin = Max( 2, r.width / 3 );
+		int32 wMax = Max( wMin, r.width / 2 );
+		for( ; n < r.height; n += SRand::Inst().Rand( 2, 4 ) )
+		{
+			int32 y = n + r.y;
+			int32 w = SRand::Inst().Rand( wMin, wMax + 1 );
+			if( n == 0 || n == r.height - 1 )
+				x0 = r.width - ( w + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			else
+			{
+				x0 += SRand::Inst().Rand( wMin, wMax + 1 );
+				if( !SRand::Inst().Rand( 0, 3 ) )
+					x0 += SRand::Inst().Rand( wMin, wMax + 1 );
+			}
+			x0 = x0 % r.width;
+			for( int i = 0; i < w; i++ )
+			{
+				int32 x = i + x0;
+				if( x >= r.width )
+					x -= r.width;
+				x = bDir ? r.x + x : r.GetRight() - 1 - x;
+				m_gendata[x + y * nWidth] = eType_Chunk1;
+			}
+		}
+	}
 }

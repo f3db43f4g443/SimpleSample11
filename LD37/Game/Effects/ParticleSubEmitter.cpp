@@ -38,18 +38,18 @@ void CParticleSubEmitter::Set()
 	for( int i = 0; i < m_nSubEmitterCount; i++ )
 	{
 		auto& emitter = m_subEmitters[i];
-		float fDir = SRand::Inst().Rand( 0.0f, dDir ) + m_fDirMin + dDir * i;
+		float fDir = SRand::Inst<eRand_Render>().Rand( 0.0f, dDir ) + m_fDirMin + dDir * i;
 		CMatrix2D mat;
 		mat.Rotate( fDir );
 
-		emitter.s0.x = SRand::Inst().Rand( m_s0Min.x, m_s0Max.x );
-		emitter.s0.y = SRand::Inst().Rand( m_s0Min.y, m_s0Max.y );
-		emitter.v.x = SRand::Inst().Rand( m_vMin.x, m_vMax.x );
-		emitter.v.y = SRand::Inst().Rand( m_vMin.y, m_vMax.y );
-		emitter.a.x = SRand::Inst().Rand( m_aMin.x, m_aMax.x );
-		emitter.a.y = SRand::Inst().Rand( m_aMin.y, m_aMax.y );
-		emitter.size.x = SRand::Inst().Rand( m_sizeMin.x, m_sizeMax.x );
-		emitter.size.y = SRand::Inst().Rand( m_sizeMin.y, m_sizeMax.y );
+		emitter.s0.x = SRand::Inst<eRand_Render>().Rand( m_s0Min.x, m_s0Max.x );
+		emitter.s0.y = SRand::Inst<eRand_Render>().Rand( m_s0Min.y, m_s0Max.y );
+		emitter.v.x = SRand::Inst<eRand_Render>().Rand( m_vMin.x, m_vMax.x );
+		emitter.v.y = SRand::Inst<eRand_Render>().Rand( m_vMin.y, m_vMax.y );
+		emitter.a.x = SRand::Inst<eRand_Render>().Rand( m_aMin.x, m_aMax.x );
+		emitter.a.y = SRand::Inst<eRand_Render>().Rand( m_aMin.y, m_aMax.y );
+		emitter.size.x = SRand::Inst<eRand_Render>().Rand( m_sizeMin.x, m_sizeMax.x );
+		emitter.size.y = SRand::Inst<eRand_Render>().Rand( m_sizeMin.y, m_sizeMax.y );
 		if( m_bRotates0 )
 			emitter.s0 = mat.MulVector2Dir( emitter.s0 );
 		if( m_bRotatev )
@@ -58,7 +58,7 @@ void CParticleSubEmitter::Set()
 			emitter.a = mat.MulVector2Dir( emitter.a );
 	}
 
-	SRand::Inst().Shuffle( m_subEmitters );
+	SRand::Inst<eRand_Render>().Shuffle( m_subEmitters );
 }
 
 void CParticleSubEmitter::Update( SParticleInstanceData& data, float fTime, const CMatrix2D& transform )

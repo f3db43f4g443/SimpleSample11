@@ -203,7 +203,7 @@
         <ref name="house_d" p="1" />
       </node>
 
-      <node name="room_a" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="7.5"
+      <node name="room_a" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="3" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_a.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -247,12 +247,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_a_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_a_1" x="0" y="0" w="0" h="0" />
             <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_b" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_b" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_b.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -296,12 +296,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_b_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_b_1" x="0" y="0" w="0" h="0" />
             <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_c" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_c" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_c.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -345,12 +345,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_c_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_c_1" x="0" y="0" w="0" h="0" />
             <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_d" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_d" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_d.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -394,7 +394,7 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_d_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_d_1" x="0" y="0" w="0" h="0" />
             <ref name="thug" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
@@ -408,7 +408,7 @@
       </node>
 
 
-      <node name="room_a_1" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="7.5"
+      <node name="room_a_1" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_a.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -480,12 +480,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_a_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_a_1" x="0" y="0" w="0" h="0" />
             <ref name="worker" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_b_1" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_b_1" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_b.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -557,12 +557,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_b_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_b_1" x="0" y="0" w="0" h="0" />
             <ref name="worker" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_c_1" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_c_1" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_c.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -634,12 +634,12 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_c_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_c_1" x="0" y="0" w="0" h="0" />
             <ref name="worker" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>
-      <node name="room_d_1" type="room0" width="8" height="8" weight="10" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
+      <node name="room_d_1" type="room0" width="8" height="8" weight="10" destroyweight="36" destroyweightperwidth="4" absorbshakestrength="10000" destroyshake="25" shakedmg="7.5"
             weightperwidth="1.25" movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_d.pf">
         <types>
           4,4,4,4,4,4,4,4,
@@ -711,7 +711,7 @@
         </wall_broken>
         <next_level>
           <node type="subregion">
-            <ref name="deco_fiber1_d_1" x="1" y="1" w="-1" h="-1" />
+            <ref name="deco_fiber1_d_1" x="0" y="0" w="0" h="0" />
             <ref name="worker" x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
@@ -722,6 +722,138 @@
         <ref name="room_b_1" p="1" />
         <ref name="room_c_1" p="1" />
         <ref name="room_d_1" p="1" />
+      </node>
+
+      <node name="billboard" type="billboard" show_layer_type="0" width="4" height="4" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" prefab="data/blocks/lv2/billboard.pf">
+        <metadata minx="4" miny="4" maxx="32" maxy="16" />
+        <types>
+          0,0,0,0,
+          0,0,0,0,
+          0,0,0,0,
+          0,0,0,0,
+        </types>
+        <nodes>
+          <ref name="platform" />
+        </nodes>
+        <subitem>
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="metal_wall_broken" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="billboard_frame" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node><node name="house_a_test" movetype="2" width="8" height="8" weight="9.6" destroyweight="24" absorbshakestrength="10000" shakedmg="8" destroyshake="64" prefab="data/blocks/lv2/house_a.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <tags>
+          2,2,2,2,0,0,0,0,
+          2,3,2,2,0,0,0,0,
+          2,2,2,2,0,0,0,0,
+          2,2,2,2,0,0,0,0,
+          1,1,0,0,0,0,0,0,
+          1,1,0,0,0,0,0,0,
+          2,2,2,0,0,0,2,2,
+          2,2,2,1,1,1,2,2,
+        </tags>
+        <subitem>
+          <node type="subregion">
+            <ref name="housepart_a" x="0" y="4" w="4" h="4" />
+            <ref name="housepart_a" x="0" y="0" w="3" h="2" />
+            <ref name="housepart_a" x="6" y="0" w="2" h="2" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="house_broken_a" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="house_entrance_3" x="3" y="0" w="1" h="1" />
+            <ref name="house_entrance_3" x="4" y="0" w="1" h="1" />
+            <ref name="house_entrance_3" x="5" y="0" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="house_b_test" movetype="2" width="10" height="4" weight="12" destroyweight="30" absorbshakestrength="10000" shakedmg="10" destroyshake="40" prefab="data/blocks/lv2/house_b.pf">
+        <types>
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,4,4,
+        </types>
+        <tags>
+          2,2,2,2,0,0,2,2,2,2,
+          2,2,2,2,0,0,2,2,2,2,
+          2,2,2,2,1,1,2,2,2,2,
+          2,2,2,2,1,1,2,2,2,2,
+        </tags>
+        <subitem>
+          <node type="subregion">
+            <ref name="housepart_b" x="0" y="0" w="4" h="4" />
+            <ref name="housepart_b" x="6" y="0" w="4" h="4" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="house_broken_b" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="car1_spawner_3" x="4" y="0" w="2" h="4" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="house_c_test" movetype="2" width="8" height="8" weight="9.6" destroyweight="24" absorbshakestrength="10000" shakedmg="8" destroyshake="64" prefab="data/blocks/lv2/house_c.pf">
+        <types>
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+          4,4,4,4,4,4,4,4,
+        </types>
+        <tags>
+          0,0,0,0,2,2,2,2,
+          0,0,0,0,2,3,2,2,
+          0,0,0,0,2,2,2,2,
+          0,0,0,0,2,2,2,2,
+          0,0,0,0,0,0,1,1,
+          0,0,0,0,0,0,1,1,
+          2,2,0,0,0,2,2,2,
+          2,2,1,1,1,2,2,2,
+        </tags>
+        <subitem>
+          <node type="subregion">
+            <ref name="housepart_c" x="4" y="4" w="4" h="4" />
+            <ref name="housepart_c" x="5" y="0" w="3" h="2" />
+            <ref name="housepart_c" x="0" y="0" w="2" h="2" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="house_broken_c" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="house_entrance_3" x="2" y="0" w="1" h="1" />
+            <ref name="house_entrance_3" x="3" y="0" w="1" h="1" />
+            <ref name="house_entrance_3" x="4" y="0" w="1" h="1" />
+          </node>
+        </next_level>
       </node>
       
     </nodes>

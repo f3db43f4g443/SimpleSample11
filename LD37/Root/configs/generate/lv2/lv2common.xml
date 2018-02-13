@@ -7,6 +7,7 @@
   <level_gen>
     <attachs>
       <node name="plant" prefab="data/blockitems/plant.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
+      <node name="plant1" prefab="data/blockitems/plant1.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
       <node name="car1_spawner_0" prefab="data/blockitems/car1_spawner_0.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car1_spawner_1" prefab="data/blockitems/car1_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car1_spawner_2" prefab="data/blockitems/car1_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
@@ -15,10 +16,10 @@
       <node name="car2_spawner_1" prefab="data/blockitems/car2_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car2_spawner_2" prefab="data/blockitems/car2_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car2_spawner_3" prefab="data/blockitems/car2_spawner_3.pf" sizex="2" sizey="4" attach_type="0" />
-      <node name="house_entrance_0" prefab="data/blockitems/house_entrance_0.pf" sizex="1" sizey="1" attach_type="0" />
-      <node name="house_entrance_1" prefab="data/blockitems/house_entrance_1.pf" sizex="1" sizey="1" attach_type="0" />
-      <node name="house_entrance_2" prefab="data/blockitems/house_entrance_2.pf" sizex="1" sizey="1" attach_type="0" />
-      <node name="house_entrance_3" prefab="data/blockitems/house_entrance_3.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="house_entrance_0" prefab="data/blockitems/house_entrance_0a.pf" sizex="0" sizey="0" attach_type="1" />
+      <node name="house_entrance_1" prefab="data/blockitems/house_entrance_1a.pf" sizex="0" sizey="0" attach_type="2" />
+      <node name="house_entrance_2" prefab="data/blockitems/house_entrance_2a.pf" sizex="0" sizey="0" attach_type="3" />
+      <node name="house_entrance_3" prefab="data/blockitems/house_entrance_3a.pf" sizex="0" sizey="0" attach_type="4" />
       <node name="turret1_1_0" prefab="data/enemies/turret1_1.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="turret1_1_1" prefab="data/enemies/turret1_1_1.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="turret1_1_2" prefab="data/enemies/turret1_1_2.pf" sizex="1" sizey="1" attach_type="0" />
@@ -31,6 +32,8 @@
       <node name="thruster_b" prefab="data/blockitems/thruster_b.pf" sizex="2" sizey="1" attach_type="0" />
       <node name="thruster_c" prefab="data/blockitems/thruster_c.pf" sizex="2" sizey="1" attach_type="0" />
       <node name="thruster_d" prefab="data/blockitems/thruster_d.pf" sizex="2" sizey="1" attach_type="0" />
+
+      <node name="lv2_misc_spawner" prefab="data/blockitems/cargos/lv2_misc_spawner.pf" sizex="1" sizey="1" attach_type="0" />
     </attachs>
     <spawns>
       <node name="deco_fiber1_a" prefab="data/misc/fiber1_a.pf" />
@@ -42,6 +45,7 @@
       <node name="deco_fiber1_c_1" prefab="data/misc/fiber1_c_1.pf" />
       <node name="deco_fiber1_d_1" prefab="data/misc/fiber1_d_1.pf" />
       <node name="fence" prefab="data/blocks/lv2/fence.pf" />
+      <node name="billboard_frame" prefab="data/blocks/lv2/billboard_frame.pf" />
     </spawns>
     <scrollobjs>
     </scrollobjs>
@@ -137,11 +141,38 @@
         <metadata isdesignvalid="0" />
         <types>4</types>
       </node>
+
+      <node name="platform" subchunk_type="1" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/blocks/lv2/platform.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="pillar_a" width="2" height="1" weight="1" destroyweight="5" layer_type="1" destroyshake="2" absorbshakestrength="3" prefab="data/blocks/lv2/pillar_a.pf">
+        <types>0,0</types>
+      </node>
+      <node name="pillar_b" width="2" height="1" weight="1" destroyweight="5" layer_type="1" destroyshake="2" absorbshakestrength="3" prefab="data/blocks/lv2/pillar_b.pf">
+        <types>0,0</types>
+      </node>
+      
+      <node name="bar1" width="8" height="1" weight="8" destroyweight="40" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv2/bar1.pf">
+        <metadata minx="4" maxx="32" />
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="metal_broken" />
+          </node>
+        </subitem>
+      </node>
       
       <node name="road_small" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
-            absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv2/road_small.pf">
+            absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1.0" shakedmgperwidth="1.0" prefab="data/blocks/lv2/road_small.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
+        <subitem>
+          <node type="tile">
+            <ref name="block0" />
+          </node>
+        </subitem>
         <immune_to_block_buff>1</immune_to_block_buff>
       </node>
       <node name="road_large" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
@@ -167,9 +198,9 @@
         <fence>
           <ref name="fence" />
         </fence>
-        <tile>
+        <!--tile>
           <ref name="plant" />
-        </tile>
+        </tile-->
       </node>
       <node name="greenbelt_test" movetype="1" show_layer_type="0" width="16" height="2" weight="16" destroyweight="32"
             absorbshakestrength="4" destroyshake="20" shakedmg="16" prefab="data/blocks/lv2/greenbelt.pf">
@@ -209,7 +240,7 @@
       </node>
       
       <node name="cargo_a" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
-           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_a.pf">
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <subitem>
           <node type="tile">
@@ -227,7 +258,7 @@
         </next_level>
       </node>
       <node name="cargo_b" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
-           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_b.pf">
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
         <subitem>
@@ -245,7 +276,7 @@
         </next_level>
       </node>
       <node name="cargo_c" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
-           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_c.pf">
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
         <subitem>
@@ -263,7 +294,7 @@
         </next_level>
       </node>
       <node name="cargo_d" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
-           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo_d.pf">
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
         <subitem>
@@ -287,42 +318,72 @@
         <ref name="cargo_d" p="1" />
       </node>
       
-      <node name="cargo1s_a" width="2" height="2" weight="1" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_a.pf">
+      <node name="cargo1s_a" width="2" height="2" weight="1" destroyweight="6" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_a.pf">
         <types>4,4,4,4</types>
       </node>
-      <node name="cargo1s_b" width="2" height="2" weight="1" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_b.pf">
+      <node name="cargo1s_b" width="2" height="2" weight="1" destroyweight="6" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_b.pf">
         <types>4,4,4,4</types>
       </node>
-      <node name="cargo1s_c" width="2" height="2" weight="1" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_c.pf">
+      <node name="cargo1s_c" width="2" height="2" weight="1" destroyweight="6" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_c.pf">
         <types>4,4,4,4</types>
       </node>
-      <node name="cargo1s_d" width="2" height="2" weight="1" destroyweight="4" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_d.pf">
+      <node name="cargo1s_d" width="2" height="2" weight="1" destroyweight="6" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_d.pf">
         <types>4,4,4,4</types>
       </node>
       <node name="cargo1s" type="randompick">
+        <metadata isdesignvalid="1" minx="2" miny="2" maxx="2" maxy="2" minlevel="1" maxlevel="1" />
         <ref name="cargo1s_a" p="1" />
         <ref name="cargo1s_b" p="1" />
         <ref name="cargo1s_c" p="1" />
         <ref name="cargo1s_d" p="1" />
       </node>
+
+      <node name="cargo1s_a_thruster" width="2" height="2" weight="1" destroyweight="20" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_a.pf">
+        <types>4,4,4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="thruster_a" x="0" y ="0" w="2" h="1" />
+            <ref name="lv2_misc_spawner" x="0" y ="1" w="1" h="1" />
+            <ref name="lv2_misc_spawner" x="1" y ="1" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo1s_b_thruster" width="2" height="2" weight="1" destroyweight="20" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_b.pf">
+        <types>4,4,4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="thruster_b" x="0" y ="0" w="2" h="1" />
+            <ref name="lv2_misc_spawner" x="0" y ="1" w="1" h="1" />
+            <ref name="lv2_misc_spawner" x="1" y ="1" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo1s_c_thruster" width="2" height="2" weight="1" destroyweight="20" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_c.pf">
+        <types>4,4,4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="thruster_c" x="0" y ="0" w="2" h="1" />
+            <ref name="lv2_misc_spawner" x="0" y ="1" w="1" h="1" />
+            <ref name="lv2_misc_spawner" x="1" y ="1" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
+      <node name="cargo1s_d_thruster" width="2" height="2" weight="1" destroyweight="20" destroyshake="4" absorbshakestrength="2" layer_type="2" prefab="data/blocks/lv2/cargo1s_d.pf">
+        <types>4,4,4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="thruster_d" x="0" y ="0" w="2" h="1" />
+            <ref name="lv2_misc_spawner" x="0" y ="1" w="1" h="1" />
+            <ref name="lv2_misc_spawner" x="1" y ="1" w="1" h="1" />
+          </node>
+        </next_level>
+      </node>
       <node name="cargo1s_thruster" type="randompick">
         <metadata isdesignvalid="1" minx="2" miny="2" maxx="2" maxy="2" minlevel="1" maxlevel="1" />
-        <node type="subregion" p="1">
-          <ref name="cargo1s_a" x="0" y="0" w="2" h="2" />
-          <ref name="thruster_a" x="0" y ="0" w="2" h="1" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="cargo1s_b" x="0" y="0" w="2" h="2" />
-          <ref name="thruster_b" x="0" y ="0" w="2" h="1" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="cargo1s_c" x="0" y="0" w="2" h="2" />
-          <ref name="thruster_c" x="0" y ="0" w="2" h="1" />
-        </node>
-        <node type="subregion" p="1">
-          <ref name="cargo1s_d" x="0" y="0" w="2" h="2" />
-          <ref name="thruster_d" x="0" y ="0" w="2" h="1" />
-        </node>
+        <ref name="cargo1s_a_thruster" p="1" />
+        <ref name="cargo1s_b_thruster" p="1" />
+        <ref name="cargo1s_c_thruster" p="1" />
+        <ref name="cargo1s_d_thruster" p="1" />
       </node>
       
       <node name="cargo1_a" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_a.pf">
@@ -526,7 +587,7 @@
       </node>
 
 
-      <node name="bar_truck_a" width="8" height="2" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+      <node name="bar_truck_a" width="8" height="2" weight="8" destroyweight="40" absorbshakestrength="10000"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv2/bar_truck_a.pf">
         <metadata minx="8" maxx="32" />
         <types>
@@ -542,7 +603,7 @@
           </node>
         </subitem>
       </node>
-      <node name="bar_truck_b" width="8" height="2" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+      <node name="bar_truck_b" width="8" height="2" weight="8" destroyweight="40" absorbshakestrength="10000"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv2/bar_truck_b.pf">
         <metadata minx="8" maxx="32" />
         <types>

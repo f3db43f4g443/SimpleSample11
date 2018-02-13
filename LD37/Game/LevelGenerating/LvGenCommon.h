@@ -62,6 +62,15 @@ private:
 	CReference<CLevelGenerateNode> m_pDoor2[4];
 };
 
+class CBillboardNode : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	vector<CReference<CLevelGenerateNode> > m_vecSubNodes;
+};
+
 class CPipeNode : public CLevelGenerateNode
 {
 public:

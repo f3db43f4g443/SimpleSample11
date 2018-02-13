@@ -12,6 +12,7 @@
 #include "Pickup.h"
 #include "GameState.h"
 #include "PlayerData.h"
+#include "Interfaces.h"
 #include <algorithm>
 
 CPlayer::CPlayer( const SClassCreateContext& context )
@@ -304,14 +305,57 @@ bool CPlayer::Knockback( const CVector2& vec )
 	return true;
 }
 
+bool CPlayer::StartHooked( CEntity *pEntity )
+{
+	if( m_pHook )
+	{
+		auto pHook = SafeCastToInterface<IHook>( m_pHook.GetPtr() );
+		if( pHook )
+			pHook->OnDetach();
+	}
+	m_pHook = pEntity;
+	return true;
+}
+
+bool CPlayer::Hooked( const CVector2& vec )
+{
+	if( !IsHooked() )
+		return false;
+	if( m_bIsWalkOrFly )
+		m_walkData.Hooked( vec );
+	else
+		m_flyData.Hooked( vec );
+	return true;
+}
+
+bool CPlayer::EndHooked()
+{
+	if( !m_pHook )
+		return false;
+	m_pHook = NULL;
+	return true;
+}
+
+bool CPlayer::IsHooked()
+{
+	return m_pHook != NULL;
+}
+
 CVector2 CPlayer::GetKnockback()
 {
 	if( m_hp <= 0 )
 		return CVector2( 0, 0 );
 	if( m_bIsWalkOrFly )
-		return m_walkData.vecKnockback / 400;
+	{
+		if( m_walkData.nState == SCharacterWalkData::eState_Knockback )
+			return m_walkData.vecKnockback / 400;
+	}
 	else
-		return m_flyData.vecKnockback / 400;
+	{
+		if( m_flyData.nState == SCharacterFlyData::eState_Knockback )
+			return m_flyData.vecKnockback / 400;
+	}
+	return CVector2( 0, 0 );
 }
 
 void CPlayer::BeginFire()
@@ -649,6 +693,8 @@ void CPlayer::UpdateRoom()
 				m_walkData.velocity = m_velocity;
 				m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 				m_walkData.vecKnockback = m_flyData.vecKnockback;
+				if( m_flyData.nState >= SCharacterFlyData::eState_Knockback )
+					m_walkData.nState = m_flyData.nState - SCharacterFlyData::eState_Knockback + SCharacterWalkData::eState_Knockback;
 
 				if( m_bCachedJump )
 				{
@@ -661,6 +707,8 @@ void CPlayer::UpdateRoom()
 				m_flyData.Reset();
 				m_flyData.fKnockbackTime = m_walkData.fKnockbackTime;
 				m_flyData.vecKnockback = m_walkData.vecKnockback;
+				if( m_walkData.nState >= SCharacterWalkData::eState_Knockback )
+					m_flyData.nState = m_walkData.nState - SCharacterWalkData::eState_Knockback + SCharacterFlyData::eState_Knockback;
 			}
 		}
 	}
@@ -697,8 +745,7 @@ void CPlayer::UpdateRepair()
 	bool bRepair = m_pCurRoom
 		&& m_bIsRepairing
 		&& m_fMoveXAxis == 0 && m_fMoveYAxis == 0
-		&& m_flyData.nState != SCharacterFlyData::eState_Rolling
-		&& ( m_bIsWalkOrFly ? m_walkData.fKnockbackTime <= 0 : m_flyData.fKnockbackTime <= 0 );
+		&& m_flyData.nState < SCharacterFlyData::eState_Knockback;
 	if( m_pCurRoom && m_pCurRoom->GetChunk() )
 		m_pCurRoom->GetChunk()->bIsBeingRepaired = bRepair;
 	if( !bRepair )
@@ -847,6 +894,18 @@ void CPlayer::OnAddedToStage()
 		pLevel->OnPlayerEntered( this );
 	
 	//CMainUI::Inst()->SetVignetteColorFixedTime( CVector4( 0, 0, 0, 1 ), 2.0f );
+}
+
+void CPlayer::OnRemovedFromStage()
+{
+	if( m_pHook )
+	{
+		auto pHook = SafeCastToInterface<IHook>( m_pHook.GetPtr() );
+		if( pHook )
+			pHook->OnDetach();
+		m_pHook = NULL;
+	}
+	CCharacter::OnRemovedFromStage();
 }
 
 bool CPlayer::CanTriggerItem()

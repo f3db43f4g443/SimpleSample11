@@ -61,20 +61,19 @@ private:
 CConstantBuffer::CConstantBuffer( ID3D11Device* pDevice, uint32 nSize, bool bShared, bool bUsePool )
 	: IConstantBuffer( bShared? MAX_CONSTANT_BUFFER_SIZE: nSize ), m_bShared( bShared ), m_bUsePool( bUsePool ), m_nUpdatedSize( 0 ), m_nSharedPool( -1 )
 {
+	uint32 nSharedSize = MAX_CONSTANT_BUFFER_SIZE / 2;
+	uint32 nSharedPool = 1;
+	while( nSharedSize >= m_nSize && nSharedPool < MAX_CONSTANT_BUFFER_POOL_COUNT )
+	{
+		nSharedSize >>= 1;
+		nSharedPool++;
+	}
+	nSharedSize <<= 1;
+	nSharedPool--;
 	if( !bShared )
 	{
 		if( m_bUsePool )
 		{
-			uint32 nSharedSize = MAX_CONSTANT_BUFFER_SIZE / 2;
-			uint32 nSharedPool = 1;
-			while( nSharedSize >= m_nSize && nSharedPool < MAX_CONSTANT_BUFFER_POOL_COUNT )
-			{
-				nSharedSize >>= 1;
-				nSharedPool++;
-			}
-			nSharedSize <<= 1;
-			nSharedPool--;
-
 			m_nSharedPool = nSharedPool;
 			m_nUpdatedSize = m_nSize;
 		}
@@ -90,7 +89,7 @@ CConstantBuffer::CConstantBuffer( ID3D11Device* pDevice, uint32 nSize, bool bSha
 		}
 	}
 
-	m_pData = (uint8*)malloc( nSize );
+	m_pData = (uint8*)malloc( nSharedSize );
 }
 
 void CConstantBuffer::UpdateBuffer( uint32 nOffset, uint32 nSize, const void* data )

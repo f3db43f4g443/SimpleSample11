@@ -585,6 +585,7 @@
     <ClCompile Include="Entities\Items\SpecialWeapons0.cpp" />
     <ClCompile Include="Entities\Neutral.cpp" />
     <ClCompile Include="Entities\FallingObj.cpp" />
+    <ClCompile Include="Entities\SpecialEft.cpp" />
     <ClCompile Include="Entities\StartPoint.cpp" />
     <ClCompile Include="Entities\Tutorial.cpp" />
     <ClCompile Include="Entities\UtilEntities.cpp" />
@@ -679,6 +680,7 @@
     <ClInclude Include="Entities\Items\SpecialWeapons0.h" />
     <ClInclude Include="Entities\Neutral.h" />
     <ClInclude Include="Entities\FallingObj.h" />
+    <ClInclude Include="Entities\SpecialEft.h" />
     <ClInclude Include="Entities\StartPoint.h" />
     <ClInclude Include="Entities\Tutorial.h" />
     <ClInclude Include="Entities\UtilEntities.h" />

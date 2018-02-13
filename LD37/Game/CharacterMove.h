@@ -1,6 +1,12 @@
 #pragma once
 #include "Character.h"
 
+class CCharacterMoveUtil
+{
+public:
+	static float Stretch( CCharacter* pCharacter, uint8 nDir, float fMaxLen, bool bHitChannel[eEntityHitType_Count] = NULL );
+};
+
 struct SCharacterMovementData
 {
 	SCharacterMovementData() : bSleep( false ) { memset( bHitChannel, 0, sizeof( bHitChannel ) ); bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = true; }
@@ -21,9 +27,13 @@ struct SCharacterFlyData : public SCharacterMovementData
 	SCharacterFlyData( const SClassCreateContext& context ) : bApplyExtraGravity( false ) { Reset(); }
 
 	void UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis );
-	void UpdateMoveNoBlocking( CCharacter* pCharacter, const CVector2& moveAxis );
 
 	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
+	void Hooked( const CVector2& vel )
+	{
+		vecKnockback = vel;
+		nState = eState_Hooked;
+	}
 
 	void SetLandedEntity( CEntity* pEntity )
 	{
@@ -40,14 +50,12 @@ struct SCharacterFlyData : public SCharacterMovementData
 	{
 		fKnockbackTime = fTime;
 		vecKnockback = dir;
-		nState = eState_Normal;
-		bRollingAcrossWall = false;
+		nState = eState_Knockback;
 	}
 
 	void Reset()
 	{
 		nState = eState_Normal;
-		bRollingAcrossWall = false;
 		pLandedEntity = NULL;
 		fKnockbackTime = false;
 		vecKnockback = CVector2( 0, 0 );
@@ -57,10 +65,11 @@ struct SCharacterFlyData : public SCharacterMovementData
 	{
 		eState_Normal,
 		eState_Rolling,
+		eState_Knockback,
+		eState_Hooked,
 	};
 
 	uint8 nState;
-	bool bRollingAcrossWall;
 	bool bApplyExtraGravity;
 	float fRollTime;
 	CVector2 rollDir;
@@ -115,15 +124,23 @@ struct SCharacterWalkData : public SCharacterMovementData
 	void ReleaseJump( CCharacter* pCharacter );
 	void ReleaseCachedJump( CCharacter* pCharacter, float fTime );
 	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
+	void Hooked( const CVector2& vel )
+	{
+		velocity = vel;
+		nState = eState_Hooked;
+		fJumpHoldingTime = 0;
+		nIsSlidingDownWall = 0;
+		pLandedEntity = NULL;
+	}
 
 	void Knockback( float fTime, const CVector2& dir )
 	{
 		fKnockbackTime = fTime;
 		vecKnockback = dir;
 		velocity = dir;
-		nState = eState_Normal;
+		nState = eState_Knockback;
 		fJumpHoldingTime = 0;
-		bRollingAcrossWall = false;
+		nIsSlidingDownWall = 0;
 	}
 
 	float fMoveSpeed;
@@ -146,20 +163,20 @@ struct SCharacterWalkData : public SCharacterMovementData
 		eState_Normal,
 		eState_JumpHolding,
 		eState_Rolling,
+		eState_Knockback,
+		eState_Hooked,
 	};
 	void Reset()
 	{
 		velocity = CVector2( 0, 0 );
 		nState = eState_Normal;
 		fJumpHoldingTime = 0;
-		bRollingAcrossWall = false;
 		nIsSlidingDownWall = 0;
 		pLandedEntity = NULL;
 		fKnockbackTime = 0;
 		vecKnockback = CVector2( 0, 0 );
 	}
 	uint8 nState;
-	bool bRollingAcrossWall;
 	int8 nIsSlidingDownWall;
 	CVector2 velocity;
 	float fJumpHoldingTime;

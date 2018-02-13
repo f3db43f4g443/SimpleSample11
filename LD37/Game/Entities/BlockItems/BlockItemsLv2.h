@@ -58,6 +58,7 @@ private:
 	uint32 m_nDuration;
 	TResourceRef<CPrefab> m_pEftPrefab;
 	float m_fMaxEftHeight;
+	float m_fShake;
 	CVector2 m_ofs;
 
 	CReference<CLightning> m_pLightning;

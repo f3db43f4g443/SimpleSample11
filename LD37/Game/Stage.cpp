@@ -393,8 +393,18 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 		int32 nShakeType = CPlayerData::Inst().nShakeType;
 
 		float fHurt = Min( 1.0f, m_pPlayer->GetInvicibleTimeLeft() / 0.25f );
-		CVector2 vecKnockback = m_pPlayer->GetKnockback();
-		float fKnockbackLen = vecKnockback.Length();
+		CVector2 vecKnockback;
+		float fKnockbackLen;
+		if( m_pPlayer->IsHooked() )
+		{
+			vecKnockback = CVector2( 0, 0 );
+			fKnockbackLen = 1;
+		}
+		else
+		{
+			vecKnockback = m_pPlayer->GetKnockback();
+			fKnockbackLen = vecKnockback.Length();
+		}
 
 		CVector4 texOfs[3];
 		CVector4 weightsBase[3][3] =

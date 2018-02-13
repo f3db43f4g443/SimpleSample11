@@ -3,6 +3,86 @@
 #include "CharacterMove.h"
 #include "Block.h"
 #include "Entities/Bullets.h"
+#include "Interfaces.h"
+
+class CLimbs : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CLimbs( const SClassCreateContext& context ) : CEnemy( context ), m_onChunkKilled( this, &CLimbs::Kill ) { SET_BASEOBJECT_ID( CLimbs ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+	virtual void Kill() override;
+protected:
+	void KillAttackEft();
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+
+	CRectangle m_detectRect;
+	int32 m_nAITick;
+	CRectangle m_attackRect;
+	int32 m_nAttackTime;
+	int32 m_nAttackTime1;
+	float m_fStretchLenPerFrame;
+	float m_fBackLenPerFrame;
+	float m_fBackLenPerDamage;
+	float m_fMaxLen;
+	int8 m_nAttackDir;
+	float m_fKillEftDist;
+	uint32 m_nMaxSpawnCount;
+	CVector2 m_killSpawnVelMin1;
+	CVector2 m_killSpawnVelMax1;
+	CVector2 m_killSpawnVelMin2;
+	CVector2 m_killSpawnVelMax2;
+	CReference<CEntity> m_pLimbsEft;
+	CReference<CEntity> m_pLimbsAttackEft;
+	TResourceRef<CPrefab> m_pKillSpawn;
+
+	float m_fEftLen;
+	uint8 m_nState;
+	bool m_bKilled;
+	CVector2 m_vel1, m_vel2;
+	uint32 m_nKillSpawnLeft;
+	uint32 m_nDamage;
+	TClassTrigger<CLimbs> m_onChunkKilled;
+};
+
+class CLimbsHook : public CEnemy, public IHook
+{
+	friend void RegisterGameClasses();
+public:
+	CLimbsHook( const SClassCreateContext& context ) : CEnemy( context ), m_onChunkKilled( this, &CLimbsHook::Kill ) { SET_BASEOBJECT_ID( CLimbsHook ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Kill() override;
+	virtual void OnDetach() override;
+protected:
+	void KillAttackEft();
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+
+	float m_fDetectDist;
+	float m_fAttackDist;
+	int32 m_nAITick;
+	int32 m_nAttackTime;
+	int32 m_nAttackTime1;
+	float m_fStretchSpeed;
+	float m_fBackSpeed;
+	float m_fMaxLen;
+	float m_fKillEftDist;
+	CRectangle m_rectHook;
+	CRectangle m_rectDetach;
+	CReference<CEntity> m_pLimbsAttackEft;
+
+	float m_fEftLen;
+	uint8 m_nState;
+	CMatrix2D m_lastMatrix;
+	CReference<CCharacter> m_pHooked;
+	TClassTrigger<CLimbsHook> m_onChunkKilled;
+};
 
 class CCar : public CEnemy
 {
@@ -96,11 +176,13 @@ class CSawBlade : public CEnemy
 public:
 	CSawBlade( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CSawBlade ); }
 
+	virtual void OnAddedToStage() override;
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
 protected:
 	virtual void OnTickAfterHitTest() override;
 
 	SCharacterPhysicsFlyData1 m_moveData;
+	float m_fMoveSpeed;
 	float m_fRotSpeed;
 	uint32 m_nDamage;
 };
@@ -120,7 +202,6 @@ protected:
 	float m_fMoveSpeed;
 	float m_fRotSpeed;
 	uint32 m_nKnockbackTime;
-	uint32 m_nDamage;
 	TResourceRef<CPrefab> m_pBullet;
 	
 	uint32 m_nTargetDir;

@@ -239,6 +239,72 @@ void CFuelTank::OnTickAfterHitTest()
 	}
 }
 
+bool CEnemyPhysics::Knockback( const CVector2 & vec )
+{
+	m_nKnockbackTimeLeft = m_nKnockbackTime;
+	CVector2 vel = GetVelocity();
+	CVector2 norm = vec;
+	float l = norm.Normalize();
+	vel = vel - norm * ( vel.Dot( norm ) * ( l + 1 ) );
+	return true;
+}
+
+bool CEnemyPhysics::IsKnockback()
+{
+	return m_nKnockbackTimeLeft > 0;
+}
+
+void CEnemyPhysics::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( !m_nLife )
+		{
+			Kill();
+			return;
+		}
+	}
+
+	if( m_nKnockbackTimeLeft )
+		m_nKnockbackTimeLeft--;
+	m_moveData.UpdateMove( this );
+}
+
+void CBulletEnemy::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	SetRotation( atan2( GetVelocity().y, GetVelocity().x ) );
+}
+
+void CBulletEnemy::OnTickBeforeHitTest()
+{
+	CVector2 vel = GetVelocity();
+	CVector2 vel1 = vel + m_a * GetStage()->GetElapsedTimePerTick();
+	SetPosition( GetPosition() + ( vel + vel1 ) * ( GetStage()->GetElapsedTimePerTick() * 0.5f ) );
+	SetRotation( atan2( vel1.y, vel1.x ) );
+	SetVelocity( vel1 );
+	CEnemy::OnTickBeforeHitTest();
+}
+
+void CBulletEnemy::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
+		{
+			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject && pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+				continue;
+			Kill();
+			return;
+		}
+	}
+}
+
 void CPickupCarrier::OnAddedToStage()
 {
 	CCharacter::OnAddedToStage();

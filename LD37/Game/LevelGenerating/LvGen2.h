@@ -98,6 +98,7 @@ private:
 		eType_Block_c,
 		eType_Block_d,
 		eType_Chunk,
+		eType_Chunk_Plant,
 		eType_Chunk1,
 
 		eType_Room,
@@ -137,6 +138,7 @@ private:
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pRoadNode;
 	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pPlantNode;
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
 	CReference<CLevelGenerateNode> m_pBlockNode;
 	CReference<CLevelGenerateNode> m_pBlockNodes[4];
@@ -166,6 +168,7 @@ private:
 		eType_Road,
 		eType_Temp0,
 		eType_Chunk,
+		eType_Chunk_Plant,
 		eType_Chunk1,
 
 		eType_Room,
@@ -196,6 +199,7 @@ private:
 
 	CReference<CLevelGenerateNode> m_pRoadNode;
 	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pPlantNode;
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pHouseNode;
@@ -234,6 +238,7 @@ private:
 		eType_Temp,
 		eType_Temp1,
 		eType_Chunk,
+		eType_Chunk_Plant,
 
 		eType_Room,
 		eType_Door,
@@ -264,6 +269,7 @@ private:
 
 	CReference<CLevelGenerateNode> m_pRoadNode;
 	CReference<CLevelGenerateNode> m_pFenceNode;
+	CReference<CLevelGenerateNode> m_pPlantNode;
 	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
 	CReference<CLevelGenerateNode> m_pBlockNode;
 	CReference<CLevelGenerateNode> m_pRoomNode;
@@ -284,21 +290,28 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
 	void GenPath();
+	void GenObjs();
 
 	void AddRoad( const TRectangle<int32>& r );
-	void AddRoom( const TRectangle<int32>& r );
-	void AddBar( const TRectangle<int32>& r );
+	void AddRoom( const TRectangle<int32>& r, bool bLeft, bool bRight, bool bTop, bool bBottom );
+	void AddChunk( const TRectangle<int32>& r, vector<TRectangle<int32> >& chunks );
 	void AddBigChunk( const TRectangle<int32>& r, int8 nType );
-	void ProcessTempBar( const vector<TRectangle<int32> > v );
-	void ProcessTempChunks( const vector<TRectangle<int32> > v );
+	void AddThruster( const TRectangle<int32>& r );
+	void AddSupport( const TRectangle<int32>& r );
+
+	void ProcessTempBar( const vector<TRectangle<int32> >& v );
+	void ProcessTempChunks( const vector<TRectangle<int32> >& v );
+	void AddThrusters( const TRectangle<int32>& r );
+	void GenBigChunk( const TRectangle<int32>& r, int8 nType );
 
 	enum
 	{
 		eType_None,
 		eType_Road,
-		eType_Temp,
-		eType_Temp1,
+		eType_Blocked,
 		eType_Chunk,
+		eType_Chunk1,
+		eType_Thruster,
 
 		eType_Room,
 		eType_Door,
@@ -308,12 +321,29 @@ private:
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
 
+	vector<TRectangle<int32> > m_vecChunks;
 	vector<TRectangle<int32> > m_vecBars;
+	vector<TRectangle<int32> > m_vecSupports;
 	vector<TRectangle<int32> > m_vecRoads;
+	vector<TRectangle<int32> > m_vecCargos;
 	vector<TRectangle<int32> > m_vecBigChunk1;
 	vector<TRectangle<int32> > m_vecBigChunk1_1;
 	vector<TRectangle<int32> > m_vecBigChunk2;
 	vector<TRectangle<int32> > m_vecRooms;
+	vector<TRectangle<int32> > m_vecThrusters;
+
+	CReference<CLevelGenerateNode> m_pChunkNode;
+	CReference<CLevelGenerateNode> m_pBarNode;
+	CReference<CLevelGenerateNode> m_pSupportANode;
+	CReference<CLevelGenerateNode> m_pSupportBNode;
+	CReference<CLevelGenerateNode> m_pRoadNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pBigChunk1Node;
+	CReference<CLevelGenerateNode> m_pBigChunk2Node;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pThrusterNode;
+	CReference<CLevelGenerateNode> m_pFill1Node;
+	CReference<CLevelGenerateNode> m_pFill2Node;
 };
 
 class CLvBarrierNodeGen2 : public CLevelGenerateSimpleNode

@@ -10,12 +10,25 @@
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
-	auto pImage2D = static_cast<CImage2D*>( GetParentEntity()->GetRenderObject() );
-	CRectangle texRect = pImage2D->GetElem().texRect;
-
 	uint32 nCol = SRand::Inst().Rand( 0u, m_nCols );
 	uint32 nRow = SRand::Inst().Rand( 0u, m_nRows );
 	CVector2 ofs( nCol * m_fWidth, nRow * m_fHeight );
+	if( m_bApplyToAllImgs )
+	{
+		for( auto pChild = GetParentEntity()->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+			Apply( pChild, ofs );
+	}
+	else
+		Apply( GetParentEntity()->GetRenderObject(), ofs );
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CTexRectRandomModifier::Apply( CRenderObject2D * pImage, const CVector2& ofs )
+{
+	auto pImage2D = SafeCast<CImage2D>( GetParentEntity()->GetRenderObject() );
+	if( !pImage2D )
+		return;
+	CRectangle texRect = pImage2D->GetElem().texRect;
 	texRect = texRect.Offset( ofs );
 	pImage2D->SetTexRect( texRect );
 
@@ -30,8 +43,6 @@ void CTexRectRandomModifier::OnAddedToStage()
 			}
 		}
 	}
-
-	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }
 
 void CAnimFrameRandomModifier::OnAddedToStage()

@@ -101,8 +101,8 @@ void CCrackMeshGenerator::Generate( IRenderSystem* pRenderSystem )
 		for( int i = 0; i < 6; i++ )
 		{
 			pLoop->vert[i].nParent = 0;
-			float fAngle = ( SRand::Inst().Rand( -0.1f, 0.1f ) + i ) * PI / 3;
-			float fRadius = SRand::Inst().Rand( 0.9f, 1.1f ) * m_fStepLength;
+			float fAngle = ( SRand::Inst<eRand_Render>().Rand( -0.1f, 0.1f ) + i ) * PI / 3;
+			float fRadius = SRand::Inst<eRand_Render>().Rand( 0.9f, 1.1f ) * m_fStepLength;
 			pLoop->vert[i].pos = CVector2( cos( fAngle ), sin( fAngle ) ) * fRadius;
 			float l = pLoop->vert[i].pos.Length();
 			float fTime = l / m_fSpeed;
@@ -139,7 +139,7 @@ void CCrackMeshGenerator::Generate( IRenderSystem* pRenderSystem )
 			float l2 = dVec2.Length();
 			float r = Max( sqrt( l1 * l2 ) - m_fSplitMin, 0.0f );
 			r = r / ( r + m_fSplitCoef );
-			context.bSplit = SRand::Inst().Rand( 0.0f, 1.0f ) < r;
+			context.bSplit = SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) < r;
 			if( context.bSplit )
 				nVerts++;
 
@@ -163,19 +163,19 @@ void CCrackMeshGenerator::Generate( IRenderSystem* pRenderSystem )
 			{
 				auto& pos1 = context.pos1;
 				auto& pos2 = context.pos2;
-				float r1 = SRand::Inst().Rand( 0.0f, 0.7f );
+				float r1 = SRand::Inst<eRand_Render>().Rand( 0.0f, 0.7f );
 				pos1 = ofs1 + ( ofs - ofs1 ) * r1;
-				float r2 = SRand::Inst().Rand( 0.0f, 0.7f );
+				float r2 = SRand::Inst<eRand_Render>().Rand( 0.0f, 0.7f );
 				pos2 = ofs2 + ( ofs - ofs2 ) * r2;
 			}
 			else
 			{
 				auto& pos = context.pos1;
-				float r = SRand::Inst().Rand( 0.0f, l1 + l2 );
+				float r = SRand::Inst<eRand_Render>().Rand( 0.0f, l1 + l2 );
 				if( r < l1 )
-					pos = ofs + ( ofs1 - ofs ) * SRand::Inst().Rand( 0.0f, 1.0f );
+					pos = ofs + ( ofs1 - ofs ) * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f );
 				else
-					pos = ofs + ( ofs2 - ofs ) * SRand::Inst().Rand( 0.0f, 1.0f );
+					pos = ofs + ( ofs2 - ofs ) * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f );
 			}
 		}
 
@@ -200,7 +200,7 @@ void CCrackMeshGenerator::Generate( IRenderSystem* pRenderSystem )
 			}
 		}
 
-		uint32 n1 = SRand::Inst().Rand( 0u, pLoop->nVertCount );
+		uint32 n1 = SRand::Inst<eRand_Render>().Rand( 0u, pLoop->nVertCount );
 		auto pos1 = pLoop->vert[n1].pos;
 		float lMax = -1;
 		CVector2 dVecMax( 0, 0 );
@@ -215,7 +215,7 @@ void CCrackMeshGenerator::Generate( IRenderSystem* pRenderSystem )
 			}
 		}
 		lMax = sqrt( lMax );
-		float k = SRand::Inst().Rand( 0.0f, m_fStepLength ) / lMax;
+		float k = SRand::Inst<eRand_Render>().Rand( 0.0f, m_fStepLength ) / lMax;
 		dVecMax = dVecMax * ( 1.0f / lMax );
 
 		for( iVert = 0; iVert < pLoop->nVertCount; iVert++ )

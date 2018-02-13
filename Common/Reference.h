@@ -6,6 +6,7 @@ class CReferenceObject {
 public:
 	FORCE_INLINE CReferenceObject() { m_refCount = 0; }
 	virtual ~CReferenceObject() {}
+	int GetRefCount() { return m_refCount; }
 	FORCE_INLINE void AddRef() { m_refCount++; }
 	FORCE_INLINE void Release() { m_refCount--; if( !m_refCount ) Dispose(); }
 protected:

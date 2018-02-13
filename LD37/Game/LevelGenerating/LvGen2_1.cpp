@@ -570,6 +570,8 @@ void CLevelGenNode2_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
 	if( pXml->FirstChildElement( "fence" ) )
 		m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
+	if( pXml->FirstChildElement( "plant" ) )
+		m_pPlantNode = CreateNode( pXml->FirstChildElement( "plant" )->FirstChildElement(), context );
 	if( pXml->FirstChildElement( "room" ) )
 		m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	if( pXml->FirstChildElement( "cargo" ) )
@@ -609,11 +611,16 @@ void CLevelGenNode2_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	{
 		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
-	context.mapTags["1"] = eType_Chunk;
-	for( auto& rect : m_vecFences )
+	context.mapTags["1"] = eType_Chunk_Plant;
+	if( m_pFenceNode )
 	{
-		m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		for( auto& rect : m_vecFences )
+		{
+			m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		}
 	}
+	if( m_pPlantNode )
+		m_pPlantNode->Generate( context, region );
 
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -1087,7 +1094,7 @@ void CLevelGenNode2_1_1::GenAreas()
 		{
 			for( int j = fence.y; j < fence.GetBottom(); j++ )
 			{
-				m_gendata[i + j * nWidth] = eType_Chunk;
+				m_gendata[i + j * nWidth] = eType_Chunk_Plant;
 			}
 		}
 	}
@@ -1492,6 +1499,7 @@ void CLevelGenNode2_1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	m_pHouseNode = CreateNode( pXml->FirstChildElement( "house" )->FirstChildElement(), context );
 	m_pFenceNode = CreateNode( pXml->FirstChildElement( "fence" )->FirstChildElement(), context );
+	m_pPlantNode = CreateNode( pXml->FirstChildElement( "plant" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -1521,11 +1529,12 @@ void CLevelGenNode2_1_2::Generate( SLevelBuildContext & context, const TRectangl
 	{
 		m_pRoadNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
-	context.mapTags["1"] = eType_Chunk;
+	context.mapTags["1"] = eType_Chunk_Plant;
 	for( auto& rect : m_vecFences )
 	{
 		m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	m_pPlantNode->Generate( context, region );
 
 	for( int i = 0; i < region.width; i++ )
 	{
@@ -1714,7 +1723,7 @@ void CLevelGenNode2_1_2::GenAreas()
 		{
 			for( int j = fence.y; j < fence.GetBottom(); j++ )
 			{
-				m_gendata[i + j * nWidth] = eType_Chunk;
+				m_gendata[i + j * nWidth] = eType_Chunk_Plant;
 			}
 		}
 	}

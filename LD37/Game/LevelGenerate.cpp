@@ -283,12 +283,12 @@ void SLevelBuildContext::Build()
 						if( !bLayerValid[iLayer] )
 							continue;
 
-						if( k == SBlock::eAttachedPrefab_Lower )
+						if( k == SBlock::eAttachedPrefab_Right )
 						{
-							if( j <= 0 )
+							if( i >= nWidth - 1 )
 								continue;
-							auto pLowerBlock = GetBlock( i, j - 1, iLayer );
-							if( pLowerBlock && pLowerBlock->pParent->eBlockType != eBlockType_Wall )
+							auto pRightBlock = GetBlock( i + 1, j, iLayer );
+							if( pRightBlock && pRightBlock->pParent->eBlockType != eBlockType_Wall )
 								continue;
 						}
 						if( k == SBlock::eAttachedPrefab_Upper )
@@ -297,6 +297,22 @@ void SLevelBuildContext::Build()
 								continue;
 							auto pUpperBlock = GetBlock( i, j + 1, iLayer );
 							if( pUpperBlock && pUpperBlock->pParent->eBlockType != eBlockType_Wall )
+								continue;
+						}
+						if( k == SBlock::eAttachedPrefab_Left )
+						{
+							if( i <= 0 )
+								continue;
+							auto pLeftBlock = GetBlock( i - 1, j, iLayer );
+							if( pLeftBlock && pLeftBlock->pParent->eBlockType != eBlockType_Wall )
+								continue;
+						}
+						if( k == SBlock::eAttachedPrefab_Lower )
+						{
+							if( j <= 0 )
+								continue;
+							auto pLowerBlock = GetBlock( i, j - 1, iLayer );
+							if( pLowerBlock && pLowerBlock->pParent->eBlockType != eBlockType_Wall )
 								continue;
 						}
 
@@ -316,7 +332,7 @@ void SLevelBuildContext::Build()
 								pBlock->attachedPrefabSize = attachedPrefab.rect.GetSize();
 							else if( k == SBlock::eAttachedPrefab_Lower )
 								pBlock->nLowerMargin = attachedPrefab.rect.height;
-							else
+							else if( k == SBlock::eAttachedPrefab_Upper )
 								pBlock->nUpperMargin = attachedPrefab.rect.height;
 
 							if( attachedPrefab.bType )
@@ -688,9 +704,11 @@ public:
 	}
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
-		for( int j = region.y; j < region.GetBottom(); j += m_size.y )
+		int32 nSizeX = m_nType > 0 ? 1 : m_size.x;
+		int32 nSizeY = m_nType > 0 ? 1 : m_size.y;
+		for( int j = region.y; j < region.GetBottom(); j += nSizeY )
 		{
-			for( int i = region.x; i < region.GetRight(); i += m_size.x )
+			for( int i = region.x; i < region.GetRight(); i += nSizeX )
 			{
 				context.AttachPrefab( m_pPrefab, TRectangle<int32>( i, j, m_size.x, m_size.y ), m_nLayer, m_nType, m_bType1 );
 			}
@@ -1474,6 +1492,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "room0", CRoom0Node );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
 	REGISTER_GENERATE_NODE( "room2", CRoom2Node );
+	REGISTER_GENERATE_NODE( "billboard", CBillboardNode );
 	REGISTER_GENERATE_NODE( "pipes", CPipeNode );
 	REGISTER_GENERATE_NODE( "split", CSplitNode );
 	REGISTER_GENERATE_NODE( "house", CHouseNode );
@@ -1492,6 +1511,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv2type1_2", CLevelGenNode2_1_2 );
 	REGISTER_GENERATE_NODE( "trucknode", CTruckNode );
 	REGISTER_GENERATE_NODE( "lv2type2_1", CLevelGenNode2_2_1 );
+	REGISTER_GENERATE_NODE( "lv2type2_2", CLevelGenNode2_2_2 );
 	REGISTER_GENERATE_NODE( "barrier2", CLvBarrierNodeGen2 );
 }
 

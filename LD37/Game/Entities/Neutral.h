@@ -4,6 +4,35 @@
 #include "Common/StringUtil.h"
 #include "CharacterMove.h"
 
+class CEnemyPhysics : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CEnemyPhysics( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CEnemyPhysics ); }
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+	SCharacterPhysicsMovementData m_moveData;
+	uint32 m_nKnockbackTime;
+	uint32 m_nLife;
+
+	uint32 m_nKnockbackTimeLeft;
+};
+
+class CBulletEnemy : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CBulletEnemy( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemyPhysics ); }
+	virtual void OnAddedToStage() override;
+protected:
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+
+	CVector2 m_a;
+};
+
 class CPickupCarrier : public CCharacter
 {
 	friend void RegisterGameClasses();

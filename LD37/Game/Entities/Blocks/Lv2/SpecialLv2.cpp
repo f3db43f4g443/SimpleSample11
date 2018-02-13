@@ -732,6 +732,14 @@ void CHouse::OnTick()
 					auto pThrowObj = SafeCast<CCharacter>( m_pThrowObjPrefabs[nPrefab]->GetRoot()->CreateInstance() );
 					pThug->SetThrowObj( pThrowObj, CVector2( 0, -pThrowObj->GetRenderObject()->GetLocalBound().y ), false );
 				}
+				else
+				{
+					CVector2 dirs[] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+					CVector2 ofs = dirs[m_houseEntrances[r]->GetDir()];
+					ofs = ofs + CVector2( ofs.y, -ofs.x ) * SRand::Inst().Rand( -0.5f, 0.5f );
+					ofs.Normalize();
+					pCharacter->Knockback( ofs * SRand::Inst().Rand( 0.5f, 1.5f ) );
+				}
 
 				m_characters[nChar] = m_characters.back();
 				m_characters.pop_back();

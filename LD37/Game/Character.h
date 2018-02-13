@@ -19,6 +19,9 @@ public:
 	virtual void Crush() { m_bCrushed = true; Kill(); }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
 	virtual bool IsKnockback() { return false; }
+	virtual bool StartHooked( CEntity* pEntity ) { return false; }
+	virtual bool Hooked( const CVector2& vec ) { return false; }
+	virtual bool EndHooked() { return false; }
 
 	struct SDamageContext
 	{
@@ -44,7 +47,7 @@ protected:
 
 	CVector2 m_velocity;
 	bool m_bCrushed;
-private:
+
 	TClassTrigger<CCharacter> m_tickBeforeHitTest;
 	TClassTrigger<CCharacter> m_tickAfterHitTest;
 };

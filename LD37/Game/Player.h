@@ -55,7 +55,8 @@ public:
 	bool CanBeHit() { return m_fHurtInvincibleTime <= 0 &&
 		( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Rolling : m_flyData.nState != SCharacterFlyData::eState_Rolling ); }
 	float GetInvicibleTimeLeft() { return m_fHurtInvincibleTime; }
-	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0; }
+	bool CanKnockback() { return m_fKnockbackInvincibleTime <= 0 &&
+		( m_bIsWalkOrFly ? m_walkData.nState != SCharacterWalkData::eState_Hooked : m_flyData.nState != SCharacterFlyData::eState_Hooked ); }
 	virtual void Damage( SDamageContext& context ) override;
 	void HealHp( int32 nValue );
 	void RestoreHp( int32 nValue );
@@ -64,6 +65,10 @@ public:
 	void RecoverSp( int32 nValue );
 	virtual void Crush() override;
 	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool StartHooked( CEntity* pEntity ) override;
+	virtual bool Hooked( const CVector2& vec ) override;
+	virtual bool EndHooked() override;
+	bool IsHooked();
 	CVector2 GetKnockback();
 	void BeginFire();
 	void EndFire();
@@ -88,6 +93,7 @@ public:
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 
 	virtual bool CanTriggerItem() override;
 
@@ -165,6 +171,7 @@ private:
 	CEventTrigger<1> m_onMoneyChanged;
 
 	CReference<CConsumable> m_pConsumables[6];
+	CReference<CEntity> m_pHook;
 
 	int32 m_nSpecialFlags[eSpecialFlag_Count];
 

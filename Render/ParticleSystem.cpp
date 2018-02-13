@@ -57,12 +57,12 @@ void SParticleSystemDataElement::GenerateValue( void* pData, const CMatrix2D& tr
 	case eRandomType_PerComponent:
 		for( int i = 0; i < nComponents; i++ )
 		{
-			fData[i] = SRand::Inst().Rand( dataMin[i], dataMax[i] );
+			fData[i] = SRand::Inst<eRand_Render>().Rand( dataMin[i], dataMax[i] );
 		}
 		break;
 	case eRandomType_Lerp:
 		{
-			float fRand = SRand::Inst().Rand( 0.0f, 1.0f );
+			float fRand = SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f );
 			for( int i = 0; i < nComponents; i++ )
 			{
 				fData[i] = dataMin[i] + ( dataMax[i] - dataMin[i] ) * fRand;
@@ -71,7 +71,7 @@ void SParticleSystemDataElement::GenerateValue( void* pData, const CMatrix2D& tr
 		break;
 	case eRandomType_Slerp:
 		{
-			float fRand = SRand::Inst().Rand( 0.0f, 1.0f );
+			float fRand = SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f );
 			float l1 = 0, l2 = 0, dot = 0;
 			for( int i = 0; i < nComponents; i++ )
 			{
@@ -94,9 +94,9 @@ void SParticleSystemDataElement::GenerateValue( void* pData, const CMatrix2D& tr
 		break;
 	case eRandomType_Circle:
 		{
-			float r = sqrt( SRand::Inst().Rand( dataMin[0], 1.0f ) ) * dataMax[0];
+			float r = sqrt( SRand::Inst<eRand_Render>().Rand( dataMin[0], 1.0f ) ) * dataMax[0];
 			CVector2& vec2 = *(CVector2*)pData;
-			float angle = SRand::Inst().Rand( dataMin[1], dataMax[1] );
+			float angle = SRand::Inst<eRand_Render>().Rand( dataMin[1], dataMax[1] );
 			vec2.x = cos( angle ) * r;
 			vec2.y = sin( angle ) * r;
 		}

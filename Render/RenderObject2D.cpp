@@ -383,6 +383,7 @@ void CRenderObject2D::Dispose()
 	if( m_pAnimController )
 		delete m_pAnimController;
 	m_isTransformDirty = true;
+	m_isAABBDirty = true;
 	RemoveAllChild();
 	OnDispose();
 }
@@ -425,7 +426,7 @@ void CRenderObject2D::_setRenderDepth( int depth )
 	if( m_nRenderDepth == depth )
 		return;
 	m_nRenderDepth = depth;
-	for( CRenderObject2D* pChild = m_pTransformChildren; pChild; pChild = pChild->NextTransformChild() ) {
+	for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() ) {
 		pChild->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 	}
 

@@ -7,7 +7,9 @@
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
-	SRand::Inst().nSeed = (uint32)GetLocalTime();
+	uint64 nLocalTime = GetLocalTime();
+	SRand::Inst().nSeed = (uint32)nLocalTime;
+	SRand::Inst<eRand_Render>().nSeed = (uint32)( nLocalTime  >> 32 );
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	SDeviceCreateContext context;

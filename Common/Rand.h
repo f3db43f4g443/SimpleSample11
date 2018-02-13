@@ -2,6 +2,12 @@
 #include <vector>
 using namespace std;
 
+enum
+{
+	eRand_General,
+	eRand_Render,
+};
+
 struct SRand
 {
 	uint32 nSeed;
@@ -63,6 +69,7 @@ struct SRand
 		}
 	}
 
+	template<int n = eRand_General>
 	static SRand& Inst()
 	{
 		static SRand g_inst;

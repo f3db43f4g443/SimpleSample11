@@ -317,6 +317,16 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 				pEntity->SetParentEntity( this );
 		}
 
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 1, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
+			if( !!( block.nAttachType & 2 ) )
+				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
+			else
+				pEntity->SetParentEntity( this );
+		}
+
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
@@ -327,11 +337,21 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 				pEntity->SetParentEntity( this );
 		}
 
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
+			if( !!( block.nAttachType & 8 ) )
+				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
+			else
+				pEntity->SetParentEntity( this );
+		}
+
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 2 ) )
+			if( !!( block.nAttachType & 16 ) )
 				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
 			else
 				pEntity->SetParentEntity( this );
@@ -380,10 +400,24 @@ void CChunkObject::Preview( SChunk* pChunk, CEntity* pParent )
 			pEntity->SetParentEntity( this );
 		}
 
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX + 1, block.nY + 0.5f ) * 32 );
+			pEntity->SetParentEntity( this );
+		}
+
 		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
 		{
 			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
 			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * 32 );
+			pEntity->SetParentEntity( this );
+		}
+
+		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left] )
+		{
+			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left]->GetRoot()->CreateInstance() );
+			pEntity->SetPosition( CVector2( block.nX, block.nY + 0.5f ) * 32 );
 			pEntity->SetParentEntity( this );
 		}
 
@@ -471,9 +505,24 @@ void CChunkObject::OnKilled()
 	{
 		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 		ForceUpdateTransform();
-		pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-		pEffect->SetPosition( globalTransform.GetPosition() );
-		pEffect->SetState( 2 );
+		if( m_bEftTiled )
+		{
+			for( int i = 0; i < m_pChunk->nWidth; i++ )
+			{
+				for( int j = 0; j < m_pChunk->nHeight; j++ )
+				{
+					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+					pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
+					pEffect->SetState( 2 );
+				}
+			}
+		}
+		else
+		{
+			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			pEffect->SetPosition( globalTransform.GetPosition() );
+			pEffect->SetState( 2 );
+		}
 	}
 	if( m_strSoundEffect )
 		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
@@ -554,8 +603,6 @@ void CChunkObject::Kill()
 			pStopEvent->killedFunc( m_pChunk );
 	}
 	m_triggerKilled.Trigger( 0, this );
-	if( m_strSoundEffect )
-		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	OnKilled();
 
 	auto pChunk = m_pChunk;

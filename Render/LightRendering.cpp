@@ -785,7 +785,7 @@ void CLighted2DRenderer::RenderScene( IRenderSystem* pSystem, IRenderTarget* pTa
 		CRectangle dstRect( 0, 0, m_screenRes.x, m_screenRes.y );
 		CRectangle srcRect( 0, 0, m_screenRes.x, m_screenRes.y );
 		CVector2 randomSize( 64, 64 );
-		CRectangle randomRect( SRand::Inst().Rand( 0, 64 ), SRand::Inst().Rand( 0, 64 ), m_screenRes.x, m_screenRes.y );
+		CRectangle randomRect( SRand::Inst<eRand_Render>().Rand( 0, 64 ), SRand::Inst().Rand( 0, 64 ), m_screenRes.x, m_screenRes.y );
 
 		pVertexShader->SetParams( pSystem, dstRect, srcRect, randomRect, dstRect.GetSize(), srcRect.GetSize(), randomSize );
 		pPixelShader->SetParams( pSystem, m_pLightAccumulationBuffer->GetShaderResource(), m_pColorBuffer->GetShaderResource(), m_pEmissionBuffer->GetShaderResource(),

@@ -229,7 +229,7 @@ void CTileMap2D::EditTile( uint32 x, uint32 y, uint32 nValue )
 	auto& editData = m_editData[x + y * ( m_nWidth + 1 )];
 	auto& editInfo = m_pInfo->editInfos[nValue];
 	editData = nValue;
-	editData |= SRand::Inst().Rand() << 16;
+	editData |= SRand::Inst<eRand_Render>().Rand() << 16;
 	if( x > 0 && y > 0 )
 		RefreshTile( x - 1, y - 1 );
 	if( x < m_nWidth && y > 0 )
@@ -357,14 +357,14 @@ void CTileMap2D::RefreshTile( uint32 x, uint32 y )
 			if( nBlendType == 15 || !editInfo.nBlendCount )
 			{
 				if( editInfo.nCount )
-					nTiles[iLayers] = editInfo.nBegin + SRand::Inst().Rand( 0u, editInfo.nCount );
+					nTiles[iLayers] = editInfo.nBegin + SRand::Inst<eRand_Render>().Rand( 0u, editInfo.nCount );
 				else
 					nTiles[iLayers] = -1;
 			}
 			else
 			{
 				static uint32 nBlendTypes[] = { 15, 14, 3, 0, 11, 2, 13, 6, 12, 7, 8, 1, 10, 9, 4, 5 };
-				nTiles[iLayers] = editInfo.nBlendBegin + editInfo.nBlendCount * nBlendTypes[nBlendType] + SRand::Inst().Rand( 0u, editInfo.nBlendCount );
+				nTiles[iLayers] = editInfo.nBlendBegin + editInfo.nBlendCount * nBlendTypes[nBlendType] + SRand::Inst<eRand_Render>().Rand( 0u, editInfo.nBlendCount );
 			}
 		}
 	}

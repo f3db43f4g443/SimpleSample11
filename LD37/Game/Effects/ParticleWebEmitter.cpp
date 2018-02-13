@@ -26,7 +26,7 @@ bool CParticleWebEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 	auto& emitter1 = m_subEmitters[iEmitter];
 	auto& emitter2 = m_subEmitters[iEmitter < nEmittersSize - 1 ? iEmitter + 1 : 0];
 	CVector2 pos1, pos2;
-	float fTime1 = m_fTime * SRand::Inst().Rand( 0.5f, 1.0f );
+	float fTime1 = m_fTime * SRand::Inst<eRand_Render>().Rand( 0.5f, 1.0f );
 	if( bRight )
 	{
 		pos1 = emitter2.s0 + emitter2.v * m_fTime + emitter2.a * ( m_fTime * m_fTime * 0.5f );

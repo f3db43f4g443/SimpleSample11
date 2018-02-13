@@ -51,8 +51,10 @@ struct SBlock
 	enum
 	{
 		eAttachedPrefab_Center,
-		eAttachedPrefab_Lower,
+		eAttachedPrefab_Right,
 		eAttachedPrefab_Upper,
+		eAttachedPrefab_Left,
+		eAttachedPrefab_Lower,
 
 		eAttachedPrefab_Count
 	};
@@ -262,6 +264,7 @@ protected:
 	uint32 m_nDamagedEffectsCount;
 
 	TResourceRef<CPrefab> m_strEffect;
+	bool m_bEftTiled;
 	TResourceRef<CSoundFile> m_strSoundEffect;
 
 	TResourceRef<CDrawableGroup> m_strBlockRTDrawable;
