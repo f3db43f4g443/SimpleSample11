@@ -176,7 +176,6 @@ struct SChunk
 
 	void ForceDestroy();
 
-	uint8 bIsLevelBarrier : 1;
 	uint8 bStopMove : 1;
 	uint8 bForceStop : 1;
 	uint8 bSpawned : 1;
@@ -184,6 +183,7 @@ struct SChunk
 	uint8 bMovedLastFrame : 1;
 	uint8 bIsBeingRepaired : 1;
 	uint8 nVisitFlag : 1;
+	uint8 nShowLevelType : 1;
 
 	uint8 bInvulnerable : 1;
 	uint8 bIsRoom : 1;
@@ -191,7 +191,7 @@ struct SChunk
 	uint8 nLayerType : 2;
 	uint8 nSubChunkType : 2;
 
-	uint8 nShowLevelType : 1;
+	uint8 nLevelBarrierType : 2;
 	uint8 nBarrierHeight : 4;
 
 	SChunk* pParentChunk;
@@ -238,8 +238,9 @@ public:
 	int32 GetCrushCost() { return m_nCrushCost; }
 
 	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) {}
-	void Damage( float nDmg, uint8 nType = 0 );
-	virtual void Damage( SDamageContext& context );
+	bool Damage( float nDmg, uint8 nType = 0 );
+	virtual bool Damage( SDamageContext& context );
+	bool CanDamage() { return m_fHp > 0 && ( !m_pChunk || !m_pChunk->bInvulnerable ); }
 	float Repair( float fAmount );
 	void AddHitShake( CVector2 shakeVector );
 	void ClearHitShake();
@@ -349,7 +350,7 @@ public:
 	CExplosiveChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_strKillEffect( context ), m_bKilled( false ), m_deathTick( this, &CExplosiveChunk::Tick )
 	{ SET_BASEOBJECT_ID( CExplosiveChunk ); }
 
-	virtual void Damage( SDamageContext& context ) override;
+	virtual bool Damage( SDamageContext& context ) override;
 	virtual void Kill() override;
 	virtual void Crush() override { m_triggerCrushed.Trigger( 0, this ); Explode(); }
 	virtual void OnAddedToStage() override;

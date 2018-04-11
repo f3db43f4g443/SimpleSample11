@@ -1,28 +1,97 @@
 ﻿<root>
-  <group name="consumable">
-    <item name="data/items/heal_2.pf" p="1" price="20" />
-    <item name="data/items/strength_2.pf" p="1" price="20" />
-    <item name="data/items/boost_2.pf" p="1" price="20" />
-    <item name="data/items/repair_2.pf" p="1" price="20" />
-  </group>
-  <group name="weapon">
-    <item name="data/items/weapons/axe.pf" p="1" price="20" />
-    <item name="data/items/weapons/bottle.pf" p="1" price="20" />
-    <item name="data/items/weapons/flashlight.pf" p="1" price="20" />
-    <item name="data/items/weapons/kitchen_knife.pf" p="1" price="20" />
-    <item name="data/items/weapons/screwdriver.pf" p="1" price="20" />
+  <nodes>
+    <group name="consumable">
+      <item name="data/items/heal_2.pf" p="1" price="20" />
+      <item name="data/items/strength_2.pf" p="1" price="20" />
+      <item name="data/items/boost_2.pf" p="1" price="20" />
+      <item name="data/items/repair_2.pf" p="1" price="20" />
+    </group>
+    <group name="consumable_r2" sector="0">
+      <item name="data/items/boost_2.pf" p="1" price="20" />
+    </group>
+    <group name="consumable_r3" sector="0">
+      <item name="data/items/repair_2.pf" p="1" price="20" />
+    </group>
+    <group name="consumable_r4" sector="0">
+      <item name="data/items/heal_2.pf" p="1" price="20" />
+      <item name="data/items/strength_2.pf" p="1" price="20" />
+    </group>
     
-    <item name="data/items/weapons/drill.pf" p="1" price="20" />
-    <item name="data/items/weapons/banknote_printer.pf" p="1" price="20" />
-  </group>
-  <group name="floor_reward">
-    <item name="data/pickups/hppack.pf" p="1" />
-    <ref name="consumable" p="4" />
-    <ref name="weapon" p="4" />
-  </group>
-  <group name="shop">
-    <item name="data/pickups/hppack.pf" p="1" price="40" />
-    <ref name="consumable" p="4" />
-    <ref name="weapon" p="4" />
-  </group>
+    <group name="weapon">
+      <item name="data/items/weapons/axe.pf" p="1" price="20" />
+      <item name="data/items/weapons/bottle.pf" p="1" price="20" />
+      <item name="data/items/weapons/flashlight.pf" p="1" price="20" />
+      <item name="data/items/weapons/kitchen_knife.pf" p="1" price="20" />
+      <item name="data/items/weapons/screwdriver.pf" p="1" price="20" />
+    
+      <item name="data/items/weapons/drill.pf" p="1" price="20" />
+      <item name="data/items/weapons/banknote_printer.pf" p="1" price="20" />
+    </group>
+
+    <group name="weapon_r1" sector="0">
+      <item name="data/items/weapons/axe.pf" p="1" price="20" />
+      <item name="data/items/weapons/bottle.pf" p="1" price="20" />
+      <item name="data/items/weapons/flashlight.pf" p="1" price="20" />
+      <item name="data/items/weapons/kitchen_knife.pf" p="1" price="20" />
+      <item name="data/items/weapons/screwdriver.pf" p="1" price="20" />
+    </group>
+    <group name="weapon_r2" sector="0">
+      <item name="data/items/weapons/drill.pf" p="1" price="20" />
+    </group>
+    <group name="weapon_r3" sector="0">
+      <item name="data/items/weapons/banknote_printer.pf" p="1" price="20" />
+    </group>
+    
+    <group name="r1" sector="0">
+      <ref name="weapon_r1" p="1" normalize="0" />
+    </group>
+    <group name="r2" sector="0">
+      <ref name="consumable_r2" p="1" normalize="0" />
+      <ref name="weapon_r2" p="1" normalize="0" />
+    </group>
+    <group name="r3" sector="0">
+      <ref name="consumable_r3" p="1" normalize="0" />
+      <ref name="weapon_r3" p="1" normalize="0" />
+    </group>
+    <group name="r4" sector="0">
+      <item name="data/pickups/hppack.pf" p="1" />
+      <ref name="consumable_r4" p="1" normalize="0" />
+    </group>
+      
+    <group name="floor_reward">
+      <item name="data/pickups/hppack.pf" p="1" />
+      <ref name="consumable" p="4" />
+      <ref name="weapon" p="4" />
+    </group>
+    <group name="bonus_stage_point">
+      <item name="data/pickups/bonus_stage_point.pf" p="1" />
+    </group>
+    <group name="shop">
+      <item name="data/pickups/hppack.pf" p="1" price="40" />
+      <ref name="consumable" p="4" />
+      <ref name="weapon" p="4" />
+    </group>
+  </nodes>
+  <bonus_stage_drop>
+    <nodes>
+      <ref name="r1" />
+      <ref name="r2" />
+      <ref name="r3" />
+      <ref name="r4" />
+    </nodes>
+    <items>
+      <item point="0">2,0,0,0</item>
+      <item point="800">1,1,0,0</item>
+      <item point="1300">1,0.5,0.5,0</item>
+      <item point="2000">1.5,0.5,0.5,0.1</item>
+      <item point="2400">1,1,0.5,0.2</item>
+      <item point="3000">1.5,1,0.5,0.3</item>
+      <item point="3700">1,1,1,0.4</item>
+      <item point="5000">1.5,1,1,0.6</item>
+      <item point="6000">1.25,1.25,1.25,0.8</item>
+      <item point="7000">1.5,1.25,1.25,1</item>
+      <item point="8000">1.25,1.25,1.25,1.25</item>
+      <item point="10000">1,1,1,2</item>
+    </items>
+  </bonus_stage_drop>
 </root>

@@ -67,9 +67,12 @@ public:
 	virtual void UpdateFrame() override;
 
 	CEntity* GetDesignLevel() { return m_pDesignLevel; }
+	const char* GetTestLevel() { return m_strTestLevel.c_str(); }
+	void SetTestLevel( const char* sz ) { m_strTestLevel = sz; }
 
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelDesignGameState );
 private:
 	CReference<CEntity> m_pDesignLevel;
 	CStage* m_pDesignStage;
+	string m_strTestLevel;
 };

@@ -549,7 +549,14 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 			else if( moveAxis.x < 0 && v0.x < velocity.x )
 				nIsSlidingDownWall = -1;
 			if( nIsSlidingDownWall )
-				velocity.y = Max( velocity.y, -fSlideDownSpeed );
+			{
+				if( moveAxis.y < 0 )
+					velocity.y = Max( velocity.y, -fSlideDownSpeed * 2 );
+				else if( moveAxis.y == 0 )
+					velocity.y = Max( velocity.y, -fSlideDownSpeed );
+				else
+					velocity.y = Max( velocity.y, 0.0f );
+			}
 			if( bPreLandedEntity )
 				ReleaseJump( pCharacter );
 		}
@@ -612,7 +619,8 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 		}
 		else
 			dVelocity = CVector2( 0, 1 );
-		dVelocity = dVelocity * ( sqrt( fJumpHoldingTime / fJumpMaxHoldTime ) * fJumpMaxSpeed );
+		float t = fJumpHoldingTime < fJumpMaxHoldTime ? fJumpHoldingTime * 0.66f / fJumpMaxHoldTime : 1;
+		dVelocity = dVelocity * ( sqrt( t ) * fJumpMaxSpeed );
 		velocity = velocity + dVelocity;
 		bSleep = false;
 		nState = eState_Normal;
@@ -628,22 +636,30 @@ void SCharacterWalkData::ReleaseCachedJump( CCharacter * pCharacter, float fTime
 	bSleep = false;
 }
 
-void SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxis )
+bool SCharacterWalkData::Roll( CCharacter * pCharacter, const CVector2 & moveAxis )
 {
 	if( nState != eState_Rolling && nState < eState_Knockback )
 	{
+		if( moveAxis.Length2() > 0 )
+			rollDir = moveAxis;
+		else
+		{
+			CVector2 v = velocity / fMoveSpeed;
+			float l2 = v.Length2();
+			if( l2 >= 1 )
+				rollDir = v;
+			else if( v.x != 0 )
+				rollDir = v + ( v.x > 0 ? CVector2( 1, 0 ) : CVector2( -1, 0 ) ) * ( 1 - l2 );
+			else
+				return false;
+		}
+
 		nState = eState_Rolling;
 		fRollTime = 0;
-
-		CVector2 v = velocity / fMoveSpeed;
-		float l2 = v.Length2();
-		if( l2 >= 1 )
-			rollDir = v;
-		else
-			rollDir = v + moveAxis * ( 1 - l2 );
 		pLandedEntity = NULL;
-		return;
+		return true;
 	}
+	return false;
 }
 
 void SCharacterWalkData::FallOff()

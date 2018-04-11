@@ -40,6 +40,7 @@ protected:
 	float m_fOrigFlySpeed;
 	uint32 m_nFireCD;
 	uint32 m_nFireStopTime;
+	uint32 m_nFirstFireTime;
 	uint32 m_nFireInterval;
 	uint32 m_nAmmoCount;
 	uint32 m_nBulletCount;

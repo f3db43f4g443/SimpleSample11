@@ -7,6 +7,7 @@
 #include "Player.h"
 #include "TileMap2D.h"
 #include "MyLevel.h"
+#include "GlobalCfg.h"
 #include "Common/MathUtil.h"
 
 CMainUI* CMainUI::s_pLevel;
@@ -44,6 +45,7 @@ void CMainUI::OnAddedToStage()
 		pShakeSmallBar->GetParent()->AddChildAfter( m_pShakeSmallBars[i], m_pShakeSmallBars[i - 1] );
 	}
 
+	OnEndBonusStage();
 	GetStage()->RegisterBeforeHitTest( 1, &m_tick );
 
 	CPlayer* pPlayer = GetStage()->GetWorld()->GetPlayer();
@@ -224,6 +226,98 @@ void CMainUI::ShowMinimap()
 void CMainUI::HideMinimap()
 {
 	m_pMinimap->bVisible = false;
+}
+
+void CMainUI::OnBeginBonusStage()
+{
+	m_pHpBarRoot->bVisible = false;
+	m_pHpBar[0]->bVisible = m_pHpBar[1]->bVisible = false;
+	m_pHpBarBack[0]->bVisible = m_pHpBarBack[1]->bVisible = false;
+	m_pHpStoreBar[0]->bVisible = m_pHpStoreBar[1]->bVisible = false;
+	m_pMoney->bVisible = false;
+	m_pComboBar[0]->bVisible = m_pComboBar[1]->bVisible = m_pComboBar[2]->bVisible = true;
+	m_pPoint->bVisible = true;
+
+	OnModifyCombo( 0 );
+	m_pPoint->Set( "0P" );
+	m_pPoint->SetPosition( CVector2( -m_pPoint->GetTextRect().width / 2, m_pPoint->y ) );
+	OnBonusStageText( "BONUS STAGE" );
+}
+
+void CMainUI::OnEndBonusStage()
+{
+	m_pHpBarRoot->bVisible = true;
+	m_pHpBar[0]->bVisible = m_pHpBar[1]->bVisible = true;
+	m_pHpBarBack[0]->bVisible = m_pHpBarBack[1]->bVisible = true;
+	m_pHpStoreBar[0]->bVisible = m_pHpStoreBar[1]->bVisible = true;
+	m_pMoney->bVisible = true;
+	m_pComboBar[0]->bVisible = m_pComboBar[1]->bVisible = m_pComboBar[2]->bVisible = false;
+	m_pPoint->bVisible = false;
+}
+
+void CMainUI::OnAddPoint( uint32 nPoint, uint32 nCurPoint, uint32 nCombo )
+{
+	char szText[32];
+	int32 nLevel;
+	float fPercent;
+	CGlobalCfg::Inst().GetComboLevel( nCombo, nLevel, fPercent );
+	auto pText = SafeCast<CSimpleText>( m_pFloatText->GetRoot()->CreateInstance() );
+	sprintf( szText, "%d", nPoint );
+	pText->SetParentEntity( this );
+	pText->Set( szText );
+	pText->SetParam( CVector4( 0.7f, 0.3f, 1.0f, 1.0f ) );
+	pText->FadeAnim( CVector2( 0, 128 ), 1.0f, true );
+	pText->SetPosition( CVector2( m_pComboBar[0]->x + 200 * fPercent, m_pComboBar[0]->y ) );
+
+	sprintf( szText, "%dP", nCurPoint );
+	m_pPoint->Set( szText );
+	m_pPoint->SetPosition( CVector2( -m_pPoint->GetTextRect().width / 2, m_pPoint->y ) );
+}
+
+void CMainUI::OnModifyCombo( uint32 nCombo )
+{
+	int32 nLevel;
+	float fPercent;
+	CGlobalCfg::Inst().GetComboLevel( nCombo, nLevel, fPercent );
+	float h1 = ceil( 8 * fPercent );
+	CRectangle r[3];
+	r[0] = CRectangle( 0, nLevel * 16 - 8 + h1, 200, 16 - h1 );
+	r[1] = CRectangle( 0, r[0].GetBottom(), floor( 200 * fPercent + 0.5f ), h1 );
+	r[2] = CRectangle( 200, nLevel * 16 - 16, 56, 16 );
+	CRectangle rect[3], texRect[3];
+	for( int i = 0; i < 3; i++ )
+	{
+		rect[i] = CRectangle( r[i].x - 128, 0, r[i].width, r[i].height );
+		texRect[i] = r[i] * ( 1.0f / 256.0f );
+	}
+	rect[0].y += h1;
+	for( int i = 0; i < 3; i++ )
+	{
+		if( texRect[i].y < 0 )
+		{
+			rect[i].SetBottom( rect[i].GetBottom() - rect[i].height * -texRect[i].y / texRect[i].height );
+			texRect[i].SetTop( 0 );
+		}
+		if( texRect[i].GetBottom() > 1 )
+		{
+			rect[i].SetTop( rect[i].GetTop() + rect[i].height * ( texRect[i].GetBottom() - 1 ) / texRect[i].height );
+			texRect[i].SetBottom( 1 );
+		}
+		auto pImage = static_cast<CImage2D*>( m_pComboBar[i].GetPtr() );
+		pImage->SetRect( rect[i] );
+		pImage->SetTexRect( texRect[i] );
+		pImage->SetBoundDirty();
+	}
+}
+
+void CMainUI::OnBonusStageText( const char * szText )
+{
+	auto pText = SafeCast<CSimpleText>( m_pFloatText->GetRoot()->CreateInstance() );
+	pText->SetParentEntity( this );
+	pText->Set( szText );
+	pText->SetParam( CVector4( 1.0f, 0.2f, 1.0f, 1.0f ) );
+	pText->FadeAnim( CVector2( 0, 128 ), 1.0f, false );
+	pText->SetPosition( CVector2( m_pComboBar[0]->x - 128, m_pComboBar[0]->y ) );
 }
 
 void CMainUI::AddSpBarShake( const CVector2& dir, uint32 nTime )

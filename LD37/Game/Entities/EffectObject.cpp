@@ -8,6 +8,7 @@ CEffectObject::CEffectObject( const SClassCreateContext& context )
 	: CEntity( context )
 	, m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
 	, m_nState( 0 )
+	, m_fAnimTimeScale( 1 )
 {
 	SET_BASEOBJECT_ID( CEffectObject );
 }
@@ -18,6 +19,7 @@ CEffectObject::CEffectObject( float fTime, CVector2 velocity, float fAngularVelo
 	, m_fTimeLeft( fTime )
 	, m_vel( velocity )
 	, m_velA( fAngularVelocity )
+	, m_fAnimTimeScale( 1 )
 {
 	SET_BASEOBJECT_ID( CEffectObject );
 }
@@ -25,9 +27,6 @@ CEffectObject::CEffectObject( float fTime, CVector2 velocity, float fAngularVelo
 void CEffectObject::OnAddedToStage()
 {
 	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
-	/*m_pStates[0] = GetChildByName<CEntity>( "birth" );
-	m_pStates[1] = GetChildByName<CEntity>( "stand" );
-	m_pStates[2] = GetChildByName<CEntity>( "death" );*/
 	for( int i = 0; i < ELEM_COUNT( m_pStates ); i++ )
 	{
 		if( m_pStates[i] )
@@ -49,6 +48,12 @@ void CEffectObject::OnRemovedFromStage()
 void CEffectObject::OnTickBeforeHitTest()
 {
 	float fElapsedTime = GetStage()->GetElapsedTimePerTick();
+	CVector2 vel = m_vel + m_a * fElapsedTime;
+	SetPosition( GetPosition() + ( m_vel + vel ) * ( fElapsedTime * 0.5f ) );
+	SetRotation( GetRotation() + m_velA * fElapsedTime );
+	m_vel = vel;
+
+	fElapsedTime *= m_fAnimTimeScale;
 	if( m_fTimeLeft > 0 )
 	{
 		m_fTimeLeft -= fElapsedTime;
@@ -63,9 +68,6 @@ void CEffectObject::OnTickBeforeHitTest()
 				SetState( m_nState + 1 );
 		}
 	}
-
-	SetPosition( GetPosition() + m_vel * fElapsedTime );
-	SetRotation( GetRotation() + m_velA * fElapsedTime );
 	UpdateAnim( fElapsedTime );
 	if( m_nState <= 2 && m_pStates[m_nState] )
 		m_pStates[m_nState]->UpdateAnim( fElapsedTime );

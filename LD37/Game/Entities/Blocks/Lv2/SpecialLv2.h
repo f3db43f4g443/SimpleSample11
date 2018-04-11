@@ -7,7 +7,7 @@ class CBarrel : public CExplosiveChunk
 	friend void RegisterGameClasses();
 public:
 	CBarrel( const SClassCreateContext& context ) : CExplosiveChunk( context ) { SET_BASEOBJECT_ID( CBarrel ); }
-	virtual void Damage( SDamageContext& context ) override;
+	virtual bool Damage( SDamageContext& context ) override;
 protected:
 	TResourceRef<CPrefab> m_strBullet;
 	TResourceRef<CPrefab> m_strExp;
@@ -21,7 +21,7 @@ class CBarrel1 : public CExplosiveChunk
 	friend void RegisterGameClasses();
 public:
 	CBarrel1( const SClassCreateContext& context ) : CExplosiveChunk( context ) { SET_BASEOBJECT_ID( CBarrel ); }
-	virtual void Damage( SDamageContext& context ) override;
+	virtual bool Damage( SDamageContext& context ) override;
 protected:
 	TResourceRef<CPrefab> m_strBullet;
 	TResourceRef<CPrefab> m_strBullet1;
@@ -100,7 +100,7 @@ public:
 	virtual void OnSetChunk( SChunk * pChunk, CMyLevel * pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 
-	virtual void Damage( SDamageContext& context ) override;
+	virtual bool Damage( SDamageContext& context ) override;
 protected:
 	virtual void OnKilled() override;
 private:
@@ -121,7 +121,7 @@ public:
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 	virtual void Kill() override;
 	virtual void Crush() override;
-	virtual void Damage( SDamageContext& context ) override;
+	virtual bool Damage( SDamageContext& context ) override;
 protected:
 	virtual void OnKilled() override;
 private:

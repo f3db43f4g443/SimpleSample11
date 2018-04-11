@@ -84,7 +84,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, bIsRoom( baseInfo.bIsRoom )
 	, nMoveType( baseInfo.nMoveType )
 	, nShowLevelType( baseInfo.nShowLevelType )
-	, bIsLevelBarrier( false )
+	, nLevelBarrierType( false )
 	, bStopMove( false )
 	, bForceStop( false )
 	, bSpawned( false )
@@ -528,28 +528,31 @@ void CChunkObject::OnKilled()
 		m_strSoundEffect->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 }
 
-void CChunkObject::Damage( float fDmg, uint8 nType )
+bool CChunkObject::Damage( float fDmg, uint8 nType )
 {
 	SDamageContext context = { fDmg, nType, eDamageSourceType_None, CVector2( 0, 0 ) };
-	Damage( context );
+	return Damage( context );
 }
 
-void CChunkObject::Damage( SDamageContext& context )
+bool CChunkObject::Damage( SDamageContext& context )
 {
+	auto pLevel = CMyLevel::GetInst();
+	if( pLevel && y >= pLevel->GetLvBarrierHeight() )
+		return false;
 	if( m_pChunk )
 	{
 		if( m_pChunk->bInvulnerable )
-			return;
+			return false;
 		if( !m_nMaxHp )
 		{
 			auto pParentChunk = m_pChunk->pParentChunk;
 			if( pParentChunk && m_pChunk->nSubChunkType == 2 )
-				pParentChunk->pChunkObject->Damage( context );
-			return;
+				return pParentChunk->pChunkObject->Damage( context );
+			return false;
 		}
 	}
 	if( m_fHp <= 0 )
-		return;
+		return false;
 
 	if( context.nSourceType > eDamageSourceType_None )
 	{
@@ -575,6 +578,7 @@ void CChunkObject::Damage( SDamageContext& context )
 		else
 			Kill();
 	}
+	return true;
 }
 
 float CChunkObject::Repair( float fAmount )
@@ -757,17 +761,17 @@ void CSpecialChunk3::Trigger()
 	pBarrage->Start();
 }
 
-void CExplosiveChunk::Damage( SDamageContext& context )
+bool CExplosiveChunk::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
 	{
 		m_fHp -= context.fDamage;
 		if( -m_fHp >= m_nMaxKillHp )
 			Explode();
-		return;
+		return true;
 	}
 	else
-		CChunkObject::Damage( context );
+		return CChunkObject::Damage( context );
 }
 
 void CExplosiveChunk::Kill()

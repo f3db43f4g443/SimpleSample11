@@ -11,6 +11,7 @@
 #include "Pickup.h"
 #include "GlobalCfg.h"
 #include "Enemy.h"
+#include "Entities/Neutral.h"
 #include "Common/Algorithm.h"
 
 void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
@@ -52,6 +53,12 @@ void CLvFloor1::OnCreateComplete( CMyLevel * pLevel )
 	}
 }
 
+void CLvFloor1::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
 void CLvFloor1::OnCrateKilled( int32 i )
 {
 	if( !m_nKilledCrates )
@@ -77,6 +84,16 @@ void CLvFloor1::OnCrateKilled( int32 i )
 
 void CLvFloor1::OnPickUp()
 {
+	if( m_pChunk && m_pChunk->nLevelBarrierType == 3 )
+		CMyLevel::GetInst()->OnPlayerBonusStageCrushed();
+	Kill();
+}
+
+void CLvFloor1::Kill()
+{
+	if( m_bKilled )
+		return;
+	m_bKilled = true;
 	for( auto& trigger : m_triggers )
 	{
 		if( trigger.IsRegistered() )
@@ -99,8 +116,47 @@ void CLvFloor1::OnPickUp()
 			pPickUp = NULL;
 		}
 	}
+	m_pChunk->fWeight = 1000000;
+	OnTick();
+}
 
-	Kill();
+void CLvFloor1::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	if( m_pKillEffect )
+	{
+		if( m_nKillEffectCDLeft )
+			m_nKillEffectCDLeft--;
+		if( !m_nKillEffectCDLeft )
+		{
+			CVector2 center = CVector2( SRand::Inst().Rand( 0u, m_pChunk->nWidth * CMyLevel::GetBlockSize() ), SRand::Inst().Rand( 0u, m_pChunk->nHeight * CMyLevel::GetBlockSize() ) );
+			auto pEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
+			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			pEffect->SetPosition( GetPosition() + center );
+			pEffect->SetState( 2 );
+			m_nKillEffectCDLeft = m_nKillEffectInterval;
+		}
+	}
+
+	if( y <= 0 )
+	{
+		if( m_pBonusStageReward )
+		{
+			auto pPlayer = GetStage()->GetPlayer();
+			if( pPlayer )
+			{
+				CVector2 p( m_pChunk->nWidth * CMyLevel::GetBlockSize() * 0.5f, ( m_pChunk->nHeight - 1 ) * CMyLevel::GetBlockSize() );
+				auto pBonusStageDrop = SafeCast<CBonusStageReward>( m_pBonusStageReward->GetRoot()->CreateInstance() );
+				pBonusStageDrop->SetPosition( GetPosition() + p );
+				pBonusStageDrop->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				SItemDropContext context;
+				CGlobalCfg::Inst().bonusStageDrop.Drop( context, pPlayer->GetPoint() );
+				pBonusStageDrop->Set( context, CGlobalCfg::Inst().Point2Reward( pPlayer->GetPoint() ) );
+			}
+		}
+
+		CRandomChunkTiled::Kill();
+	}
 }
 
 void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
@@ -110,18 +166,21 @@ void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	auto texRect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
 
 	SetRenderObject( new CRenderObject2D );
-	for( int i = 0; i < pChunk->nWidth; i += 2 )
+	for( int j = 0; j < pChunk->nHeight; j += 2 )
 	{
-		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-		pImage2D->SetRect( CRectangle( i * 32, 0, 64, 64 ) );
-		pImage2D->SetTexRect( texRect0 );
-		GetRenderObject()->AddChild( pImage2D );
-		for( int iX = i; iX < i + 2; iX++ )
+		for( int i = 0; i < pChunk->nWidth; i += 2 )
 		{
-			for( int iY = 0; iY < 2; iY++ )
+			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
+			pImage2D->SetRect( CRectangle( i * 32, j * 32, 64, 64 ) );
+			pImage2D->SetTexRect( texRect0 );
+			GetRenderObject()->AddChild( pImage2D );
+			for( int iX = i; iX < i + 2; iX++ )
 			{
-				GetBlock( iX, iY )->rtTexRect = CRectangle( texRect0.x + iX * texRect0.width / 2, texRect0.y + iY * texRect0.height / 2,
-					texRect0.width / 2, texRect0.height / 2 );
+				for( int iY = j; iY < j + 2; iY++ )
+				{
+					GetBlock( iX, iY )->rtTexRect = CRectangle( texRect0.x + iX * texRect0.width / 2, texRect0.y + iY * texRect0.height / 2,
+						texRect0.width / 2, texRect0.height / 2 );
+				}
 			}
 		}
 	}
@@ -212,6 +271,15 @@ void CLvFloor2::OnCrateKilled( int32 i )
 
 void CLvFloor2::OnPickUp()
 {
+	if( m_pChunk && m_pChunk->nLevelBarrierType == 3 )
+		CMyLevel::GetInst()->OnPlayerBonusStageCrushed();
+	Kill();
+}
+
+void CLvFloor2::Kill()
+{
+	if( m_bKilled )
+		return;
 	for( auto& trigger : m_triggers )
 	{
 		if( trigger.IsRegistered() )
@@ -234,13 +302,13 @@ void CLvFloor2::OnPickUp()
 			pPickUp = NULL;
 		}
 	}
-	m_bPicked = true;
+	m_bKilled = true;
 	m_pChunk->fWeight = 1000000;
 }
 
 void CLvFloor2::OnTick()
 {
-	if( !m_bPicked )
+	if( !m_bKilled )
 	{
 		uint32 nSpeeds[] = { 1, 1, 2, 2, 3 };
 		int32 nSpeed = nSpeeds[m_nKilledCrates] * ( ( m_nKilledCrates & 1 ) == 0 ? 1 : -1 ) * ( m_nDir ? 1 : -1 );
@@ -276,28 +344,10 @@ void CLvFloor2::OnTick()
 
 	if( y <= 0 )
 	{
-		Kill();
+		CChunkObject::Kill();
 		return;
 	}
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
-}
-
-void CLvFloor2::OnKilled()
-{
-	if( m_strEffect )
-	{
-		ForceUpdateTransform();
-		for( int i = 0; i < m_pChunk->nWidth; i++ )
-		{
-			for( int j = 0; j < m_pChunk->nHeight; j++ )
-			{
-				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
-				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
-				pEffect->SetState( 2 );
-			}
-		}
-	}
 }
 
 void CLvBarrier1::OnRemovedFromStage()
@@ -1048,10 +1098,16 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 
 		int32 nX = pSubChunk->pos.x / CMyLevel::GetBlockSize();
 		int32 nY = pSubChunk->pos.y / CMyLevel::GetBlockSize();
+		for( int j = 0; j < pSubChunk->nHeight; j++ )
+		{
+			for( int i = 0; i < pSubChunk->nWidth; i++ )
+			{
+				m_grids[i + nX + ( j + nY ) * nWidth].pChunkObject = pSubChunk->pChunkObject;
+			}
+		}
 		if( pSubChunk->nWidth == 1 && pSubChunk->nHeight == 1 )
 		{
 			m_grids[nX + nY * nWidth].nType = 0;
-			m_grids[nX + nY * nWidth].pChunkObject = pSubChunk->pChunkObject;
 		}
 		else
 		{
@@ -1061,6 +1117,9 @@ void CLvBarrier2::OnCreateComplete( CMyLevel * pLevel )
 				pSubChunk->pos.y / CMyLevel::GetBlockSize(),
 				pSubChunk->nWidth,
 				pSubChunk->nHeight );
+			m_bigChunks.back().nCurMoveDir = -1;
+			m_bigChunks.back().bMoved = false;
+			m_bigChunks.back().bMoveResult = false;
 			m_nMaxCoreSize += pSubChunk->nWidth * pSubChunk->nHeight;
 		}
 	}
@@ -1154,6 +1213,7 @@ void CLvBarrier2::OnChunkRemove( uint32 nIndex )
 		for( int j = rect.y; j < rect.GetBottom(); j++ )
 		{
 			m_grids[i + j * GetChunk()->nWidth].nType = 0;
+			m_grids[i + j * GetChunk()->nWidth].pChunkObject = NULL;
 		}
 	}
 	m_nCoreSize -= rect.width * rect.height;
@@ -1316,119 +1376,230 @@ void CLvBarrier2::Move( bool bSpawnChunk )
 	}
 }
 
-void CLvBarrier2::Move1()
+bool CLvBarrier2::TryMoveBigChunk( SBigChunk& bigChunk, int8 nDir, uint8 nMoveType )
 {
+	if( bigChunk.bMoved )
+		return bigChunk.bMoveResult;
+	bigChunk.bMoved = true;
+	bigChunk.nCurMoveDir = nDir;
 	int32 nWidth = m_pChunk->nWidth;
 	int32 nHeight = m_pChunk->nHeight;
-	for( auto& bigChunk : m_bigChunks )
+	TVector2<int32> dirs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	auto dir = dirs[nDir];
+	TRectangle<int32> rect = bigChunk.rect;
+	auto& pChunkObject = bigChunk.pChunk;
+	CLvBarrier2Core* pCore = SafeCast<CLvBarrier2Core>( pChunkObject.GetPtr() );
+	if( rect.x + dir.x < 2 || rect.GetRight() + dir.x > nWidth - 2 || rect.y + dir.y < 0 || rect.GetBottom() + dir.y > nHeight - 2 )
+		return false;
+
+	TRectangle<int32> r, r1;
+	if( dir.x < 0 )
 	{
-		auto& pChunkObject = bigChunk.pChunk;
-		if( pChunkObject && !pChunkObject->GetStage() )
-			pChunkObject = NULL;
-		if( !pChunkObject )
-			continue;
-		TRectangle<int32> rect = bigChunk.rect;
-		CLvBarrier2Core* pCore = SafeCast<CLvBarrier2Core>( pChunkObject.GetPtr() );
+		r = TRectangle<int32>( rect.x - 1, rect.y, 1, rect.height );
+		r1 = TRectangle<int32>( rect.GetRight() - 1, rect.y, 1, rect.height );
+	}
+	else if( dir.x > 0 )
+	{
+		r = TRectangle<int32>( rect.GetRight(), rect.y, 1, rect.height );
+		r1 = TRectangle<int32>( rect.x, rect.y, 1, rect.height );
+	}
+	else if( dir.y < 0 )
+	{
+		r = TRectangle<int32>( rect.x, rect.y - 1, rect.width, 1 );
+		r1 = TRectangle<int32>( rect.x, rect.GetBottom() - 1, rect.width, 1 );
+	}
+	else
+	{
+		r = TRectangle<int32>( rect.x, rect.GetBottom(), rect.width, 1 );
+		r1 = TRectangle<int32>( rect.x, rect.y, rect.width, 1 );
+	}
 
-		bool b = pCore->m_nDmgTime;
-		if( b )
+	bool bBlocked = false;
+	for( int iX = r.x; iX < r.GetRight(); iX++ )
+	{
+		for( int iY = r.y; iY < r.GetBottom(); iY++ )
 		{
-			pCore->m_nDmgTime--;
-
-			for( int iX = rect.x + 1; iX < rect.GetRight() - 1; iX++ )
+			auto& pChunkObject = m_grids[iX + iY * nWidth].pChunkObject;
+			if( pChunkObject && !pChunkObject->GetStage() )
+				pChunkObject = NULL;
+			if( pChunkObject )
 			{
-				CreateExplosion( iX, rect.y, pChunkObject );
-				CreateExplosion( iX, rect.GetBottom() - 1, pChunkObject );
+				auto pBigChunk = SafeCast<CLvBarrier2Core>( pChunkObject.GetPtr() );
+				if( pBigChunk )
+				{
+					auto& bigChunk = m_bigChunks[pBigChunk->m_nIndex];
+					if( nMoveType == 1 )
+					{
+						if( bigChunk.bMoved || !TryMoveBigChunk( bigChunk, nDir, nMoveType ) )
+							return false;
+					}
+					else if( nMoveType == 2 )
+					{
+						bigChunk.nCurMoveDir = nDir;
+						return false;
+					}
+					else if( nMoveType == 3 )
+					{
+						TryMoveBigChunk( bigChunk, nDir, nMoveType );
+						bBlocked = true;
+					}
+				}
+				else if( m_grids[iX + iY * nWidth].nType )
+				{
+					bBlocked = true;
+					if( nMoveType < 3 )
+						return false;
+				}
 			}
-			for( int iY = rect.y; iY < rect.GetBottom(); iY++ )
+			else if( m_grids[iX + iY * nWidth].nType )
 			{
-				CreateExplosion( rect.x, iY, pChunkObject );
-				CreateExplosion( rect.GetRight() - 1, iY, pChunkObject );
+				bBlocked = true;
+				if( nMoveType < 3 )
+					return false;
 			}
 		}
+	}
+	if( bBlocked )
+		return false;
 
-		TVector2<int32> dirs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
-		SRand::Inst().Shuffle( dirs, 4 );
+	for( int iX = r.x; iX < r.GetRight(); iX++ )
+	{
+		for( int iY = r.y; iY < r.GetBottom(); iY++ )
+		{
+			m_grids[iX + iY * nWidth].nType = 1;
+			if( m_grids[iX + iY * nWidth].pChunkObject )
+			{
+				m_grids[iX + iY * nWidth].pChunkObject->Crush();
+				//CreateExplosion( iX, iY, pChunkObject );
+			}
+			m_grids[iX + iY * nWidth].pChunkObject = pChunkObject;
+		}
+	}
+	for( int iX = r1.x; iX < r1.GetRight(); iX++ )
+	{
+		for( int iY = r1.y; iY < r1.GetBottom(); iY++ )
+		{
+			m_grids[iX + iY * nWidth].nType = 0;
+			m_grids[iX + iY * nWidth].pChunkObject = NULL;
+		}
+	}
+	bigChunk.rect = rect.Offset( dir );
+	bigChunk.bMoveResult = true;
+	return true;
+}
+
+void CLvBarrier2::Move1()
+{
+	uint8 nMoveType = 1;
+
+	if( nMoveType == 1 )
+	{
+		int8 nDir = m_bigChunks[0].nCurMoveDir;
+		if( nDir == -1 )
+			nDir = SRand::Inst().Rand( 0, 4 );
+
+		int8 nDirs[] = { nDir, ( nDir + 1 ) & 3, ( nDir - 1 ) & 3, ( nDir + 2 ) & 3 };
+		if( SRand::Inst().Rand( 0, 2 ) )
+			swap( nDirs[1], nDirs[2] );
 		for( int i = 0; i < 4; i++ )
 		{
-			auto dir = dirs[i];
-			if( rect.x + dir.x < 0 || rect.GetRight() + dir.x > nWidth || rect.y + dir.y < 0 || rect.GetBottom() + dir.y > nHeight )
-				continue;
-
-			TRectangle<int32> r, r1;
-			if( dir.x < 0 )
+			bool bMoved = false;
+			for( auto& bigChunk : m_bigChunks )
+				bMoved = TryMoveBigChunk( bigChunk, nDirs[i], nMoveType ) || bMoved;
+			for( auto& bigChunk : m_bigChunks )
+				bigChunk.bMoved = bigChunk.bMoveResult = false;
+			if( bMoved )
+				break;
+		}
+	}
+	else if( nMoveType == 2 )
+	{
+		for( auto& bigChunk : m_bigChunks )
+		{
+			int8 nDir = bigChunk.nCurMoveDir;
+			if( nDir != 0 && nDir != 2 )
+				nDir = SRand::Inst().Rand( 0, 2 ) * 2;
+			bool bMoved = TryMoveBigChunk( bigChunk, nDir, nMoveType );
+			if( !bMoved )
 			{
-				r = TRectangle<int32>( rect.x - 1, rect.y, 1, rect.height );
-				r1 = TRectangle<int32>( rect.GetRight() - 1, rect.y, 1, rect.height );
+				nDir = ( nDir + 2 ) & 3;
+				bigChunk.bMoved = bigChunk.bMoveResult = false;
+				TryMoveBigChunk( bigChunk, nDir, nMoveType );
 			}
-			else if( dir.x > 0 )
-			{
-				r = TRectangle<int32>( rect.GetRight(), rect.y, 1, rect.height );
-				r1 = TRectangle<int32>( rect.x, rect.y, 1, rect.height );
-			}
-			else if( dir.y < 0 )
-			{
-				r = TRectangle<int32>( rect.x, rect.y - 1, rect.width, 1 );
-				r1 = TRectangle<int32>( rect.x, rect.GetBottom() - 1, rect.width, 1 );
-			}
+			bigChunk.bMoved = bigChunk.bMoveResult = false;
+		}
+	}
+	else if( nMoveType == 3 )
+	{
+		for( auto& bigChunk : m_bigChunks )
+		{
+			int8 nDir = bigChunk.nCurMoveDir;
+			if( nDir >= 0 )
+				TryMoveBigChunk( bigChunk, nDir, nMoveType );
+		}
+		bool bMoved = false;
+		for( auto& bigChunk : m_bigChunks )
+		{
+			if( !bigChunk.bMoveResult )
+				bigChunk.nCurMoveDir = -1;
 			else
-			{
-				r = TRectangle<int32>( rect.x, rect.GetBottom(), rect.width, 1 );
-				r1 = TRectangle<int32>( rect.x, rect.y, rect.width, 1 );
-			}
+				bMoved = true;
+			bigChunk.bMoved = bigChunk.bMoveResult = false;
+		}
 
-			bool bBlocked = false;
-			for( int iX = r.x; iX < r.GetRight(); iX++ )
+		if( !bMoved )
+		{
+			int32 nMin = -1;
+			uint32 nMinDist = 0xffffffff;
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( pPlayer )
 			{
-				for( int iY = r.y; iY < r.GetBottom(); iY++ )
+				CVector2 p = ( pPlayer->GetPosition() - globalTransform.GetPosition() ) / 32;
+				TVector2<int32> target( p.x, p.y );
+				for( int i = 0; i < m_bigChunks.size(); i++ )
 				{
-					auto& pChunkObject = m_grids[iX + iY * nWidth].pChunkObject;
-					if( pChunkObject && !pChunkObject->GetStage() )
-						pChunkObject = NULL;
-					if( m_grids[iX + iY * nWidth].nType || !b && pChunkObject )
+					auto& bigChunk = m_bigChunks[i];
+					uint32 distX = Max( 0, Max( bigChunk.rect.x - target.x, target.x - bigChunk.rect.GetRight() ) );
+					uint32 distY = Max( 0, Max( bigChunk.rect.y - target.y, target.y - bigChunk.rect.GetBottom() ) );
+					uint32 dist1 = Max( distX, distY );
+					uint32 dist2 = Min( distX, distY );
+					uint32 dist = ( dist2 << 16 ) | ( ~dist1 & 0xffff );
+					if( dist < nMinDist )
 					{
-						bBlocked = true;
-						break;
+						nMinDist = dist;
+						nMin = i;
 					}
 				}
-				if( bBlocked )
-					break;
-			}
-			if( bBlocked )
-				continue;
-
-			for( int iX = r.x; iX < r.GetRight(); iX++ )
-			{
-				for( int iY = r.y; iY < r.GetBottom(); iY++ )
+				if( nMin >= 0 )
 				{
-					m_grids[iX + iY * nWidth].nType = 1;
-					if( m_grids[iX + iY * nWidth].pChunkObject )
-					{
-						m_grids[iX + iY * nWidth].pChunkObject->Crush();
-						if( !b )
-							CreateExplosion( iX, iY, pChunkObject );
-					}
+					auto& bigChunk = m_bigChunks[nMin];
+					uint32 distX = Max( 0, Max( bigChunk.rect.x - target.x, target.x - bigChunk.rect.GetRight() ) );
+					uint32 distY = Max( 0, Max( bigChunk.rect.y - target.y, target.y - bigChunk.rect.GetBottom() ) );
+					if( distX >= distY )
+						bigChunk.nCurMoveDir = bigChunk.rect.x + bigChunk.rect.GetRight() > target.x * 2 ? 2 : 0;
+					else
+						bigChunk.nCurMoveDir = bigChunk.rect.y + bigChunk.rect.GetBottom() > target.y * 2 ? 3 : 1;
 				}
 			}
-			for( int iX = r1.x; iX < r1.GetRight(); iX++ )
-			{
-				for( int iY = r1.y; iY < r1.GetBottom(); iY++ )
-				{
-					m_grids[iX + iY * nWidth].nType = 0;
-				}
-			}
-			bigChunk.rect = rect.Offset( dir );
-			if( b )
-				GenBarrage1( m_nAttackType, r, CVector2( dir.x, dir.y ) );
-			break;
 		}
 	}
 
-	if( m_nEnergy >= 100 && !m_nFireCD )
+	if( m_nEnergy >= 50 && !m_nFireCD )
 	{
-		m_nFireCD = GenBarrage2( m_nAttackType, m_pLabel->GetPosition() );
-		m_nEnergy -= m_nFireCD * 4;
-		m_pLabel->UpdatePercent( m_nEnergy / 100.0f );
+		/*m_nFireCD = GenBarrage2( m_nAttackType, m_pLabel->GetPosition() );
+		m_nEnergy -= m_nFireCD * 4;*/
+
+		if( m_nCurMoveType == 0 )
+			m_nCurMoveType = SRand::Inst().Rand( 1, 3 );
+		else
+		{
+			uint32 nMoveType = SRand::Inst().Rand( 1, 2 );
+			if( nMoveType >= m_nCurMoveType )
+				nMoveType++;
+			m_nCurMoveType = nMoveType;
+		}
+		m_nEnergy = 0;
+		m_pLabel->UpdatePercent( m_nEnergy / 50.0f );
 
 		uint32 nAttackType = SRand::Inst().Rand( 0, 2 );
 		if( nAttackType >= m_nAttackType )
@@ -1437,6 +1608,13 @@ void CLvBarrier2::Move1()
 	}
 	if( m_nFireCD )
 		m_nFireCD--;
+}
+
+void CLvBarrier2::SetCurMoveType( uint8 nMoveType )
+{
+	m_nCurMoveType = nMoveType;
+	for( auto& bigChunk : m_bigChunks )
+		bigChunk.nCurMoveDir = -1;
 }
 
 void CLvBarrier2::UpdateEnergyEfts()
@@ -1453,8 +1631,8 @@ void CLvBarrier2::UpdateEnergyEfts()
 			pCharacter->Kill();
 			m_vecEnergyEfts[i] = m_vecEnergyEfts.back();
 			m_vecEnergyEfts.pop_back();
-			m_nEnergy = Min( m_nEnergy + 1, 100u );
-			m_pLabel->UpdatePercent( m_nEnergy / 100.0f );
+			m_nEnergy = Min( m_nEnergy + 1, 50u );
+			m_pLabel->UpdatePercent( m_nEnergy / 50.0f );
 		}
 	}
 }
@@ -1610,12 +1788,6 @@ void CLvBarrier2Core::OnRemovedFromStage()
 			pOwner->OnChunkRemove( m_nIndex );
 	}
 	CChunkObject::OnRemovedFromStage();
-}
-
-void CLvBarrier2Core::Damage( SDamageContext & context )
-{
-	m_nDmgTime = 10;
-	CChunkObject::Damage( context );
 }
 
 void CLvBarrier2::InitBarrage1()
@@ -1793,6 +1965,7 @@ void CLvBarrier2::InitBarrage1()
 
 void CLvBarrier2::GenBarrage1( uint32 nType, const TRectangle<int32>& rect, const CVector2& dir )
 {
+	return;
 	switch( nType )
 	{
 	case 0:
@@ -1851,6 +2024,7 @@ void CLvBarrier2::GenBarrage1( uint32 nType, const TRectangle<int32>& rect, cons
 
 int32 CLvBarrier2::GenBarrage2( uint32 nType, const CVector2& pos )
 {
+	return 0;
 	switch( nType )
 	{
 	case 0:

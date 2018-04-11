@@ -68,11 +68,11 @@ void CCommonRoomNode::Generate( SLevelBuildContext & context, const TRectangle<i
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 		m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 
 		for( int i = 0; i < region.width; i++ )
@@ -118,12 +118,12 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		{
 			uint32 nMaxLen = 0;
@@ -233,12 +233,12 @@ void CRoom1Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		{
 			uint32 nMaxLen = 0;
@@ -397,12 +397,12 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		{
 			uint32 nMaxLen = 0;
@@ -560,7 +560,7 @@ void CBillboardNode::Generate( SLevelBuildContext & context, const TRectangle<in
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
@@ -572,7 +572,7 @@ void CBillboardNode::Generate( SLevelBuildContext & context, const TRectangle<in
 			sprintf( buf, "%d", i + 1 );
 			vecTypes[i] = context.mapTags[buf];
 		}
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		for( int i = region.x; i < region.GetRight(); i++ )
 		{
@@ -873,7 +873,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
@@ -881,7 +881,7 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		int8 n2 = context.mapTags["2"];
 		int8 nExit1 = context.mapTags["exit1"];
 		int8 nExit2 = context.mapTags["exit2"];
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		for( int i = 0; i < region.width; i++ )
 		{
@@ -1035,12 +1035,12 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 	vecType.resize( region.width * region.height );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 		if( m_pSubChunk )
 		{
-			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			SLevelBuildContext tempContext( context, pChunk );
 			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 			if( m_bCopyBlueprint )

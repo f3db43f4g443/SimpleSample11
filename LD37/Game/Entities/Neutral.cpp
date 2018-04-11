@@ -278,6 +278,23 @@ void CBulletEnemy::OnAddedToStage()
 	SetRotation( atan2( GetVelocity().y, GetVelocity().x ) );
 }
 
+void CBulletEnemy::Kill()
+{
+	if( m_bKilled )
+		return;
+	if( m_pParticle )
+		static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = false;
+	if( m_fDeathTime < 0 )
+	{
+		CEnemy::Kill();
+		return;
+	}
+	m_bKilled = true;
+	SetRenderObject( NULL );
+	SetTransparentRec( true );
+	KillEffect();
+}
+
 void CBulletEnemy::OnTickBeforeHitTest()
 {
 	CVector2 vel = GetVelocity();
@@ -291,6 +308,14 @@ void CBulletEnemy::OnTickBeforeHitTest()
 void CBulletEnemy::OnTickAfterHitTest()
 {
 	CEnemy::OnTickAfterHitTest();
+	if( m_bKilled )
+	{
+		m_fDeathTime -= GetStage()->GetElapsedTimePerTick();
+		if( m_fDeathTime <= 0 )
+			SetParentEntity( NULL );
+		return;
+	}
+
 	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 	{
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
@@ -319,8 +344,21 @@ void CPickupCarrier::OnRemovedFromStage()
 	CCharacter::OnRemovedFromStage();
 }
 
+void CPickUpCarrierPhysics::OnAddedToStage()
+{
+	CPickupCarrier::OnAddedToStage();
+	if( m_nPickUpTime )
+		m_pPickup->SetPickUpEnabled( false );
+}
+
 void CPickUpCarrierPhysics::OnTickAfterHitTest()
 {
+	if( m_nPickUpTime )
+	{
+		m_nPickUpTime--;
+		if( !m_nPickUpTime )
+			m_pPickup->SetPickUpEnabled( true );
+	}
 	if( !m_bAttracted )
 	{
 		CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -346,6 +384,149 @@ void CPickUpCarrierPhysics::OnTickAfterHitTest()
 			}
 		}
 
-		m_moveData.UpdateMove( this );
+		m_moveData.UpdateMove( this ); 
 	}
+}
+
+void CBonusStageReward::OnAddedToStage()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CBonusStageReward::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	for( auto& trigger : m_triggers )
+	{
+		if( trigger.IsRegistered() )
+			trigger.Unregister();
+	}
+	m_triggers.clear();
+}
+
+void CBonusStageReward::Set( SItemDropContext & dropResult, uint32 nReward )
+{
+	m_r = PI * ( 1.5f - 1.0f / dropResult.nDrop );
+	m_lCur = 0;
+	for( int i = 0; i < dropResult.nDrop; i++ )
+	{
+		auto pPickUp = SafeCast<CPickUpTemplate>( m_pPrefab->GetRoot()->CreateInstance() );
+		pPickUp->Set( SafeCast<CEntity>( dropResult.dropItems[i].pPrefab->GetRoot()->CreateInstance() ), 0 );
+		pPickUp->SetParentEntity( this );
+		float r = m_r + i * PI * 2 / dropResult.nDrop;
+		m_pickups[i + 1] = pPickUp;
+
+		auto pImg = static_cast<CImage2D*>( m_pLinkDrawable->CreateInstance() );
+		auto rect = pImg->GetElem().rect;
+		rect.x = 0;
+		rect.width = 0;
+		pImg->SetRect( rect );
+		pImg->SetRotation( r );
+		pImg->SetZOrder( -1 );
+		AddChild( pImg );
+		m_pLinkImgs[i] = pImg;
+	}
+
+	m_triggers.resize( dropResult.nDrop + 1 );
+	for( int i = 0; i <= dropResult.nDrop; i++ )
+	{
+		m_triggers[i].Set( [i, this] () {
+			m_pickups[i] = NULL;
+			OnPickUp();
+		} );
+		m_pickups[i]->RegisterPickupEvent( &m_triggers[i] );
+	}
+
+	for( int i = 0; i < 3; i++ )
+		m_nRewards[i] = ( nReward >> ( i * 2 ) ) & 3;
+	m_nRewards[3] = nReward >> 6;
+
+	int32 nCount = log2( nReward + 8 ) * 5;
+	for( int i = 0; i < 4; i++ )
+		nCount -= m_nRewards[i];
+	int8 index[3] = { 1, 2, 3 };
+	while( nCount > 0 )
+	{
+		int8 iIndex;
+		SRand::Inst().Shuffle( index, ELEM_COUNT( index ) );
+		for( iIndex = 0; iIndex < ELEM_COUNT( index ); iIndex++ )
+		{
+			if( m_nRewards[index[iIndex]] )
+				break;
+		}
+		if( iIndex >= ELEM_COUNT( index ) )
+			break;
+		int32 i = index[iIndex];
+		m_nRewards[i]--;
+		m_nRewards[i - 1] += 4;
+		nCount -= 3;
+	}
+}
+
+void CBonusStageReward::OnTick()
+{
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( !m_nLife )
+		{
+			OnPickUp();
+			return;
+		}
+	}
+
+	for( int i = 0; i < 4; i++ )
+	{
+		if( m_nRewards[i] )
+		{
+			auto pReward = SafeCast<CCharacter>( ( SRand::Inst().Rand( 0, 2 ) ? m_pRestorePrefab[i] : m_pMoneyPrefab[i] )->GetRoot()->CreateInstance() );
+			float fDir = SRand::Inst().Rand( -PI, PI );
+			pReward->SetPosition( globalTransform.GetPosition() );
+			pReward->SetVelocity( CVector2( cos( fDir ), sin( fDir ) ) * m_fRewardSpeed );
+			pReward->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			m_nRewards[i]--;
+			break;
+		}
+	}
+
+	m_r += m_fAngularSpeed * ( m_lCur / m_l ) * GetStage()->GetElapsedTimePerTick();
+	m_lCur = Min( m_l, m_lCur + m_dl * GetStage()->GetElapsedTimePerTick() );
+	int32 n = m_triggers.size() - 1;
+	for( int i = 0; i < n; i++ )
+	{
+		float r = m_r + i * PI * 2 / n;
+		m_pickups[i + 1]->SetPosition( CVector2( cos( r ), sin( r ) ) * m_lCur );
+		m_pLinkImgs[i]->SetRotation( r );
+
+		auto pImg = static_cast<CImage2D*>( m_pLinkImgs[i].GetPtr() );
+		auto rect = pImg->GetElem().rect;
+		rect.width = m_lCur;
+		pImg->SetRect( rect );
+	}
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CBonusStageReward::OnPickUp()
+{
+	for( int i = 0; i < m_triggers.size(); i++ )
+	{
+		auto& trigger = m_triggers[i];
+		if( trigger.IsRegistered() )
+			trigger.Unregister();
+		auto& pPickUp = m_pickups[i];
+		if( pPickUp )
+		{
+			pPickUp->Kill();
+			pPickUp = NULL;
+		}
+	}
+	for( int i = 0; i < ELEM_COUNT( m_pLinkImgs ); i++ )
+	{
+		if( !m_pLinkImgs[i] )
+			break;
+		m_pLinkImgs[i]->RemoveThis();
+		m_pLinkImgs[i] = NULL;
+	}
+	SetParentEntity( NULL );
 }

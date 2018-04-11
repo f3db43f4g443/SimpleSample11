@@ -37,6 +37,13 @@ public:
 	float GetHidingPercent() { return m_fHidingCurTime / m_fHidingTime; }
 	float GetRepairPercent() { return ( m_nRepairTime - m_nRepairTimeLeft ) * 1.0f / m_nRepairTime; }
 
+	void OnBonusStageBegin();
+	void OnBonusStageEnd();
+	int32 GetPoint() { return m_nPoint; }
+	void AddPoint( uint32 nValue );
+	int32 GetCombo() { return m_nCombo; }
+	void ModifyCombo( int32 nCombo );
+
 	void Move( float fXAxis, float fYAxis )
 	{
 		m_fMoveXAxis = fXAxis;
@@ -72,8 +79,8 @@ public:
 	CVector2 GetKnockback();
 	void BeginFire();
 	void EndFire();
-	void BeginRepair();
-	void EndRepair();
+	void BeginJump();
+	void EndJump( float fJumpHoldingTime );
 	void Use() { m_bUse = true; }
 
 	void AddItem( CItem* pItem );
@@ -115,6 +122,8 @@ private:
 	void UpdateFiring();
 	void UpdateRoom();
 	void UpdateRepair();
+	void CrushResult( bool bCrush );
+	void OnBonusModeCrushed();
 
 	SAttribute m_hp;
 	SAttribute m_sp;
@@ -123,6 +132,11 @@ private:
 	int32 m_nSpRegenPerFrameSlidingDown;
 	int32 m_nRollSpCost;
 	int32 m_nMoney;
+
+	bool m_bBonusMode;
+	bool m_bBonusModeCrushed;
+	int32 m_nPoint;
+	int32 m_nCombo;
 
 	CReference<CEntity> m_pCore;
 	CReference<CPlayerWeapon> m_pCurWeapon;

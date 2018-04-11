@@ -10,18 +10,29 @@ class CLvFloor1 : public CRandomChunkTiled
 {
 	friend void RegisterGameClasses();
 public:
-	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_nKilledCrates( 0 ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
+	CLvFloor1( const SClassCreateContext& context ) : CRandomChunkTiled( context ), m_nKilledCrates( 0 ), m_onTick( this, &CLvFloor1::OnTick ) { SET_BASEOBJECT_ID( CLvFloor1 ); }
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+	virtual void OnRemovedFromStage() override;
 private:
 	void OnCrateKilled( int32 i );
 	void OnPickUp();
+	virtual void Kill() override;
+	virtual void Crush() override { m_triggerCrushed.Trigger( 0, this ); CRandomChunkTiled::Kill(); }
+	void OnTick();
 
 	CString m_strCrate;
 	CString m_strItemDrop;
+	TResourceRef<CPrefab> m_pBonusStageReward;
+	TResourceRef<CPrefab> m_pKillEffect;
+	uint32 m_nKillEffectInterval;
 	float m_fWeights[4];
 	uint32 m_nKilledCrates;
+	TClassTrigger<CLvFloor1> m_onTick;
 	vector<CReference<CChunkObject> > m_vecCrates;
 	vector<CReference<CEntity> > m_vecPickups;
+
+	bool m_bKilled;
+	uint32 m_nKillEffectCDLeft;
 	vector<CFunctionTrigger> m_triggers;
 };
 
@@ -38,8 +49,9 @@ public:
 protected:
 	void OnCrateKilled( int32 i );
 	void OnPickUp();
+	virtual void Kill() override;
+	virtual void Crush() override { m_triggerCrushed.Trigger( 0, this ); CChunkObject::Kill(); }
 	void OnTick();
-	virtual void OnKilled() override;
 
 	CString m_strItemDrop;
 	float m_fWeights[4];
@@ -58,7 +70,7 @@ protected:
 	vector<CFunctionTrigger> m_triggers;
 	uint32 m_nKillEffectCDLeft;
 	uint8 m_nDir;
-	bool m_bPicked;
+	bool m_bKilled;
 };
 
 class CLvBarrier1Core : public CChunkObject
@@ -68,7 +80,7 @@ public:
 	CLvBarrier1Core( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ), m_strBullet1( context ), m_strBullet2( context ), m_nPhase( 0 ), m_nSpecialFires( 0 ) { SET_BASEOBJECT_ID( CLvBarrier1Core ); }
 
 	virtual void OnAddedToStage() override { m_pAI = new AI(); m_pAI->SetParentEntity( this ); }
-	virtual void Damage( SDamageContext& context ) override { m_nSpecialFires = 1; CChunkObject::Damage( context ); }
+	virtual bool Damage( SDamageContext& context ) override { m_nSpecialFires = 1; return CChunkObject::Damage( context ); }
 
 	void SetPhase( uint8 nPhase ) { m_nPhase = nPhase; }
 protected:
@@ -165,10 +177,8 @@ public:
 	void Set( int32 nIndex ) { m_nIndex = nIndex; }
 
 	virtual void OnRemovedFromStage() override;
-	virtual void Damage( SDamageContext& context ) override;
 private:
 	int32 m_nIndex;
-	uint8 m_nDmgTime;
 };
 
 class CLvBarrier2Label : public CEntity
@@ -202,7 +212,18 @@ protected:
 	virtual void OnKilled() {}
 	void KillTick();
 	void Move( bool bSpawnChunk );
+
+	struct SBigChunk
+	{
+		CReference<CChunkObject> pChunk;
+		TRectangle<int32> rect;
+		int8 nCurMoveDir;
+		bool bMoved;
+		bool bMoveResult;
+	};
+	bool TryMoveBigChunk( SBigChunk& chunk, int8 nDir, uint8 nMoveType );
 	void Move1();
+	void SetCurMoveType( uint8 nMoveType );
 	void UpdateEnergyEfts();
 	void CreateExplosion( int32 iX, int32 iY, CChunkObject* pCreator );
 
@@ -289,12 +310,6 @@ protected:
 	vector<SGrid> m_grids;
 	vector<TVector2<int32> > m_vecMovingGrids;
 	vector<TVector2<int32> > m_q;
-
-	struct SBigChunk
-	{
-		CReference<CChunkObject> pChunk;
-		TRectangle<int32> rect;
-	};
 	CReference<CLvBarrier2Label> m_pLabel;
 	CReference<CRenderObject2D> m_pBoxLayer;
 	vector<SBigChunk> m_bigChunks;
@@ -308,6 +323,7 @@ protected:
 	uint32 m_nEnergy;
 	uint32 m_nFireCD;
 	uint32 m_nAttackType;
+	uint8 m_nCurMoveType;
 
 	CVector2 m_blockTex;
 	CString m_strCreateNode;

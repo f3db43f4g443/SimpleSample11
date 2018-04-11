@@ -12,8 +12,12 @@
       <node name="floor_label_2" prefab="data/blocks/lv1/2.pf" />
       <node name="floor_label_3" prefab="data/blocks/lv1/3.pf" />
       <node name="floor_label_4" prefab="data/blocks/lv1/4.pf" />
+      <node name="floor_label_5" prefab="data/blocks/lv1/5.pf" />
       <node name="floor_label_6" prefab="data/blocks/lv1/6.pf" />
+      <node name="floor_label_7" prefab="data/blocks/lv1/7.pf" />
       <node name="floor_label_8" prefab="data/blocks/lv1/8.pf" />
+      <node name="floor_label_9" prefab="data/blocks/lv1/9.pf" />
+      <node name="floor_label_10" prefab="data/blocks/lv1/10.pf" />
       <node name="floor_label_f" prefab="data/blocks/lv1/f.pf" />
       <node name="thanks_label" prefab="thanks.pf" />
     </spawns>
@@ -27,49 +31,23 @@
         <metadata isdesignvalid="0" />
         <types>4,4,4,4,4,4,4,4</types>
         <immune_to_block_buff>1,1,1,1,1,1,1,1</immune_to_block_buff>
-      </node>
-      <node name="label_2f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_2f.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4,4,4</types>
-        <immune_to_block_buff>1,1,1,1,1,1,1,1</immune_to_block_buff>
-      </node>
-      <node name="label_3f" width="4" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/label_3f.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4,4,4</types>
-        <immune_to_block_buff>1,1,1,1,1,1,1,1</immune_to_block_buff>
-      </node>
-      <node name="vroom" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" subchunk_type="2" movetype="2" isroom="1" prefab="data/blocks/lv1/vroom.pf">
-        <metadata isdesignvalid="0" />
-        <types>0</types>
-        <immune_to_block_buff>1</immune_to_block_buff>
         <next_level>
           <node type="subregion">
-            <ref name="enemycharacter" x="0" y="0" w="0" h="0" />
+            <node type="switch" str="f" x="0" y="0" w="2" h="2">
+              <ref name="floor_label_1" case="1" />
+              <ref name="floor_label_2" case="2" />
+              <ref name="floor_label_3" case="3" />
+              <ref name="floor_label_4" case="4" />
+              <ref name="floor_label_5" case="5" />
+              <ref name="floor_label_6" case="6" />
+              <ref name="floor_label_7" case="7" />
+              <ref name="floor_label_8" case="8" />
+              <ref name="floor_label_9" case="9" />
+              <ref name="floor_label_10" case="10" />
+            </node>
+            <ref name="floor_label_f" x="2" y="0" w="2" h="2" />
           </node>
         </next_level>
-      </node>
-
-      <node name="stonebar_room_corner2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/stonebar_room_corner.pf">
-        <metadata isdesignvalid="0" />
-        <types>4</types>
-      </node>
-      <node name="stonebar_room_h2" width="8" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/stonebar_room_h.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4,4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <ref name="stonebar_room_broken" />
-          </node>
-        </subitem>
-      </node>
-      <node name="stonebar_room_v2" width="1" height="4" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/stonebar_room_v.pf">
-        <metadata isdesignvalid="0" />
-        <types>4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <ref name="stonebar_room_broken" />
-          </node>
-        </subitem>
       </node>
 
       <node name="lv1floorcrate" width="2" height="2" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/floor_crate.pf">
@@ -78,18 +56,29 @@
         <immune_to_block_buff>1,1,1,1</immune_to_block_buff>
       </node>
 
-      <node name="lv1floor" width="32" height="2" weight="0" destroyweight="0" destroyshake="10"
-            absorbshakestrength="10000" shakedmg="5" show_layer_type="0" prefab="data/blocks/lv1/floor.pf">
+      <node name="lv1floor" width="32" height="4" weight="0" destroyweight="0" destroyshake="10" shakedmgthreshold="1000000"
+            absorbshakestrength="10000" show_layer_type="0" islevelbarrier="1" prefab="data/blocks/lv1/floor.pf">
         <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         </types>
         <immune_to_block_buff>
           1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
           1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         </immune_to_block_buff>
         <subitem>
           <node type="subregion">
+            <node type="tile" x="0" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="18" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <ref name="label_1f" x="14" y="2" w="4" h="2" />
             <node type="tile" x="0" y="0" w="0" h="0">
               <ref name="floor_broken" />
             </node>
@@ -97,11 +86,139 @@
             <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
             <ref name="lv1floorcrate" x="19" y="0" w="2" h="2" />
             <ref name="lv1floorcrate" x="27" y="0" w="2" h="2" />
+            <node type="tile" x="0" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="5" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="13" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="21" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="29" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
           </node>
         </subitem>
         <next_level>
           <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
+            <ref name="pickup_templ_reward" x="3" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="11" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="19" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="27" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="lv1floor_bonus_begin" width="32" height="4" weight="0" destroyweight="0" destroyshake="10" shakedmgthreshold="1000000"
+            absorbshakestrength="10000" show_layer_type="0" islevelbarrier="2" prefab="data/blocks/lv1/floor.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+        <immune_to_block_buff>
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        </immune_to_block_buff>
+        <subitem>
+          <node type="subregion">
+            <node type="tile" x="0" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="18" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <ref name="label_1f" x="14" y="2" w="4" h="2" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="floor_broken" />
+            </node>
+            <ref name="lv1floorcrate" x="3" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="19" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="27" y="0" w="2" h="2" />
+            <node type="tile" x="0" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="5" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="13" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="21" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="29" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="pickup_templ_reward" x="3" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="11" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="19" y="0" w="2" h="2" />
+            <ref name="pickup_templ_reward" x="27" y="0" w="2" h="2" />
+          </node>
+        </next_level>
+      </node>
+
+      <node name="lv1floor_bonus_end" width="32" height="4" weight="0" destroyweight="0" destroyshake="10" shakedmgthreshold="1000000"
+            absorbshakestrength="10000" show_layer_type="0" islevelbarrier="3" prefab="data/blocks/lv1/floor_bonus.pf">
+        <types>
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        </types>
+        <immune_to_block_buff>
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        </immune_to_block_buff>
+        <subitem>
+          <node type="subregion">
+            <node type="tile" x="0" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="18" y="2" w="14" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <ref name="label_1f" x="14" y="2" w="4" h="2" />
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="floor_broken" />
+            </node>
+            <ref name="lv1floorcrate" x="3" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="11" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="19" y="0" w="2" h="2" />
+            <ref name="lv1floorcrate" x="27" y="0" w="2" h="2" />
+            <node type="tile" x="0" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="5" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="13" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="21" y="0" w="6" h="2">
+              <ref name="unbreakable" />
+            </node>
+            <node type="tile" x="29" y="0" w="3" h="2">
+              <ref name="unbreakable" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
             <ref name="pickup_templ_reward" x="3" y="0" w="2" h="2" />
             <ref name="pickup_templ_reward" x="11" y="0" w="2" h="2" />
             <ref name="pickup_templ_reward" x="19" y="0" w="2" h="2" />
@@ -111,64 +228,67 @@
       </node>
       
       <node name="lv1floor_1" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="1" />
+        </params>
         <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_1" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
       </node>
       <node name="lv1floor_2" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_2" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="2" />
+        </params>
+        <ref name="lv1floor_bonus_begin" x="0" y="0" w="0" h="0" />
       </node>
       <node name="lv1floor_3" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_3" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="3" />
+        </params>
+        <ref name="lv1floor_bonus_end" x="0" y="0" w="0" h="0" />
       </node>
       <node name="lv1floor_4" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="4" />
+        </params>
         <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_4" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
+      </node>
+      <node name="lv1floor_5" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="5" />
+        </params>
+        <ref name="lv1floor_bonus_begin" x="0" y="0" w="0" h="0" />
       </node>
       <node name="lv1floor_6" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="6" />
+        </params>
+        <ref name="lv1floor_bonus_end" x="0" y="0" w="0" h="0" />
+      </node>
+      <node name="lv1floor_7" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="7" />
+        </params>
         <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_6" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
       </node>
       <node name="lv1floor_8" type="subregion">
-        <metadata isdesignvalid="1" minx="32" miny="2" maxx="32" maxy="2" minlevel="0" maxlevel="1" />
-        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
-        <next_level>
-          <node type="subregion">
-            <ref name="floor_label_8" x="14" y="0" w="2" h="2" />
-            <ref name="floor_label_f" x="16" y="0" w="2" h="2" />
-          </node>
-        </next_level>
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="8" />
+        </params>
+        <ref name="lv1floor_bonus_begin" x="0" y="0" w="0" h="0" />
+      </node>
+      <node name="lv1floor_9" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="9" />
+        </params>
+        <ref name="lv1floor_bonus_end" x="0" y="0" w="0" h="0" />
       </node>
       
       <node name="reward_floor" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000"
@@ -216,184 +336,6 @@
 
       </node>
 
-      <node name="core" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/core.pf">
-        <metadata isdesignvalid="0" />
-        <types>4</types>
-      </node>
-
-      <node name="1f" type="barrier1" show_layer_type="0" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
-        <types>
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        </types>
-        <immune_to_block_buff>
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-        </immune_to_block_buff>
-
-        <subitem>
-          <node type="subregion">
-            <ref name="reward_floor" x="0" y="0" w="0" h="0"/>
-          </node>
-        </subitem>
-
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
-          </node>
-        </next_level>
-
-        <label>
-          <ref name="label_1f" />
-        </label>
-        <fill>
-          <ref name="stonebar_room_corner2" />
-        </fill>
-        <base>
-          <ref name="unbreakable" />
-        </base>
-        <core>
-          <ref name="core" />
-        </core>
-        <room>
-          <ref name="vroom" />
-        </room>
-        <wall_h>
-          <ref name="stonebar_room_h2" />
-        </wall_h>
-        <wall_v>
-          <ref name="stonebar_room_v2" />
-        </wall_v>
-        <window>
-          <ref name="window2x2_1" />
-        </window>
-        
-      </node>
-
-      <node name="2f" type="barrier1" show_layer_type="0" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/barrier.pf" islevelbarrier="1" levelbarrierheight="6">
-        <types>
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        </types>
-        <immune_to_block_buff>
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-        </immune_to_block_buff>
-
-        <subitem>
-          <node type="subregion">
-            <ref name="reward_floor" x="0" y="0" w="0" h="0"/>
-          </node>
-        </subitem>
-
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
-          </node>
-        </next_level>
-
-        <label>
-          <ref name="label_2f" />
-        </label>
-        <fill>
-          <ref name="stonebar_room_corner2" />
-        </fill>
-        <base>
-          <ref name="unbreakable" />
-        </base>
-        <core>
-          <ref name="core" />
-        </core>
-        <room>
-          <ref name="vroom" />
-        </room>
-        <wall_h>
-          <ref name="stonebar_room_h2" />
-        </wall_h>
-        <wall_v>
-          <ref name="stonebar_room_v2" />
-        </wall_v>
-        <window>
-          <ref name="window2x2_1" />
-        </window>
-
-      </node>
-      
-      <node name="3f" width="32" show_layer_type="0" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000"
-            prefab="data/blocks/lv1/barrier_reward.pf" islevelbarrier="1" levelbarrierheight="6">
-        <types>
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        </types>
-        <immune_to_block_buff>
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-        </immune_to_block_buff>
-
-        <subitem>
-          <node type="subregion">
-            <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="floor_broken" />
-            </node>
-            <node type="tile" x="0" y="6" w="14" h="2">
-              <ref name="unbreakable" />
-            </node>
-            <ref name="label_3f" x="14" y="6" w="4" h="2" />
-            <node type="tile" x="18" y="6" w="14" h="2">
-              <ref name="unbreakable" />
-            </node>
-          </node>
-        </subitem>
-        <next_level>
-          <node type="subregion">
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="pickup_templ_reward" x="3" y="3" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="11" y="3" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="19" y="3" w="2" h="2" />
-            <ref name="pickup_templ_reward" x="27" y="3" w="2" h="2" />
-          </node>
-        </next_level>
-
-      </node>
-      
       <node name="lv1bossfloor" show_layer_type="0" width="32" height="12" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000" prefab="data/blocks/lv1/floor.pf" islevelbarrier="1" levelbarrierheight="10">
         <types>
           0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

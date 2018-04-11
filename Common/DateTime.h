@@ -12,6 +12,7 @@ struct SDateTime	//本地时间
 	uint16 nMilliSec;
 };
 
-uint64 GetLocalTime();//UTC时间
+uint64 GetLocalTime();
+uint64 GetCycleCount();
 
 void LocalTimeToDateTime( uint64 nLocalTime, SDateTime& dateTime );

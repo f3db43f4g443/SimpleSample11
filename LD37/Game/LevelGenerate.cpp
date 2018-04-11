@@ -13,8 +13,9 @@
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
 #include "LevelGenerating/LvGen2.h"
+#include "LevelGenerating/LvBonusGen1.h"
 
-SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 )
+SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
@@ -25,7 +26,21 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 }
 
-SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight ) : pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 ), nMaxChunkHeight( 0 )
+SLevelBuildContext::SLevelBuildContext( const SLevelBuildContext& par, SChunk * pParentChunk ) : pLevel( par.pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
+{
+	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
+	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
+	nBlockSize = CMyLevel::GetBlockSize();
+	blueprint.resize( nWidth * nHeight );
+	blocks.resize( nWidth * nHeight * 2 );
+	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
+		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
+	for( auto& item : par.mapTags )
+		mapTags[item.first] = item.second;
+}
+
+SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight )
+	: pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
 {
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
@@ -166,20 +181,18 @@ void SLevelBuildContext::Build()
 			pPreBlocks[iLayer].resize( nWidth );
 		}
 
-		SChunk* pLevelBarrier = NULL;
-		if( pLevel )
+		SChunk* pLevelBarrier = pLastLevelBarrier;
+		if( !pLevelBarrier )
 		{
-			for( auto pBlock = pLevel->m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
+			if( pLevel )
 			{
-				if( pBlock->pParent->pOwner->bIsLevelBarrier )
+				for( auto pBlock = pLevel->m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
 				{
-					pLevelBarrier = pBlock->pParent->pOwner;
-					break;
+					if( pBlock->pParent->pOwner->nLevelBarrierType )
+						pLevelBarrier = pBlock->pParent->pOwner;
 				}
 			}
 		}
-		int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * nBlockSize : 0;
-		int32 nGridOfs = nYOfs / nBlockSize;
 		if( pLevelBarrier )
 		{
 			for( int iLayer = 0; iLayer < 2; iLayer++ )
@@ -190,7 +203,10 @@ void SLevelBuildContext::Build()
 				}
 			}
 		}
+		int32 nYOfs = pLevelBarrier ? pLevelBarrier->pos.y + pLevelBarrier->nHeight * nBlockSize : 0;
+		int32 nGridOfs = nYOfs / nBlockSize;
 
+		pLastLevelBarrier = NULL;
 		auto pMainUI = CMainUI::GetInst();
 
 		for( int j = 0; j < nHeight; j++ )
@@ -207,6 +223,8 @@ void SLevelBuildContext::Build()
 							continue;
 						if( pMainUI )
 							pMainUI->UpdateMinimap( i, j + nGridOfs, iLayer, CMyLevel::s_nTypes[pBlock->eBlockType] );
+						if( pBlock->pOwner->nLevelBarrierType )
+							pLastLevelBarrier = pBlock->pOwner;
 
 						if( pBlock->nY == 0 )
 						{
@@ -440,7 +458,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fWeight = XmlGetAttr( pXml, "weight", 0.0f );
 	chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
 	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
-	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 0.0f );
+	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 1.0f );
 	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
 	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0.0F );
 	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
@@ -449,7 +467,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fWeightPerWidth = XmlGetAttr( pXml, "weightperwidth", 0.0f );
 	chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
 	chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
-	m_bIsLevelBarrier = XmlGetAttr( pXml, "islevelbarrier", 0 );
+	m_nLevelBarrierType = XmlGetAttr( pXml, "islevelbarrier", 0 );
 	m_nLevelBarrierHeight = XmlGetAttr( pXml, "levelbarrierheight", 0 );
 	chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
 	chunk.nMoveType = XmlGetAttr( pXml, "movetype", 0 );
@@ -568,12 +586,12 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 
 		if( m_pSubChunk )
 		{
-			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			SLevelBuildContext tempContext( context, pChunk );
 			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 			if( m_bCopyBlueprint )
@@ -787,6 +805,18 @@ public:
 
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
+		auto pParams = pXml->FirstChildElement( "params" );
+		if( pParams )
+		{
+			for( auto pItem = pParams->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				m_vecParams.resize( m_vecParams.size() + 1 );
+				auto& item = m_vecParams.back();
+				item.first = XmlGetAttr( pItem, "name", "" );
+				item.second = XmlGetAttr( pItem, "value", 0 );
+			}
+		}
+
 		for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
 		{
 			auto pNode = CreateNode( pChild, context );
@@ -810,6 +840,8 @@ public:
 	}
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
+		for( auto& item : m_vecParams )
+			context.mapTags[item.first] = item.second;
 		for( auto& item : m_subItems )
 		{
 			if( SRand::Inst().Rand( 0.0f, 1.0f ) < item.fChance )
@@ -869,6 +901,7 @@ public:
 	}
 protected:
 	vector<SSubItem> m_subItems;
+	vector<pair<string, int8> > m_vecParams;
 };
 
 class CLevelGenerateRandomPickNode : public CLevelGenerateNode
@@ -1505,6 +1538,8 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1type2", CLevelGenNode1_2 );
 	REGISTER_GENERATE_NODE( "lv1type3", CLevelGenNode1_3 );
 	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
+	REGISTER_GENERATE_NODE( "lv1bonus0", CLevelBonusGenNode1_0 );
+	REGISTER_GENERATE_NODE( "lv1bonus1", CLevelBonusGenNode1_1 );
 
 	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 	REGISTER_GENERATE_NODE( "lv2type1_1", CLevelGenNode2_1_1 );

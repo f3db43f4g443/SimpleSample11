@@ -18,6 +18,9 @@ public:
 	float GetDeathTime() { return m_fDeathTime; }
 
 	void SetState( uint8 nState );
+	void SetVelocity( const CVector2& vel ) { m_vel = vel; }
+	void SetAcceleration( const CVector2& a ) { m_a = a; }
+	void SetAnimTimeScale( float fTimeScale ) { m_fAnimTimeScale = fTimeScale; }
 protected:
 	virtual void OnTickBeforeHitTest();
 private:
@@ -30,5 +33,8 @@ private:
 	float m_fTimeLeft;
 	CVector2 m_vel;
 	float m_velA;
+	CVector2 m_a;
 	uint8 m_nState;
+
+	float m_fAnimTimeScale;
 };

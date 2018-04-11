@@ -14,7 +14,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	void DisablePickUp();
+	void SetPickUpEnabled( bool bEnabled );
 	virtual void RefreshText() {}
 	void RefreshPrice();
 	uint32 GetPrice() { return m_nPrice; }
@@ -22,6 +22,7 @@ public:
 	virtual bool CanPickUp( class CPlayer* pPlayer ) { return true; }
 	virtual void PickUp( class CPlayer* pPlayer );
 	virtual void Kill();
+	void RegisterBeforePickupEvent( CTrigger* pTrigger ) { m_beforePickedUp.Register( 0, pTrigger ); }
 	void RegisterPickupEvent( CTrigger* pTrigger ) { m_onPickedUp.Register( 0, pTrigger ); }
 protected:
 	CReference<CEffectObject> m_pDeathEffect;
@@ -29,9 +30,20 @@ protected:
 	CReference<CSimpleText> m_pPriceText;
 	CReference<CSimpleText> m_pPriceText1;
 	CEventTrigger<1> m_onPickedUp;
+	CEventTrigger<1> m_beforePickedUp;
 	TClassTrigger<CPickUp> m_onRefreshText;
 	TClassTrigger<CPickUp> m_onRefreshPrice;
 	uint32 m_nPrice;
+};
+
+enum
+{
+	ePickUpClass_CommonItem,
+	ePickUpClass_Heal,
+	ePickUpClass_Restore,
+	ePickUpClass_Money,
+	ePickUpClass_Consumable,
+	ePickUpClass_Misc,
 };
 
 class CPickUpCommon : public CPickUp
@@ -46,6 +58,7 @@ protected:
 	uint32 m_nHeal;
 	uint32 m_nHpRestore;
 	uint32 m_nMoney;
+	uint32 m_nBonus;
 };
 
 class CPickUpItem : public CPickUp

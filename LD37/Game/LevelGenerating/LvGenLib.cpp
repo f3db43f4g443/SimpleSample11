@@ -311,6 +311,42 @@ void LvGenLib::DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 	}
 }
 
+void LvGenLib::DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 * nObjTypes, uint8 nObjTypeCount )
+{
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			bool b = false;
+			int8 nType = genData[i + j * nWidth];
+			for( int k = 0; k < nObjTypeCount; k++ )
+			{
+				if( nType == nObjTypes[k] )
+				{
+					b = true;
+					break;
+				}
+			}
+			if( b )
+			{
+				int y;
+				for( y = j - 1; y >= 0; y-- )
+				{
+					if( genData[i + y * nWidth] != nSpaceType )
+						break;
+				}
+
+				if( y + 1 < j || j == 0 )
+				{
+					genData[i + j * nWidth] = nSpaceType;
+					if( y >= 0 )
+						genData[i + ( y + 1 ) * nWidth] = nType;
+				}
+			}
+		}
+	}
+}
+
 void LvGenLib::Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nFlattenType, int8 nFillType )
 {
 	for( int j = 0; j < nHeight; j++ )

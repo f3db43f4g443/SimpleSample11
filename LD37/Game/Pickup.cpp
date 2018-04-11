@@ -27,9 +27,9 @@ void CPickUp::OnRemovedFromStage()
 		m_onRefreshPrice.Unregister();
 }
 
-void CPickUp::DisablePickUp()
+void CPickUp::SetPickUpEnabled( bool bEnabled )
 {
-	SetTransparent( true );
+	SetTransparent( !bEnabled );
 }
 
 void CPickUp::RefreshPrice()
@@ -72,6 +72,7 @@ void CPickUp::SetPrice( uint32 nPrice )
 void CPickUp::PickUp( CPlayer* pPlayer )
 {
 	DEFINE_TEMP_REF_THIS()
+	m_beforePickedUp.Trigger( 0, pPlayer );
 	Kill();
 	m_onPickedUp.Trigger( 0, pPlayer );
 }
@@ -99,6 +100,11 @@ void CPickUpCommon::PickUp( CPlayer* pPlayer )
 		pPlayer->RestoreHp( m_nHpRestore );
 	if( m_nMoney )
 		pPlayer->ModifyMoney( m_nMoney );
+	if( m_nBonus )
+	{
+		pPlayer->AddPoint( m_nBonus );
+		pPlayer->ModifyCombo( 1 );
+	}
 
 	CPickUp::PickUp( pPlayer );
 }
@@ -106,12 +112,12 @@ void CPickUpCommon::PickUp( CPlayer* pPlayer )
 uint8 CPickUpCommon::GetClass()
 {
 	if( m_nHeal )
-		return 1;
+		return ePickUpClass_Heal;
 	if( m_nHpRestore )
-		return 2;
+		return ePickUpClass_Restore;
 	if( m_nMoney )
-		return 3;
-	return 0;
+		return ePickUpClass_Money;
+	return ePickUpClass_Misc;
 }
 
 void CPickUpItem::PickUp( CPlayer* pPlayer )
@@ -148,7 +154,7 @@ void CPickUpTemplate::Set( CEntity * pEntity, uint32 nPrice )
 	if( pPickUpCommon )
 	{
 		nClass = pPickUpCommon->GetClass();
-		pPickUpCommon->DisablePickUp();
+		pPickUpCommon->SetPickUpEnabled( false );
 	}
 
 	auto pConsumable = SafeCast<CConsumable>( pEntity );
@@ -162,20 +168,23 @@ void CPickUpTemplate::Set( CEntity * pEntity, uint32 nPrice )
 			m_lightBaseColor = pLight->baseColor;
 		switch( nClass )
 		{
-		case 0:
+		case ePickUpClass_CommonItem:
 			pLight->baseColor = CVector3( 1, 1, 1 ) * m_lightBaseColor;
 			break;
-		case 1:
+		case ePickUpClass_Heal:
 			pLight->baseColor = CVector3( 0, 2, 0 ) * m_lightBaseColor;
 			break;
-		case 2:
+		case ePickUpClass_Restore:
 			pLight->baseColor = CVector3( 0.8f, 1.6f, 0 ) * m_lightBaseColor;
 			break;
-		case 3:
+		case ePickUpClass_Money:
 			pLight->baseColor = CVector3( 1.3f, 1.3f, 0 ) * m_lightBaseColor;
 			break;
-		case 4:
+		case ePickUpClass_Consumable:
 			pLight->baseColor = CVector3( 0.5f, 0.5f, 1.7f ) * m_lightBaseColor;
+			break;
+		case ePickUpClass_Misc:
+			pLight->baseColor = CVector3( 1.0f, 0.5f, 1.0f ) * m_lightBaseColor;
 			break;
 		}
 	}
@@ -194,40 +203,37 @@ void CPickUpTemplate::Set( CEntity * pEntity, uint32 nPrice )
 
 bool CPickUpTemplate::CanPickUp( CPlayer * pPlayer )
 {
-	auto pConsumable = SafeCast<CConsumable>( m_pEntity.GetPtr() );
-	if( pConsumable )
-	{
-		if( pPlayer->CanAddConsumable( pConsumable ) < 0 )
-			return false;
-	}
 	return true;
 }
 
 void CPickUpTemplate::PickUp( CPlayer * pPlayer )
 {
-	do
+	if( m_pEntity )
 	{
-		auto pItem = SafeCast<CItem>( m_pEntity.GetPtr() );
-		if( pItem )
+		do
 		{
-			pPlayer->AddItem( pItem );
-			break;
-		}
+			auto pItem = SafeCast<CItem>( m_pEntity.GetPtr() );
+			if( pItem )
+			{
+				pPlayer->AddItem( pItem );
+				break;
+			}
 
-		auto pConsumable = SafeCast<CConsumable>( m_pEntity.GetPtr() );
-		if( pConsumable )
-		{
-			pPlayer->AddConsumable( pConsumable );
-			break;
-		}
+			auto pConsumable = SafeCast<CConsumable>( m_pEntity.GetPtr() );
+			if( pConsumable )
+			{
+				pPlayer->AddConsumable( pConsumable );
+				break;
+			}
 
-		auto pPickUpCommon = SafeCast<CPickUpCommon>( m_pEntity.GetPtr() );
-		if( pPickUpCommon )
-		{
-			pPickUpCommon->PickUp( pPlayer );
-			break;
-		}
-	} while( 0 );
+			auto pPickUpCommon = SafeCast<CPickUpCommon>( m_pEntity.GetPtr() );
+			if( pPickUpCommon )
+			{
+				pPickUpCommon->PickUp( pPlayer );
+				break;
+			}
+		} while( 0 );
+	}
 
 	CPickUp::PickUp( pPlayer );
 }

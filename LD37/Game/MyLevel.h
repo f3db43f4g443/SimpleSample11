@@ -54,6 +54,7 @@ public:
 	
 	FORCE_INLINE bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
 	FORCE_INLINE CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
+	FORCE_INLINE float GetLvBarrierHeight() { return m_fCurLvBarrierHeight; }
 	FORCE_INLINE CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
 	FORCE_INLINE CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
 	FORCE_INLINE float GetHighGravityHeight() { return 256.0f; }
@@ -66,6 +67,12 @@ public:
 	FORCE_INLINE CRenderObject2D* GetCrosshair() { return m_pCrosshair; }
 	void UpdateBack0Position( const CVector2& pos );
 	virtual CVector2 GetCamPos();
+	FORCE_INLINE bool IsBonusStage() { return m_bIsBonusStage; }
+	FORCE_INLINE bool IsBonusStageEnd() { return m_bIsBonusStageEnd; }
+	void BeginBonusStage();
+	void EndBonusStage();
+	void OnPlayerBonusStageCrushed();
+	SChunk* GetCurLevelBarrier();
 
 	void UpdateBlocksMovement();
 	void UpdateBlockRT();
@@ -89,11 +96,18 @@ public:
 	virtual TRectangle<int32> GetMapRect() override;
 	virtual CVector2 GetGridSize() override { return CVector2( GetBlockSize(), GetBlockSize() ); }
 protected:
-	void CreateGrids( const char* szNode );
-	void CacheNextLevel();
+	SChunk* CreateGrids( const char* szNode, SChunk* pLevelBarrier = NULL );
+	SChunk* CacheNextLevel( SChunk* pLevelBarrier );
+	void UpdateBlocksMovementNormal();
+	void UpdateBlocksMovementBonusStage();
+	void UpdateBlocksMovementBonusStageEnd();
 	uint32 m_nCurLevel;
+	uint32 m_nGenLevel;
 
+	bool m_bBeginGenLevel;
 	bool m_bIsLevelDesignTest;
+	bool m_bIsBonusStage;
+	bool m_bIsBonusStageEnd;
 	uint32 m_nWidth;
 	uint32 m_nHeight;
 	uint32 m_nSpawnHeight;

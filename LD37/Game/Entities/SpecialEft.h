@@ -48,3 +48,33 @@ private:
 	CReference<CRenderObject2D> m_pAttackEft[8];
 	TClassTrigger<CLimbsAttackEft> m_onTick;
 };
+
+class CAuraEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CAuraEft( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CAuraEft ); }
+
+	virtual void OnAddedToStage() override;
+
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+private:
+	uint32 m_nCount;
+	uint32 m_nCols;
+	uint32 m_nRows;
+	float m_fWidth;
+	float m_fHeight;
+	CRectangle m_ofs;
+	float m_fAngularSpeed;
+
+	CReference<CRenderObject2D> m_pImg;
+	int32 m_nTime0;
+	struct SItem
+	{
+		float r0;
+		float fAngularSpeed;
+		CElement2D elem;
+	};
+	vector<SItem> m_items;
+};

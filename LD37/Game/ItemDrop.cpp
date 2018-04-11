@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "ItemDrop.h"
 #include "Common/Rand.h"
+#include <algorithm>
 
-void SItemDropContext::Drop()
+void SItemDropContext::Drop( bool bForceDrop )
 {
 	if( !dropPool.size() )
 		return;
@@ -32,6 +33,9 @@ void SItemDropContext::Drop()
 				return left.p > right.p;
 			}
 		};
+		std::sort( dropPool.begin(), dropPool.end(), SLess() );
+		if( !bForceDrop )
+			nDrop = Min( nDrop, dropPool.size() );
 		for( int i = 0; i < nDrop; i++ )
 		{
 			dropItems.push_back( dropPool[i % dropPool.size()].drop );
@@ -98,18 +102,27 @@ void CItemDropSimpleGroup::Generate( SItemDropContext & context )
 		{
 			uint32 nSize = context.nDrop;
 			context1.nDrop = 1;
+			int32 n = 0;
 			for( int i = 0; i < Min( m_subItems.size(), nSize ); i++ )
 			{
 				uint32 r = SRand::Inst().Rand<uint32>( i, m_subItems.size() );
 				if( r != i )
 					swap( m_subItems[r], m_subItems[i] );
 				m_subItems[i].pNode->Generate( context1 );
-				context1.Drop();
+				context1.Drop( false );
 
-				context.dropPool.resize( context.dropPool.size() + 1 );
-				context.dropPool.back().drop = context1.dropItems[0];
-				context.dropPool.back().p = 1.0f / context1.dropItems.size();
+				if( context1.dropItems.size() )
+				{
+					context.dropPool.resize( context.dropPool.size() + 1 );
+					context.dropPool.back().drop = context1.dropItems[0];
+					n++;
+				}
 				context1.Clear();
+			}
+
+			for( int i = 0; i < n; i++ )
+			{
+				context.dropPool[context.dropPool.size() - 1 - i].p = 1.0f / n;
 			}
 
 			return;
@@ -117,7 +130,7 @@ void CItemDropSimpleGroup::Generate( SItemDropContext & context )
 
 		context1.nDrop = context.nDrop;
 		_Generate( context1 );
-		context1.Drop();
+		context1.Drop( false );
 
 		for( auto& drop : context1.dropItems )
 		{
@@ -194,4 +207,109 @@ CItemDropNode * CItemDropNode::CreateNode( TiXmlElement * pXml, struct SItemDrop
 		return pNode;
 	}
 	return NULL;
+}
+
+void CBonusStageDrop::Load( TiXmlElement * pXml, SItemDropNodeLoadContext & context )
+{
+	auto pNodes = pXml->FirstChildElement( "nodes" );
+	for( auto pChild = pNodes->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
+	{
+		auto pChildNode = CItemDropNode::CreateNode( pChild, context );
+		m_vecNodes.push_back( pChildNode );
+	}
+
+	uint32 nNodes = m_vecNodes.size();
+	auto pItems = pXml->FirstChildElement( "items" );
+	for( auto pItem = pItems->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+	{
+		m_vecItems.resize( m_vecItems.size() + 1 );
+		auto& item = m_vecItems.back();
+		item.nPoint = XmlGetAttr( pItem, "point", 0 );
+		item.vecChance.resize( nNodes );
+		const char* szChance = pItem->GetText();
+		const char* c = szChance;
+		int i = 0;
+		stringstream ss( c );
+		for( int i = 0; i < nNodes; i++ )
+		{
+			ss >> item.vecChance[i];
+			ss.ignore( 100, ',' );
+		}
+	}
+}
+
+void CBonusStageDrop::Drop( SItemDropContext& result, uint32 nPoint )
+{
+	result.nDrop = 0;
+	vector<float> vecChance;
+	vecChance.resize( m_vecNodes.size() );
+	int32 n;
+	for( n = 0; n < m_vecItems.size(); n++ )
+	{
+		if( nPoint < m_vecItems[n].nPoint )
+			break;
+	}
+	if( n >= m_vecItems.size() )
+	{
+		auto& item = m_vecItems.back();
+		for( int i = 0; i < vecChance.size(); i++ )
+		{
+			vecChance[i] = item.vecChance[i];
+		}
+	}
+	else
+	{
+		auto& item = m_vecItems[n - 1];
+		auto& item1 = m_vecItems[n];
+		int32 n1 = nPoint - item.nPoint;
+		int32 n2 = item1.nPoint - nPoint;
+		for( int i = 0; i < vecChance.size(); i++ )
+		{
+			vecChance[i] = ( item.vecChance[i] * n2 + item1.vecChance[i] * n1 ) / ( n1 + n2 );
+		}
+	}
+
+	vector<uint32> vecIndices;
+	for( int i = 0; i < vecChance.size(); i++ )
+		vecIndices.push_back( i );
+	SRand::Inst().Shuffle( vecIndices );
+
+	float s = 0;
+	for( int i = 0; i < vecChance.size(); i++ )
+	{
+		uint32 iIndex = vecIndices[i];
+		s += vecChance[iIndex];
+		vecChance[iIndex] = s;
+	}
+	int32 nCount = ceil( s );
+
+	float r = SRand::Inst().Rand( 0.0f, 1.0f );
+	n = 0;
+	vector<float> vecDropCount;
+	vecDropCount.resize( m_vecNodes.size() );
+	for( int i = 0; i < nCount; i++, r += 1 )
+	{
+		while( n < vecDropCount.size() && vecChance[vecIndices[n]] <= r )
+			n++;
+		if( n >= vecDropCount.size() )
+			break;
+		vecDropCount[vecIndices[n]]++;
+	}
+
+	result.dropItems.reserve( nCount );
+	for( int i = 0; i < vecDropCount.size(); i++ )
+	{
+		if( !vecDropCount[i] )
+			continue;
+		SItemDropContext context;
+		context.nDrop = vecDropCount[i];
+		m_vecNodes[i]->Generate( context );
+		context.Drop();
+		for( auto& item : context.dropItems )
+		{
+			result.dropItems.push_back( item );
+			result.nDrop++;
+		}
+	}
+	SRand::Inst().Shuffle( result.dropItems );
 }

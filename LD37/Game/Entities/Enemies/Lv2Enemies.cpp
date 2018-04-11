@@ -10,6 +10,7 @@
 #include "Common/ResourceManager.h"
 #include "Common/MathUtil.h"
 #include "Entities/SpecialEft.h"
+#include "Common/Algorithm.h"
 
 void CLimbs::OnAddedToStage()
 {
@@ -202,6 +203,122 @@ void CLimbs::OnTickAfterHitTest()
 			GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 		}
 	}
+}
+
+void CLimbs1::Init( const CVector2 & size )
+{
+	SetRenderObject( NULL );
+	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+
+	int32 nWidth = size.x / 8 - 1;
+	int32 nHeight = size.y / 8 - 1;
+	m_nWidth = nWidth;
+	m_nHeight = nHeight;
+	m_vecMask.resize( nWidth * nHeight );
+	vector<TVector2<int32> > vec;
+	for( int j = 0; j < nHeight; j++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			vec.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+	SRand::Inst().Shuffle( vec );
+
+	uint8 k = SRand::Inst().Rand( 0, 4 );
+	for( auto& p : vec )
+	{
+		if( m_vecMask[p.x + p.y * nWidth] )
+			continue;
+		uint8 nSize = SRand::Inst().Rand( 0, 2 ) ? 3 : 2;
+		auto rect = PutRect( m_vecMask, nWidth, nHeight, p, TVector2<int32>( nSize, nSize ), TVector2<int32>( nSize, nSize ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, 1 );
+		if( rect.width <= 0 )
+			continue;
+		
+		auto pImg = static_cast<CMultiFrameImage2D*>( pDrawable->CreateInstance() );
+		pImg->SetPosition( CVector2( ( rect.x + rect.width * 0.5f ) * 8 + 4, ( rect.y + rect.height * 0.5f ) * 8 + 4 ) );
+		pImg->SetRotation( PI * 0.5f * SRand::Inst().Rand( -2, 2 ) );
+		uint32 n = nSize == 2 ? SRand::Inst().Rand( 0, 4 ) : SRand::Inst().Rand( 4, 8 );
+		pImg->SetFrames( n * 2, n * 2 + 2, pImg->GetFramesPerSec() );
+		pImg->SetPlayPercent( SRand::Inst().Rand( 0.0f, 1.0f ) );
+		pImg->SetAutoUpdateAnim( true );
+		AddChild( pImg );
+		m_vecKillSpawn.push_back( pair<CVector2, uint8>( pImg->GetPosition(), k ) );
+		if( nSize == 3 )
+			m_vecKillSpawn.push_back( pair<CVector2, uint8>( pImg->GetPosition(), ( k + 2 ) % 4 ) );
+		k++;
+		if( k >= 4 )
+			k = 0;
+	}
+	m_attackRect.width += size.x;
+	m_attackRect.height += size.y;
+}
+
+void CLimbs1::OnAddedToStage()
+{
+	if( CMyLevel::GetInst() )
+		SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+	GetStage()->RegisterAfterHitTest( m_nAITick, &m_onTick );
+	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
+	{
+		auto pChunk = SafeCast<CChunkObject>( pParent );
+		if( pChunk )
+		{
+			pChunk->RegisterKilledEvent( &m_onChunkKilled );
+			break;
+		}
+	}
+}
+
+void CLimbs1::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	if( m_onChunkKilled.IsRegistered() )
+		m_onChunkKilled.Unregister();
+}
+
+void CLimbs1::Kill()
+{
+	if( m_bKilled )
+		return;
+	m_bKilled = true;
+	CVector2 dir[] = { { 1, -1 }, { 1, 1 }, { -1, 1 }, { -1, -1 } };
+	for( auto& p : m_vecKillSpawn )
+	{
+		auto pKillSpawn = SafeCast<CCharacter>( m_pKillSpawn->GetRoot()->CreateInstance() );
+		pKillSpawn->SetPosition( globalTransform.MulVector2Pos( p.first ) );
+		pKillSpawn->SetVelocity( dir[p.second] * 300 );
+		pKillSpawn->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	}
+}
+
+void CLimbs1::OnTick()
+{
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer && m_attackRect.Contains( globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() ) ) )
+	{
+		CVector2 center = globalTransform.MulVector2Pos( m_attackRect.GetCenter() );
+		CVector2 dir = pPlayer->GetPosition() - center;
+		dir.Normalize();
+		int i = 0;
+		for( int y = 0; y < m_nHeight; y++ )
+		{
+			for( int x = 0; x < m_nWidth; x++, i++ )
+			{
+				if( !m_vecMask[i] )
+					continue;
+				auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+				pBullet->SetCreator( GetParentEntity() );
+				pBullet->SetPosition( globalTransform.MulVector2Pos( CVector2( x * 8 + 4, y * 8 + 4 ) ) );
+				pBullet->SetVelocity( dir * m_fBulletSpeed );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			}
+		}
+		GetStage()->RegisterAfterHitTest( m_nAttackCD, &m_onTick );
+	}
+	else
+		GetStage()->RegisterAfterHitTest( m_nAITick, &m_onTick );
 }
 
 void CLimbsHook::OnAddedToStage()

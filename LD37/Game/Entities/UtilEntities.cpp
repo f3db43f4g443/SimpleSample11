@@ -7,6 +7,7 @@
 #include "Render/DrawableGroup.h"
 #include "MyLevel.h"
 #include "Interfaces.h"
+#include "MyGame.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -88,6 +89,7 @@ void CSimpleText::OnAddedToStage()
 	{
 		auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
 		m_initRect = pImage2D->GetElem().rect;
+		m_initTexRect = pImage2D->GetElem().texRect;
 		uint16 nParam;
 		CVector4* pParam = pImage2D->GetParam( nParam );
 		if( nParam )
@@ -96,12 +98,19 @@ void CSimpleText::OnAddedToStage()
 	}
 }
 
+void CSimpleText::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
 void CSimpleText::Set( const char * szText )
 {
 	if( m_initRect.width < 0 )
 	{
 		auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
 		m_initRect = pImage2D->GetElem().rect;
+		m_initTexRect = pImage2D->GetElem().texRect;
 		uint16 nParam;
 		CVector4* pParam = pImage2D->GetParam( nParam );
 		if( nParam )
@@ -122,13 +131,16 @@ void CSimpleText::Set( const char * szText )
 		else if( ch >= 'A' && ch <= 'Z' )
 			nIndex = ch - 'A' + 10;
 		else
+		{
+			rect.x += rect.width;
 			continue;
+		}
 
 		int32 nRow = nIndex / 8;
 		int32 nColumn = nIndex - nRow * 8;
 		auto pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 		pImage->SetRect( rect );
-		pImage->SetTexRect( CRectangle( nColumn * 0.125f, nRow * 0.125f, 0.125f, 0.125f ) );
+		pImage->SetTexRect( CRectangle( m_initTexRect.x + nColumn * 0.125f, m_initTexRect.y + nRow * 0.125f, m_initTexRect.width, m_initTexRect.height ) );
 		uint16 nParam;
 		CVector4* pParam = pImage->GetParam( nParam );
 		if( nParam )
@@ -140,6 +152,53 @@ void CSimpleText::Set( const char * szText )
 
 	m_textRect = m_initRect;
 	m_textRect.SetRight( rect.GetRight() );
+}
+
+void CSimpleText::SetParam( const CVector4 & param )
+{
+	m_param = param;
+	auto pRoot = GetRenderObject();
+	if( pRoot )
+	{
+		for( auto pChild = pRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		{
+			auto pImage = static_cast<CImage2D*>( pChild );
+			uint16 nParam;
+			CVector4* pParam = pImage->GetParam( nParam );
+			if( nParam )
+				*pParam = m_param;
+		}
+	}
+}
+
+void CSimpleText::FadeAnim( const CVector2 & speed, float fFadeSpeed, bool bGUI )
+{
+	if( !GetStage() )
+		return;
+	m_floatSpeed = speed;
+	m_fFadeSpeed = fFadeSpeed;
+	m_bGUI = bGUI;
+	if( bGUI )
+		CGame::Inst().Register( 1, &m_onTick );
+	else
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CSimpleText::OnTick()
+{
+	float& f = m_param.w;
+	f -= m_fFadeSpeed * GetStage()->GetElapsedTimePerTick();
+	if( f <= 0 )
+	{
+		SetParentEntity( NULL );
+		return;
+	}
+	SetParam( m_param );
+	SetPosition( GetPosition() + m_floatSpeed * GetStage()->GetElapsedTimePerTick() );
+	if( m_bGUI )
+		CGame::Inst().Register( 1, &m_onTick );
+	else
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 }
 
 void CBlockRTEft::OnAddedToStage()

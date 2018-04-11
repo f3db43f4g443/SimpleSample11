@@ -47,3 +47,29 @@ void LocalTimeToDateTime( uint64 nLocalTime, SDateTime& dateTime )
 	dateTime.nSec = pTM->tm_sec;
 	dateTime.nMilliSec = nMilliSec;
 }
+
+#ifdef _WIN32
+#include <Windows.h>
+uint64 GetCycleCount()
+{
+	static UINT64 g_nFreq = 0;
+	if( !g_nFreq )
+		QueryPerformanceFrequency( (LARGE_INTEGER*)&g_nFreq );
+
+	LARGE_INTEGER nCur;
+	QueryPerformanceCounter( &nCur );
+	uint64 nSecond = nCur.QuadPart / g_nFreq;
+	uint64 nTick = nCur.QuadPart % g_nFreq;
+	return nSecond * 1000000 + ( nTick * 1000000 ) / g_nFreq;
+}
+#else
+#include <sys/time.h>
+uint64 GetCycleCount()
+{
+	struct timeval tv;
+	gettimeofday( tv, NULL );
+	UINT64 seconds = (UINT64)tv.tv_sec * 1000000;
+	UINT64 useconds = (UINT64)tv.tv_usec;
+	return seconds + useconds;
+}
+#endif

@@ -23,6 +23,12 @@ public:
 	void ShowMinimap();
 	void HideMinimap();
 
+	void OnBeginBonusStage();
+	void OnEndBonusStage();
+	void OnAddPoint( uint32 nPoint, uint32 nCurPoint, uint32 nCombo );
+	void OnModifyCombo( uint32 nCombo );
+	void OnBonusStageText( const char* szText );
+
 	void AddSpBarShake( const CVector2& dir, uint32 nTime );
 
 	void OnAddConsumable( class CConsumable* pConsumable, int8 i );
@@ -44,7 +50,9 @@ private:
 	CReference<CRenderObject2D> m_pHpStoreBar[2];
 	CReference<CRenderObject2D> m_pSpBar;
 	CReference<CRenderObject2D> m_pSpBarBack[2];
+	CReference<CRenderObject2D> m_pComboBar[3];
 	CReference<CSimpleText> m_pMoney;
+	CReference<CSimpleText> m_pPoint;
 	CReference<CRenderObject2D> m_pShake;
 	CReference<CRenderObject2D> m_pMinimap;
 	CReference<CRenderObject2D> m_pUse;
@@ -58,6 +66,8 @@ private:
 	CVector2 m_useOfs;
 
 	CReference<CRenderObject2D> m_pConsumableSlot[6];
+
+	TResourceRef<CPrefab> m_pFloatText;
 
 	CVector2 m_shakeBarOrigPos;
 	float m_shakeBarOrigHeight;

@@ -64,6 +64,10 @@ public:
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );
 
+	CDrawable2D* GetColorDrawable() { return m_colorDrawable.pDrawable; }
+	CDrawable2D* GetOcclusionDrawable() { return m_occlusionDrawable.pDrawable; }
+	CDrawable2D* GetGUIDrawable() { return m_guiDrawable.pDrawable; }
+
 	CRenderObject2D* CreateInstance();
 
 	void UpdateDependencies();

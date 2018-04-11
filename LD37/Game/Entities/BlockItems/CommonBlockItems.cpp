@@ -76,14 +76,25 @@ void CDetectTrigger::OnTick()
 
 void CKillTrigger::OnAddedToStage()
 {
-	auto pPar = SafeCast<CChunkObject>( GetParentEntity() );
-	if( pPar )
-		pPar->RegisterKilledEvent( &m_onKilled );
-	else
+	auto pChunk = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunk )
 	{
-		auto pChar = SafeCast<CCharacter>( GetParentEntity() );
-		if( pChar )
-			pChar->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onKilled );
+		pChunk->RegisterKilledEvent( &m_onKilled );
+		return;
+	}
+
+	auto pChar = SafeCast<CCharacter>( GetParentEntity() );
+	if( pChar )
+	{
+		pChar->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onKilled );
+		return;
+	}
+
+	auto pPickup = SafeCast<CPickUp>( GetParentEntity() );
+	if( pPickup )
+	{
+		pPickup->RegisterBeforePickupEvent( &m_onKilled );
+		return;
 	}
 }
 

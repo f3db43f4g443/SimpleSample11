@@ -11,16 +11,17 @@
 #include "Effects/ParticleArrayEmitter.h"
 #include "Common/Algorithm.h"
 
-void CBarrel::Damage( SDamageContext& context )
+bool CBarrel::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
 	{
 		DEFINE_TEMP_REF_THIS();
 		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 		int32 nPreHp = -m_fHp;
-		CExplosiveChunk::Damage( context );
+		if( !CExplosiveChunk::Damage( context ) )
+			return false;
 		if( !GetParentEntity() )
-			return;
+			return true;
 		int32 nCurHp = -m_fHp;
 		int32 nFireCount = ( nCurHp / m_nDeathDamage ) - ( nPreHp / m_nDeathDamage );
 		if( nFireCount > 0 )
@@ -58,9 +59,10 @@ void CBarrel::Damage( SDamageContext& context )
 			pBarrage->SetPosition( globalTransform.GetPosition() + center );
 			pBarrage->Start();
 		}
+		return true;
 	}
 	else
-		CExplosiveChunk::Damage( context );
+		return CExplosiveChunk::Damage( context );
 }
 
 void CBarrel::Explode()
@@ -116,16 +118,17 @@ void CBarrel::Explode()
 	CExplosiveChunk::Explode();
 }
 
-void CBarrel1::Damage( SDamageContext& context )
+bool CBarrel1::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
 	{
 		DEFINE_TEMP_REF_THIS();
 		CVector2 center = CVector2( m_pChunk->nWidth, m_pChunk->nHeight ) * CMyLevel::GetBlockSize() * 0.5f;
 		int32 nPreHp = -m_fHp;
-		CExplosiveChunk::Damage( context );
+		if( !CExplosiveChunk::Damage( context ) )
+			return false;
 		if( !GetParentEntity() )
-			return;
+			return true;
 		int32 nCurHp = -m_fHp;
 		int32 nFireCount = ( nCurHp / m_nDeathDamage ) - ( nPreHp / m_nDeathDamage );
 
@@ -147,9 +150,10 @@ void CBarrel1::Damage( SDamageContext& context )
 				}
 			}
 		}
+		return true;
 	}
 	else
-		CExplosiveChunk::Damage( context );
+		return CExplosiveChunk::Damage( context );
 }
 
 void CBarrel1::OnKilled()
@@ -937,13 +941,14 @@ void CControlRoom::OnCreateComplete( CMyLevel * pLevel )
 	}
 }
 
-void CControlRoom::Damage( SDamageContext & context )
+bool CControlRoom::Damage( SDamageContext & context )
 {
 	DEFINE_TEMP_REF_THIS();
 	uint32 nLastDamageFrame = Min<float>( m_nDmgParticles, Max<float>( ( m_fHp * ( m_nDmgParticles + 1 ) - 1 ) / m_nMaxHp, 0 ) );
-	CChunkObject::Damage( context );
+	if( !CChunkObject::Damage( context ) )
+		return false;
 	if( !GetStage() )
-		return;
+		return true;
 	int32 nDamageFrame = Min<float>( m_nDmgParticles, Max<float>( ( m_fHp * ( m_nDmgParticles + 1 ) - 1 ) / m_nMaxHp, 0 ) );
 	
 	for( int i = nLastDamageFrame - 1; i >= nDamageFrame; i-- )
@@ -956,6 +961,7 @@ void CControlRoom::Damage( SDamageContext & context )
 			pParticle->GetInstanceData()->GetData().isEmitting = true;
 		}
 	}
+	return true;
 }
 
 void CControlRoom::OnKilled()
@@ -1807,10 +1813,15 @@ void CHouse2::Crush()
 	CChunkObject::Kill();
 }
 
-void CHouse2::Damage( SDamageContext & context )
+bool CHouse2::Damage( SDamageContext & context )
 {
-	m_bDamaged = true;
-	CChunkObject::Damage( context );
+	DEFINE_TEMP_REF_THIS();
+	if( CChunkObject::Damage( context ) )
+	{
+		m_bDamaged = true;
+		return true;
+	}
+	return false;
 }
 
 void CHouse2::OnKilled()

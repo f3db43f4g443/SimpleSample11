@@ -25,13 +25,13 @@ void CMainMenuGenerateNode::Generate( SLevelBuildContext & context, const TRecta
 	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
 	if( pChunk )
 	{
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
 		if( m_pSubChunk )
 		{
-			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			SLevelBuildContext tempContext( context, pChunk );
 			if( m_pSubChunk )
 				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			
@@ -39,19 +39,22 @@ void CMainMenuGenerateNode::Generate( SLevelBuildContext & context, const TRecta
 			{
 				int32 nPassedLevel = CPlayerData::Inst().nPassedLevels;
 				int32 nTotalLevel = CGlobalCfg::Inst().vecLevels.size();
-				nTotalLevel = Min<int32>( nTotalLevel, m_vecButtonPos.size() );
+				int32 nTotalEntries = CGlobalCfg::Inst().vecLvEntries.size();
+				nTotalEntries = Min<int32>( nTotalEntries, m_vecButtonPos.size() );
 				nPassedLevel = Min( nPassedLevel, nTotalLevel - 1 );
 
 				int32 i;
-				for( i = 0; i <= nPassedLevel; i++ )
+				for( i = 0; i < nTotalEntries; i++ )
 				{
-					m_pButtonValidNode->Generate( tempContext, TRectangle<int32>( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1, 1 ) );
-					auto pBlock = tempContext.GetBlock( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1 );
-					pBlock->pParent->pOwner->nDestroyShake = i;
-				}
-				for( ; i < nTotalLevel; i++ )
-				{
-					m_pButtonInvalidNode->Generate( tempContext, TRectangle<int32>( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1, 1 ) );
+					uint32 n = CGlobalCfg::Inst().vecLvEntries[i];
+					if( nPassedLevel >= n )
+					{
+						m_pButtonValidNode->Generate( tempContext, TRectangle<int32>( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1, 1 ) );
+						auto pBlock = tempContext.GetBlock( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1 );
+						pBlock->pParent->pOwner->nDestroyShake = n;
+					}
+					else
+						m_pButtonInvalidNode->Generate( tempContext, TRectangle<int32>( m_vecButtonPos[i].x, m_vecButtonPos[i].y, 1, 1 ) );
 				}
 			}
 

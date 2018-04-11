@@ -127,9 +127,9 @@ void CMainGameState::UpdateInput()
 			pPlayer->EndFire();
 
 		if( pGame->IsKeyDown( ' ' ) )
-			pPlayer->BeginRepair();
+			pPlayer->BeginJump();
 		if( pGame->IsKeyUp( ' ' ) )
-			pPlayer->EndRepair();
+			pPlayer->EndJump( pGame->GetKeyHoldTime( ' ' ) );
 
 		if( pGame->IsRightMouseDown() )
 			pPlayer->Roll();

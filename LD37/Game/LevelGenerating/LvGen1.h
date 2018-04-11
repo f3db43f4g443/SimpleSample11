@@ -42,6 +42,7 @@ public:
 private:
 	void GenMainPath();
 	void Flatten();
+	void GenRooms();
 	void GenObstacles();
 	void GenObjsBig();
 	void GenObjsSmall();
@@ -53,10 +54,11 @@ private:
 		eType_Path,
 		eType_Bar,
 		eType_Stone,
+		eType_Room,
+		eType_Door,
 		eType_Block1x,
 		eType_Block2x,
-		eType_Block1y,
-		eType_Block2y,
+		eType_WallChunk,
 		eType_Obj,
 		eType_Bonus,
 		eType_Temp,
@@ -68,15 +70,17 @@ private:
 	vector<int8> m_gendata;
 	vector<TRectangle<int32> > m_bars;
 	vector<TRectangle<int32> > m_stones;
+	vector<TRectangle<int32> > m_rooms;
+	vector<TRectangle<int32> > m_wallChunks;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pStoneNode;
 	CReference<CLevelGenerateNode> m_pBlock1xNode;
 	CReference<CLevelGenerateNode> m_pBlock2xNode;
-	CReference<CLevelGenerateNode> m_pBlock1yNode;
-	CReference<CLevelGenerateNode> m_pBlock2yNode;
 	CReference<CLevelGenerateNode> m_pBarNode;
 	CReference<CLevelGenerateNode> m_pBar2Node;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;
 };

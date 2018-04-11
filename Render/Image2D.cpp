@@ -45,6 +45,27 @@ void CImage2D::SetParam( uint16 nTotalCount, const CVector4* pData,
 	m_nGUIParamCount = nGUIParamCount;
 }
 
+void CImage2D::GetColorParam( void *& pParam, uint32 & nSize )
+{
+	nSize = m_nColorParamCount * sizeof( CVector4 );
+	if( m_nColorParamCount )
+		pParam = &m_params[m_nColorParamBeginIndex];
+}
+
+void CImage2D::GetOcclusionParam( void *& pParam, uint32 & nSize )
+{
+	nSize = m_nOcclusionParamCount * sizeof( CVector4 );
+	if( m_nOcclusionParamCount )
+		pParam = &m_params[m_nOcclusionParamBeginIndex];
+}
+
+void CImage2D::GetGUIParam( void *& pParam, uint32 & nSize )
+{
+	nSize = m_nGUIParamCount * sizeof( CVector4 );
+	if( m_nGUIParamCount )
+		pParam = &m_params[m_nGUIParamBeginIndex];
+}
+
 void CImage2D::Render( CRenderContext2D& context )
 {
 	switch( context.eRenderPass )

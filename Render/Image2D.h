@@ -24,6 +24,10 @@ public:
 		uint16 nOcclusionParamBeginIndex, uint16 nOcclusionParamCount,
 		uint16 nGUIParamBeginIndex, uint16 nGUIParamCount );
 
+	void GetColorParam( void* &pParam, uint32& nSize );
+	void GetOcclusionParam( void* &pParam, uint32& nSize );
+	void GetGUIParam( void* &pParam, uint32& nSize );
+
 	virtual void Render( CRenderContext2D& context ) override;
 protected:
 	CElement2D m_element2D;

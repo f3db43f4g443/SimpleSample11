@@ -14,6 +14,7 @@
 #include "ClassMetaData.h"
 #include "Common/ResourceManager.h"
 #include "Common/Rand.h"
+#include "Common/DateTime.h"
 #include "MyLevel.h"
 #include "GlobalCfg.h"
 #include "LevelDesign.h"
@@ -76,6 +77,8 @@ CGame::CGame()
 	, m_bIsRightMouseUp( false )
 	, m_beforeRender( this, &CGame::BeforeRender )
 {
+	m_keyDownTime.resize( 128 );
+	m_keyUpTime.resize( 128 );
 }
 
 void CGame::Start()
@@ -207,9 +210,15 @@ void CGame::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 	if( nChar >= 128 )
 		return;
 	if( bKeyDown && !m_key.GetBit( nChar ) )
+	{
 		m_keyDown.SetBit( nChar, true );
+		m_keyDownTime[nChar] = GetCycleCount();
+	}
 	if( !bKeyDown && m_key.GetBit( nChar ) )
+	{
 		m_keyUp.SetBit( nChar, true );
+		m_keyUpTime[nChar] = GetCycleCount();
+	}
 	m_key.SetBit( nChar, bKeyDown );
 }
 
@@ -405,6 +414,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fClimbSpeed )
 		REGISTER_MEMBER( m_nFireCD )
 		REGISTER_MEMBER( m_nFireStopTime )
+		REGISTER_MEMBER( m_nFirstFireTime )
 		REGISTER_MEMBER( m_nFireInterval )
 		REGISTER_MEMBER( m_nAmmoCount )
 		REGISTER_MEMBER( m_nBulletCount )
@@ -491,7 +501,11 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pSpBar, c/spbar/sp );
 		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[0], c/spbar/sp_a );
 		REGISTER_MEMBER_TAGGED_PTR( m_pSpBarBack[1], c/spbar/sp_b );
+		REGISTER_MEMBER_TAGGED_PTR( m_pComboBar[0], c/combobar/0 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pComboBar[1], c/combobar/1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pComboBar[2], c/combobar/2 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pMoney, b/money );
+		REGISTER_MEMBER_TAGGED_PTR( m_pPoint, b/point );
 		REGISTER_MEMBER_TAGGED_PTR( m_pShake, rb/shake );
 		REGISTER_MEMBER_TAGGED_PTR( m_pMinimap, rb/minimap );
 		REGISTER_MEMBER_TAGGED_PTR( m_pUse, use );
@@ -504,6 +518,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[3], b/consumables/3 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[4], b/consumables/4 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pConsumableSlot[5], b/consumables/5 );
+		REGISTER_MEMBER( m_pFloatText )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CChunkUI )
@@ -632,6 +647,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nHeal )
 		REGISTER_MEMBER( m_nHpRestore )
 		REGISTER_MEMBER( m_nMoney )
+		REGISTER_MEMBER( m_nBonus )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickUpItem )
@@ -657,11 +673,27 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_flyData )
 		REGISTER_MEMBER( m_nLife )
 		REGISTER_MEMBER( m_fAttractDist )
+		REGISTER_MEMBER( m_nPickUpTime )
+	REGISTER_CLASS_END()
+	
+	REGISTER_CLASS_BEGIN( CBonusStageReward )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_pPrefab )
+		REGISTER_MEMBER( m_pLinkDrawable )
+		REGISTER_MEMBER( m_l )
+		REGISTER_MEMBER( m_dl )
+		REGISTER_MEMBER( m_fAngularSpeed )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_pRestorePrefab )
+		REGISTER_MEMBER( m_pMoneyPrefab )
+		REGISTER_MEMBER( m_fRewardSpeed )
+		REGISTER_MEMBER_TAGGED_PTR( m_pickups[0], p0 );
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CBulletEnemy )
 		REGISTER_BASE_CLASS( CEnemy )
-		REGISTER_MEMBER( m_a )
+		REGISTER_MEMBER( m_fDeathTime )
+		REGISTER_MEMBER_TAGGED_PTR( m_pParticle, particle );
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CEnemyPhysics )
@@ -988,6 +1020,9 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CRandomChunkTiled )
 		REGISTER_MEMBER( m_strCrate )
 		REGISTER_MEMBER( m_strItemDrop )
+		REGISTER_MEMBER( m_pBonusStageReward )
+		REGISTER_MEMBER( m_pKillEffect )
+		REGISTER_MEMBER( m_nKillEffectInterval )
 		REGISTER_MEMBER( m_fWeights )
 	REGISTER_CLASS_END()
 
@@ -1537,6 +1572,16 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_pKillSpawn )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CLimbs1 )
+		REGISTER_BASE_CLASS( CDecorator )
+		REGISTER_MEMBER( m_nAITick )
+		REGISTER_MEMBER( m_attackRect )
+		REGISTER_MEMBER( m_nAttackCD )
+		REGISTER_MEMBER( m_fBulletSpeed )
+		REGISTER_MEMBER( m_pBullet )
+		REGISTER_MEMBER( m_pKillSpawn )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CLimbsHook )
 		REGISTER_BASE_CLASS( CEnemy )
 		REGISTER_BASE_CLASS( IHook )
@@ -1697,6 +1742,17 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_fSize )
 		REGISTER_MEMBER( m_nFrames )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CAuraEft )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nCount )
+		REGISTER_MEMBER( m_nCols )
+		REGISTER_MEMBER( m_nRows )
+		REGISTER_MEMBER( m_fWidth )
+		REGISTER_MEMBER( m_fHeight )
+		REGISTER_MEMBER( m_ofs )
+		REGISTER_MEMBER( m_fAngularSpeed )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CDecorator )

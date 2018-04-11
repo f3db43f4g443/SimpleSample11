@@ -4,12 +4,54 @@
     <main name="scene0.pf" />
     <mainmenu name="mainmenu" />
     <gen>
-      <node name="lv2_1" />
-      <node name="lv2_2" />
+      <node name="lv1_1" />
+      <node name="lv1_2" />
       <node name="lv1_3" />
+      <node name="lv1_4" />
+      <node name="lv1_5" />
+      <node name="lv1_6" />
+      <node name="lv1_7" />
+      <node name="lv1_8" />
+      <node name="lv1_9" />
       <node name="lv1_boss" />
     </gen>
+    <entries>
+      <node lv="0" />
+      <node lv="3" />
+      <node lv="6" />
+      <node lv="9" />
+    </entries>
   </levels>
+  <combo_level>
+    <item combo="4" mul="1.1" />
+    <item combo="8" mul="1.2" />
+    <item combo="12" mul="1.3" />
+    <item combo="16" mul="1.4" />
+    <item combo="20" mul="1.5" />
+    <item combo="25" mul="1.75" />
+    <item combo="30" mul="2.0" />
+    <item combo="35" mul="2.25" />
+    <item combo="40" mul="2.5" />
+    <item combo="45" mul="3.0" />
+    <item combo="50" mul="3.5" />
+    <item combo="60" mul="4.0" />
+    <item combo="70" mul="5.0" />
+    <item combo="80" mul="6.0" />
+    <item combo="90" mul="8.0" />
+    <item combo="100" mul="10.0" />
+  </combo_level>
+  <point2reward>
+    <item point="100" reward="16" />
+    <item point="200" reward="24" />
+    <item point="400" reward="40" />
+    <item point="800" reward="64" />
+    <item point="1500" reward="96" />
+    <item point="2500" reward="128" />
+    <item point="5000" reward="192" />
+    <item point="8000" reward="256" />
+    <item point="20000" reward="512" />
+    <item point="65535" reward="1024" />
+  </point2reward>
   <prefabs>
     <prefab name="chunk_ui" path="data/GUI/chunk_ui.pf" />
   </prefabs>

@@ -3,6 +3,7 @@
 #include "CharacterMove.h"
 #include "Block.h"
 #include "Entities/Bullets.h"
+#include "Entities/Decorator.h"
 #include "Interfaces.h"
 
 class CLimbs : public CEnemy
@@ -47,6 +48,34 @@ protected:
 	uint32 m_nKillSpawnLeft;
 	uint32 m_nDamage;
 	TClassTrigger<CLimbs> m_onChunkKilled;
+};
+
+class CLimbs1 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CLimbs1( const SClassCreateContext& context ) : CDecorator( context ), m_onTick( this, &CLimbs1::OnTick ), m_onChunkKilled( this, &CLimbs1::Kill ) { SET_BASEOBJECT_ID( CLimbs1 ); }
+	virtual void Init( const CVector2& size ) override;
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void Kill();
+private:
+	void OnTick();
+
+	uint32 m_nAITick;
+	CRectangle m_attackRect;
+	uint32 m_nAttackCD;
+	float m_fBulletSpeed;
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pKillSpawn;
+
+	bool m_bKilled;
+	int32 m_nWidth;
+	int32 m_nHeight;
+	vector<int8> m_vecMask;
+	vector<pair<CVector2, uint8> > m_vecKillSpawn;
+	TClassTrigger<CLimbs1> m_onTick;
+	TClassTrigger<CLimbs1> m_onChunkKilled;
 };
 
 class CLimbsHook : public CEnemy, public IHook

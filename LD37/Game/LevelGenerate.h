@@ -6,6 +6,7 @@ class CMyLevel;
 struct SLevelBuildContext
 {
 	SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk = NULL );
+	SLevelBuildContext( const SLevelBuildContext& par, SChunk* pParentChunk = NULL );
 	SLevelBuildContext( uint32 nWidth, uint32 nHeight );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 );
@@ -33,6 +34,7 @@ struct SLevelBuildContext
 	map<string, int8> mapTags;
 	map<string, SChunk*> mapChunkNames;
 	string strChunkName;
+	SChunk* pLastLevelBarrier;
 
 	CMyLevel* pLevel;
 	SChunk* pParentChunk;
@@ -128,7 +130,7 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 protected:
 	SChunkBaseInfo* m_pChunkBaseInfo;
-	bool m_bIsLevelBarrier;
+	uint8 m_nLevelBarrierType;
 	uint8 m_nLevelBarrierHeight;
 	bool m_bCopyBlueprint;
 

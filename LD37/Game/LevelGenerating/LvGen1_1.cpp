@@ -288,13 +288,13 @@ void CLevelGenNode1_1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContex
 	m_pWallNode = CreateNode( pXml->FirstChildElement( "wall" )->FirstChildElement(), context );
 	m_pStoneNode = CreateNode( pXml->FirstChildElement( "stone" )->FirstChildElement(), context );
 	m_pBlock1xNode = CreateNode( pXml->FirstChildElement( "block1x" )->FirstChildElement(), context );
-	m_pBlock1yNode = CreateNode( pXml->FirstChildElement( "block1y" )->FirstChildElement(), context );
 	m_pBlock2xNode = CreateNode( pXml->FirstChildElement( "block2x" )->FirstChildElement(), context );
-	m_pBlock2yNode = CreateNode( pXml->FirstChildElement( "block2y" )->FirstChildElement(), context );
 	m_pBarNode = CreateNode( pXml->FirstChildElement( "bar" )->FirstChildElement(), context );
 	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
 	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
+	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
+	m_pWallChunkNode = CreateNode( pXml->FirstChildElement( "wallchunk" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
@@ -306,6 +306,7 @@ void CLevelGenNode1_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	m_gendata.resize( region.width * region.height );
 	GenMainPath();
 	Flatten();
+	GenRooms();
 	GenObstacles();
 	GenObjsBig();
 	GenObjsSmall();
@@ -336,12 +337,8 @@ void CLevelGenNode1_1_1::Generate( SLevelBuildContext & context, const TRectangl
 
 	context.mapTags["mask"] = eType_Block1x;
 	m_pBlock1xNode->Generate( context, region );
-	context.mapTags["mask"] = eType_Block1y;
-	m_pBlock1yNode->Generate( context, region );
 	context.mapTags["mask"] = eType_Block2x;
 	m_pBlock2xNode->Generate( context, region );
-	context.mapTags["mask"] = eType_Block2y;
-	m_pBlock2yNode->Generate( context, region );
 	for( auto& rect : m_bars )
 	{
 		if( rect.height == 2 )
@@ -353,10 +350,21 @@ void CLevelGenNode1_1_1::Generate( SLevelBuildContext & context, const TRectangl
 	{
 		m_pStoneNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	context.mapTags["door"] = eType_Door;
+	for( auto& rect : m_rooms )
+	{
+		m_pRoomNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_wallChunks )
+	{
+		m_pWallChunkNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
 
 	m_gendata.clear();
 	m_bars.clear();
 	m_stones.clear();
+	m_rooms.clear();
+	m_wallChunks.clear();
 }
 
 void CLevelGenNode1_1_1::GenMainPath()
@@ -429,6 +437,7 @@ void CLevelGenNode1_1_1::GenMainPath()
 	{
 		m_gendata[p.x + p.y * nWidth] = eType_None;
 		FindPath( m_gendata, nWidth, nHeight, p, eType_Path, eType_Temp, par, ofs[0], 4 );
+		m_gendata[p.x + p.y * nWidth] = eType_None;
 		FindPath( m_gendata, nWidth, nHeight, p, eType_Path, eType_Temp, par, ofs[1], 4 );
 		m_gendata[p.x + p.y * nWidth] = eType_Path;
 	}
@@ -467,6 +476,96 @@ void CLevelGenNode1_1_1::Flatten()
 				continue;
 
 			m_gendata[i + j * nWidth] = eType_None;
+		}
+	}
+}
+
+void CLevelGenNode1_1_1::GenRooms()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+
+	uint8 b = SRand::Inst().Rand( 0, 2 );
+	for( int y = 0; y < nHeight; y++ )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			int32 x = b ? i : nWidth - i - 1;
+			if( m_gendata[x + y * nWidth] != eType_Path )
+				continue;
+			TVector2<int32> minSize;
+			if( y >= nHeight / 2 && SRand::Inst().Rand( 0, 2 ) )
+				minSize = TVector2<int32>( 8, 6 );
+			else
+				minSize = TVector2<int32>( 12, SRand::Inst().Rand( 4, 6 ) );
+			TVector2<int32> maxSize;
+			maxSize.x = SRand::Inst().Rand( minSize.x, minSize.x * 2 );
+			maxSize.y = 6;
+			auto rect = PutRect( m_gendata, nWidth, nHeight, TVector2<int32>( x, y ), minSize, maxSize,
+				TRectangle<int32>( 0, y, nWidth, nHeight - y ), -1, eType_Path );
+			if( rect.width > 0 )
+			{
+				bool bRoom = y >= nHeight / 2 && rect.height >= 6;
+				if( bRoom )
+				{
+					uint32 w = Min( rect.width, SRand::Inst().Rand( 6, 8 ) );
+					if( rect.x + rect.GetRight() <= nWidth * 2 + SRand::Inst().Rand( 0, 2 ) )
+						rect.SetLeft( rect.GetRight() - w );
+					else
+						rect.width = w;
+					m_rooms.push_back( rect );
+					for( int j = rect.y; j < rect.GetBottom(); j++ )
+					{
+						for( int i = rect.x; i < rect.GetRight(); i++ )
+						{
+							m_gendata[i + j * nWidth] = eType_Room;
+						}
+					}
+				}
+				else
+				{
+					m_wallChunks.push_back( rect );
+					for( int j = rect.y; j < rect.GetBottom(); j++ )
+					{
+						for( int i = rect.x; i < rect.GetRight(); i++ )
+						{
+							m_gendata[i + j * nWidth] = eType_WallChunk;
+						}
+					}
+				}
+				y += rect.height / 2;
+				b = 1 - b;
+			}
+		}
+	}
+
+	for( auto& room : m_rooms )
+	{
+		uint8 nType = SRand::Inst().Rand( 0, 3 );
+		switch( nType )
+		{
+		case 0:
+			m_gendata[room.x + ( room.y + 1 ) * nWidth] = m_gendata[room.x + ( room.y + 2 ) * nWidth] = eType_Door;
+			m_gendata[room.GetRight() - 1 + ( room.y + 1 ) * nWidth] = m_gendata[room.GetRight() - 1 + ( room.y + 2 ) * nWidth] = eType_Door;
+			break;
+		case 1:
+			m_gendata[room.GetRight() - 1 + ( room.y + 1 ) * nWidth] = m_gendata[room.GetRight() - 1 + ( room.y + 2 ) * nWidth] = eType_Door;
+			m_gendata[room.x + ( room.GetBottom() - 3 ) * nWidth] = m_gendata[room.x + ( room.GetBottom() - 2 ) * nWidth] = eType_Door;
+			if( SRand::Inst().Rand( 0, 2 ) )
+				m_gendata[room.x + 1 + room.y * nWidth] = m_gendata[room.x + 2 + room.y * nWidth] = eType_Door;
+			else
+				m_gendata[room.GetRight() - 3 + ( room.GetBottom() - 1 ) * nWidth] = m_gendata[room.GetRight() - 2 + ( room.GetBottom() - 1 ) * nWidth] = eType_Door;
+			break;
+		case 2:
+			m_gendata[room.x + ( room.y + 1 ) * nWidth] = m_gendata[room.x + ( room.y + 2 ) * nWidth] = eType_Door;
+			m_gendata[room.GetRight() - 1 + ( room.GetBottom() - 3 ) * nWidth] = m_gendata[room.GetRight() - 1 + ( room.GetBottom() - 2 ) * nWidth] = eType_Door;
+			if( SRand::Inst().Rand( 0, 2 ) )
+				m_gendata[room.GetRight() - 3 + room.y * nWidth] = m_gendata[room.GetRight() - 2 + room.y * nWidth] = eType_Door;
+			else
+				m_gendata[room.x + 1 + ( room.GetBottom() - 1 ) * nWidth] = m_gendata[room.x + 2 + ( room.GetBottom() - 1 ) * nWidth] = eType_Door;
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -818,8 +917,8 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 		if( !bObj && !bBonus )
 			continue;
 
-		TVector2<int32> p1s[4];
-		int32 nTypes[4];
+		TVector2<int32> p1s[2];
+		int32 nTypes[2];
 		int32 nTypeCount = 0;
 		if( p.x > 0 && m_gendata[p.x - 1 + p.y * nWidth] == eType_Temp1 )
 		{
@@ -827,22 +926,10 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 			nTypes[nTypeCount] = ( p.x + p.y ) & 1 ? eType_Block1x : eType_Block2x;
 			nTypeCount++;
 		}
-		if( p.y > 0 && m_gendata[p.x + ( p.y - 1 ) * nWidth] == eType_Temp1 )
-		{
-			p1s[nTypeCount] = TVector2<int32>( p.x, p.y - 1 );
-			nTypes[nTypeCount] = ( p.x + p.y ) & 1 ? eType_Block1y : eType_Block2y;
-			nTypeCount++;
-		}
 		if( p.x < nWidth - 1 && m_gendata[p.x + 1 + p.y * nWidth] == eType_Temp1 )
 		{
 			p1s[nTypeCount] = TVector2<int32>( p.x + 1, p.y );
 			nTypes[nTypeCount] = ( p.x + p.y ) & 1 ? eType_Block2x : eType_Block1x;
-			nTypeCount++;
-		}
-		if( p.y < nHeight - 1 && m_gendata[p.x + ( p.y + 1 ) * nWidth] == eType_Temp1 )
-		{
-			p1s[nTypeCount] = TVector2<int32>( p.x, p.y + 1 );
-			nTypes[nTypeCount] = ( p.x + p.y ) & 1 ? eType_Block2y : eType_Block1y;
 			nTypeCount++;
 		}
 		if( !nTypeCount )
@@ -862,10 +949,7 @@ void CLevelGenNode1_1_1::GenObjsSmall()
 		else
 		{
 			int8 nType = bObj ? eType_Obj : eType_Bonus;
-			if( nType < eType_Block1y )
-				( SRand::Inst().Rand() & 1 ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = nType;
-			else
-				( p.y < p1.y ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = nType;
+			( p.y < p1.y ? m_gendata[p.x + p.y * nWidth] : m_gendata[p1.x + p1.y * nWidth] ) = nType;
 		}
 		if( bObj )
 			nObjCount--;
@@ -902,8 +986,8 @@ void CLevelGenNode1_1_1::GenBlocks()
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
-	int8 nTypes[4] = { eType_Block1x, eType_Block1y, eType_Block2x, eType_Block2y };
-	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp1, nTypes, 4 );
+	int8 nTypes[2] = { eType_Block1x, eType_Block2x };
+	LvGenLib::FillBlocks( m_gendata, nWidth, nHeight, 32, 48, eType_Temp1, nTypes, 2 );
 }
 
 void CLevelGenNode1_1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
@@ -1917,7 +2001,8 @@ void CLevelGenNode1_1_2::GenBonus()
 			nCount--;
 		}
 	}
-	LvGenLib::DropObjs( m_gendata, nWidth, nHeight, eType_Path, eType_Bonus );
+	int8 nObjTypes[] = { eType_Bonus, eType_Obj };
+	LvGenLib::DropObjs( m_gendata, nWidth, nHeight, eType_Path, nObjTypes, 2 );
 }
 
 void CLevelGenNode1_1_3::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )

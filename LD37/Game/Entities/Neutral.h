@@ -3,6 +3,7 @@
 #include "Pickup.h"
 #include "Common/StringUtil.h"
 #include "CharacterMove.h"
+#include "ItemDrop.h"
 
 class CEnemyPhysics : public CEnemy
 {
@@ -26,11 +27,17 @@ class CBulletEnemy : public CEnemy
 public:
 	CBulletEnemy( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemyPhysics ); }
 	virtual void OnAddedToStage() override;
+
+	void SetAcceleration( const CVector2& a ) { m_a = a; }
+	virtual void Kill() override;
 protected:
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 
+	float m_fDeathTime;
+	CReference<CRenderObject2D> m_pParticle;
 	CVector2 m_a;
+	bool m_bKilled;
 };
 
 class CPickupCarrier : public CCharacter
@@ -41,7 +48,7 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-private:
+protected:
 	CReference<CPickUp> m_pPickup;
 	TClassTrigger<CPickupCarrier> m_onPickUp;
 };
@@ -51,14 +58,47 @@ class CPickUpCarrierPhysics : public CPickupCarrier
 	friend void RegisterGameClasses();
 public:
 	CPickUpCarrierPhysics( const SClassCreateContext& context ) : CPickupCarrier( context ), m_moveData( context ), m_flyData( context ), m_bAttracted( false ) { SET_BASEOBJECT_ID( CPickUpCarrierPhysics ); }
+	virtual void OnAddedToStage() override;
 protected:
 	virtual void OnTickAfterHitTest() override;
 	SCharacterPhysicsMovementData m_moveData;
 	SCharacterPhysicsFlyData m_flyData;
 	uint32 m_nLife;
 	float m_fAttractDist;
+	uint32 m_nPickUpTime;
 
 	bool m_bAttracted;
+};
+
+class CBonusStageReward : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CBonusStageReward( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CBonusStageReward::OnTick )
+	{ SET_BASEOBJECT_ID( CBonusStageReward ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void Set( SItemDropContext& dropResult, uint32 nReward );
+private:
+	void OnTick();
+	void OnPickUp();
+	TResourceRef<CPrefab> m_pPrefab;
+	TResourceRef<CDrawableGroup> m_pLinkDrawable;
+	float m_l;
+	float m_dl;
+	float m_fAngularSpeed;
+	uint32 m_nLife;
+	TResourceRef<CPrefab> m_pRestorePrefab[4];
+	TResourceRef<CPrefab> m_pMoneyPrefab[4];
+	float m_fRewardSpeed;
+
+	float m_r;
+	float m_lCur;
+	uint32 m_nRewards[4];
+	CReference<CPickUp> m_pickups[6];
+	CReference<CRenderObject2D> m_pLinkImgs[5];
+	TClassTrigger<CBonusStageReward> m_onTick;
+	vector<CFunctionTrigger> m_triggers;
 };
 
 class CSpike : public CEntity

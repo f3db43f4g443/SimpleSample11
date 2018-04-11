@@ -59,15 +59,25 @@ private:
 class CSimpleText : public CEntity
 {
 public:
-	CSimpleText( const SClassCreateContext& context ) : CEntity( context ), m_initRect( -1, -1, -1, -1 ) { SET_BASEOBJECT_ID( CSimpleText ); }
+	CSimpleText( const SClassCreateContext& context ) : CEntity( context ), m_initRect( -1, -1, -1, -1 ), m_onTick( this, &CSimpleText::OnTick ) { SET_BASEOBJECT_ID( CSimpleText ); }
 
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 	void Set( const char* szText );
+	void SetParam( const CVector4& param );
+	void FadeAnim( const CVector2& speed, float fFadeSpeed, bool bGUI );
 	const CRectangle& GetTextRect() { return m_textRect; }
 private:
+	void OnTick();
 	CRectangle m_initRect;
+	CRectangle m_initTexRect;
 	CRectangle m_textRect;
 	CVector4 m_param;
+
+	bool m_bGUI;
+	CVector2 m_floatSpeed;
+	float m_fFadeSpeed;
+	TClassTrigger<CSimpleText> m_onTick;
 };
 
 class CBlockRTEft : public CEntity

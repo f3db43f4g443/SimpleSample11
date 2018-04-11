@@ -4,6 +4,9 @@
     <item name="1f" />
   </includes>
   <level_gen>
+    <attachs>
+      <node name="pt_pickup" prefab="data/pickups/bonus_stage_pt_spawner.pf" sizex="2" sizey="2" attach_type="0" />
+    </attachs>
     <scrollobjs>
       <node name="boss1" prefab="data/enemies/boss1/boss1.pf" scrollobj_type="2" />
     </scrollobjs>
@@ -27,7 +30,6 @@
             <ref name="garbage_bin_red" p="1" />
             <ref name="garbage_bin_yellow" p="1" />
             <ref name="garbage_bin_green" p="1" />
-            <ref name="garbage_bin_black" p="1" />
           </node>
         </obj>
         <bonus>
@@ -71,6 +73,12 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <room>
+          <ref name="enemyroom1" />
+        </room>
+        <wallchunk>
+          <ref name="wall0" />
+        </wallchunk>
       </node>
       
       <node type="lv1type1_2" name="lv1style3">
@@ -167,51 +175,128 @@
         </shop>
       </node>
 
-      <node type="randompick" name="lv1fill1">
-        <ref name="block1a" p="2" />
-        <ref name="block0" p="100" />
-      </node>
-      <node type="randompick" name="lv1fill2">
-        <ref name="block1a" p="4" />
-        <ref name="block0" p="100" />
-      </node>
-      
-      <node type="subregion" name="lv1_enemyroom_small">
-        <ref name="enemyroom_small" x="0" y="0" w="6" h="6" p="1" />
-        <next_level>
-          <node type="subregion">
-            <ref name="hppack" x="2" y="2" w="2" h="2" />
+      <node type="lv1bonus0" name="lv1bonus0">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1x>
+          <ref name="brick_tile_1ax" />
+        </block1x>
+        <block2x>
+          <ref name="brick_tile_1bx" />
+        </block2x>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <bar>
+          <ref name="stonebar" />
+        </bar>
+        <bar2>
+          <ref name="stonebar2" />
+        </bar2>
+        <wallchunk>
+          <ref name="wall0" />
+        </wallchunk>
+        <obj1>
+          <node type="randompick">
+            <ref name="garbage_bin_red" p="1" />
+            <ref name="garbage_bin_yellow" p="1" />
+            <ref name="garbage_bin_black" p="1" />
           </node>
-        </next_level>
+        </obj1>
+        <bonus>
+          <node type="randompick">
+            <ref name="box_pt" p="4" />
+            <ref name="stone_broken" p="1" />
+            <ref name="stonebar_broken" p="1" />
+            <ref name="woodenbar_broken" p="1" />
+            <ref name="stonebar_room_broken" p="1" />
+          </node>
+        </bonus>
+        <bonus_pickup>
+          <ref name="pt_pickup" />
+        </bonus_pickup>
       </node>
-      
+
+      <node type="lv1bonus1" name="lv1bonus1">
+        <wall>
+          <ref name="block0" />
+        </wall>
+        <block1x>
+          <ref name="brick_tile_1ax" />
+        </block1x>
+        <block2x>
+          <ref name="brick_tile_1bx" />
+        </block2x>
+        <stone>
+          <ref name="stone" />
+        </stone>
+        <bar>
+          <ref name="stonebar" />
+        </bar>
+        <bar2>
+          <ref name="stonebar2" />
+        </bar2>
+        <room1>
+          <ref name="enemyroom1" />
+        </room1>
+        <room2>
+          <ref name="enemyroom2" />
+        </room2>
+        <wallchunk>
+          <ref name="wall" />
+        </wallchunk>
+        <obj1>
+          <ref name="garbage_bin_red" p="1" />
+        </obj1>
+        <obj2>
+          <ref name="garbage_bin_yellow" p="1" />
+        </obj2>
+        <obj3>
+          <ref name="garbage_bin_black" p="1" />
+        </obj3>
+        <bonus>
+          <ref name="box_pt" />
+        </bonus>
+        <bonus_pickup>
+          <ref name="pt_pickup" />
+        </bonus_pickup>
+      </node>
+
       <node type="subregion" name="lv1_1">
-        <ref name="lv1style1" x="0" y="0" w="32" h="22" />
-        <ref name="lv1floor_1" x="0" y="22" w="32" h="2" />
+        <ref name="lv1style1" x="0" y="0" w="32" h="12" />
+        <ref name="lv1style2" x="0" y="12" w="32" h="48" />
+        <ref name="lv1floor_1" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1style2" x="0" y="24" w="32" h="22" />
-        <ref name="lv1floor_2" x="0" y="46" w="32" h="2" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
 
-        <ref name="lv1style3" x="0" y="48" w="32" h="22" />
-        <ref name="lv1floor_3" x="0" y="70" w="32" h="2" />
+      <node type="subregion" name="lv1_2">
+        <ref name="lv1style3" x="0" y="0" w="32" h="30" />
+        <ref name="lv1style4" x="0" y="30" w="32" h="30" />
+        <ref name="lv1floor_2" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1style4" x="0" y="72" w="32" h="22" />
-        <ref name="lv1floor_4" x="0" y="94" w="32" h="2" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
 
-        <ref name="lv1style4" x="0" y="96" w="32" h="16" />
-        <ref name="lv1style4" x="0" y="112" w="32" h="8" />
-        <ref name="1f" x="0" y="120" w="32" h="8" />
+      <node type="subregion" name="lv1_3">
+        <ref name="lv1bonus0" x="0" y="0" w="32" h="60" />
+        <ref name="lv1floor_3" x="0" y="60" w="32" h="4" />
         
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
@@ -272,16 +357,25 @@
         </shop>
       </node>
 
-      <node type="subregion" name="lv1_2">
-        <node type="tile" x="0" y="0" w="32" h="12">
+
+      <node type="subregion" name="lv1_4">
+        <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0" />
         </node>
-        
-        <ref name="lv1style4_1" x="0" y="12" w="32" h="24" />
-        <ref name="lv1style4_1" x="0" y="36" w="32" h="22" />
-        <ref name="lv1floor_6" x="0" y="58" w="32" h="2" />
-        
-        <node type="lv1type2" x="0" y="60" w="32" h="60">
+        <ref name="lv1style4_1" x="0" y="4" w="32" h="28" />
+        <ref name="lv1style4_1" x="0" y="32" w="32" h="28" />
+        <ref name="lv1floor_4" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="lv1_5">
+        <node type="lv1type2" x="0" y="0" w="32" h="60">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -324,27 +418,33 @@
             <ref name="shop" />
           </shop>
         </node>
-        <ref name="2f" x="0" y="120" w="32" h="8" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
+        <ref name="lv1floor_5" x="0" y="60" w="32" h="4" />
+
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
 
-      <node type="subregion" name="lv1_3">
-        <node type="tile" x="0" y="0" w="32" h="12">
-          <ref name="block0" />
-        </node>
+      <node type="subregion" name="lv1_6">
+        <ref name="lv1bonus1" x="0" y="0" w="32" h="60" />
+        <ref name="lv1floor_6" x="0" y="60" w="32" h="4" />
 
-        <node type="lv1type3" gen_type="0" x="0" y="12" w="32" h="50">
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="lv1_7">
+        <node type="tile" x="0" y="0" w="32" h="4">
+          <ref name="block0_1" />
+        </node>
+        <node type="lv1type3" gen_type="0" x="0" y="4" w="32" h="56">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -379,10 +479,18 @@
             <ref name="shop" />
           </shop>
         </node>
-        
-        <ref name="lv1floor_8" x="0" y="62" w="32" h="2" />
-        
-        <node type="lv1type3" gen_type="1" x="0" y="64" w="32" h="56">
+        <ref name="lv1floor_7" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="lv1_8">
+        <node type="lv1type3" gen_type="1" x="0" y="0" w="32" h="60">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -414,17 +522,24 @@
             <ref name="window4x4" />
           </window>
         </node>
-        <ref name="3f" x="0" y="120" w="32" h="8" />
+        <ref name="lv1floor_8" x="0" y="60" w="32" h="4" />
+
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="lv1_9">
+        <ref name="lv1bonus1" x="0" y="0" w="32" h="60" />
+        <ref name="lv1floor_9" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
@@ -444,6 +559,15 @@
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="test_lv">
+        <ref name="lv1style1" x="0" y="0" w="32" h="28" />
+        <ref name="lv1floor_2" x="0" y="28" w="32" h="4" />
+        <ref name="lv1bonus0" x="0" y="32" w="32" h="60" />
+        <ref name="lv1floor_3" x="0" y="92" w="32" h="4" />
+        <ref name="lv1style1" x="0" y="96" w="32" h="28" />
+        <ref name="lv1floor_1" x="0" y="124" w="32" h="4" />
       </node>
     </nodes>
   </level_gen>

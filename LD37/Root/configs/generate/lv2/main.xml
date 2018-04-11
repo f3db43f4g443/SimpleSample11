@@ -208,17 +208,13 @@
       </node>
     
       <node type="subregion" name="lv2_1">
-        <ref name="lv2f1" x="0" y="0" w="32" h="22" />
-        <ref name="lv2floor" x="0" y="22" w="32" h="2" />
+        <ref name="lv2f4" x="0" y="0" w="32" h="24" />
 
-        <ref name="lv2f2" x="0" y="24" w="32" h="22" />
-        <ref name="lv2floor" x="0" y="46" w="32" h="2" />
+        <ref name="lv2f4" x="0" y="24" w="32" h="24" />
 
-        <ref name="lv2f3" x="0" y="48" w="32" h="22" />
-        <ref name="lv2floor" x="0" y="70" w="32" h="2" />
+        <ref name="lv2f4" x="0" y="48" w="32" h="24" />
 
-        <ref name="lv2f3" x="0" y="72" w="32" h="22" />
-        <ref name="lv2floor" x="0" y="94" w="32" h="2" />
+        <ref name="lv2f4" x="0" y="72" w="32" h="24" />
 
         <ref name="lv2f4" x="0" y="96" w="32" h="24" />
         <ref name="1f" x="0" y="120" w="32" h="8" />

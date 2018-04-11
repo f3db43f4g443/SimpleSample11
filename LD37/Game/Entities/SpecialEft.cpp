@@ -2,6 +2,7 @@
 #include "SpecialEft.h"
 #include "Stage.h"
 #include "Render/Image2D.h"
+#include "MyGame.h"
 
 void CLimbsEft::OnAddedToStage()
 {
@@ -343,4 +344,94 @@ void CLimbsAttackEft::OnTick()
 	m_nTick++;
 	if( m_nTick == 8 )
 		m_nTick = 0;
+}
+
+void CAuraEft::OnAddedToStage()
+{
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	auto rect = pImage->GetElem().rect;
+	rect.x -= m_ofs.x;
+	rect.y -= m_ofs.y;
+	rect.width += m_ofs.width;
+	rect.height += m_ofs.height;
+	float r = CVector2( rect.x, rect.y ).Length2();
+	r = Max( r, CVector2( rect.GetRight(), rect.y ).Length2() );
+	r = Max( r, CVector2( rect.x, rect.GetBottom() ).Length2() );
+	r = Max( r, CVector2( rect.GetRight(), rect.GetBottom() ).Length2() );
+	SetLocalBound( CRectangle( -r, -r, r * 2, r * 2 ) );
+
+	m_items.resize( m_nCount );
+	for( int i = 0; i < m_nCount; i++ )
+	{
+		auto& item = m_items[i];
+		item.elem.rect = pImage->GetElem().rect.Offset( CVector2( m_ofs.x + m_ofs.width * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ),
+			m_ofs.y + m_ofs.height * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) ) );
+		item.elem.texRect = pImage->GetElem().texRect.Offset( CVector2( SRand::Inst().Rand( 0u, m_nCols ) * m_fWidth,
+			SRand::Inst().Rand( 0u, m_nRows ) * m_fHeight ) );
+		item.fAngularSpeed = SRand::Inst().Rand( -m_fAngularSpeed , m_fAngularSpeed );
+		item.r0 = SRand::Inst().Rand( -PI, PI );
+	}
+	m_nTime0 = CGame::Inst().GetTimeStamp();
+	m_pImg = pImage;
+	SetRenderObject( NULL );
+}
+
+void CAuraEft::UpdateRendered( double dTime )
+{
+	float t = ( CGame::Inst().GetTimeStamp() - m_nTime0 ) * 0.001f;
+	for( auto& item : m_items )
+	{
+		auto& elem = item.elem;
+		CMatrix2D mat;
+		mat.Rotate( item.r0 + item.fAngularSpeed * t );
+		elem.worldMat = globalTransform * mat;
+	}
+}
+
+void CAuraEft::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+		{
+			for( auto& item : m_items )
+			{
+				auto& elem = item.elem;
+				elem.SetDrawable( pColorDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		else if( pGUIDrawable )
+		{
+			for( auto& item : m_items )
+			{
+				auto& elem = item.elem;
+				elem.SetDrawable( pGUIDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem, 1 );
+			}
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+		{
+			for( auto& item : m_items )
+			{
+				auto& elem = item.elem;
+				elem.SetDrawable( pOcclusionDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		break;
+	default:
+		break;
+	}
 }

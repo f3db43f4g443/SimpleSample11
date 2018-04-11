@@ -188,6 +188,9 @@
     <ClCompile Include="Entities\SpecialEft.cpp">
       <Filter>Entities</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvBonusGen1.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -365,6 +368,9 @@
     <ClInclude Include="Interfaces.h" />
     <ClInclude Include="Entities\SpecialEft.h">
       <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelGenerating\LvBonusGen1.h">
+      <Filter>LevelGenerating</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

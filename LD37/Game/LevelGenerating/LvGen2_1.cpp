@@ -1649,7 +1649,7 @@ void CLevelGenNode2_1_2::GenAreas()
 			SHouse house( houseRect );
 			/*uint32 nExitLen = SRand::Inst().Rand( 2, houseRect.height - 3 );
 			house.exit[2 - i * 2] = TVector2<int32>( 2 + SRand::Inst().Rand( 0u, houseRect.height - 3 - nExitLen ), nExitLen );
-			house.nExitType[2 - i * 2] = 1;*/
+			house.nExitType[2 - i * 2] = 2;*/
 			m_vecHouses.push_back( house );
 		}
 
@@ -1663,9 +1663,9 @@ void CLevelGenNode2_1_2::GenAreas()
 					houseRect.x++;
 			}
 			SHouse house( houseRect );
-			/*uint32 nExitLen = SRand::Inst().Rand( 2, houseRect.height - 3 );
+			uint32 nExitLen = SRand::Inst().Rand( 2, houseRect.height - 3 );
 			house.exit[2 - i * 2] = TVector2<int32>( 2 + SRand::Inst().Rand( 0u, houseRect.height - 3 - nExitLen ), nExitLen );
-			house.nExitType[2 - i * 2] = 1;*/
+			house.nExitType[2 - i * 2] = 2;
 			m_vecHouses.push_back( house );
 		}
 
@@ -1683,7 +1683,7 @@ void CLevelGenNode2_1_2::GenAreas()
 			SHouse house( houseRect );
 			/*uint32 nExitLen = SRand::Inst().Rand( 2, houseRect.width - 4 );
 			house.exit[1] = TVector2<int32>( 3 - i + SRand::Inst().Rand( 0u, houseRect.width - 4 - nExitLen ), nExitLen );
-			house.nExitType[1] = 1;*/
+			house.nExitType[1] = 2;*/
 			m_vecHouses.push_back( house );
 		}
 	}
@@ -1694,7 +1694,8 @@ void CLevelGenNode2_1_2::GenAreas()
 		uint32 nHouseHeight = SRand::Inst().Rand( 6, 9 );
 		TRectangle<int32> rect( centerRect1.x + ( centerRect1.width + SRand::Inst().Rand( 0, 2 ) - nHouseWidth ) / 2,
 			centerRect1.y + ( centerRect1.height + SRand::Inst().Rand( 0, 2 ) - nHouseHeight ) / 2, nHouseWidth, nHouseHeight );
-		m_vecRooms.push_back( rect );
+		SHouse house( rect );
+		m_vecHouses.push_back( house );
 	}
 
 	for( auto& road : m_vecRoads )

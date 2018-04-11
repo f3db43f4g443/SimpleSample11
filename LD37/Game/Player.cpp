@@ -13,6 +13,7 @@
 #include "GameState.h"
 #include "PlayerData.h"
 #include "Interfaces.h"
+#include "GlobalCfg.h"
 #include <algorithm>
 
 CPlayer::CPlayer( const SClassCreateContext& context )
@@ -74,6 +75,39 @@ void CPlayer::ModifyMoney( int32 nMoney )
 	CMainUI::GetInst()->OnModifyMoney( m_nMoney );
 }
 
+void CPlayer::OnBonusStageBegin()
+{
+	m_bBonusMode = true;
+	m_nPoint = 0;
+	m_nCombo = 0;
+	CMainUI::GetInst()->OnBeginBonusStage();
+}
+
+void CPlayer::OnBonusStageEnd()
+{
+	m_bBonusMode = false;
+	m_bBonusModeCrushed = false;
+	CMainUI::GetInst()->OnEndBonusStage();
+}
+
+void CPlayer::AddPoint( uint32 nValue )
+{
+	if( !CMyLevel::GetInst()->IsBonusStage() || CMyLevel::GetInst()->IsBonusStageEnd() )
+		return;
+	nValue = floor( nValue * CGlobalCfg::Inst().Combo2PointMul( m_nCombo ) + 0.5f );
+	m_nPoint += nValue;
+	CMainUI::GetInst()->OnAddPoint( nValue, m_nPoint, m_nCombo );
+}
+
+void CPlayer::ModifyCombo( int32 nCombo )
+{
+	if( m_bBonusModeCrushed )
+		return;
+	m_nCombo += nCombo;
+	m_nCombo = Max( m_nCombo, 0 );
+	CMainUI::GetInst()->OnModifyCombo( m_nCombo );
+}
+
 void CPlayer::AimAt( const CVector2& pos )
 {
 	CVector2 ofs = pos - GetPosition();
@@ -124,11 +158,21 @@ void CPlayer::Damage( SDamageContext& context )
 	if( m_hp <= 0 )
 		return;
 	CMainUI* pMainUI = CMainUI::GetInst();
+	m_fHurtInvincibleTime = 0.5f;
+	if( m_bBonusMode )
+	{
+		int32 nComboLevel;
+		float fPercent;
+		CGlobalCfg::Inst().GetComboLevel( m_nCombo, nComboLevel, fPercent );
+		int32 nCombo = nComboLevel >= 2 ? CGlobalCfg::Inst().vecCombo2PointMul[nComboLevel - 2].first : 0;
+		ModifyCombo( nCombo - m_nCombo );
+		CMainUI::GetInst()->OnBonusStageText( "DAMAGED" );
+		return;
+	}
 
 	m_hp.ModifyCurValue( -context.nDamage );
 	if( pMainUI )
 		pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
-	m_fHurtInvincibleTime = 0.5f;
 
 	if( m_hp <= 0 )
 	{
@@ -206,6 +250,11 @@ void CPlayer::RecoverSp( int32 nValue )
 
 void CPlayer::Crush()
 {
+	if( m_bBonusModeCrushed )
+	{
+		OnBonusModeCrushed();
+		return;
+	}
 	CRectangle rect;
 	Get_HitProxy()->CalcBound( globalTransform, rect );
 	vector<CChunkObject*> chunkObjs;
@@ -223,14 +272,7 @@ void CPlayer::Crush()
 
 	if( !chunkObjs.size() )
 	{
-		SDamageContext context;
-		context.nDamage = 1000;
-		context.nType = 0;
-		context.nSourceType = 0;
-		context.hitPos = context.hitDir = CVector2( 0, 0 );
-		context.nHitType = -1;
-		Damage( context );
-
+		CrushResult( true );
 		return;
 	}
 	std::sort( chunkObjs.begin(), chunkObjs.end() );
@@ -256,14 +298,7 @@ void CPlayer::Crush()
 
 	if( !CheckCostSp( nCostSp, 1 ) )
 	{
-		SDamageContext context;
-		context.nDamage = 1000;
-		context.nType = 0;
-		context.nSourceType = 0;
-		context.hitPos = context.hitDir = CVector2( 0, 0 );
-		context.nHitType = -1;
-		Damage( context );
-
+		CrushResult( true );
 		return;
 	}
 
@@ -272,27 +307,67 @@ void CPlayer::Crush()
 		chunkObjs[i]->Crush();
 	if( !m_walkData.ResolvePenetration( this ) )
 	{
-		SDamageContext context;
-		context.nDamage = 1000;
-		context.nType = 0;
-		context.nSourceType = 0;
-		context.hitPos = context.hitDir = CVector2( 0, 0 );
-		context.nHitType = -1;
-		Damage( context );
-
+		CrushResult( true );
 		return;
 	}
 
 	IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.5f );
 	//Knockback( CVector2( 0, -1 ) );
 
+	CrushResult( false );
+}
+
+void CPlayer::CrushResult( bool bCrush )
+{
+	if( m_bBonusMode && bCrush )
+	{
+		m_fHurtInvincibleTime = 0.5f;
+		OnBonusModeCrushed();
+		ModifyCombo( -m_nCombo );
+		m_bBonusModeCrushed = true;
+		CMainUI::GetInst()->OnBonusStageText( "CRUSHED" );
+		CMyLevel::GetInst()->OnPlayerBonusStageCrushed();
+		return;
+	}
 	SDamageContext context;
-	context.nDamage = ( m_hp + 1 ) >> 1;
+	context.nDamage = bCrush ? 10000000 : ( m_hp + 1 ) >> 1;
 	context.nType = 0;
 	context.nSourceType = 0;
 	context.hitPos = context.hitDir = CVector2( 0, 0 );
 	context.nHitType = -1;
 	Damage( context );
+}
+
+void CPlayer::OnBonusModeCrushed()
+{
+	auto pChunk = CMyLevel::GetInst()->GetCurLevelBarrier();
+	CRectangle rect;
+	CMatrix2D mat;
+	mat.Identity();
+	Get_HitProxy()->CalcBound( mat, rect );
+	float newY = Min( y, pChunk->pos.y - rect.GetBottom() );
+	if( newY + rect.y < 0 )
+	{
+		newY = -rect.y;
+		if( pChunk->pChunkObject )
+			pChunk->pChunkObject->Crush();
+	}
+	SetPosition( CVector2( x, newY ) );
+	ForceUpdateTransform();
+	GetStage()->GetHitTestMgr().Update( this );
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pBlock = SafeCast<CBlockObject>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pBlock )
+		{
+			auto pChunk = pBlock->GetBlock()->pOwner->pChunkObject;
+			if( pChunk )
+			{
+				pChunk->Crush();
+				break;
+			}
+		}
+	}
 }
 
 bool CPlayer::Knockback( const CVector2& vec )
@@ -368,7 +443,7 @@ void CPlayer::EndFire()
 	m_bFiringDown = false;
 }
 
-void CPlayer::BeginRepair()
+void CPlayer::BeginJump()
 {
 	//m_bIsRepairing = true;
 	if( m_bIsWalkOrFly )
@@ -380,10 +455,10 @@ void CPlayer::BeginRepair()
 	}
 }
 
-void CPlayer::EndRepair()
+void CPlayer::EndJump( float fJumpHoldingTime )
 {
 	m_bIsRepairing = false;
-	m_walkData.ReleaseJump( this );
+	m_walkData.ReleaseJump( this, fJumpHoldingTime );
 	m_bCachedJump = false;
 }
 
@@ -556,10 +631,9 @@ void CPlayer::UpdateMove()
 
 	if( m_bRoll )
 	{
-		if( moveAxis.Length2() > 0 && ( m_nSpecialFlags[eSpecialFlag_Boost] || CheckCostSp( m_nRollSpCost, 0 ) ) )
+		if( m_nSpecialFlags[eSpecialFlag_Boost] || CheckCostSp( m_nRollSpCost, 0 ) )
 		{
-			if( !m_nSpecialFlags[eSpecialFlag_Boost] )
-				CostSp( m_nRollSpCost, 0 );
+			bool bRoll = false;;
 			if( m_bIsWalkOrFly )
 			{
 				CVector2 axis;
@@ -567,15 +641,21 @@ void CPlayer::UpdateMove()
 					axis = CVector2( 1, 0 );
 				else if( moveAxis.x < 0 )
 					axis = CVector2( -1, 0 );
-				else if( m_aimAtOfs.x > 0 )
-					axis = CVector2( 1, 0 );
 				else
-					axis = CVector2( -1, 0 );
+					axis = CVector2( 0, 0 );
 
-				m_walkData.Roll( this, axis );
+				bRoll = m_walkData.Roll( this, axis );
 			}
 			else
-				m_flyData.Roll( this, moveAxis );
+			{
+				if( moveAxis.Length2() > 0 )
+				{
+					m_flyData.Roll( this, moveAxis );
+					bRoll = true;
+				}
+			}
+			if( bRoll && !m_nSpecialFlags[eSpecialFlag_Boost] )
+				CostSp( m_nRollSpCost, 0 );
 		}
 		m_bRoll = false;
 	}

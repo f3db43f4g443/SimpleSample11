@@ -27,6 +27,7 @@ public:
 	float GetElapsedTimePerTick() { return 1.0f / 60; }
 	double GetTotalTime() { return m_dTotalTime; }
 	int32 GetTimeStamp() { return m_trigger.GetTimeStamp(); }
+	float GetKeyHoldTime( uint32 nKey ) { return IsKeyUp( nKey ) ? ( m_keyUpTime[nKey] - m_keyDownTime[nKey] ) / 1000000.0f : 0; }
 
 	bool IsKey( uint32 nKey ) { return m_key.GetBit( nKey ); }
 	bool IsKeyUp( uint32 nKey ) { return m_keyUp.GetBit( nKey ); }
@@ -50,6 +51,8 @@ private:
 	CBitArray m_key;
 	CBitArray m_keyUp;
 	CBitArray m_keyDown;
+	vector<uint64> m_keyDownTime;
+	vector<uint64> m_keyUpTime;
 	bool m_bIsMouse;
 	bool m_bIsMouseDown;
 	bool m_bIsMouseUp;

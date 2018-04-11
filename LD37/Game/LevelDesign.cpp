@@ -1302,6 +1302,14 @@ void CLevelDesignGameState::UpdateInput()
 	if( CGame::Inst().IsKeyUp( ' ' ) )
 	{
 		CPlayerData::Inst().bIsDesign = true;
+		CLevelDesignGameState::Inst().SetTestLevel( "" );
+		CMainGameState::Inst().SetStageName( "design_test.pf" );
+		CGame::Inst().SetCurState( &CMainGameState::Inst() );
+	}
+	else if( CGame::Inst().IsKeyUp( VK_F5 ) )
+	{
+		CPlayerData::Inst().bIsDesign = true;
+		CLevelDesignGameState::Inst().SetTestLevel( "test_lv" );
 		CMainGameState::Inst().SetStageName( "design_test.pf" );
 		CGame::Inst().SetCurState( &CMainGameState::Inst() );
 	}

@@ -165,8 +165,8 @@
       </node>
       <node name="chunk_tile" type="subregion">
         <node type="randomfill" check_gen_data_name="mask" x="0" y="0" w="0" h="-2">
-          <ref name="cargo_barrier" sizeminx="3" sizemaxx="4" sizeminy="3" p="0.6" />
-          <ref name="cargo_barrier" sizeminx="2" sizemaxx="5" sizeminy="2" p="0.6" />
+          <ref name="cargo_barrier" sizeminx="3" sizemaxx="4" sizeminy="3" p="0.4" />
+          <ref name="cargo_barrier" sizeminx="2" sizemaxx="5" sizeminy="2" p="0.4" />
           <ref name="box_barrier" sizeminx="1" sizeminy="1" p="1" />
         </node>
         <node type="randomfill" check_gen_data_name="mask" x="0" y="-2" w="0" h="2">

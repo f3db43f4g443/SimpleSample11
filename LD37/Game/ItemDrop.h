@@ -21,7 +21,7 @@ struct SItemDropContext
 	vector<SItemDrop> dropItems;
 
 	void Clear() { dropPool.clear(); dropItems.clear(); }
-	void Drop();
+	void Drop( bool bForceDrop = true );
 };
 
 class CItemDropNode : public CReferenceObject
@@ -83,4 +83,19 @@ private:
 		bool bNormalize;
 	};
 	vector<SSubItem> m_subItems;
+};
+
+class CBonusStageDrop
+{
+public:
+	void Load( TiXmlElement* pXml, struct SItemDropNodeLoadContext& context );
+	void Drop( SItemDropContext& result, uint32 nPoint );
+private:
+	vector<CReference<CItemDropNode> > m_vecNodes;
+	struct SItem
+	{
+		uint32 nPoint;
+		vector<float> vecChance;
+	};
+	vector<SItem> m_vecItems;
 };

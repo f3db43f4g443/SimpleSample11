@@ -122,8 +122,9 @@ struct SCharacterWalkData : public SCharacterMovementData
 
 	void Jump( CCharacter* pCharacter );
 	void ReleaseJump( CCharacter* pCharacter );
+	void ReleaseJump( CCharacter* pCharacter, float fTime ) { fJumpHoldingTime = Min( fTime, fJumpMaxHoldTime ); ReleaseJump( pCharacter ); }
 	void ReleaseCachedJump( CCharacter* pCharacter, float fTime );
-	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
+	bool Roll( CCharacter* pCharacter, const CVector2& moveAxis );
 	void Hooked( const CVector2& vel )
 	{
 		velocity = vel;

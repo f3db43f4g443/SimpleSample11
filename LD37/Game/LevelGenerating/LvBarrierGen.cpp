@@ -31,7 +31,7 @@ void CLvBarrierNodeGen1::Generate( SLevelBuildContext & context, const TRectangl
 		GenWalls();
 		GenWindows();
 
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
@@ -42,13 +42,13 @@ void CLvBarrierNodeGen1::Generate( SLevelBuildContext & context, const TRectangl
 
 		if( m_pSubChunk )
 		{
-			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			SLevelBuildContext tempContext( context, pChunk );
 			if( m_pSubChunk )
 				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 		}
 
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 
 		m_pLabelNode->Generate( tempContext, m_labelRect );
 		for( int i = 0; i < region.width; i++ )
@@ -419,20 +419,20 @@ void CLvBarrierNodeGen2::Generate( SLevelBuildContext& context, const TRectangle
 
 		GenBlocks();
 
-		pChunk->bIsLevelBarrier = m_bIsLevelBarrier;
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 		m_pLabelNode->Generate( context, m_labelRect.Offset( TVector2<int32>( region.x, region.y ) ) );
 
 		if( m_pSubChunk )
 		{
-			SLevelBuildContext tempContext( context.pLevel, pChunk );
+			SLevelBuildContext tempContext( context, pChunk );
 			if( m_pSubChunk )
 				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 		}
 
-		SLevelBuildContext tempContext( context.pLevel, pChunk );
+		SLevelBuildContext tempContext( context, pChunk );
 		for( int i = 0; i < region.width; i++ )
 		{
 			for( int j = 0; j < region.height; j++ )

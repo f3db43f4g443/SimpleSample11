@@ -263,7 +263,7 @@ void CEnemyCharacter::UpdateFire()
 			m_nFireCDLeft = m_nFireCD;
 			m_nFireStopTimeLeft = m_nFireStopTime;
 			m_nAmmoLeft = m_nAmmoCount;
-			m_nNextFireTime = 0;
+			m_nNextFireTime = m_nFirstFireTime;
 			OnBeginFire();
 		}
 	}
