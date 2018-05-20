@@ -3,7 +3,6 @@
 #include "Stage.h"
 #include "Character.h"
 #include "Player.h"
-#include "Enemy.h"
 #include "Block.h"
 #include "Render/Image2D.h"
 
@@ -35,14 +34,8 @@ void CDoor::OnTick()
 	{
 		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 		{
-			auto pPlayer = SafeCast<CPlayer>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-			if( pPlayer )
-			{
-				bOpen = true;
-				break;
-			}
-			auto pEnemy = SafeCast<CEnemy>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
-			if( pEnemy )
+			auto pCharacter = SafeCast<CCharacter>( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+			if( pCharacter && pCharacter->CanOpenDoor() )
 			{
 				bOpen = true;
 				break;

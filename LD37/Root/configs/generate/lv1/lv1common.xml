@@ -5,7 +5,7 @@
   </includes>
   <level_gen>
     <attachs>
-      <node name="pipe0" prefab="data/blockitems/pipe0.pf" sizey="16" attach_type="1" />
+      <node name="pipe0" prefab="data/blockitems/pipe0.pf" sizey="16" attach_type="4" />
       <node name="window2x2" prefab="data/blockitems/window2x2.pf" sizex="2" sizey="2" attach_type="0" />
       <node name="window4x4" prefab="data/blockitems/window4x4.pf" sizex="4" sizey="4" attach_type="0" />
       <node name="crack_wall_0" prefab="data/blockitems/crack_wall_0.pf" sizex="1" sizey="1" attach_type="0" />
@@ -16,8 +16,11 @@
       <node name="manhole" prefab="data/blockitems/manhole.pf" sizex="2" sizey="2" attach_type="0" layer="0" />
       <node name="tips1" prefab="data/tutorial/tips1.pf" sizex="8" sizey="4" attach_type="0" />
       <node name="shop" prefab="data/blockitems/shop.pf" sizex="6" sizey="4" attach_type="0" />
+      <node name="spider1" prefab="data/enemies/spider1.pf" sizey="0" attach_type="4" />
+      <node name="spider2" prefab="data/enemies/spider2.pf" sizex="2" sizey="2" attach_type="0" />
     </attachs>
     <spawns>
+      <node name="spider" prefab="data/enemies/spider.pf" sizex="-16" sizey="-16" sizewidth="32" sizeheight="32" countpergrid="1" />
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />
       <node name="wall_deco_upper" prefab="data/misc/fiber_0.pf" />
       <node name="wall_deco_edge" prefab="data/misc/edge_0_0.pf" />
@@ -131,11 +134,15 @@
         <metadata isdesignvalid="0" />
         <types>4</types>
       </node>
-      <node name="wall2_broken" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/blocks/lv1/wall2_broken.pf">
+      <node name="stonebar_room_broken_1" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/blocks/lv1/stonebar_room_broken_1.pf">
         <metadata isdesignvalid="0" />
         <types>4</types>
       </node>
-      <node name="wall3_broken" width="1" height="1" weight="1" destroyweight="1.2" layer_type="1" prefab="data/blocks/lv1/wall3_broken.pf">
+      <node name="wall2_broken" width="1" height="1" weight="1" destroyweight="1.2" absorbshakestrength="3" layer_type="2" prefab="data/blocks/lv1/wall2_broken.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="wall3_broken" width="1" height="1" weight="1" destroyweight="1.2" absorbshakestrength="3" layer_type="1" prefab="data/blocks/lv1/wall3_broken.pf">
         <metadata isdesignvalid="0" />
         <types>0</types>
       </node>
@@ -206,6 +213,210 @@
         <types>4</types>
       </node>
 
+      <node name="web0" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/0.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/1.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/2.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web3" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/3.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web4" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/4.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web5" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/5.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web6" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/6.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web7" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/7.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web8" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/8.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web9" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/9.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web10" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/10.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web11" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/11.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web12" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/12.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web13" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/13.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web14" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/14.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web15" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/webs/15.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="web_tile" type="ramdomtile1">
+        <ref name="web0" />
+        <ref name="web1" />
+        <ref name="web2" />
+        <ref name="web3" />
+        <ref name="web4" />
+        <ref name="web5" />
+        <ref name="web6" />
+        <ref name="web7" />
+        <ref name="web8" />
+        <ref name="web9" />
+        <ref name="web10" />
+        <ref name="web11" />
+        <ref name="web12" />
+        <ref name="web13" />
+        <ref name="web14" />
+        <ref name="web15" />
+        <next_level p="0.13">
+          <ref name="spider" />
+        </next_level>
+      </node>
+
+      <node name="web0_0" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_0.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_1" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_1.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_2" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_2.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_3" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_3.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_4" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_4.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_5" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_5.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_6" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_6.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_7" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_7.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_8" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_8.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_9" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_9.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_10" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_10.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_11" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_11.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_12" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_12.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_13" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_13.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_14" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_14.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_15" width="1" height="1" weight="0" destroyweight="1.5" prefab="data/blocks/lv1/webs/block0_15.pf">
+        <types>4</types>
+        <subitem>
+          <ref name="block0" />
+        </subitem>
+      </node>
+      <node name="web0_tile" type="ramdomtile1">
+        <ref name="web0_0" />
+        <ref name="web0_1" />
+        <ref name="web0_2" />
+        <ref name="web0_3" />
+        <ref name="web0_4" />
+        <ref name="web0_5" />
+        <ref name="web0_6" />
+        <ref name="web0_7" />
+        <ref name="web0_8" />
+        <ref name="web0_9" />
+        <ref name="web0_10" />
+        <ref name="web0_11" />
+        <ref name="web0_12" />
+        <ref name="web0_13" />
+        <ref name="web0_14" />
+        <ref name="web0_15" />
+        <next_level p="0.125">
+          <ref name="spider" />
+        </next_level>
+      </node>
+
       <node name="wall0" show_layer_type="0" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" prefab="data/blocks/lv1/wall.pf">
         <metadata minx="6" miny="4" maxx="32" maxy="16" />
         <types>
@@ -216,9 +427,12 @@
           0,0,0,0,0,0,
           0,0,0,0,0,0,
         </types>
-        <subitem>
-          <node type="tile">
-            <ref name="wall_broken" />
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="wall_broken" />
+            </node>
+            <ref name="web_tile" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         <next_level>
@@ -297,49 +511,49 @@
             </node>
             <node type="pipes" x="1" y="1" w="-1" h="-1">
               <pipe0>
-                <node name="pipe0" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe0.pf">
+                <node name="pipe0" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe0.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe0>
               <pipe1>
-                <node name="pipe1" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe1.pf">
+                <node name="pipe1" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe1.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe1>
               <pipe2>
-                <node name="pipe2" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe2.pf">
+                <node name="pipe2" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe2.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe2>
               <pipe3>
-                <node name="pipe3" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe3.pf">
+                <node name="pipe3" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe3.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe3>
               <pipe4>
-                <node name="pipe4" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe4.pf">
+                <node name="pipe4" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe4.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe4>
               <pipe5>
-                <node name="pipe5" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe5.pf">
+                <node name="pipe5" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe5.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe5>
               <pipe6>
-                <node name="pipe6" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe6.pf">
+                <node name="pipe6" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe6.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe6>
               <pipe7>
-                <node type="randompick" fill_blueprint="1">
+                <node type="randompick" fill_blueprint="2">
                   <node name="pipe7" p="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe7.pf">
                     <metadata isdesignvalid="0" />
                     <types>4</types>
@@ -351,25 +565,25 @@
                 </node>
               </pipe7>
               <pipe8>
-                <node name="pipe8" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe8.pf">
+                <node name="pipe8" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe8.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe8>
               <pipe9>
-                <node name="pipe9" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe9.pf">
+                <node name="pipe9" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe9.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe9>
               <pipe10>
-                <node name="pipe10" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe10.pf">
+                <node name="pipe10" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe10.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe10>
               <pipe11>
-                <node type="randompick" fill_blueprint="1">
+                <node type="randompick" fill_blueprint="2">
                   <node name="pipe11" p="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe11.pf">
                     <metadata isdesignvalid="0" />
                     <types>4</types>
@@ -381,19 +595,19 @@
                 </node>
               </pipe11>
               <pipe12>
-                <node name="pipe12" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe12.pf">
+                <node name="pipe12" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe12.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe12>
               <pipe13>
-                <node name="pipe13" fill_blueprint="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe13.pf">
+                <node name="pipe13" fill_blueprint="2" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe13.pf">
                   <metadata isdesignvalid="0" />
                   <types>4</types>
                 </node>
               </pipe13>
               <pipe14>
-                <node type="randompick" fill_blueprint="1">
+                <node type="randompick" fill_blueprint="2">
                   <node name="pipe14" p="1" width="1" height="1" weight="0" destroyweight="0" shakedmgthreshold="1000000" layer_type="2" subchunk_type="2" prefab="data/blocks/lv1/pipes/pipe14.pf">
                     <metadata isdesignvalid="0" />
                     <types>4</types>
@@ -424,7 +638,7 @@
         </next_level>
       </node>
       
-      <node name="wall2" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2.5" destroyweightperwidth="2.5" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20"  shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall2.pf">
+      <node name="wall2" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2.5" destroyweightperwidth="2.5" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="10"  shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall2.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="32" />
         <types>4</types>
         <subitem copy_blueprint="1">
@@ -447,7 +661,7 @@
         </next_level>
       </node>
 
-      <node name="wall3_empty" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
+      <node name="wall3_empty" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
         <subitem copy_blueprint="1">
@@ -464,7 +678,7 @@
         </next_level>
       </node>
       
-      <node name="wall3" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv1/wall3.pf">
+      <node name="wall3" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
         <subitem copy_blueprint="1">
@@ -506,6 +720,30 @@
         <subitem>
           <node type="tile">
             <ref name="stonebar_room_broken" />
+          </node>
+        </subitem>
+      </node>
+      <node name="stonebar_room_corner_1" width="1" height="1" weight="1" destroyweight="1.3" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_corner_1.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+      </node>
+      <node name="stonebar_room_h_1" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_h_1.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4,4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stonebar_room_broken_1" />
+          </node>
+        </subitem>
+      </node>
+      <node name="stonebar_room_v_1" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
+            absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_v_1.pf">
+        <metadata isdesignvalid="0" />
+        <types>4,4,4,4</types>
+        <subitem>
+          <node type="tile">
+            <ref name="stonebar_room_broken_1" />
           </node>
         </subitem>
       </node>
@@ -757,11 +995,65 @@
           </node>
         </next_level>
       </node>
-      <node name="enemyroom2_1" type="subregion">
-        <ref name="enemyroom2" x="0" y="0" w="0" h="0" />
+
+      <node name="enemyroom2_1" show_layer_type="0" type="room2" wall_mask="mask" width="8" height="8" weight="3" weightperwidth="1" destroyweight="45" absorbshakestrength="10000" destroyshake="25" shakedmg="20" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room.pf">
+        <metadata isdesignvalid="0" />
+        <types>
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+        </types>
+        <wall_broken>
+          <ref name="wall_room_broken" />
+        </wall_broken>
+        <hbar>
+          <ref name="stonebar_room_h_1" />
+        </hbar>
+        <vbar>
+          <ref name="stonebar_room_v_1" />
+        </vbar>
+        <corner>
+          <ref name="stonebar_room_corner_1" />
+        </corner>
+        <door1_0>
+          <ref name="door0a_0" />
+        </door1_0>
+        <door1_1>
+          <ref name="door0a_3" />
+        </door1_1>
+        <door1_2>
+          <ref name="door0a_2" />
+        </door1_2>
+        <door1_3>
+          <ref name="door0a_1" />
+        </door1_3>
+        <door2_0>
+          <ref name="door0_0" />
+        </door2_0>
+        <door2_1>
+          <ref name="door0_3" />
+        </door2_1>
+        <door2_2>
+          <ref name="door0_2" />
+        </door2_2>
+        <door2_3>
+          <ref name="door0_1" />
+        </door2_3>
+
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <ref name="web_tile" x="0" y="0" w="0" h="0" />
+          </node>
+        </subitem>
         <next_level>
           <node type="subregion">
-            <ref name="villager" x="1" y="1" w="-1" h="-1" />
+            <node type="simple_spawn" name="enemycharacter" prefab="data/enemies/man.pf" check_gen_data_name="room" sizex="-4" sizey="-16" sizewidth="8" sizeheight="32" countpergrid="0.125"
+                  x="1" y="1" w="-1" h="-1" />
           </node>
         </next_level>
       </node>

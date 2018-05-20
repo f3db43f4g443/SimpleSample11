@@ -59,6 +59,7 @@ private:
 		eType_Block1x,
 		eType_Block2x,
 		eType_WallChunk,
+		eType_Web,
 		eType_Obj,
 		eType_Bonus,
 		eType_Temp,
@@ -113,6 +114,7 @@ private:
 		eType_Block2y,
 		eType_Obj,
 		eType_Bonus,
+		eType_Web,
 		eType_Temp,
 		eType_Temp1,
 		eType_Temp2,
@@ -147,6 +149,7 @@ private:
 	CReference<CLevelGenerateNode> m_pRoom2Node;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;
+	CReference<CLevelGenerateNode> m_pWebNode;
 };
 
 class CLevelGenNode1_1_3 : public CLevelGenerateNode
@@ -173,6 +176,7 @@ private:
 		eType_WallChunk,
 		eType_Obj,
 		eType_Bonus,
+		eType_Web,
 
 		eType_Temp,
 		eType_Temp1,
@@ -213,6 +217,7 @@ private:
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;
+	CReference<CLevelGenerateNode> m_pWebNode;
 	CReference<CLevelGenerateNode> m_pShopNode;
 };
 
@@ -231,6 +236,7 @@ private:
 	void GenEmptyArea();
 	void FillBlockArea();
 	void GenObjects();
+	void GenSpiders( SLevelBuildContext& context, const TRectangle<int32>& region );
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
@@ -244,6 +250,8 @@ private:
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
 	CReference<CLevelGenerateNode> m_pShopNode;
+	CReference<CLevelGenerateNode> m_pWebNode;
+	CReference<CLevelGenerateNode> m_pSpiderNode;
 
 	enum
 	{
@@ -252,13 +260,14 @@ private:
 		eType_BlockBlue,
 		eType_Room1,
 		eType_Room2,
-		eType_WallChunk,
 		eType_Bar,
+		eType_WallChunk,
 		eType_Door,
 		eType_Path,
 		eType_Object,
 		eType_Crate1,
 		eType_Crate2,
+		eType_Web,
 
 		eType_Count,
 	};
@@ -305,6 +314,7 @@ private:
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
 	CReference<CLevelGenerateNode> m_pWindowNode;
+	CReference<CLevelGenerateNode> m_pSpiderNode;
 	CReference<CLevelGenerateNode> m_pShopNode;
 
 	enum
@@ -312,6 +322,7 @@ private:
 		eType_None,
 		eType_Wall,
 		eType_Room,
+		eType_Room1,
 		eType_Door,
 		eType_WallChunk0,
 		eType_WallChunk,
@@ -320,6 +331,7 @@ private:
 		eType_BlockBlue,
 		eType_Crate1,
 		eType_Crate2,
+		eType_Web,
 
 		eType_Temp,
 		eType_Temp1,
@@ -330,12 +342,19 @@ private:
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
 
-	vector<TRectangle<int32> > m_rooms;
+	struct SRoom
+	{
+		SRoom( const TRectangle<int32>& rect ) : rect( rect ), bRoomType( false ) {}
+		TRectangle<int32> rect;
+		bool bRoomType;
+	};
+	vector<SRoom> m_rooms;
 	vector<TRectangle<int32> > m_wallChunks0;
 	vector<TRectangle<int32> > m_wallChunks;
 	vector<TRectangle<int32> > m_wallChunks1;
 	vector<TRectangle<int32> > m_windows;
 	vector<TRectangle<int32> > m_shops;
+	vector<TRectangle<int32> > m_spiders;
 };
 
 class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode

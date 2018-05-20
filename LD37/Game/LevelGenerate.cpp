@@ -592,9 +592,20 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 		if( m_pSubChunk )
 		{
 			SLevelBuildContext tempContext( context, pChunk );
+			if( !!( m_bCopyBlueprint & 2 ) )
+			{
+				for( int i = 0; i < tempContext.nWidth; i++ )
+				{
+					for( int j = 0; j < tempContext.nHeight; j++ )
+					{
+						tempContext.blueprint[i + j * tempContext.nWidth]
+							= context.blueprint[i + region.x + ( j + region.y ) * context.nWidth];
+					}
+				}
+			}
 			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
-			if( m_bCopyBlueprint )
+			if( !!( m_bCopyBlueprint & 1 ) )
 			{
 				for( int i = 0; i < tempContext.nWidth; i++ )
 				{
@@ -662,6 +673,8 @@ public:
 		m_rectSize.width = XmlGetAttr( pXml, "sizewidth", 0.0f );
 		m_rectSize.height = XmlGetAttr( pXml, "sizeheight", 0.0f );
 		m_fCountPerGrid = XmlGetAttr( pXml, "countpergrid", 1.0f );
+		m_nCheckGenData = XmlGetAttr( pXml, "check_gen_data", -1 );
+		m_strCheckGenData = XmlGetAttr( pXml, "check_gen_data_name", "" );
 
 		CLevelGenerateNode::Load( pXml, context );
 	}
@@ -684,15 +697,58 @@ public:
 		}
 		else
 		{
-			uint32 nCount = floor( region.width * region.height * m_fCountPerGrid + SRand::Inst().Rand( 0.0f, 1.0f ) );
-
-			for( int i = 0; i < nCount; i++ )
+			if( m_nCheckGenData >= 0 || m_strCheckGenData.length() )
 			{
-				SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-				pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
-				pSpawnInfo->pPrefab = m_pPrefab;
-				pSpawnInfo->r = 0;
-				context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
+				int32 nCheckGenData1 = -1;
+				if( m_strCheckGenData.length() )
+				{
+					auto itr = context.mapTags.find( m_strCheckGenData );
+					if( itr != context.mapTags.end() )
+						nCheckGenData1 = itr->second;
+				}
+				vector<TVector2<int32> > result;
+				for( int j = 0; j < region.height; j++ )
+				{
+					for( int i = 0; i < region.width; i++ )
+					{
+						int32 x = i + region.x;
+						int32 y = j + region.y;
+						if( m_nCheckGenData >= 0 && context.blueprint[x + y * context.nWidth] != m_nCheckGenData )
+							continue;
+						else if( nCheckGenData1 >= 0 && context.blueprint[x + y * context.nWidth] != nCheckGenData1 )
+							continue;
+						result.push_back( TVector2<int32>( x, y ) );
+					}
+				}
+				uint32 nCount = floor( result.size() * m_fCountPerGrid + SRand::Inst().Rand( 0.0f, 1.0f ) );
+				CRectangle rect( 0, 0, context.nBlockSize, context.nBlockSize );
+				rect.SetLeft( rect.x - m_rectSize.x );
+				rect.SetTop( rect.y - m_rectSize.y );
+				rect.SetRight( rect.GetRight() - m_rectSize.GetRight() );
+				rect.SetBottom( rect.GetBottom() - m_rectSize.GetBottom() );
+				for( int i = 0; i < nCount; i++ )
+				{
+					TVector2<int32> p = result[SRand::Inst().Rand( 0u, nCount )];
+
+					SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
+					pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
+					pSpawnInfo->pPrefab = m_pPrefab;
+					pSpawnInfo->r = 0;
+					context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( p.x, p.y ) );
+				}
+			}
+			else
+			{
+				uint32 nCount = floor( region.width * region.height * m_fCountPerGrid + SRand::Inst().Rand( 0.0f, 1.0f ) );
+
+				for( int i = 0; i < nCount; i++ )
+				{
+					SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
+					pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
+					pSpawnInfo->pPrefab = m_pPrefab;
+					pSpawnInfo->r = 0;
+					context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
+				}
 			}
 		}
 	}
@@ -700,6 +756,8 @@ protected:
 	CReference<CPrefab> m_pPrefab;
 	CRectangle m_rectSize;
 	float m_fCountPerGrid;
+	int32 m_nCheckGenData;
+	string m_strCheckGenData;
 };
 
 class CLevelGenerateAttachNode : public CLevelGenerateNode
@@ -1218,8 +1276,8 @@ public:
 		gridOk.resize( size.x * size.y );
 
 		//Randomly flip
-		bool bFlipX = SRand::Inst().Rand() & 1;
-		bool bFlipY = SRand::Inst().Rand() & 1;
+		bool bFlipX = SRand::Inst().Rand( 0, 2 );
+		bool bFlipY = SRand::Inst().Rand( 0, 2 );
 		if( m_nCheckBlockType || m_nCheckGenData >= 0 || m_strCheckGenData.length() )
 		{
 			int32 nCheckGenData1 = -1;
@@ -1521,6 +1579,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "mainmenu", CMainMenuGenerateNode );
 
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
+	REGISTER_GENERATE_NODE( "ramdomtile1", CRandomTileNode1 );
 	REGISTER_GENERATE_NODE( "commonroom", CCommonRoomNode );
 	REGISTER_GENERATE_NODE( "room0", CRoom0Node );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );

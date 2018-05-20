@@ -1589,7 +1589,7 @@ void CLv1Boss::AIFuncMainFinal()
 				i1 = 0;
 			}
 
-			int n = SRand::Inst().Rand() & 1;
+			int n = SRand::Inst().Rand( 0, 2 );
 			if( i == 0 )
 			{
 				pWorm2[n]->Fire1();
@@ -1768,7 +1768,7 @@ void CLv1BossWorm1::AIFunc()
 	int32 nTick = 0;
 	CVector2 headPos = beginPos;
 	int8 nHeadDir;
-	nHeadDir = SRand::Inst().Rand() & 1 ? ( beginPos.x > CMyLevel::GetInst()->GetBoundWithLvBarrier().GetCenterX() ? 2 : 0 )
+	nHeadDir = SRand::Inst().Rand( 0, 2 ) ? ( beginPos.x > CMyLevel::GetInst()->GetBoundWithLvBarrier().GetCenterX() ? 2 : 0 )
 		: ( beginPos.y > CMyLevel::GetInst()->GetBoundWithLvBarrier().GetCenterY() ? 3 : 1 );
 	vector<SWaypoint> cachedWaypoints;
 	cachedWaypoints.resize( 8 );
@@ -1843,7 +1843,7 @@ void CLv1BossWorm1::AIFunc()
 										else if( rightDir.Dot( dPos ) > 0 )
 											nMoveDir = -1;
 										else
-											nMoveDir = ( SRand::Inst().Rand() & 1 ) * 2 - 1;
+											nMoveDir = ( SRand::Inst().Rand( 0, 2 ) ) * 2 - 1;
 									}
 									else if( curDir.Dot( dPos ) == 2 * 32 )
 									{
@@ -1960,7 +1960,7 @@ void CLv1BossWorm1::AIFunc()
 							bool b2 = dist[newDir2] > 192;
 							bool bDir;
 							if( b1 && b2 )
-								bDir = SRand::Inst().Rand() & 1;
+								bDir = SRand::Inst().Rand( 0, 2 );
 							else if( b1 )
 								bDir = false;
 							else
@@ -2670,7 +2670,7 @@ void CLv1BossWorm2::Fire3()
 
 	pBarrage->AddFunc( [pThis] ( CBarrage* pBarrage )
 	{
-		int32 iTime;
+		int32 iTime = 0;
 		uint32 nSegs = pThis->m_vecSegs.size();
 		while( 1 )
 		{

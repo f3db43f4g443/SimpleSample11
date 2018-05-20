@@ -13,6 +13,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 
 	virtual bool CanTriggerItem() { return false; }
+	virtual bool CanOpenDoor() { return false; }
 	virtual void Awake() {}
 	virtual void Kill();
 	void KillEffect();

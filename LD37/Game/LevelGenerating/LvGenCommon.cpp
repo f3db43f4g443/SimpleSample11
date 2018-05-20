@@ -56,6 +56,60 @@ void CBrickTileNode::Generate( SLevelBuildContext & context, const TRectangle<in
 	}
 }
 
+void CRandomTileNode1::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	int i = 0;
+	for( auto pNode = pXml->FirstChildElement(); pNode && i < 16; pNode = pNode->NextSiblingElement(), i++ )
+	{
+		m_pNodes[i] = CreateNode( pNode, context );
+	}
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CRandomTileNode1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	int8 nMask = context.mapTags["mask"];
+	vector<pair<uint8, uint8> > vecType;
+	vecType.resize( ( region.width + 1 ) * ( region.height + 1 ) );
+	for( int i = 0; i < vecType.size(); i++ )
+	{
+		vecType[i].first = SRand::Inst().Rand( 0, 2 );
+		vecType[i].second = SRand::Inst().Rand( 0, 2 );
+	}
+	vector<TVector2<int32> > vec;
+	for( int j = 0; j < region.height; j++ )
+	{
+		for( int i = 0; i < region.width; i++ )
+		{
+			int32 x = i + region.x;
+			int32 y = j + region.y;
+			if( context.blueprint[x + y * context.nWidth] == nMask )
+			{
+				uint8 x1 = vecType[i + j * ( region.width + 1 )].first;
+				uint8 y1 = vecType[i + j * ( region.width + 1 )].second;
+				uint8 x2 = vecType[( i + 1 ) + j * ( region.width + 1 )].first;
+				uint8 y2 = vecType[i + ( j + 1 ) * ( region.width + 1 )].second;
+
+				static uint32 indexX[] = { 3, 2, 0, 1 };
+				static uint32 indexY[] = { 0, 1, 3, 2 };
+				uint32 tX = indexX[x1 + x2 * 2];
+				uint32 tY = indexY[y1 + y2 * 2];
+				m_pNodes[tX + tY * 4]->Generate( context, TRectangle<int32>( x, y, 1, 1 ) );
+
+				vec.push_back( TVector2<int32>( x, y ) );
+			}
+		}
+	}
+
+	if( m_pNextLevel )
+	{
+		int32 n = Min<int32>( vec.size(), (int32)floor( vec.size() * m_fNextLevelChance + SRand::Inst().Rand( 0.0f, 1.0f ) ) );
+		SRand::Inst().Shuffle( vec );
+		for( int i = 0; i < n; i++ )
+			m_pNextLevel->Generate( context, TRectangle<int32>( vec[i].x, vec[i].y, 1, 1 ) );
+	}
+}
+
 void CCommonRoomNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	CLevelGenerateSimpleNode::Load( pXml, context );
@@ -390,6 +444,7 @@ void CRoom2Node::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & cont
 	m_pDoor2[1] = CreateNode( pXml->FirstChildElement( "door2_1" )->FirstChildElement(), context );
 	m_pDoor2[2] = CreateNode( pXml->FirstChildElement( "door2_2" )->FirstChildElement(), context );
 	m_pDoor2[3] = CreateNode( pXml->FirstChildElement( "door2_3" )->FirstChildElement(), context );
+	m_strMask = XmlGetAttr( pXml, "wall_mask", "" );
 }
 
 void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
@@ -402,8 +457,21 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
+		int8 nMask = -1;
+		if( m_strMask.length() )
+			nMask = context.mapTags[m_strMask];
 		SLevelBuildContext tempContext( context, pChunk );
-
+		if( !!( m_bCopyBlueprint & 2 ) )
+		{
+			for( int i = 0; i < tempContext.nWidth; i++ )
+			{
+				for( int j = 0; j < tempContext.nHeight; j++ )
+				{
+					tempContext.blueprint[i + j * tempContext.nWidth]
+						= context.blueprint[i + region.x + ( j + region.y ) * context.nWidth];
+				}
+			}
+		}
 		{
 			uint32 nMaxLen = 0;
 			int i;
@@ -424,6 +492,14 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 					}
 					else
 						m_pDoor1[0]->Generate( tempContext, TRectangle<int32>( i, 0, 1, 1 ) );
+				}
+				else if( context.blueprint[i + region.x + region.y * context.nWidth] == nMask )
+				{
+					if( nMaxLen )
+					{
+						( nMaxLen == 1 ? m_pCorner : m_pHBar )->Generate( tempContext, TRectangle<int32>( i - nMaxLen, 0, nMaxLen, 1 ) );
+						nMaxLen = 0;
+					}
 				}
 				else
 					nMaxLen++;
@@ -454,6 +530,14 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 					}
 					else
 						m_pDoor1[2]->Generate( tempContext, TRectangle<int32>( i, region.height - 1, 1, 1 ) );
+				}
+				else if( context.blueprint[i + region.x + ( region.y + region.height - 1 ) * context.nWidth] == nMask )
+				{
+					if( nMaxLen )
+					{
+						( nMaxLen == 1 ? m_pCorner : m_pHBar )->Generate( tempContext, TRectangle<int32>( i - nMaxLen, region.height - 1, nMaxLen, 1 ) );
+						nMaxLen = 0;
+					}
 				}
 				else
 					nMaxLen++;
@@ -486,6 +570,14 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 					else
 						m_pDoor1[1]->Generate( tempContext, TRectangle<int32>( 0, i, 1, 1 ) );
 				}
+				else if( context.blueprint[region.x + ( i + region.y ) * context.nWidth] == nMask )
+				{
+					if( nMaxLen )
+					{
+						( nMaxLen == 1 ? m_pCorner : m_pVBar )->Generate( tempContext, TRectangle<int32>( 0, i - nMaxLen, 1, nMaxLen ) );
+						nMaxLen = 0;
+					}
+				}
 				else
 					nMaxLen++;
 			}
@@ -516,6 +608,14 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 					else
 						m_pDoor1[3]->Generate( tempContext, TRectangle<int32>( region.width - 1, i, 1, 1 ) );
 				}
+				else if( context.blueprint[region.x + region.width - 1 + ( i + region.y ) * context.nWidth] == nMask )
+				{
+					if( nMaxLen )
+					{
+						( nMaxLen == 1 ? m_pCorner : m_pVBar )->Generate( tempContext, TRectangle<int32>( region.width - 1, i - nMaxLen, 1, nMaxLen ) );
+						nMaxLen = 0;
+					}
+				}
 				else
 					nMaxLen++;
 			}
@@ -539,7 +639,20 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 			}
 		}
 
+		if( m_pSubChunk )
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 		tempContext.Build();
+		if( !!( m_bCopyBlueprint & 1 ) )
+		{
+			for( int i = 0; i < tempContext.nWidth; i++ )
+			{
+				for( int j = 0; j < tempContext.nHeight; j++ )
+				{
+					context.blueprint[i + region.x + ( j + region.y ) * context.nWidth]
+						= tempContext.blueprint[i + j * tempContext.nWidth];
+				}
+			}
+		}
 	}
 
 }

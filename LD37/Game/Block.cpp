@@ -845,8 +845,8 @@ void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 				|| ( j == 0 || j == pChunk->nHeight - 1 ) && ( i == pChunk->nWidth / 2 - 1 || i == pChunk->nWidth / 2 );
 			if( bDoor )
 			{
-				nTileX = 11 + ( SRand::Inst().Rand() & 1 );
-				nTileY = 3 + ( SRand::Inst().Rand() & 1 );
+				nTileX = 11 + ( SRand::Inst().Rand( 0, 2 ) );
+				nTileY = 3 + ( SRand::Inst().Rand( 0, 2 ) );
 			}
 			else
 			{
@@ -914,28 +914,28 @@ void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 
 				else if( i == 0 )
 				{
-					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
 					nTileY = 3;
 				}
 				else if( i == pChunk->nWidth - 1 )
 				{
-					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
 					nTileY = 5;
 				}
 				else if( j == 0 )
 				{
-					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
 					nTileY = 4;
 				}
 				else if( j == pChunk->nHeight - 1 )
 				{
-					nTileX = 14 + ( SRand::Inst().Rand() & 1 );
+					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
 					nTileY = 2;
 				}
 				else
 				{
-					nTileX = 11 + ( SRand::Inst().Rand() & 1 );
-					nTileY = 3 + ( SRand::Inst().Rand() & 1 );
+					nTileX = 11 + ( SRand::Inst().Rand( 0, 2 ) );
+					nTileY = 3 + ( SRand::Inst().Rand( 0, 2 ) );
 				}
 			}
 

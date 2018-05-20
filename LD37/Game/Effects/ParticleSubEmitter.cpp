@@ -38,7 +38,7 @@ void CParticleSubEmitter::Set()
 	for( int i = 0; i < m_nSubEmitterCount; i++ )
 	{
 		auto& emitter = m_subEmitters[i];
-		float fDir = SRand::Inst<eRand_Render>().Rand( 0.0f, dDir ) + m_fDirMin + dDir * i;
+		float fDir = ( 0.5f + SRand::Inst<eRand_Render>().Rand( -0.5f, 0.5f ) * ( 1 - m_fDirFixed ) + i ) * dDir + m_fDirMin;
 		CMatrix2D mat;
 		mat.Rotate( fDir );
 
@@ -58,7 +58,10 @@ void CParticleSubEmitter::Set()
 			emitter.a = mat.MulVector2Dir( emitter.a );
 	}
 
-	SRand::Inst<eRand_Render>().Shuffle( m_subEmitters );
+	m_vecEmitterIndices.resize( m_nSubEmitterCount );
+	for( int i = 0; i < m_nSubEmitterCount; i++ )
+		m_vecEmitterIndices[i] = i;
+	m_nCurEmitter = 0;
 }
 
 void CParticleSubEmitter::Update( SParticleInstanceData& data, float fTime, const CMatrix2D& transform )
@@ -74,6 +77,8 @@ bool CParticleSubEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 		return false;
 	}
 
+	if( !m_nCurEmitter )
+		SRand::Inst<eRand_Render>().Shuffle( m_vecEmitterIndices );
 	auto& emitter = m_subEmitters[m_nCurEmitter];
 	CVector2 pos = emitter.s0 + emitter.v * m_fTime + emitter.a * ( m_fTime * m_fTime * 0.5f );
 	CVector2 dir = emitter.v + emitter.a * m_fTime;

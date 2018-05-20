@@ -30,10 +30,12 @@ protected:
 	bool m_bIgnoreGlobalTransform;
 	uint32 m_nCurEmitter;
 	vector<SSubEmitter> m_subEmitters;
+	vector<int32> m_vecEmitterIndices;
 
 	uint32 m_nSubEmitterCount;
 	float m_fDirMin;
 	float m_fDirMax;
+	float m_fDirFixed;
 	CVector2 m_sizeMin;
 	CVector2 m_sizeMax;
 	CVector2 m_s0Min;

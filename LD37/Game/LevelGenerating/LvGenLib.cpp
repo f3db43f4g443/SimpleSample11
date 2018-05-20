@@ -140,7 +140,7 @@ void LvGenLib::GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int3
 
 		if( nMaxSize <= 0 || q.size() <= nMaxSize )
 		{
-			int32 nObjCount = q.size() < 3 ? q.size() : 1 + q.size() / 2;
+			int32 nObjCount = q.size() < 3 ? q.size() : 2 + floor( q.size() * 0.3f );
 			for( int i = 0; i < q.size(); i++ )
 			{
 				auto p1 = q[i];
@@ -263,7 +263,7 @@ void LvGenLib::GenObjs1( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 			}
 
 			nHoleSize = SRand::Inst().Rand( nHoleSizesMin[k], nHoleSizesMax[k] + 1 );
-			int32 nObjCount = nHoleSize / 2;
+			int32 nObjCount = nHoleSize * 0.3f;
 			SRand::Inst().Shuffle( &q[0], nHoleSize );
 			for( i = 0; i < nHoleSize; i++ )
 			{
@@ -280,6 +280,63 @@ void LvGenLib::GenObjs1( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 						nObjCount--;
 					}
 				}
+			}
+		}
+	}
+}
+
+void LvGenLib::GenObjs2( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nTypeBack, int8 nTypeObj, float fPercent )
+{
+	vector<TVector2<int32> > q1, q2;
+	int32 n = 0;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( genData[i + j * nWidth] != nTypeBack )
+				continue;
+			n++;
+			uint8 l = i == 0 || genData[( i - 1 ) + j * nWidth] != nTypeBack;
+			uint8 r = i == nWidth - 1 || genData[( i + 1 ) + j * nWidth] != nTypeBack;
+			uint8 t = j == 0 || genData[i + ( j - 1 ) * nWidth] != nTypeBack;
+			uint8 b = j == nHeight - 1 || genData[i + ( j + 1 ) * nWidth] != nTypeBack;
+			if( l + r + t + b >= 3 )
+				q1.push_back( TVector2<int32>( i, j ) );
+			else if( ( l || r ) && ( t || b ) )
+				q2.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+
+	n *= fPercent;
+	int32 n1 = 0, n2 = 0;
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	while( n > 0 && ( n1 < q1.size() || n2 < q2.size() ) )
+	{
+		TVector2<int32> p;
+		if( n1 < q1.size() )
+			p = q1[n1++];
+		else
+			p = q2[n2++];
+		if( genData[p.x + p.y * nWidth] == nTypeObj )
+			continue;
+		genData[p.x + p.y * nWidth] = nTypeObj;
+		n--;
+
+		SRand::Inst().Shuffle( ofs, 4 );
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& genData[p1.x + p1.y * nWidth] == nTypeBack )
+			{
+				uint8 l = p1.x == 0 || genData[( p1.x - 1 ) + p1.y * nWidth] != nTypeBack;
+				uint8 r = p1.y == nWidth - 1 || genData[( p1.x + 1 ) + p1.y * nWidth] != nTypeBack;
+				uint8 t = p1.y == 0 || genData[p1.x + ( p1.y - 1 ) * nWidth] != nTypeBack;
+				uint8 b = p1.y == nHeight - 1 || genData[p1.x + ( p1.y - 1 ) * nWidth] != nTypeBack;
+				if( l + r + t + b >= 3 )
+					q1.push_back( p1 );
+				else if( ( l || r ) && ( t || b ) )
+					q2.push_back( p1 );
 			}
 		}
 	}

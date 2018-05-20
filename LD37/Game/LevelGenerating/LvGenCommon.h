@@ -13,6 +13,15 @@ private:
 	bool m_bOfs;
 };
 
+class CRandomTileNode1 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pNodes[16];
+};
+
 class CCommonRoomNode : public CLevelGenerateSimpleNode
 {
 public:
@@ -54,6 +63,7 @@ public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
+	string m_strMask;
 	CReference<CLevelGenerateNode> m_pWallBroken;
 	CReference<CLevelGenerateNode> m_pHBar;
 	CReference<CLevelGenerateNode> m_pVBar;

@@ -7,7 +7,6 @@
 CEffectObject::CEffectObject( const SClassCreateContext& context )
 	: CEntity( context )
 	, m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
-	, m_nState( 0 )
 	, m_fAnimTimeScale( 1 )
 {
 	SET_BASEOBJECT_ID( CEffectObject );

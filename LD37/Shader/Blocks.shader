@@ -43,3 +43,14 @@ void PSBlockRTLayer( in float2 tex : TexCoord0,
 	outColor[0] = texColor;
 	outColor[1] = float4( 0, 0, 0, 0 );
 }
+
+void PSBlockRTLayer1( in float2 tex : TexCoord0,
+	in float2 tex1 : TexCoord1,
+	out float4 outColor[2] : SV_Target )
+{
+	float4 texColor = Texture0.Sample( Sampler, tex1 );
+	float4 texMask = TextureMask.Sample( Sampler, tex );
+	texColor *= texMask.w;
+	outColor[0] = texColor;
+	outColor[1] = float4( 0, 0, 0, 0 );
+}

@@ -10,6 +10,7 @@ public:
 		int8 nTypeBack, int8 nTypeBar );
 	static void GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nMaxSize, int8 nTypeBack, int8 nTypeObj );
 	static void GenObjs1( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nBlockType, int8 nSpaceType, int8 nObjType );
+	static void GenObjs2( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nTypeBack, int8 nTypeObj, float fPercent );
 	static void DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nObjType );
 	static void DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8* nObjTypes, uint8 nObjTypeCount );
 	static void Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nFlattenType, int8 nFillType );

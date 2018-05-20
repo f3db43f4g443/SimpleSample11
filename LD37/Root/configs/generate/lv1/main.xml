@@ -123,6 +123,9 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <web>
+          <ref name="web0_tile" />
+        </web>
       </node>
       
       <node type="lv1type1_3" name="lv1style4">
@@ -170,6 +173,9 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <web>
+          <ref name="web0_tile" />
+        </web>
         <shop>
           <ref name="shop" />
         </shop>
@@ -220,7 +226,7 @@
 
       <node type="lv1bonus1" name="lv1bonus1">
         <wall>
-          <ref name="block0" />
+          <ref name="block0_1" />
         </wall>
         <block1x>
           <ref name="brick_tile_1ax" />
@@ -244,7 +250,7 @@
           <ref name="enemyroom2" />
         </room2>
         <wallchunk>
-          <ref name="wall" />
+          <ref name="wall1" />
         </wallchunk>
         <obj1>
           <ref name="garbage_bin_red" p="1" />
@@ -261,6 +267,9 @@
         <bonus_pickup>
           <ref name="pt_pickup" />
         </bonus_pickup>
+        <web>
+          <ref name="web0_tile" />
+        </web>
       </node>
 
       <node type="subregion" name="lv1_1">
@@ -352,6 +361,9 @@
         <bonus>
           <ref name="box" />
         </bonus>
+        <web>
+          <ref name="web0_tile" />
+        </web>
         <shop>
           <ref name="shop" />
         </shop>
@@ -414,6 +426,12 @@
           <crate2>
             <ref name="cage_tile" />
           </crate2>
+          <web>
+            <ref name="web0_tile" />
+          </web>
+          <spider>
+            <ref name="spider1" />
+          </spider>
           <shop>
             <ref name="shop" />
           </shop>
@@ -455,7 +473,7 @@
             <ref name="wall1" />
           </wallchunk0>
           <wallchunk1>
-            <ref name="wall3" />
+            <ref name="wall3_empty" />
           </wallchunk1>
           <block1>
             <ref name="brick_tile_1ax" />
@@ -478,6 +496,9 @@
           <shop>
             <ref name="shop" />
           </shop>
+          <spider>
+            <ref name="spider2" />
+          </spider>
         </node>
         <ref name="lv1floor_7" x="0" y="60" w="32" h="4" />
 
@@ -521,6 +542,9 @@
           <window>
             <ref name="window4x4" />
           </window>
+          <spider>
+            <ref name="spider2" />
+          </spider>
         </node>
         <ref name="lv1floor_8" x="0" y="60" w="32" h="4" />
 
@@ -563,9 +587,9 @@
 
       <node type="subregion" name="test_lv">
         <ref name="lv1style1" x="0" y="0" w="32" h="28" />
-        <ref name="lv1floor_2" x="0" y="28" w="32" h="4" />
-        <ref name="lv1bonus0" x="0" y="32" w="32" h="60" />
-        <ref name="lv1floor_3" x="0" y="92" w="32" h="4" />
+        <ref name="lv1floor_1" x="0" y="28" w="32" h="4" />
+        <ref name="lv1_5" x="0" y="32" w="32" h="60" />
+        <ref name="lv1floor_1" x="0" y="92" w="32" h="4" />
         <ref name="lv1style1" x="0" y="96" w="32" h="28" />
         <ref name="lv1floor_1" x="0" y="124" w="32" h="4" />
       </node>

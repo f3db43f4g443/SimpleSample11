@@ -10,6 +10,7 @@ public:
 	virtual void Damage( SDamageContext& context ) override;
 	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal );
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) {}
+	virtual bool CanOpenDoor() override { return GetHitType() == eEntityHitType_Enemy; }
 	int32 GetHp() { return m_nHp; }
 	void SetHp( int32 nHp ) { m_nHp = nHp; }
 

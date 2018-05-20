@@ -103,6 +103,7 @@ public:
 	virtual void OnRemovedFromStage() override;
 
 	virtual bool CanTriggerItem() override;
+	virtual bool CanOpenDoor() override { return true; }
 
 	enum
 	{

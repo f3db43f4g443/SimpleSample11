@@ -70,20 +70,19 @@ void CLevelBonusGenNode1_0::Generate( SLevelBuildContext & context, const TRecta
 	{
 		m_pStoneNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
+	context.mapTags["mask"] = eType_Web;
 	for( auto& rect : m_wallChunks )
 	{
 		m_pWallChunkNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
-
-		int32 x = rect.x + rect.GetRight();
-		x = x < region.width * 2 ? x / 2 : ( x + 1 ) / 2;
-		int32 y = SRand::Inst().Rand( rect.y + ( rect.height + 1 ) / 2, rect.GetBottom() );
-		m_pBonusPickUpNode->Generate( context, TRectangle<int32>( x - 1 + region.x, y - 1 + region.y, 2, 2 ) );
 	}
+	for( auto& rect : m_wallChunkBonuses )
+		m_pBonusPickUpNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 
 	m_gendata.clear();
 	m_stones.clear();
 	m_bars.clear();
 	m_wallChunks.clear();
+	m_wallChunkBonuses.clear();
 }
 
 void CLevelBonusGenNode1_0::GenChunks()
@@ -423,6 +422,55 @@ void CLevelBonusGenNode1_0::GenObjs()
 {
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
+
+	vector<TVector2<int32> > vecWeb;
+	for( auto& rect : m_wallChunks )
+	{
+		int32 x = rect.x + rect.GetRight();
+		x = x < nWidth * 2 ? x / 2 : ( x + 1 ) / 2;
+		int32 y = SRand::Inst().Rand( rect.y + ( rect.height + 1 ) / 2, rect.GetBottom() );
+		m_wallChunkBonuses.push_back( TRectangle<int32>( x - 1, y - 1, 2, 2 ) );
+	}
+	for( auto& rect : m_wallChunkBonuses )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+				vecWeb.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+	SRand::Inst().Shuffle( vecWeb );
+	for( auto p : vecWeb )
+	{
+		if( m_gendata[p.x + p.y * nWidth] != eType_WallChunk && m_gendata[p.x + p.y * nWidth] != eType_Web )
+			continue;
+		m_gendata[p.x + p.y * nWidth] = eType_Web;
+		int32 nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
+		int32 n = SRand::Inst().Rand( 0, 4 );
+		for( int i = 0; i < n; i++ )
+		{
+			int32 r = SRand::Inst().Rand( 0, 3 );
+			if( r == 0 )
+			{
+				p.y--;
+				if( p.y < 0 || m_gendata[p.x + p.y * nWidth] != eType_WallChunk && m_gendata[p.x + p.y * nWidth] != eType_Web )
+					break;
+				m_gendata[p.x + p.y * nWidth] = eType_Web;
+			}
+			else if( r == 1 )
+			{
+				p.y++;
+				if( p.y >= nHeight || m_gendata[p.x + p.y * nWidth] != eType_WallChunk && m_gendata[p.x + p.y * nWidth] != eType_Web )
+					break;
+				m_gendata[p.x + p.y * nWidth] = eType_Web;
+			}
+			p.x += nDir;
+			if( p.x < 0 || p.x >= nWidth || m_gendata[p.x + p.y * nWidth] != eType_WallChunk && m_gendata[p.x + p.y * nWidth] != eType_Web )
+				break;
+			m_gendata[p.x + p.y * nWidth] = eType_Web;
+		}
+	}
+
 	vector<TVector2<int32> > vec;
 
 	for( int j = 0; j < nHeight; j++ )
@@ -533,13 +581,13 @@ void CLevelBonusGenNode1_1::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadCon
 	m_pObjNode[2] = CreateNode( pXml->FirstChildElement( "obj3" )->FirstChildElement(), context );
 	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
 	m_pBonusPickUpNode = CreateNode( pXml->FirstChildElement( "bonus_pickup" )->FirstChildElement(), context );
+	m_pWebNode = CreateNode( pXml->FirstChildElement( "web" )->FirstChildElement(), context );
 
 	CLevelGenerateNode::Load( pXml, context );
 }
 
 void CLevelBonusGenNode1_1::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	m_nSeed = SRand::Inst().nSeed;
 	m_pContext = &context;
 	m_region = region;
 	m_gendata.resize( region.width * region.height );
@@ -575,6 +623,8 @@ void CLevelBonusGenNode1_1::Generate( SLevelBuildContext & context, const TRecta
 	m_pBlock1xNode->Generate( context, region );
 	context.mapTags["mask"] = eType_Block2x;
 	m_pBlock2xNode->Generate( context, region );
+	context.mapTags["mask"] = eType_Web;
+	m_pWebNode->Generate( context, region );
 	for( auto& rect : m_bars )
 	{
 		if( rect.height == 2 )
@@ -643,10 +693,13 @@ void CLevelBonusGenNode1_1::GenRooms()
 	vector<int32> vecBegin;
 	vector<int32> vecEnd;
 	int8 nLastType = -1;
+	int32 n = 0;
 	for( h = 0; h < nHeight; )
 	{
 		uint8 nValidStates[nStateCount];
+		uint8 nValidStates1[nStateCount];
 		uint8 nValidStateCount = 0;
+		uint8 nValidStateCount1 = 0;
 		uint32 nMaxState = vecTypes.size() == 0 ? nMaxBeginState + 1 : nStateCount;
 		for( int i = 0; i < nMaxState; i++ )
 		{
@@ -662,12 +715,26 @@ void CLevelBonusGenNode1_1::GenRooms()
 				continue;
 
 			nValidStates[nValidStateCount++] = i;
+			if( i >= 4 )
+				nValidStates1[nValidStateCount1++] = i;
 		}
 		if( !nValidStateCount )
 			break;
 
-		uint8 nType = nValidStates[SRand::Inst().Rand<uint8>( 0, nValidStateCount )];
+		int8 nType = -1;
+		if( n >= 3 )
+		{
+			if( nValidStateCount1 > 0 )
+				nType = nValidStates1[SRand::Inst().Rand<uint8>( 0, nValidStateCount1 )];
+		}
+		if( nType < 0 )
+			nType = nValidStates[SRand::Inst().Rand<uint8>( 0, nValidStateCount )];
+
 		vecTypes.push_back( nType );
+		if( nType < 4 )
+			n++;
+		else
+			n = 0;
 		if( nLastType >= 0 )
 		{
 			h += Min<int32>( nHeight - nStateMinHeight[nType] - h, SRand::Inst().Rand<int32>( nStateTransit[nLastType][nType], nStateTransitMax[nLastType][nType] + 1 ) );
@@ -772,7 +839,7 @@ void CLevelBonusGenNode1_1::GenRooms()
 						m_gendata[x + ( nEnd - 1 ) * nWidth] = m_gendata[nWidth - x - 1 + ( nEnd - 1 ) * nWidth] = eType_Door;
 				}
 			}
-			FillRoomGap( TRectangle<int32>( r1.GetRight(), nBegin, r2.x - r1.GetRight(), nEnd - nBegin ), false, false );
+			FillRoomGap( TRectangle<int32>( r1.GetRight(), nBegin, r2.x - r1.GetRight(), nEnd - nBegin ), false, true );
 			if( nPreType != 5 && nPreType != 4 )
 			{
 				FillRoomGap( TRectangle<int32>( 0, nBegin, r1.x, nEnd - nBegin ), true, false );
@@ -841,6 +908,17 @@ void CLevelBonusGenNode1_1::GenRooms()
 				nFillWidth = l;
 				if( nPreType == 5 || nPreType == 4 )
 					FillRoomGap( TRectangle<int32>( l2, nPreEnd, r2 - l2, nBegin - nPreEnd ), false, false );
+				else if( nPreType != -1 )
+				{
+					TRectangle<int32> r( l2, nPreEnd, r2 - l2, nBegin - nPreEnd );
+					for( int x = r.x; x < r.GetRight(); x++ )
+					{
+						for( int y = r.y; y < r.GetBottom(); y++ )
+						{
+							m_gendata[x + y * nWidth] = eType_Web;
+						}
+					}
+				}
 			}
 			else
 			{
@@ -856,6 +934,8 @@ void CLevelBonusGenNode1_1::GenRooms()
 				nFillWidth = l;
 				if( nPreType == 5 || nPreType == 4 )
 					FillRoomGap( TRectangle<int32>( l2, nPreEnd, r2 - l2, nBegin - nPreEnd ), false, false );
+				else if( nPreType != -1 )
+					FillRoomGap( TRectangle<int32>( l2, nPreEnd, r2 - l2, nBegin - nPreEnd ), false, true );
 			}
 
 			if( nPreType != 5 && nPreType != 4 )
@@ -958,6 +1038,9 @@ void CLevelBonusGenNode1_1::GenRooms()
 				}
 			}
 
+			if( nPreType == 1 || nNxtType == 1 )
+				FillRoomGap( TRectangle<int32>( 15, nBegin, 2, nEnd - nBegin ), false, false, false );
+
 			for( int j = nPreEnd; j < nBegin; j++ )
 			{
 				for( int i = 0; i < nWidth; i++ )
@@ -1019,13 +1102,21 @@ void CLevelBonusGenNode1_1::GenRooms()
 			int32 nDoor = ( nEnd + nBegin - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2;
 			for( int i = 0; i < 3; i++ )
 			{
-				AddRoom( 1, rect );
-				if( nPreType < 4 )
-					m_gendata[rect.x + 3 + nBegin * nWidth] = m_gendata[rect.x + 4 + nBegin * nWidth] = eType_Door;
-				m_gendata[rect.x + nDoor * nWidth] = m_gendata[rect.GetRight() - 1 + nDoor * nWidth]
-					= m_gendata[rect.x + ( nDoor + 1 ) * nWidth] = m_gendata[rect.GetRight() - 1 + ( nDoor + 1 ) * nWidth] = eType_Door;
-				if( nNxtType < 4 )
-					m_gendata[rect.x + 3 + ( nEnd - 1 ) * nWidth] = m_gendata[rect.x + 4 + ( nEnd - 1 ) * nWidth] = eType_Door;
+				if( i == 1 && ( nPreType == 1 || nNxtType == 1 ) )
+				{
+					TRectangle<int32> r1( rect.x - 2, rect.y, rect.width + 2, rect.height );
+					AddRect( eType_WallChunk, m_wallChunks, r1 );
+				}
+				else
+				{
+					AddRoom( 1, rect );
+					if( nPreType < 4 )
+						m_gendata[rect.x + 3 + nBegin * nWidth] = m_gendata[rect.x + 4 + nBegin * nWidth] = eType_Door;
+					m_gendata[rect.x + nDoor * nWidth] = m_gendata[rect.GetRight() - 1 + nDoor * nWidth]
+						= m_gendata[rect.x + ( nDoor + 1 ) * nWidth] = m_gendata[rect.GetRight() - 1 + ( nDoor + 1 ) * nWidth] = eType_Door;
+					if( nNxtType < 4 )
+						m_gendata[rect.x + 3 + ( nEnd - 1 ) * nWidth] = m_gendata[rect.x + 4 + ( nEnd - 1 ) * nWidth] = eType_Door;
+				}
 				rect.x += 10;
 			}
 
@@ -1398,9 +1489,18 @@ void CLevelBonusGenNode1_1::FillRoomGap( TRectangle<int32> rect, bool bUp, bool 
 	int8 nFillType = eType_Block1x + SRand::Inst().Rand( 0, 2 );
 	if( nLeftDoorBegin < 0 && nRightDoorBegin < 0 )
 	{
-		nLeftDoorBegin = ( rect.height - 1 ) * SRand::Inst().Rand( 0.7f, 1.0f );
-		nRightDoorBegin = ( rect.height - 1 ) * SRand::Inst().Rand( 0.7f, 1.0f );
-		nLeftDoorEnd = nRightDoorEnd = rect.height - 1;
+		if( bDown )
+		{
+			nLeftDoorBegin = nRightDoorBegin = 0;
+			nLeftDoorEnd = ( rect.height - 1 ) * SRand::Inst().Rand( 0.0f, 0.3f );
+			nRightDoorEnd = ( rect.height - 1 ) * SRand::Inst().Rand( 0.0f, 0.3f );
+		}
+		else
+		{
+			nLeftDoorBegin = ( rect.height - 1 ) * SRand::Inst().Rand( 0.7f, 1.0f );
+			nRightDoorBegin = ( rect.height - 1 ) * SRand::Inst().Rand( 0.7f, 1.0f );
+			nLeftDoorEnd = nRightDoorEnd = rect.height - 1;
+		}
 	}
 	else if( nLeftDoorBegin < 0 )
 	{
@@ -1546,10 +1646,10 @@ void CLevelBonusGenNode1_1::FillRoomGap( TRectangle<int32> rect, bool bUp, bool 
 				if( vec1[x] < vec[x] )
 				{
 					vec1[x]++;
-					data = SRand::Inst().Rand( 0, 4 ) ? eType_Bonus : SRand::Inst().Rand<int8>( eType_Obj, eType_Obj_Max );
+					data = i == 0 ? nFillType : eType_Web;
 				}
 				else
-					data = nFillType;
+					data = SRand::Inst().Rand( 0, 4 ) ? eType_Bonus : SRand::Inst().Rand<int8>( eType_Obj, eType_Obj_Max );
 			}
 		}
 	}

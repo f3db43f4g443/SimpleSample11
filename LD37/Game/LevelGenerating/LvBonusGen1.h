@@ -18,6 +18,7 @@ private:
 	{
 		eType_None,
 		eType_WallChunk,
+		eType_Web,
 		eType_Temp,
 
 		eType_Bar,
@@ -37,6 +38,7 @@ private:
 	vector<TRectangle<int32> > m_bars;
 	vector<TRectangle<int32> > m_stones;
 	vector<TRectangle<int32> > m_wallChunks;
+	vector<TRectangle<int32> > m_wallChunkBonuses;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pStoneNode;
@@ -76,13 +78,13 @@ private:
 		eType_Room,
 		eType_Block1x,
 		eType_Block2x,
+		eType_Web,
 		eType_Obj,
 		eType_Obj_Max = eType_Obj + 3,
 		eType_Bonus = eType_Obj_Max,
 		eType_Temp1,
 	};
 
-	int32 m_nSeed;
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
@@ -109,4 +111,5 @@ private:
 	CReference<CLevelGenerateNode> m_pObjNode[3];
 	CReference<CLevelGenerateNode> m_pBonusNode;
 	CReference<CLevelGenerateNode> m_pBonusPickUpNode;
+	CReference<CLevelGenerateNode> m_pWebNode;
 };

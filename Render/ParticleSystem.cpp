@@ -290,7 +290,8 @@ void CParticleSystemDrawable::Flush( CRenderContext2D& context )
 					uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
 					for( auto& param : m_param.m_shaderParams )
 					{
-						memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
+						if( param.nDstOfs != INVALID_16BITID )
+							memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
 					}
 				}
 
@@ -334,7 +335,8 @@ void CParticleSystemDrawable::Flush( CRenderContext2D& context )
 						uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
 						for( auto& param : m_param.m_shaderParams )
 						{
-							memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
+							if( param.nDstOfs != INVALID_16BITID )
+								memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
 						}
 						if( m_param.m_nZOrderOfs != INVALID_32BITID )
 							memcpy( pData + m_param.m_nZOrderOfs, &fDepth, sizeof( fDepth ) );

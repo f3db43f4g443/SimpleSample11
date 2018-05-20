@@ -163,6 +163,124 @@ void CMyLevel::OnPlayerEntered( CPlayer * pPlayer )
 		pPlayer->OnBonusStageBegin();
 }
 
+CChunkObject* CMyLevel::TrySpawnAt( CVector2& pos, SHitProxy* pHitProxy )
+{
+	CMatrix2D transform;
+	CRectangle bound;
+	transform.Identity();
+	pHitProxy->CalcBound( transform, bound );
+	transform.Translate( pos.x, pos.y );
+	vector<CReference<CEntity> > vecHit;
+	vector<SHitTestResult> result;
+	GetStage()->MultiHitTest( pHitProxy, transform, vecHit, &result );
+
+	bool bOK = false;
+	CRectangle r;
+	CChunkObject* pChunkObject;
+	for( int i = 0; i < vecHit.size(); i++ )
+	{
+		auto pBlockObject = SafeCast<CBlockObject>( vecHit[i].GetPtr() );
+		if( pBlockObject && pBlockObject->GetHitType() > eEntityHitType_Platform )
+		{
+			auto pChunk = pBlockObject->GetBlock()->pOwner;
+			CRectangle rect( pChunk->pChunkObject->globalTransform.GetPosition().x, pChunk->pChunkObject->globalTransform.GetPosition().y,
+				pChunk->nWidth * CMyLevel::GetBlockSize(), pChunk->nHeight * CMyLevel::GetBlockSize() );
+			if( rect.Contains( pos ) )
+			{
+				pChunkObject = pChunk->pChunkObject;
+				r = rect;
+				bOK = true;
+				break;
+			}
+		}
+	}
+	if( !bOK )
+		return NULL;
+
+	CVector2 ofs( 0, 0 );
+	for( int i = 0; i < vecHit.size(); i++ )
+	{
+		auto pEntity = vecHit[i].GetPtr();
+		if( pEntity && pEntity->GetHitType() <= eEntityHitType_WorldStatic )
+		{
+			auto hitResult = result[i];
+			float fDot = hitResult.normal.Dot( ofs );
+			if( fDot * fDot >= hitResult.normal.Length2() )
+				continue;
+			else if( fDot * fDot >= ofs.Length2() )
+				ofs = hitResult.normal;
+			else
+			{
+				float a1 = ofs.x, b1 = ofs.y, c1 = 2;
+				float a2 = hitResult.normal.x, b2 = hitResult.normal.y, c2 = 2;
+				float d = a1 * b2 - a2 * b1;
+				if( d == 0 )
+				{
+					bOK = false;
+					break;
+				}
+				float x = ( c1 * b1 - c2 * b2 ) * a1 * a2 / ( b1 * a2 - b2 * a1 );
+				float y = ( c1 * a1 - c2 * a2 ) * b1 * b2 / ( a1 * b2 - a2 * b1 );
+				if( abs( x ) > bound.width || abs( y ) > bound.height )
+				{
+					bOK = false;
+					break;
+				}
+				ofs = CVector2( x, y );
+			}
+		}
+	}
+	if( !bOK )
+		return NULL;
+
+	bool bCheck = false;
+	if( ofs.Length2() > 0 )
+	{
+		bCheck = true;
+		ofs = ofs + ofs * ( 0.125f / ofs.Length() );
+	}
+	CVector2 p1 = pos + ofs;
+	CRectangle bound1 = bound.Offset( p1 );
+	if( bound1.x < r.x )
+	{
+		bound1.x = r.x;
+		bCheck = true;
+	}
+	if( bound1.y < r.y )
+	{
+		bound1.y = r.y;
+		bCheck = true;
+	}
+	if( bound1.GetRight() > r.GetRight() )
+	{
+		bound1.x = r.GetRight() - bound1.width;
+		bCheck = true;
+	}
+	if( bound1.GetBottom() > r.GetBottom() )
+	{
+		bound1.y = r.GetBottom() - bound1.height;
+		bCheck = true;
+	}
+	p1 = CVector2( bound1.x - bound.x, bound1.y - bound.y );
+	if( bCheck )
+	{
+		transform.Translate( p1.x, p1.y );
+		vecHit.clear();
+		result.clear();
+		GetStage()->MultiHitTest( pHitProxy, transform, vecHit );
+
+		for( int i = 0; i < vecHit.size(); i++ )
+		{
+			auto pEntity = vecHit[i].GetPtr();
+			if( pEntity && pEntity->GetHitType() <= eEntityHitType_WorldStatic )
+				return NULL;
+		}
+	}
+
+	pos = p1;
+	return pChunkObject;
+}
+
 SChunk* CMyLevel::CreateGrids( const char* szNode, SChunk* pLevelBarrier )
 {
 	auto& cfg = CGlobalCfg::Inst();

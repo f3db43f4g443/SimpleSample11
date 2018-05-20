@@ -76,6 +76,7 @@ struct SCharacterFlyData : public SCharacterMovementData
 	CVector2 finalMoveAxis;
 	CReference<CEntity> pLandedEntity;
 	CMatrix2D lastLandedEntityTransform;
+	SRaycastResult hits[3];
 
 	float fKnockbackTime;
 	CVector2 vecKnockback;

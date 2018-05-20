@@ -143,11 +143,11 @@ public:
 	void AddDelayAction( uint32 nTime, function<void()> func );
 protected:
 	virtual void OnTransformUpdated() override;
+	void OnTickBeforeHitTest();
+	virtual void OnTickAfterHitTest();
 private:
 	struct SExceptionRemoved {};
 	static uint32 CoroutineFunc( void* pThis );
-	void OnTickBeforeHitTest();
-	void OnTickAfterHitTest();
 
 	bool m_bStarted;
 	bool m_bReadyUpdateTransforms;

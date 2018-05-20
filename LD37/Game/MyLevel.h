@@ -95,6 +95,8 @@ public:
 	virtual uint8 GetNavigationData( const TVector2<int32>& pos ) override;
 	virtual TRectangle<int32> GetMapRect() override;
 	virtual CVector2 GetGridSize() override { return CVector2( GetBlockSize(), GetBlockSize() ); }
+
+	CChunkObject* TrySpawnAt( CVector2& pos, SHitProxy* pHitProxy );
 protected:
 	SChunk* CreateGrids( const char* szNode, SChunk* pLevelBarrier = NULL );
 	SChunk* CacheNextLevel( SChunk* pLevelBarrier );

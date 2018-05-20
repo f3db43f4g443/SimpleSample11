@@ -324,7 +324,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 		}
 
 		moveOfs = moveOfs + landedEntityOfs;
-		TryMove( pCharacter, moveOfs );
+		TryMove( pCharacter, moveOfs, hits );
 
 		if( fRollTime >= fRollMaxTime )
 		{
@@ -365,7 +365,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 				moveOfs = moveOfs + landedEntityOfs;
 			}
 			CVector2 velocity = moveOfs;
-			TryMove( pCharacter, moveOfs, velocity );
+			TryMove( pCharacter, moveOfs, velocity, hits );
 			finalMoveAxis = velocity;
 			finalMoveAxis.Normalize();
 		}

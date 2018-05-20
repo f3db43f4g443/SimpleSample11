@@ -26,15 +26,17 @@ bool CParticleWebEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 	auto& emitter1 = m_subEmitters[iEmitter];
 	auto& emitter2 = m_subEmitters[iEmitter < nEmittersSize - 1 ? iEmitter + 1 : 0];
 	CVector2 pos1, pos2;
-	float fTime1 = m_fTime * SRand::Inst<eRand_Render>().Rand( 0.5f, 1.0f );
+	float t = SRand::Inst<eRand_Render>().Rand( m_fTimeMin, m_fTimeMax );
+	float fTime0 = Max( Min( m_fTime + t, m_fLifeTime ), 0.0f );
+	float fTime1 = Max( Min( m_fTime * SRand::Inst<eRand_Render>().Rand( m_fTime1, m_fTime2 ) + t, m_fLifeTime ), 0.0f );
 	if( bRight )
 	{
-		pos1 = emitter2.s0 + emitter2.v * m_fTime + emitter2.a * ( m_fTime * m_fTime * 0.5f );
+		pos1 = emitter2.s0 + emitter2.v * fTime0 + emitter2.a * ( fTime0 * fTime0 * 0.5f );
 		pos2 = emitter1.s0 + emitter1.v * fTime1 + emitter1.a * ( fTime1 * fTime1 * 0.5f );
 	}
 	else
 	{
-		pos1 = emitter1.s0 + emitter1.v * m_fTime + emitter1.a * ( m_fTime * m_fTime * 0.5f );
+		pos1 = emitter1.s0 + emitter1.v * fTime0 + emitter1.a * ( fTime0 * fTime0 * 0.5f );
 		pos2 = emitter2.s0 + emitter2.v * fTime1 + emitter2.a * ( fTime1 * fTime1 * 0.5f );
 	}
 	pos = pos1;
@@ -58,6 +60,9 @@ bool CParticleWebEmitter::Emit( SParticleInstanceData& data, CParticleSystemData
 		CMatrix2D mat1 = transform * mat;
 		pParticleSystemData->GenerateSingleParticle( data, pData, mat1 );
 	}
+
+	CRectangle ext = data.origRect.Scale( dir.Length() ).Offset( CVector2( pos.x, pos.y ) );
+	data.extRect = data.extRect + ext;
 
 	m_nCurEmitter++;
 	uint32 nPeriod = m_bLoop ? nEmittersSize * 4 : nEmittersSize * 4 - 4;

@@ -132,7 +132,7 @@ protected:
 	SChunkBaseInfo* m_pChunkBaseInfo;
 	uint8 m_nLevelBarrierType;
 	uint8 m_nLevelBarrierHeight;
-	bool m_bCopyBlueprint;
+	uint8 m_bCopyBlueprint;
 
 	CReference<CLevelGenerateNode> m_pSubChunk;
 };

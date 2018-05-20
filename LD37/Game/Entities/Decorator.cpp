@@ -171,7 +171,7 @@ void CDecoratorDirt::Init( const CVector2 & size )
 				rect2.SetTop( nSplitPos + rect.y );
 			}
 
-			bool bLeftFirst = SRand::Inst().Rand() & 1;
+			bool bLeftFirst = SRand::Inst().Rand( 0, 2 );
 			if( bLeftFirst )
 			{
 				splits.push_back( SSplit( rect1, false, i ) );
@@ -193,8 +193,8 @@ void CDecoratorDirt::Init( const CVector2 & size )
 			continue;
 
 		auto rect = split.rect;
-		bool bY = SRand::Inst().Rand() & 1;
-		bool bLeft = SRand::Inst().Rand() & 1;
+		bool bY = SRand::Inst().Rand( 0, 2 );
+		bool bLeft = SRand::Inst().Rand( 0, 2 );
 		float fPercent = SRand::Inst().Rand( fMin, fMax );
 		if( !bY )
 		{

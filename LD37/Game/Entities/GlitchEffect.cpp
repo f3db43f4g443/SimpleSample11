@@ -166,9 +166,9 @@ void CGlitchEffect::AddNode()
 				pNode1->pParent->pRight = pNode1;
 		}
 		
-		pNode1->bVertical = !!( SRand::Inst().Rand() & 1 );
+		pNode1->bVertical = !!( SRand::Inst().Rand( 0, 2 ) );
 		pNode1->fSplitPercent = SRand::Inst().Rand( 0.2f, 0.8f );
-		if( !!( SRand::Inst().Rand() & 1 ) )
+		if( !!( SRand::Inst().Rand( 0, 2 ) ) )
 		{
 			pNode1->pLeft = pParent;
 			pNode1->pRight = pNewNode;
@@ -256,7 +256,7 @@ void CGlitchEffect::ChangeNode()
 
 	if( pNode )
 	{
-		pNode->bVertical = !!( SRand::Inst().Rand() & 1 );
+		pNode->bVertical = !!( SRand::Inst().Rand( 0, 2 ) );
 		pNode->fSplitPercent = SRand::Inst().Rand( 0.2f, 0.8f );
 		pNode->UpdateChildren( this );
 	}

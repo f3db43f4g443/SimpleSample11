@@ -2,6 +2,7 @@
 #include "LvGen1.h"
 #include "Common/Algorithm.h"
 #include "Common/Rand.h"
+#include "LvGenLib.h"
 #include <algorithm>
 
 void CLevelGenNode1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
@@ -17,6 +18,8 @@ void CLevelGenNode1_2::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext 
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj" )->FirstChildElement(), context );
 	m_pCrate1Node = CreateNode( pXml->FirstChildElement( "crate1" )->FirstChildElement(), context );
 	m_pCrate2Node = CreateNode( pXml->FirstChildElement( "crate2" )->FirstChildElement(), context );
+	m_pWebNode = CreateNode( pXml->FirstChildElement( "web" )->FirstChildElement(), context );
+	m_pSpiderNode = CreateNode( pXml->FirstChildElement( "spider" )->FirstChildElement(), context );
 
 	auto pShop = pXml->FirstChildElement( "shop" );
 	if( pShop )
@@ -68,6 +71,8 @@ void CLevelGenNode1_2::Generate( SLevelBuildContext & context, const TRectangle<
 	m_pCrate1Node->Generate( context, region );
 	context.mapTags["mask"] = eType_Crate2;
 	m_pCrate2Node->Generate( context, region );
+	context.mapTags["mask"] = eType_Web;
+	m_pWebNode->Generate( context, region );
 
 	for( auto& bar : m_bars )
 	{
@@ -87,7 +92,21 @@ void CLevelGenNode1_2::Generate( SLevelBuildContext & context, const TRectangle<
 		else if( room.nType == 1 )
 			m_pRoom2Node->Generate( context, rect );
 		else
+		{
 			m_pWallChunkNode->Generate( context, rect );
+			for( int i = room.rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = room.rect.y; j < rect.GetBottom(); j++ )
+				{
+					if( context.blueprint[i + j * context.nWidth] == 1 )
+						context.blueprint[i + j * context.nWidth] = eType_WallChunk;
+					else if( context.blueprint[i + j * context.nWidth] == 2 )
+						context.blueprint[i + j * context.nWidth] = eType_Object;
+					else
+						context.blueprint[i + j * context.nWidth] = eType_Path;
+				}
+			}
+		}
 
 		if( room.bShop )
 		{
@@ -99,6 +118,7 @@ void CLevelGenNode1_2::Generate( SLevelBuildContext & context, const TRectangle<
 			m_pShopNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 		}
 	}
+	GenSpiders( context, region );
 
 	m_gendata.clear();
 	m_rooms.clear();
@@ -199,6 +219,32 @@ void CLevelGenNode1_2::GenRooms()
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
 	auto& gendata = m_gendata;
+
+	vector<TVector2<int32> > vec;
+	for( int i = 0; i < nWidth; i++ )
+	{
+		if( !m_gendata[i] )
+			vec.push_back( TVector2<int32>( i, 0 ) );
+	}
+	if( vec.size() >= 3 )
+	{
+		int32 n1 = ( vec.size() + SRand::Inst().Rand( 0, 3 ) ) / 3;
+		int32 n2 = vec.size() - 1 - ( vec.size() + SRand::Inst().Rand( 0, 3 ) ) / 3;
+		vec[0] = vec[n1];
+		if( n2 != n1 )
+		{
+			vec[1] = vec[n2];
+			vec.resize( 2 );
+		}
+		else
+			vec.resize( 1 );
+		SRand::Inst().Shuffle( vec );
+		for( auto& p : vec )
+		{
+			PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 2, 2 ),
+				TVector2<int32>( SRand::Inst().Rand( 2, 5 ), SRand::Inst().Rand( 2, 5 ) ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Count );
+		}
+	}
 
 	vector<TVector2<int32> > vecPossibleGenPoints;
 	vector<uint8> vecGenPointValid;
@@ -435,30 +481,6 @@ void CLevelGenNode1_2::GenRooms()
 			}
 		}
 	}
-
-	for( int iRoom = 0; iRoom < Min( 3u, m_rooms.size() ); iRoom++ )
-	{
-		auto& room = m_rooms[iRoom];
-		int32 x1 = room.rect.x + SRand::Inst().Rand( 1, room.rect.width / 4 );
-		int32 x2 = room.rect.GetRight() - SRand::Inst().Rand( 1, room.rect.width / 4 );
-		for( int i = x1; i < x2; i++ )
-		{
-			bool bSucceed = true;
-			for( int j = room.rect.y - 1; j >= 0; j-- )
-			{
-				if( m_gendata[i + j * nWidth] )
-				{
-					bSucceed = false;
-					break;
-				}
-			}
-			if( bSucceed )
-			{
-				for( int j = room.rect.y - 1; j >= 0; j-- )
-					m_gendata[i + j * nWidth] = eType_Path;
-			}
-		}
-	}
 }
 
 void CLevelGenNode1_2::PutHBars()
@@ -621,6 +643,15 @@ void CLevelGenNode1_2::PutHBars()
 				}
 			}
 			nBars++;
+		}
+	}
+
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < 5; j++ )
+		{
+			if( m_gendata[i + j * nWidth] == eType_Count )
+				m_gendata[i + j * nWidth] = eType_None;
 		}
 	}
 }
@@ -993,6 +1024,55 @@ void CLevelGenNode1_2::ConnRooms()
 					int32 nDoorPos = SRand::Inst().Rand( nMaxLenBegin + 2, nMaxLenBegin + nMaxLen - 2 );
 					gendata[xBase + nDoorPos * nWidth] = eType_Door;
 				}
+			}
+		}
+	}
+
+	q.clear();
+	for( int i = 0; i < nWidth; i++ )
+	{
+		if( m_gendata[i] == eType_None )
+			q.push_back( TVector2<int32>( i, 0 ) );
+	}
+	if( q.size() >= 3 )
+	{
+		int32 n1 = ( q.size() + SRand::Inst().Rand( 0, 3 ) ) / 3;
+		int32 n2 = q.size() - 1 - ( q.size() + SRand::Inst().Rand( 0, 3 ) ) / 3;
+		q[0] = q[n1];
+		if( n2 != n1 )
+		{
+			q[1] = q[n2];
+			q.resize( 2 );
+		}
+		else
+			q.resize( 1 );
+
+		SRand::Inst().Shuffle( q );
+		vector<TVector2<int32> > par;
+		par.resize( nWidth * nHeight );
+		int32 nPath = 0;
+		for( int i = 0; i < q.size(); i++ )
+		{
+			TVector2<int32> dst = FindPath( m_gendata, nWidth, Min( nHeight, 8 ), q[i], eType_Count, eType_Path, par );
+			if( dst.x >= 0 )
+			{
+				TVector2<int32> p = par[dst.x + dst.y * nWidth];
+				while( p.x >= 0 )
+				{
+					m_gendata[p.x + p.y * nWidth] = eType_Path;
+					p = par[p.x + p.y * nWidth];
+				}
+				nPath++;
+			}
+		}
+		if( !nPath )
+		{
+			int32 n = Min<int32>( 2, m_rooms.size() );
+			for( int i = 0; i < n; i++ )
+			{
+				int32 x = ( m_rooms[i].rect.width + SRand::Inst().Rand( 0, 2 ) ) / 2;
+				int32 y = m_rooms[i].rect.y;
+				m_gendata[x - 1 + y * nWidth] = m_gendata[x + y * nWidth] = eType_Door;
 			}
 		}
 	}
@@ -1652,5 +1732,62 @@ void CLevelGenNode1_2::GenObjects()
 	for( int i = 0; i < vecResults.size(); i++ )
 	{
 		gendata[vecResults[i].x + vecResults[i].y * nWidth] = eType_Object;
+	}
+	LvGenLib::GenObjs2( m_gendata, nWidth, nHeight, eType_Path, eType_Web, 0.2f );
+}
+
+void CLevelGenNode1_2::GenSpiders( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	auto& data = context.blueprint;
+	int32 nWidth = context.nWidth;
+	int32 nHeight = context.nHeight;
+	vector<TVector2<int32> > vec;
+	for( int i = region.x; i < region.GetRight(); i++ )
+	{
+		for( int j = region.y; j < region.GetBottom(); j++ )
+		{
+			if( data[i + j * nWidth] >= eType_WallChunk )
+				continue;
+			vec.push_back( TVector2<int32>( i, j ) );
+		}
+	}
+	SRand::Inst().Shuffle( vec );
+
+	for( auto& p : vec )
+	{
+		if( data[p.x + p.y * nWidth] >= eType_WallChunk )
+			continue;
+
+		int32 y1;
+		bool bDoor = false;
+		for( y1 = p.y; y1 > region.y; y1-- )
+		{
+			int8 n = data[p.x + ( y1 - 1 ) * nWidth];
+			if( n == eType_Door )
+			{
+				bDoor = true;
+				break;
+			}
+			if( n != eType_Path )
+				break;
+		}
+		if( bDoor || p.y - y1 >= ( y1 - region.y == 0 ? SRand::Inst().Rand( 5, 7 ) : SRand::Inst().Rand( 3, 6 ) ) )
+		{
+			TRectangle<int32> rect( p.x, p.y, 1, 1 );
+			m_pSpiderNode->Generate( context, rect );
+			rect.SetLeft( rect.x - SRand::Inst().Rand( 2, 4 ) );
+			rect.width += SRand::Inst().Rand( 2, 4 );
+			rect.SetTop( rect.y - SRand::Inst().Rand( 1, 3 ) );
+			rect.height += SRand::Inst().Rand( 1, 3 );
+			rect = rect * region;
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+				{
+					if( data[i + j * nWidth] < eType_WallChunk )
+						data[i + j * nWidth] = eType_Object;
+				}
+			}
+		}
 	}
 }

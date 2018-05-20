@@ -284,6 +284,8 @@ int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nTy
 				q.push_back( TVector2<int32>( i, j ) );
 		}
 	}
+	if( !q.size() )
+		return 0;
 	SRand::Inst().Shuffle( &q[0], q.size() );
 
 	return FloodFillExpand( vec, nWidth, nHeight, nType, nBackType, nTargetCount, q );

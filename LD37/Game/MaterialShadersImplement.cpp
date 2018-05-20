@@ -33,6 +33,7 @@ IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithOrigTexVertexShader1, CMyDefa
 
 IMPLEMENT_MATERIAL_SHADER( VSBlockRTLayer, "Shader/Blocks.shader", "VSBlockRTLayer", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSBlockRTLayer, "Shader/Blocks.shader", "PSBlockRTLayer", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSBlockRTLayer1, "Shader/Blocks.shader", "PSBlockRTLayer1", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSTwoColorLerp, "Shader/Effect.shader", "PSTwoColorLerp", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSSingleColorEmissionClearColorClip, "Shader/Effect.shader", "PSSingleColorEmissionClearColorClip", "ps_5_0" );
@@ -55,6 +56,8 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VS
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle1, "Shader/Particle1.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticle1_1, "Shader/Particle1.shader", "VSParticle1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticle1_2, "Shader/Particle1.shader", "VSParticle2", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticle1, "Shader/Particle1.shader", "PSParticle", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleColorMapColor, "Shader/Particle1.shader", "PSParticleColorMapColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleColorMapOcclusion, "Shader/Particle1.shader", "PSParticleColorMapOcclusion", "ps_5_0" );
@@ -65,6 +68,7 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook, "Shader/ParticleFlipbook.shader",
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1, "Shader/ParticleFlipbook1.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1InstData, "Shader/ParticleFlipbook1.shader", "VSParticleInstData", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel, "Shader/ParticleFlipbook1.shader", "VSParticle1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel1, "Shader/ParticleFlipbook1.shader", "VSParticle1_1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1Splash, "Shader/ParticleFlipbookSplash.shader", "VSParticle1Splash", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2T, "Shader/ParticleFlipbook1.shader", "VSParticle2", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2TL, "Shader/ParticleFlipbook1.shader", "VSParticle2L", "vs_5_0" );

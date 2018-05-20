@@ -230,6 +230,7 @@ public:
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel );
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
 	CRectangle GetRect();
+	CEntity* GetDecoratorRoot() { return m_p1; }
 
 	virtual void CreateBlockRTLayer( CBlockObject* pBlockObject );
 

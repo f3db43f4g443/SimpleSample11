@@ -3,7 +3,9 @@
 
 class CParticleWebEmitter : public CParticleSubEmitter
 {
+	friend void RegisterGameClasses();
 public:
+	CParticleWebEmitter( const struct SClassCreateContext& context ) : CParticleSubEmitter( context ) {}
 	CParticleWebEmitter( uint32 nSubEmitterCount, float fLifeTime, float fScaleLon, float fScaleLat, bool bLoop, float fDirMin, float fDirMax,
 		const CVector2& sizeMin = CVector2( 1, 0 ), const CVector2& sizeMax = CVector2( 1, 0 ),
 		const CVector2& s0Min = CVector2( 0, 0 ), const CVector2& s0Max = CVector2( 0, 0 ),
@@ -18,5 +20,8 @@ public:
 private:
 	float m_fScaleLon;
 	float m_fScaleLat;
+	float m_fTime1;
+	float m_fTime2;
+	float m_fTimeMin, m_fTimeMax;
 	bool m_bLoop;
 };
