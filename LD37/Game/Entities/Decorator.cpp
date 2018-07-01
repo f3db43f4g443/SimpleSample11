@@ -2,6 +2,8 @@
 #include "Decorator.h"
 #include "Render/DrawableGroup.h"
 #include "Common/Rand.h"
+#include "Block.h"
+#include "MyLevel.h"
 
 void CDecoratorRandomTex::Init( const CVector2 & size )
 {
@@ -242,37 +244,44 @@ void CDecoratorDirt::Init( const CVector2 & size )
 
 void CDecoratorTile::Init( const CVector2& size )
 {
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
 	int32 nTileX = size.x / m_nTileSize;
 	int32 nTileY = size.y / m_nTileSize;
 
 	if( m_nTileCount[0] )
-		AddTile( TVector2<int32>( 0, 0 ), 0 );
+		AddTile( TVector2<int32>( 0, 0 ), 0, pChunkObject );
 	if( m_nTileCount[2] )
-		AddTile( TVector2<int32>( nTileX - 1, 0 ), 2 );
+		AddTile( TVector2<int32>( nTileX - 1, 0 ), 2, pChunkObject );
 	if( m_nTileCount[6] )
-		AddTile( TVector2<int32>( 0, nTileY - 1 ), 6 );
+		AddTile( TVector2<int32>( 0, nTileY - 1 ), 6, pChunkObject );
 	if( m_nTileCount[8] )
-		AddTile( TVector2<int32>( nTileX - 1, nTileY - 1 ), 8 );
+		AddTile( TVector2<int32>( nTileX - 1, nTileY - 1 ), 8, pChunkObject );
 
 	if( m_nTileCount[1] )
 	{
 		for( int i = 1; i < nTileX - 1; i++ )
-			AddTile( TVector2<int32>( i, 0 ), 1 );
+			AddTile( TVector2<int32>( i, 0 ), 1, pChunkObject );
 	}
 	if( m_nTileCount[3] )
 	{
 		for( int i = 1; i < nTileY - 1; i++ )
-			AddTile( TVector2<int32>( 0, i ), 3 );
+			AddTile( TVector2<int32>( 0, i ), 3, pChunkObject );
 	}
 	if( m_nTileCount[5] )
 	{
 		for( int i = 1; i < nTileY - 1; i++ )
-			AddTile( TVector2<int32>( nTileX - 1, i ), 5 );
+			AddTile( TVector2<int32>( nTileX - 1, i ), 5, pChunkObject );
 	}
 	if( m_nTileCount[7] )
 	{
 		for( int i = 1; i < nTileX - 1; i++ )
-			AddTile( TVector2<int32>( i, nTileY - 1 ), 7 );
+			AddTile( TVector2<int32>( i, nTileY - 1 ), 7, pChunkObject );
 	}
 
 	if( m_nTileCount[4] )
@@ -281,7 +290,7 @@ void CDecoratorTile::Init( const CVector2& size )
 		{
 			for( int j = 1; j < nTileY - 1; j++ )
 			{
-				AddTile( TVector2<int32>( i, j ), 4 );
+				AddTile( TVector2<int32>( i, j ), 4, pChunkObject );
 			}
 		}
 	}
@@ -289,8 +298,17 @@ void CDecoratorTile::Init( const CVector2& size )
 	SetRenderObject( NULL );
 }
 
-void CDecoratorTile::AddTile( TVector2<int32> pos, uint8 nType )
+void CDecoratorTile::AddTile( TVector2<int32> pos, uint8 nType, CChunkObject* pChunkObject )
 {
+	if( pChunkObject )
+	{
+		int32 nBlockX = floor( ( pos.x * m_nTileSize + x ) / CMyLevel::GetBlockSize() );
+		int32 nBlockY = floor( ( pos.y * m_nTileSize + y ) / CMyLevel::GetBlockSize() );
+		auto pBlock = pChunkObject->GetBlock( nBlockX, nBlockY );
+		if( !pBlock || pBlock->nTag >= m_nBlockTag )
+			return;
+	}
+
 	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
 	auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
 	AddChild( pImg );
@@ -305,4 +323,63 @@ void CDecoratorTile::AddTile( TVector2<int32> pos, uint8 nType )
 	CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
 	CVector4* dst = pImg->GetParam();
 	memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+}
+
+void CDecoratorTile1::Init( const CVector2& size )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
+	if( !pChunkObject )
+		return;
+
+	int32 x0 = floor( x / CMyLevel::GetBlockSize() );
+	int32 y0 = floor( y / CMyLevel::GetBlockSize() );
+	int32 x1 = ceil( ( x + size.x ) / CMyLevel::GetBlockSize() );
+	int32 y1 = ceil( ( y + size.y ) / CMyLevel::GetBlockSize() );
+	x0 = Max( x0, 0 );
+	y0 = Max( y0, 0 );
+	uint32 nWidth = pChunkObject->GetChunk()->nWidth;
+	uint32 nHeight = pChunkObject->GetChunk()->nHeight;
+	x1 = Min<int32>( x1, nWidth );
+	y1 = Min<int32>( y1, nHeight );
+	SetPosition( CVector2( 0, 0 ) );
+
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	for( int i = x0; i < x1; i++ )
+	{
+		for( int j = y0; j < y1; j++ )
+		{
+			uint8 n = pChunkObject->GetBlock( i, j )->nTag;
+			if( n >= m_nBlockTag )
+				continue;
+			uint8 nLeft = i > 0 ? pChunkObject->GetBlock( i - 1, j )->nTag >= m_nBlockTag : false;
+			uint8 nRight = i < nWidth - 1 ? pChunkObject->GetBlock( i + 1, j )->nTag >= m_nBlockTag : false;
+			uint8 nTop = j > 0 ? pChunkObject->GetBlock( i, j - 1 )->nTag >= m_nBlockTag : false;
+			uint8 nBottom = j < nHeight - 1 ? pChunkObject->GetBlock( i, j + 1 )->nTag >= m_nBlockTag : false;
+			uint8 nType = nLeft | ( nTop << 1 ) | ( nRight << 2 ) | ( nBottom << 3 );
+			if( !m_nTileCount[nType] )
+				continue;
+
+			auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+			AddChild( pImg );
+			pImg->SetRect( CRectangle( i * CMyLevel::GetBlockSize(), j * CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
+
+			uint32 nTex = m_nTileBegin[nType] + SRand::Inst().Rand( 0u, m_nTileCount[nType] );
+			uint32 texY = nTex / m_nTexCols;
+			uint32 texX = nTex - texY * m_nTexCols;
+			pImg->SetTexRect( CRectangle( texX * 1.0f / m_nTexCols, ( m_nTexRows - 1 - texY ) * 1.0f / m_nTexCols, 1.0f / m_nTexCols, 1.0f / m_nTexRows ) );
+
+			uint16 nParamCount;
+			CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+			CVector4* dst = pImg->GetParam();
+			memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+		}
+	}
+
+	SetRenderObject( NULL );
 }

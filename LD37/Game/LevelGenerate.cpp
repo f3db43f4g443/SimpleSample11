@@ -662,6 +662,38 @@ protected:
 	string m_strFileName;
 };
 
+class CLevelGenerateFillTagNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		m_strGenData = XmlGetAttr( pXml, "gen_data_name", "" );
+		m_nBlockType = XmlGetAttr( pXml, "block_type", -1 );
+		m_nTag = XmlGetAttr( pXml, "tag", -1 );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		int8 nType = context.mapTags[m_strGenData];
+		for( int i = region.x; i < region.GetRight(); i++ )
+		{
+			for( int j = region.y; j < region.GetBottom(); j++ )
+			{
+				if( context.blueprint[i + j * context.nWidth] == nType )
+				{
+					if( m_nBlockType != INVALID_8BITID )
+						context.pParentChunk->blocks[i + j * context.nWidth].eBlockType = m_nBlockType;
+					if( m_nTag!= INVALID_8BITID )
+						context.pParentChunk->blocks[i + j * context.nWidth].nTag = m_nTag;
+				}
+			}
+		}
+	}
+protected:
+	string m_strGenData;
+	uint8 m_nBlockType;
+	uint8 m_nTag;
+};
+
 class CLevelGenerateSpawnNode : public CLevelGenerateNode
 {
 public:
@@ -690,7 +722,7 @@ public:
 		if( m_pPrefab->GetRoot()->GetStaticDataSafe<CDecorator>() )
 		{
 			SChunkSpawnInfo* pSpawnInfo = new SChunkSpawnInfo;
-			pSpawnInfo->rect = CRectangle( 0, 0, rect.width, rect.height );
+			pSpawnInfo->rect = rect;
 			pSpawnInfo->pPrefab = m_pPrefab;
 			pSpawnInfo->r = 0;
 			context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
@@ -1050,6 +1082,53 @@ public:
 private:
 	vector<SSubNodeInfo> m_infos;
 	string m_strSwitchValue;
+};
+
+class CLevelGenerateSwitchTileNode : public CLevelGenerateNode
+{
+public:
+	struct SSubNodeInfo
+	{
+		string str;
+		CReference<CLevelGenerateNode> pNode;
+		int8 nType;
+	};
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
+		{
+			auto pNode = CreateNode( pChild, context );
+			if( !pNode )
+				continue;
+			m_infos.resize( m_infos.size() + 1 );
+			auto& item = m_infos.back();
+			item.pNode = pNode;
+			item.str = XmlGetAttr( pChild, "case", "" );
+		}
+
+		CLevelGenerateNode::Load( pXml, context );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		for( auto& info : m_infos )
+			info.nType = info.str.length() ? context.mapTags[info.str] : -1;
+		for( int i = region.x; i < region.GetRight(); i++ )
+		{
+			for( int j = region.y; j < region.GetBottom(); j++ )
+			{
+				for( auto& info : m_infos )
+				{
+					if( info.nType == context.blueprint[i + j * context.nWidth] || info.nType == -1 )
+					{
+						info.pNode->Generate( context, TRectangle<int32>( i, j, 1, 1 ) );
+						break;
+					}
+				}
+			}
+		}
+	}
+protected:
+	vector<SSubNodeInfo> m_infos;
 };
 
 class CLevelGenerateFrameNode : public CLevelGenerateNode
@@ -1568,11 +1647,13 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "designed_level", CLevelGenerateDesignedLevelNode );
 	REGISTER_GENERATE_NODE( "simple_attach", CLevelGenerateAttachNode );
 	REGISTER_GENERATE_NODE( "simple_spawn", CLevelGenerateSpawnNode );
+	REGISTER_GENERATE_NODE( "filltag", CLevelGenerateFillTagNode );
 	REGISTER_GENERATE_NODE( "scrollobj", CLevelGenerateScrollObjNode );
 	REGISTER_GENERATE_NODE( "tile", CLevelGenerateTileNode );
 	REGISTER_GENERATE_NODE( "subregion", CLevelGenerateSubRegionNode );
 	REGISTER_GENERATE_NODE( "randompick", CLevelGenerateRandomPickNode );
 	REGISTER_GENERATE_NODE( "switch", CLevelGenerateSwitchNode );
+	REGISTER_GENERATE_NODE( "switch_tile", CLevelGenerateSwitchTileNode );
 	REGISTER_GENERATE_NODE( "frame", CLevelGenerateFrameNode );
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
 
@@ -1580,6 +1661,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 
 	REGISTER_GENERATE_NODE( "bricktile", CBrickTileNode );
 	REGISTER_GENERATE_NODE( "ramdomtile1", CRandomTileNode1 );
+	REGISTER_GENERATE_NODE( "bar_fill", CBarFillNode );
 	REGISTER_GENERATE_NODE( "commonroom", CCommonRoomNode );
 	REGISTER_GENERATE_NODE( "room0", CRoom0Node );
 	REGISTER_GENERATE_NODE( "room1", CRoom1Node );
@@ -1589,6 +1671,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "split", CSplitNode );
 	REGISTER_GENERATE_NODE( "house", CHouseNode );
 	REGISTER_GENERATE_NODE( "fence", CFenceNode );
+	REGISTER_GENERATE_NODE( "fiber", CFiberNode );
 
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
 	REGISTER_GENERATE_NODE( "lv1type1_1", CLevelGenNode1_1_1 );

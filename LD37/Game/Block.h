@@ -231,6 +231,7 @@ public:
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) {}
 	CRectangle GetRect();
 	CEntity* GetDecoratorRoot() { return m_p1; }
+	CEntity* GetDamagedEffectsRoot() { return m_pDamagedEffectsRoot; }
 
 	virtual void CreateBlockRTLayer( CBlockObject* pBlockObject );
 

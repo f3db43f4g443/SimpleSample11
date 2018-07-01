@@ -464,6 +464,7 @@ void CSpider::UpdateFire()
 				float r = fAngle + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
 				pBullet->SetRotation( r );
 				pBullet->SetVelocity( CVector2( cos( r ), sin( r ) ) * m_fBulletSpeed );
+				pBullet->SetLife( m_nBulletLife );
 				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 			}
 

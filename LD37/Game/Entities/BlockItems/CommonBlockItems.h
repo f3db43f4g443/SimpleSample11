@@ -59,6 +59,7 @@ private:
 	uint32 m_nSpawnCount;
 	CRectangle m_rectSpawn;
 	bool m_bRandomRotate;
+	bool m_bCheckHit;
 
 	uint8 m_nVelocityType;
 	CVector2 m_vel1;

@@ -493,6 +493,21 @@
           <window>
             <ref name="window4x4" />
           </window>
+          <scrap>
+            <ref name="scrap" />
+          </scrap>
+          <window1_1>
+            <ref name="window1_1_0" />
+          </window1_1>
+          <window1_2>
+            <ref name="window1_1_1" />
+          </window1_2>
+          <window1_3>
+            <ref name="window1_2" />
+          </window1_3>
+          <window1_4>
+            <ref name="window1_3" />
+          </window1_4>
           <shop>
             <ref name="shop" />
           </shop>
@@ -542,6 +557,21 @@
           <window>
             <ref name="window4x4" />
           </window>
+          <scrap>
+            <ref name="scrap" />
+          </scrap>
+          <window1_1>
+            <ref name="window1_1_0" />
+          </window1_1>
+          <window1_2>
+            <ref name="window1_1_1" />
+          </window1_2>
+          <window1_3>
+            <ref name="window1_2" />
+          </window1_3>
+          <window1_4>
+            <ref name="window1_3" />
+          </window1_4>
           <spider>
             <ref name="spider2" />
           </spider>

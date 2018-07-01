@@ -417,7 +417,7 @@ void CRenderObject2D::_setDepth(int depth)
 		pChild->_setDepth( m_nDepth < 0? -1: m_nDepth + 1 );
 	}
 	
-	if( depth < 0 && m_pRenderParent && m_pRenderParent != m_pTransformParent )
+	if( depth < 0 && m_pRenderParent && m_pRenderParent->m_nDepth >= 0 )
 		m_pRenderParent->RemoveRenderChild( this );
 }
 
@@ -429,7 +429,4 @@ void CRenderObject2D::_setRenderDepth( int depth )
 	for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() ) {
 		pChild->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 	}
-
-	if( depth < 0 && m_pRenderParent && m_pRenderParent != m_pTransformParent )
-		m_pRenderParent->RemoveRenderChild( this );
 }

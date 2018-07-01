@@ -90,6 +90,7 @@ protected:
 	uint32 m_nFireInterval;
 	uint32 m_nAmmoCount;
 	uint32 m_nBulletCount;
+	uint32 m_nBulletLife;
 	float m_fBulletSpeed;
 	float m_fBulletAngle;
 	float m_fSight;

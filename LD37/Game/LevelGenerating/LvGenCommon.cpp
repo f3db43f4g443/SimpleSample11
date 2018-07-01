@@ -110,6 +110,54 @@ void CRandomTileNode1::Generate( SLevelBuildContext & context, const TRectangle<
 	}
 }
 
+void CBarFillNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	m_pNode = CreateNode( pXml->FirstChildElement(), context );
+	m_bVertical = XmlGetAttr( pXml, "vertical", 0 );
+	m_strName = XmlGetAttr( pXml, "check_gen_data_name", "" );
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CBarFillNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	int8 nMask = context.mapTags[m_strName.c_str()];
+
+	if( !m_bVertical )
+	{
+		for( int j = region.y; j < region.GetBottom(); j++ )
+		{
+			int32 nLen = 0;
+			for( int i = region.x; i <= region.GetRight(); i++ )
+			{
+				if( i < region.GetRight() && context.blueprint[i + j * context.nWidth] == nMask )
+					nLen++;
+				else if( nLen )
+				{
+					m_pNode->Generate( context, TRectangle<int32>( i - nLen, j, nLen, 1 ) );
+					nLen = 0;
+				}
+			}
+		}
+	}
+	else
+	{
+		for( int i = region.x; i < region.GetRight(); i++ )
+		{
+			int32 nLen = 0;
+			for( int j = region.y; j <= region.GetBottom(); j++ )
+			{
+				if( j < region.GetBottom() && context.blueprint[i + j * context.nWidth] == nMask )
+					nLen++;
+				else if( nLen )
+				{
+					m_pNode->Generate( context, TRectangle<int32>( i, j - nLen, 1, nLen ) );
+					nLen = 0;
+				}
+			}
+		}
+	}
+}
+
 void CCommonRoomNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & context )
 {
 	CLevelGenerateSimpleNode::Load( pXml, context );
@@ -1198,5 +1246,48 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 			if( rect.width && rect.height && m_pFenceNode )
 				m_pFenceNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 		}
+	}
+}
+
+void CFiberNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )
+{
+	m_nType = XmlGetAttr( pXml, "fiber_type", 0 );
+	for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
+	{
+		if( strcmp( pChild->Value(), "block_type" ) == 0 )
+			m_vecBlockTypes.push_back( XmlGetAttr( pChild, "name", "" ) );
+		else if( strcmp( pChild->Value(), "node" ) == 0 )
+			m_pNode = CreateNode( pChild->FirstChildElement(), context );
+	}
+	CLevelGenerateNode::Load( pXml, context );
+}
+
+void CFiberNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
+{
+	vector<int8> vecTypes;
+	for( auto str : m_vecBlockTypes )
+		vecTypes.push_back( context.mapTags[str] );
+	for( int x = region.x; x < region.GetRight(); x++ )
+	{
+		int32 j;
+		for( j = 0; j < region.height; j++ )
+		{
+			int32 y = m_nType == 1 ? j + region.y : region.GetBottom() - 1 - j;
+			int8 nType = context.blueprint[x + y * context.nWidth];
+			bool bBreak = false;
+			for( int i = 0; i < vecTypes.size(); i++ )
+			{
+				if( vecTypes[i] == nType )
+				{
+					bBreak = true;
+					break;
+				}
+			}
+			if( bBreak )
+				break;
+		}
+
+		int32 y = m_nType == 1 ? region.y : region.GetBottom() - j;
+		m_pNode->Generate( context, TRectangle<int32>( x, y, 1, j ) );
 	}
 }

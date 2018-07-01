@@ -503,7 +503,6 @@ void CChunkObject::OnKilled()
 {
 	if( m_strEffect )
 	{
-		auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 		ForceUpdateTransform();
 		if( m_bEftTiled )
 		{
@@ -511,6 +510,7 @@ void CChunkObject::OnKilled()
 			{
 				for( int j = 0; j < m_pChunk->nHeight; j++ )
 				{
+					auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 					pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
 					pEffect->SetState( 2 );
@@ -519,6 +519,7 @@ void CChunkObject::OnKilled()
 		}
 		else
 		{
+			auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
 			pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 			pEffect->SetPosition( globalTransform.GetPosition() );
 			pEffect->SetState( 2 );

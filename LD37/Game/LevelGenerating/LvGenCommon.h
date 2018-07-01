@@ -22,6 +22,17 @@ private:
 	CReference<CLevelGenerateNode> m_pNodes[16];
 };
 
+class CBarFillNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pNode;
+	string m_strName;
+	bool m_bVertical;
+};
+
 class CCommonRoomNode : public CLevelGenerateSimpleNode
 {
 public:
@@ -140,4 +151,16 @@ private:
 	uint8 m_nType1;
 	CReference<CLevelGenerateNode> m_pFenceNode;
 	CReference<CLevelGenerateNode> m_pTileNode;
+};
+
+
+class CFiberNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	vector<string> m_vecBlockTypes;
+	CReference<CLevelGenerateNode> m_pNode;
+	uint8 m_nType;
 };

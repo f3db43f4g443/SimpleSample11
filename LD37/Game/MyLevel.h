@@ -56,7 +56,7 @@ public:
 	FORCE_INLINE CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
 	FORCE_INLINE float GetLvBarrierHeight() { return m_fCurLvBarrierHeight; }
 	FORCE_INLINE CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }
-	FORCE_INLINE CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 1024, bound.y - 1024, bound.width + 2048, bound.height + 2048 ); }
+	FORCE_INLINE CRectangle GetLargeBound() { auto bound = GetBound(); return CRectangle( bound.x - 512, bound.y - 512, bound.width + 1024, bound.height + 1024 ); }
 	FORCE_INLINE float GetHighGravityHeight() { return 256.0f; }
 	FORCE_INLINE CEntity* GetScrollObjRoot( uint32 i ) { return m_pScrollObjRoot[i]; }
 	FORCE_INLINE CEntity* GetChunkRoot() { return m_pChunkRoot; }

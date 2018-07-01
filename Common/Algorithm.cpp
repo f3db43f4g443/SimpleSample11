@@ -14,11 +14,27 @@ void FindAllOfTypesInMap( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 
 	}
 }
 
-TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> p
-	, TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType )
+
+TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> p,
+	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType )
 {
 	int32 nBackType = vec[p.x + p.y * nWidth];
 	TRectangle<int32> rect( p.x, p.y, 1, 1 );
+	return PutRect( vec, nWidth, nHeight, rect, minSize, maxSize, lim, nExtend, nType, nBackType );
+}
+
+TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TRectangle<int32> init,
+	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, int32 nBackType )
+{
+	TRectangle<int32> rect = init;
+	for( int i = rect.x; i < rect.GetRight(); i++ )
+	{
+		for( int j = rect.y; j < rect.GetBottom(); j++ )
+		{
+			if( vec[i + j * nWidth] != nBackType )
+				return TRectangle<int32>( 0, 0, 0, 0 );
+		}
+	}
 
 	uint32 nExtendDirs[] = { 0, 1, 2, 3 };
 	uint32 nExtendDirCount = 4;

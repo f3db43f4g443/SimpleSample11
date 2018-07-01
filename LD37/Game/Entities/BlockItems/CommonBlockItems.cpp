@@ -125,6 +125,14 @@ void CSpawner::Trigger()
 		nSpawnCount = Min( nSpawnCount, (uint32)m_nTotalCount );
 	if( !nSpawnCount )
 		return;
+	if( m_bCheckHit )
+	{
+		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			if( static_cast<CEntity*>( pManifold->pOtherHitProxy )->GetHitType() <= eEntityHitType_Platform )
+				return;
+		}
+	}
 
 	for( int i = 0; i < nSpawnCount; i++ )
 	{

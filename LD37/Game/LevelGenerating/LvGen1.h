@@ -299,6 +299,7 @@ private:
 	void GenSubArea( const TRectangle<int32>& rect );
 	void FillLine( TRectangle<int32>& rect );
 	void GenRestWallChunks();
+	void GenWallChunk();
 	void GenWindows();
 	void GenObjs();
 	void GenShops();
@@ -313,7 +314,9 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pCrate1Node;
 	CReference<CLevelGenerateNode> m_pCrate2Node;
+	CReference<CLevelGenerateNode> m_pScrapNode;
 	CReference<CLevelGenerateNode> m_pWindowNode;
+	CReference<CLevelGenerateNode> m_pWindow1Node[4];
 	CReference<CLevelGenerateNode> m_pSpiderNode;
 	CReference<CLevelGenerateNode> m_pShopNode;
 
@@ -331,7 +334,16 @@ private:
 		eType_BlockBlue,
 		eType_Crate1,
 		eType_Crate2,
+		eType_Crate3,
 		eType_Web,
+
+		eType_WallChunk_0,
+		eType_WallChunk_0_1,
+		eType_WallChunk_0_1a,
+		eType_WallChunk_0_1b,
+		eType_WallChunk_1,
+		eType_WallChunk_2,
+		eType_WallChunk_3,
 
 		eType_Temp,
 		eType_Temp1,
@@ -352,7 +364,9 @@ private:
 	vector<TRectangle<int32> > m_wallChunks0;
 	vector<TRectangle<int32> > m_wallChunks;
 	vector<TRectangle<int32> > m_wallChunks1;
+	vector<TRectangle<int32> > m_scraps;
 	vector<TRectangle<int32> > m_windows;
+	vector<TRectangle<int32> > m_windows1[4];
 	vector<TRectangle<int32> > m_shops;
 	vector<TRectangle<int32> > m_spiders;
 };

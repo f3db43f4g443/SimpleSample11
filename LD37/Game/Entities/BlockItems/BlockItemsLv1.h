@@ -3,6 +3,8 @@
 #include "Entities/AIObject.h"
 #include "Entities/EffectObject.h"
 #include "Enemy.h"
+#include "Entities/Decorator.h"
+#include "Render/DrawableGroup.h"
 
 class CPipe0 : public CDetectTrigger
 {
@@ -49,6 +51,21 @@ protected:
 	CReference<CPrefab> m_pHead[4];
 };
 
+class CWindow1 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CWindow1( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CWindow1 ); }
+	virtual void Init( const CVector2& size ) override;
+protected:
+	CReference<CEntity> m_p1;
+	uint8 m_nType;
+	uint32 m_nLayer2Rows;
+	uint32 m_nLayer2Cols;
+	TResourceRef<CDrawableGroup> m_pDrawable1;
+	uint32 m_nDecoTexSize;
+};
+
 class CWindow2 : public CEntity
 {
 	friend void RegisterGameClasses();
@@ -91,4 +108,12 @@ protected:
 	CString m_strBullet1;
 	CReference<CPrefab> m_pBullet;
 	CReference<CPrefab> m_pBullet1;
+};
+
+class CHouse0Deco : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CHouse0Deco( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CHouse0Deco ); }
+	virtual void Init( const CVector2& size ) override;
 };

@@ -75,10 +75,26 @@ public:
 
 	virtual void Init( const CVector2& size ) override;
 private:
-	void AddTile( TVector2<int32> pos, uint8 nType );
+	void AddTile( TVector2<int32> pos, uint8 nType, class CChunkObject* pChunkObject );
 	uint32 m_nTexCols;
 	uint32 m_nTexRows;
 	uint32 m_nTileSize;
 	uint32 m_nTileBegin[9];
 	uint32 m_nTileCount[9];
+	uint8 m_nBlockTag;
+};
+
+class CDecoratorTile1 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorTile1( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorTile1 ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	uint32 m_nTexCols;
+	uint32 m_nTexRows;
+	uint32 m_nTileBegin[16];
+	uint32 m_nTileCount[16];
+	uint8 m_nBlockTag;
 };
