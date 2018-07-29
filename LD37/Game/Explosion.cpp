@@ -190,7 +190,7 @@ void CExplosion::OnTick()
 	{
 		for( auto itr = m_hit.begin(); itr != m_hit.end(); )
 		{
-			itr->second;
+			itr->second--;
 			if( !itr->second )
 				itr = m_hit.erase( itr );
 			else

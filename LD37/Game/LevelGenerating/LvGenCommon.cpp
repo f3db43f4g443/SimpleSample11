@@ -775,6 +775,8 @@ void CPipeNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & conte
 		sprintf( buf, "pipe%d", i );
 		m_pPipes[i] = CreateNode( pXml->FirstChildElement( buf )->FirstChildElement(), context );
 	}
+	if( pXml->FirstChildElement( "node1" ) )
+		m_pNode1 = CreateNode( pXml->FirstChildElement( "node1" )->FirstChildElement(), context );
 	CLevelGenerateNode::Load( pXml, context );
 }
 
@@ -814,6 +816,8 @@ void CPipeNode::Generate( SLevelBuildContext & context, const TRectangle<int32>&
 	{
 		for( int j = 0; j < nHeight; j++ )
 		{
+			if( context.GetBlock( region.x + i, region.y + j, 1 ) )
+				continue;
 			if( m_gendata[i + j * nWidth] & 1 )
 			{
 				uint8 n0 = !( m_gendata[i + j * nWidth] & 2 );
@@ -822,7 +826,11 @@ void CPipeNode::Generate( SLevelBuildContext & context, const TRectangle<int32>&
 				uint8 n3 = j < nHeight - 1 ? !( m_gendata[i + ( j + 1 ) * nWidth] & 4 ) : 1;
 				uint32 n = n0 + ( n1 << 1 ) + ( n2 << 2 ) + ( n3 << 3 );
 				if( n < ELEM_COUNT( m_pPipes ) )
+				{
 					m_pPipes[n]->Generate( context, TRectangle<int32>( i + region.x, j + region.y, 1, 1 ) );
+					if( n != 7 && n != 11 && n != 14 && ( m_gendata[i + j * nWidth] & 8 ) )
+						m_pNode1->Generate( context, TRectangle<int32>( i + region.x, j + region.y, 1, 1 ) );
+				}
 			}
 		}
 	}
@@ -844,6 +852,7 @@ void CPipeNode::GenPipe( TVector2<int32> beginPoint )
 
 	uint8 nPrevDir = 0;	//0 = down, 1 = left, 2 = right
 	uint32 nLen = SRand::Inst().Rand( m_nMinVLength, m_nMaxVLength - 1 );
+	int32 n1 = SRand::Inst().Rand( 0, 7 );
 	for( ;; )
 	{
 		bool bIntersect = m_gendata[p.x + p.y * nWidth] & 1;
@@ -859,6 +868,15 @@ void CPipeNode::GenPipe( TVector2<int32> beginPoint )
 		else
 		{
 			m_gendata[p.x + p.y * nWidth] |= 1;
+		}
+		if( !( m_gendata[p.x + p.y * nWidth] & 8 ) )
+		{
+			if( !n1 )
+			{
+				m_gendata[p.x + p.y * nWidth] |= 8;
+				n1 = SRand::Inst().Rand( 6, 9 );
+			}
+			n1--;
 		}
 
 		if( nPrevDir == 0 )

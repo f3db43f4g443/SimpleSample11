@@ -673,7 +673,10 @@ public:
 	}
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
-		int8 nType = context.mapTags[m_strGenData];
+		auto itr = context.mapTags.find( m_strGenData );
+		if( itr == context.mapTags.end() )
+			return;
+		int8 nType = itr->second;
 		for( int i = region.x; i < region.GetRight(); i++ )
 		{
 			for( int j = region.y; j < region.GetBottom(); j++ )

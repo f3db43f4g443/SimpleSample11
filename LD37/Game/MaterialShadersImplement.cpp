@@ -80,6 +80,7 @@ IMPLEMENT_MATERIAL_SHADER( VSFootprintLiquidParticle, "Shader/FootprintLiquid.sh
 IMPLEMENT_MATERIAL_SHADER( VSThruster, "Shader/Beams.shader", "VSThruster", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSThruster, "Shader/Beams.shader", "PSThruster", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle, "Shader/Laser.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSLaserParticle1, "Shader/Laser.shader", "VSParticle1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticleOcclusion, "Shader/Laser.shader", "PSParticleOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleRandomTex, "Shader/ParticleRandomTex.shader", "VSParticle", "vs_5_0" );

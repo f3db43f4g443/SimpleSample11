@@ -43,21 +43,34 @@ void CLevelGenNode1_3::Generate( SLevelBuildContext & context, const TRectangle<
 	GenBase();
 	GenRestWallChunks();
 	GenWallChunk();
+	GenWallChunk0();
 	GenWindows();
-	GenObjs();
 	GenShops();
 
 	for( auto& chunk : m_wallChunks0 )
 	{
 		auto rect = chunk.Offset( TVector2<int32>( region.x, region.y ) );
-		( Min( rect.width, rect.height ) >= 4 ? m_pWallChunk0Node : m_pWallChunk1Node )->Generate( context, rect );
+		m_pWallChunk0Node->Generate( context, rect );
 	}
+	context.mapTags["1"] = eType_WallChunk1_1;
+	context.mapTags["2"] = eType_WallChunk1_2;
 	for( auto& chunk : m_wallChunks1 )
 	{
+		for( int i = chunk.x; i < chunk.GetRight(); i++ )
+		{
+			for( int j = chunk.y; j < chunk.GetBottom(); j++ )
+			{
+				int32 x = region.x + i;
+				int32 y = region.y + j;
+				int8 genData = m_gendata[i + j * region.width];
+				context.blueprint[x + y * context.nWidth] = genData;
+			}
+		}
 		auto rect = chunk.Offset( TVector2<int32>( region.x, region.y ) );
 		m_pWallChunk1Node->Generate( context, rect );
 	}
 
+	GenObjs();
 	for( int i = 0; i < region.width; i++ )
 	{
 		for( int j = 0; j < region.height; j++ )
@@ -165,8 +178,8 @@ void CLevelGenNode1_3::GenBase()
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
 
-	int32 minSize[] = { 10, 10, 18, 20, 36, 36 };
-	int32 maxSize[] = { 12, 12, 22, 26, 42, 42 };
+	int32 minSize[] = { 10, 10, 18, 20, 34, 36, 36, 36 };
+	int32 maxSize[] = { 12, 12, 22, 26, 38, 42, 42, 42 };
 
 	vector<TVector2<int32> > vec;
 	int32 nLen = nHeight;
@@ -247,7 +260,7 @@ void CLevelGenNode1_3::GenBase()
 			int32 right = SRand::Inst().Rand( -2, 3 ) + lastRect.GetRight();
 			right = Max( Min( right, nWidth - 4 ), nWidth - 8 );
 			int8 nType = SRand::Inst().Rand( 0, 3 );
-			int32 nHeight1 = nCurHeight / 2 + SRand::Inst().Rand( 0, 2 );
+			int32 nHeight1 = nCurHeight - SRand::Inst().Rand( 3, 5 );
 
 			if( SRand::Inst().Rand( 0, 2 ) )
 			{
@@ -303,7 +316,7 @@ void CLevelGenNode1_3::GenBase()
 			int32 right = SRand::Inst().Rand( 0, 5 ) + lastRect.GetRight();
 			right = Max( Min( right, nWidth - 4 ), nWidth - 8 );
 			int8 nType = SRand::Inst().Rand( 0, 3 );
-			int32 nHeight1 = nCurHeight / 2 + SRand::Inst().Rand( 0, 2 );
+			int32 nHeight1 = nCurHeight - SRand::Inst().Rand( 3, 5 );
 
 			if( nType == 0 )
 			{
@@ -445,6 +458,43 @@ void CLevelGenNode1_3::GenBase()
 		}
 		case 4:
 		{
+			int32 h3 = SRand::Inst().Rand( 4, 6 );
+			TRectangle<int32> r0( 0, nCurBegin, nWidth, nCurHeight - h3 );
+			TRectangle<int32> r( 0, 0, SRand::Inst().Rand( 7, 10 ), 0 );
+			r.height = Max( 4, r.width + r0.height - r0.width );
+			r.x = ( nWidth - r.width + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			r.y = r0.y + ( r0.height - r.height + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			m_wallChunks0.push_back( r );
+			if( SRand::Inst().Rand( 0, 2 ) )
+			{
+				m_wallChunks1.push_back( TRectangle<int32>( r.x - 3, r0.y, 3, r.GetBottom() - r0.y ) );
+				m_wallChunks1.push_back( TRectangle<int32>( r.GetRight(), r.y, 3, r0.GetBottom() - r.y ) );
+				m_wallChunks1.push_back( TRectangle<int32>( 0, r.GetBottom(), r.GetRight(), 3 ) );
+				m_wallChunks1.push_back( TRectangle<int32>( r.x, r.y - 3, r0.GetRight() - r.x, 3 ) );
+				//GenSubArea( TRectangle<int32>( 0, r0.y, r.x - 3, r.GetBottom() - r0.y ) );
+				//GenSubArea( TRectangle<int32>( r.GetRight() + 3, r.y, r0.GetRight() - r.GetRight() - 3, r0.GetBottom() - r.y ) );
+				//GenSubArea( TRectangle<int32>( 0, r.GetBottom() + 3, r.GetRight(), r0.GetBottom() - r.GetBottom() - 3 ) );
+				//GenSubArea( TRectangle<int32>( r.x, r0.y, r0.GetRight() - r.x, r.y - r0.y - 3 ) );
+			}
+			else
+			{
+				m_wallChunks1.push_back( TRectangle<int32>( r.x - 3, r.y, 3, r0.GetBottom() - r.y ) );
+				m_wallChunks1.push_back( TRectangle<int32>( r.GetRight(), r0.y, 3,  r.GetBottom() - r0.y) );
+				m_wallChunks1.push_back( TRectangle<int32>( r.x, r.GetBottom(), r0.GetRight() - r.x, 3 ) );
+				m_wallChunks1.push_back( TRectangle<int32>( 0, r.y - 3, r.GetRight(), 3 ) );
+				//GenSubArea( TRectangle<int32>( 0, r.y, r.x - 3, r0.GetBottom() - r.y ) );
+				//GenSubArea( TRectangle<int32>( r.GetRight() + 3, r0.y, r0.GetRight() - r.GetRight() - 3, r.GetBottom() - r0.y ) );
+				//GenSubArea( TRectangle<int32>( r.x, r.GetRight(), r0.GetRight() - r.x, r0.GetBottom() - r.GetBottom() - 3 ) );
+				//GenSubArea( TRectangle<int32>( 0, r.GetBottom() + 3, r0.y, r.y - r0.y - 3 ) );
+			}
+
+			int32 left = SRand::Inst().Rand( 4, 6 );
+			int32 right = nWidth - SRand::Inst().Rand( 4, 6 );
+			m_wallChunks1.push_back( TRectangle<int32>( left, nCurBegin + nCurHeight - h3, right - left, h3 ) );
+			break;
+		}
+		case 5:
+		{
 			//xxxxxxxxxxxxxxxxxxxxxx
 			//..      xxxx        ..
 			//..      xxxx        ..
@@ -465,26 +515,17 @@ void CLevelGenNode1_3::GenBase()
 			int32 h0 = SRand::Inst().Rand( n / 2 - 1, n - n / 2 + 2 );
 			int32 h2 = nCurHeight - h3 - h1 - h0;
 
-			int32 w00 = SRand::Inst().Rand( 4, 6 );
-			int32 w01 = SRand::Inst().Rand( 4, 6 );
-			int32 w10 = SRand::Inst().Rand( 4, 6 );
-			int32 w11 = SRand::Inst().Rand( 4, 6 );
-
-			m_wallChunks1.push_back( TRectangle<int32>( left, nCurBegin, w, h0 ) );
-			m_wallChunks0.push_back( TRectangle<int32>( 0, nCurBegin, w00, h0 ) );
-			m_wallChunks0.push_back( TRectangle<int32>( nWidth - w01, nCurBegin, w01, h0 ) );
-			GenSubArea( TRectangle<int32>( w00, nCurBegin, left - w00, h0 ) );
-			GenSubArea( TRectangle<int32>( left + w, nCurBegin, nWidth - w01 - left - w, h0 ) );
+			m_wallChunks0.push_back( TRectangle<int32>( left, nCurBegin, w, h0 ) );
+			GenSubArea( TRectangle<int32>( 0, nCurBegin, left, h0 ) );
+			GenSubArea( TRectangle<int32>( left + w, nCurBegin, nWidth - left - w, h0 ) );
 
 			m_rooms.push_back( TRectangle<int32>( left1, nCurBegin + h0, w1, h1 ) );
 			m_wallChunks1.push_back( TRectangle<int32>( 0, nCurBegin + h0, left1, h1 ) );
 			m_wallChunks1.push_back( TRectangle<int32>( left1 + w1, nCurBegin + h0, nWidth - left1 - w1, h1 ) );
 
-			m_wallChunks1.push_back( TRectangle<int32>( left, nCurBegin + h0 + h1, w, h2 ) );
-			m_wallChunks0.push_back( TRectangle<int32>( 0, nCurBegin + h0 + h1, w10, h2 ) );
-			m_wallChunks0.push_back( TRectangle<int32>( nWidth - w11, nCurBegin + h0 + h1, w11, h2 ) );
-			GenSubArea( TRectangle<int32>( w10, nCurBegin + h0 + h1, left - w10, h2 ) );
-			GenSubArea( TRectangle<int32>( left + w, nCurBegin + h0 + h1, nWidth - w11 - left - w, h2 ) );
+			m_wallChunks0.push_back( TRectangle<int32>( left, nCurBegin + h0 + h1, w, h2 ) );
+			GenSubArea( TRectangle<int32>( 0, nCurBegin + h0 + h1, left, h2 ) );
+			GenSubArea( TRectangle<int32>( left + w, nCurBegin + h0 + h1, nWidth - left - w, h2 ) );
 
 			left = SRand::Inst().Rand( 4, 6 );
 			int32 right = nWidth - SRand::Inst().Rand( 4, 6 );
@@ -496,7 +537,7 @@ void CLevelGenNode1_3::GenBase()
 
 			break;
 		}
-		case 5:
+		case 6:
 		{
 			//xxxxxxxxxxxxxxxxxxxxxx
 			//..      ....        ..
@@ -505,18 +546,18 @@ void CLevelGenNode1_3::GenBase()
 			//..      ....        ..
 			//..      ....        ..
 			//oooooooooooooooooooooo
-			int32 w1 = SRand::Inst().Rand( 4, 6 );
-			int32 w2 = SRand::Inst().Rand( 4, 6 );
+			int32 w1 = SRand::Inst().Rand( 5, 7 );
+			int32 w2 = SRand::Inst().Rand( 5, 7 );
 			int32 h3 = SRand::Inst().Rand( 4, 6 );
 			int32 h1 = SRand::Inst().Rand( 6, 7 );
 			int32 n = nCurHeight - h3 - h1;
 			int32 h0 = SRand::Inst().Rand( n / 2 - 1, n - n / 2 + 2 );
 			int32 h2 = nCurHeight - h3 - h1 - h0;
 
-			int32 w00 = SRand::Inst().Rand( 4, 6 );
-			int32 w01 = SRand::Inst().Rand( 4, 6 );
-			int32 w10 = SRand::Inst().Rand( 4, 6 );
-			int32 w11 = SRand::Inst().Rand( 4, 6 );
+			int32 w00 = 4;
+			int32 w01 = 4;
+			int32 w10 = 4;
+			int32 w11 = 4;
 
 			m_wallChunks0.push_back( TRectangle<int32>( 0, nCurBegin, w00, h0 ) );
 			m_wallChunks0.push_back( TRectangle<int32>( nWidth - w01, nCurBegin, w01, h0 ) );
@@ -538,6 +579,54 @@ void CLevelGenNode1_3::GenBase()
 				FillLine( m_wallChunks1[nLastRect] );
 			FillLine( m_wallChunks1.back() );
 
+			break;
+		}
+		case 7:
+		{
+			int32 h3 = SRand::Inst().Rand( 4, 6 );
+			TRectangle<int32> r0( 0, nCurBegin, nWidth, nCurHeight - h3 );
+			TRectangle<int32> r( 0, 0, SRand::Inst().Rand( 16, 25 ), 0 );
+			r.height = r.width - SRand::Inst().Rand( 0, 3 );
+			r.x = ( nWidth - r.width + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			r.y = r0.y + ( r0.height - r.height + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			int32 w1 = ( r0.width - 4 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+			int32 h1 = ( r0.height - 4 + SRand::Inst().Rand( 0, 2 ) ) / 2;
+
+			int32 w2;
+			if( r.width <= 19 + SRand::Inst().Rand( 0, 2 ) )
+				w2 = 2;
+			else if( r.width <= 21 + SRand::Inst().Rand( 0, 2 ) )
+				w2 = 3;
+			else
+				w2 = 4;
+			auto& chunk0 = w2 < 4 ? m_wallChunks0 : m_wallChunks1;
+			auto& chunk1 = w2 < 4 ? m_wallChunks1 : m_wallChunks0;
+
+			chunk0.push_back( TRectangle<int32>( w1, r0.y, 4, r.y - r0.y ) );
+			chunk0.push_back( TRectangle<int32>( w1, r.GetBottom(), 4, r0.GetBottom() - r.GetBottom() ) );
+			chunk0.push_back( TRectangle<int32>( 0, r0.y + h1, r.x, 4 ) );
+			chunk0.push_back( TRectangle<int32>( r.GetRight(), r0.y + h1, r0.GetRight() - r.GetRight(), 4 ) );
+			GenSubArea( TRectangle<int32>( 0, r0.y, r.x, h1 ) );
+			GenSubArea( TRectangle<int32>( r.x, r0.y, w1 - r.x, r.y - r0.y ) );
+			GenSubArea( TRectangle<int32>( w1 + 4, r0.y, r.GetRight() - w1 - 4, r.y - r0.y ) );
+			GenSubArea( TRectangle<int32>( r.GetRight(), r0.y, nWidth - r.GetRight(), h1 ) );
+			GenSubArea( TRectangle<int32>( 0, r0.y + h1 + 4, r.x, r0.height - h1 - 4 ) );
+			GenSubArea( TRectangle<int32>( r.x, r.GetBottom(), w1 - r.x, r0.GetBottom() - r.GetBottom() ) );
+			GenSubArea( TRectangle<int32>( w1 + 4, r.GetBottom(), r.GetRight() - w1 - 4, r0.GetBottom() - r.GetBottom() ) );
+			GenSubArea( TRectangle<int32>( r.GetRight(), r0.y + h1 + 4, nWidth - r.GetRight(), r0.height - h1 - 4 ) );
+
+			chunk1.push_back( TRectangle<int32>( r.x, r.y, r.width, w2 ) );
+			chunk1.push_back( TRectangle<int32>( r.x, r.GetBottom() - w2, r.width, w2 ) );
+			chunk1.push_back( TRectangle<int32>( r.x, r.y + w2, w2, r.height - w2 * 2 ) );
+			chunk1.push_back( TRectangle<int32>( r.GetRight() - w2, r.y + w2, w2, r.height - w2 * 2 ) );
+			GenSubArea( TRectangle<int32>( r.x + w2, r.y + w2, r.width - w2 * 2, r.height - w2 * 2 ) );
+
+			int32 left = SRand::Inst().Rand( 4, 6 );
+			int32 right = nWidth - SRand::Inst().Rand( 4, 6 );
+			m_wallChunks1.push_back( TRectangle<int32>( left, nCurBegin + nCurHeight - h3, right - left, h3 ) );
+
+			if( nLastRect >= 0 )
+				FillLine( m_wallChunks1[nLastRect] );
 			break;
 		}
 		}
@@ -826,11 +915,21 @@ void CLevelGenNode1_3::GenBase()
 		lastRect = m_wallChunks1.back();
 	}
 
-	for( auto& rect : m_wallChunks0 )
+	for( int i = m_wallChunks0.size() - 1; i >= 0; i-- )
 	{
-		for( int i = rect.x; i < rect.GetRight(); i++ )
-			for( int j = rect.y; j < rect.GetBottom(); j++ )
-				m_gendata[i + j * nWidth] = eType_WallChunk0;
+		auto rect = m_wallChunks0[i];
+		if( Min( rect.width, rect.height ) < 4 )
+		{
+			m_wallChunks1.push_back( rect );
+			m_wallChunks0[i] = m_wallChunks0.back();
+			m_wallChunks0.pop_back();
+		}
+		else
+		{
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+					m_gendata[i + j * nWidth] = eType_WallChunk0;
+		}
 	}
 	for( auto& rect : m_wallChunks )
 	{
@@ -1218,8 +1317,8 @@ void CLevelGenNode1_3::GenWallChunk()
 					TRectangle<int32> r1( rect.x, rect.y + 1, rect.width, rect.height - 2 );
 					TRectangle<int32> r2 = r1;
 					r2.width = SRand::Inst().Rand( 2, r2.width );
-					if( SRand::Inst().Rand( 0, 2 ) && r2.width * 2 >= r1.width )
-						r2.x += SRand::Inst().Rand( 1, r1.width );
+					if( r2.width * 2 >= r1.width )
+						r2.x += SRand::Inst().Rand( 0, r1.width - r2.width + 1 );
 					else if( SRand::Inst().Rand( 0, 2 ) )
 						r2.x = r1.GetRight() - r2.width;
 
@@ -1354,6 +1453,164 @@ void CLevelGenNode1_3::GenWallChunk()
 	}
 }
 
+void CLevelGenNode1_3::GenWallChunk0()
+{
+	int32 nWidth = m_region.width;
+	int32 nHeight = m_region.height;
+	for( auto rect : m_wallChunks1 )
+	{
+		if( rect.width < 2 || rect.height < 2 )
+			continue;
+		int32 s = SRand::Inst().Rand( rect.width * rect.height / 6, rect.width * rect.height / 5 );
+		if( s < 4 )
+			continue;
+		uint8 nType = SRand::Inst().Rand( 0, 6 );
+		if( ( nType == 4 || nType == 5 ) && Min( rect.width, rect.height ) < 5 )
+			nType = SRand::Inst().Rand( 0, 4 );
+
+		if( nType == 0 )
+		{
+		}
+		else if( nType == 1 )
+		{
+			vector<TVector2<int32> > vec;
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				if( !SRand::Inst().Rand( 0, 3 ) )
+				{
+					m_gendata[i + rect.y * nWidth] = eType_WallChunk1_1;
+					s--;
+				}
+				if( !SRand::Inst().Rand( 0, 3 ) )
+				{
+					m_gendata[i + ( rect.GetBottom() - 1 ) * nWidth] = eType_WallChunk1_1;
+					s--;
+				}
+			}
+			for( int j = rect.y + 1; j < rect.GetBottom() - 1; j++ )
+			{
+				if( !SRand::Inst().Rand( 0, 3 ) )
+				{
+					m_gendata[rect.x + j * nWidth] = eType_WallChunk1_1;
+					s--;
+				}
+				if( !SRand::Inst().Rand( 0, 3 ) )
+				{
+					m_gendata[( rect.GetRight() - 1 ) + j * nWidth] = eType_WallChunk1_1;
+					s--;
+				}
+			}
+		}
+		if( nType == 4 || nType == 5 )
+		{
+			if( nType == 5 )
+			{
+				for( int i = rect.x; i < rect.GetRight(); i++ )
+				{
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[i + rect.y * nWidth] = eType_WallChunk1_1;
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[i + ( rect.GetBottom() - 1 ) * nWidth] = eType_WallChunk1_1;
+				}
+				for( int j = rect.y + 1; j < rect.GetBottom() - 1; j++ )
+				{
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[rect.x + j * nWidth] = eType_WallChunk1_1;
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[( rect.GetRight() - 1 ) + j * nWidth] = eType_WallChunk1_1;
+				}
+				rect.x++;
+				rect.width -= 2;
+				rect.y++;
+				rect.height -= 2;
+			}
+			else if( rect.width < rect.height + SRand::Inst().Rand( 0, 2 ) )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+				{
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[rect.x + j * nWidth] = eType_WallChunk1_1;
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[( rect.GetRight() - 1 ) + j * nWidth] = eType_WallChunk1_1;
+				}
+				rect.x++;
+				rect.width -= 2;
+			}
+			else
+			{
+				for( int i = rect.x; i < rect.GetRight(); i++ )
+				{
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[i + rect.y * nWidth] = eType_WallChunk1_1;
+					if( SRand::Inst().Rand( 0, 8 ) )
+						m_gendata[i + ( rect.GetBottom() - 1 ) * nWidth] = eType_WallChunk1_1;
+				}
+				rect.y++;
+				rect.height -= 2;
+			}
+			s = SRand::Inst().Rand( rect.width * rect.height / 7, rect.width * rect.height / 6 );
+			nType = SRand::Inst().Rand( 0, 4 );
+		}
+		if( nType == 2 || nType == 3 )
+		{
+			int32 w = nType - 1;
+			uint8 b = SRand::Inst().Rand( 0, 2 );
+			if( rect.width < rect.height + SRand::Inst().Rand( 0, 2 ) )
+			{
+				for( int j = SRand::Inst().Rand( 1, rect.height / 2 ); j < rect.height - w && s > 0;
+					j += ( nType == 2 ? SRand::Inst().Rand( 5, 8 ) : SRand::Inst().Rand( 6, 12 ) ) )
+				{
+					int32 y0 = b ? j + rect.y : rect.GetBottom() - w - j;
+					for( int x = rect.x; x < rect.GetRight(); x++ )
+					{
+						for( int y = y0; y < y0 + w; y++ )
+						{
+							m_gendata[x + y * nWidth] = nType == 2 ? eType_WallChunk1_1 : eType_WallChunk1_2;
+							s--;
+						}
+					}
+				}
+			}
+			else
+			{
+				for( int i = SRand::Inst().Rand( 1, rect.width / 2 ); i < rect.width - w && s > 0;
+					i += ( nType == 2 ? SRand::Inst().Rand( 5, 8 ) : SRand::Inst().Rand( 6, 12 ) ) )
+				{
+					int32 x0 = b ? i + rect.x : rect.GetRight() - w - i;
+					for( int y = rect.y; y < rect.GetBottom(); y++ )
+					{
+						for( int x = x0; x < x0 + w; x++ )
+						{
+							m_gendata[x + y * nWidth] = nType == 2 ? eType_WallChunk1_1 : eType_WallChunk1_2;
+							s--;
+						}
+					}
+				}
+			}
+		}
+
+		vector<TVector2<int32> > vec;
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( m_gendata[i + j * nWidth] == eType_WallChunk1 )
+					vec.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+		SRand::Inst().Shuffle( vec );
+		for( auto& p : vec )
+		{
+			if( s < 4 )
+				break;
+			auto r = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 2, 2 ), TVector2<int32>( 2, 2 ), rect, -1, eType_WallChunk1_2 );
+			if( r.width <= 0 )
+				continue;
+			s -= 4;
+		}
+	}
+}
+
 void CLevelGenNode1_3::GenWindows()
 {
 	int32 nWidth = m_region.width;
@@ -1376,7 +1633,8 @@ void CLevelGenNode1_3::GenWindows()
 		{
 			for( int j = rect.y; j < rect.GetBottom(); j++ )
 			{
-				if( m_gendata[i + j * nWidth] != eType_WallChunk1 )
+				auto nType = m_gendata[i + j * nWidth];
+				if( nType < eType_WallChunk1 || nType > eType_WallChunk1_2 )
 				{
 					if( !tempData[i + j * nWidth] )
 					{
@@ -1455,8 +1713,8 @@ void CLevelGenNode1_3::GenWindows()
 		{
 			sizeMin = TVector2<int32>( 3, 3 );
 			sizeMax = TVector2<int32>( 4, 4 );
-			sizeMin1 = TVector2<int32>( 4, 4 );
-			sizeMax1 = TVector2<int32>( 5, 5 );
+			sizeMin1 = TVector2<int32>( 4, 3 );
+			sizeMax1 = TVector2<int32>( 5, 4 );
 		}
 		else
 		{
@@ -1557,19 +1815,6 @@ void CLevelGenNode1_3::GenWindows()
 			}
 		}
 	}
-
-	for( auto& rect : m_wallChunks0 )
-	{
-		if( Min( rect.width, rect.height ) >= 4 )
-			continue;
-		for( int x = rect.x; x < rect.GetRight(); x++ )
-		{
-			for( int y = rect.y; y < rect.GetBottom(); y++ )
-			{
-				m_gendata[x + y * nWidth] = eType_WallChunk1;
-			}
-		}
-	}
 }
 
 void CLevelGenNode1_3::GenObjs()
@@ -1583,7 +1828,7 @@ void CLevelGenNode1_3::GenObjs()
 		{
 			int32 nType = m_gendata[i + j * nWidth];
 			int32 nType1 = j > 0 ? m_gendata[i + ( j - 1 ) * nWidth] : eType_WallChunk1;
-			if( nType == eType_Wall && nType1 == eType_WallChunk1 )
+			if( nType == eType_Wall && nType1 >= eType_WallChunk1 && nType1 <= eType_WallChunk1_2 )
 				vec.push_back( TVector2<int32>( i, j ) );
 		}
 	}
@@ -1623,7 +1868,7 @@ void CLevelGenNode1_3::GenObjs()
 		for( int x = rect.x; x < rect.GetRight(); x++ )
 		{
 			auto type = m_gendata[x + ( rect.y - 1 ) * nWidth];
-			if( type == eType_Wall || type == eType_WallChunk0 || type == eType_WallChunk1 )
+			if( type == eType_Wall || type == eType_WallChunk0 || type >= eType_WallChunk1 && type <= eType_WallChunk1_2 )
 				continue;
 
 			int32 nHeight = Min( rect.height, SRand::Inst().Rand( 0, rect.height + 2 ) );
@@ -1639,7 +1884,7 @@ void CLevelGenNode1_3::GenObjs()
 		for( int j = 0; j < nHeight; j++ )
 		{
 			auto nType = m_gendata[i + j * nWidth];
-			vecData[i + j * nWidth] = nType == eType_Wall || nType == eType_WallChunk1 || nType == eType_Temp1? 0 : 1;
+			vecData[i + j * nWidth] = nType == eType_Wall || nType >= eType_WallChunk1 && nType <= eType_WallChunk1_2 || nType == eType_Temp1? 0 : 1;
 		}
 	}
 	SRand::Inst().Shuffle( m_wallChunks );

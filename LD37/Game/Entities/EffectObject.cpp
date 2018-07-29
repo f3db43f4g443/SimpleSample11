@@ -13,7 +13,8 @@ CEffectObject::CEffectObject( const SClassCreateContext& context )
 }
 
 CEffectObject::CEffectObject( float fTime, CVector2 velocity, float fAngularVelocity )
-	:  m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
+	: m_tickBeforeHitTest( this, &CEffectObject::OnTickBeforeHitTest )
+	, m_strSound( "" )
 	, m_nState( 3 )
 	, m_fTimeLeft( fTime )
 	, m_vel( velocity )

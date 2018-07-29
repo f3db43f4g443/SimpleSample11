@@ -359,7 +359,6 @@ void CLightning::OnTick()
 							pPlayer->Knockback( norm );
 						}
 						OnHit( pPlayer );
-						return;
 					}
 				}
 			}

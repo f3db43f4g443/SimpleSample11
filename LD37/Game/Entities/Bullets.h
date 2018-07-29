@@ -2,6 +2,7 @@
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Explosion.h"
+#include "Lightning.h"
 #include "BlockBuff.h"
 #include "Common/StringUtil.h"
 
@@ -21,6 +22,33 @@ protected:
 	bool m_bExplodeOnHitWorld;
 	bool m_bExplodeOnHitBlock;
 	bool m_bExplodeOnHitChar;
+};
+
+class CWaterFall : public CCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CWaterFall( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CWaterFall ); }
+	virtual void OnAddedToStage() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+	void UpdateEft();
+
+	float m_fMinLen;
+	float m_fMaxLen;
+	float m_fFall;
+	uint32 m_nLife;
+	uint32 m_nLife1;
+	float m_fWidth;
+	float m_fTexYTileLen;
+	uint32 m_nDamage;
+	uint32 m_nDamage1;
+	float m_fKnockback;
+	TResourceRef<CPrefab> m_pDmgEft;
+
+	uint32 m_nLifeLeft;
+	float m_fY0;
+	uint8 m_nState;
 };
 
 class CThrowObj : public CEnemy
@@ -99,4 +127,18 @@ protected:
 	bool m_bMultiHitBlock;
 
 	int32 m_nHitCDLeft;
+};
+
+class CWaterSplash : public CBullet
+{
+	friend void RegisterGameClasses();
+public:
+	CWaterSplash( const SClassCreateContext& context ) : CBullet( context ) { SET_BASEOBJECT_ID( CWaterSplash ); }
+	virtual void OnAddedToStage() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	uint32 m_nFrameRows;
+	uint32 m_nFrameOffset;
+	float m_fKnockback;
 };

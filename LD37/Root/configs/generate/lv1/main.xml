@@ -473,7 +473,7 @@
             <ref name="wall1" />
           </wallchunk0>
           <wallchunk1>
-            <ref name="wall3_empty" />
+            <ref name="wall3" />
           </wallchunk1>
           <block1>
             <ref name="brick_tile_1ax" />

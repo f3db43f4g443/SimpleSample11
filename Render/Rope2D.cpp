@@ -118,7 +118,7 @@ void CRopeDrawable2D::Flush( CRenderContext2D& context )
 					*pData++ = data.tex0.x;
 					*pData++ = data.tex1.x;
 					*pData++ = data.tex0.y;
-					*pData++ = m_pElement->depth;
+					*pData++ = data.tex1.y;
 
 					nOfs += 4 * ( 2 + nRopeExtraInstData );
 				}

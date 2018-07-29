@@ -7,6 +7,7 @@
 #include "Bullet.h"
 #include "Entities/Barrage.h"
 #include "Entities/Bullets.h"
+#include "Render/Rope2D.h"
 #include "Common/ResourceManager.h"
 
 void CManHead1::AIFunc()
@@ -1173,6 +1174,15 @@ void CMaggot::Kill()
 	CEnemy::Kill();
 }
 
+CFly* CMaggot::Morph()
+{
+	auto pFly = SafeCast<CFly>( m_pFly->GetRoot()->CreateInstance() );
+	pFly->SetPosition( globalTransform.GetPosition() );
+	pFly->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	Kill();
+	return pFly;
+}
+
 void CMaggot::OnTickAfterHitTest()
 {
 	DEFINE_TEMP_REF_THIS();
@@ -1275,6 +1285,227 @@ void CMaggot::OnTickAfterHitTest()
 	if( m_nKnockBackTimeLeft )
 		m_nKnockBackTimeLeft--;
 	CEnemy::OnTickAfterHitTest();
+}
+
+void CFly::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	m_r = SRand::Inst().Rand( 0.5f, 1.0f );
+	m_nFireCDLeft = m_nFireCD;
+	m_nCreateFlyGroupCD = SRand::Inst().Rand( 15, 30 );
+}
+
+void CFly::OnRemovedFromStage()
+{
+	if( m_pFlyGroup )
+		SetFlyGroup( NULL );
+	CEntity::OnRemovedFromStage();
+}
+
+void CFly::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+
+	m_flyData.fMaxAcc = Min( m_fMaxAcc, m_flyData.fMaxAcc + m_fAcc1 * GetStage()->GetElapsedTimePerTick() );
+	CVector2 p = GetPosition();
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( m_pTarget )
+	{
+		if( m_pTarget->GetStage() == GetStage() )
+		{
+			p = m_pTarget->GetTransform( m_nTargetTransformIndex ).GetPosition();
+			m_flyData.fStablity = 0.25f;
+			m_flyData.UpdateMove( this, p );
+		}
+		else
+			Set( NULL );
+	}
+	if( !m_pTarget )
+	{
+		float r = 128.0f;
+		if( !m_pFlyGroup && CMyLevel::GetInst() )
+		{
+			m_nCreateFlyGroupCD--;
+			if( !m_nCreateFlyGroupCD )
+			{
+				auto pFlyGroup = new CFlyGroup;
+				pFlyGroup->SetPosition( GetPosition() );
+				pFlyGroup->SetParentEntity( CMyLevel::GetInst() );
+				SetFlyGroup( pFlyGroup );
+			}
+		}
+		if( m_pFlyGroup )
+		{
+			r = 100 + SafeCast<CFlyGroup>( m_pFlyGroup.GetPtr() )->GetCount() * 3;
+			p = m_pFlyGroup->GetPosition();
+		}
+
+		r *= m_r;
+		CVector2 d = GetPosition() - p;
+		float l = d.Normalize();
+		m_flyData.fStablity = Min( 0.5f, l / r * 0.5f );
+		m_flyData.UpdateMove( this, p );
+	}
+
+	if( m_nKnockBackTimeLeft )
+		m_nKnockBackTimeLeft--;
+	if( m_nFireCDLeft )
+		m_nFireCDLeft--;
+	if( pPlayer && !m_nFireCDLeft )
+	{
+		CVector2 d = pPlayer->GetPosition() - GetPosition();
+		float l = d.Normalize();
+		if( l <= m_fFireDist )
+		{
+			auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( globalTransform.GetPosition() );
+			pBullet->SetRotation( atan2( d.y, d.x ) );
+			pBullet->SetVelocity( d * 175 );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			m_nFireCDLeft = m_nFireCD;
+
+			SDamageContext dmgContext;
+			dmgContext.nDamage = 1;
+			dmgContext.nType = 0;
+			dmgContext.nSourceType = 0;
+			dmgContext.hitPos = dmgContext.hitDir = CVector2( 0, 0 );
+			dmgContext.nHitType = -1;
+			Damage( dmgContext );
+		}
+	}
+}
+
+bool CFly::Knockback( const CVector2 & vec )
+{
+	SetVelocity( GetVelocity() + vec * 500 );
+	m_nKnockBackTimeLeft = m_nKnockbackTime;
+	return true;
+}
+
+bool CFly::IsKnockback()
+{
+	return m_nKnockBackTimeLeft > 0;
+}
+
+void CFly::SetFlyGroup( CFlyGroup* pFlyGroup )
+{
+	DEFINE_TEMP_REF_THIS();
+	if( m_pFlyGroup )
+	{
+		SafeCast<CFlyGroup>( m_pFlyGroup.GetPtr() )->OnFlyRemoved();
+		RemoveFrom_Fly();
+	}
+	m_pFlyGroup = pFlyGroup;
+	if( pFlyGroup )
+	{
+		pFlyGroup->OnFlyAdded();
+		pFlyGroup->Insert_Fly( this );
+		m_nCreateFlyGroupCD = 39;
+	}
+}
+
+void CFly::Set( CEntity * pTarget, uint16 nTransformIndex )
+{
+	SetFlyGroup( NULL );
+	m_pTarget = pTarget;
+	m_nTargetTransformIndex = nTransformIndex;
+	if( pTarget )
+		m_nCreateFlyGroupCD = 60;
+}
+
+void CFlyGroup::OnAddedToStage()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	m_vel.x = SRand::Inst().Rand( 50.0f, 80.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
+	m_vel.y = SRand::Inst().Rand( 50.0f, 80.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
+	m_nTime = SRand::Inst().Rand( 0, 30 ) + 1;
+}
+
+void CFlyGroup::OnRemovedFromStage()
+{
+	while( m_pFlies )
+		m_pFlies->SetFlyGroup( NULL );
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CFlyGroup::Merge( CFlyGroup * pFlyGroup1 )
+{
+	int32 n = 0;
+	uint32 nCount1 = pFlyGroup1->GetCount();
+	if( m_nCount + nCount1 <= 32 )
+		n = nCount1;
+	else
+		n = nCount1 - ( m_nCount + nCount1 ) / 2;
+	for( int i = 0; i < n; i++ )
+		pFlyGroup1->Get_Fly()->SetFlyGroup( this );
+	if( n >= nCount1 )
+		pFlyGroup1->SetParentEntity( NULL );
+}
+
+void CFlyGroup::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+
+	if( m_nTime )
+		m_nTime--;
+	if( !m_nTime )
+	{
+		if( m_nCount < 32 )
+		{
+			SHitProxyCircle circle;
+			circle.center = CVector2( 0, 0 );
+			circle.fRadius = 64;
+			vector<CReference<CEntity> > result;
+			GetStage()->MultiHitTest( &circle, globalTransform, result );
+			for( CEntity* pEntity : result )
+			{
+				auto pFly = SafeCast<CFly>( pEntity );
+				if( pFly )
+				{
+					if( pFly->GetTarget() )
+						continue;
+					auto pGroup = SafeCast<CFlyGroup>( pFly->GetGroup() );
+					if( pGroup )
+					{
+						if( pGroup != this )
+							Merge( pGroup );
+						pFly = NULL;
+					}
+				}
+				else
+				{
+					auto pMaggot = SafeCast<CMaggot>( pFly );
+					if( pMaggot )
+						pFly = pMaggot->Morph();
+				}
+
+				if( pFly )
+					pFly->SetFlyGroup( this );
+				if( m_nCount >= 32 )
+					break;
+			}
+		}
+		m_nTime = 30;
+	}
+
+	SetPosition( GetPosition() + m_vel * GetStage()->GetElapsedTimePerTick() );
+	auto bound = CMyLevel::GetInst()->GetBound();
+	bound.SetSize( CVector2( Max( 0.0f, bound.width - 200 ), Max( 0.0f, bound.height - 200 ) ) );
+	if( x < bound.x && m_vel.x < 0 || x > bound.GetRight() && m_vel.x > 0 )
+		m_vel.x = -m_vel.x;
+	if( y < bound.y && m_vel.y < 0 || y > bound.GetBottom() && m_vel.y > 0 )
+		m_vel.y = -m_vel.y;
+
+	if( !m_nCount )
+	{
+		if( m_nLife )
+			m_nLife--;
+		if( !m_nLife )
+			SetParentEntity( NULL );
+	}
+	else
+		m_nLife = 300;
 }
 
 void CRat::OnAddedToStage()
@@ -1513,5 +1744,105 @@ void CRat::Kill()
 	pBarrage->SetPosition( pos );
 	pBarrage->Start();
 
+	CEnemy::Kill();
+}
+
+void CBloodDrop::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
+	{
+		auto pChunk = SafeCast<CChunkObject>( pParent );
+		if( pChunk )
+		{
+			pChunk->RegisterKilledEvent( &m_onChunkKilled );
+			int32 nWidth = pChunk->GetChunk()->nWidth;
+			int32 nHeight = pChunk->GetChunk()->nHeight;
+			int32 nGridX = floor( GetPosition().x / CMyLevel::GetBlockSize() );
+			int32 nGridY = floor( GetPosition().y / CMyLevel::GetBlockSize() );
+			for( ; nGridY > 0; nGridY-- )
+			{
+				if( pChunk->GetBlock( nGridX, nGridY - 1 )->eBlockType < eBlockType_Block )
+					break;
+			}
+
+			m_fTargetY = nGridY * CMyLevel::GetBlockSize();
+			m_pRenderObject->SetPosition( CVector2( 0, m_fTargetY - y ) );
+			break;
+		}
+	}
+
+	GetRenderObject()->bVisible = false;
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	auto texRect = pImage->GetElem().texRect;
+	texRect.x = SRand::Inst().Rand( 0, 8 ) * 0.125f;
+	pImage->SetTexRect( texRect );
+
+	if( CMyLevel::GetInst() && m_fTargetY == 0 )
+		GetRenderObject()->SetRenderParentAfter( CMyLevel::GetInst()->GetChunkRoot1() );
+	m_pKilled->SetParentEntity( NULL );
+	auto pEft = static_cast<CRopeObject2D*>( m_pEft->GetRenderObject() );
+	pEft->SetDataCount( 0 );
+	m_pEft->SetAutoUpdateAnim( true );
+}
+
+void CBloodDrop::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	auto pEft = static_cast<CRopeObject2D*>( m_pEft->GetRenderObject() );
+	auto& data = pEft->GetData();
+
+	float fLen = y - m_fTargetY;
+	m_l += m_fSpeed * GetStage()->GetElapsedTimePerTick();
+	float l = floor( m_l );
+	float l0 = Min( fLen, l );
+	if( l0 <= 32 )
+	{
+		pEft->SetDataCount( 2 );
+		pEft->SetData( 0, CVector2( 0, 0 ), 32, CVector2( 0, 0 ), CVector2( 1, 2 ) );
+		pEft->SetData( 1, CVector2( 0, -l0 ), 32, CVector2( 0, l0 / 256 ), CVector2( 1, Min( 1.0f, Max( 0.0f, ( l - 32 ) / 32 ) ) ) );
+	}
+	else
+	{
+		pEft->SetDataCount( 3 );
+		pEft->SetData( 0, CVector2( 0, 0 ), 32, CVector2( 0, 0 ), CVector2( 1, 2 ) );
+		pEft->SetData( 1, CVector2( 0, -32 ), 32, CVector2( 0, 32.0f / 256 ), CVector2( 1, Min( 1.0f, Max( 0.0f, ( l - 32 ) / 32 ) ) ) );
+		pEft->SetData( 2, CVector2( 0, -l0 ), 32, CVector2( 0, l0 / 256 ), CVector2( 1, Min( 1.0f, Max( 0.0f, ( l - fLen ) / 32 ) ) ) );
+	}
+	pEft->SetTransformDirty();
+
+	if( l - fLen >= m_fLen1 )
+	{
+		CEffectObject* pEffectObject = new CEffectObject( 1.0f, CVector2( 0, 0 ), 0 );
+		pEffectObject->SetParentBeforeEntity( this );
+		pEffectObject->SetPosition( GetPosition() );
+		m_pEft->SetParentEntity( pEffectObject );
+		m_pEft = NULL;
+		pEft->GetInstanceData()->GetData().isEmitting = false;
+		m_nState = 1;
+		Kill();
+	}
+	else
+	{
+		int32 nFrame = Min<int32>( 7, floor( ( l - fLen ) * 8 / m_fLen1 ) );
+		if( nFrame >= 0 )
+		{
+			auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+			pImage->bVisible = true;
+			auto texRect = pImage->GetElem().texRect;
+			texRect.y = nFrame / 8.0f;
+			pImage->SetTexRect( texRect );
+		}
+	}
+}
+
+void CBloodDrop::Kill()
+{
+	if( m_nState >= 1 )
+	{
+		m_pKilled->SetPosition( globalTransform.GetPosition() );
+		m_pKilled->y += m_fTargetY - y;
+		m_pKilled->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	}
 	CEnemy::Kill();
 }

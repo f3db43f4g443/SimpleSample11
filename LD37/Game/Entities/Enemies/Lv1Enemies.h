@@ -250,6 +250,7 @@ public:
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
 	virtual bool IsKnockback() override;
 	virtual void Kill() override;
+	class CFly* Morph();
 protected:
 	virtual void OnTickAfterHitTest() override;
 private:
@@ -261,11 +262,70 @@ private:
 	CReference<CEntity> m_pExplosion;
 	uint32 m_nExplosionLife;
 	float m_fExplosionDmg;
+	TResourceRef<CPrefab> m_pFly;
 
 	uint32 m_nAIStepTimeLeft;
 	int8 m_nDir;
 	uint8 m_nAnimState;
 	uint32 m_nKnockBackTimeLeft;
+};
+
+class CFlyGroup;
+class CFly : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CFly( const SClassCreateContext& context ) : CEnemy( context ), m_flyData( context ) { SET_BASEOBJECT_ID( CFly ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void OnTickAfterHitTest() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
+	CEntity* GetTarget() { return m_pTarget; }
+	CEntity* GetGroup() { return m_pFlyGroup; }
+	void SetFlyGroup( CFlyGroup* pFlyGroup );
+	void Set( CEntity* pTarget, uint16 nTransformIndex = -1 );
+private:
+	SCharacterPhysicsFlyData m_flyData;
+	float m_fAcc1;
+	float m_fMaxAcc;
+	float m_fFireDist;
+	uint32 m_nFireCD;
+	uint32 m_nKnockbackTime;
+	TResourceRef<CPrefab> m_pBullet;
+
+	uint32 m_nCreateFlyGroupCD;
+	uint32 m_nFireCDLeft;
+	float m_f;
+	float m_r;
+	uint32 m_nKnockBackTimeLeft;
+	CReference<CEntity> m_pTarget;
+	uint16 m_nTargetTransformIndex;
+	CReference<CEntity> m_pFlyGroup;
+
+	LINK_LIST_REF( CFly, Fly )
+};
+
+class CFlyGroup : public CEntity
+{
+public:
+	CFlyGroup() : m_nCount( 0 ), m_nTime( 0 ), m_nLife( 300 ), m_pFlies( NULL ), m_onTick( this, &CFlyGroup::OnTick ) {}
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void OnFlyAdded() { m_nCount++; }
+	void OnFlyRemoved() { m_nCount--; }
+	void Merge( CFlyGroup* pFlyGroup1 );
+	uint32 GetCount() { return m_nCount; }
+private:
+	void OnTick();
+
+	uint32 m_nCount;
+	uint32 m_nTime;
+	uint32 m_nLife;
+	CVector2 m_vel;
+	TClassTrigger<CFlyGroup> m_onTick;
+	LINK_LIST_REF_HEAD( m_pFlies, CFly, Fly )
 };
 
 class CRat : public CEnemy
@@ -293,4 +353,24 @@ private:
 	CVector2 m_curMoveDir;
 	uint32 m_nKnockBackTimeLeft;
 	CReference<CChunkObject> m_pCurRoom;
+};
+
+class CBloodDrop : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CBloodDrop( const SClassCreateContext& context ) :CEnemy( context ), m_onChunkKilled( this, &CBloodDrop::Crush ) { SET_BASEOBJECT_ID( CBloodDrop ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnTickAfterHitTest() override;
+	virtual void Kill() override;
+private:
+	CReference<CEntity> m_pEft;
+	CReference<CEntity> m_pKilled;
+	float m_fSpeed;
+	float m_fLen1;
+
+	uint8 m_nState;
+	float m_fTargetY;
+	float m_l;
+	TClassTrigger<CBloodDrop> m_onChunkKilled;
 };

@@ -55,6 +55,45 @@ void VSParticle( in float2 tex : Position,
 
 }
 
+float fTexYTimeScale1;
+void VSParticle1( in float2 tex : Position,
+	in uint particleInstID : SV_InstanceID,
+	out float2 outTex : TexCoord0,
+	out float4 outInstData : ExtraInstData0,
+	out float4 outPos : SV_Position )
+{
+	float pos = tex.x * 2.0 - 1.0;
+	float instID = tex.y / g_segmentsPerData;
+	float nInstID = floor( instID );
+	float fracInstID = instID - nInstID;
+	nInstID = nInstID * 2;
+
+	float4 center_dir = lerp( g_insts[( uint )nInstID], g_insts[( uint )nInstID + 2], fracInstID );
+	float4 texData = lerp( g_insts[( uint )nInstID + 1], g_insts[( uint )nInstID + 3], fracInstID );
+	float4 particleInstData = g_insts1[particleInstID * 2];
+	float4 particleInstData1 = g_insts1[particleInstID * 2 + 1];
+	float t = particleInstData.x;
+	t = ( g_t - t ) / g_life;
+	t = t - floor( t );
+	float texYOfs = particleInstData.y;
+	float width = particleInstData.z;
+	float texGrid = floor( particleInstData.w );
+	float xOfs = particleInstData1.x;
+	float2 randTex = particleInstData1.zw;
+
+	pos = pos * width + xOfs;
+	float2 dir = center_dir.zw;
+	center_dir.xy = center_dir.xy + pos * dir;
+	outPos = mul( g_matView, float4( center_dir.xy, g_zOrder, 1.0 ) );
+
+	outTex.x = lerp( texData.x, texData.y, tex.x );
+	outTex.y = texData.z;
+	outTex.x = ( texGrid + outTex.x ) * fInvTexGrids;
+	outTex.y = outTex.y + fTexYTimeScale * t * ( 2 - t ) + texYOfs;
+
+	outInstData = float4( randTex.x + tex.x * fTex1Scale.x, randTex.y + texData.z * fTex1Scale.y, texData.w, 1 - t );
+}
+
 Texture2D Texture0;
 Texture2D TextureColorMap;
 SamplerState LinearSampler;

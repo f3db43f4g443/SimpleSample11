@@ -300,6 +300,7 @@ private:
 	void FillLine( TRectangle<int32>& rect );
 	void GenRestWallChunks();
 	void GenWallChunk();
+	void GenWallChunk0();
 	void GenWindows();
 	void GenObjs();
 	void GenShops();
@@ -330,6 +331,8 @@ private:
 		eType_WallChunk0,
 		eType_WallChunk,
 		eType_WallChunk1,
+		eType_WallChunk1_1,
+		eType_WallChunk1_2,
 		eType_BlockRed,
 		eType_BlockBlue,
 		eType_Crate1,

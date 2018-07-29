@@ -1,5 +1,6 @@
 #pragma once
 #include "Entities/Blocks/SpecialBlocks.h"
+#include "Entities/AIObject.h"
 
 class CGarbageBinRed : public CTriggerChunk
 {
@@ -70,15 +71,49 @@ private:
 	vector<CReference<CChunkObject> > m_vecSubChunk;
 };
 
+class CRoad0 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CRoad0( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRoad0 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+private:
+	uint32 m_nHpPerSize;
+};
+
 class CAirConditioner : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
 	CAirConditioner( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CAirConditioner ); }
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual const CMatrix2D& GetTransform( uint16 nIndex ) override;
+	virtual void OnTransformUpdated() override;
+	virtual void OnRemovedFromStage() override;
 private:
+	void AIFunc();
+	void AIFunc1();
+	void AIFunc2();
+	void AIFunc3();
+	void AIOnTick();
+	CVector2 GetCenter();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CAirConditioner*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+
 	TResourceRef<CDrawableGroup> m_pDrawable1;
 	TResourceRef<CDrawableGroup> m_pDrawable2;
+
+	uint8 m_n1;
+	bool m_bDirty;
+	bool m_bLeft;
+	vector<CMatrix2D> m_vecTrans;
+	vector<CMatrix2D> m_vecGlobalTrans;
+	vector<CReference<CEntity> > m_vec;
+	vector<uint32> m_vecFree;
 };
 
 class CScrap : public CChunkObject

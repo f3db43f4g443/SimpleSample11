@@ -570,7 +570,8 @@ bool CChunkObject::Damage( SDamageContext& context )
 		if( nDamageFrame < m_nDamagedEffectsCount )
 			m_pDamagedEffects[nDamageFrame]->bVisible = true;
 	}
-
+	
+	m_triggerDamaged.Trigger( 0, &context );
 	if( m_fHp <= 0 )
 	{
 		m_fHp = 0;

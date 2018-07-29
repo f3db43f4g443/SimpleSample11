@@ -54,7 +54,7 @@ void PSMask( in float2 tex : TexCoord0,
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
 	float mask = Texture1.Sample( LinearSampler1, instData.xy ).x;
 	float t = instData.w;
-	texColor.w = max( 0, ( texColor.w + mask - 1 ) * t );
+	texColor.w = ( texColor.w * instData.z + mask - 1 ) * t;
 
 	float4 color = TextureColorMap.Sample( LinearSampler2, texColor.w );
 	color.xyz *= texColor.xyz;
@@ -70,7 +70,7 @@ void PSMaskOcclusion( in float2 tex : TexCoord0,
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
 	float mask = Texture1.Sample( LinearSampler1, instData.xy ).x;
 	float t = instData.w;
-	texColor.w = max( 0, ( texColor.w + mask - 1 ) * t );
+	texColor.w = ( texColor.w * instData.z + mask - 1 ) * t;
 
 	float4 color = TextureColorMap.Sample( LinearSampler2, texColor.w );
 	outColor = float4( color.xyz, 0 );

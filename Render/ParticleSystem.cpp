@@ -229,9 +229,7 @@ bool CParticleSystemData::AnimateInstanceData( SParticleInstanceData& data, cons
 			i1 -= m_nMaxParticles;
 
 		uint8* pData = (uint8*)data.pData + i1 * m_instanceSize;
-		float fData = m_bBatchAcrossInstances ? 0 : data.fTime;
-		if( nEmit == 0 )
-			fData += ( nEmit - iEmit - 1 ) / m_emitRate;
+		float fData = m_bBatchAcrossInstances ? ( nEmit - iEmit - 1 ) / m_emitRate : data.fTime - ( nEmit - iEmit - 1 ) / m_emitRate;
 		*(float*)pData = fData;
 		if( pEmitter )
 		{

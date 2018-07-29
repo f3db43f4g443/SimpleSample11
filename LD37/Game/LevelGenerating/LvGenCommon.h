@@ -101,6 +101,7 @@ private:
 	void GenPipe( TVector2<int32> beginPoint );
 
 	CReference<CLevelGenerateNode> m_pPipes[15];
+	CReference<CLevelGenerateNode> m_pNode1;
 
 	float m_fBeginPointCountPercent;
 	float m_fBeginPointHeightPercent;

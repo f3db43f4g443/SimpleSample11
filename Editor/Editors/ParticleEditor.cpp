@@ -427,7 +427,7 @@ void CParticleEditor::OnInited()
 
 	m_pRect = CVectorEdit::Create( "Rect", 4 );
 	m_pTreeView->AddContent( m_pRect );
-	m_pPreview = CVectorEdit::Create( "Preview", 2 );
+	m_pPreview = CVectorEdit::Create( "Preview", 4 );
 	m_pTreeView->AddContent( m_pPreview );
 	m_dataItem.pTreeView = m_pTreeView;
 	m_dataItem.pEditor = this;
@@ -502,6 +502,8 @@ void CParticleEditor::RefreshRenderObject()
 		CRopeObject2D* pRopeObject = static_cast<CRopeObject2D*>( m_pRenderObject.GetPtr() );
 		pRopeObject->GetData().data[1].center = CVector2( preview.x, 0 );
 		pRopeObject->GetData().data[0].fWidth = pRopeObject->GetData().data[1].fWidth = preview.y;
+		pRopeObject->GetData().data[0].tex1.y = preview.z;
+		pRopeObject->GetData().data[1].tex1.y = preview.w;
 	}
 
 	SetCamOfs( CVector2( 0, 0 ) );

@@ -6,13 +6,34 @@
 #include "Entities/Decorator.h"
 #include "Render/DrawableGroup.h"
 
-class CPipe0 : public CDetectTrigger
+//class CPipe0 : public CDetectTrigger
+//{
+//	friend void RegisterGameClasses();
+//public:
+//	CPipe0( const SClassCreateContext& context ) : CDetectTrigger( context ) { SET_BASEOBJECT_ID( CPipe0 ); }
+//protected:
+//	virtual void Trigger() override;
+//};
+
+class CPipe1 : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	CPipe0( const SClassCreateContext& context ) : CDetectTrigger( context ) { SET_BASEOBJECT_ID( CPipe0 ); }
-protected:
-	virtual void Trigger() override;
+	CPipe1( const SClassCreateContext& context ) : CEntity( context ), m_onDamaged( this, &CPipe1::OnDamaged ), m_onTick( this, &CPipe1::OnTick ) { SET_BASEOBJECT_ID( CPipe1 ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnDamaged();
+	void OnTick();
+	float m_fBulletSpeed;
+	uint32 m_nBulletLife;
+	uint32 m_nBulletCD;
+	TResourceRef<CPrefab> m_pBullet;
+
+	class CChunkObject* m_pChunkObject;
+	CVector2 m_dir;
+	TClassTrigger<CPipe1> m_onDamaged;
+	TClassTrigger<CPipe1> m_onTick;
 };
 
 class CWindow : public CEntity
@@ -58,12 +79,26 @@ public:
 	CWindow1( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CWindow1 ); }
 	virtual void Init( const CVector2& size ) override;
 protected:
+	void AIFunc();
+	void AIFunc1( class CChunkObject* pChunkObject );
+	void AIFunc2( class CChunkObject* pChunkObject );
+	void AIFunc3( class CChunkObject* pChunkObject );
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CWindow1*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+	CVector2 m_size;
+	vector<CReference<CRenderObject2D> > m_vecRenderObject;
+
 	CReference<CEntity> m_p1;
 	uint8 m_nType;
 	uint32 m_nLayer2Rows;
 	uint32 m_nLayer2Cols;
 	TResourceRef<CDrawableGroup> m_pDrawable1;
 	uint32 m_nDecoTexSize;
+	TResourceRef<CPrefab> m_pPrefab;
 };
 
 class CWindow2 : public CEntity

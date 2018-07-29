@@ -250,6 +250,7 @@ public:
 	virtual void Crush() { m_triggerCrushed.Trigger( 0, this ); Kill(); }
 	void RemoveChunk();
 
+	void RegisterDamagedEvent( CTrigger* pTrigger ) { m_triggerDamaged.Register( 0, pTrigger ); }
 	void RegisterKilledEvent( CTrigger* pTrigger ) { m_triggerKilled.Register( 0, pTrigger ); }
 	void RegisterCrushedEvent( CTrigger* pTrigger ) { m_triggerCrushed.Register( 0, pTrigger ); }
 
@@ -281,6 +282,7 @@ protected:
 	int32 m_nHitShakeFrame;
 	TClassTrigger<CChunkObject> m_onHitShakeTick;
 
+	CEventTrigger<1> m_triggerDamaged;
 	CEventTrigger<1> m_triggerKilled;
 	CEventTrigger<1> m_triggerCrushed;
 };

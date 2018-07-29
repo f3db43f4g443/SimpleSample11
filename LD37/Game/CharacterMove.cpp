@@ -131,8 +131,6 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 
 bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 {
-	CVector2 posFix( 0, 0 );
-
 	struct SPenetration
 	{
 		CEntity* pEntity;
@@ -257,6 +255,93 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 
 	pCharacter->SetPosition( newPos );
 	return true;
+}
+
+bool SCharacterMovementData::ResolvePenetration( CCharacter * pCharacter, const CVector2 & dir, float fCos )
+{
+	float k = 0;
+	bool bSucceed = true;
+	struct SPenetration
+	{
+		CEntity* pEntity;
+		CVector2 normal;
+		float fNormalLength;
+		float fInitialNormalLength;
+	};
+
+	vector<SPenetration> vecPenetrations;
+	for( auto pManifold = pCharacter->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		if( bHitChannel[pEntity->GetHitType()] )
+		{
+			if( pCharacter->HasHitFilter() )
+			{
+				if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+					continue;
+			}
+			SPenetration penetration;
+			penetration.pEntity = pEntity;
+			CVector2 entityOfs = pEntity->globalTransform.GetPosition() - pEntity->GetLastPos();
+			float fLength2 = entityOfs.Length2();
+			if( fLength2 == 0 )
+			{
+				entityOfs = pManifold->normal * -1;
+				fLength2 = pManifold->normal.Length2();
+				if( fLength2 == 0 )
+					continue;
+			}
+			float fDot = entityOfs.Dot( dir );
+			if( fDot * fDot < fCos * fCos * fLength2 )
+			{
+				bSucceed = false;
+				continue;
+			}
+			float fLength = fLength2 / fDot;
+			entityOfs = dir * fLength;
+
+			CMatrix2D trans = pEntity->globalTransform;
+			trans.SetPosition( trans.GetPosition() - entityOfs );
+			SRaycastResult result;
+			if( !pCharacter->SweepTest( pEntity->Get_HitProxy(), trans, entityOfs, &result ) )
+				continue;
+
+			fLength = fLength - result.fDist;
+			k = Max( k, fLength );
+		}
+	}
+
+	if( k > 0 )
+	{
+		CVector2 newPos = pCharacter->GetPosition() + dir * k;
+		pCharacter->SetPosition( newPos );
+		if( !bSucceed )
+			return false;
+		CMatrix2D trans = pCharacter->globalTransform;
+		trans.SetPosition( newPos );
+		vector<CHitProxy*> hitResult;
+		vector<SHitTestResult> hitTestResult;
+		pCharacter->GetStage()->GetHitTestMgr().HitTest( pCharacter->Get_HitProxy(), trans, hitResult, &hitTestResult );
+		bool bHit = false;
+		for( int i = 0; i < hitResult.size(); i++ )
+		{
+			auto pEntity = static_cast<CEntity*>( hitResult[i] );
+			auto eHitType = static_cast<CEntity*>( hitResult[i] )->GetHitType();
+			if( pCharacter->HasHitFilter() )
+			{
+				if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+					continue;
+			}
+			if( bHitChannel[eHitType] && hitTestResult[i].normal.Length2() > 0.05f * 0.05f )
+			{
+				bHit = true;
+				break;
+			}
+		}
+		if( bHit )
+			return false;
+	}
+	return bSucceed;
 }
 
 bool SCharacterMovementData::HasAnyCollision()
@@ -1280,7 +1365,7 @@ void SCharacterQueueMovementData::UpdateMove( CCharacter ** pCharacters, uint32 
 	}
 }
 
-float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fMaxLen, bool bHitChannel[eEntityHitType_Count] )
+float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fMaxDeltaLen, bool bHitChannel[eEntityHitType_Count] )
 {
 	SHitProxy* pHitProxy = pCharacter->Get_HitProxy();
 	if( !pHitProxy )
@@ -1301,12 +1386,12 @@ float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fM
 
 	CVector2 ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
 
-	float fDist = fMaxLen;
-	if( fMaxLen > 0 )
+	float fDist = fMaxDeltaLen;
+	if( fMaxDeltaLen > 0 )
 	{
 		SRaycastResult result;
 		if( pCharacter->GetStage()->SweepTest( pRect, pCharacter->globalTransform, pCharacter->globalTransform.MulVector2Dir( ofs[nDir] )
-			* fMaxLen, bHitChannel, &result ) )
+			* fMaxDeltaLen, bHitChannel, &result ) )
 			fDist = result.fDist;
 		if( fDist <= 0 )
 			return 0;
@@ -1332,26 +1417,104 @@ float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fM
 		switch( nDir )
 		{
 		case 0:
-			fLen = Max( fMinX, fMaxX + fMaxLen );
+			fLen = Max( fMinX, fMaxX + fMaxDeltaLen );
 			fDist = fLen - fMaxX;
 			fMaxX = fLen;
 			break;
 		case 1:
-			fLen = Max( fMinY, fMaxX + fMaxLen );
+			fLen = Max( fMinY, fMaxX + fMaxDeltaLen );
 			fDist = fLen - fMaxY;
 			fMaxY = fLen;
 			break;
 		case 2:
-			fLen = Min( fMaxX, fMinX - fMaxLen );
+			fLen = Min( fMaxX, fMinX - fMaxDeltaLen );
 			fDist = fLen - fMinX;
 			fMinX = fLen;
 			break;
 		case 3:
-			fLen = Min( fMaxY, fMinY - fMaxLen );
+			fLen = Min( fMaxY, fMinY - fMaxDeltaLen );
 			fDist = fLen - fMinY;
 			fMinY = fLen;
 			break;
 		}
+	}
+
+	pRect->vertices[0] = CVector2( fMinX, fMinY );
+	pRect->vertices[1] = CVector2( fMaxX, fMinY );
+	pRect->vertices[2] = CVector2( fMaxX, fMaxY );
+	pRect->vertices[3] = CVector2( fMinX, fMaxY );
+	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
+	return fDist;
+}
+
+float CCharacterMoveUtil::StretchEx( CCharacter * pCharacter, uint8 nDir, float fMinLen, float fMaxLen, float fMoveDist, bool bHitChannel[eEntityHitType_Count] )
+{
+	SHitProxy* pHitProxy = pCharacter->Get_HitProxy();
+	if( !pHitProxy )
+		return 0;
+	if( pHitProxy->nType != eHitProxyType_Polygon )
+		return 0;
+	auto pRect = static_cast<SHitProxyPolygon*>( pHitProxy );
+	if( pRect->nVertices != 4 )
+		return 0;
+	float fMinX = FLT_MAX, fMaxX = -FLT_MAX, fMinY = FLT_MAX, fMaxY = -FLT_MAX;
+	for( int i = 0; i < 4; i++ )
+	{
+		fMinX = Min( fMinX, pRect->vertices[i].x );
+		fMaxX = Max( fMaxX, pRect->vertices[i].x );
+		fMinY = Min( fMinY, pRect->vertices[i].y );
+		fMaxY = Max( fMaxY, pRect->vertices[i].y );
+	}
+
+	CVector2 ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+
+	float fDist = fMoveDist;
+	float fLen = nDir == 0 || nDir == 2 ? fMaxX - fMinX : fMaxY - fMinY;
+	SRaycastResult result;
+	if( pCharacter->GetStage()->SweepTest( pRect, pCharacter->globalTransform, pCharacter->globalTransform.MulVector2Dir( ofs[nDir] )
+		* fMoveDist, bHitChannel, &result, true ) )
+		fDist = Max( result.fDist, Min( fDist, fMinLen - fLen ) );
+	if( fDist <= 0 )
+		return 0;
+	switch( nDir )
+	{
+	case 0:
+		fMaxX += fDist;
+		break;
+	case 1:
+		fMaxY += fDist;
+		break;
+	case 2:
+		fMinX -= fDist;
+		break;
+	case 3:
+		fMinY -= fDist;
+		break;
+	}
+	float fDist1 = fLen + fDist - fMaxLen;
+	if( fDist1 > 0 )
+	{
+		fDist -= fDist1;
+		switch( nDir )
+		{
+		case 0:
+			fMaxX -= fDist1;
+			pCharacter->SetPosition( CVector2( pCharacter->x + fDist1, pCharacter->y ) );
+			break;
+		case 1:
+			fMaxY -= fDist1;
+			pCharacter->SetPosition( CVector2( pCharacter->x , pCharacter->y+ fDist1 ) );
+			break;
+		case 2:
+			fMinX += fDist1;
+			pCharacter->SetPosition( CVector2( pCharacter->x - fDist1, pCharacter->y ) );
+			break;
+		case 3:
+			fMinY += fDist1;
+			pCharacter->SetPosition( CVector2( pCharacter->x, pCharacter->y - fDist1 ) );
+			break;
+		}
+		pCharacter->ForceUpdateTransform();
 	}
 
 	pRect->vertices[0] = CVector2( fMinX, fMinY );

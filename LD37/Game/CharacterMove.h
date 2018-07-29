@@ -4,7 +4,8 @@
 class CCharacterMoveUtil
 {
 public:
-	static float Stretch( CCharacter* pCharacter, uint8 nDir, float fMaxLen, bool bHitChannel[eEntityHitType_Count] = NULL );
+	static float Stretch( CCharacter* pCharacter, uint8 nDir, float fMaxDeltaLen, bool bHitChannel[eEntityHitType_Count] = NULL );
+	static float StretchEx( CCharacter* pCharacter, uint8 nDir, float fMinLen, float fMaxLen, float fMoveDist, bool bHitChannel[eEntityHitType_Count] = NULL );
 };
 
 struct SCharacterMovementData
@@ -14,6 +15,7 @@ struct SCharacterMovementData
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, CVector2& velocity, SRaycastResult* pHit = NULL );
 
 	bool ResolvePenetration( CCharacter* pCharacter );
+	bool ResolvePenetration( CCharacter* pCharacter, const CVector2& dir, float fCos );
 	bool HasAnyCollision();
 
 	CEntity* DoSweepTest( CCharacter* pChar, const CMatrix2D& trans, const CVector2& sweepOfs, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
