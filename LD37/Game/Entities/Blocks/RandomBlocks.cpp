@@ -530,8 +530,8 @@ void CRandomChunk3::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 		vecMask[i] = m_bBlockTypeMask[pChunk->blocks[i].eBlockType];
 	for( int i = 0; i < vecType.size(); i++ )
 	{
-		vecType[i].first = SRand::Inst().Rand( 0, 2 );
-		vecType[i].second = SRand::Inst().Rand( 0, 2 );
+		vecType[i].first = SRand::Inst().Rand( -1.0f, 1.0f ) + m_fXCoef >= 0 ? 1 : 0;
+		vecType[i].second = SRand::Inst().Rand( -1.0f, 1.0f ) + m_fYCoef >= 0 ? 1 : 0;
 	}
 
 	auto rect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
@@ -559,7 +559,7 @@ void CRandomChunk3::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				uint8 y2 = vecType[i + ( j + 1 ) * ( pChunk->nWidth + 1 )].second;
 
 				static uint32 indexX[] = { 3, 2, 0, 1 };
-				static uint32 indexY[] = { 0, 1, 3, 2 };
+				static uint32 indexY[] = { 3, 0, 2, 1 };
 				uint32 tX = indexX[x1 + x2 * 2];
 				uint32 tY = indexY[y1 + y2 * 2];
 				tX += 4 * SRand::Inst().Rand( 0u, nAltX );

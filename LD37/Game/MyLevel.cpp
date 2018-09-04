@@ -286,8 +286,9 @@ SChunk* CMyLevel::CreateGrids( const char* szNode, SChunk* pLevelBarrier )
 	auto& cfg = CGlobalCfg::Inst();
 	SLevelBuildContext context( this );
 	context.pLastLevelBarrier = pLevelBarrier;
-
 	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( szNode );
+	if( pNode->GetMetadata().nSeed )
+		SRand::Inst().nSeed = pNode->GetMetadata().nSeed;
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
 	uint32 nCurBarrierHeight = m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0;
@@ -759,7 +760,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 
 		if( pChunk->IsFullyUpdated() )
 		{
-			float fBalance = 1;
 			bool bHit = false;
 			bool b1 = false;
 			int32 nBaseX = pChunk->pos.x / GetBlockSize();
@@ -899,8 +899,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 				if( nApplyWeightCount )
 				{
 					float fAppliedWeight = pChunk->fWeight / nApplyWeightCount;
-					int32 nLeftmost = pChunk->nWidth;
-					int32 nRightmost = -1;
 					for( int i = 0; i < pChunk->nWidth; i++ )
 					{
 						auto& basement = m_basements[nBaseX + i];
@@ -934,10 +932,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 
 								if( nPreY >= preY - basementLayer.nCurMargin && !pPreBlock[iLayer]->pOwner->bMovedLastFrame )
 								{
-									if( i < nLeftmost )
-										nLeftmost = i;
-									if( i > nRightmost )
-										nRightmost = i;
 									if( !( iLayer == 1 && pPreBlock[0] == pPreBlock[1] ) && pChunk->pChunkObject )
 										pPreBlock[iLayer]->pOwner->fAppliedWeight += fAppliedWeight;
 									bHit = true;
@@ -956,7 +950,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 							}
 						}
 					}
-					fBalance = Min( pChunk->nWidth - nLeftmost * 1.0f, ( nRightmost + 1 ) * 1.0f ) / pChunk->nWidth;
 					b1 = true;
 				}
 				else
@@ -1003,7 +996,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 				}
 			}
 
-			pChunk->fBalance = fBalance;
 			for( int i = 0; i < pChunk->nWidth; i++ )
 			{
 				for( int iLayer = 0; iLayer < 2; iLayer++ )
@@ -1107,8 +1099,6 @@ void CMyLevel::UpdateBlocksMovementNormal()
 						pChunk->pChunkObject->SetPosition( CVector2( pChunk->pos.x, pChunk->pos.y ) );
 					}
 				}
-
-				pChunk->fBalance = 1;
 			}
 		}
 	}
@@ -1123,7 +1113,7 @@ void CMyLevel::UpdateBlocksMovementNormal()
 
 		if( !pChunk->nUpdateCount )
 		{
-			if( pChunk->fDestroyBalance > 0 && pChunk->fBalance < pChunk->fDestroyBalance )
+			if( pChunk->fDestroyBalance > 1 )
 			{
 				if( !pChunk->bMovedLastFrame )
 				{

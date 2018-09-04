@@ -76,7 +76,6 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, pChunkObject( NULL )
 	, nUpdateCount( 0 )
 	, fAppliedWeight( 0 )
-	, fBalance( 0 )
 	, fCurImbalanceTime( 0 )
 	, nCurShakeStrength( 0 )
 	, nLayerType( baseInfo.nLayerType )

@@ -39,6 +39,7 @@ struct SLevelBuildContext
 	CMyLevel* pLevel;
 	SChunk* pParentChunk;
 	uint32 nBlockSize;
+	uint32 nSeed;
 };
 
 class CLevelGenerateNode : public CReferenceObject
@@ -56,7 +57,7 @@ public:
 	};
 	struct SMetadata
 	{
-		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ), nEditType( eEditType_Brush ) {}
+		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ), nEditType( eEditType_Brush ), nSeed( 0 ) {}
 		uint8 GetLayerType() const
 		{
 			if( nMinLevel == 0 && nMaxLevel == 0 )
@@ -73,6 +74,7 @@ public:
 		int8 nEditType;
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
+		int32 nSeed;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

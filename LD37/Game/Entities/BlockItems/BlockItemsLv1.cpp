@@ -138,6 +138,481 @@ void CPipe1::OnTick()
 	pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 }
 
+void CWindow0::Init( const CVector2& size )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
+	{
+		auto p = SafeCast<CChunkObject>( pParent );
+		if( p )
+		{
+			pChunkObject = p;
+			break;
+		}
+	}
+	m_pChunkObject = pChunkObject;
+	if( pChunkObject )
+	{
+		pChunkObject->RegisterDamagedEvent( &m_onDamaged );
+
+		auto pChunk = pChunkObject->GetChunk();
+		vector<int8> vec;
+		vec.resize( pChunk->nWidth * pChunk->nHeight );
+		vector<TVector2<int32> > vec1;
+		for( int i = 0; i < pChunk->nWidth; i++ )
+		{
+			for( int j = 0; j < pChunk->nHeight; j++ )
+			{
+				auto pBlock = pChunk->GetBlock( i, j );
+				if( pBlock->nTag == m_nTag )
+				{
+					vec[i + j * pChunk->nWidth] = 1;
+					vec1.push_back( TVector2<int32>( i, j ) );
+				}
+			}
+		}
+		SRand::Inst().Shuffle( vec1 );
+		for( auto p : vec1 )
+		{
+			if( vec[p.x + p.y * pChunk->nWidth] != 1 )
+				continue;
+			auto rect = PutRect( vec, pChunk->nWidth, pChunk->nHeight, p, TVector2<int32>( 2, 2 ), TVector2<int32>( 4, 4 ), TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), -1, 2 );
+			if( rect.width > 0 )
+			{
+				m_vecWindows.resize( m_vecWindows.size() + 1 );
+				m_vecWindows.back().rect = rect;
+			}
+		}
+
+		auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+		auto pDrawable1 = static_cast<CDrawableGroup*>( m_pWood->GetResource() );
+		auto pDrawable2 = static_cast<CDrawableGroup*>( m_pFlesh->GetResource() );
+		auto p0 = new CRenderObject2D;
+		SetRenderObject( p0 );
+		m_pWood->SetRenderObject( NULL );
+		m_pFlesh->SetRenderObject( NULL );
+		p0->SetRenderParent( pChunkObject );
+		int32 nBlockSize = CMyLevel::GetBlockSize();
+		for( auto& item : m_vecWindows )
+		{
+			item.h1 = SRand::Inst().Rand( item.rect.height - 1, ( item.rect.height - 1 ) * 2 );
+			item.h2 = SRand::Inst().Rand( ( item.h1 + 1 ) / 2, Max( 1, item.h1 ) );
+			item.h3 = SRand::Inst().Rand( 0, Max( 1, item.h2 / 2 ) );
+			float f = SRand::Inst().Rand( 0.2f, 0.25f );
+			item.fHpPercent = item.rect.width <= 2 || item.rect.height <= 2 ? 1 :
+				Min( SRand::Inst().Rand( 0.75f, 0.8f ), SRand::Inst().Rand( 0.25f, 0.35f ) + item.h1 * ( item.rect.width - 1 ) * f );
+			item.fHpPercent0 = Max( SRand::Inst().Rand( 0.15f, 0.2f ), item.fHpPercent - item.h1 * ( item.rect.width - 1 ) * f );
+			item.fCurPercent = 1;
+			for( int i = item.rect.x; i < item.rect.GetRight(); i++ )
+			{
+				for( int j = item.rect.y; j < item.rect.GetBottom(); j++ )
+				{
+					auto pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+					pImage->SetRect( CRectangle( i * nBlockSize, j * nBlockSize, nBlockSize, nBlockSize ) );
+					float tX, tY;
+					if( i == item.rect.x )
+						tX = 0;
+					else if( i == item.rect.GetRight() - 1 )
+						tX = 3;
+					else
+						tX = item.rect.width <= 3 ? 1.5f : ( i - item.rect.x - 1 ) / ( item.rect.width - 3 ) + 1;
+					if( j == item.rect.y )
+						tY = 0;
+					else if( j == item.rect.GetBottom() - 1 )
+						tY = 3;
+					else
+						tY = item.rect.height <= 3 ? 1.5f : ( j - item.rect.y - 1 ) / ( item.rect.height - 3 ) + 1;
+					pImage->SetTexRect( CRectangle( tX * 0.25f, ( 3 - tY ) * 0.25f, 0.25f, 0.25f ) );
+					p0->AddChild( pImage );
+				}
+			}
+
+			item.p1 = new CRenderObject2D;
+			item.p1->SetPosition( CVector2( ( item.rect.x + 0.5f ) * nBlockSize, ( item.rect.y + 0.5f ) * nBlockSize ) );
+			p0->AddChild( item.p1 );
+			for( int j = 0; j < item.h1; j++ )
+			{
+				int32 tY;
+				if( j < item.h3 )
+					tY = SRand::Inst().Rand( 2, 4 );
+				else if( j < item.h2 )
+					tY = 1;
+				else
+					tY = 0;
+				if( j < item.h1 - 1 )
+					tY += 4;
+				for( int i = 0; i < item.rect.width - 1; i++ )
+				{
+					auto pImage = static_cast<CImage2D*>( pDrawable2->CreateInstance() );
+					pImage->SetRect( CRectangle( i * nBlockSize, j * 0.5f * nBlockSize, nBlockSize, nBlockSize * 0.5f ) );
+					pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0, 4 ) * 0.25f, tY * 0.125f, 0.25f, 0.125f ) );
+					item.p1->AddChild( pImage );
+				}
+			}
+		}
+
+		for( auto& item : m_vecWindows )
+		{
+			bool bVertical = item.rect.width < item.rect.height + SRand::Inst().Rand( 0, 2 );
+			if( bVertical )
+			{
+				if( item.rect.width >= 3 )
+				{
+					for( int x = item.rect.x; x < item.rect.GetRight(); x += item.rect.width - 1 )
+					{
+						TRectangle<int32> r( x, item.rect.y, 1, item.rect.height );
+						for( int y = r.y; y < r.GetBottom(); y++ )
+							vec[x + y * pChunk->nWidth] = 0;
+						r = PutRect( vec, pChunk->nWidth, pChunk->nHeight, r, TVector2<int32>( 1, r.height ), TVector2<int32>( 1, SRand::Inst().Rand( r.height, r.height * 2 ) ),
+							TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), -1, 3, 0 );
+						for( int y = item.rect.y; y < item.rect.GetBottom(); y++ )
+							vec[x + y * pChunk->nWidth] = 2;
+
+						auto p = new CRenderObject2D;
+						p->SetPosition( CVector2( ( r.x + r.width * 0.5f ) * nBlockSize, ( r.y + r.height * 0.5f ) * nBlockSize ) );
+						p0->AddChild( p );
+						for( int i = 0; i < r.height; i++ )
+						{
+							auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+							int32 tY;
+							if( i == 0 )
+								tY = 0;
+							else if( i == r.height - 1 )
+								tY = 3;
+							else
+								tY = SRand::Inst().Rand( 1, 3 );
+							pImage->SetRect( CRectangle( -8, ( i - r.height * 0.5f ) * nBlockSize, 16, 32 ) );
+							pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0, 4 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+							p->AddChild( pImage );
+						}
+					}
+					item.p2 = new CRenderObject2D;
+					item.p2->SetPosition( CVector2( ( item.rect.x + item.rect.width * 0.5f ) * nBlockSize, ( item.rect.y + item.rect.height * 0.5f ) * nBlockSize ) );
+					p0->AddChild( item.p2 );
+					for( int y = 0; y < item.rect.height * 2 - 1; y++ )
+					{
+						auto p = new CRenderObject2D;
+						p->SetPosition( CVector2( 0, ( y - item.rect.height + 1 ) * nBlockSize * 0.5f + SRand::Inst().Rand( -2, 3 ) ) );
+						p->SetRotation( PI * 0.5f + SRand::Inst().Rand( -1.0f, 1.0f ) * 0.5f / ( item.rect.width - 1 ) );
+						item.p2->AddChild( p );
+						for( int i = 0; i < item.rect.width - 1; i++ )
+						{
+							auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+							int32 tY;
+							if( i == 0 )
+								tY = 0;
+							else if( i == item.rect.width - 2 )
+								tY = 3;
+							else
+								tY = SRand::Inst().Rand( 1, 3 );
+							pImage->SetRect( CRectangle( -8, ( i - ( item.rect.width - 1 ) * 0.5f ) * nBlockSize, 16, 32 ) );
+							pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 4, 8 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+							p->AddChild( pImage );
+						}
+					}
+				}
+			}
+			else
+			{
+				if( item.rect.height >= 3 )
+				{
+					for( int y = item.rect.y; y < item.rect.GetBottom(); y += item.rect.height - 1 )
+					{
+						TRectangle<int32> r( item.rect.x, y, item.rect.width, 1 );
+						for( int x = r.x; x < r.GetRight(); x++ )
+							vec[x + y * pChunk->nWidth] = 0;
+						r = PutRect( vec, pChunk->nWidth, pChunk->nHeight, r, TVector2<int32>( r.width, 1 ), TVector2<int32>( SRand::Inst().Rand( r.width, r.width * 2 ), 1 ),
+							TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), -1, 4, 0 );
+						for( int x = item.rect.x; x < item.rect.GetRight(); x++ )
+							vec[x + y * pChunk->nWidth] = 2;
+
+						auto p = new CRenderObject2D;
+						p->SetPosition( CVector2( ( r.x + r.width * 0.5f ) * nBlockSize, ( r.y + r.height * 0.5f ) * nBlockSize ) );
+						p->SetRotation( PI * 0.5f );
+						p0->AddChild( p );
+						for( int i = 0; i < r.width; i++ )
+						{
+							auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+							int32 tY;
+							if( i == 0 )
+								tY = 0;
+							else if( i == r.width - 1 )
+								tY = 3;
+							else
+								tY = SRand::Inst().Rand( 1, 3 );
+							pImage->SetRect( CRectangle( -8, ( i - r.width * 0.5f ) * nBlockSize, 16, 32 ) );
+							pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0, 4 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+							p->AddChild( pImage );
+						}
+					}
+					item.p2 = new CRenderObject2D;
+					item.p2->SetPosition( CVector2( ( item.rect.x + item.rect.width * 0.5f ) * nBlockSize, ( item.rect.y + item.rect.height * 0.5f ) * nBlockSize ) );
+					p0->AddChild( item.p2 );
+					for( int x = 0; x < item.rect.width * 2 - 1; x++ )
+					{
+						auto p = new CRenderObject2D;
+						p->SetPosition( CVector2( ( x - item.rect.width + 1 ) * nBlockSize * 0.5f + SRand::Inst().Rand( -2, 3 ), 0 ) );
+						p->SetRotation( SRand::Inst().Rand( -1.0f, 1.0f ) * 0.5f / ( item.rect.width - 1 ) );
+						item.p2->AddChild( p );
+						for( int i = 0; i < item.rect.height - 1; i++ )
+						{
+							auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+							int32 tY;
+							if( i == 0 )
+								tY = 0;
+							else if( i == item.rect.height - 2 )
+								tY = 3;
+							else
+								tY = SRand::Inst().Rand( 1, 3 );
+							pImage->SetRect( CRectangle( -8, ( i - ( item.rect.height - 1 ) * 0.5f ) * nBlockSize, 16, 32 ) );
+							pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 4, 8 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+							p->AddChild( pImage );
+						}
+					}
+				}
+			}
+		}
+
+
+		vector<TVector3<int32> > vec2;
+		int32 n = m_vecWindows.size();
+		n = SRand::Inst().Rand( n, n * 2 + 1 );
+		for( int x = 0; x < pChunk->nWidth; x++ )
+		{
+			for( int y = 0; y < pChunk->nHeight; y++ )
+			{
+				if( vec[x + y * pChunk->nWidth] == 3 )
+				{
+					vec2.push_back( TVector3<int32>( x, y, 0 ) );
+					vec[x + y * pChunk->nWidth] = 0;
+				}
+				else if( vec[x + y * pChunk->nWidth] == 4 )
+				{
+					vec2.push_back( TVector3<int32>( x, y, 1 ) );
+					vec[x + y * pChunk->nWidth] = 0;
+				}
+			}
+		}
+		SRand::Inst().Shuffle( vec2 );
+		for( auto& item : vec2 )
+		{
+			TVector2<int32> p( item.x, item.y );
+			bool bVertical = item.z;
+			vec[p.x + p.y * pChunk->nWidth] = 0;
+
+			if( bVertical )
+			{
+				auto r = PutRect( vec, pChunk->nWidth, pChunk->nHeight, p, TVector2<int32>( 2, pChunk->nHeight / 2 ), TVector2<int32>( 2, pChunk->nHeight ),
+					TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), -1, 1 );
+				if( r.width <= 0 )
+					continue;
+				auto p = new CRenderObject2D;
+				p->SetPosition( CVector2( ( r.x + r.width * 0.5f ) * nBlockSize, ( r.y + r.height * 0.5f ) * nBlockSize ) );
+				p0->AddChild( p );
+				for( int i = 0; i < r.height; i++ )
+				{
+					auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+					int32 tY;
+					if( i == 0 )
+						tY = 0;
+					else if( i == r.height - 1 )
+						tY = 3;
+					else
+						tY = SRand::Inst().Rand( 1, 3 );
+					pImage->SetRect( CRectangle( -8, ( i - r.height * 0.5f ) * nBlockSize, 16, 32 ) );
+					pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0, 4 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+					p->AddChild( pImage );
+				}
+			}
+			else
+			{
+				auto r = PutRect( vec, pChunk->nWidth, pChunk->nHeight, p, TVector2<int32>( pChunk->nWidth / 2, 2 ), TVector2<int32>( pChunk->nWidth, 2 ),
+					TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), -1, 1 );
+				if( r.width <= 0 )
+					continue;
+				auto p = new CRenderObject2D;
+				p->SetPosition( CVector2( ( r.x + r.width * 0.5f ) * nBlockSize, ( r.y + r.height * 0.5f ) * nBlockSize ) );
+				p->SetRotation( PI * 0.5f );
+				p0->AddChild( p );
+				for( int i = 0; i < r.width; i++ )
+				{
+					auto pImage = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
+					int32 tY;
+					if( i == 0 )
+						tY = 0;
+					else if( i == r.width - 1 )
+						tY = 3;
+					else
+						tY = SRand::Inst().Rand( 1, 3 );
+					pImage->SetRect( CRectangle( -8, ( i - r.width * 0.5f ) * nBlockSize, 16, 32 ) );
+					pImage->SetTexRect( CRectangle( SRand::Inst().Rand( 0, 4 ) * 0.125f, ( 3 - tY ) * 0.25f, 0.125f, 0.25f ) );
+					p->AddChild( pImage );
+				}
+			}
+			n--;
+			if( n <= 0 )
+				break;
+		}
+	}
+}
+
+void CWindow0::OnRemovedFromStage()
+{
+	m_pChunkObject = NULL;
+	if( m_onDamaged.IsRegistered() )
+		m_onDamaged.Unregister();
+}
+
+void CWindow0::OnDamaged()
+{
+	float fHpPercent = m_pChunkObject->GetHp() / m_pChunkObject->GetMaxHp();
+	for( int iWindow = 0; iWindow < m_vecWindows.size(); iWindow++ )
+	{
+		auto& item = m_vecWindows[iWindow];
+		if( item.p2 && fHpPercent < item.fHpPercent )
+		{
+			m_pChunkObject->ForceUpdateTransform();
+			for( int i = 0; i < item.rect.width - 1; i++ )
+			{
+				for( int j = 0; j < item.rect.height - 1; j++ )
+				{
+					auto pEffect = SafeCast<CEffectObject>( m_pEft->GetRoot()->CreateInstance() );
+					pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+					pEffect->SetPosition( m_pChunkObject->globalTransform.GetPosition() + CVector2( i + item.rect.x + 0.5f, j + item.rect.y + 0.5f ) * CMyLevel::GetBlockSize() );
+					pEffect->SetState( 2 );
+				}
+			}
+			item.p2->RemoveThis();
+			item.p2 = NULL;
+		}
+
+		float f0 = Min( 1.0f, Max( 0.0f, ( item.fCurPercent - item.fHpPercent0 ) / ( item.fHpPercent - item.fHpPercent0 ) ) ) * item.h1;
+		float f1 = Min( 1.0f, Max( 0.0f, ( fHpPercent - item.fHpPercent0 ) / ( item.fHpPercent - item.fHpPercent0 ) ) ) * item.h1;
+		while( f0 > f1 )
+		{
+			int32 h = ceil( f0 ) - 1;
+			float f00 = Max( f1, (float)h );
+			int32 nType, nCount;
+			if( h < item.h3 )
+			{
+				nType = 2;
+				nCount = 3;
+			}
+			else if( h < item.h2 )
+			{
+				nType = 1;
+				nCount = 2;
+			}
+			else
+			{
+				nType = 0;
+				nCount = ( item.rect.width - 1 ) * 4;
+			}
+			int32 n = ceil( ( f0 - h ) * nCount ) - ceil( ( f00 - h ) * nCount );
+			for( int i = 0; i < n; i++ )
+				CreateBullets( iWindow, h, nType );
+			f0 = f00;
+		}
+		Refresh( iWindow, f1 );
+		item.fCurPercent = fHpPercent;
+	}
+}
+
+void CWindow0::CreateBullets( int32 nWindow, int32 h, int32 nType )
+{
+	auto& window = m_vecWindows[nWindow];
+	m_pChunkObject->ForceUpdateTransform();
+	CVector2 pos( SRand::Inst().Rand( window.rect.x + 0.5f, window.rect.GetRight() - 0.5f ), window.rect.y + 0.75f + h * 0.5f );
+	pos = pos * CMyLevel::GetBlockSize() + m_pChunkObject->globalTransform.GetPosition();
+	if( nType == 0 )
+	{
+		auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+		pBullet->SetPosition( pos );
+		pBullet->SetVelocity( CVector2( SRand::Inst().Rand( -250.0f, 250.0f ), SRand::Inst().Rand( 100.0f, 125.0f ) ) );
+		pBullet->SetAcceleration( CVector2( 0, -125 ) );
+		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+	}
+	else if( nType == 1 )
+	{
+		CVector2 vel( SRand::Inst().Rand( -180.0f, 180.0f ), SRand::Inst().Rand( 250.0f, 300.0f ) );
+		int32 n = window.rect.width * 3;
+		for( int i = 0; i < n; i++ )
+		{
+			auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( pos );
+			pBullet->SetVelocity( vel * ( i * 0.125f + SRand::Inst().Rand( 0.4f, 0.6f ) )
+				+ CVector2( SRand::Inst().Rand( -50.0f, 50.0f ), SRand::Inst().Rand( -25.0f, 25.0f ) ) );
+			pBullet->SetAcceleration( CVector2( 0, -150 ) );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		}
+	}
+	else
+	{
+		CReference<CPrefab> pBullet1 = m_pBullet;
+		auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
+		pBullet->SetPosition( pos );
+		pBullet->SetVelocity( CVector2( SRand::Inst().Rand( -200.0f, 200.0f ), SRand::Inst().Rand( 150.0f, 200.0f ) ) );
+		pBullet->SetAcceleration( CVector2( 0, -100 ) );
+		pBullet->SetAngularVelocity( SRand::Inst().Rand( 4.0f, 8.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) );
+		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+		int32 nBullet = window.rect.width * 2;
+		pBullet->SetOnHit( [pBullet1, nBullet] ( CBullet* pThis, CEntity* pEntity )
+		{
+			SBarrageContext context;
+			context.vecBulletTypes.push_back( pBullet1 );
+			context.nBulletPageSize = nBullet * 3;
+
+			CBarrage* pBarrage = new CBarrage( context );
+			CVector2 pos = pThis->globalTransform.GetPosition();
+			pBarrage->AddFunc( [nBullet] ( CBarrage* pBarrage )
+			{
+				float fAngle0 = SRand::Inst().Rand( -PI, PI );
+				for( int i = 0; i < nBullet; i++ )
+				{
+					for( int j = 0; j < 3; j++ )
+					{
+						float fAngle1 = fAngle0 + j * ( PI * 2 / 3 ) + SRand::Inst().Rand( -0.1f, 0.1f );
+						float fSpeed = 200 - i * 3 + SRand::Inst().Rand( -20.0f, 20.0f );
+						pBarrage->InitBullet( i * 3 + j, 0, -1, CVector2( 0, 0 ), CVector2( fSpeed * cos( fAngle1 ), fSpeed * sin( fAngle1 ) ), CVector2( 0, 0 ) );
+					}
+					pBarrage->Yield( 2 );
+				}
+				pBarrage->StopNewBullet();
+			} );
+			pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			pBarrage->SetPosition( pos );
+			pBarrage->Start();
+		} );
+	}
+}
+
+void CWindow0::Refresh( int32 nWindow, float fPercent )
+{
+	auto& window = m_vecWindows[nWindow];
+	int32 h0 = ceil( fPercent ) - 1;
+	for( auto pImage = window.p1->Get_TransformChild(); pImage; pImage = pImage->NextTransformChild() )
+	{
+		int32 h = floor( static_cast<CImage2D*>( pImage )->GetElem().rect.y / ( CMyLevel::GetBlockSize() * 0.5f ) );
+		auto texRect = static_cast<CImage2D*>( pImage )->GetElem().texRect;
+		if( h == h0 )
+		{
+			if( texRect.y >= 0.5f )
+				texRect.y -= 0.5f;
+			static_cast<CImage2D*>( pImage )->SetTexRect( texRect );
+			pImage->bVisible = true;
+		}
+		else if( h < h0 )
+		{
+			if( texRect.y < 0.5f )
+				texRect.y += 0.5f;
+			static_cast<CImage2D*>( pImage )->SetTexRect( texRect );
+			pImage->bVisible = true;
+		}
+		else
+			pImage->bVisible = false;
+	}
+}
+
 void CWindow::AIFunc()
 {
 	if( m_pDeathEffect )
@@ -265,14 +740,14 @@ void CWindow::AIFunc()
 				{
 					SBarrageContext context;
 					context.vecBulletTypes.push_back( pBullet1 );
-					context.nBulletPageSize = 30;
+					context.nBulletPageSize = 24;
 
 					CBarrage* pBarrage = new CBarrage( context );
 					CVector2 pos = pThis->globalTransform.GetPosition();
 					pBarrage->AddFunc( []( CBarrage* pBarrage )
 					{
 						float fAngle0 = SRand::Inst().Rand( -PI, PI );
-						for( int i = 0; i < 10; i++ )
+						for( int i = 0; i < 8; i++ )
 						{
 							for( int j = 0; j < 3; j++ )
 							{

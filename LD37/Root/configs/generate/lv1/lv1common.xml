@@ -21,9 +21,12 @@
     </attachs>
     <spawns>
       <node name="spider" prefab="data/enemies/spider.pf" sizex="-16" sizey="-16" sizewidth="32" sizeheight="32" countpergrid="1" />
+      <node name="window0" prefab="data/blockitems/window0.pf" />
+      <node name="wall0_deco" prefab="data/misc/dirt0_0.pf" />
       <node name="wall_deco" prefab="data/misc/dirt0.pf" />
       <node name="wall_deco_upper" prefab="data/misc/fiber_0.pf" />
-      <node name="wall_deco_edge" prefab="data/misc/edge_0_0.pf" />
+      <node name="wall_deco_edge0" prefab="data/misc/edge_0_0.pf" />
+      <node name="wall_deco_edge" prefab="data/misc/edge_0_1.pf" />
       <node name="wall1_deco" prefab="data/misc/dirt1.pf" />
       <node name="wall1_deco_lower" prefab="data/misc/fiber_1.pf" />
       <node name="wall2_deco" type="randompick">
@@ -177,6 +180,11 @@
             <ref name="stone_broken" />
           </node>
         </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="wall_deco_edge" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
 
       <node name="stonebar" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
@@ -205,7 +213,8 @@
 
       <node name="woodenbar_h" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/woodenbar_h.pf">
-        <metadata isdesignvalid="0" />
+        <!--metadata isdesignvalid="0" /-->
+        <metadata minx="4" maxx="32" />
         <types>4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -215,7 +224,8 @@
       </node>
       <node name="woodenbar_v" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
             absorbshakestrengthperheight="0.25" shakedmg="5" subchunk_type="1" prefab="data/blocks/lv1/woodenbar_v.pf">
-        <metadata isdesignvalid="0" />
+        <!--metadata isdesignvalid="0" /-->
+        <metadata miny="4" maxy="32" />
         <types>4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -438,7 +448,7 @@
         </next_level>
       </node>
 
-      <node name="wall0" show_layer_type="0" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" prefab="data/blocks/lv1/wall.pf">
+      <node name="wall0" show_layer_type="0" width="6" height="6" weight="2" weightperwidth="1" destroyweight="33" absorbshakestrength="10000" destroyshake="20" shakedmg="20" prefab="data/blocks/lv1/wall0.pf">
         <metadata minx="6" miny="4" maxx="32" maxy="16" />
         <types>
           0,0,0,0,0,0,
@@ -451,16 +461,17 @@
         <subitem copy_blueprint="2">
           <node type="subregion">
             <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="wall_broken" />
+              <ref name="wall_room_broken" />
             </node>
             <ref name="web_tile" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="0" tag="1" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         <next_level>
           <node type="subregion">
-            <ref name="wall_deco_upper" x="0" y="0" w="0" h="0" />
-            <ref name="wall_deco" x="0" y="0" w="0" h="0" />
-            <ref name="wall_deco_edge" x="0" y="0" w="0" h="0" />
+            <ref name="window0" x="0" y="0" w="0" h="0" />
+            <ref name="wall_deco_edge0" x="0" y="0" w="0" h="0" />
+            <ref name="wall0_deco" x="0" y="0" w="0" h="0" />
           </node>
         </next_level>
       </node>

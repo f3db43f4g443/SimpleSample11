@@ -24,6 +24,7 @@ SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk )
 	blocks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
+	nSeed = SRand::Inst().nSeed;
 }
 
 SLevelBuildContext::SLevelBuildContext( const SLevelBuildContext& par, SChunk * pParentChunk ) : pLevel( par.pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
@@ -37,6 +38,7 @@ SLevelBuildContext::SLevelBuildContext( const SLevelBuildContext& par, SChunk * 
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
 	for( auto& item : par.mapTags )
 		mapTags[item.first] = item.second;
+	nSeed = par.nSeed;
 }
 
 SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight )
@@ -46,6 +48,7 @@ SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight )
 	blocks.resize( nWidth * nHeight * 2 );
 	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
 		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
+	nSeed = SRand::Inst().nSeed;
 }
 
 SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region )
@@ -414,6 +417,7 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.maxSize.y = XmlGetAttr<int32>( pMetadata, "maxy", m_metadata.maxSize.y );
 		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
 		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
+		m_metadata.nSeed = XmlGetAttr<int32>( pMetadata, "seed", m_metadata.nSeed );
 	}
 	if( m_metadata.maxSize == m_metadata.minSize )
 		m_metadata.nEditType = eEditType_Brush;
@@ -551,6 +555,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 			blockInfo.bImmuneToBlockBuff = 0;
 	}
 
+	m_bCopyBlueprint = 0;
 	auto pSubItem = pXml->FirstChildElement( "subitem" );
 	if( pSubItem && pSubItem->FirstChildElement() )
 	{
@@ -1676,6 +1681,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "fence", CFenceNode );
 	REGISTER_GENERATE_NODE( "fiber", CFiberNode );
 
+	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
 	REGISTER_GENERATE_NODE( "lv1type1_1", CLevelGenNode1_1_1 );
 	REGISTER_GENERATE_NODE( "lv1type1_2", CLevelGenNode1_1_2 );

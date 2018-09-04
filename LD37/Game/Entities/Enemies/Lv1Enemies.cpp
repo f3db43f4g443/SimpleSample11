@@ -522,6 +522,7 @@ void CSpider1::Kill()
 				m_pSpiderSilk->SetParentEntity( NULL );
 				m_pSpiderSilk = NULL;
 			}
+			SetVelocity( CVector2( GetVelocity().x, Min( -50.0f, GetVelocity().y ) ) );
 		}
 		return;
 	}
@@ -637,7 +638,7 @@ void CSpider1::OnTickAfterHitTest()
 		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 		{
 			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
-			if( m_moveData.bHitChannel[pEntity->GetHitType()] )
+			if( m_moveData.bHitChannel[pEntity->GetHitType()] && pManifold->normal.Length2() > 0 )
 			{
 				Crush();
 				return;
@@ -1299,7 +1300,7 @@ void CFly::OnRemovedFromStage()
 {
 	if( m_pFlyGroup )
 		SetFlyGroup( NULL );
-	CEntity::OnRemovedFromStage();
+	CEnemy::OnRemovedFromStage();
 }
 
 void CFly::OnTickAfterHitTest()
@@ -1475,7 +1476,7 @@ void CFlyGroup::OnTick()
 				}
 				else
 				{
-					auto pMaggot = SafeCast<CMaggot>( pFly );
+					auto pMaggot = SafeCast<CMaggot>( pEntity );
 					if( pMaggot )
 						pFly = pMaggot->Morph();
 				}

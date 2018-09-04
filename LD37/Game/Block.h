@@ -160,7 +160,6 @@ struct SChunk
 	uint32 nFallSpeed;
 	uint32 nUpdateCount;
 	float fAppliedWeight;
-	float fBalance;
 	float fCurImbalanceTime;
 	uint32 nCurShakeStrength;
 

@@ -36,6 +36,40 @@ private:
 	TClassTrigger<CPipe1> m_onTick;
 };
 
+class CWindow0 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CWindow0( const SClassCreateContext& context ) : CDecorator( context ), m_onDamaged( this, &CWindow0::OnDamaged ), m_pChunkObject( NULL ) { SET_BASEOBJECT_ID( CWindow0 ); }
+	virtual void Init( const CVector2& size ) override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnDamaged();
+	void CreateBullets( int32 nWindow, int32 h, int32 nType );
+	void Refresh( int32 nWindow, float fPercent );
+	struct SWindow
+	{
+		TRectangle<int32> rect;
+		CReference<CRenderObject2D> p1;
+		CReference<CRenderObject2D> p2;
+		float fHpPercent;
+		float fHpPercent0;
+		int32 h1, h2, h3;
+		float fCurPercent;
+	};
+	vector<SWindow> m_vecWindows;
+
+	CReference<CEntity> m_pWood;
+	CReference<CEntity> m_pFlesh;
+	TResourceRef<CPrefab> m_pEft;
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pBullet1;
+	int8 m_nTag;
+
+	class CChunkObject* m_pChunkObject;
+	TClassTrigger<CWindow0> m_onDamaged;
+};
+
 class CWindow : public CEntity
 {
 	friend void RegisterGameClasses();

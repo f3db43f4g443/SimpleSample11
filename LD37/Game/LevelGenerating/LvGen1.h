@@ -1,6 +1,59 @@
 #pragma once
 #include "LevelGenerate.h"
 
+class CLevelGenNode1_1 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenRegions();
+	void FillRegion( const TRectangle<int32>& rect );
+	void CalcB( int8* b, const TRectangle<int32>& rect );
+	void FillEmptyArea();
+	void GenBars();
+	void GenChunks();
+	void GenWallChunks();
+	void GenBlocks();
+	void GenWallChunks1();
+	enum
+	{
+		eType_None,
+		eType_Temp,
+		eType_Temp1,
+		eType_Temp2,
+		eType_Temp3,
+		eType_WallChunk,
+		eType_WallChunk1,
+		eType_Obj,
+		eType_Bonus,
+
+		eType_Bar,
+		eType_Bar1,
+		eType_Stone,
+		eType_Block1x,
+		eType_Block2x,
+		eType_Web,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<TRectangle<int32> > m_bars;
+	vector<TRectangle<int32> > m_stones;
+	vector<TRectangle<int32> > m_wallChunks;
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pStoneNode;
+	CReference<CLevelGenerateNode> m_pBlock1xNode;
+	CReference<CLevelGenerateNode> m_pBlock2xNode;
+	CReference<CLevelGenerateNode> m_pBarNode;
+	CReference<CLevelGenerateNode> m_pBar2Node;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
+	CReference<CLevelGenerateNode> m_pObjNode;
+	CReference<CLevelGenerateNode> m_pBonusNode;
+};
+
 class CLevelGenNode1_1_0 : public CLevelGenerateNode
 {
 public:
@@ -93,9 +146,16 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
 	void GenRooms();
-	void GenRooms1();
+	void GenRooms1( int32 nDist );
 	void LinkRoom( int8 nRoomPosType );
 	void AddMoreBars();
+	void AddBar( TRectangle<int32>& r, vector<TVector4<int8> >& vecWeight );
+	void AddBar1( TRectangle<int32>& r, vector<TVector4<int8> >& vecWeight );
+	void AddBar2( TRectangle<int32>& r );
+	void UpdateWeight( const TRectangle<int32>& rect, vector<TVector4<int8> >& vecWeight, int8 n = 1 );
+	void FixBars();
+	void GenWallChunks();
+	void GenWallChunk( const TRectangle<int32>& rect, vector<int8>& vecData );
 	void GenObjs();
 	void GenBlocks();
 	void GenBonus();
@@ -104,17 +164,18 @@ private:
 	{
 		eType_None,
 		eType_Path,
-		eType_Bar,
 		eType_Stone,
+		eType_WallChunk,
+		eType_WallChunk1,
+		eType_Bar,
 		eType_Room,
 		eType_Door,
 		eType_Block1x,
 		eType_Block2x,
-		eType_Block1y,
-		eType_Block2y,
 		eType_Obj,
 		eType_Bonus,
 		eType_Web,
+		eType_Web1,
 		eType_Temp,
 		eType_Temp1,
 		eType_Temp2,
@@ -133,6 +194,7 @@ private:
 	vector<SRoom> m_rooms;
 	vector<TRectangle<int32> > m_bars;
 	vector<TRectangle<int32> > m_stones;
+	vector<TRectangle<int32> > m_wallChunks;
 	vector<TVector2<int32> > m_path;
 	vector<TVector2<int32> > m_pathFindingTarget;
 	vector<TVector2<int32> > m_par;
@@ -141,12 +203,11 @@ private:
 	CReference<CLevelGenerateNode> m_pStoneNode;
 	CReference<CLevelGenerateNode> m_pBlock1xNode;
 	CReference<CLevelGenerateNode> m_pBlock2xNode;
-	CReference<CLevelGenerateNode> m_pBlock1yNode;
-	CReference<CLevelGenerateNode> m_pBlock2yNode;
 	CReference<CLevelGenerateNode> m_pBarNode;
 	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pRoom1Node;
 	CReference<CLevelGenerateNode> m_pRoom2Node;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;
 	CReference<CLevelGenerateNode> m_pWebNode;
@@ -230,9 +291,9 @@ private:
 	void GenWallChunks();
 	void GenRooms();
 	void PutHBars();
-	void ConnRooms();
+	bool ConnRooms();
 	void GenConnAreas();
-	void GenDoors();
+	void GenDoors( bool b );
 	void GenEmptyArea();
 	void FillBlockArea();
 	void GenObjects();
@@ -240,6 +301,7 @@ private:
 
 	CReference<CLevelGenerateNode> m_pWallNode;
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
+	CReference<CLevelGenerateNode> m_pWallChunk0Node;
 	CReference<CLevelGenerateNode> m_pBlock1Node;
 	CReference<CLevelGenerateNode> m_pBlock2Node;
 	CReference<CLevelGenerateNode> m_pRoom1Node;
@@ -261,6 +323,7 @@ private:
 		eType_Room1,
 		eType_Room2,
 		eType_Bar,
+		eType_WallChunk0,
 		eType_WallChunk,
 		eType_Door,
 		eType_Path,

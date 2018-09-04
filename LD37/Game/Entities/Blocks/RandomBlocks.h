@@ -105,6 +105,7 @@ protected:
 	virtual void OnKilled() override;
 private:
 	uint32 m_nHpPerSize;
+	float m_fXCoef, m_fYCoef;
 	bool m_bBlockTypeMask[eBlockType_Count];
 };
 

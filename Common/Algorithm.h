@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <functional>
 #include "Math3D.h"
 using namespace std;
 
@@ -54,6 +55,10 @@ TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TVect
 	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType );
 TRectangle<int32> PutRect( vector<int8>& vec, int32 nWidth, int32 nHeight, TRectangle<int32> init,
 	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, int32 nBackType );
+TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> p,
+	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, function<bool( TRectangle<int32>, TRectangle<int32> )> func );
+TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TRectangle<int32> init,
+	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, function<bool( TRectangle<int32>, TRectangle<int32> )> func );
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType );
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q );
@@ -68,3 +73,5 @@ TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 n
 	vector<TVector2<int32> >& q, vector<TVector2<int32> >& par, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> src, int8 nPathType, int8 nDstType,
 	vector<TVector2<int32> >& par, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q );

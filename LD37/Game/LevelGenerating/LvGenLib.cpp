@@ -20,6 +20,84 @@ void LvGenLib::FillBlocks( vector<int8>& genData, int32 nWidth, int32 nHeight, i
 	}
 }
 
+bool LvGenLib::CheckRoomType( vector<int8>& genData, int32 nWidth, int32 nHeight, const TRectangle<int32>& room, uint8 nRoomType )
+{
+	{
+		uint32 nMaxLen = 0;
+		int i;
+		for( i = room.x; i <= room.GetRight(); i++ )
+		{
+			if( i == room.GetRight() || genData[i + room.y * nWidth] != nRoomType )
+			{
+				if( nMaxLen )
+				{
+					if( nMaxLen <= 1 )
+						return false;
+					nMaxLen = 0;
+				}
+			}
+			else
+				nMaxLen++;
+		}
+	}
+	{
+		uint32 nMaxLen = 0;
+		int i;
+		for( i = room.x; i <= room.GetRight(); i++ )
+		{
+			if( i == room.GetRight() || genData[i + ( room.GetBottom() - 1 ) * nWidth] != nRoomType )
+			{
+				if( nMaxLen )
+				{
+					if( nMaxLen <= 1 )
+						return false;
+					nMaxLen = 0;
+				}
+			}
+			else
+				nMaxLen++;
+		}
+	}
+
+	{
+		uint32 nMaxLen = 0;
+		int i;
+		for( i = room.y + 1; i <= room.GetBottom() - 1; i++ )
+		{
+			if( i == room.GetBottom() - 1 || genData[room.x + i * nWidth] != nRoomType )
+			{
+				if( nMaxLen )
+				{
+					if( nMaxLen <= 1 )
+						return false;
+					nMaxLen = 0;
+				}
+			}
+			else
+				nMaxLen++;
+		}
+	}
+	{
+		uint32 nMaxLen = 0;
+		int i;
+		for( i = room.y + 1; i <= room.GetBottom() - 1; i++ )
+		{
+			if( i == room.GetBottom() - 1 || genData[room.GetRight() - 1 + i * nWidth] != nRoomType )
+			{
+				if( nMaxLen )
+				{
+					if( nMaxLen <= 1 )
+						return false;
+					nMaxLen = 0;
+				}
+			}
+			else
+				nMaxLen++;
+		}
+	}
+	return true;
+}
+
 void LvGenLib::AddBars( vector<int8>& genData, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& res, int8 nTypeBack, int8 nTypeBar )
 {
 	vector<int8> vecTemp;
@@ -330,9 +408,9 @@ void LvGenLib::GenObjs2( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 				&& genData[p1.x + p1.y * nWidth] == nTypeBack )
 			{
 				uint8 l = p1.x == 0 || genData[( p1.x - 1 ) + p1.y * nWidth] != nTypeBack;
-				uint8 r = p1.y == nWidth - 1 || genData[( p1.x + 1 ) + p1.y * nWidth] != nTypeBack;
+				uint8 r = p1.x == nWidth - 1 || genData[( p1.x + 1 ) + p1.y * nWidth] != nTypeBack;
 				uint8 t = p1.y == 0 || genData[p1.x + ( p1.y - 1 ) * nWidth] != nTypeBack;
-				uint8 b = p1.y == nHeight - 1 || genData[p1.x + ( p1.y - 1 ) * nWidth] != nTypeBack;
+				uint8 b = p1.y == nHeight - 1 || genData[p1.x + ( p1.y + 1 ) * nWidth] != nTypeBack;
 				if( l + r + t + b >= 3 )
 					q1.push_back( p1 );
 				else if( ( l || r ) && ( t || b ) )

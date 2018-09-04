@@ -45,7 +45,6 @@ private:
 	CReference<CLevelGenerateNode> m_pBlock1xNode;
 	CReference<CLevelGenerateNode> m_pBlock2xNode;
 	CReference<CLevelGenerateNode> m_pBarNode;
-	CReference<CLevelGenerateNode> m_pBar2Node;
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pObjNode;
 	CReference<CLevelGenerateNode> m_pBonusNode;

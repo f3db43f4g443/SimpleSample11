@@ -12,7 +12,6 @@ void CLevelBonusGenNode1_0::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadCon
 	m_pBlock1xNode = CreateNode( pXml->FirstChildElement( "block1x" )->FirstChildElement(), context );
 	m_pBlock2xNode = CreateNode( pXml->FirstChildElement( "block2x" )->FirstChildElement(), context );
 	m_pBarNode = CreateNode( pXml->FirstChildElement( "bar" )->FirstChildElement(), context );
-	m_pBar2Node = CreateNode( pXml->FirstChildElement( "bar2" )->FirstChildElement(), context );
 	m_pWallChunkNode = CreateNode( pXml->FirstChildElement( "wallchunk" )->FirstChildElement(), context );
 	m_pObjNode = CreateNode( pXml->FirstChildElement( "obj1" )->FirstChildElement(), context );
 	m_pBonusNode = CreateNode( pXml->FirstChildElement( "bonus" )->FirstChildElement(), context );
@@ -61,10 +60,7 @@ void CLevelBonusGenNode1_0::Generate( SLevelBuildContext & context, const TRecta
 	m_pBlock2xNode->Generate( context, region );
 	for( auto& rect : m_bars )
 	{
-		if( rect.height == 2 )
-			m_pBar2Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
-		else
-			m_pBarNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		m_pBarNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
 	for( auto& rect : m_stones )
 	{
