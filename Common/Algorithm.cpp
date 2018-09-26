@@ -292,6 +292,34 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 	return q.size();
 }
 
+int32 FloodFill( vector<int32>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType )
+{
+	int32 nBackType = vec[x + y * nWidth];
+	if( nBackType == nType )
+		return 0;
+
+	vec[x + y * nWidth] = nType;
+	vector<TVector2<int32> > q;
+	q.push_back( TVector2<int32>( x, y ) );
+
+	for( int i = 0; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+			}
+		}
+	}
+	return q.size();
+}
+
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, TVector2<int32>* pOfs, int32 nOfs )
 {
 	int32 nBackType = vec[x + y * nWidth];
@@ -329,6 +357,33 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 }
 
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q )
+{
+	int32 nBackType = vec[x + y * nWidth];
+	if( nBackType == nType )
+		return;
+
+	vec[x + y * nWidth] = nType;
+	int i = q.size();
+	q.push_back( TVector2<int32>( x, y ) );
+
+	for( ; i < q.size(); i++ )
+	{
+		TVector2<int32> p = q[i];
+		TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+		for( int j = 0; j < 4; j++ )
+		{
+			TVector2<int32> p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+			}
+		}
+	}
+}
+
+void FloodFill( vector<int32>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q )
 {
 	int32 nBackType = vec[x + y * nWidth];
 	if( nBackType == nType )
@@ -681,19 +736,34 @@ void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, in
 	}
 }
 
-void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q )
+void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge )
 {
+	vector<TVector2<int32> > q1;
 	for( int i = 0; i < nWidth; i++ )
 	{
 		for( int j = 0; j < nHeight; j++ )
 		{
 			int32 nDist = vec[i + j * nWidth] == nType ? -1 : 0;
-			vecDist[i + j * nWidth] = nDist;
 			if( nDist == 0 )
+			{
 				q.push_back( TVector2<int32>( i, j ) );
+			}
+			else if( bEdge )
+			{
+				if( i == 0 || j == 0 || i == nWidth - 1 || j == nHeight - 1 )
+				{
+					nDist = 1;
+					q1.push_back( TVector2<int32>( i, j ) );
+				}
+			}
+			vecDist[i + j * nWidth] = nDist;
 		}
 	}
 	SRand::Inst().Shuffle( q );
+	SRand::Inst().Shuffle( q1 );
+	for( auto p : q1 )
+		q.push_back( p );
+	q1.clear();
 
 	TVector2<int32> ofs[8] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
 	for( int i = 0; i < q.size(); i++ )
@@ -701,7 +771,7 @@ void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, 
 		TVector2<int32> p = q[i];
 		int32 nDist1 = vecDist[p.x + p.y * nWidth] + 1;
 		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
-		for( int j = 0; j < 4; j++ )
+		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
 		{
 			TVector2<int32> p1 = p + ofs[j];
 			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
@@ -712,4 +782,72 @@ void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, 
 			}
 		}
 	}
+}
+
+int32 SplitDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q )
+{
+	vector<int8> vecGroup;
+	vecGroup.resize( nWidth * nHeight );
+	memset( &vecGroup[0], -1, sizeof( int8 ) * vecGroup.size() );
+	int32 nGroupCount = 0;
+	vector<TVector2<int32> > q1, q2;
+	TVector2<int32> ofs[8] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
+	int32 i = q.size() - 1, i1 = 0;
+	for( ; i >= 0 || i1 < q1.size(); )
+	{
+		auto p = q[i];
+		bool b = false;
+		if( i1 >= q1.size() && q2.size() )
+		{
+			auto p1 = q2[0];
+			if( vecDist[p1.x + p1.y * nWidth] >= vecDist[p.x + p.y * nWidth] )
+			{
+				for( auto p2 : q2 )
+					q1.push_back( p2 );
+				q2.clear();
+			}
+		}
+		if( i1 < q1.size() )
+		{
+			auto p1 = q1[i1];
+			if( vecDist[p1.x + p1.y * nWidth] >= vecDist[p.x + p.y * nWidth] )
+			{
+				p = p1;
+				i1++;
+				b = true;
+			}
+		}
+		if( !b )
+			i--;
+
+		int32 n = vecDist[p.x + p.y * nWidth];
+		if( n <= 0 )
+			break;
+		auto& nGroup = vecGroup[p.x + p.y * nWidth];
+		if( nGroup < 0 )
+			nGroup = nGroupCount++;
+		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
+		{
+			auto p1 = p + ofs[j];
+			if( p1.x < 0 || p1.y < 0 || p1.x >= nWidth || p1.y >= nHeight || vecDist[p1.x + p1.y * nWidth] <= 0 )
+				continue;
+			auto& nGroup1 = vecGroup[p1.x + p1.y * nWidth];
+			if( nGroup1 >= 0 )
+			{
+				if( nGroup != nGroup1 && vec[p.x + p.y * nWidth] != nType )
+					vec[p1.x + p1.y * nWidth] = nType;
+			}
+			else
+			{
+				nGroup1 = nGroup;
+				if( vecDist[p1.x + p1.y * nWidth] < n )
+					q2.push_back( p1 );
+				else
+					q1.push_back( p1 );
+			}
+		}
+	}
+
+	return nGroupCount;
 }

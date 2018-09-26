@@ -56,11 +56,13 @@ class CHouse0 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CHouse0( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CHouse0 ); }
+	CHouse0( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CHouse0::OnTick ) { SET_BASEOBJECT_ID( CHouse0 ); }
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 	virtual bool Damage( SDamageContext& context ) override;
+	virtual void OnRemovedFromStage() override;
 private:
+	void OnTick();
 	CRectangle m_texRectPipe;
 	CRectangle m_texRectPipe1;
 	uint8 m_nTag0;
@@ -68,17 +70,59 @@ private:
 	uint8 m_nPipeTag;
 	uint8 m_nPipe1Tag;
 	uint32 m_nHpPerSize;
+	TResourceRef<CPrefab> m_pPipe1EftPrefab;
+
 	vector<CReference<CChunkObject> > m_vecSubChunk;
+	struct SPipe1
+	{
+		SPipe1() : nCD( 0 ) {}
+		CVector2 ofs;
+		CReference<CEntity> pEft;
+		int32 nCD;
+	};
+	vector<SPipe1> m_vecPipe1;
+
+	TClassTrigger<CHouse0> m_onTick;
 };
 
 class CRoad0 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CRoad0( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRoad0 ); }
+	CRoad0( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CRoad0::OnTick ) { SET_BASEOBJECT_ID( CRoad0 ); }
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnRemovedFromStage() override;
 private:
+	void OnTick();
+	void UpdateSewers( float fLastHeight, float fCurHeight );
+	void UpdateImages();
 	uint32 m_nHpPerSize;
+	TResourceRef<CDrawableGroup> m_pDrawable1;
+	float m_fSpeed1;
+	float m_fSpeed2;
+	int32 m_nTime1;
+	int32 m_nTime2;
+	float m_h1;
+	float m_fBulletSpeedMin;
+	float m_fBulletSpeedMax;
+	float m_fBulletGravity;
+	uint32 m_nBulletLife;
+	CRectangle m_detectRect;
+	TResourceRef<CPrefab> m_pBullet;
+
+	struct SItem
+	{
+		TVector2<int32> pos;
+		int8 nType;
+	};
+	vector<SItem> m_vecSewers;
+	vector<CReference<CRenderObject2D> > m_vecSewerImage;
+	int8 m_nDir;
+	int8 m_nState;
+	int32 m_nTime;
+	float m_fHeight;
+
+	TClassTrigger<CRoad0> m_onTick;
 };
 
 class CAirConditioner : public CChunkObject

@@ -36,6 +36,37 @@ void CMaterial::IMaterialShader::_init( const char* szShaderName, IShader* pShad
 			}
 		}
 	}
+
+	for( auto& item : shaderInfo.mapShaderResources )
+	{
+		auto& desc = item.second;
+		uint32 nSystemParamIndex = CSystemShaderParams::Inst()->GetShaderResourceParamIndex( desc.strName.c_str() );
+		if( nSystemParamIndex != -1 )
+		{
+			CShaderParamShaderResource param;
+			param.bIsBound = true;
+			param.eShaderType = shaderInfo.eType;
+			param.strName = desc.strName;
+			param.eType = desc.eType;
+			param.nIndex = desc.nIndex;
+			vecSystemShaderResources.push_back( pair<CShaderParamShaderResource, uint32>( param, nSystemParamIndex ) );
+		}
+	}
+
+	for( auto& item : shaderInfo.mapSamplerDescs )
+	{
+		auto& desc = item.second;
+		ISamplerState* pSamplerState = CSystemShaderParams::Inst()->GetSamplerState( desc.strName.c_str() );
+		if( pSamplerState )
+		{
+			CShaderParamSampler param;
+			param.bIsBound = true;
+			param.eShaderType = shaderInfo.eType;
+			param.strName = desc.strName;
+			param.nIndex = desc.nIndex;
+			vecSamplers.push_back( pair<CShaderParamSampler, ISamplerState*>( param, pSamplerState ) );
+		}
+	}
 }
 
 ISamplerState* CMaterial::GetMaterialSamplerStates( uint8 nFilter, uint8 nAddress )
@@ -65,7 +96,7 @@ void CMaterial::Load( IBufReader& buf )
 		buf.Read( m_strShaderName[i] );
 	const char* szShaders[] = { m_strShaderName[0].c_str(), m_strShaderName[1].c_str(), m_strShaderName[2].c_str() };
 	IShader *pShaders[(uint32)EShaderType::Count];
-	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance );
+	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance, m_vecSystemShaderResources, m_vecSystemSamplers );
 
 	uint16 nConstantBuffer = buf.Read<uint16>();
 	for( int i = 0; i < nConstantBuffer; i++ )
@@ -193,7 +224,7 @@ void CMaterial::LoadXml( TiXmlElement* pRoot )
 	for( int i = 0; i < ELEM_COUNT( szShaders ); i++ )
 		m_strShaderName[i] = szShaders[i];
 	IShader *pShaders[(uint32)EShaderType::Count];
-	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance );
+	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance, m_vecSystemShaderResources, m_vecSystemSamplers );
 
 	auto pConstantBuffers = pRoot->FirstChildElement( "constant_buffers" );
 	if( pConstantBuffers )
@@ -339,6 +370,67 @@ void CMaterial::LoadXml( TiXmlElement* pRoot )
 	}
 }
 
+void CMaterial::PixelCopy( CMaterial& mat )
+{
+	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
+	m_nMaxInst = mat.m_nMaxInst;
+	m_nExtraInstData = mat.m_nExtraInstData;
+	for( int i = 0; i < ELEM_COUNT( m_strShaderName ); i++ )
+		m_strShaderName[i] = mat.m_strShaderName[i];
+
+	auto pPixelShader = CGlobalShader::GetShaderByName( m_strShaderName[(uint32)EShaderType::PixelShader].c_str() );
+	stringstream ss;
+	ss << "RTImage" << pPixelShader->GetShaderInfo().nMaxTarget;
+	m_strShaderName[(uint32)EShaderType::PixelShader] = ss.str();
+	const char* szShaders[] = { m_strShaderName[0].c_str(), m_strShaderName[1].c_str(), m_strShaderName[2].c_str() };
+	IShader *pShaders[(uint32)EShaderType::Count];
+	GetShaders( szShaders, pShaders, m_pShaderBoundState, m_vecShaderParams, m_vecShaderParamsPerInstance, m_vecSystemShaderResources, m_vecSystemSamplers );
+
+	for( int i = 0; i < mat.m_vecConstantBuffers.size(); i++ )
+	{
+		auto& paramConstantBuffer = mat.m_vecConstantBuffers[i].first;
+		if( paramConstantBuffer.eShaderType != EShaderType::PixelShader )
+		{
+			m_vecConstantBuffers.push_back( mat.m_vecConstantBuffers[i] );
+		}
+	}
+
+	for( int i = 0; i < mat.m_vecShaderResources.size(); i++ )
+	{
+		auto& param = mat.m_vecShaderResources[i].first;
+		if( param.eShaderType == EShaderType::PixelShader )
+			continue;
+		CResource* pResource = mat.m_vecDependentResources[i];
+		if( param.eType == EShaderResourceType::Texture2D )
+		{
+			if( pResource->GetResourceType() == CTextureFile::eResType )
+			{
+				CTextureFile* pTexture = static_cast<CTextureFile*>( pResource );
+				m_vecDependentResources.push_back( pTexture );
+				if( pTexture->GetRenderTarget() )
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture ) );
+				else
+					m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture->GetTexture() ) );
+			}
+			else if( pResource->GetResourceType() == CDynamicTexture::eResType )
+			{
+				CDynamicTexture* pTexture = static_cast<CDynamicTexture*>( pResource );
+				m_vecDependentResources.push_back( pTexture );
+				m_vecShaderResources.push_back( pair<CShaderParamShaderResource, IShaderResourceProxy* >( param, pTexture ) );
+			}
+		}
+	}
+
+	for( int i = 0; i < mat.m_vecSamplers.size(); i++ )
+	{
+		auto& param = mat.m_vecSamplers[i].first;
+		if( param.eShaderType != EShaderType::PixelShader )
+		{
+			m_vecSamplers.push_back( pair<CShaderParamSampler, ISamplerState* >( param, mat.m_vecSamplers[i].second ) );
+		}
+	}
+}
+
 void CMaterial::Apply( CRenderContext2D& context )
 {
 	IRenderSystem* pRenderSystem = context.pRenderSystem;
@@ -351,7 +443,15 @@ void CMaterial::Apply( CRenderContext2D& context )
 	{
 		item.first.Set( pRenderSystem, item.second->GetShaderResource() );
 	}
+	for( auto& item : m_vecSystemShaderResources )
+	{
+		context.SetSystemShaderResourceParam( item.first, item.second );
+	}
 	for( auto& item : m_vecSamplers )
+	{
+		item.first.Set( pRenderSystem, item.second );
+	}
+	for( auto& item : m_vecSystemSamplers )
 	{
 		item.first.Set( pRenderSystem, item.second );
 	}
@@ -401,7 +501,8 @@ void CMaterial::BindShaderResource( EShaderType eShaderType, const char* szName,
 }
 
 void CMaterial::GetShaders( const char** szShaders, IShader** pShaders, IShaderBoundState* &pShaderBoundState,
-	vector< pair<CShaderParam, uint32> >& vecParams, vector< pair<CShaderParam, uint32> >& vecParamsPerInstance )
+	vector< pair<CShaderParam, uint32> >& vecParams, vector< pair<CShaderParam, uint32> >& vecParamsPerInstance,
+	vector< pair<CShaderParamShaderResource, uint32> >& vecSystemShaderResources, vector< pair<CShaderParamSampler, ISamplerState* > >& vecSamplers )
 {
 	string szName = "";
 	for( int i = 0; i < (int)EShaderType::Count; i++ )
@@ -424,6 +525,14 @@ void CMaterial::GetShaders( const char** szShaders, IShader** pShaders, IShaderB
 				for( auto& item : pShader->vecShaderParamsPerInstance )
 				{
 					vecParamsPerInstance.push_back( item );
+				}
+				for( auto& item : pShader->vecSystemShaderResources )
+				{
+					vecSystemShaderResources.push_back( item );
+				}
+				for( auto& item : pShader->vecSamplers )
+				{
+					vecSamplers.push_back( item );
 				}
 			}
 		}

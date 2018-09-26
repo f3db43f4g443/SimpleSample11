@@ -198,7 +198,7 @@ void LvGenLib::AddBars( vector<int8>& genData, int32 nWidth, int32 nHeight, vect
 	}
 }
 
-void LvGenLib::GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nMaxSize, int8 nTypeBack, int8 nTypeObj )
+void LvGenLib::GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nMaxSize, int8 nTypeBack, int8 nTypeObj, float fCoef, float fCoef1 )
 {
 	vector<int8> vecTemp;
 	vecTemp.resize( genData.size() );
@@ -218,7 +218,7 @@ void LvGenLib::GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int3
 
 		if( nMaxSize <= 0 || q.size() <= nMaxSize )
 		{
-			int32 nObjCount = q.size() < 3 ? q.size() : 2 + floor( q.size() * 0.3f );
+			int32 nObjCount = q.size() < 3 ? q.size() : floor( fCoef + q.size() * fCoef1 );
 			for( int i = 0; i < q.size(); i++ )
 			{
 				auto p1 = q[i];
@@ -428,6 +428,11 @@ void LvGenLib::DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 		{
 			if( genData[i + j * nWidth] == nObjType )
 			{
+				if( j == 0 )
+				{
+					genData[i + j * nWidth] = nSpaceType;
+					continue;
+				}
 				int y;
 				for( y = j - 1; y >= 0; y-- )
 				{
@@ -464,6 +469,11 @@ void LvGenLib::DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int
 			}
 			if( b )
 			{
+				if( j == 0 )
+				{
+					genData[i + j * nWidth] = nSpaceType;
+					continue;
+				}
 				int y;
 				for( y = j - 1; y >= 0; y-- )
 				{
@@ -497,19 +507,21 @@ void LvGenLib::Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8
 }
 
 void LvGenLib::DropObj1( vector<int8>& gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& objs,
-	int8 nTypeNone, int8 nTypeObj )
+	int8 nTypeNone, int8 nTypeObj, bool bDropOut )
 {
-	struct SLess
+	vector<int32> vec;
+	vec.resize( objs.size() );
+	for( int i = 0; i < vec.size(); i++ )
+		vec[i] = i;
+	auto func = [&objs] ( int32 l, int32 r ) -> bool
 	{
-		bool operator () ( const TRectangle<int32>& l, const TRectangle<int32>& r )
-		{
-			return l.y < r.y;
-		}
+		return objs[l].y < objs[r].y;
 	};
-	std::sort( objs.begin(), objs.end(), SLess() );
+	std::sort( vec.begin(), vec.end(), func );
 
-	for( auto& rect : objs )
+	for( auto i : vec )
 	{
+		auto& rect = objs[i];
 		auto rect1 = rect;
 		while( rect1.y > 0 )
 		{
@@ -535,7 +547,7 @@ void LvGenLib::DropObj1( vector<int8>& gendata, int32 nWidth, int32 nHeight, vec
 				gendata[i + j * nWidth] = nTypeNone;
 			}
 		}
-		if( rect1.y > 0 )
+		if( !bDropOut || rect1.y > 0 )
 		{
 			rect = rect1;
 			for( int i = rect.x; i < rect.GetRight(); i++ )

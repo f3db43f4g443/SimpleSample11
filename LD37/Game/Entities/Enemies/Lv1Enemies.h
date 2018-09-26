@@ -255,13 +255,16 @@ protected:
 	virtual void OnTickAfterHitTest() override;
 private:
 	SCharacterSurfaceWalkData m_moveData;
+	int8 m_nType;
 	float m_fAIStepTimeMin;
 	float m_fAIStepTimeMax;
 	float m_fFallChance;
 	uint32 m_nKnockbackTime;
+	float m_fKnockbackSpeed;
 	CReference<CEntity> m_pExplosion;
 	uint32 m_nExplosionLife;
 	float m_fExplosionDmg;
+	uint32 m_nAnimSpeed;
 	TResourceRef<CPrefab> m_pFly;
 
 	uint32 m_nAIStepTimeLeft;
@@ -284,10 +287,12 @@ public:
 	virtual bool IsKnockback() override;
 	CEntity* GetTarget() { return m_pTarget; }
 	CEntity* GetGroup() { return m_pFlyGroup; }
+	int8 GetType() { return m_nType; }
 	void SetFlyGroup( CFlyGroup* pFlyGroup );
 	void Set( CEntity* pTarget, uint16 nTransformIndex = -1 );
 private:
 	SCharacterPhysicsFlyData m_flyData;
+	int8 m_nType;
 	float m_fAcc1;
 	float m_fMaxAcc;
 	float m_fFireDist;
@@ -303,6 +308,8 @@ private:
 	CReference<CEntity> m_pTarget;
 	uint16 m_nTargetTransformIndex;
 	CReference<CEntity> m_pFlyGroup;
+	CVector2 m_target;
+	uint32 m_nTargetCD;
 
 	LINK_LIST_REF( CFly, Fly )
 };
@@ -310,7 +317,7 @@ private:
 class CFlyGroup : public CEntity
 {
 public:
-	CFlyGroup() : m_nCount( 0 ), m_nTime( 0 ), m_nLife( 300 ), m_pFlies( NULL ), m_onTick( this, &CFlyGroup::OnTick ) {}
+	CFlyGroup( int8 nType ) : m_nCount( 0 ), m_nTime( 0 ), m_nLife( 300 ), m_nType( nType ), m_pFlies( NULL ), m_onTick( this, &CFlyGroup::OnTick ) {}
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	void OnFlyAdded() { m_nCount++; }
@@ -320,6 +327,7 @@ public:
 private:
 	void OnTick();
 
+	int8 m_nType;
 	uint32 m_nCount;
 	uint32 m_nTime;
 	uint32 m_nLife;

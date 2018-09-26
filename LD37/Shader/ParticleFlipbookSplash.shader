@@ -20,8 +20,8 @@ float3 sizeCurve;
 float3 timeCurve;
 void VSParticle1Splash( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex * 2.0 - 1.0 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];

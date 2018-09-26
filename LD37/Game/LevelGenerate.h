@@ -74,7 +74,7 @@ public:
 		int8 nEditType;
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
-		int32 nSeed;
+		uint32 nSeed;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

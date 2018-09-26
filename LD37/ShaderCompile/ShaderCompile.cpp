@@ -23,6 +23,7 @@ void Compile( CGlobalShader* pShader, const char* szShaderName, const char* szNa
 	strPath = strPath.substr( 0, strPath.rfind( "/" ) + 1 );
 	bool bCreated = CompileShader( buf, &content[0], nLen, szFunctionName, szProfile, &macroDef, strPath.c_str(), ppSOVertexBufferDesc, nVertexBuffers, nRasterizedStream );
 
+	_ASSERT( bCreated );
 	if( bCreated )
 	{
 		string strFileName = "Root/Shader/";

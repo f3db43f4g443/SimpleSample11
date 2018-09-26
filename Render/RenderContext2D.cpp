@@ -20,6 +20,8 @@ CRenderContext2D::CRenderContext2D( const CRenderContext2D& context )
 	, ppInstanceData( NULL )
 	, nRenderGroups( 1 )
 	, bInverseY( false )
+	, nRTImages( 0 )
+	, nRTImageStep( 0 )
 {
 	memset( nElemCount, 0, sizeof( nElemCount ) );
 }
@@ -150,4 +152,54 @@ void CRenderContext2D::FlushElements( uint32 nGroup )
 	}
 
 	group.m_nElemCount = 0;
+}
+
+void CRenderContext2D::RTImage( uint8 nStep )
+{
+	if( nStep != nRTImageStep )
+		return;
+
+	if( nStep == 0 )
+	{
+		auto& pool = CRenderTargetPool::GetSizeDependentPool();
+		pRenderSystem->GetRenderTargetTextures( pRTOrig, nRTImages, ELEM_COUNT( pRTOrig ) );
+		IRenderTarget* pRenderTargets[ELEM_COUNT( pRTImages )];
+		for( int i = 0; i < nRTImages; i++ )
+		{
+			ITexture* pTex = pRTOrig[i];
+			if( pTex )
+			{
+				pool.AllocRenderTarget( pRTImages[i], pTex->GetDesc() );
+				pRenderTargets[i] = pRTImages[i]->GetRenderTarget();
+			}
+			else
+				pRenderTargets[i] = NULL;
+		}
+		pRenderSystem->SetRenderTargets( pRenderTargets, nRTImages );
+		nRTImageStep = 1;
+	}
+	else if( nStep == 1 )
+	{
+		IRenderTarget* pRenderTargets[ELEM_COUNT( pRTImages )];
+		for( int i = 0; i < nRTImages; i++ )
+		{
+			ITexture* pTex = pRTOrig[i];
+			if( pTex )
+				pRenderTargets[i] = pRTOrig[i]->GetRenderTarget();
+			else
+				pRenderTargets[i] = NULL;
+		}
+		pRenderSystem->SetRenderTargets( pRenderTargets, nRTImages );
+		nRTImageStep = 2;
+	}
+	else
+	{
+		auto& pool = CRenderTargetPool::GetSizeDependentPool();
+		for( int i = 0; i < nRTImages; i++ )
+		{
+			pRTOrig[i] = NULL;
+			pool.Release( pRTImages[i] );
+		}
+		nRTImageStep = 0;
+	}
 }

@@ -79,6 +79,9 @@ IMPLEMENT_MATERIAL_SHADER( PSFootprintLiquidOcclusion, "Shader/FootprintLiquid.s
 IMPLEMENT_MATERIAL_SHADER( VSFootprintLiquidParticle, "Shader/FootprintLiquid.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSThruster, "Shader/Beams.shader", "VSThruster", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSThruster, "Shader/Beams.shader", "PSThruster", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSThruster1, "Shader/Beams.shader", "VSThruster1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSThruster1Color, "Shader/Beams.shader", "PSThruster1Color", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSThruster1Occ, "Shader/Beams.shader", "PSThruster1Occ", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle, "Shader/Laser.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle1, "Shader/Laser.shader", "VSParticle1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle", "ps_5_0" );
@@ -105,3 +108,6 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleGlitch, "Shader/TutorialGame_Particle.shade
 
 IMPLEMENT_MATERIAL_SHADER( PSWater, "Shader/Water.shader", "PSWater", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSWaterOneColor, "Shader/Water.shader", "PSWaterOneColor", "ps_5_0" );
+
+IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskColor, "Shader/Distortion.shader", "PSDistortionMaskColor", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskOcc, "Shader/Distortion.shader", "PSDistortionMaskOcc", "ps_5_0" );

@@ -9,12 +9,12 @@ public:
 	static bool CheckRoomType( vector<int8>& genData, int32 nWidth, int32 nHeight, const TRectangle<int32>& room, uint8 nRoomType );
 	static void AddBars( vector<int8>& genData, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& res,
 		int8 nTypeBack, int8 nTypeBar );
-	static void GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nMaxSize, int8 nTypeBack, int8 nTypeObj );
+	static void GenObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int32 nMaxSize, int8 nTypeBack, int8 nTypeObj, float fCoef = 2.0f, float fCoef1 = 0.25f );
 	static void GenObjs1( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nBlockType, int8 nSpaceType, int8 nObjType );
 	static void GenObjs2( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nTypeBack, int8 nTypeObj, float fPercent );
 	static void DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nObjType );
 	static void DropObjs( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8* nObjTypes, uint8 nObjTypeCount );
 	static void Flatten( vector<int8>& genData, int32 nWidth, int32 nHeight, int8 nSpaceType, int8 nFlattenType, int8 nFillType );
 	static void DropObj1( vector<int8>& gendata, int32 nWidth, int32 nHeight, vector<TRectangle<int32> >& objs,
-		int8 nTypeNone, int8 nTypeObj );
+		int8 nTypeNone, int8 nTypeObj, bool bDropOut = true );
 };

@@ -90,6 +90,7 @@ bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* s
 	shaderInfo.nMaxConstantBuffer = 0;
 	shaderInfo.nMaxShaderResource = 0;
 	shaderInfo.nMaxSampler = 0;
+	shaderInfo.nMaxTarget = 0;
 
 	for( uint32 ResourceIndex = 0; ResourceIndex < ShaderDesc.BoundResources; ResourceIndex++ )
 	{
@@ -157,6 +158,16 @@ bool CompileShader( CBufFile& buf, const char* pData, uint32 nLen, const char* s
 			auto& sampler = shaderInfo.mapSamplerDescs[BindDesc.Name];
 			sampler.strName = BindDesc.Name;
 			sampler.nIndex = BindDesc.BindPoint;
+		}
+	}
+
+	for( uint32 OutputIndex = 0; OutputIndex < ShaderDesc.OutputParameters; OutputIndex++ )
+	{
+		D3D11_SIGNATURE_PARAMETER_DESC Desc;
+		pReflection->GetOutputParameterDesc( OutputIndex, &Desc );
+		if( Desc.SystemValueType == D3D10_NAME_TARGET )
+		{
+			shaderInfo.nMaxTarget = Max( shaderInfo.nMaxTarget, Desc.SemanticIndex + 1 );
 		}
 	}
 

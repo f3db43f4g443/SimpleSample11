@@ -2,7 +2,8 @@ Texture2D Texture0;
 Texture2D TextureColorMap;
 SamplerState LinearSampler;
 
-void PSColor( in float2 tex : TexCoord0,
+void PSColor( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
@@ -16,7 +17,8 @@ void PSColor( in float2 tex : TexCoord0,
 
 float fBaseHeight;
 float fHeightScale;
-void PSOcclusion( in float2 tex : TexCoord0,
+void PSOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
@@ -41,8 +43,8 @@ cbuffer InstBuffer
 
 void VSParticle( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex * 2.0 - 1.0 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];

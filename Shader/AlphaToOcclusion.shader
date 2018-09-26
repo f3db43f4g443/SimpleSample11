@@ -1,7 +1,8 @@
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSColor( in float2 tex : TexCoord0,
+void PSColor( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -15,7 +16,8 @@ void PSColor( in float2 tex : TexCoord0,
 	clip( fAlpha - 0.001 );
 }
 
-void PSOcclusion( in float2 tex : TexCoord0,
+void PSOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

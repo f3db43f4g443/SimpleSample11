@@ -1,7 +1,7 @@
 struct InOutVertex
 {
-	float2 tex : TexCoord0;
 	float4 pos : SV_Position;
+	float2 tex : TexCoord0;
 };
 
 [maxvertexcount(6)]

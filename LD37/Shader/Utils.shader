@@ -10,8 +10,8 @@ float4 InvDstSrcResolution;
 float fDepth;
 
 void VSScreen( in float2 pos : Position,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 vPos = ( pos * DstRect.zw + DstRect.xy ) * InvDstSrcResolution.xy;
 	vPos = ( vPos * 2.0 - 1.0 ) * float2( 1.0, -1.0 );
@@ -20,7 +20,7 @@ void VSScreen( in float2 pos : Position,
 }
 
 float4 vColor;
-void PSOneColor( out float4 outColor : SV_Target )
+void PSOneColor( in float4 inPos : SV_Position, out float4 outColor : SV_Target )
 {
 	outColor = vColor;
 }
@@ -28,47 +28,54 @@ void PSOneColor( out float4 outColor : SV_Target )
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSOneTexture( in float2 tex : TexCoord0,
+void PSOneTexture( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = Texture0.Sample( LinearSampler, tex );
 }
 
-void PSOneTextureR( in float2 tex : TexCoord0,
+void PSOneTextureR( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = Texture0.Sample( LinearSampler, tex ).x;
 }
 
-void PSOneColorMulTextureAlpha( in float2 tex : TexCoord0,
+void PSOneColorMulTextureAlpha( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = vColor;
 	outColor.w *= Texture0.Sample( LinearSampler, tex ).x;
 }
 
-void PSInstData( in float2 tex : TexCoord0,
+void PSInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {
 	outColor = instData;
 }
 
-void PSOneColorMulInstData( in float2 tex : TexCoord0,
+void PSOneColorMulInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {
 	outColor = instData * vColor;
 }
 
-void PSOneTextureMulInstData( in float2 tex : TexCoord0,
+void PSOneTextureMulInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {
 	outColor = Texture0.Sample( LinearSampler, tex ) * instData;
 }
 
-void PSOneTextureAlphaMulInstData( in float2 tex : TexCoord0,
+void PSOneTextureAlphaMulInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {
@@ -77,13 +84,15 @@ void PSOneTextureAlphaMulInstData( in float2 tex : TexCoord0,
 
 Texture2D Texture1;
 
-void PSTwoTextureMultiply( in float2 tex : TexCoord0,
+void PSTwoTextureMultiply( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = Texture0.Sample( LinearSampler, tex ) * Texture1.Sample( LinearSampler, tex );
 }
 
-void PSTwoTexCoordMasked( in float2 tex : TexCoord0,
+void PSTwoTexCoordMasked( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {
@@ -96,7 +105,8 @@ void PSTwoTexCoordMasked( in float2 tex : TexCoord0,
 #endif
 Texture2D Textures[MAX_TEXTURES];
 
-void PSOneTexturePerRT( in float2 tex : TexCoord0,
+void PSOneTexturePerRT( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[MAX_TEXTURES] : SV_Target0 )
 {
 	for( int i = 0; i < MAX_TEXTURES; i++ )

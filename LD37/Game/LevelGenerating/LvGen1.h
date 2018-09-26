@@ -362,8 +362,8 @@ private:
 	void GenSubArea( const TRectangle<int32>& rect );
 	void FillLine( TRectangle<int32>& rect );
 	void GenRestWallChunks();
-	void GenWallChunk();
 	void GenWallChunk0();
+	void GenWallChunk();
 	void GenWindows();
 	void GenObjs();
 	void GenShops();
@@ -413,6 +413,7 @@ private:
 
 		eType_Temp,
 		eType_Temp1,
+		eType_Temp2,
 
 		eType_Count,
 	};
@@ -437,42 +438,88 @@ private:
 	vector<TRectangle<int32> > m_spiders;
 };
 
-class CLvBarrierNodeGen1 : public CLevelGenerateSimpleNode
+
+class CLevelGenNode1_3_0 : public CLevelGenerateNode
 {
 public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
-	void GenBase();
+	void GenChunks();
 	void GenRooms();
-	void GenWalls();
-	void GenWindows();
+	void AddRooms();
+	void GenDoors();
+	void GenObjs();
 
-	CReference<CLevelGenerateNode> m_pLabelNode;
-	CReference<CLevelGenerateNode> m_pFillNode;
-	CReference<CLevelGenerateNode> m_pBaseNode;
-	CReference<CLevelGenerateNode> m_pCoreNode;
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pWallChunkNode;
+	CReference<CLevelGenerateNode> m_pWallChunk0Node;
+	CReference<CLevelGenerateNode> m_pWallChunk1Node;
+	CReference<CLevelGenerateNode> m_pBlock1Node;
+	CReference<CLevelGenerateNode> m_pBlock2Node;
 	CReference<CLevelGenerateNode> m_pRoomNode;
-	CReference<CLevelGenerateNode> m_pWallHNode;
-	CReference<CLevelGenerateNode> m_pWallVNode;
+	CReference<CLevelGenerateNode> m_pCrate1Node;
+	CReference<CLevelGenerateNode> m_pCrate2Node;
+	CReference<CLevelGenerateNode> m_pScrapNode;
+	CReference<CLevelGenerateNode> m_pAcNode;
 	CReference<CLevelGenerateNode> m_pWindowNode;
+	CReference<CLevelGenerateNode> m_pWindow1Node[4];
+	CReference<CLevelGenerateNode> m_pSpiderNode;
+	CReference<CLevelGenerateNode> m_pShopNode;
 
 	enum
 	{
 		eType_None,
-		eType_Base,
-		eType_Core,
 		eType_Room,
-		eType_Wall,
-		eType_WallH,
-		eType_WallV,
-	};
+		eType_Room1,
+		eType_Door,
+		eType_WallChunk0,
+		eType_WallChunk,
+		eType_WallChunk1,
+		eType_WallChunk1_1,
+		eType_WallChunk1_2,
+		eType_BlockRed,
+		eType_BlockBlue,
+		eType_Crate1,
+		eType_Crate2,
+		eType_Crate3,
+		eType_Web,
 
+		eType_WallChunk_0,
+		eType_WallChunk_0_1,
+		eType_WallChunk_0_1a,
+		eType_WallChunk_0_1b,
+		eType_WallChunk_1,
+		eType_WallChunk_2,
+		eType_WallChunk_3,
+
+		eType_Temp,
+		eType_Temp1,
+		eType_Temp2,
+
+		eType_Count,
+	};
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
-	TRectangle<int32> m_labelRect;
-	vector<TRectangle<int32> > m_rooms;
-	vector<TRectangle<int32> > m_walls;
+
+	struct SRoom
+	{
+		SRoom( const TRectangle<int32>& rect ) : rect( rect ), bRoomType( false ) { memset( bDoor, 0, sizeof( bDoor ) ); }
+		TRectangle<int32> rect;
+		int8 bDoor[4];
+		bool bRoomType;
+	};
+	vector<SRoom> m_rooms;
+	vector<TRectangle<int32> > m_wallChunks0;
+	vector<TRectangle<int32> > m_wallChunks;
+	vector<TRectangle<int32> > m_wallChunks1;
+	vector<TRectangle<int32> > m_scraps;
+	vector<TRectangle<int32> > m_acs;
 	vector<TRectangle<int32> > m_windows;
+	vector<TRectangle<int32> > m_windows1[4];
+	vector<TRectangle<int32> > m_shops;
+	vector<TRectangle<int32> > m_spiders;
+
+	vector<TVector2<int32> > m_vecTemp1;
 };

@@ -36,6 +36,19 @@ IRenderSystem* IRenderSystem::Inst()
 	return &system;
 }
 
+void CRenderSystem::GetRenderTargetTextures( CReference<ITexture>* ppTextures, uint32& nTextures, uint32 nArraySize )
+{
+	nTextures = Min( nArraySize, m_nUsingRenderTargets );
+	int32 i;
+	for( i = 0; i < nTextures; i++ )
+	{
+		CTexture* pTexture = static_cast<CRenderTarget*>( m_pUsingRenderTargets[i].GetPtr() )->GetTexture();
+		ppTextures[i] = pTexture;
+	}
+	for( ; i < nArraySize; i++ )
+		ppTextures[i] = NULL;
+}
+
 void CRenderSystem::SetPrimitiveType( EPrimitiveType ePrimitiveType )
 {
 	m_stateMgr.GetState().primitiveType = (D3D11_PRIMITIVE_TOPOLOGY)ePrimitiveType;
@@ -61,6 +74,25 @@ void CRenderSystem::SetRasterizerState( IRasterizerState* pState )
 {
 	m_stateMgr.GetState().rasterizerState = pState? static_cast<CRasterizerState*>( pState )->GetState(): NULL;
 	m_stateMgr.SetStateDirty( eDeviceStateRasterizer );
+}
+
+void CRenderSystem::SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets )
+{
+	nRenderTargets = MIN( nRenderTargets, MAX_RENDER_TARGETS );
+	m_stateMgr.GetState().nViews = nRenderTargets;
+	for( int i = 0; i < nRenderTargets; i++ )
+		m_stateMgr.GetState().renderTargetViews[i] = static_cast<CRenderTarget*>( ppRenderTargets[i] )->GetRenderTargetView();
+	m_stateMgr.SetStateDirty( eDeviceStateRenderTargets );
+
+	for( int i = 0; i < nRenderTargets; i++ )
+	{
+		m_pUsingRenderTargets[i] = ppRenderTargets[i];
+	}
+	for( int i = nRenderTargets; i < m_nUsingRenderTargets; i++ )
+	{
+		m_pUsingRenderTargets[i] = NULL;
+	}
+	m_nUsingRenderTargets = nRenderTargets;
 }
 
 void CRenderSystem::SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets, IDepthStencil* pDepthStencil )

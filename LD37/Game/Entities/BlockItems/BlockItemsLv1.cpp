@@ -1335,7 +1335,7 @@ void CWindow2::AIFunc()
 				}
 			}
 
-			m_pAI->Yield( 1.2f, false );
+			m_pAI->Yield( 2.0f, false );
 		}
 
 		//closing
@@ -1367,20 +1367,32 @@ dead:
 
 void CWindow2::AIFuncEye( uint8 nEye )
 {
-	struct SEyeKilled
-	{
-
-	};
+	typedef int32 SEyeKilled;
 	try
 	{
 		CMessagePump pump( m_pAIEye[nEye] );
-		m_pHead[nEye]->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SEyeKilled*>() );
+		m_pHead[nEye]->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SEyeKilled>() );
 
 		m_pEye[nEye]->bVisible = false;
 		m_pHead[nEye]->bVisible = true;
 		m_pLinks[nEye]->bVisible = true;
 		m_pHead[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		m_pLinks[nEye]->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+
+		for( int k = 0; k < 2; k++ )
+		{
+			m_pEye[k]->ForceUpdateTransform();
+			float fBaseAngle = SRand::Inst().Rand( -PI, PI );
+			for( int i = 0; i < 8; i++ )
+			{
+				float fAngle = fBaseAngle + i * PI / 4;
+				auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
+				pBullet->SetPosition( m_pEye[k]->globalTransform.GetPosition() );
+				pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 200 );
+				pBullet->SetRotation( fAngle );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			}
+		}
 
 		switch( SRand::Inst().Rand( 0, 3 ) )
 		{
@@ -1395,7 +1407,7 @@ void CWindow2::AIFuncEye( uint8 nEye )
 			break;
 		}
 	}
-	catch( SEyeKilled* e )
+	catch( SEyeKilled e )
 	{
 		m_pLinks[nEye]->bVisible = false;
 	}
@@ -1405,23 +1417,9 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 {
 	CVector2 target = globalTransform.GetPosition();
 
-	for( int k = 0; k < 2; k++ )
-	{
-		m_pEye[k]->ForceUpdateTransform();
-		float fBaseAngle = SRand::Inst().Rand( -PI, PI );
-		for( int i = 0; i < 8; i++ )
-		{
-			float fAngle = fBaseAngle + i * PI / 4;
-			auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
-			pBullet->SetPosition( m_pEye[k]->globalTransform.GetPosition() );
-			pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 200 );
-			pBullet->SetRotation( fAngle );
-			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-		}
-	}
-
 	auto pAI = m_pAIEye[nEye];
 	auto pHead = m_pHead[nEye];
+	pHead->SetDefence( -1.0f );
 	float fForce = 1.0f;
 	int32 nTickCount = SRand::Inst().Rand( 45, 60 );
 	int32 nLastHp = pHead->GetHp();
@@ -1436,7 +1434,7 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 		force = force * Min( l * 10, 450.0f ) * fForce;
 		CVector2 force1 = m_pEye[nEye]->GetPosition() - pHead->GetPosition();
 		float l1 = force1.Normalize();
-		force1 = force1 * ( 200 + l1 * 0.25f );
+		force1 = force1 * ( 200 + l1 * 0.35f );
 		force = force + force1;
 		UpdateLink( nEye );
 		pAI->Yield( 0, false );
@@ -1458,9 +1456,9 @@ void CWindow2::AIFuncEye1( uint8 nEye )
 			float r = ( fDist - fMinDist ) / ( fMaxDist - fMinDist );
 			if( SRand::Inst().Rand( 0.0f, 1.0f ) > r )
 			{
-				for( int i = 0; i < 9; i++ )
+				for( int i = 0; i < 7; i++ )
 				{
-					float fAngle = ( i - 3 + SRand::Inst().Rand( 0.25f, 0.75f ) ) * 0.18f + atan2( dPos.y, dPos.x );
+					float fAngle = ( i - 3 + SRand::Inst().Rand( 0.35f, 0.65f ) ) * 0.2f + atan2( dPos.y, dPos.x );
 					float fSpeed = SRand::Inst().Rand( 150.0f, 200.0f );
 					auto pBullet = SafeCast<CBullet>( m_pBullet1->GetRoot()->CreateInstance() );
 					pBullet->SetPosition( pHead->globalTransform.GetPosition() );
@@ -1592,13 +1590,23 @@ void CWindow2::AIFuncEye2( uint8 nEye )
 			int32 nBullet = 0;
 			for( int i = 0; i < 5; i++ )
 			{
-				for( int j = 0; j < 20; j++ )
+				for( int j = 0; j < 18; j++ )
 				{
 					float r = 150 + i * 25;
 					CVector2 center( 50 + i * 15, 0 );
-					CVector2 vel = center + CVector2( cos( ( j + i * 0.5f ) * PI / 10 ), sin( ( j + i * 0.5f ) * PI / 10 ) ) * r;
+					CVector2 vel = center + CVector2( cos( ( j + i * 0.5f ) * PI / 9 ), sin( ( j + i * 0.5f ) * PI / 9 ) ) * r;
 					vel = mat.MulVector2Dir( vel );
 					pBarrage->InitBullet( nBullet++, 0, -1, CVector2( 0, 0 ), vel, CVector2( 0, 0 ) );
+				}
+				pBarrage->Yield( 3 );
+			}
+			pBarrage->Yield( 40 );
+			nBullet = 0;
+			for( int i = 0; i < 5; i++ )
+			{
+				for( int j = 0; j < 18; j++ )
+				{
+					pBarrage->DestroyBullet( nBullet++ );
 				}
 				pBarrage->Yield( 3 );
 			}

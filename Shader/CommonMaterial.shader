@@ -1,7 +1,8 @@
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSDefault( in float2 tex : TexCoord0,
+void PSDefault( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	outColor[0] = Texture0.Sample( LinearSampler, tex );
@@ -10,27 +11,31 @@ void PSDefault( in float2 tex : TexCoord0,
 }
 
 float g_occlusionValue;
-void PSOcclusionDefault( in float2 tex : TexCoord0,
+void PSOcclusionDefault( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = float4( 1.0f, 1.0f, 1.0f, g_occlusionValue );
 	clip( Texture0.Sample( LinearSampler, tex ).w - 0.5 );
 }
 
-void PSDefaultNoClip( in float2 tex : TexCoord0,
+void PSDefaultNoClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	outColor[0] = Texture0.Sample( LinearSampler, tex );
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 }
 
-void PSOcclusionTextureAlphaNoClip( in float2 tex : TexCoord0,
+void PSOcclusionTextureAlphaNoClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	outColor = float4( 1.0f, 1.0f, 1.0f, Texture0.Sample( LinearSampler, tex ).x );
 }
 
-void PSWithColorData( in float2 tex : TexCoord0,
+void PSWithColorData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -38,14 +43,16 @@ void PSWithColorData( in float2 tex : TexCoord0,
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 }
 
-void PSEmission( in float2 tex : TexCoord0,
+void PSEmission( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	outColor[0] = 0;
 	outColor[1] = Texture0.Sample( LinearSampler, tex );
 }
 
-void PSEmissionAlpha( in float2 tex : TexCoord0,
+void PSEmissionAlpha( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {

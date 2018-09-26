@@ -12,8 +12,8 @@ cbuffer InstBuffer
 
 void VSParticleGlitch( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex - 0.5 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];

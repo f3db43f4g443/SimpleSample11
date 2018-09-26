@@ -24,8 +24,14 @@ CRenderObject2D* CDrawableGroup::CreateInstance()
 		CRopeObject2D* pRopeObject2D = new CRopeObject2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
 			bGUI ? NULL : m_occlusionDrawable.pDrawable, NULL, bGUI );
 		pRopeObject2D->SetDataCount( 2 );
-		pRopeObject2D->SetData( 0, CVector2( 0, 0 ), 64, CVector2( 0, 0 ), CVector2( 1, 0 ) );
-		pRopeObject2D->SetData( 1, CVector2( 128, 0 ), 64, CVector2( 0, 1 ), CVector2( 1, 1 ) );
+		pRopeObject2D->SetData( 0, CVector2( 0, 0 ), m_defaultRect.height,
+			CVector2( m_defaultTexRect.x, m_defaultTexRect.y ), CVector2( m_defaultTexRect.GetRight(), m_defaultTexRect.y ) );
+		pRopeObject2D->SetData( 1, CVector2( m_defaultRect.width, 0 ), m_defaultRect.height,
+			CVector2( m_defaultTexRect.x, m_defaultTexRect.GetBottom() ), CVector2( m_defaultTexRect.GetRight(), m_defaultTexRect.GetBottom() ) );
+		pRopeObject2D->SetParams( m_nParamCount, m_defaultParams.size() ? &m_defaultParams[0] : NULL,
+			m_colorDrawable.nParamBeginIndex, m_colorDrawable.nParamCount,
+			m_occlusionDrawable.nParamBeginIndex, m_occlusionDrawable.nParamCount,
+			m_guiDrawable.nParamBeginIndex, m_guiDrawable.nParamCount, true );
 		return pRopeObject2D;
 	}
 	else if( m_nType == eType_MultiFrame )

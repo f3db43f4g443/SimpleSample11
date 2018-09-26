@@ -19,9 +19,9 @@ cbuffer InstBuffer1
 
 void VSParticle( in float2 tex : Position,
 	in uint particleInstID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float3 outTex : TexCoord0,
-	out float2 outTex1 : TexCoord1,
-	out float4 outPos : SV_Position )
+	out float2 outTex1 : TexCoord1 )
 {
 	float pos = tex.x * 2.0 - 1.0;
 	float instID = tex.y / g_segmentsPerData;
@@ -58,9 +58,9 @@ void VSParticle( in float2 tex : Position,
 float fTexYTimeScale1;
 void VSParticle1( in float2 tex : Position,
 	in uint particleInstID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float pos = tex.x * 2.0 - 1.0;
 	float instID = tex.y / g_segmentsPerData;
@@ -99,7 +99,8 @@ Texture2D TextureColorMap;
 SamplerState LinearSampler;
 SamplerState LinearSampler1;
 
-void PSParticle( in float3 tex : TexCoord0,
+void PSParticle( in float4 inPos : SV_Position,
+	in float3 tex : TexCoord0,
 	in float2 outTex1 : TexCoord1,
 	out float4 outColor[2] : SV_Target )
 {
@@ -117,7 +118,8 @@ void PSParticle( in float3 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, color.w );
 }
 
-void PSParticleOcclusion( in float3 tex : TexCoord0,
+void PSParticleOcclusion( in float4 inPos : SV_Position,
+	in float3 tex : TexCoord0,
 	in float2 outTex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {

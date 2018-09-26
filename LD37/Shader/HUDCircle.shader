@@ -4,9 +4,9 @@ float4 g_rect;
 float4 g_texRect;
 
 void VSMain( in float2 tex : Position,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float2 outTex1 : TexCoord1,
-	out float4 outPos : SV_Position )
+	out float2 outTex1 : TexCoord1 )
 {
 	float2 pos = tex;
 	pos.y = 1 - pos.y;
@@ -27,7 +27,8 @@ float4 vColor1;
 float fRad;
 float fWidth;
 
-void PSMain( in float2 tex : TexCoord0,
+void PSMain( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {
@@ -47,7 +48,8 @@ void PSMain( in float2 tex : TexCoord0,
 
 float2 dir;
 float minDot;
-void PSMainPercent( in float2 tex : TexCoord0,
+void PSMainPercent( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {

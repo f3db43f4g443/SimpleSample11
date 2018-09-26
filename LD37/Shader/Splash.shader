@@ -5,7 +5,8 @@ float4 color1;
 float fBlendBegin;
 float fBlendScale;
 
-void PSColor( in float2 tex : TexCoord0,
+void PSColor( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	float4 texColor = Texture0.Sample( Sampler, tex );
@@ -21,7 +22,8 @@ void PSColor( in float2 tex : TexCoord0,
 	outColor[1] = color;
 }
 
-void PSOcclusion( in float2 tex : TexCoord0,
+void PSOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float4 texColor = Texture0.Sample( Sampler, tex );

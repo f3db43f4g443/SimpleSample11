@@ -35,9 +35,9 @@ void Default2D_Vertex( in float2 tex,
 
 void VSDefault( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outTex1 : TexCoord1,
-	out float4 outPos : SV_Position )
+	out float4 outTex1 : TexCoord1 )
 {
 	Default2D_Vertex( tex, instID * 3, outTex, outTex1, outPos );
 }
@@ -49,10 +49,10 @@ void VSDefault( in float2 tex : Position,
 
 void VSDefaultExtraInstData( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
 	out float4 outTex1 : TexCoord1,
-	out float4 outInstData[EXTRA_INST_DATA] : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData[EXTRA_INST_DATA] : ExtraInstData0 )
 {
 	Default2D_Vertex( tex, instID * INST_DATA_SIZE, outTex, outTex1, outPos );
 
@@ -62,7 +62,8 @@ void VSDefaultExtraInstData( in float2 tex : Position,
 
 Texture2D Texture0;
 SamplerState LinearSampler;
-void PSOneTextureScrTiled( in float2 tex : TexCoord0,
+void PSOneTextureScrTiled( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {

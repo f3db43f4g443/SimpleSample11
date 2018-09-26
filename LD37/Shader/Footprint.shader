@@ -4,7 +4,8 @@ float h0, h1, k, g_deltaTime;
 float2 texofs[4];
 float2 g_invScreenResolution;
 
-void PSUpdate( in float2 tex : TexCoord0,
+void PSUpdate( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
@@ -22,7 +23,8 @@ void PSUpdate( in float2 tex : TexCoord0,
 }
 
 float3 baseColor;
-void PSPrint_AlphaToOcclusion( in float2 tex : TexCoord0,
+void PSPrint_AlphaToOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

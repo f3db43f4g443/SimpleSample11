@@ -251,8 +251,6 @@ bool CParticleSystemData::AnimateInstanceData( SParticleInstanceData& data, cons
 void CParticleSystemDrawable::Flush( CRenderContext2D& context )
 {
 	IRenderSystem* pRenderSystem = context.pRenderSystem;
-	pRenderSystem->SetBlendState( m_pBlendState );
-	m_material.Apply( context );
 
 	uint32 nMaxInst = m_material.GetMaxInst();
 	uint32 nInstDataStride = m_pData->GetInstanceSize();
@@ -261,73 +259,33 @@ void CParticleSystemDrawable::Flush( CRenderContext2D& context )
 	pRenderSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
 	pRenderSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
 
-	float fLife = m_pData->GetLifeTime();
-	if( m_param.m_paramLife.bIsBound )
-		m_param.m_paramLife.Set( pRenderSystem, &fLife );
-	if( !m_pData->IsBatchAcrossInstances() )
+	if( m_pBlendState )
 	{
-		while( m_pElement )
+		pRenderSystem->SetBlendState( m_pBlendState );
+		m_material.Apply( context );
+
+		float fLife = m_pData->GetLifeTime();
+		if( m_param.m_paramLife.bIsBound )
+			m_param.m_paramLife.Set( pRenderSystem, &fLife );
+		if( !m_pData->IsBatchAcrossInstances() )
 		{
-			context.pCurElement = m_pElement;
-			OnFlushElement( context, m_pElement );
-			uint32 i1;
-			SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
-			uint32 iBegin = pParticleInstanceData->nBegin;
-			if( m_param.m_paramTime.bIsBound )
-				m_param.m_paramTime.Set( pRenderSystem, &pParticleInstanceData->fTime );
-
-			while( iBegin < pParticleInstanceData->nEnd )
+			while( m_pElement )
 			{
-				for( i1 = 0; i1 < nMaxInst && iBegin < pParticleInstanceData->nEnd; i1++, iBegin++ )
+				context.pCurElement = m_pElement;
+				OnFlushElement( context, m_pElement );
+				uint32 i1;
+				SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
+				uint32 iBegin = pParticleInstanceData->nBegin;
+				if( m_param.m_paramTime.bIsBound )
+					m_param.m_paramTime.Set( pRenderSystem, &pParticleInstanceData->fTime );
+
+				while( iBegin < pParticleInstanceData->nEnd )
 				{
-					if( !m_pElement )
-						break;
-
-					uint32 i2 = iBegin < m_pData->GetMaxParticles() ? iBegin : iBegin - m_pData->GetMaxParticles();
-					uint8* pData = pInst + m_param.m_nInstStride * i1;
-					uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
-					for( auto& param : m_param.m_shaderParams )
+					for( i1 = 0; i1 < nMaxInst && iBegin < pParticleInstanceData->nEnd; i1++, iBegin++ )
 					{
-						if( param.nDstOfs != INVALID_16BITID )
-							memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
-					}
-				}
+						if( !m_pElement )
+							break;
 
-				uint32 nInstanceDataSize = i1 * m_param.m_nInstStride;
-				context.pInstanceDataSize = &nInstanceDataSize;
-				context.ppInstanceData = (void**)&pInst;
-				m_material.ApplyPerInstance( context );
-				pRenderSystem->DrawInputInstanced( i1 );
-			}
-
-			m_pElement->OnFlushed();
-		}
-	}
-	else
-	{
-		uint32 nLastElemRenderedCount = 0;
-		while( m_pElement )
-		{
-			uint32 i1;
-			for( i1 = 0; i1 < nMaxInst && m_pElement; )
-			{
-				while( m_pElement && i1 < nMaxInst )
-				{
-					context.pCurElement = m_pElement;
-					SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
-					uint32 iBegin = pParticleInstanceData->nBegin + nLastElemRenderedCount;
-					uint32 iEnd = pParticleInstanceData->nEnd;
-					if( iEnd - iBegin + i1 > nMaxInst )
-					{
-						iEnd = nMaxInst + iBegin - i1;
-						nLastElemRenderedCount = iEnd - pParticleInstanceData->nBegin;
-					}
-					else
-						nLastElemRenderedCount = 0;
-					float fDepth = m_pElement->depth;
-
-					for( ; iBegin < iEnd; iBegin++, i1++ )
-					{
 						uint32 i2 = iBegin < m_pData->GetMaxParticles() ? iBegin : iBegin - m_pData->GetMaxParticles();
 						uint8* pData = pInst + m_param.m_nInstStride * i1;
 						uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
@@ -336,26 +294,191 @@ void CParticleSystemDrawable::Flush( CRenderContext2D& context )
 							if( param.nDstOfs != INVALID_16BITID )
 								memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
 						}
-						if( m_param.m_nZOrderOfs != INVALID_32BITID )
-							memcpy( pData + m_param.m_nZOrderOfs, &fDepth, sizeof( fDepth ) );
 					}
 
-					if( !nLastElemRenderedCount )
-						m_pElement->OnFlushed();
-				}
-
-				if( i1 > 0 )
-				{
 					uint32 nInstanceDataSize = i1 * m_param.m_nInstStride;
 					context.pInstanceDataSize = &nInstanceDataSize;
 					context.ppInstanceData = (void**)&pInst;
 					m_material.ApplyPerInstance( context );
 					pRenderSystem->DrawInputInstanced( i1 );
 				}
+
+				m_pElement->OnFlushed();
+			}
+		}
+		else
+		{
+			uint32 nLastElemRenderedCount = 0;
+			while( m_pElement )
+			{
+				uint32 i1;
+				for( i1 = 0; i1 < nMaxInst && m_pElement; )
+				{
+					while( m_pElement && i1 < nMaxInst )
+					{
+						context.pCurElement = m_pElement;
+						SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
+						uint32 iBegin = pParticleInstanceData->nBegin + nLastElemRenderedCount;
+						uint32 iEnd = pParticleInstanceData->nEnd;
+						if( iEnd - iBegin + i1 > nMaxInst )
+						{
+							iEnd = nMaxInst + iBegin - i1;
+							nLastElemRenderedCount = iEnd - pParticleInstanceData->nBegin;
+						}
+						else
+							nLastElemRenderedCount = 0;
+						float fDepth = m_pElement->depth;
+
+						for( ; iBegin < iEnd; iBegin++, i1++ )
+						{
+							uint32 i2 = iBegin < m_pData->GetMaxParticles() ? iBegin : iBegin - m_pData->GetMaxParticles();
+							uint8* pData = pInst + m_param.m_nInstStride * i1;
+							uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
+							for( auto& param : m_param.m_shaderParams )
+							{
+								if( param.nDstOfs != INVALID_16BITID )
+									memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
+							}
+							if( m_param.m_nZOrderOfs != INVALID_32BITID )
+								memcpy( pData + m_param.m_nZOrderOfs, &fDepth, sizeof( fDepth ) );
+						}
+
+						if( !nLastElemRenderedCount )
+							m_pElement->OnFlushed();
+					}
+
+					if( i1 > 0 )
+					{
+						uint32 nInstanceDataSize = i1 * m_param.m_nInstStride;
+						context.pInstanceDataSize = &nInstanceDataSize;
+						context.ppInstanceData = (void**)&pInst;
+						m_material.ApplyPerInstance( context );
+						pRenderSystem->DrawInputInstanced( i1 );
+					}
+				}
+			}
+		}
+		m_material.UnApply( context );
+	}
+	else
+	{
+		pRenderSystem->SetBlendState( IBlendState::Get<>() );
+
+		float fLife = m_pData->GetLifeTime();
+		if( !m_pData->IsBatchAcrossInstances() )
+		{
+			while( m_pElement )
+			{
+				context.pCurElement = m_pElement;
+				OnFlushElement( context, m_pElement );
+				uint32 i1;
+				SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
+				uint32 iBegin = pParticleInstanceData->nBegin;
+
+				while( iBegin < pParticleInstanceData->nEnd )
+				{
+					for( i1 = 0; i1 < nMaxInst && iBegin < pParticleInstanceData->nEnd; i1++, iBegin++ )
+					{
+						if( !m_pElement )
+							break;
+
+						uint32 i2 = iBegin < m_pData->GetMaxParticles() ? iBegin : iBegin - m_pData->GetMaxParticles();
+						uint8* pData = pInst + m_param.m_nInstStride * i1;
+						uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
+						for( auto& param : m_param.m_shaderParams )
+						{
+							if( param.nDstOfs != INVALID_16BITID )
+								memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
+						}
+					}
+
+					uint32 nInstanceDataSize = i1 * m_param.m_nInstStride;
+					context.pInstanceDataSize = &nInstanceDataSize;
+					context.ppInstanceData = (void**)&pInst;
+					context.RTImage( 0 );
+					m_material.Apply( context );
+					if( m_param.m_paramLife.bIsBound )
+						m_param.m_paramLife.Set( pRenderSystem, &fLife );
+					if( m_param.m_paramTime.bIsBound )
+						m_param.m_paramTime.Set( pRenderSystem, &pParticleInstanceData->fTime );
+					m_material.ApplyPerInstance( context );
+					pRenderSystem->DrawInputInstanced( i1 );
+					m_material.UnApply( context );
+					context.RTImage( 1 );
+					m_material1.Apply( context );
+					m_material1.ApplyPerInstance( context );
+					pRenderSystem->DrawInputInstanced( i1 );
+					m_material1.UnApply( context );
+					context.RTImage( 2 );
+				}
+
+				m_pElement->OnFlushed();
+			}
+		}
+		else
+		{
+			uint32 nLastElemRenderedCount = 0;
+			while( m_pElement )
+			{
+				uint32 i1;
+				for( i1 = 0; i1 < nMaxInst && m_pElement; )
+				{
+					while( m_pElement && i1 < nMaxInst )
+					{
+						context.pCurElement = m_pElement;
+						SParticleInstanceData* pParticleInstanceData = (SParticleInstanceData*)m_pElement->pInstData;
+						uint32 iBegin = pParticleInstanceData->nBegin + nLastElemRenderedCount;
+						uint32 iEnd = pParticleInstanceData->nEnd;
+						if( iEnd - iBegin + i1 > nMaxInst )
+						{
+							iEnd = nMaxInst + iBegin - i1;
+							nLastElemRenderedCount = iEnd - pParticleInstanceData->nBegin;
+						}
+						else
+							nLastElemRenderedCount = 0;
+						float fDepth = m_pElement->depth;
+
+						for( ; iBegin < iEnd; iBegin++, i1++ )
+						{
+							uint32 i2 = iBegin < m_pData->GetMaxParticles() ? iBegin : iBegin - m_pData->GetMaxParticles();
+							uint8* pData = pInst + m_param.m_nInstStride * i1;
+							uint8* pInstData = (uint8*)pParticleInstanceData->pData + nInstDataStride * i2;
+							for( auto& param : m_param.m_shaderParams )
+							{
+								if( param.nDstOfs != INVALID_16BITID )
+									memcpy( pData + param.nDstOfs, pInstData + param.nSrcOfs, param.nSize );
+							}
+							if( m_param.m_nZOrderOfs != INVALID_32BITID )
+								memcpy( pData + m_param.m_nZOrderOfs, &fDepth, sizeof( fDepth ) );
+						}
+
+						if( !nLastElemRenderedCount )
+							m_pElement->OnFlushed();
+					}
+
+					if( i1 > 0 )
+					{
+						uint32 nInstanceDataSize = i1 * m_param.m_nInstStride;
+						context.pInstanceDataSize = &nInstanceDataSize;
+						context.ppInstanceData = (void**)&pInst;
+						context.RTImage( 0 );
+						m_material.Apply( context );
+						if( m_param.m_paramLife.bIsBound )
+							m_param.m_paramLife.Set( pRenderSystem, &fLife );
+						m_material.ApplyPerInstance( context );
+						pRenderSystem->DrawInputInstanced( i1 );
+						m_material.UnApply( context );
+						context.RTImage( 1 );
+						m_material1.Apply( context );
+						m_material1.ApplyPerInstance( context );
+						pRenderSystem->DrawInputInstanced( i1 );
+						m_material1.UnApply( context );
+						context.RTImage( 2 );
+					}
+				}
 			}
 		}
 	}
-	m_material.UnApply( context );
 }
 
 CParticleSystemObject::CParticleSystemObject( CParticleSystemInstance* pData, CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable, const CRectangle& rect, bool bGUI )
@@ -683,6 +806,8 @@ void CParticleSystemDrawable::Load( IBufReader& buf )
 	m_material.Load( buf );
 	m_param.Load( buf );
 	BindParams();
+	if( !m_pBlendState )
+		m_material1.PixelCopy( m_material );
 }
 
 void CParticleSystemDrawable::Save( CBufFile& buf )

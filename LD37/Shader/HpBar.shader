@@ -1,7 +1,8 @@
 Texture2D Texture0;
 SamplerState Sampler;
 
-void PSHpBar( in float2 tex : TexCoord0,
+void PSHpBar( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

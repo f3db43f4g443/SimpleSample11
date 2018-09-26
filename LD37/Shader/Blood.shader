@@ -1,7 +1,8 @@
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSBloodStain( in float2 tex : TexCoord0,
+void PSBloodStain( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 outInstData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

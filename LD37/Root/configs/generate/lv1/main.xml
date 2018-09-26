@@ -424,10 +424,7 @@
       </node>
 
       <node type="subregion" name="lv1_7">
-        <node type="tile" x="0" y="0" w="32" h="4">
-          <ref name="block0_1" />
-        </node>
-        <node type="lv1type3" gen_type="0" x="0" y="4" w="32" h="56">
+        <node type="lv1type3_0" x="0" y="0" w="32" h="60">
           <wall>
             <ref name="block0_1" />
           </wall>
@@ -461,6 +458,9 @@
           <scrap>
             <ref name="scrap" />
           </scrap>
+          <air_conditioner>
+            <ref name="air_conditioner" />
+          </air_conditioner>
           <window1_1>
             <ref name="window1_1_0" />
           </window1_1>
@@ -581,12 +581,11 @@
       </node>
 
       <node type="subregion" name="test_lv">
-        <!--metadata seed="168423333" /-->
+        <!--metadata seed="1543145343" /-->
         <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0" />
         </node>
         <ref name="lv1_7" x="0" y="4" w="32" h="60" />
-        <ref name="lv1floor_1" x="0" y="64" w="32" h="4" />
       </node>
     </nodes>
   </level_gen>

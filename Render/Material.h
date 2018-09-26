@@ -20,6 +20,8 @@ public:
 		}
 		vector< pair<CShaderParam, uint32> > vecShaderParams;
 		vector< pair<CShaderParam, uint32> > vecShaderParamsPerInstance;
+		vector< pair<CShaderParamShaderResource, uint32> > vecSystemShaderResources;
+		vector< pair<CShaderParamSampler, ISamplerState* > > vecSamplers;
 	protected:
 		void _init( const char* szShaderName, IShader* pShader );
 	};
@@ -45,6 +47,8 @@ public:
 	void Save( CBufFile& buf );
 	void LoadXml( TiXmlElement* pRoot );
 
+	void PixelCopy( CMaterial& mat );
+
 	uint32 GetMaxInst() { return m_nMaxInst; }
 	uint32 GetExtraInstData() { return m_nExtraInstData; }
 	IShader* GetShader( EShaderType eType ) { return m_pShaderBoundState->GetShader( eType ); }
@@ -57,7 +61,8 @@ public:
 	void BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource );
 private:
 	void GetShaders( const char** szShaders, IShader** pShaders, IShaderBoundState* &pShaderBoundState,
-		vector< pair<CShaderParam, uint32> >& vecParams, vector< pair<CShaderParam, uint32> >& vecParamsPerInstance );
+		vector< pair<CShaderParam, uint32> >& vecParams, vector< pair<CShaderParam, uint32> >& vecParamsPerInstance,
+		vector< pair<CShaderParamShaderResource, uint32> >& vecSystemShaderResources, vector< pair<CShaderParamSampler, ISamplerState* > >& vecSamplers );
 	static ISamplerState* GetMaterialSamplerStates( uint8 nFilter, uint8 nAddress );
 
 	IShaderBoundState* m_pShaderBoundState;
@@ -66,6 +71,8 @@ private:
 	string m_strShaderName[(uint32)EShaderType::Count];
 	vector< pair<CShaderParam, uint32> > m_vecShaderParams;
 	vector< pair<CShaderParam, uint32> > m_vecShaderParamsPerInstance;
+	vector< pair<CShaderParamShaderResource, uint32> > m_vecSystemShaderResources;
+	vector< pair<CShaderParamSampler, ISamplerState* > > m_vecSystemSamplers;
 	vector< pair<CShaderParamConstantBuffer, CReference<IConstantBuffer> > > m_vecConstantBuffers;
 	vector< pair<CShaderParamShaderResource, IShaderResourceProxy* > > m_vecShaderResources;
 	vector< pair<CShaderParamSampler, ISamplerState* > > m_vecSamplers;

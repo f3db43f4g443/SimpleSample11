@@ -2,8 +2,8 @@
 
 void VSDefault( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	Default2D_Vertex( tex, instID * 2, outTex, outPos );
 }
@@ -15,9 +15,9 @@ void VSDefault( in float2 tex : Position,
 
 void VSDefaultExtraInstData( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData[EXTRA_INST_DATA] : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData[EXTRA_INST_DATA] : ExtraInstData0 )
 {
 	Default2D_Vertex( tex, instID * INST_DATA_SIZE, outTex, outPos );
 

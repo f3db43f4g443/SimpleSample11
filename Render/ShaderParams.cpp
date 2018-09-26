@@ -240,6 +240,8 @@ void CShaderInfo::Load( IBufReader& buf )
 		buf.Read( sampler.nIndex );
 		nMaxSampler = Max( nMaxSampler, sampler.nIndex + 1 );
 	}
+
+	buf.Read( nMaxTarget );
 }
 
 void CShaderInfo::Save( CBufFile& buf )
@@ -283,4 +285,6 @@ void CShaderInfo::Save( CBufFile& buf )
 		buf.Write( sampler.strName );
 		buf.Write( sampler.nIndex );
 	}
+
+	buf.Write( nMaxTarget );
 }

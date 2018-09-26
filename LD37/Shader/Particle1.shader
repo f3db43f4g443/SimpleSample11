@@ -11,9 +11,9 @@ cbuffer InstBuffer
 
 void VSParticle( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = ( tex - float2( 0, 0.5 ) ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -41,9 +41,9 @@ void VSParticle( in float2 tex : Position,
 
 void VSParticle1( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = ( tex - float2( 0.5, 0.5 ) ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];
@@ -69,9 +69,9 @@ void VSParticle1( in float2 tex : Position,
 
 void VSParticle2( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = ( tex - float2( 0.5, 0.5 ) ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];
@@ -98,7 +98,8 @@ void VSParticle2( in float2 tex : Position,
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSParticle( in float3 tex : TexCoord0,
+void PSParticle( in float4 inPos : SV_Position,
+	in float3 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float4 texColor = Texture0.Sample( LinearSampler, tex.xy ) * tex.z;
@@ -107,7 +108,8 @@ void PSParticle( in float3 tex : TexCoord0,
 
 Texture2D TextureColorMap;
 SamplerState LinearSampler1;
-void PSParticleColorMapColor( in float2 tex : TexCoord0,
+void PSParticleColorMapColor( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 InstData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -120,7 +122,8 @@ void PSParticleColorMapColor( in float2 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, color.w );
 }
 
-void PSParticleColorMapOcclusion( in float2 tex : TexCoord0,
+void PSParticleColorMapOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 InstData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

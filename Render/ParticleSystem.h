@@ -244,6 +244,7 @@ protected:
 
 	CReference<CParticleSystemData> m_pData;
 	CMaterial m_material;
+	CMaterial m_material1;
 	SParticleSystemShaderParam m_param;
 	IBlendState* m_pBlendState;
 };

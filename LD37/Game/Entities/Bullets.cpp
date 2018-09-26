@@ -152,7 +152,7 @@ void CWaterFall::OnTickAfterHitTest()
 				{
 					CVector2 norm( 1, 0 );
 					norm = ( pPlayer->globalTransform.GetPosition() - GetPosition() ).Dot( norm ) > 0 ? norm : norm * -1;
-					pPlayer->Knockback( norm );
+					pPlayer->Knockback( norm * m_fKnockback );
 				}
 			}
 		}
@@ -194,6 +194,99 @@ void CWaterFall::UpdateEft()
 
 	}
 	pEft->SetTransformDirty();
+}
+
+void CWaterFall1::OnRemovedFromStage()
+{
+	m_pEntity = NULL;
+	CCharacter::OnRemovedFromStage();
+}
+
+void CWaterFall1::Set( CEntity * pEntity, const CVector2& ofs )
+{
+	m_pEntity = pEntity;
+	m_ofs = ofs;
+	UpdateEftPos();
+	UpdateEftParams();
+}
+
+void CWaterFall1::Kill()
+{
+	m_bKilled = true;
+	m_pEntity = NULL;
+}
+
+void CWaterFall1::OnTickAfterHitTest()
+{
+	CCharacter::OnTickAfterHitTest();
+	if( m_pEntity && !m_pEntity->GetStage() )
+		Kill();
+	UpdateEftPos();
+
+	float fLen = y + m_fFadeInLen;
+	m_fFadeInPos = Min( fLen, m_fFadeInPos + m_fFadeInSpeed * GetStage()->GetElapsedTimePerTick() );
+	if( m_bKilled )
+	{
+		m_fFadeOutPos = Min( fLen, m_fFadeOutPos + m_fFadeOutSpeed * GetStage()->GetElapsedTimePerTick() );
+		if( m_fFadeOutPos >= fLen )
+		{
+			SetParentEntity( NULL );
+			return;
+		}
+	}
+
+	float fHitBegin = m_fFadeInPos - m_fFadeInLen;
+	float fHitEnd = m_fFadeOutPos;
+	if( fHitBegin > fHitEnd )
+	{
+		float yBegin = y - fHitBegin;
+		float yEnd = y - fHitEnd;
+		CRectangle rect( x - m_fHitWidth * 0.5f, yBegin, m_fHitWidth, yEnd - yBegin );
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		SHitProxyPolygon hitProxy( rect );
+		hitProxy.CalcBoundGrid( CMatrix2D::GetIdentity() );
+		SHitTestResult result;
+		if( pPlayer->HitTest( &hitProxy, CMatrix2D::GetIdentity(), &result ) )
+		{
+			if( pPlayer->CanKnockback() )
+			{
+				CVector2 norm = result.normal * -1;
+				norm.y = Min( norm.y, 0.0f );
+				if( norm.Normalize() > 0 )
+					pPlayer->Knockback( norm );
+			}
+		}
+	}
+
+	UpdateEftParams();
+}
+
+void CWaterFall1::UpdateEftPos()
+{
+	auto pEft = static_cast<CRopeObject2D*>( GetRenderObject() );
+	auto& data0 = pEft->GetData().data[0];
+	auto& data1 = pEft->GetData().data[1];
+	if( m_pEntity )
+		SetPosition( m_pEntity->globalTransform.MulVector2Pos( m_ofs ) );
+	data1.center = CVector2( 0, -y );
+	data0.fWidth = data1.fWidth = m_fWidth;
+	data1.tex0.y = data1.tex1.y = y / m_fTexYTileLen;
+	data0.tex1.x = data1.tex1.x = data1.tex0.y;
+}
+
+void CWaterFall1::UpdateEftParams()
+{
+	auto pEft = static_cast<CRopeObject2D*>( GetRenderObject() );
+	for( int i = 0; i < 2; i++ )
+	{
+		auto pParam = pEft->GetParam( i );
+		if( !pParam )
+			return;
+		pParam->x = m_fTexYTileLen / m_fFadeInLen;
+		pParam->y = m_fTexYTileLen / m_fFadeOutLen;
+		pParam->z = m_fFadeInPos / m_fTexYTileLen;
+		pParam->w = m_fFadeOutPos / m_fTexYTileLen;
+	}
 }
 
 void CBulletWithBlockBuff::OnAddedToStage()
@@ -473,7 +566,7 @@ void CWaterSplash::OnTickAfterHitTest()
 		if( m_nDamage1 || m_fKnockback > 0 )
 		{
 			CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
-			if( pPlayer )
+			if( pPlayer && pPlayer->CanBeHit() )
 			{
 				if( m_fKnockback > 0 )
 				{

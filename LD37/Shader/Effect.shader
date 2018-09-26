@@ -3,7 +3,8 @@ SamplerState LinearSampler;
 float4 Color0;
 float4 Color1;
 
-void PSTwoColorLerp( in float2 tex : TexCoord0,
+void PSTwoColorLerp( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
@@ -11,7 +12,8 @@ void PSTwoColorLerp( in float2 tex : TexCoord0,
 	outColor.w = texColor.w;
 }
 
-void PSSingleColorEmissionClearColorClip( in float2 tex : TexCoord0,
+void PSSingleColorEmissionClearColorClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -20,7 +22,8 @@ void PSSingleColorEmissionClearColorClip( in float2 tex : TexCoord0,
 	clip( outColor[1].w - 0.5f );
 }
 
-void PSSingleColorEmissionClearColorNoClip( in float2 tex : TexCoord0,
+void PSSingleColorEmissionClearColorNoClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -28,7 +31,8 @@ void PSSingleColorEmissionClearColorNoClip( in float2 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, outColor[1].w );
 }
 
-void PSEmissionClearColorClip( in float2 tex : TexCoord0,
+void PSEmissionClearColorClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	outColor[1] = Texture0.Sample( LinearSampler, tex );
@@ -36,14 +40,16 @@ void PSEmissionClearColorClip( in float2 tex : TexCoord0,
 	clip( outColor[1].w - 0.5f );
 }
 
-void PSEmissionClearColorNoClip( in float2 tex : TexCoord0,
+void PSEmissionClearColorNoClip( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	outColor[1] = Texture0.Sample( LinearSampler, tex );
 	outColor[0] = float4( 0, 0, 0, outColor[1].w );
 }
 
-void PSEmissionClearColorInstData( in float2 tex : TexCoord0,
+void PSEmissionClearColorInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 InstData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -55,7 +61,8 @@ Texture2D Texture1;
 float g_totalTime;
 float fTimeScale;
 
-void PSEmissionEffect( in float2 tex : TexCoord0,
+void PSEmissionEffect( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -71,7 +78,8 @@ void PSEmissionEffect( in float2 tex : TexCoord0,
 }
 
 float2 tex1Size;
-void PSEmissionEffect1( in float2 tex : TexCoord0,
+void PSEmissionEffect1( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
@@ -87,7 +95,8 @@ void PSEmissionEffect1( in float2 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, outColor[1].w );
 }
 
-void PSParticleDissolveColor( in float2 tex : TexCoord0,
+void PSParticleDissolveColor( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -103,7 +112,8 @@ void PSParticleDissolveColor( in float2 tex : TexCoord0,
 
 float fMinHeight;
 float fMaxHeight;
-void PSParticleDissolveOcc( in float2 tex : TexCoord0,
+void PSParticleDissolveOcc( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {
@@ -116,7 +126,8 @@ void PSParticleDissolveOcc( in float2 tex : TexCoord0,
 	clip( fAlpha - 0.001 );
 }
 
-void PSEmiRadialFade( in float2 tex : TexCoord0,
+void PSEmiRadialFade( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	in float4 instData1 : ExtraInstData1,
 	out float4 outColor[2] : SV_Target )

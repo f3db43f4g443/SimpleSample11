@@ -458,6 +458,12 @@
     <None Include="..\Shader\Beams.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\ParticleFlipbookSplash.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Distortion.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">

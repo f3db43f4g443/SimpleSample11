@@ -523,10 +523,12 @@
     <None Include="..\Shader\CrackEffect.shader" />
     <None Include="..\Shader\Decorator.shader" />
     <None Include="..\Shader\Default2DWithOrigTex.shader" />
+    <None Include="..\Shader\Distortion.shader" />
     <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
     <None Include="..\Shader\ParticleFlipbook1.shader" />
+    <None Include="..\Shader\ParticleFlipbookSplash.shader" />
     <None Include="..\Shader\ParticleRandomTex.shader" />
     <None Include="..\Shader\SelectArea.shader" />
     <None Include="..\Shader\Splash.shader" />

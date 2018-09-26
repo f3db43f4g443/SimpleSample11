@@ -51,6 +51,34 @@ protected:
 	uint8 m_nState;
 };
 
+class CWaterFall1 : public CCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CWaterFall1( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CWaterFall1 ); }
+	virtual void OnRemovedFromStage() override;
+	void Set( CEntity* pEntity, const CVector2& ofs );
+
+	void Kill();
+protected:
+	virtual void OnTickAfterHitTest() override;
+	void UpdateEftPos();
+	void UpdateEftParams();
+	
+	float m_fWidth;
+	float m_fHitWidth;
+	float m_fTexYTileLen;
+	float m_fFadeInLen;
+	float m_fFadeOutLen;
+	float m_fFadeInSpeed;
+	float m_fFadeOutSpeed;
+
+	bool m_bKilled;
+	float m_fFadeInPos, m_fFadeOutPos;
+	CReference<CEntity> m_pEntity;
+	CVector2 m_ofs;
+};
+
 class CThrowObj : public CEnemy
 {
 	friend void RegisterGameClasses();

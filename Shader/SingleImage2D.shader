@@ -4,8 +4,8 @@ float4 g_rect;
 float4 g_texRect;
 
 void VSMain( in float2 tex : Position,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = tex;
 	pos.y = 1 - pos.y;

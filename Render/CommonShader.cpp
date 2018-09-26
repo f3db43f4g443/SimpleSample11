@@ -101,6 +101,21 @@ IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusion, "Shader/AlphaToOcclusion.shader",
 IMPLEMENT_MATERIAL_SHADER( Default2DUIVertexShader, "Shader/Default2DUI.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DUIVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DUI.shader", "VSDefaultExtraInstData", "vs_5_0" );
 
+template<uint32 InstCount>
+class CRTImagePixelShader : public CGlobalShader
+{
+protected:
+	virtual void SetMacros( SShaderMacroDef& macros ) override
+	{
+		char szBuf[32];
+		sprintf( szBuf, "%d", InstCount );
+		macros.Add( "MAX_TEXTURES", szBuf );
+	}
+};
+
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( RTImage1, CRTImagePixelShader<1>, "Shader/RTImage.shader", "PSMain", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( RTImage2, CRTImagePixelShader<2>, "Shader/RTImage.shader", "PSMain", "ps_5_0" );
+
 void Engine_ShaderImplement_Dummy_Light();
 void Engine_ShaderImplement_Dummy()
 {

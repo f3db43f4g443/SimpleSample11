@@ -5,8 +5,8 @@ float fDepth;
 
 void VSScreen( in float2 pos : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float4 DstRect = g_insts[instID * 2];
 	float4 SrcRect = g_insts[instID * 2 + 1];
@@ -18,9 +18,9 @@ void VSScreen( in float2 pos : Position,
 
 void VSBlockRTLayer( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float2 outTex1 : TexCoord1,
-	out float4 outPos : SV_Position )
+	out float2 outTex1 : TexCoord1 )
 {
 	Default2D_Vertex( tex, instID * 3, outTex, outPos );
 
@@ -32,7 +32,8 @@ Texture2D Texture0;
 Texture2D TextureMask;
 SamplerState Sampler;
 
-void PSBlockRTLayer( in float2 tex : TexCoord0,
+void PSBlockRTLayer( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor[2] : SV_Target )
 {
@@ -44,7 +45,8 @@ void PSBlockRTLayer( in float2 tex : TexCoord0,
 	outColor[1] = float4( 0, 0, 0, 0 );
 }
 
-void PSBlockRTLayer1( in float2 tex : TexCoord0,
+void PSBlockRTLayer1( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor[2] : SV_Target )
 {

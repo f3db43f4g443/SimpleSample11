@@ -7,7 +7,8 @@ float4 Color1;
 float4 Color2;
 float fWorldScale;
 
-void PSBulletEffect( in float2 tex : TexCoord0,
+void PSBulletEffect( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor[2] : SV_Target )
 {

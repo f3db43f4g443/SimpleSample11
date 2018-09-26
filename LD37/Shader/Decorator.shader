@@ -6,7 +6,8 @@ Texture2D Texture1;
 SamplerState Sampler;
 SamplerState Sampler1;
 
-void PSBlendVividLight( in float2 tex : TexCoord0,
+void PSBlendVividLight( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {
@@ -25,7 +26,8 @@ void PSBlendVividLight( in float2 tex : TexCoord0,
 }
 
 
-void PSBlendMul( in float2 tex : TexCoord0,
+void PSBlendMul( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )

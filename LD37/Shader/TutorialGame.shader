@@ -4,7 +4,8 @@ SamplerState PointSampler;
 SamplerState LinearSampler;
 float fBaseAlpha;
 
-void PSMain( in float2 tex : TexCoord0,
+void PSMain( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float2 vTex = ( tex - 0.5f ) * 2;
@@ -29,7 +30,8 @@ float4 vTimeCoef;
 
 //Scanline pass
 
-void PSScanLineBase( in float2 tex : TexCoord0,
+void PSScanLineBase( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor[2] : SV_Target )
 {
@@ -42,7 +44,8 @@ void PSScanLineBase( in float2 tex : TexCoord0,
 }
 
 float fColorTimeScale;
-void PSFlash( in float2 tex : TexCoord0,
+void PSFlash( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor[2] : SV_Target )
 {
 	float4 texColor = Texture0.Sample( PointSampler, tex );
@@ -55,7 +58,8 @@ void PSFlash( in float2 tex : TexCoord0,
 	outColor[1] = float4( color, texColor.w );
 }
 
-void PSScanLineBase1( in float2 tex : TexCoord0,
+void PSScanLineBase1( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
@@ -81,7 +85,8 @@ float3 ScanLineColor( in float3 color, in float fScanLine )
 	return pow( color, pow( vGamma.x, fScanLine ) * pow( vGamma.y, 1 - fScanLine ) );
 }
 
-void PSScanLine( in float2 tex : TexCoord0,
+void PSScanLine( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {
@@ -93,7 +98,8 @@ void PSScanLine( in float2 tex : TexCoord0,
 }
 
 float4 vColor1;
-void PSScanLine1( in float2 tex : TexCoord0,
+void PSScanLine1( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	out float4 outColor : SV_Target )
 {
@@ -103,7 +109,8 @@ void PSScanLine1( in float2 tex : TexCoord0,
 }
 
 float2 g_screenResolution;
-void PSScrCoordMasked( in float2 tex : TexCoord0,
+void PSScrCoordMasked( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
@@ -114,7 +121,8 @@ void PSScrCoordMasked( in float2 tex : TexCoord0,
 	outColor.xyz *= outColor.w;
 }
 
-void PSHREffect( in float2 tex : TexCoord0,
+void PSHREffect( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float2 tex1 : TexCoord1,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )

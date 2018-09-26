@@ -15,9 +15,9 @@ cbuffer InstBuffer
 
 void VSParticle( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = ( tex - 0.5 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -47,7 +47,8 @@ SamplerState LinearSampler;
 SamplerState LinearSampler1;
 SamplerState LinearSampler2;
 
-void PSMask( in float2 tex : TexCoord0,
+void PSMask( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor[2] : SV_Target )
 {
@@ -63,7 +64,8 @@ void PSMask( in float2 tex : TexCoord0,
 	outColor[0] = float4( 0, 0, 0, color.w );
 }
 
-void PSMaskOcclusion( in float2 tex : TexCoord0,
+void PSMaskOcclusion( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	in float4 instData : ExtraInstData0,
 	out float4 outColor : SV_Target )
 {

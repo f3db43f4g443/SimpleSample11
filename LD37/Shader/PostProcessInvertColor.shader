@@ -1,7 +1,8 @@
 Texture2D Texture0;
 SamplerState LinearSampler;
 
-void PSMain( in float2 tex : TexCoord0,
+void PSMain( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float2 vTex = ( tex - 0.5f ) * 2;

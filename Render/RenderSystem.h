@@ -49,11 +49,14 @@ public:
 	
 	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) = 0;
 
+	virtual void GetRenderTargetTextures( CReference<ITexture>* ppTextures, uint32& nTextures, uint32 nArraySize ) = 0;
+
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) = 0;
 	virtual void SetBlendState( IBlendState* pState, const CVector4& blendFactor = CVector4( 0, 0, 0, 0 ), uint32 nSampleMask = 0xffffffff ) = 0;
 	virtual void SetDepthStencilState( IDepthStencilState* pState, uint32 nStencilRef = 0 ) = 0;
 	virtual void SetRasterizerState( IRasterizerState* pState ) = 0;
 
+	virtual void SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets ) = 0;
 	virtual void SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets, IDepthStencil* pDepthStencil ) = 0;
 	void SetRenderTarget( IRenderTarget* pRenderTarget, IDepthStencil* pDepthStencil )
 	{

@@ -417,7 +417,7 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.maxSize.y = XmlGetAttr<int32>( pMetadata, "maxy", m_metadata.maxSize.y );
 		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
 		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
-		m_metadata.nSeed = XmlGetAttr<int32>( pMetadata, "seed", m_metadata.nSeed );
+		m_metadata.nSeed = XmlGetAttr<uint32>( pMetadata, "seed", m_metadata.nSeed );
 	}
 	if( m_metadata.maxSize == m_metadata.minSize )
 		m_metadata.nEditType = eEditType_Brush;
@@ -463,14 +463,14 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
 	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
 	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 1.0f );
-	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1 );
+	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1.0f );
 	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0.0F );
 	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
 	chunk.nDestroyShake = XmlGetAttr( pXml, "destroyshake", 1 );
 	chunk.nShakeDmgThreshold = XmlGetAttr( pXml, "shakedmgthreshold", 1 );
 	chunk.fWeightPerWidth = XmlGetAttr( pXml, "weightperwidth", 0.0f );
 	chunk.fDestroyWeightPerWidth = XmlGetAttr( pXml, "destroyweightperwidth", 0.0f );
-	chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1 );
+	chunk.fAbsorbShakeStrengthPerHeight = XmlGetAttr( pXml, "absorbshakestrengthperheight", 1.0f );
 	m_nLevelBarrierType = XmlGetAttr( pXml, "islevelbarrier", 0 );
 	m_nLevelBarrierHeight = XmlGetAttr( pXml, "levelbarrierheight", 0 );
 	chunk.nLayerType = XmlGetAttr( pXml, "layer_type", 3 );
@@ -1688,7 +1688,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1type1_3", CLevelGenNode1_1_3 );
 	REGISTER_GENERATE_NODE( "lv1type2", CLevelGenNode1_2 );
 	REGISTER_GENERATE_NODE( "lv1type3", CLevelGenNode1_3 );
-	REGISTER_GENERATE_NODE( "barrier1", CLvBarrierNodeGen1 );
+	REGISTER_GENERATE_NODE( "lv1type3_0", CLevelGenNode1_3_0 );
 	REGISTER_GENERATE_NODE( "lv1bonus0", CLevelBonusGenNode1_0 );
 	REGISTER_GENERATE_NODE( "lv1bonus1", CLevelBonusGenNode1_1 );
 

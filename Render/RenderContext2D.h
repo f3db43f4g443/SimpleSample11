@@ -55,7 +55,7 @@ class CRenderContext2D
 {
 public:
 	CRenderContext2D() : pUpdatedObjects( NULL ), pRenderSystem( NULL ), renderGroup( NULL ), m_pDirectionalLight( NULL ), m_pPointLight( NULL ), pCurElement( NULL ),
-		dTime( 0 ), nTimeStamp( 0 ), nFixedUpdateCount( 0 ), pInstanceDataSize( NULL ), ppInstanceData( NULL ), nRenderGroups( 2 ), bInverseY( false )
+		dTime( 0 ), nTimeStamp( 0 ), nFixedUpdateCount( 0 ), pInstanceDataSize( NULL ), ppInstanceData( NULL ), nRenderGroups( 2 ), bInverseY( false ), nRTImages( 0 ), nRTImageStep( 0 )
 	{
 		memset( nElemCount, 0, sizeof( nElemCount ) );
 	}
@@ -68,6 +68,7 @@ public:
 
 	CVector2 screenRes;
 	CVector2 lightMapRes;
+	CVector2 targetSize;
 
 	CRectangle rectScene;
 	CRectangle rectViewport;
@@ -88,12 +89,20 @@ public:
 	unsigned int GetElemCount( uint32 nGroup = 0 ) { return renderGroup[nGroup].m_nElemCount; }
 
 	void SetSystemShaderParam( CShaderParam& shaderParam, uint32 nType );
+	void SetSystemShaderResourceParam( CShaderParamShaderResource& shaderParam, uint32 nType );
 
 	void AddElement( CElement2D* pElement, uint32 nGroup = 0 );
 	void AddDirectionalLight( SDirectionalLight2D* pLight ) { Insert_DirectionalLight( pLight ); }
 	void AddPointLight( SPointLight2D* pLight ) { Insert_PointLight( pLight ); }
 	void Render( CRenderObject2D* pObject, bool bTest = true );
 	void FlushElements( uint32 nGroup = 0 );
+
+	CReference<ITexture> pRTOrig[MAX_RENDER_TARGETS];
+	CReference<ITexture> pRTImages[MAX_RENDER_TARGETS];
+	uint32 nRTImages;
+	uint8 nRTImageStep;
+
+	void RTImage( uint8 nStep );
 private:
 	LINK_LIST_HEAD( m_pDirectionalLight, SDirectionalLight2D, DirectionalLight );
 	LINK_LIST_HEAD( m_pPointLight, SPointLight2D, PointLight );

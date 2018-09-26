@@ -178,9 +178,6 @@
     <None Include="..\Shader\Utils.shader">
       <Filter>Shader</Filter>
     </None>
-    <None Include="..\Shader\Default2D.shader">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="..\Shader\CommonMaterial.shader">
       <Filter>Shader</Filter>
     </None>
@@ -214,10 +211,10 @@
     <None Include="..\Shader\Default2DScrTiled.shader">
       <Filter>Shader</Filter>
     </None>
-    <None Include="..\LD37\Shader\Decorator.shader">
+    <None Include="..\Shader\Light2DAO.shader">
       <Filter>Shader</Filter>
     </None>
-    <None Include="..\Shader\Light2DAO.shader">
+    <None Include="..\Shader\RTImage.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

@@ -9,8 +9,8 @@ cbuffer InstBuffer
 
 void VSDefault( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float pos = tex.x * 2.0 - 1.0;
 	float fracInstID = tex.y / g_segmentsPerData;
@@ -29,9 +29,9 @@ void VSDefault( in float2 tex : Position,
 float4 g_staticData;
 void VSDefaultStaticData1( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float pos = tex.x * 2.0 - 1.0;
 	float fracInstID = tex.y / g_segmentsPerData;

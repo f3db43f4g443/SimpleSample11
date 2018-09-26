@@ -30,11 +30,14 @@ public:
 	
 	virtual IShader* LoadShader( IBufReader& buf, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc = NULL, uint32 nVertexBuffers = 0, uint32 nRasterizedStream = 0 ) override;
 
+	virtual void GetRenderTargetTextures( CReference<ITexture>* ppTextures, uint32& nTextures, uint32 nArraySize ) override;
+
 	virtual void SetPrimitiveType( EPrimitiveType ePrimitiveType ) override;
 	virtual void SetBlendState( IBlendState* pState, const CVector4& blendFactor = CVector4( 0, 0, 0, 0 ), uint32 nSampleMask = 0xffffffff ) override;
 	virtual void SetDepthStencilState( IDepthStencilState* pState, uint32 nStencilRef = 0 ) override;
 	virtual void SetRasterizerState( IRasterizerState* pState ) override;
 
+	virtual void SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets ) override;
 	virtual void SetRenderTargets( IRenderTarget** ppRenderTargets, uint32 nRenderTargets, IDepthStencil* pDepthStencil ) override;
 	virtual void SetSOTargets( IStreamOutput** ppSOTargets, uint32* pSOOffsets, uint32 nSOTargets ) override;
 	virtual void SetViewports( SViewport* pViewports, uint32 nViewports ) override;

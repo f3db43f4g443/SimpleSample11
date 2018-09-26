@@ -7,7 +7,7 @@ using namespace std;
 
 struct SRopeData
 {
-	SRopeData() : pParticleInstData( NULL ), nSegmentsPerData( 1 ), pExtraData( NULL ) {}
+	SRopeData() : pParticleInstData( NULL ), nSegmentsPerData( 1 ), pExtraData( NULL ), nExtraDataStride( 0 ), nExtraDataOfs( 0 ), nExtraDataSize( 0 ) {}
 	struct SData
 	{
 		SData() : center( 0, 0 ), fWidth( 1 ), tex0( 0, 0 ), tex1( 0, 0 ), pRefObj( NULL ), nRefTransformIndex( -1 ), bBegin( false ), bEnd( false ) {}
@@ -32,7 +32,9 @@ struct SRopeData
 	SParticleInstanceData* pParticleInstData;
 	vector<SData> data;
 	uint32 nSegmentsPerData;
-	void* pExtraData;
+
+	CVector4* pExtraData;
+	uint16 nExtraDataStride, nExtraDataOfs, nExtraDataSize;
 };
 
 class TiXmlElement;
@@ -68,9 +70,13 @@ public:
 	SRopeData& GetData() { return m_data; }
 	void SetBoundExt( const CRectangle& rect ) { m_boundExt = rect; }
 	void SetSegmentsPerData( uint32 nSegmentsPerData ) { m_data.nSegmentsPerData = nSegmentsPerData; }
-	void SetDataCount( uint32 nCount ) { m_data.SetDataCount( nCount ); }
+	void SetDataCount( uint32 nCount ) { m_data.SetDataCount( nCount ); m_params.resize( m_nParamCount * nCount ); }
 	void SetData( uint32 nData, const CVector2& center, float fWidth, const CVector2& tex0, const CVector2& tex1, uint16 nTransformIndex = INVALID_16BITID );
-	void SetExtraData( void* pData ) { m_data.pExtraData = pData; }
+	void SetParams( uint16 nParamCount, const CVector4* pData,
+		uint16 nColorParamBeginIndex, uint16 nColorParamCount,
+		uint16 nOcclusionParamBeginIndex, uint16 nOcclusionParamCount,
+		uint16 nGUIParamBeginIndex, uint16 nGUIParamCount, bool bDefaultParam = false );
+	CVector4* GetParam( uint32 nData );
 
 	virtual const CMatrix2D& GetTransform( uint16 nIndex ) override;
 
@@ -80,4 +86,10 @@ protected:
 	virtual void OnTransformUpdated() override { m_data.Update( globalTransform ); }
 	SRopeData m_data;
 	CRectangle m_boundExt;
+
+	uint32 m_nParamCount;
+	uint16 m_nColorParamBeginIndex, m_nColorParamCount;
+	uint16 m_nOcclusionParamBeginIndex, m_nOcclusionParamCount;
+	uint16 m_nGUIParamBeginIndex, m_nGUIParamCount;
+	vector<CVector4> m_params;
 };

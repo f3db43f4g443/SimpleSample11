@@ -1128,7 +1128,7 @@ void CRoach::OnTickAfterHitTest()
 void CMaggot::OnAddedToStage()
 {
 	CEnemy::OnAddedToStage();
-	m_nDir = SRand::Inst().Rand( -1, 2 );
+	m_nDir = m_nType == 0 ? SRand::Inst().Rand( -1, 2 ) : SRand::Inst().Rand( 0, 2 ) * 2 - 1;
 	m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
 	if( m_pExplosion )
 		m_pExplosion->SetParentEntity( NULL );
@@ -1144,7 +1144,7 @@ void CMaggot::OnKnockbackPlayer( const CVector2 & vec )
 {
 	CVector2 tangent( m_moveData.normal.y, -m_moveData.normal.x );
 	float fTangent = tangent.Dot( vec );
-	CVector2 vecKnockback = ( tangent * fTangent + m_moveData.normal ) * m_moveData.fFallInitSpeed * 5;
+	CVector2 vecKnockback = ( tangent * fTangent + m_moveData.normal ) * m_fKnockbackSpeed;
 	if( m_moveData.bHitSurface )
 		m_moveData.Fall( this, vecKnockback );
 	else
@@ -1210,9 +1210,52 @@ void CMaggot::OnTickAfterHitTest()
 			else if( fDir < 0 )
 				m_nDir = -1;
 			else
-				m_nDir = SRand::Inst().Rand( -1, 2 );
+			{
+				if( m_nType == 0 )
+					m_nDir = SRand::Inst().Rand( -1, 2 );
+				else
+				{
+					CVector2 moveDir( m_moveData.normal.y, -m_moveData.normal.x );
+					if( moveDir.y > 0 )
+						m_nDir = 1;
+					else if( moveDir.y < 0 )
+						m_nDir = -1;
+					else
+						m_nDir = SRand::Inst().Rand( 0, 2 ) * 2 - 1;
+				}
+			}
 
-			if( m_moveData.normal.y < -0.8f && SRand::Inst().Rand( 0.0f, 1.0f ) < m_fFallChance )
+			if( m_nType == 1 && SRand::Inst().Rand( 0.0f, 1.0f ) < m_fFallChance )
+			{
+				if( m_moveData.normal.y > 0.8f )
+					m_moveData.Fall( this, CVector2( m_nDir * m_moveData.fSpeed, m_moveData.normal.y * m_moveData.fFallInitSpeed ) );
+				else if( m_moveData.normal.y > -0.1f && m_moveData.normal.y < 0.1f )
+				{
+					CRectangle rect( x, y, 0, 32 );
+					if( m_moveData.normal.x < 0 )
+						rect.SetLeft( rect.GetRight() - 128 );
+					else
+						rect.width = 128;
+					SHitProxyPolygon hitProxy( rect );
+					CMatrix2D trans;
+					trans.Identity();
+					vector<CReference<CEntity> > result;
+					GetStage()->MultiHitTest( &hitProxy, trans, result );
+					bool bHit = false;
+					for( CEntity* pEntity : result )
+					{
+						if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+						{
+							bHit = true;
+							break;
+						}
+					}
+
+					if( bHit )
+						m_moveData.Fall( this, CVector2( m_moveData.normal.x * m_moveData.fFallInitSpeed, m_moveData.fFallInitSpeed ) );
+				}
+			}
+			if( m_moveData.bHitSurface && m_moveData.normal.y < -0.8f && SRand::Inst().Rand( 0.0f, 1.0f ) < m_fFallChance )
 			{
 				CPlayer* pPlayer = GetStage()->GetPlayer();
 				if( pPlayer )
@@ -1264,16 +1307,16 @@ void CMaggot::OnTickAfterHitTest()
 			pImage->SetFrames( 0, 1, 0 );
 			break;
 		case 1:
-			pImage->SetFrames( 0, 4, 6 );
+			pImage->SetFrames( 0, 4, m_nAnimSpeed );
 			break;
 		case 2:
-			pImage->SetFrames( 4, 8, 6 );
+			pImage->SetFrames( 4, 8, m_nAnimSpeed );
 			break;
 		case 3:
-			pImage->SetFrames( 8, 12, 6 );
+			pImage->SetFrames( 8, 12, m_nAnimSpeed );
 			break;
 		case 4:
-			pImage->SetFrames( 12, 16, 6 );
+			pImage->SetFrames( 12, 16, m_nAnimSpeed );
 			break;
 		default:
 			break;
@@ -1314,7 +1357,7 @@ void CFly::OnTickAfterHitTest()
 	{
 		if( m_pTarget->GetStage() == GetStage() )
 		{
-			p = m_pTarget->GetTransform( m_nTargetTransformIndex ).GetPosition();
+			p = m_pTarget->GetTransform( m_nTargetTransformIndex + 1 ).GetPosition();
 			m_flyData.fStablity = 0.25f;
 			m_flyData.UpdateMove( this, p );
 		}
@@ -1329,7 +1372,7 @@ void CFly::OnTickAfterHitTest()
 			m_nCreateFlyGroupCD--;
 			if( !m_nCreateFlyGroupCD )
 			{
-				auto pFlyGroup = new CFlyGroup;
+				auto pFlyGroup = new CFlyGroup( m_nType );
 				pFlyGroup->SetPosition( GetPosition() );
 				pFlyGroup->SetParentEntity( CMyLevel::GetInst() );
 				SetFlyGroup( pFlyGroup );
@@ -1338,7 +1381,19 @@ void CFly::OnTickAfterHitTest()
 		if( m_pFlyGroup )
 		{
 			r = 100 + SafeCast<CFlyGroup>( m_pFlyGroup.GetPtr() )->GetCount() * 3;
-			p = m_pFlyGroup->GetPosition();
+			if( m_nType == 1 )
+			{
+				if( m_nTargetCD )
+					m_nTargetCD--;
+				if( !m_nTargetCD )
+				{
+					m_target = m_pFlyGroup->GetPosition();
+					m_nTargetCD = SRand::Inst().Rand( 60, 120 );
+				}
+				p = m_target;
+			}
+			else
+				p = m_pFlyGroup->GetPosition();
 		}
 
 		r *= m_r;
@@ -1358,6 +1413,11 @@ void CFly::OnTickAfterHitTest()
 		float l = d.Normalize();
 		if( l <= m_fFireDist )
 		{
+			if( m_pTarget )
+			{
+				d = pPlayer->GetPosition() - ( GetPosition() + m_pTarget->GetTransform( 0 ).GetPosition() ) * 0.5f;
+				d.Normalize();
+			}
 			auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( globalTransform.GetPosition() );
 			pBullet->SetRotation( atan2( d.y, d.x ) );
@@ -1402,6 +1462,8 @@ void CFly::SetFlyGroup( CFlyGroup* pFlyGroup )
 		pFlyGroup->OnFlyAdded();
 		pFlyGroup->Insert_Fly( this );
 		m_nCreateFlyGroupCD = 39;
+		m_nTargetCD = 0;
+		m_target = GetPosition();
 	}
 }
 
@@ -1419,6 +1481,8 @@ void CFlyGroup::OnAddedToStage()
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 	m_vel.x = SRand::Inst().Rand( 50.0f, 80.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
 	m_vel.y = SRand::Inst().Rand( 50.0f, 80.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
+	if( m_nType == 1 )
+		m_vel = m_vel * 20;
 	m_nTime = SRand::Inst().Rand( 0, 30 ) + 1;
 }
 
@@ -1464,7 +1528,7 @@ void CFlyGroup::OnTick()
 				auto pFly = SafeCast<CFly>( pEntity );
 				if( pFly )
 				{
-					if( pFly->GetTarget() )
+					if( pFly->GetTarget() || pFly->GetType() != m_nType )
 						continue;
 					auto pGroup = SafeCast<CFlyGroup>( pFly->GetGroup() );
 					if( pGroup )
@@ -1491,12 +1555,28 @@ void CFlyGroup::OnTick()
 	}
 
 	SetPosition( GetPosition() + m_vel * GetStage()->GetElapsedTimePerTick() );
-	auto bound = CMyLevel::GetInst()->GetBound();
-	bound.SetSize( CVector2( Max( 0.0f, bound.width - 200 ), Max( 0.0f, bound.height - 200 ) ) );
-	if( x < bound.x && m_vel.x < 0 || x > bound.GetRight() && m_vel.x > 0 )
-		m_vel.x = -m_vel.x;
-	if( y < bound.y && m_vel.y < 0 || y > bound.GetBottom() && m_vel.y > 0 )
-		m_vel.y = -m_vel.y;
+	if( m_nType == 0 )
+	{
+		auto bound = CMyLevel::GetInst()->GetBound();
+		bound.SetSize( CVector2( Max( 0.0f, bound.width - 200 ), Max( 0.0f, bound.height - 200 ) ) );
+		if( x < bound.x && m_vel.x < 0 || x > bound.GetRight() && m_vel.x > 0 )
+			m_vel.x = -m_vel.x;
+		if( y < bound.y && m_vel.y < 0 || y > bound.GetBottom() && m_vel.y > 0 )
+			m_vel.y = -m_vel.y;
+	}
+	else
+	{
+		CVector2 target = CMyLevel::GetInst()->GetBound().GetCenter();
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer )
+			target = pPlayer->GetPosition();
+		CRectangle bound( target.x - 256.0f, target.y + 256.0f, 512.0f, 128.0f );
+		bound = CMyLevel::GetInst()->GetBoundWithLvBarrier() * bound;
+		if( x < bound.x && m_vel.x < 0 || x > bound.GetRight() && m_vel.x > 0 )
+			m_vel.x = -m_vel.x;
+		if( y < bound.y && m_vel.y < 0 || y > bound.GetBottom() && m_vel.y > 0 )
+			m_vel.y = -m_vel.y;
+	}
 
 	if( !m_nCount )
 	{

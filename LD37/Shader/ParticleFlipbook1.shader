@@ -18,8 +18,8 @@ cbuffer InstBuffer
 
 void VSParticle( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex - 0.5 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -53,9 +53,9 @@ void VSParticle( in float2 tex : Position,
 
 void VSParticleInstData( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = ( tex - 0.5 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -89,8 +89,8 @@ void VSParticleInstData( in float2 tex : Position,
 
 void VSParticle1( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex - float2( 0, 0.5 ) ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -128,8 +128,8 @@ void VSParticle1( in float2 tex : Position,
 
 void VSParticle1_1( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex - float2( 0.5, 0.5 ) ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 3];
@@ -169,9 +169,9 @@ float2 g_texScale;
 float2 g_texOfs;
 void VSParticle2( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = float2( tex.x, 1 - tex.y ) * g_texScale + g_texOfs;
 	float4 instData = g_insts[instID * 3];
@@ -210,9 +210,9 @@ void VSParticle2( in float2 tex : Position,
 float4 g_matWorld[2];
 void VSParticle2L( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0,
-	out float4 outInstData : ExtraInstData0,
-	out float4 outPos : SV_Position )
+	out float4 outInstData : ExtraInstData0 )
 {
 	float2 pos = float2( tex.x, 1 - tex.y ) * g_texScale + g_texOfs;
 	float4 instData = g_insts[instID * 3];

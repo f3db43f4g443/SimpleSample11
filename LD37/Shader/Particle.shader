@@ -9,10 +9,11 @@ cbuffer InstBuffer
 	float4 g_insts[4096];
 };
 
-void VSParticle( in float2 tex : Position,
+void VSParticle( in float4 inPos : SV_Position,
+	in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex * 2.0 - 1.0 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];
@@ -39,8 +40,8 @@ float4 g_matWorld[2];
 
 void VSParticle_local( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
-	out float2 outTex : TexCoord0,
-	out float4 outPos : SV_Position )
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0 )
 {
 	float2 pos = ( tex * 2.0 - 1.0 ) * float2( 1.0, -1.0 );
 	float4 instData = g_insts[instID * 2];

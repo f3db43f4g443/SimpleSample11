@@ -10,7 +10,8 @@ float4 t[2];
 float4 tx[2], ty[2];
 float4 tb[2];
 
-void PSMain( in float2 tex : TexCoord0,
+void PSMain( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target )
 {
 	float f0 = dot( tb[0], cos( tex.x * tx[0] + tex.y * ty[0] + t[0] ) );

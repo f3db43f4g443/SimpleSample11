@@ -103,6 +103,7 @@ public:
 	uint32 nMaxConstantBuffer;
 	uint32 nMaxShaderResource;
 	uint32 nMaxSampler;
+	uint32 nMaxTarget;
 
 	struct SConstantBufferDesc
 	{

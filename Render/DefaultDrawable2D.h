@@ -24,4 +24,5 @@ protected:
 	virtual bool OnFlushElement( CRenderContext2D& context, CElement2D* pElement, bool bBreak ) { return false; }
 	IBlendState* m_pBlendState;
 	CMaterial m_material;
+	CMaterial m_material1;
 };

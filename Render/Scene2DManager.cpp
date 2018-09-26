@@ -126,6 +126,7 @@ void CScene2DManager::Render( CRenderContext2D& context, CCamera2D* pCamera, CRe
 	}
 	else
 		context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
+	context.targetSize = context.rectViewport.GetSize();
 	context.renderGroup = pRenderGroup;
 	context.Render( pRoot );
 }

@@ -314,6 +314,8 @@ void SParticleDrawableEditItem::Update( CParticleSystemDrawable* pDrawable, CRes
 	uint16 nBlend = (uint16)pBlend->GetSelectedItem()->pData;
 	pDrawable->m_pBlendState = pDrawable->GetBlendState( nBlend );
 	SDrawableEditItems::UpdateMaterial( pDrawable->m_material, pResource );
+	if( !pDrawable->m_pBlendState )
+		pDrawable->m_material1.PixelCopy( pDrawable->m_material );
 	pDrawable->BindParams();
 }
 

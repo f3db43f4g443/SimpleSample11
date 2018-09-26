@@ -9,7 +9,8 @@ SamplerState LinearSampler;
 #endif
 float3 texOffset[MAX_OFFSET];
 
-void PSLinearBlur( in float2 tex : TexCoord0,
+void PSLinearBlur( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outShadow : SV_Target0 )
 {
 	float4 vShadow = ShadowMap.Sample( LinearSampler, tex );
@@ -53,7 +54,8 @@ void PSRadialBlur( in float2 tex : TexCoord0,
 
 float3 baseColor;
 float fShadowScale;
-void PSLinearSceneLighting( in float2 tex : TexCoord0,
+void PSLinearSceneLighting( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outLight : SV_Target0 )
 {
 	float4 vShadow = ShadowMap.Sample( LinearSampler, tex );
@@ -84,7 +86,8 @@ void PSRadialSceneLighting( in float4 tex : TexCoord0,
 
 Texture2D ColorMap;
 Texture2D EmissionMap;
-void PSScene( in float2 tex : TexCoord0,
+void PSScene( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
 	out float4 outColor : SV_Target0 )
 {
 	outColor = ColorMap.Sample( LinearSampler, tex ) * LightMap.Sample( LinearSampler, tex ) + EmissionMap.Sample( LinearSampler, tex );

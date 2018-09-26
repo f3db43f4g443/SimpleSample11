@@ -175,33 +175,57 @@ void SShaderEditItem::OnShaderChanged()
 		}
 	}
 
-	shaderResourceItems.resize( shaderInfo.mapShaderResources.size() );
 	uint32 nShaderResourceParamCount = 0;
 	for( auto& item : shaderInfo.mapShaderResources )
 	{
 		auto& shaderResourceDesc = item.second;
-		auto& shaderResourceItem = shaderResourceItems[nShaderResourceParamCount++];
-		shaderResourceItem.pTreeView = pTreeView;
-		shaderResourceItem.param.bIsBound = true;
-		shaderResourceItem.param.eShaderType = shaderInfo.eType;
-		shaderResourceItem.param.strName = shaderResourceDesc.strName;
-		shaderResourceItem.param.nIndex = shaderResourceDesc.nIndex;
-		shaderResourceItem.param.eType = shaderResourceDesc.eType;
-		shaderResourceItem.Create( pShaderResourceRoot );
+		uint32 nSystemParamIndex = CSystemShaderParams::Inst()->GetShaderResourceParamIndex( shaderResourceDesc.strName.c_str() );
+		if( nSystemParamIndex == -1 )
+			nShaderResourceParamCount++;
+	}
+	shaderResourceItems.resize( nShaderResourceParamCount );
+	nShaderResourceParamCount = 0;
+	for( auto& item : shaderInfo.mapShaderResources )
+	{
+		auto& shaderResourceDesc = item.second;
+		uint32 nSystemParamIndex = CSystemShaderParams::Inst()->GetShaderResourceParamIndex( shaderResourceDesc.strName.c_str() );
+		if( nSystemParamIndex == -1 )
+		{
+			auto& shaderResourceItem = shaderResourceItems[nShaderResourceParamCount++];
+			shaderResourceItem.pTreeView = pTreeView;
+			shaderResourceItem.param.bIsBound = true;
+			shaderResourceItem.param.eShaderType = shaderInfo.eType;
+			shaderResourceItem.param.strName = shaderResourceDesc.strName;
+			shaderResourceItem.param.nIndex = shaderResourceDesc.nIndex;
+			shaderResourceItem.param.eType = shaderResourceDesc.eType;
+			shaderResourceItem.Create( pShaderResourceRoot );
+		}
 	}
 	
-	samplerItems.resize( shaderInfo.mapSamplerDescs.size() );
 	uint32 nSamplerParamCount = 0;
 	for( auto& item : shaderInfo.mapSamplerDescs )
 	{
 		auto& samplerDesc = item.second;
-		auto& samplerParamItem = samplerItems[nSamplerParamCount++];
-		samplerParamItem.pTreeView = pTreeView;
-		samplerParamItem.param.bIsBound = true;
-		samplerParamItem.param.eShaderType = shaderInfo.eType;
-		samplerParamItem.param.strName = samplerDesc.strName;
-		samplerParamItem.param.nIndex = samplerDesc.nIndex;
-		samplerParamItem.Create( pSamplerRoot );
+		auto pSampler = CSystemShaderParams::Inst()->GetSamplerState( samplerDesc.strName.c_str() );
+		if( !pSampler )
+			nSamplerParamCount++;
+	}
+	samplerItems.resize( nSamplerParamCount );
+	nSamplerParamCount = 0;
+	for( auto& item : shaderInfo.mapSamplerDescs )
+	{
+		auto& samplerDesc = item.second;
+		auto pSampler = CSystemShaderParams::Inst()->GetSamplerState( samplerDesc.strName.c_str() );
+		if( !pSampler )
+		{
+			auto& samplerParamItem = samplerItems[nSamplerParamCount++];
+			samplerParamItem.pTreeView = pTreeView;
+			samplerParamItem.param.bIsBound = true;
+			samplerParamItem.param.eShaderType = shaderInfo.eType;
+			samplerParamItem.param.strName = samplerDesc.strName;
+			samplerParamItem.param.nIndex = samplerDesc.nIndex;
+			samplerParamItem.Create( pSamplerRoot );
+		}
 	}
 }
 
@@ -210,6 +234,19 @@ void SDrawableEditItems::Clear()
 	for( int i = 0; i < ELEM_COUNT( shaderItems ); i++ )
 		shaderItems[i].Clear();
 }
+	
+static CDropDownBox::SItem g_blendItems[] = 
+{
+	{ "opaque", (void*)0 },
+	{ "transparent", (void*)1 },
+	{ "transparent1", (void*)2 },
+	{ "add", (void*)3 },
+	{ "multiply", (void*)4 },
+	{ "subtract", (void*)5 },
+	{ "exclude", (void*)6 },
+	{ "min", (void*)7 },
+	{ "custom", (void*)-1 },
+};
 
 void SDrawableEditItems::Create( CUITreeView::CTreeViewContent* pParent )
 {
@@ -238,18 +275,6 @@ void SDrawableEditItems::Create( CUITreeView::CTreeViewContent* pParent )
 	pTreeView->AddContentChild( pMaxInsts, pRoot );
 	pExtraInstData = CCommonEdit::Create( "Extra Inst Data" );
 	pTreeView->AddContentChild( pExtraInstData, pRoot );
-	
-	static CDropDownBox::SItem g_blendItems[] = 
-	{
-		{ "opaque", (void*)0 },
-		{ "transparent", (void*)1 },
-		{ "transparent1", (void*)2 },
-		{ "add", (void*)3 },
-		{ "multiply", (void*)4 },
-		{ "subtract", (void*)5 },
-		{ "exclude", (void*)6 },
-		{ "min", (void*)7 },
-	};
 	
 	pBlend = CDropDownBox::Create( "Blend", g_blendItems, ELEM_COUNT( g_blendItems ) );
 	pTreeView->AddContentChild( pBlend, pRoot );
@@ -373,7 +398,7 @@ void SDrawableEditItems::UpdateMaterial( CMaterial& material, CResource* pRes )
 		material.m_strShaderName[i] = szShaders[i];
 	}
 	IShader *pShaders[ELEM_COUNT( szShaders )];
-	material.GetShaders( szShaders, pShaders, material.m_pShaderBoundState, material.m_vecShaderParams, material.m_vecShaderParamsPerInstance );
+	material.GetShaders( szShaders, pShaders, material.m_pShaderBoundState, material.m_vecShaderParams, material.m_vecShaderParamsPerInstance, material.m_vecSystemShaderResources, material.m_vecSystemSamplers );
 
 	for( int i = 0; i < ELEM_COUNT( shaderItems ); i++ )
 	{
@@ -613,8 +638,8 @@ void CMaterialEditor::Refresh()
 		item.pPassEnabled->SetChecked( true );
 		item.pParamBeginIndex->SetValue( drawableInfo.nParamBeginIndex );
 		item.pParamCount->SetValue( drawableInfo.nParamCount );
-		item.pBlend->SetSelectedItem( pDrawable->GetBlendStateIndex(
-			nType == 0 || nType == 2 || nType == 3? dynamic_cast<CDefaultDrawable2D*>( pDrawable )->m_pBlendState: dynamic_cast<CRopeDrawable2D*>( pDrawable )->m_pBlendState ) );
+		item.pBlend->SetSelectedItem( Min<uint16>( ELEM_COUNT( g_blendItems ) - 1, pDrawable->GetBlendStateIndex(
+			nType == 0 || nType == 2 || nType == 3? dynamic_cast<CDefaultDrawable2D*>( pDrawable )->m_pBlendState: dynamic_cast<CRopeDrawable2D*>( pDrawable )->m_pBlendState ) ) );
 
 		auto& material = nType == 0 || nType == 2 || nType == 3 ? dynamic_cast<CDefaultDrawable2D*>( pDrawable )->m_material : dynamic_cast<CRopeDrawable2D*>( pDrawable )->m_material;
 		item.RefreshMaterial( material );
@@ -850,6 +875,8 @@ void CMaterialEditor::RefreshPreview()
 
 			auto& material = pDrawable->m_material;
 			item.UpdateMaterial( material, m_pRes );
+			if( !pDrawable->m_pBlendState )
+				pDrawable->m_material1.PixelCopy( material );
 		}
 		else
 		{
@@ -860,6 +887,8 @@ void CMaterialEditor::RefreshPreview()
 
 			auto& material = pDrawable->m_material;
 			item.UpdateMaterial( material, m_pRes );
+			if( !pDrawable->m_pBlendState )
+				pDrawable->m_material1.PixelCopy( material );
 			pDrawable->m_nRopeMaxInst = material.GetMaxInst();
 			pDrawable->BindParamsNoParticleSystem();
 		}
