@@ -307,7 +307,6 @@ void CBulletWithBlockBuff::OnHit( CEntity * pEntity )
 void CExplosionWithBlockBuff::OnAddedToStage()
 {
 	CExplosion::OnAddedToStage();
-	m_pBlockBuff = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBlockBuff.c_str() );
 }
 
 void CExplosionWithBlockBuff::OnHit( CEntity * pEntity )
@@ -315,7 +314,7 @@ void CExplosionWithBlockBuff::OnHit( CEntity * pEntity )
 	auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 	if( pBlockObject && pBlockObject->GetStage() )
 	{
-		CBlockBuff::AddBuff( m_pBlockBuff, pBlockObject, &m_context );
+		CBlockBuff::AddBuff( m_strBlockBuff, pBlockObject, &m_context );
 	}
 }
 

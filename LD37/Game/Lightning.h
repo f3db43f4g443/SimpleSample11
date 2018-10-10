@@ -13,7 +13,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	virtual void OnHit( CEntity* pEntity ) { if( m_onHit ) m_onHit( this, pEntity ); }
+	virtual void OnHit( CEntity* pEntity, const CVector2& hitPoint ) { if( m_onHit ) m_onHit( this, pEntity ); }
 	void SetOnHit( function<void( CLightning*, CEntity* )> onHit ) { m_onHit = onHit; }
 
 	void Set( CEntity* pBegin, CEntity* pEnd, const CVector2& begin, const CVector2& end, int16 nBeginTransIndex, int16 nEndTransIndex );
@@ -27,11 +27,11 @@ public:
 	void SetHitCD( int32 nCD ) { m_nHitCD = nCD; }
 	const CVector2& GetBeamEnd() { return m_beamEnd; }
 protected:
-	void OnTick();
-	void UpdateRenderObject();
+	virtual void OnTick();
+	virtual void UpdateRenderObject();
 
-	void OnBeginRemoved();
-	void OnEndRemoved();
+	virtual void OnBeginRemoved();
+	virtual void OnEndRemoved();
 
 	CReference<CEntity> m_pCreator;
 

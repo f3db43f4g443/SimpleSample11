@@ -2780,7 +2780,7 @@ void CLv1BossBullet1::Kill()
 
 void CLv1BossBullet1::AIFunc()
 {
-	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = m_flyData.bHitChannel[eEntityHitType_System] = true;
 	m_flyData.fStablity = 0.4f;
 	m_flyData.fMaxAcc = 0.0f;
 

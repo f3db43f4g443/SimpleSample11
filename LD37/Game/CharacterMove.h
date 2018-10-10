@@ -10,7 +10,7 @@ public:
 
 struct SCharacterMovementData
 {
-	SCharacterMovementData() : bSleep( false ) { memset( bHitChannel, 0, sizeof( bHitChannel ) ); bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = true; }
+	SCharacterMovementData() : bSleep( false ) { memset( bHitChannel, 0, sizeof( bHitChannel ) ); bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = bHitChannel[eEntityHitType_System] = true; }
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, SRaycastResult* pHit = NULL );
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, CVector2& velocity, SRaycastResult* pHit = NULL );
 
@@ -204,7 +204,7 @@ protected:
 
 struct SCharacterPhysicsFlyData : public SCharacterMovementData
 {
-	SCharacterPhysicsFlyData( const SClassCreateContext& context ) : bHit( false ){ bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = false; }
+	SCharacterPhysicsFlyData( const SClassCreateContext& context ) : bHit( false ){ bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = bHitChannel[eEntityHitType_System] = false; }
 	void UpdateMove( CCharacter* pCharacter, const CVector2& moveTarget );
 
 	float fMaxAcc;
@@ -216,11 +216,13 @@ struct SCharacterPhysicsFlyData : public SCharacterMovementData
 struct SCharacterPhysicsFlyData1 : public SCharacterMovementData
 {
 	SCharacterPhysicsFlyData1( const SClassCreateContext& context ) : bHit( false ) {}
-	void UpdateMove( CCharacter* pCharacter );
+	void UpdateMove( CCharacter* pCharacter, CVector2 acc = CVector2( 0, 0 ) );
 
 	float fMaxAcc;
 	bool bHit;
 	CVector2 dVelocity;
+
+	SRaycastResult hits[3];
 };
 
 struct SCharacterCreepData : public SCharacterMovementData

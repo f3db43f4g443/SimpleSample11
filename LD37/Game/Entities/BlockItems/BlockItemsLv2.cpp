@@ -37,7 +37,7 @@ void CCarSpawner::Trigger()
 	bool bHit = false;
 	for( CEntity* pEntity : hitEntities )
 	{
-		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform || pEntity->GetHitType() == eEntityHitType_System )
 		{
 			bHit = true;
 			break;
@@ -138,7 +138,7 @@ bool CHouseEntrance::Exit( CCharacter * pCharacter )
 	bool bHit = false;
 	for( CEntity* pEntity : hitEntities )
 	{
-		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform || pEntity->GetHitType() == eEntityHitType_System )
 		{
 			bHit = true;
 			break;

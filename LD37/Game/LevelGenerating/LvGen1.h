@@ -362,8 +362,10 @@ private:
 	void GenSubArea( const TRectangle<int32>& rect );
 	void FillLine( TRectangle<int32>& rect );
 	void GenRestWallChunks();
-	void GenWallChunk0();
+	void GenWallChunk1();
 	void GenWallChunk();
+	void GenWallChunk0();
+	void GenWallChunk0Rect( const TRectangle<int32>& rect, bool bVertical, bool bSplit = false );
 	void GenWindows();
 	void GenObjs();
 	void GenShops();
@@ -373,6 +375,7 @@ private:
 	CReference<CLevelGenerateNode> m_pWallChunkNode;
 	CReference<CLevelGenerateNode> m_pWallChunk0Node;
 	CReference<CLevelGenerateNode> m_pWallChunk1Node;
+	CReference<CLevelGenerateNode> m_pWallChunk2Node;
 	CReference<CLevelGenerateNode> m_pBlock1Node;
 	CReference<CLevelGenerateNode> m_pBlock2Node;
 	CReference<CLevelGenerateNode> m_pRoomNode;
@@ -392,16 +395,25 @@ private:
 		eType_Room1,
 		eType_Door,
 		eType_WallChunk0,
+		eType_WallChunk0_0,
+		eType_WallChunk0_0x,
+		eType_WallChunk0_0y,
 		eType_WallChunk,
 		eType_WallChunk1,
 		eType_WallChunk1_1,
 		eType_WallChunk1_2,
+		eType_WallChunk2,
 		eType_BlockRed,
 		eType_BlockBlue,
 		eType_Crate1,
 		eType_Crate2,
 		eType_Crate3,
 		eType_Web,
+		eType_Maggot,
+		eType_Room_Pipe0,
+		eType_Room_Pipe1,
+		eType_Room_Pipe2,
+		eType_Room_Pipe3,
 
 		eType_WallChunk_0,
 		eType_WallChunk_0_1,
@@ -423,14 +435,16 @@ private:
 
 	struct SRoom
 	{
-		SRoom( const TRectangle<int32>& rect ) : rect( rect ), bRoomType( false ) {}
+		SRoom( const TRectangle<int32>& rect ) : rect( rect ) { memset( bDoor, 0, sizeof( bDoor ) ); }
 		TRectangle<int32> rect;
-		bool bRoomType;
+		int8 bDoor[4];
 	};
 	vector<SRoom> m_rooms;
 	vector<TRectangle<int32> > m_wallChunks0;
 	vector<TRectangle<int32> > m_wallChunks;
 	vector<TRectangle<int32> > m_wallChunks1;
+	vector<TRectangle<int32> > m_wallChunks1_1;
+	vector<TRectangle<int32> > m_wallChunks2;
 	vector<TRectangle<int32> > m_scraps;
 	vector<TRectangle<int32> > m_windows;
 	vector<TRectangle<int32> > m_windows1[4];
@@ -484,6 +498,10 @@ private:
 		eType_Crate2,
 		eType_Crate3,
 		eType_Web,
+		eType_Room_Pipe0,
+		eType_Room_Pipe1,
+		eType_Room_Pipe2,
+		eType_Room_Pipe3,
 
 		eType_WallChunk_0,
 		eType_WallChunk_0_1,
@@ -509,6 +527,7 @@ private:
 		TRectangle<int32> rect;
 		int8 bDoor[4];
 		bool bRoomType;
+		bool bSpider;
 	};
 	vector<SRoom> m_rooms;
 	vector<TRectangle<int32> > m_wallChunks0;

@@ -59,7 +59,12 @@ public:
 	virtual void OnRemovedFromStage() override;
 	void Set( CEntity* pEntity, const CVector2& ofs );
 
+	float GetFadeIn() { return m_fFadeInPos - m_fFadeInLen; }
+	float GetFadeOut() { return m_fFadeOutPos; }
+	float GetFadeInSpeed() { return m_fFadeInSpeed; }
+
 	void Kill();
+	bool IsKilled() { return m_bKilled; }
 protected:
 	virtual void OnTickAfterHitTest() override;
 	void UpdateEftPos();
@@ -119,15 +124,14 @@ class CExplosionWithBlockBuff : public CExplosion
 {
 	friend void RegisterGameClasses();
 public:
-	CExplosionWithBlockBuff( const SClassCreateContext& context ) : CExplosion( context ), m_strBlockBuff( context ) { SET_BASEOBJECT_ID( CExplosionWithBlockBuff ); }
+	CExplosionWithBlockBuff( const SClassCreateContext& context ) : CExplosion( context ) { SET_BASEOBJECT_ID( CExplosionWithBlockBuff ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnHit( CEntity* pEntity ) override;
 
 	void Set( CBlockBuff::SContext* pContext ) { m_context = *pContext; }
 private:
-	CString m_strBlockBuff;
-	CReference<CPrefab> m_pBlockBuff;
+	TResourceRef<CPrefab> m_strBlockBuff;
 	CBlockBuff::SContext m_context;
 };
 

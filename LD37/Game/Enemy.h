@@ -7,12 +7,14 @@ class CEnemy : public CCharacter
 public:
 	CEnemy( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CEnemy ); }
 
+	virtual void OnAddedToStage() { m_nMaxHp = m_nHp; CCharacter::OnAddedToStage(); }
 	virtual void Damage( SDamageContext& context ) override;
 	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal );
 	virtual void OnKnockbackPlayer( const CVector2 & vec ) {}
 	virtual bool CanOpenDoor() override { return GetHitType() == eEntityHitType_Enemy; }
 	int32 GetHp() { return m_nHp; }
 	void SetHp( int32 nHp ) { m_nHp = nHp; }
+	int32 GetMaxHp() { return m_nMaxHp; }
 
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
 protected:
@@ -20,6 +22,8 @@ protected:
 	float m_fDefence;
 	int32 m_nKnockbackCostSp;
 	uint8 m_nHitType;
+
+	int32 m_nMaxHp;
 };
 
 class CEnemyPart : public CEnemy

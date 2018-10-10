@@ -153,19 +153,54 @@ class CSpider2 : public CEnemyTemplate
 {
 	friend void RegisterGameClasses();
 public:
-	CSpider2( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_onChunkKilled( this, &CSpider2::Crush ) { SET_BASEOBJECT_ID( CSpider2 ); }
-	virtual void OnAddedToStage() override;
+	CSpider2( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CSpider2 ); }
 	virtual void OnRemovedFromStage() override;
-	virtual void Kill() override;
+	void OnLinkRemoved( CEntity* pLink );
+	void AddShake( const CVector2& shake );
 protected:
 	virtual void AIFunc() override;
+	void UpdateMovement();
+	bool CreateLink();
 
-	TResourceRef<CPrefab> m_pWeb;
-	TResourceRef<CPrefab> m_pWeb1;
-	float m_fSight;
-	float m_fSight1;
+	SCharacterPhysicsFlyData1 m_moveData;
+	float m_fGravity;
+	TResourceRef<CPrefab> m_pWebLinkDrawable;
+	float m_fLinkWidth;
+	float m_fLinkLen;
+	float m_l0, m_k, m_fShake;
+	CString m_strWeb;
 
-	TClassTrigger<CSpider2> m_onChunkKilled;
+	vector<CReference<CEntity> > m_vecLinks;
+	CVector2 m_shake;
+};
+
+class CSpider2Link : public CLightning
+{
+	friend void RegisterGameClasses();
+public:
+	CSpider2Link( const SClassCreateContext& context ) : CLightning( context ) { SET_BASEOBJECT_ID( CSpider2Link ); }
+	void SetOwner( CSpider2* pOwner, CEntity* pTarget, const CVector2& targetPos );
+	virtual void OnHit( CEntity* pEntity, const CVector2& hitPoint ) override;
+	CVector2 GetTargetPos() { return m_pTarget->globalTransform.GetPosition(); }
+	CEntity* GetTarget() { return m_pTarget->GetParentEntity(); }
+protected:
+	virtual void OnTick() override;
+	virtual void UpdateRenderObject() override;
+	virtual void OnBeginRemoved() override;
+	virtual void OnEndRemoved() override;
+
+	float m_fMaxLen;
+	float m_fFadeInSpeed;
+	float m_fFadeOutSpeed;
+	CReference<CEnemy> m_pTarget;
+	TResourceRef<CPrefab> m_pBullet;
+
+	bool m_bKilled;
+	float m_fFadeIn;
+	float m_fFadeOut;
+	uint32 m_nFireCD;
+	uint32 m_nBullet;
+	CVector2 m_d;
 };
 
 class CSpider2Web : public CEntity
@@ -290,12 +325,14 @@ public:
 	int8 GetType() { return m_nType; }
 	void SetFlyGroup( CFlyGroup* pFlyGroup );
 	void Set( CEntity* pTarget, uint16 nTransformIndex = -1 );
+	void SetMaxAcc() { m_flyData.fMaxAcc = m_fMaxAcc; }
 private:
 	SCharacterPhysicsFlyData m_flyData;
 	int8 m_nType;
 	float m_fAcc1;
 	float m_fMaxAcc;
 	float m_fFireDist;
+	float m_fFireMinDist;
 	uint32 m_nFireCD;
 	uint32 m_nKnockbackTime;
 	TResourceRef<CPrefab> m_pBullet;

@@ -14,7 +14,7 @@
 void CEnemyCharacter::OnAddedToStage()
 {
 	CEnemy::OnAddedToStage();
-	m_flyData.bHitChannel[eEntityHitType_Platform] = false;
+	m_flyData.bHitChannel[eEntityHitType_System] = false;
 	m_nState = 0;
 	float angle = SRand::Inst().Rand( -PI, PI );
 	m_curMoveDir = CVector2( cos( angle ), sin( angle ) );
@@ -207,7 +207,7 @@ void CEnemyCharacter::UpdateMove()
 
 		if( !m_flyData.pLandedEntity )
 		{
-			m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+			m_flyData.bHitChannel[eEntityHitType_System] = true;
 			m_walkData.Reset();
 			m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 			m_walkData.vecKnockback = m_flyData.vecKnockback;

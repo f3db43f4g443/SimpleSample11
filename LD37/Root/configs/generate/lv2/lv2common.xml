@@ -171,7 +171,7 @@
         </subitem>
       </node>
       
-      <node name="road_small" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2"
+      <node name="road_small" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" shakeweightcoef="1"
             absorbshakestrength="2" absorbshakestrengthperheight="2" destroyshake="20" shakedmg="1.0" shakedmgperwidth="1.0" prefab="data/blocks/lv2/road_small.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
@@ -182,7 +182,7 @@
         </subitem>
         <immune_to_block_buff>1</immune_to_block_buff>
       </node>
-      <node name="road_large" movetype="1" width="1" height="1" layer_type="1" weight="0.8" weightperwidth="0.8" destroyweight="2.5" destroyweightperwidth="2.5"
+      <node name="road_large" movetype="1" width="1" height="1" layer_type="1" weight="0.8" weightperwidth="0.8" destroyweight="2.5" destroyweightperwidth="2.5" shakeweightcoef="1"
             absorbshakestrength="3" absorbshakestrengthperheight="3" destroyshake="20" shakedmg="1.0" shakedmgperwidth="1.0" prefab="data/blocks/lv2/road_large.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
@@ -193,7 +193,7 @@
           </node>
         </subitem>
       </node>
-      <node name="greenbelt" type="fence" movetype="1" show_layer_type="0" width="1" height="1" weight="0.8" weightperwidth="0.8" destroyweight="2.5" destroyweightperwidth="2.5"
+      <node name="greenbelt" type="fence" movetype="1" show_layer_type="0" width="1" height="1" weight="0.8" weightperwidth="0.8" destroyweight="2.5" destroyweightperwidth="2.5" shakeweightcoef="1"
             absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/greenbelt.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="16" />
         <types>2</types>
@@ -209,7 +209,7 @@
           <ref name="plant" />
         </tile-->
       </node>
-      <node name="greenbelt_test" movetype="1" show_layer_type="0" width="16" height="2" weight="16" destroyweight="32"
+      <node name="greenbelt_test" movetype="1" show_layer_type="0" width="16" height="2" weight="16" destroyweight="32" shakeweightcoef="1"
             absorbshakestrength="4" destroyshake="20" shakedmg="16" prefab="data/blocks/lv2/greenbelt.pf">
         <types>
           2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,
@@ -246,7 +246,7 @@
         <types>4,4,4,4,4,4,4,4</types>
       </node>
       
-      <node name="cargo_a" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+      <node name="cargo_a" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="3" absorbshakestrengthperheight="3"
            weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <subitem>
@@ -264,7 +264,7 @@
           </node>
         </next_level>
       </node>
-      <node name="cargo_b" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+      <node name="cargo_b" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="3" absorbshakestrengthperheight="3"
            weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
@@ -282,7 +282,7 @@
           </node>
         </next_level>
       </node>
-      <node name="cargo_c" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+      <node name="cargo_c" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="3" absorbshakestrengthperheight="3"
            weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
@@ -300,7 +300,7 @@
           </node>
         </next_level>
       </node>
-      <node name="cargo_d" width="1" height="1" weight="1.2" destroyweight="3" absorbshakestrength="3" absorbshakestrengthperheight="3"
+      <node name="cargo_d" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="3" absorbshakestrengthperheight="3"
            weightperwidth="1.2" destroyweightperwidth="3" shakedmg="2" shakedmgperwidth="2" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16" />
         <types>4</types>
@@ -393,7 +393,7 @@
         <ref name="cargo1s_d_thruster" p="1" />
       </node>
       
-      <node name="cargo1_a" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_a.pf">
+      <node name="cargo1_a" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_a.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -404,7 +404,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1_b" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_b.pf">
+      <node name="cargo1_b" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_b.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -415,7 +415,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1_c" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_c.pf">
+      <node name="cargo1_c" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_c.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -426,7 +426,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1_d" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_d.pf">
+      <node name="cargo1_d" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_d.pf">
         <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -437,7 +437,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1l_a" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_a.pf">
+      <node name="cargo1l_a" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" shakeweightcoef="1" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_a.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,4,4,4,4,4,4,4,
@@ -457,7 +457,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1l_b" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_b.pf">
+      <node name="cargo1l_b" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" shakeweightcoef="1" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_b.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,4,4,4,4,4,4,4,
@@ -477,7 +477,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1l_c" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_c.pf">
+      <node name="cargo1l_c" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" shakeweightcoef="1" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_c.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,4,4,4,4,4,4,4,
@@ -497,7 +497,7 @@
           </node>
         </subitem>
       </node>
-      <node name="cargo1l_d" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_d.pf">
+      <node name="cargo1l_d" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" shakeweightcoef="1" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_d.pf">
         <types>
           4,4,4,4,4,4,4,4,
           4,4,4,4,4,4,4,4,
@@ -518,7 +518,7 @@
         </subitem>
       </node>
       
-      <node name="cargo2_a" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2"
+      <node name="cargo2_a" width="1" height="1" weight="1.2" weightperwidth="1.2" destroyweight="2" destroyweightperwidth="2" shakeweightcoef="1"
             absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="5" shakedmgperwidth="1" prefab="data/blocks/lv2/cargo2.pf">
         <metadata minx="6" miny="4" maxx="16" maxy="8" />
         <types>4</types>
@@ -627,7 +627,7 @@
         </subitem>
       </node>
 
-      <node name="control_room_1" width="4" height="4" weight="5" destroyweight="20" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
+      <node name="control_room_1" width="4" height="4" weight="5" destroyweight="20" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
             shakedmg="4" shakedmgperwidth="1" weightperwidth="1.25" prefab="data/blocks/lv2/control_room_1.pf">
         <metadata minx="4" miny="4" maxx="8" maxy="8" />
         <types>
@@ -646,7 +646,7 @@
         </subitem>
       </node>
 
-      <node name="control_room_2" width="4" height="4" weight="5" destroyweight="20" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
+      <node name="control_room_2" width="4" height="4" weight="5" destroyweight="20" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
             shakedmg="4" shakedmgperwidth="1" weightperwidth="1.25" prefab="data/blocks/lv2/control_room_2.pf">
         <metadata minx="4" miny="4" maxx="4" maxy="8" />
         <types>
@@ -665,7 +665,7 @@
         </subitem>
       </node>
 
-      <node name="control_room_3" width="4" height="4" weight="5" destroyweight="20" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
+      <node name="control_room_3" width="4" height="4" weight="5" destroyweight="20" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="4" destroyshakepersize="1"
             shakedmg="4" shakedmgperwidth="1" weightperwidth="1.25" prefab="data/blocks/lv2/control_room_3.pf">
         <metadata minx="4" miny="4" maxx="4" maxy="8" />
         <types>
@@ -684,7 +684,7 @@
         </subitem>
       </node>
       
-      <node name="room_turret_test" width="6" height="10" weight="8" destroyweight="45" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="10"
+      <node name="room_turret_test" width="6" height="10" weight="8" destroyweight="45" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="10" destroyshakepersize="1" shakedmg="10"
             movetype="1" isroom="1" show_layer_type="0" prefab="data/blocks/lv2/room_a.pf">
         <types>
           4,4,4,4,4,4,

@@ -547,6 +547,7 @@
     <None Include="..\Shader\ParticleCommon.shader" />
     <None Include="..\Shader\TutorialGame_Particle.shader" />
     <None Include="..\Shader\Water.shader" />
+    <None Include="..\Shader\Web.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Block.cpp" />

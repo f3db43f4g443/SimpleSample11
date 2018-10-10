@@ -1,5 +1,6 @@
 #pragma once
 #include "BlockItem.h"
+#include "Enemy.h"
 
 class CDetectTrigger : public CEntity
 {
@@ -41,6 +42,35 @@ protected:
 	virtual void Trigger() {}
 
 	TClassTrigger<CKillTrigger> m_onKilled;
+};
+
+class CDamageTriggerEnemy : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CDamageTriggerEnemy( const SClassCreateContext& context ) : CEnemy( context )
+		, m_onChunkKilled( this, &CDamageTriggerEnemy::OnChunkKilled ), m_onChunkDamaged( this, &CDamageTriggerEnemy::OnChunkDamaged ) { SET_BASEOBJECT_ID( CDamageTriggerEnemy ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+	virtual void Kill() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+	virtual void Trigger() {}
+	void OnChunkKilled();
+	void OnChunkDamaged( SDamageContext* pContext );
+
+	int32 m_nTriggerCount;
+	int32 m_nFireCount;
+	int32 m_nKillFireCount;
+	float m_fChunkHpPercentBegin, m_fChunkHpPercentEnd;
+	CRectangle m_killRect;
+	float m_fKillPlayerDist;
+
+	bool m_bChunk;
+	TClassTrigger<CDamageTriggerEnemy> m_onChunkKilled;
+	TClassTrigger1<CDamageTriggerEnemy, SDamageContext*> m_onChunkDamaged;
 };
 
 class CSpawner : public CDetectTrigger
@@ -105,7 +135,33 @@ class CKillSpawner : public CKillTrigger
 public:
 	CKillSpawner( const SClassCreateContext& context ) : CKillTrigger( context ), m_strPrefab0( context ), m_strPrefab1( context ), m_strPrefab2( context ), m_strPrefab3( context ) { SET_BASEOBJECT_ID( CKillSpawner ); }
 
-	virtual void OnAddedToStage() override;
+protected:
+	virtual void Trigger() override;
+private:
+	CRectangle m_rectSpawn;
+	bool m_bRandomRotate;
+	bool m_bTangentRotate;
+
+	uint8 m_nVelocityType;
+	CVector2 m_vel1;
+	CVector2 m_vel2;
+
+	int32 m_nMinCount;
+	int32 m_nMaxCount;
+	TResourceRef<CPrefab> m_strPrefab0;
+	TResourceRef<CPrefab> m_strPrefab1;
+	TResourceRef<CPrefab> m_strPrefab2;
+	TResourceRef<CPrefab> m_strPrefab3;
+	float m_fChances[4];
+};
+
+class CDamageSpawnEnemy : public CDamageTriggerEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CDamageSpawnEnemy( const SClassCreateContext& context ) : CDamageTriggerEnemy( context ),
+		m_strPrefab0( context ), m_strPrefab1( context ), m_strPrefab2( context ), m_strPrefab3( context ) { SET_BASEOBJECT_ID( CDamageSpawnEnemy ); }
+
 protected:
 	virtual void Trigger() override;
 private:

@@ -52,7 +52,7 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 							if( pHit )
 								pHit[2] = result2;
 							ofs4.Normalize();
-							ofs4 = ofs4 * result.fDist;
+							ofs4 = ofs4 * result2.fDist;
 						}
 
 						ofs2 = ofs3 + ofs4;
@@ -115,13 +115,18 @@ void SCharacterMovementData::TryMove( CCharacter * pCharacter, const CVector2& o
 								pHit[2] = result2;
 							velocity = velocity - result2.normal * ( result2.normal.Dot( velocity ) );
 							ofs4.Normalize();
-							ofs4 = ofs4 * result.fDist;
+							ofs4 = ofs4 * result2.fDist;
+							if( result.normal.Dot( result2.normal ) < 0 || result1.normal.Dot( result2.normal ) < 0 )
+								velocity = CVector2( 0, 0 );
 						}
 
 						ofs2 = ofs3 + ofs4;
 					}
 					else
+					{
 						ofs2 = ofs3;
+						velocity = CVector2( 0, 0 );
+					}
 				}
 			}
 			pCharacter->SetPosition( pCharacter->GetPosition() + ofs1 + ofs2 );
@@ -254,6 +259,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 		return false;
 
 	pCharacter->SetPosition( newPos );
+	pCharacter->ForceUpdateTransform();
 	return true;
 }
 
@@ -340,6 +346,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter * pCharacter, const 
 		}
 		if( bHit )
 			return false;
+		pCharacter->ForceUpdateTransform();
 	}
 	return bSucceed;
 }
@@ -893,7 +900,7 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 	pCharacter->SetVelocity( curVelocity );
 }
 
-void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter )
+void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter, CVector2 acc )
 {
 	bool bHasAnyCollision = HasAnyCollision();
 
@@ -907,6 +914,7 @@ void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter )
 	CVector2 curVelocity = lastVelocity;
 	float l = curVelocity.Normalize();
 	curVelocity = curVelocity * Max( l - fMaxAcc * pCharacter->GetStage()->GetElapsedTimePerTick(), 0.0f );
+	curVelocity = curVelocity + acc * pCharacter->GetStage()->GetElapsedTimePerTick();
 
 	CVector2 dPos = ( lastVelocity + curVelocity ) * ( 0.5f * pCharacter->GetStage()->GetElapsedTimePerTick() );
 	bHit = false;
@@ -914,7 +922,6 @@ void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter )
 	{
 		CVector2 curVelocity0 = curVelocity;
 		CVector2 prePos = pCharacter->GetPosition();
-		SRaycastResult hits[3];
 		TryMove( pCharacter, dPos, curVelocity, hits );
 		if( hits[0].pHitProxy )
 		{
@@ -922,7 +929,6 @@ void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter )
 			dVelocity = curVelocity - curVelocity0;
 			curVelocity = curVelocity + dVelocity;
 			dVelocity = dVelocity * 2;
-			pCharacter->SetPosition( pCharacter->GetPosition() * 2 - ( prePos + dPos ) );
 		}
 	}
 	else

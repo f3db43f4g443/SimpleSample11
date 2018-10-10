@@ -126,10 +126,68 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	auto pImage2D = static_cast<CImage2D*>( GetRenderObject() );
 	auto rect = pImage2D->GetElem().rect;
 	auto texRect = pImage2D->GetElem().texRect;
+	auto texRect1 = pImage2D->GetElem().texRect;
+	texRect1.x += Max( 1u, m_nTypeX ) * texRect1.width;
+	if( m_nTypeX > 1 )
+	{
+		texRect.x += SRand::Inst().Rand( 0u, m_nTypeX ) * texRect.width;
+		texRect1.x += SRand::Inst().Rand( 0u, m_nTypeX ) * texRect.width;
+	}
+	if( m_nTypeY > 1 )
+	{
+		texRect.y += SRand::Inst().Rand( 0u, m_nTypeY ) * texRect.height;
+		texRect1.y += SRand::Inst().Rand( 0u, m_nTypeY ) * texRect.height;
+	}
 	uint32 nTileX = rect.width / 32;
 	uint32 nTileY = rect.height / 32;
 	texRect.width /= nTileX;
 	texRect.height /= nTileY;
+	texRect1.width /= nTileX;
+	texRect1.height /= nTileY;
+
+	TRectangle<int32> r( 0, 0, pChunk->nWidth, pChunk->nHeight );
+	bool bTag1 = false;
+	if( m_nGroupType )
+	{
+		if( SRand::Inst().Rand( 0, 2 ) )
+		{
+			swap( texRect, texRect1 );
+			bTag1 = true;
+		}
+		uint32 n1 = SRand::Inst().Rand( 1, 4 );
+		if( !!( n1 & 1 ) && r.width >= 2 )
+		{
+			switch( SRand::Inst().Rand( 0, 3 ) )
+			{
+			case 0:
+				r.SetRight( r.x + SRand::Inst().Rand( 1, r.width ) );
+				break;
+			case 1:
+				r.SetLeft( r.GetRight() - SRand::Inst().Rand( 1, r.width ) );
+				break;
+			case 2:
+				r.width = SRand::Inst().Rand( 1, r.width );
+				r.x += SRand::Inst().Rand( 0u, pChunk->nWidth - r.width + 1 );
+				break;
+			}
+		}
+		if( !!( n1 & 2 ) && r.height >= 2 )
+		{
+			switch( SRand::Inst().Rand( 0, 3 ) )
+			{
+			case 0:
+				r.SetBottom( r.y + SRand::Inst().Rand( 1, r.height ) );
+				break;
+			case 1:
+				r.SetTop( r.GetBottom() - SRand::Inst().Rand( 1, r.height ) );
+				break;
+			case 2:
+				r.height = SRand::Inst().Rand( 1, r.height );
+				r.y += SRand::Inst().Rand( 0u, pChunk->nHeight - r.height + 1 );
+				break;
+			}
+		}
+	}
 
 	SetRenderObject( new CRenderObject2D );
 	for( int iY = 0; iY < pChunk->nHeight; iY++ )
@@ -138,7 +196,9 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 		{
 			uint32 tX = SRand::Inst().Rand( 0u, nTileX );
 			uint32 tY = SRand::Inst().Rand( 0u, nTileY );
-			auto tex = texRect.Offset( CVector2( texRect.width * tX, texRect.height * tY ) );
+			bool b = iX >= r.x && iY >= r.y && iX < r.GetRight() && iY < r.GetBottom();
+			auto t0 = b ? texRect : texRect1;
+			auto tex = t0.Offset( CVector2( t0.width * tX, t0.height * tY ) );
 			if( m_bBlockTypeMask[pChunk->GetBlock( iX, iY )->eBlockType] )
 			{
 				CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
@@ -147,6 +207,8 @@ void CRandomChunkTiled::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				pImage2D->SetTexRect( tex );
 				GetRenderObject()->AddChild( pImage2D );
 			}
+			if( bTag1 ? b : !b )
+				GetBlock( iX, iY )->nTag = 1;
 			GetBlock( iX, iY )->rtTexRect = tex;
 
 			for( int i = 0; i < m_nDamagedEffectsCount; i++ )

@@ -208,7 +208,7 @@
           <ref name="stonebar2" />
         </bar2>
         <room1>
-          <ref name="enemyroom2_1" />
+          <ref name="enemyroom1" />
         </room1>
         <room2>
           <ref name="enemyroom2" />
@@ -499,11 +499,14 @@
             <ref name="wall2" />
           </wallchunk>
           <wallchunk0>
-            <ref name="wall1" />
+            <ref name="enemyroom2_2" />
           </wallchunk0>
           <wallchunk1>
             <ref name="wall3" />
           </wallchunk1>
+          <wallchunk2>
+            <ref name="wall4" />
+          </wallchunk2>
           <block1>
             <ref name="brick_tile_1ax" />
           </block1>
@@ -581,11 +584,11 @@
       </node>
 
       <node type="subregion" name="test_lv">
-        <!--metadata seed="1543145343" /-->
+        <!--metadata seed="348641911" /-->
         <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0" />
         </node>
-        <ref name="lv1_7" x="0" y="4" w="32" h="60" />
+        <ref name="lv1_8" x="0" y="4" w="32" h="60" />
       </node>
     </nodes>
   </level_gen>

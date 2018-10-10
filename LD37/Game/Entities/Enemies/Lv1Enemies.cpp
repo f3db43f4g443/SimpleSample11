@@ -9,6 +9,7 @@
 #include "Entities/Bullets.h"
 #include "Render/Rope2D.h"
 #include "Common/ResourceManager.h"
+#include "Common/MathUtil.h"
 
 void CManHead1::AIFunc()
 {
@@ -174,7 +175,7 @@ void CManHead3::Kill()
 
 void CManHead3::AIFunc()
 {
-	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+	m_flyData.bHitChannel[eEntityHitType_WorldStatic] = m_flyData.bHitChannel[eEntityHitType_Platform] = m_flyData.bHitChannel[eEntityHitType_System] = true;
 	SetVelocity( CVector2( 0, 50 ) );
 	m_flyData.fStablity = 1.0f;
 	m_flyData.fMaxAcc = 0.0f;
@@ -695,106 +696,350 @@ void CSpider1Web::OnRemovedFromStage()
 		m_pSpider->Kill();
 }
 
-void CSpider2::OnAddedToStage()
-{
-	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
-	{
-		auto pChunk = SafeCast<CChunkObject>( pParent );
-		if( pChunk )
-		{
-			CReference<CRenderObject2D> pRenderObject = GetParentEntity()->GetRenderObject();
-			if( pRenderObject && pChunk->GetDecoratorRoot() )
-			{
-				pRenderObject->RemoveThis();
-				pChunk->GetDecoratorRoot()->AddChild( pRenderObject );
-				pRenderObject->SetPosition( GetParentEntity()->GetPosition() );
-			}
-			pChunk->RegisterKilledEvent( &m_onChunkKilled );
-			break;
-		}
-	}
-	CEnemyTemplate::OnAddedToStage();
-}
-
 void CSpider2::OnRemovedFromStage()
 {
+	m_vecLinks.clear();
 	CEnemyTemplate::OnRemovedFromStage();
-	if( m_onChunkKilled.IsRegistered() )
-		m_onChunkKilled.Unregister();
 }
 
-void CSpider2::Kill()
+void CSpider2::OnLinkRemoved( CEntity* pLink )
 {
-	if( m_bCrushed )
+	for( int i = 0; i < m_vecLinks.size(); i++ )
 	{
-		auto pWeb = SafeCast<CEntity>( m_pWeb->GetRoot()->CreateInstance() );
-		pWeb->SetPosition( globalTransform.GetPosition() );
-		pWeb->SetRotation( SRand::Inst().Rand( -PI, PI ) );
-		pWeb->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		if( m_vecLinks[i] == pLink )
+		{
+			m_vecLinks[i] = m_vecLinks.back();
+			m_vecLinks.pop_back();
+			return;
+		}
 	}
-	CEnemy::Kill();
+}
+
+void CSpider2::AddShake( const CVector2& shake )
+{
+	m_shake = m_shake + shake;
 }
 
 void CSpider2::AIFunc()
 {
+	DEFINE_TEMP_REF_THIS();
+	m_moveData.bHitChannel[eEntityHitType_System] = false;
+
+	int32 nCreateLinkTick = 0;
 	while( 1 )
 	{
-		while( 1 )
+		m_pAI->Yield( 0, true );
+		UpdateMovement();
+		if( !GetStage() )
+			return;
+
+		if( m_vecLinks.size() < 6 )
 		{
-			m_pAI->Yield( 0.5f, true );
+			if( nCreateLinkTick )
+				nCreateLinkTick--;
+			if( !nCreateLinkTick )
+			{
+				if( CreateLink() && m_vecLinks.size() < 4 )
+					nCreateLinkTick = 20;
+				else
+					nCreateLinkTick = 4;
+			}
+		}
+	}
+}
+
+void CSpider2::UpdateMovement()
+{
+	DEFINE_TEMP_REF_THIS();
+	CVector2 acc( 0, 0 );
+	CVector2 p = globalTransform.GetPosition();
+	bool b = false;
+	for( CEntity* pEntity : m_vecLinks )
+	{
+		CVector2 d = SafeCast<CSpider2Link>( pEntity )->GetTargetPos() - p;
+		if( d.y > 0 )
+			b = true;
+		else
+		{
+			auto pTarget = SafeCast<CBlockObject>( SafeCast<CSpider2Link>( pEntity )->GetTarget() );
+			if( pTarget )
+			{
+				if( pTarget->GetBlock()->pOwner->pChunkObject->GetName() == m_strWeb )
+					b = true;
+			}
+		}
+		float l = d.Normalize();
+		float fForce = ( l - m_l0 ) * m_k;
+		acc = acc + d * fForce;
+	}
+	acc.y -= m_fGravity;
+	acc = acc + m_shake * m_fShake;
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer )
+	{
+		CVector2 d = pPlayer->GetPosition() - globalTransform.GetPosition();
+		SetRotation( atan2( d.y, d.x ) );
+		if( d.Length2() < 500 * 500 )
+		{
+			float l = d.Normalize();
+			acc = acc + d * ( Max( 0.0f, 150.0f - abs( l - 350.0f ) ) ) * ( m_vecLinks.size() * 1.2f );
+			acc = acc * Max( 0.0f, 150 - Max( 0.0f, d.Dot( GetVelocity() ) ) ) / 150.0f;
+		}
+	}
+	m_shake = CVector2( 0, 0 );
+	m_moveData.UpdateMove( this, acc );
+
+	if( !GetStage() )
+		return;
+	for( int i = 0; i < 3; i++ )
+	{
+		if( !m_moveData.hits[i].pHitProxy )
+			break;
+		if( m_moveData.hits[i].normal.y > 0 && !b )
+		{
+			Kill();
+			return;
+		}
+	}
+}
+
+bool CSpider2::CreateLink()
+{
+	CVector2 beginCenter = globalTransform.GetPosition();
+
+	float fAngle0 = SRand::Inst().Rand( -PI, PI );
+	bool bLink[8];
+	memset( bLink, 0, sizeof( bLink ) );
+	for( int i = 0; i < m_vecLinks.size(); i++ )
+	{
+		auto pLink = SafeCast<CSpider2Link>( m_vecLinks[i].GetPtr() );
+		CVector2 dPos = pLink->GetTargetPos() - globalTransform.GetPosition();
+		float fAngle = atan2( dPos.y, dPos.x ) - fAngle0;
+		int32 n = floor( fAngle / ( PI * 2 / ELEM_COUNT( bLink ) ) );
+		while( n < 0 )
+			n += ELEM_COUNT( bLink );
+		while( n >= ELEM_COUNT( bLink ) )
+			n -= ELEM_COUNT( bLink );
+		bLink[n] = true;
+	}
+	float fAngles[8];
+	int32 nAngles = 0;
+	for( int i = 0; i < ELEM_COUNT( bLink ); i++ )
+	{
+		if( !bLink[i] )
+			fAngles[nAngles++] = fAngle0 + ( i + 0.5f ) * PI * 2 / ELEM_COUNT( bLink );
+	}
+	SRand::Inst().Shuffle( fAngles, nAngles );
+
+	for( int i = 0; i < nAngles; i++ )
+	{
+		float fAngle = fAngles[i];
+
+		CVector2 dir( cos( fAngle ), sin( fAngle ) );
+		float l = m_fLinkLen;
+		CVector2 dCenter = dir * l;
+		CVector2 endCenter = beginCenter + dCenter;
+		CVector2 begin = beginCenter + dir * m_fLinkWidth * 0.5f;
+
+		SHitProxyPolygon polygon;
+		polygon.nVertices = 3;
+		polygon.vertices[0] = CVector2( 0, 0 );
+		polygon.vertices[1] = ( CVector2( -dir.y, dir.x ) - dir ) * m_fLinkWidth * 0.5f;
+		polygon.vertices[2] = ( CVector2( dir.y, -dir.x ) - dir ) * m_fLinkWidth * 0.5f;
+		polygon.CalcNormals();
+		vector<CReference<CEntity> > result;
+		vector<SRaycastResult> raycastResult;
+		CMatrix2D trans;
+		trans.Translate( begin.x, begin.y );
+		GetStage()->MultiSweepTest( &polygon, trans, endCenter - begin, result, &raycastResult );
+
+		CEntity* pHitEntity = NULL;
+		CVector2 targetPos;
+		CVector2 normal;
+
+		for( auto& item : raycastResult )
+		{
+			auto pEntity = static_cast<CEntity*>( item.pHitProxy );
+			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			{
+				CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+				if( pBlockObject )
+				{
+					if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+						continue;
+					pHitEntity = pBlockObject;
+					targetPos = pBlockObject->globalTransform.GetPosition() + CVector2( 0.5f, 0.5f ) * CMyLevel::GetBlockSize();
+					normal = item.normal;
+					break;
+				}
+			}
+		}
+		if( pHitEntity )
+		{
+			if( normal.Dot( dir ) > -0.6f )
+				continue;
+			bool b = false;
+			for( auto& item : m_vecLinks )
+			{
+				if( ( SafeCast<CSpider2Link>( item.GetPtr() )->GetTargetPos() - targetPos ).Length2() <= 50 * 50 )
+				{
+					b = true;
+					break;
+				}
+			}
+			if( b )
+				continue;
+			auto pLink = SafeCast<CSpider2Link>( m_pWebLinkDrawable->GetRoot()->CreateInstance() );
+			pLink->SetOwner( this, pHitEntity, targetPos );
+			m_vecLinks.push_back( pLink );
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void CSpider2Link::SetOwner( CSpider2* pOwner, CEntity* pTarget, const CVector2& targetPos )
+{
+	m_pTarget->SetParentEntity( pTarget );
+	m_pTarget->SetPosition( pTarget->globalTransform.MulTVector2PosNoScale( targetPos ) );
+	SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkRoot1() );
+	m_pTarget->SetRenderParent( this );
+	Set( pOwner, m_pTarget, CVector2( 0, 0 ), CVector2( 0, 0 ), -1, -1 );
+
+	CRopeObject2D* pRope = static_cast<CRopeObject2D*>( GetRenderObject() );
+	float tx = SRand::Inst().Rand( 0.0f, 1.0f ), ty = SRand::Inst().Rand( 0.0f, 1.0f );
+	for( int i = 0; i < pRope->GetData().data.size(); i++ )
+	{
+		auto pParam = pRope->GetParam( i );
+		pParam->z = tx;
+		pParam->w = ty;
+	}
+	m_nFireCD = SRand::Inst().Rand( 100, 120 );
+}
+
+void CSpider2Link::OnHit( CEntity* pEntity, const CVector2& hitPoint )
+{
+	if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+	{
+		CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+		if( pBlockObject )
+		{
+			if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+				return;
+			if( ( hitPoint - m_pTarget->globalTransform.GetPosition() ).Length2() < 32 * 32 )
+				return;
+			m_pTarget->Kill();
+		}
+	}
+}
+
+void CSpider2Link::OnTick()
+{
+	DEFINE_TEMP_REF_THIS();
+	m_fFadeIn = Min( 1.0f, m_fFadeIn + m_fFadeInSpeed * GetStage()->GetElapsedTimePerTick() );
+	if( m_bKilled )
+	{
+		m_fFadeOut = Min( 1.0f, m_fFadeOut + m_fFadeOutSpeed * GetStage()->GetElapsedTimePerTick() );
+		if( m_fFadeOut >= 1 )
+		{
+			SetParentEntity( NULL );
+			return;
+		}
+		UpdateRenderObject();
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+		return;
+	}
+	CLightning::OnTick();
+	if( !GetStage() || m_bKilled )
+		return;
+
+	if( m_fBeamLen > m_fMaxLen )
+	{
+		m_pTarget->Kill();
+		return;
+	}
+	auto pBlock = SafeCast<CBlockObject>( m_pTarget->GetParentEntity() );
+	if( pBlock )
+	{
+		auto pChunkObject = pBlock->GetBlock()->pOwner->pChunkObject;
+		while( pChunkObject )
+		{
+			SafeCast<CSpider2>( m_pBegin.GetPtr() )->AddShake( pChunkObject->GetShake() );
+			pChunkObject = SafeCast<CChunkObject>( pChunkObject->GetParentEntity() );
+		}
+	}
+
+	if( m_nFireCD )
+		m_nFireCD--;
+	if( !m_nFireCD )
+	{
+		CVector2 p = m_pTarget->globalTransform.GetPosition();
+		if( !m_nBullet )
+		{
 			CPlayer* pPlayer = GetStage()->GetPlayer();
 			if( pPlayer )
 			{
-				CVector2 pos = pPlayer->GetPosition() - globalTransform.GetPosition();
-				if( pos.Length2() < m_fSight * m_fSight )
-					break;
+				CVector2 d = pPlayer->GetPosition() - p;
+				if( d.Length2() < 320 * 320 )
+				{
+					m_nBullet = 3;
+					m_nFireCD = 10;
+					d.Normalize();
+					m_d = d;
+				}
 			}
 		}
-
-		uint8 n = 0;
-		while( 1 )
+		else
 		{
-			for( int i = 0; i < 60; i++ )
-			{
-				m_pAI->Yield( 0, true );
-				CPlayer* pPlayer = GetStage()->GetPlayer();
-				if( !pPlayer )
-					break;
-				CVector2 pos = pPlayer->GetPosition() - globalTransform.GetPosition();
-				SetRotation( atan2( pos.y, pos.x ) );
-			}
-
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( !pPlayer )
-				break;
-
-			CVector2 pos = pPlayer->GetPosition() - globalTransform.GetPosition();
-			bool b1 = pos.Length2() < m_fSight1 * m_fSight1;
-			b1 = b1 && SRand::Inst().Rand( 3, 6 ) >= n;
-			if( !b1 )
-				n++;
-			else
-				n = 0;
-
-			float fAngle0 = atan2( pos.y, pos.x );
-			auto pWeb = SafeCast<CEntity>( ( b1 ? m_pWeb : m_pWeb1 )->GetRoot()->CreateInstance() );
-			pWeb->SetPosition( globalTransform.GetPosition() );
-			pWeb->SetRotation( GetRotation() );
-			pWeb->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-
-			for( int i = 0; i < 400; i++ )
-			{
-				m_pAI->Yield( 0, true );
-				pPlayer = GetStage()->GetPlayer();
-				if( !pPlayer )
-					break;
-				pos = pPlayer->GetPosition() - globalTransform.GetPosition();
-				SetRotation( atan2( pos.y, pos.x ) );
-			}
-			if( pos.Length2() >= m_fSight * m_fSight )
-				break;
+			auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( p );
+			pBullet->SetVelocity( m_d * ( 150 + m_nBullet * 15 ) );
+			pBullet->SetRotation( atan2( m_d.y, m_d.x ) );
+			pBullet->SetAngularVelocity( SRand::Inst().Rand( 3.0f, 6.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			m_nBullet--;
+			m_nFireCD = m_nBullet ? 10 : SRand::Inst().Rand( 100, 140 );
 		}
 	}
+}
+
+void CSpider2Link::UpdateRenderObject()
+{
+	CRopeObject2D* pRope = static_cast<CRopeObject2D*>( GetRenderObject() );
+	for( int i = 0; i < pRope->GetData().data.size(); i++ )
+	{
+		auto pParam = pRope->GetParam( i );
+		pParam->x = Max( 0.0001f, m_fFadeIn );
+		pParam->y = m_fFadeOut;
+	}
+	CLightning::UpdateRenderObject();
+}
+
+void CSpider2Link::OnBeginRemoved()
+{
+	m_bKilled = true;
+	CLightning::OnBeginRemoved();
+	if( m_pTarget )
+	{
+		m_pTarget->Kill();
+		m_pTarget = NULL;
+	}
+}
+
+void CSpider2Link::OnEndRemoved()
+{
+	m_bKilled = true;
+	if( m_pBegin )
+	{
+		SafeCast<CSpider2>( m_pBegin.GetPtr() )->OnLinkRemoved( this );
+		m_begin = m_pBegin->globalTransform.MulVector2Pos( m_begin );
+		m_begin = globalTransform.MulTVector2PosNoScale( m_begin );
+		if( m_onBeginRemoved.IsRegistered() )
+			m_onBeginRemoved.Unregister();
+		m_pBegin = NULL;
+	}
+	CLightning::OnEndRemoved();
 }
 
 void CSpider2Web::OnAddedToStage()
@@ -1411,7 +1656,7 @@ void CFly::OnTickAfterHitTest()
 	{
 		CVector2 d = pPlayer->GetPosition() - GetPosition();
 		float l = d.Normalize();
-		if( l <= m_fFireDist )
+		if( l <= m_fFireDist && l >= m_fFireMinDist )
 		{
 			if( m_pTarget )
 			{
@@ -1470,6 +1715,8 @@ void CFly::SetFlyGroup( CFlyGroup* pFlyGroup )
 void CFly::Set( CEntity * pTarget, uint16 nTransformIndex )
 {
 	SetFlyGroup( NULL );
+	if( m_pTarget && !pTarget )
+		m_flyData.fMaxAcc = Min( m_fMaxAcc, GetVelocity().Length() * 0.6f );
 	m_pTarget = pTarget;
 	m_nTargetTransformIndex = nTransformIndex;
 	if( pTarget )
@@ -1592,7 +1839,7 @@ void CFlyGroup::OnTick()
 void CRat::OnAddedToStage()
 {
 	CEnemy::OnAddedToStage();
-	m_flyData.bHitChannel[eEntityHitType_Platform] = false;
+	m_flyData.bHitChannel[eEntityHitType_System] = false;
 
 	m_nState = 0;
 	int8 nDir = SRand::Inst().Rand( 0, 4 );
@@ -1721,7 +1968,7 @@ void CRat::OnTickAfterHitTest()
 		}
 		if( !m_flyData.pLandedEntity )
 		{
-			m_flyData.bHitChannel[eEntityHitType_Platform] = true;
+			m_flyData.bHitChannel[eEntityHitType_System] = true;
 			m_walkData.Reset();
 			m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 			m_walkData.vecKnockback = m_flyData.vecKnockback;

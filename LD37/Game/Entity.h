@@ -13,6 +13,8 @@ enum EEntityHitType
 	eEntityHitType_FlyingObject,
 	eEntityHitType_Sensor,
 
+	eEntityHitType_System,
+
 	eEntityHitType_Count,
 };
 

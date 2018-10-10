@@ -9,8 +9,7 @@ cbuffer InstBuffer
 	float4 g_insts[4096];
 };
 
-void VSParticle( in float4 inPos : SV_Position,
-	in float2 tex : Position,
+void VSParticle( in float2 tex : Position,
 	in uint instID : SV_InstanceID,
 	out float4 outPos : SV_Position,
 	out float2 outTex : TexCoord0 )

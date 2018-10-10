@@ -82,6 +82,8 @@ IMPLEMENT_MATERIAL_SHADER( PSThruster, "Shader/Beams.shader", "PSThruster", "ps_
 IMPLEMENT_MATERIAL_SHADER( VSThruster1, "Shader/Beams.shader", "VSThruster1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSThruster1Color, "Shader/Beams.shader", "PSThruster1Color", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSThruster1Occ, "Shader/Beams.shader", "PSThruster1Occ", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSWeb, "Shader/Web.shader", "VSWeb", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWeb, "Shader/Web.shader", "PSWeb", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle, "Shader/Laser.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSLaserParticle1, "Shader/Laser.shader", "VSParticle1", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSLaserParticle, "Shader/Laser.shader", "PSParticle", "ps_5_0" );

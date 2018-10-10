@@ -67,6 +67,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, fDestroyBalance( baseInfo.fDestroyBalance )
 	, fImbalanceTime( baseInfo.fImbalanceTime )
 	, fShakeDmg( baseInfo.fShakeDmg + baseInfo.fShakeDmgPerWidth * (int32)( size.x - baseInfo.nWidth ) )
+	, fShakeWeightCoef( baseInfo.fShakeWeightCoef )
 	, nShakeDmgThreshold( baseInfo.nShakeDmgThreshold )
 	, nAbsorbShakeStrength( baseInfo.nAbsorbShakeStrength + baseInfo.fAbsorbShakeStrengthPerHeight * (int32)( size.y - baseInfo.nHeight ) )
 	, nDestroyShake( baseInfo.nDestroyShake )
@@ -75,7 +76,6 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, pPrefab( baseInfo.pPrefab )
 	, pChunkObject( NULL )
 	, nUpdateCount( 0 )
-	, fAppliedWeight( 0 )
 	, fCurImbalanceTime( 0 )
 	, nCurShakeStrength( 0 )
 	, nLayerType( baseInfo.nLayerType )
@@ -170,6 +170,12 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 						pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
 					pDecorator->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
 					pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ) );
+				}
+				else if( pSpawnInfo->bForceAttach )
+				{
+					pEntity->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
+					pEntity->SetRotation( pSpawnInfo->r );
+					pEntity->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
 				}
 				else
 				{
@@ -498,6 +504,13 @@ void CChunkObject::RemoveChunk()
 	}
 }
 
+CVector2 CChunkObject::GetShake()
+{
+	CVector2 pos = m_hitShakeVector * cos( m_nHitShakeFrame * 1.275235 ) + CVector2( m_hitShakeVector.y, -m_hitShakeVector.x ) * sin( m_nHitShakeFrame * 1.58792 );
+	pos = CVector2( floor( pos.x + 0.5f ), floor( pos.y + 0.5f ) );
+	return pos;
+}
+
 void CChunkObject::OnKilled()
 {
 	if( m_strEffect )
@@ -655,8 +668,7 @@ void CChunkObject::HitShakeTick()
 	}
 	m_hitShakeVector = m_hitShakeVector * ( ( l - 1 ) / l );
 
-	CVector2 pos = m_hitShakeVector * cos( m_nHitShakeFrame * 1.275235 ) + CVector2( m_hitShakeVector.y, -m_hitShakeVector.x ) * sin( m_nHitShakeFrame * 1.58792 );
-	pos = CVector2( floor( pos.x + 0.5f ), floor( pos.y + 0.5f ) );
+	CVector2 pos = GetShake();
 	HandleHitShake( pos );
 
 	for( auto pSubChunk = m_pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )

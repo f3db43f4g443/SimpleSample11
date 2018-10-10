@@ -25,15 +25,16 @@ struct SBlockBaseInfo
 struct SBlockLayer
 {
 	struct SBlock* pParent;
+	float fAppliedWeight;
 	LINK_LIST( SBlockLayer, BlockLayer )
 
-	SBlockLayer* GetPrev( SBlockLayer* &pHead ) { return *__pPrevBlockLayer == pHead? (SBlockLayer*)( (uint8*)__pPrevBlockLayer - ( (uint8*)(&__pNextBlockLayer)- (uint8*)this ) ) : NULL; }
+	SBlockLayer* GetPrev( SBlockLayer* &pHead ) { return __pPrevBlockLayer != &pHead? (SBlockLayer*)( (uint8*)__pPrevBlockLayer - ( (uint8*)(&__pNextBlockLayer)- (uint8*)this ) ) : NULL; }
 };
 
 struct SBlock
 {
 	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 ), bImmuneToBlockBuff( 0 )
-	{ layers[0].pParent = layers[1].pParent = this; }
+	{ layers[0].pParent = layers[1].pParent = this; layers[0].fAppliedWeight = layers[1].fAppliedWeight = 0; }
 	struct SChunk* pOwner;
 	float fDmgPercent;
 	uint8 eBlockType;
@@ -105,6 +106,7 @@ struct SChunkBaseInfo
 	float fDestroyWeight;
 	float fDestroyBalance;
 	float fImbalanceTime;
+	float fShakeWeightCoef;
 	float fShakeDmg;
 	float fShakeDmgPerWidth;
 	uint32 nShakeDmgThreshold;
@@ -132,6 +134,7 @@ struct SChunkSpawnInfo
 	CReference<CPrefab> pPrefab;
 	CRectangle rect;
 	float r;
+	bool bForceAttach;
 
 	LINK_LIST( SChunkSpawnInfo, SpawnInfo )
 };
@@ -147,6 +150,7 @@ struct SChunk
 	float fDestroyWeight;
 	float fDestroyBalance;
 	float fImbalanceTime;
+	float fShakeWeightCoef;
 	float fShakeDmg;
 	uint32 nShakeDmgThreshold;
 	uint32 nAbsorbShakeStrength;
@@ -159,7 +163,6 @@ struct SChunk
 
 	uint32 nFallSpeed;
 	uint32 nUpdateCount;
-	float fAppliedWeight;
 	float fCurImbalanceTime;
 	uint32 nCurShakeStrength;
 
@@ -248,6 +251,7 @@ public:
 	virtual void Kill();
 	virtual void Crush() { m_triggerCrushed.Trigger( 0, this ); Kill(); }
 	void RemoveChunk();
+	CVector2 GetShake();
 
 	void RegisterDamagedEvent( CTrigger* pTrigger ) { m_triggerDamaged.Register( 0, pTrigger ); }
 	void RegisterKilledEvent( CTrigger* pTrigger ) { m_triggerKilled.Register( 0, pTrigger ); }

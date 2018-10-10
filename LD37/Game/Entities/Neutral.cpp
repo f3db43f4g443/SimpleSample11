@@ -319,7 +319,7 @@ void CBulletEnemy::OnTickAfterHitTest()
 	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 	{
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
-		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform )
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic || pEntity->GetHitType() == eEntityHitType_Platform || pEntity->GetHitType() == eEntityHitType_System )
 		{
 			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 			if( pBlockObject && pBlockObject->GetBlock()->eBlockType != eBlockType_Block )

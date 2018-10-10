@@ -189,8 +189,7 @@ void CLightning::OnTick()
 			if( pHitEntity )
 			{
 				endCenter = begin + dir * pResult->fDist;
-
-				OnHit( pHitEntity );
+				OnHit( pHitEntity, pResult->hitPoint );
 			}
 		}
 		else if( pHitEntity )
@@ -200,6 +199,8 @@ void CLightning::OnTick()
 		m_fBeamLen = pResult ? pResult->fDist : l;
 		m_bIsBeamInited = true;
 	}
+	else
+		m_fBeamLen = ( endCenter - beginCenter ).Length();
 
 	if( !GetStage() )
 		return;
@@ -248,12 +249,13 @@ void CLightning::OnTick()
 						norm.Normalize();
 						pPlayer->Knockback( norm * -1 );
 					}
-					OnHit( pPlayer );
+					OnHit( pPlayer, hitResult.hitPoint1 );
 				}
 			}
 			break;
 		case 1:
 		case 2:
+		case 3:
 		{
 			SHitProxyPolygon polygon;
 			polygon.nVertices = 4;
@@ -300,12 +302,26 @@ void CLightning::OnTick()
 						if( m_pDmgEft )
 							m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
 
-						OnHit( pEnemy );
+						OnHit( pEnemy, hitResult.hitPoint );
 						continue;
 					}
 				}
 				else
 				{
+					if( m_nType == 3 )
+					{
+						CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+						if( pBlockObject )
+						{
+							if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+								continue;
+							auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
+							if( pChunk == m_pCreator )
+								continue;
+							OnHit( pBlockObject, hitResult.hitPoint );
+						}
+					}
+
 					CDoor* pDoor = SafeCast<CDoor>( pEntity );
 					if( pDoor )
 					{
@@ -331,7 +347,7 @@ void CLightning::OnTick()
 							if( m_pDmgEft )
 								m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
 						}
-						OnHit( pCharacter );
+						OnHit( pCharacter, hitResult.hitPoint );
 						continue;
 					}
 
@@ -358,7 +374,7 @@ void CLightning::OnTick()
 							norm = ( pPlayer->globalTransform.GetPosition() - beginCenter ).Dot( norm ) > 0 ? norm : norm * -1;
 							pPlayer->Knockback( norm );
 						}
-						OnHit( pPlayer );
+						OnHit( pPlayer, hitResult.hitPoint );
 					}
 				}
 			}
@@ -423,7 +439,7 @@ void CLightning::UpdateRenderObject()
 		end.nRefTransformIndex = m_nEndTransIndex;
 	}
 	if( m_fTexYTileLen > 0 )
-		end.tex0.y = end.tex1.y = ( m_bIsBeam ? m_fBeamLen : ( end.center - begin.center ).Length() ) / m_fTexYTileLen;
+		end.tex0.y = end.tex1.y = m_fBeamLen / m_fTexYTileLen;
 	if( m_nEftType == 1 )
 		begin.tex1.x = end.tex1.x = end.tex0.y;
 

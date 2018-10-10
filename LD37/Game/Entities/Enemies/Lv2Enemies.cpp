@@ -177,7 +177,7 @@ void CLimbs::OnTickAfterHitTest()
 	else if( m_nState == 1 )
 	{
 		GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
-		bool bHitChannel[eEntityHitType_Count] = { true, true, false, false, false, false };
+		bool bHitChannel[eEntityHitType_Count] = { true, true, false, false, false, false, false };
 		float f = CCharacterMoveUtil::Stretch( this, m_nAttackDir, Min( m_fStretchLenPerFrame, m_fMaxLen - m_fEftLen ), bHitChannel );
 		m_fEftLen += f;
 		SafeCast<CLimbsAttackEft>( m_pLimbsAttackEft.GetPtr() )->SetAttackEftLen( m_fEftLen );
@@ -925,7 +925,7 @@ void CGear::OnTickAfterHitTest()
 void CExplosiveBall::OnAddedToStage()
 {
 	m_moveTarget = GetPosition();
-	m_moveData.bHitChannel[eEntityHitType_WorldStatic] = m_moveData.bHitChannel[eEntityHitType_Platform] = true;
+	m_moveData.bHitChannel[eEntityHitType_WorldStatic] = m_moveData.bHitChannel[eEntityHitType_Platform] = m_moveData.bHitChannel[eEntityHitType_System] = true;
 	CEnemy::OnAddedToStage();
 }
 

@@ -463,6 +463,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.fDestroyWeight = XmlGetAttr( pXml, "destroyweight", 0.0f );
 	chunk.fDestroyBalance = XmlGetAttr( pXml, "destroybalance", 0.0f );
 	chunk.fImbalanceTime = XmlGetAttr( pXml, "imbalancetime", 1.0f );
+	chunk.fShakeWeightCoef = XmlGetAttr( pXml, "shakeweightcoef", 0.0f );
 	chunk.fShakeDmg = XmlGetAttr( pXml, "shakedmg", 1.0f );
 	chunk.fShakeDmgPerWidth = XmlGetAttr( pXml, "shakedmgperwidth", 0.0F );
 	chunk.nAbsorbShakeStrength = XmlGetAttr( pXml, "absorbshakestrength", 1 );
@@ -708,6 +709,7 @@ public:
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
 		m_pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
+		m_bForceAttach = XmlGetAttr( pXml, "force_attach", 0 );
 		m_rectSize.x = XmlGetAttr( pXml, "sizex", 0.0f );
 		m_rectSize.y = XmlGetAttr( pXml, "sizey", 0.0f );
 		m_rectSize.width = XmlGetAttr( pXml, "sizewidth", 0.0f );
@@ -774,6 +776,7 @@ public:
 					pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
 					pSpawnInfo->pPrefab = m_pPrefab;
 					pSpawnInfo->r = 0;
+					pSpawnInfo->bForceAttach = m_bForceAttach;
 					context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( p.x, p.y ) );
 				}
 			}
@@ -787,6 +790,7 @@ public:
 					pSpawnInfo->rect = CRectangle( SRand::Inst().Rand( rect.GetLeft(), rect.GetRight() ), SRand::Inst().Rand( rect.GetTop(), rect.GetBottom() ), 0, 0 );
 					pSpawnInfo->pPrefab = m_pPrefab;
 					pSpawnInfo->r = 0;
+					pSpawnInfo->bForceAttach = m_bForceAttach;
 					context.AddSpawnInfo( pSpawnInfo, TVector2<int32>( region.x, region.y ) );
 				}
 			}
@@ -795,6 +799,7 @@ public:
 protected:
 	CReference<CPrefab> m_pPrefab;
 	CRectangle m_rectSize;
+	bool m_bForceAttach;
 	float m_fCountPerGrid;
 	int32 m_nCheckGenData;
 	string m_strCheckGenData;
@@ -1100,6 +1105,7 @@ public:
 		string str;
 		CReference<CLevelGenerateNode> pNode;
 		int8 nType;
+		int32 nOfsX, nOfsY;
 	};
 	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
 	{
@@ -1112,6 +1118,8 @@ public:
 			auto& item = m_infos.back();
 			item.pNode = pNode;
 			item.str = XmlGetAttr( pChild, "case", "" );
+			item.nOfsX = XmlGetAttr( pChild, "ofsx", 0 );
+			item.nOfsY = XmlGetAttr( pChild, "ofsy", 0 );
 		}
 
 		CLevelGenerateNode::Load( pXml, context );
@@ -1119,14 +1127,25 @@ public:
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
 		for( auto& info : m_infos )
-			info.nType = info.str.length() ? context.mapTags[info.str] : -1;
+		{
+			info.nType = -1;
+			if( info.str.length() )
+			{
+				auto itr = context.mapTags.find( info.str );
+				if( itr != context.mapTags.end() )
+					info.nType = itr->second;
+			}
+		}
 		for( int i = region.x; i < region.GetRight(); i++ )
 		{
 			for( int j = region.y; j < region.GetBottom(); j++ )
 			{
 				for( auto& info : m_infos )
 				{
-					if( info.nType == context.blueprint[i + j * context.nWidth] || info.nType == -1 )
+					int32 x = i + info.nOfsX;
+					int32 y = j + info.nOfsY;
+					if( x >= region.x && y >= region.y && x < region.GetRight() && y < region.GetBottom()
+						&& info.nType == context.blueprint[x + y * context.nWidth] || info.nType == -1 )
 					{
 						info.pNode->Generate( context, TRectangle<int32>( i, j, 1, 1 ) );
 						break;

@@ -3,6 +3,25 @@
 #include "Render/DrawableGroup.h"
 #include "Common/Rand.h"
 
+class CEnemyPileEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CEnemyPileEft( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CEnemyPileEft::OnTick ) { SET_BASEOBJECT_ID( CEnemyPileEft ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnTick();
+	uint32 m_nEft;
+	uint32 m_nEftBegin[4];
+	uint32 m_nEftCount[4];
+	uint32 m_nFrames;
+
+	int32 m_nImg;
+	CReference<CRenderObject2D> m_pImg[4];
+	TClassTrigger<CEnemyPileEft> m_onTick;
+};
+
 class CLimbsEft : public CEntity
 {
 	friend void RegisterGameClasses();

@@ -170,6 +170,9 @@ protected:
 	}
 	vector<int16> m_freedBlockRTRects;
 
+	vector<SBlockLayer*> m_vecUpdatedBlocks;
+	vector<SChunk*> m_vecUpdatedChunks;
+
 	static CMyLevel* s_pLevel;
 
 	static int8 s_nTypes[eBlockType_Count];

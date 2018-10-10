@@ -1833,20 +1833,26 @@ void CHitTestMgr::SweepTest( SHitProxy * pProxy, const CMatrix2D & transform, co
 	{
 		for( int j = 0; j < newRect.height; j++ )
 		{
-			int32 y = newRect.y + j;
-			float x0 = ( b1.x - a1.x ) *( y - a1.y ) / ( b1.y - a1.y ) + a1.x;
-			float x1 = ( b2.x - a2.x ) *( y - a2.y ) / ( b2.y - a2.y ) + a2.x;
-			if( x0 > x1 )
+			int32 y1 = newRect.y + j;
+			int32 y2 = y1 + 1;
+			float xs[4] =
 			{
-				float temp = x0;
-				x0 = x1;
-				x1 = temp;
+				( b1.x - a1.x ) * ( y1 - a1.y ) / ( b1.y - a1.y ) + a1.x,
+				( b2.x - a2.x ) * ( y1 - a2.y ) / ( b2.y - a2.y ) + a2.x,
+				( b1.x - a1.x ) * ( y2 - a1.y ) / ( b1.y - a1.y ) + a1.x,
+				( b2.x - a2.x ) * ( y2 - a2.y ) / ( b2.y - a2.y ) + a2.x,
+			};
+			float x0 = xs[0], x1 = xs[0];
+			for( int i = 1; i < 4; i++ )
+			{
+				x0 = Min( x0, xs[i] );
+				x1 = Max( x1, xs[i] );
 			}
 			int32 left = Max( (int32)floor( x0 ), newRect.x );
 			int32 right = Min( (int32)ceil( x1 ), newRect.GetRight() );
 			for( int x = left; x < right; x++ )
 			{
-				grids.push_back( TVector2<int32>( x, y ) );
+				grids.push_back( TVector2<int32>( x, y1 ) );
 			}
 		}
 	}

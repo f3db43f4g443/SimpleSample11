@@ -383,3 +383,133 @@ void CDecoratorTile1::Init( const CVector2& size )
 
 	SetRenderObject( NULL );
 }
+
+void CDecoratorTile2::Init( const CVector2& size )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
+	if( !pChunkObject )
+		return;
+	auto pChunk = pChunkObject->GetChunk();
+
+	vector<bool> vecMask;
+	vector<pair<uint8, uint8> > vecType;
+	vecMask.resize( pChunk->nWidth * pChunk->nHeight );
+	vecType.resize( ( pChunk->nWidth + 1 ) * ( pChunk->nHeight + 1 ) );
+
+	for( int i = 0; i < pChunk->nWidth; i++ )
+	{
+		for( int j = 0; j < pChunk->nHeight; j++ )
+		{
+			uint8 n = pChunkObject->GetBlock( i, j )->nTag;
+			if( n >= m_nBlockTag )
+				continue;
+			vecMask[i + j * pChunk->nWidth] = true;
+		}
+	}
+
+	auto Set = [=, &vecType] ( int32 i, int32 j, int8 nDir )
+	{
+		switch( nDir )
+		{
+		case 0:
+			vecType[( i + 1 ) + j * ( pChunk->nWidth + 1 )].first = 1;
+			break;
+		case 1:
+			vecType[i + ( j + 1 ) * ( pChunk->nWidth + 1 )].second = 1;
+			break;
+		case 2:
+			vecType[i + j * ( pChunk->nWidth + 1 )].first = 1;
+			break;
+		case 3:
+			vecType[i + j * ( pChunk->nWidth + 1 )].second = 1;
+			break;
+		}
+	};
+
+	int32 nDirs[4] = { 0, 1, 2, 3 };
+	TVector2<int32> ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	SRand::Inst().Shuffle( nDirs, 4 );
+	int32 nDirCount = SRand::Inst().Rand( 1, 4 );
+	for( int iDir = 0; iDir < nDirCount; iDir++ )
+	{
+		int32 nDir = nDirs[iDir];
+		int32 nDir1 = nDir ^ 1 ^ ( SRand::Inst().Rand( 0, 2 ) << 1 );
+		int32 w = nDir == 0 || nDir == 2 ? pChunk->nWidth : pChunk->nHeight;
+		int32 h = nDir == 0 || nDir == 2 ? pChunk->nHeight : pChunk->nWidth;
+		int32 i = ( nDir & 2 ) ? w - 1 : 0;
+		int32 j = SRand::Inst().Rand( 0, h );
+		if( !!( nDir & 1 ) )
+			swap( i, j );
+		Set( i, j, nDir ^ 2 );
+		while( 1 )
+		{
+			if( !SRand::Inst().Rand( 0, 4 ) )
+				swap( nDir, nDir1 );
+			Set( i, j, nDir );
+			i += ofs[nDir].x;
+			j += ofs[nDir].y;
+			if( i < 0 || i >= pChunk->nWidth || j < 0 || j >= pChunk->nHeight )
+				break;
+			int8 n = vecType[( i + 1 ) + j * ( pChunk->nWidth + 1 )].first
+				+ vecType[i + ( j + 1 ) * ( pChunk->nWidth + 1 )].second
+				+ vecType[i + j * ( pChunk->nWidth + 1 )].first
+				+ vecType[i + j * ( pChunk->nWidth + 1 )].second;
+			if( n >= 2 )
+				break;
+		}
+	}
+
+	int32 x0 = floor( x / CMyLevel::GetBlockSize() );
+	int32 y0 = floor( y / CMyLevel::GetBlockSize() );
+	int32 x1 = ceil( ( x + size.x ) / CMyLevel::GetBlockSize() );
+	int32 y1 = ceil( ( y + size.y ) / CMyLevel::GetBlockSize() );
+	x0 = Max( x0, 0 );
+	y0 = Max( y0, 0 );
+	uint32 nWidth = pChunkObject->GetChunk()->nWidth;
+	uint32 nHeight = pChunkObject->GetChunk()->nHeight;
+	x1 = Min<int32>( x1, nWidth );
+	y1 = Min<int32>( y1, nHeight );
+	SetPosition( CVector2( 0, 0 ) );
+
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	for( int i = x0; i < x1; i++ )
+	{
+		for( int j = y0; j < y1; j++ )
+		{
+			if( !vecMask[i + j * pChunk->nWidth] )
+				continue;
+
+			uint8 x1 = vecType[i + j * ( pChunk->nWidth + 1 )].first;
+			uint8 y1 = vecType[i + j * ( pChunk->nWidth + 1 )].second;
+			uint8 x2 = vecType[( i + 1 ) + j * ( pChunk->nWidth + 1 )].first;
+			uint8 y2 = vecType[i + ( j + 1 ) * ( pChunk->nWidth + 1 )].second;
+			static uint32 indexX[] = { 3, 2, 0, 1 };
+			static uint32 indexY[] = { 3, 0, 2, 1 };
+			uint8 nType = indexX[x1 + x2 * 2] + indexY[y1 + y2 * 2] * 4;
+			if( !m_nTileCount[nType] )
+				continue;
+
+			auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+			AddChild( pImg );
+			pImg->SetRect( CRectangle( i * CMyLevel::GetBlockSize(), j * CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );
+
+			uint32 nTex = m_nTileBegin[nType] + SRand::Inst().Rand( 0u, m_nTileCount[nType] );
+			uint32 texY = nTex / m_nTexCols;
+			uint32 texX = nTex - texY * m_nTexCols;
+			pImg->SetTexRect( CRectangle( texX * 1.0f / m_nTexCols, texY * 1.0f / m_nTexCols, 1.0f / m_nTexCols, 1.0f / m_nTexRows ) );
+
+			uint16 nParamCount;
+			CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+			CVector4* dst = pImg->GetParam();
+			memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+		}
+	}
+
+	SetRenderObject( NULL );
+}

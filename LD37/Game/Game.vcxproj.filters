@@ -464,6 +464,9 @@
     <None Include="..\Shader\Distortion.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\Web.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">

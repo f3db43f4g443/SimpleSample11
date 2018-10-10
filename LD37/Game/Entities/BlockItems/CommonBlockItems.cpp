@@ -104,6 +104,131 @@ void CKillTrigger::OnRemovedFromStage()
 		m_onKilled.Unregister();
 }
 
+void CDamageTriggerEnemy::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	if( m_fChunkHpPercentBegin > m_fChunkHpPercentEnd )
+	{
+		auto pChunk = SafeCast<CChunkObject>( GetParentEntity() );
+		if( pChunk )
+		{
+			pChunk->RegisterKilledEvent( &m_onChunkKilled );
+			pChunk->RegisterDamagedEvent( &m_onChunkDamaged );
+			m_bChunk = true;
+		}
+	}
+}
+
+void CDamageTriggerEnemy::OnRemovedFromStage()
+{
+	if( m_onChunkKilled.IsRegistered() )
+		m_onChunkKilled.Unregister();
+	if( m_onChunkDamaged.IsRegistered() )
+		m_onChunkDamaged.Unregister();
+	CEnemy::OnRemovedFromStage();
+}
+
+void CDamageTriggerEnemy::Damage( SDamageContext & context )
+{
+	DEFINE_TEMP_REF_THIS();
+	int32 n1 = ceil( m_nHp * m_nTriggerCount * 1.0f / m_nMaxHp );
+	CEnemy::Damage( context );
+	int32 n2 = ceil( m_nHp * m_nTriggerCount * 1.0f / m_nMaxHp );
+	n1 = Max( 0, Min( m_nTriggerCount, n1 ) );
+	n2 = Max( 0, Min( m_nTriggerCount, n2 ) );
+
+	for( int i = n1; i > n2; i-- )
+	{
+		for( int j = 0; j < m_nFireCount; j++ )
+			Trigger();
+	}
+}
+
+void CDamageTriggerEnemy::Kill()
+{
+	for( int j = 0; j < m_nKillFireCount; j++ )
+		Trigger();
+	CEnemy::Kill();
+}
+
+void CDamageTriggerEnemy::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		auto eHitType = pEntity->GetHitType();
+		if( eHitType == eEntityHitType_WorldStatic || eHitType == eEntityHitType_Platform )
+		{
+			CVector2 p = globalTransform.GetPosition();
+			SetParentAfterEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			SetPosition( p );
+			SCharacterMovementData moveData;
+			moveData.ResolvePenetration( this );
+
+			SDamageContext context;
+			context.nDamage = m_nHp;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = context.hitDir = CVector2( 0, 0 );
+			context.nHitType = -1;
+			Damage( context );
+			return;
+		}
+	}
+
+	if( m_killRect.Contains( globalTransform.GetPosition() ) )
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer && ( pPlayer->GetPosition() - globalTransform.GetPosition() ).Length2() <= m_fKillPlayerDist * m_fKillPlayerDist )
+		{
+			SDamageContext context;
+			context.nDamage = m_nHp;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = context.hitDir = CVector2( 0, 0 );
+			context.nHitType = -1;
+			Damage( context );
+			return;
+		}
+	}
+}
+
+void CDamageTriggerEnemy::OnChunkKilled()
+{
+	if( m_nHp > 0 )
+	{
+		SDamageContext context;
+		context.nDamage = m_nHp;
+		context.nType = 0;
+		context.nSourceType = 0;
+		context.hitPos = context.hitDir = CVector2( 0, 0 );
+		context.nHitType = -1;
+		Damage( context );
+	}
+}
+
+void CDamageTriggerEnemy::OnChunkDamaged( SDamageContext * pContext )
+{
+	auto pChunk = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunk )
+	{
+		float fPercent = ( pChunk->GetHp() / pChunk->GetMaxHp() - m_fChunkHpPercentEnd ) / ( m_fChunkHpPercentBegin - m_fChunkHpPercentEnd );
+		fPercent = Min( 1.0f, Max( 0.0f, fPercent ) );
+		int32 nHp = m_nMaxHp * fPercent;
+		if( nHp < m_nHp )
+		{
+			SDamageContext context;
+			context.nDamage = m_nHp - nHp;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = context.hitDir = CVector2( 0, 0 );
+			context.nHitType = -1;
+			Damage( context );
+		}
+	}
+}
+
 void CSpawner::OnRemovedFromStage()
 {
 	while( m_pSpawnedEntities )
@@ -129,7 +254,8 @@ void CSpawner::Trigger()
 	{
 		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 		{
-			if( static_cast<CEntity*>( pManifold->pOtherHitProxy )->GetHitType() <= eEntityHitType_Platform )
+			auto hitType = static_cast<CEntity*>( pManifold->pOtherHitProxy )->GetHitType();
+			if( hitType <= eEntityHitType_Platform || hitType == eEntityHitType_System )
 				return;
 		}
 	}
@@ -231,12 +357,75 @@ CEntity * CRandomSpawner::Spawn()
 	return pEntity;
 }
 
-void CKillSpawner::OnAddedToStage()
+void CKillSpawner::Trigger()
 {
-	CKillTrigger::OnAddedToStage();
+	float fTotalChance = 0;
+	int32 nCount;
+	CPrefab* pPrefabs[4] = { m_strPrefab0, m_strPrefab1, m_strPrefab2, m_strPrefab3 };
+	for( nCount = 0; nCount < ELEM_COUNT( pPrefabs ); nCount++ )
+	{
+		if( !pPrefabs[nCount] )
+			break;
+		fTotalChance += m_fChances[nCount];
+	}
+	if( !nCount )
+		return;
+
+	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount );
+	for( int i = 0; i < nSpawnCount; i++ )
+	{
+		float r = SRand::Inst().Rand( 0.0f, fTotalChance );
+		int n;
+		for( n = 0; n < nCount - 1; n++ )
+		{
+			r -= m_fChances[n];
+			if( r < 0 )
+				break;
+		}
+
+		auto pEntity = SafeCast<CEntity>( pPrefabs[n]->GetRoot()->CreateInstance() );
+		pEntity->SetPosition( globalTransform.MulVector2Pos(
+			CVector2( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) ) ) );
+
+		CVector2 vel( 1, 0 );
+		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+		if( pCharacter )
+		{
+			switch( m_nVelocityType )
+			{
+			case 0:
+				break;
+			case 1:
+			{
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
+				break;
+			}
+			case 2:
+			{
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
+				break;
+			}
+			case 3:
+			{
+
+				float r = sqrt( SRand::Inst().Rand( m_vel1.x / m_vel2.x, 1.0f ) ) * m_vel2.x;
+				float angle = SRand::Inst().Rand( m_vel1.y, m_vel2.y ) * PI / 180;
+				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( cos( angle ) * r, sin( angle ) * r ) ) );
+				break;
+			}
+			}
+			vel = pCharacter->GetVelocity();
+		}
+		if( m_bRandomRotate )
+			pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
+		else if( m_bTangentRotate )
+			pEntity->SetRotation( atan2( vel.y, vel.x ) );
+
+		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+	}
 }
 
-void CKillSpawner::Trigger()
+void CDamageSpawnEnemy::Trigger()
 {
 	float fTotalChance = 0;
 	int32 nCount;

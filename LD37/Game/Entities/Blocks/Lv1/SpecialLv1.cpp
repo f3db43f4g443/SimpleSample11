@@ -316,7 +316,7 @@ void CHouse0::OnTick()
 	for( auto& item : m_vecPipe1 )
 	{
 		CVector2 p = globalTransform.GetPosition() + item.ofs;
-		if( p.y > 640 )
+		if( p.y > 640 || p.y >= CMyLevel::GetInst()->GetBoundWithLvBarrier().GetBottom() )
 			continue;
 
 		if( item.nCD > 0 )
@@ -328,6 +328,8 @@ void CHouse0::OnTick()
 				auto pEft = SafeCast<CWaterFall1>( m_pPipe1EftPrefab->GetRoot()->CreateInstance() );
 				pEft->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 				pEft->Set( this, item.ofs );
+				CHouse0Pipe1Eft* pFlyController = new CHouse0Pipe1Eft( m_pDrawable1, m_pFlyPrefab, m_pPrefab1 );
+				pFlyController->SetParentEntity( pEft );
 				item.pEft = pEft;
 				item.nCD = 600;
 			}
@@ -337,6 +339,135 @@ void CHouse0::OnTick()
 				pEft->Kill();
 				item.pEft = NULL;
 				item.nCD = 360;
+			}
+		}
+	}
+}
+
+void CHouse0Pipe1Eft::OnRemovedFromStage()
+{
+	m_vecItems.clear();
+	CAIObject::OnRemovedFromStage();
+}
+
+void CHouse0Pipe1Eft::AIFunc()
+{
+	int32 nMaxSize = 32;
+	float fPos = 0;
+	float f = 48.0f;
+	while( 1 )
+	{
+		Yield( 0, true );
+		auto pParent = SafeCast<CWaterFall1>( GetParentEntity() );
+		if( pParent->GetFadeIn() > 0 )
+		{
+			float dPos = pParent->GetFadeInSpeed() * 0.5f * GetStage()->GetElapsedTimePerTick();
+			for( int i = 0; i < m_vecItems.size(); i++ )
+			{
+				auto& item = m_vecItems[i];
+				if( item.pRenderObject )
+				{
+					item.ofs.y -= dPos;
+					item.pRenderObject->SetPosition( item.ofs );
+					CVector2 pos = item.ofs + globalTransform.GetPosition();
+					if( pos.y < 0 || item.ofs.y > -pParent->GetFadeOut() )
+					{
+						if( item.nType == 0 )
+						{
+							float fAngle = SRand::Inst().Rand( -1.2f, 1.2f );
+							for( int n = 0; n < 3; n++ )
+							{
+								auto pBullet = SafeCast<CBullet>( m_pPrefab1->GetRoot()->CreateInstance() );
+								pBullet->SetPosition( CVector2( pos.x, 0 ) );
+								pBullet->SetRotation( PI * 0.5f - fAngle );
+								pBullet->SetVelocity( CVector2( sin( fAngle ), cos( fAngle ) ) * ( 180.0f + 30 * n ) );
+								pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+							}
+						}
+						else if( item.nType == 1 )
+						{
+							for( int n = 0; n < 3; n++ )
+							{
+								float fAngle = SRand::Inst().Rand( -1.2f, 1.2f );
+								auto pBullet = SafeCast<CBullet>( m_pPrefab1->GetRoot()->CreateInstance() );
+								pBullet->SetPosition( CVector2( pos.x, 0 ) );
+								pBullet->SetRotation( PI * 0.5f - fAngle );
+								pBullet->SetVelocity( CVector2( sin( fAngle ), cos( fAngle ) ) * SRand::Inst().Rand( 180.0f, 240.0f ) );
+								pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+							}
+						}
+						else if( item.nType == 2 )
+						{
+							for( int n = 0; n < 3; n++ )
+							{
+								float fAngle = SRand::Inst().Rand( -1.2f, 1.2f );
+								for( int n1 = 0; n1 < 3; n1++ )
+								{
+									auto pBullet = SafeCast<CBullet>( m_pPrefab1->GetRoot()->CreateInstance() );
+									pBullet->SetPosition( CVector2( pos.x, 0 ) );
+									pBullet->SetRotation( PI * 0.5f - fAngle );
+									pBullet->SetVelocity( CVector2( sin( fAngle ), cos( fAngle ) ) * ( 180.0f + 30 * n1 ) );
+									pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+								}
+							}
+						}
+						else
+						{
+							for( int n = 0; n < 2; n++ )
+							{
+								float fAngle = SRand::Inst().Rand( -1.2f, 1.2f );
+								auto pFly = SafeCast<CFly>( m_pPrefab->GetRoot()->CreateInstance() );
+								pFly->SetPosition( CVector2( pos.x, 0 ) );
+								pFly->SetVelocity( CVector2( sin( fAngle ), cos( fAngle ) ) * 400 );
+								pFly->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+							}
+						}
+
+						item.pRenderObject->RemoveThis();
+						item.pRenderObject = NULL;
+						m_vecFree.push_back( i );
+					}
+				}
+			}
+
+			if( !pParent->IsKilled() )
+			{
+				fPos += dPos;
+				while( fPos > f )
+				{
+					fPos -= f;
+					int32 i;
+					if( m_vecFree.size() )
+					{
+						i = m_vecFree.back();
+						m_vecFree.pop_back();
+					}
+					else
+					{
+						i = m_vecItems.size();
+						m_vecItems.resize( m_vecItems.size() + 1 );
+					}
+					auto& item = m_vecItems[i];
+					item.ofs = CVector2( SRand::Inst().Rand( -20.0f, 20.0f ), -fPos );
+					auto pImage2D = static_cast<CImage2D*>( m_pDrawable->CreateInstance() );
+					item.pRenderObject = pImage2D;
+					int32 nTex = SRand::Inst().Rand( 0, 32 );
+					if( nTex < 12 )
+						item.nType = 0;
+					else if( nTex < 24 )
+						item.nType = 1;
+					else if( nTex < 28 )
+					{
+						item.nType = 2;
+						fPos -= f;
+					}
+					else
+						item.nType = 3;
+					pImage2D->SetRect( CRectangle( -16, -16, 32, 32 ) );
+					pImage2D->SetTexRect( CRectangle( ( nTex & 7 ) / 8.0f, ( nTex >> 3 ) / 4.0f, 1 / 8.0f, 1 / 4.0f ) );
+					pImage2D->SetPosition( item.ofs );
+					AddChild( pImage2D );
+				}
 			}
 		}
 	}
@@ -402,6 +533,7 @@ void CRoad0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 			}
 		}
 	}
+	bool b = vecRect.size();
 
 	vec.clear();
 	for( int i = 0; i < nWidth; i++ )
@@ -635,13 +767,16 @@ void CRoad0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 				pImage2D->SetTexRect( tex );
 				GetRenderObject()->AddChild( pImage2D );
 				GetBlock( x, y )->rtTexRect = tex;
-				CImage2D* pImage2D1 = static_cast<CImage2D*>( m_pDrawable1->CreateInstance() );
-				pImage2D1->SetRect( CRectangle( x * 32, y * 32, 32, 32 ) );
-				pImage2D1->SetTexRect( CRectangle( tX1 / 4.0f, tY1 / 16.0f, 1.0f / 4, 1.0f / 16 ) );
-				pImage2D->AddChild( pImage2D1 );
-				pImage2D1->SetRenderParentBefore( m_pDamagedEffectsRoot );
-				*pImage2D1->GetParam() = CVector4( 0, m_h1, dirs[m_nDir].x, dirs[m_nDir].y );
-				m_vecSewerImage.push_back( pImage2D1 );
+				if( b )
+				{
+					CImage2D* pImage2D1 = static_cast<CImage2D*>( m_pDrawable1->CreateInstance() );
+					pImage2D1->SetRect( CRectangle( x * 32, y * 32, 32, 32 ) );
+					pImage2D1->SetTexRect( CRectangle( tX1 / 4.0f, tY1 / 16.0f, 1.0f / 4, 1.0f / 16 ) );
+					pImage2D->AddChild( pImage2D1 );
+					pImage2D1->SetRenderParentBefore( m_pDamagedEffectsRoot );
+					*pImage2D1->GetParam() = CVector4( 0, m_h1, dirs[m_nDir].x, dirs[m_nDir].y );
+					m_vecSewerImage.push_back( pImage2D1 );
+				}
 
 				for( int i = 0; i < m_nDamagedEffectsCount; i++ )
 				{
@@ -657,6 +792,8 @@ void CRoad0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
 	m_fHp = m_nMaxHp;
 
+	if( !b )
+		return;
 	UpdateImages();
 
 	if( !pLevel )

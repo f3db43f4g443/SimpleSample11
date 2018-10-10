@@ -38,6 +38,9 @@ protected:
 	virtual void OnKilled() override;
 private:
 	uint32 m_nHpPerSize;
+	uint32 m_nTypeX;
+	uint32 m_nTypeY;
+	uint8 m_nGroupType;
 	bool m_bBlockTypeMask[eBlockType_Count];
 };
 

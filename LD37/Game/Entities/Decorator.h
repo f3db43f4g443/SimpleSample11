@@ -98,3 +98,18 @@ private:
 	uint32 m_nTileCount[16];
 	uint8 m_nBlockTag;
 };
+
+class CDecoratorTile2 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorTile2( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorTile2 ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	uint32 m_nTexCols;
+	uint32 m_nTexRows;
+	uint32 m_nTileBegin[16];
+	uint32 m_nTileCount[16];
+	uint8 m_nBlockTag;
+};

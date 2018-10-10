@@ -71,6 +71,9 @@ private:
 	uint8 m_nPipe1Tag;
 	uint32 m_nHpPerSize;
 	TResourceRef<CPrefab> m_pPipe1EftPrefab;
+	TResourceRef<CDrawableGroup> m_pDrawable1;
+	TResourceRef<CPrefab> m_pFlyPrefab;
+	TResourceRef<CPrefab> m_pPrefab1;
 
 	vector<CReference<CChunkObject> > m_vecSubChunk;
 	struct SPipe1
@@ -83,6 +86,29 @@ private:
 	vector<SPipe1> m_vecPipe1;
 
 	TClassTrigger<CHouse0> m_onTick;
+};
+
+class CHouse0Pipe1Eft : public CAIObject
+{
+	friend void RegisterGameClasses();
+public:
+	CHouse0Pipe1Eft( CDrawableGroup* pDrawable, CPrefab* pPrefab, CPrefab* pPrefab1 )
+		: m_pDrawable( pDrawable ), m_pPrefab( pPrefab ), m_pPrefab1( pPrefab1 ) {}
+	virtual void OnRemovedFromStage() override;
+protected:
+	virtual void AIFunc() override;
+	CReference<CDrawableGroup> m_pDrawable;
+	CReference<CPrefab> m_pPrefab;
+	CReference<CPrefab> m_pPrefab1;
+
+	struct SItem
+	{
+		CVector2 ofs;
+		CReference<CRenderObject2D> pRenderObject;
+		uint8 nType;
+	};
+	vector<SItem> m_vecItems;;
+	vector<uint32> m_vecFree;
 };
 
 class CRoad0 : public CChunkObject
@@ -151,7 +177,6 @@ private:
 	TResourceRef<CDrawableGroup> m_pDrawable1;
 	TResourceRef<CDrawableGroup> m_pDrawable2;
 
-	uint8 m_n1;
 	bool m_bDirty;
 	bool m_bLeft;
 	vector<CMatrix2D> m_vecTrans;

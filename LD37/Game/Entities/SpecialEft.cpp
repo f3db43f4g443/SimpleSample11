@@ -3,6 +3,52 @@
 #include "Stage.h"
 #include "Render/Image2D.h"
 #include "MyGame.h"
+#include "Enemy.h"
+
+void CEnemyPileEft::OnAddedToStage()
+{
+	m_nEft = Min( m_nEft, 4u );
+
+	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+	auto pRenderObject = new CRenderObject2D;
+	auto pOrig = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	float fFramesPerSec = pOrig->GetFramesPerSec();
+	for( int i = 0; i < m_nEft; i++ )
+	{
+		auto pImg = static_cast<CMultiFrameImage2D*>( pDrawable->CreateInstance() );
+		int32 nBegin = m_nEftBegin[i] + SRand::Inst().Rand( 0u, m_nEftCount[i] );
+		pImg->SetFrames( nBegin * m_nFrames, ( nBegin + 1 ) * m_nFrames, fFramesPerSec );
+		pImg->SetPlayPercent( SRand::Inst().Rand( 0.0f, 1.0f ) );
+		pImg->SetAutoUpdateAnim( true );
+		m_pImg[i] = pImg;
+		pRenderObject->AddChild( pImg );
+	}
+	m_nImg = m_nEft;
+	SetRenderObject( pRenderObject );
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CEnemyPileEft::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CEnemyPileEft::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	auto pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+	if( pEnemy )
+	{
+		int32 n = ceil( pEnemy->GetHp() * m_nEft / pEnemy->GetMaxHp() );
+		n = Min<int32>( m_nEft, Max<int32>( 0, n ) );
+		for( int i = m_nImg; i > n; i-- )
+		{
+			m_pImg[i - 1]->bVisible = false;
+		}
+		m_nImg = n;
+	}
+}
 
 void CLimbsEft::OnAddedToStage()
 {

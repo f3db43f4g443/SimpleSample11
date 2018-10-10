@@ -31,7 +31,7 @@ public:
 	{
 		if( !outBuffer )
 		{
-			int a = 0;
+			*(int8*)0 = 0;
 		}
 		m_vecFreeBuffers.push_back( outBuffer );
 		outBuffer = NULL;
