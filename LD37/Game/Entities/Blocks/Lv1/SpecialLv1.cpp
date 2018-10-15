@@ -331,14 +331,14 @@ void CHouse0::OnTick()
 				CHouse0Pipe1Eft* pFlyController = new CHouse0Pipe1Eft( m_pDrawable1, m_pFlyPrefab, m_pPrefab1 );
 				pFlyController->SetParentEntity( pEft );
 				item.pEft = pEft;
-				item.nCD = 600;
+				item.nCD = m_nPipeEftCD;
 			}
 			else
 			{
 				auto pEft = SafeCast<CWaterFall1>( item.pEft.GetPtr() );
 				pEft->Kill();
 				item.pEft = NULL;
-				item.nCD = 360;
+				item.nCD = m_nPipeEftCD1;
 			}
 		}
 	}

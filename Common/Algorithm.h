@@ -65,10 +65,12 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q );
 void FloodFill( vector<int32>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q );
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, vector<TVector2<int32> >& q, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
-int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount );
-int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount, vector<TVector2<int32> >& q );
-int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist );
-int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32> >& q );
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, uint32 nTargetCount );
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, uint32 nTargetCount, vector<TVector2<int32> >& q );
+int32 FloodFillExpand1( vector<int8>& vec, int32 nWidth, int32 nHeight, int32* nTypes, int32 nTypeCount, int32 nBackType, uint32 nTargetCount, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+int32 FloodFillExpand1( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nBackType, uint32 nTargetCount, vector<TVector2<int32> >& q, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32> >& q, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 int32 StepExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist,
 	vector<TVector2<int32> >& q, vector<int32> vecDist, int32& i );
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 nBackType, int8 nPathType, int8 nDstType,

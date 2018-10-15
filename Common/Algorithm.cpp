@@ -446,7 +446,7 @@ void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y
 	}
 }
 
-int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount )
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, uint32 nTargetCount )
 {
 	vector<TVector2<int32> > q;
 	for( int i = 0; i < nWidth; i++ )
@@ -464,7 +464,7 @@ int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nTy
 	return FloodFillExpand( vec, nWidth, nHeight, nType, nBackType, nTargetCount, q );
 }
 
-int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nTargetCount, vector<TVector2<int32>>& q )
+int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, uint32 nTargetCount, vector<TVector2<int32>>& q )
 {
 	for( int i = 0; i < q.size() && q.size() < nTargetCount; i++ )
 	{
@@ -487,24 +487,102 @@ int32 FloodFillExpand( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nTy
 	return q.size();
 }
 
-int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist )
+int32 FloodFillExpand1( vector<int8>& vec, int32 nWidth, int32 nHeight, int32* nTypes, int32 nTypeCount, int32 nBackType, uint32 nTargetCount, TVector2<int32>* pOfs, int32 nOfs )
 {
 	vector<TVector2<int32> > q;
 	for( int i = 0; i < nWidth; i++ )
 	{
 		for( int j = 0; j < nHeight; j++ )
 		{
-			if( vec[i + j * nWidth] == nType )
-				q.push_back( TVector2<int32>( i, j ) );
+			for( int k = 0; k < nTypeCount; k++ )
+			{
+				if( vec[i + j * nWidth] == nTypes[k] )
+				{
+					q.push_back( TVector2<int32>( i, j ) );
+					break;
+				}
+			}
 		}
 	}
-	return ExpandDist( vec, nWidth, nHeight, nType, nBackType, nDist, q );
+	if( !q.size() )
+		return 0;
+	SRand::Inst().Shuffle( &q[0], q.size() );
+
+	return FloodFillExpand1( vec, nWidth, nHeight, nBackType, nTargetCount, q, pOfs, nOfs );
 }
 
-int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32>>& q )
+int32 FloodFillExpand1( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nBackType, uint32 nTargetCount, vector<TVector2<int32> >& q, TVector2<int32>* pOfs, int32 nOfs )
 {
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	if( !pOfs )
+	{
+		pOfs = ofs;
+		nOfs = 4;
+	}
+	for( int i = 0; i < q.size() && q.size() < nTargetCount; i++ )
+	{
+		TVector2<int32> p = q[i];
+		SRand::Inst().Shuffle( pOfs, nOfs );
+		int32 nType = vec[p.x + p.y * nWidth];
+		for( int j = 0; j < nOfs; j++ )
+		{
+			TVector2<int32> p1 = p + pOfs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
+				&& vec[p1.x + p1.y * nWidth] == nBackType )
+			{
+				vec[p1.x + p1.y * nWidth] = nType;
+				q.push_back( p1 );
+				if( q.size() >= nTargetCount )
+					break;
+			}
+		}
+	}
+	return q.size();
+}
+
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, TVector2<int32>* pOfs, int32 nOfs )
+{
+	vector<TVector2<int32> > q;
+	if( nDist > 0 )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			for( int j = 0; j < nHeight; j++ )
+			{
+				if( vec[i + j * nWidth] == nType )
+					q.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+	}
+	else if( nDist < 0 )
+	{
+		for( int i = 0; i < nWidth; i++ )
+		{
+			for( int j = 0; j < nHeight; j++ )
+			{
+				if( vec[i + j * nWidth] != nType )
+					q.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+	}
+	else
+		return 0;
+	return ExpandDist( vec, nWidth, nHeight, nType, nBackType, nDist, q, pOfs, nOfs );
+}
+
+int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, int32 nDist, vector<TVector2<int32>>& q, TVector2<int32>* pOfs, int32 nOfs )
+{
+	TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
+	if( !pOfs )
+	{
+		pOfs = ofs;
+		nOfs = 4;
+	}
 	vector<int32> vecDist;
 	vecDist.resize( nWidth * nHeight );
+	bool bInv = nDist < 0;
+	if( bInv )
+		nDist = -nDist;
 
 	for( int i = 0; i < q.size(); i++ )
 	{
@@ -512,14 +590,13 @@ int32 ExpandDist( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, i
 		int32 nDist1 = vecDist[p.x + p.y * nWidth] + 1;
 		if( nDist1 <= nDist )
 		{
-			TVector2<int32> ofs[4] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } };
-			for( int j = 0; j < 4; j++ )
+			for( int j = 0; j < nOfs; j++ )
 			{
-				TVector2<int32> p1 = p + ofs[j];
+				TVector2<int32> p1 = p + pOfs[j];
 				if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
-					&& vec[p1.x + p1.y * nWidth] == nBackType )
+					&& vec[p1.x + p1.y * nWidth] == ( bInv ? nType : nBackType ) )
 				{
-					vec[p1.x + p1.y * nWidth] = nType;
+					vec[p1.x + p1.y * nWidth] = bInv ? nBackType : nType;
 					vecDist[p1.x + p1.y * nWidth] = nDist1;
 					q.push_back( p1 );
 				}

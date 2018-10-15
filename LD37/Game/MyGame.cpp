@@ -1180,6 +1180,8 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_pDrawable1 )
 		REGISTER_MEMBER( m_pFlyPrefab )
 		REGISTER_MEMBER( m_pPrefab1 )
+		REGISTER_MEMBER( m_nPipeEftCD )
+		REGISTER_MEMBER( m_nPipeEftCD1 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CRoad0 )

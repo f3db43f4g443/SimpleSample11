@@ -2360,6 +2360,8 @@ void CLevelGenNode1_3::GenObjs()
 			{
 				if( m_gendata[i + j * nWidth] != eType_Temp1 && !SRand::Inst().Rand( 0, 3 ) )
 					m_gendata[i + j * nWidth] = eType_Temp1;
+				else if( m_gendata[i + j * nWidth] == eType_Maggot )
+					m_gendata[i + j * nWidth] = eType_WallChunk0;
 			}
 		}
 		if( rect.width > rect.height )

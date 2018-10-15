@@ -25,6 +25,7 @@
     </attachs>
     <spawns>
       <node name="spider" prefab="data/enemies/spider.pf" sizex="-16" sizey="-16" sizewidth="32" sizeheight="32" countpergrid="1" />
+      <node name="spider_bonus" prefab="data/enemies/spider_bonus.pf" sizex="-16" sizey="-16" sizewidth="32" sizeheight="32" countpergrid="1" />
       <node name="spider2" prefab="data/enemies/spider2_a.pf" force_attach="1" sizex="-32" sizey="-32" sizewidth="64" sizeheight="64" countpergrid="0.25" />
       <node name="window0" prefab="data/blockitems/window0.pf" />
       <node name="wall0_deco" prefab="data/misc/dirt0_0.pf" />
@@ -66,7 +67,7 @@
       <node name="block0_1" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv1/block0_1.pf">
         <types>0</types>
       </node>
-      <node name="block0_2" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" prefab="data/blocks/lv1/block0_2.pf">
+      <node name="block0_2" width="1" height="1" weight="0" destroyweight="1.5" layer_type="1" subchunk_type="0" prefab="data/blocks/lv1/block0_2.pf">
         <types>0</types>
       </node>
       <node name="block1a" width="1" height="1" weight="1" destroyweight="1.55" prefab="data/blocks/lv1/block1a.pf">
@@ -126,6 +127,12 @@
         <types>4</types>
       </node>
       <node name="cage2x2" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage2x2.pf">
+        <types>4,4,4,4</types>
+      </node>
+      <node name="cage_bonus" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage_pt.pf">
+        <types>4</types>
+      </node>
+      <node name="cage2x2_bonus" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage2x2_pt.pf">
         <types>4,4,4,4</types>
       </node>
       <node name="air_conditioner" width="3" height="2" weight="1.3" destroyweight="6" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/air_conditioner.pf">
@@ -334,6 +341,27 @@
         <ref name="web15" />
         <next_level p="0.13">
           <ref name="spider" />
+        </next_level>
+      </node>
+      <node name="web_tile_bonus" type="ramdomtile1">
+        <ref name="web0" />
+        <ref name="web1" />
+        <ref name="web2" />
+        <ref name="web3" />
+        <ref name="web4" />
+        <ref name="web5" />
+        <ref name="web6" />
+        <ref name="web7" />
+        <ref name="web8" />
+        <ref name="web9" />
+        <ref name="web10" />
+        <ref name="web11" />
+        <ref name="web12" />
+        <ref name="web13" />
+        <ref name="web14" />
+        <ref name="web15" />
+        <next_level p="0.1">
+          <ref name="spider_bonus" />
         </next_level>
       </node>
 
@@ -839,6 +867,101 @@
         </next_level>
       </node>
 
+      <node name="wall2_bonuslv" width="1" height="1" weight="1" weightperwidth="1" destroyweight="15" destroyweightperwidth="2.5" shakeweightcoef="1" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="10"  shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall2_bonuslv.pf">
+        <metadata minx="4" miny="4" maxx="32" maxy="32" />
+        <types>4</types>
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <node type="switch_tile" x="0" y="0" w="0" h="0">
+              <ref name="wall3_broken" case="0_1" />
+              <ref name="wall3_broken" case="0_1a" />
+              <ref name="wall3_broken" case="0_1b" />
+              <ref name="wall2_broken" />
+            </node>
+            <node type="filltag" gen_data_name="0" tag="1" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="0_1" block_type="0" tag="5" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="0_1a" block_type="0" tag="6" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="0_1b" block_type="0" tag="7" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="1" tag="10" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="2" tag="11" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="3" tag="12" x="0" y="0" w="0" h="0" />
+            <node type="randompick" x="0" y="0" w="0" h="0">
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v1" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v2" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v3" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v4" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v5" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v6" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v7" />
+              </node>
+              <node type="bar_fill" vertical="1" check_gen_data_name="0_1a" p="1" >
+                <ref name="wall2bar_v8" />
+              </node>
+            </node>
+            <node type="randompick" x="0" y="0" w="0" h="0">
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h1" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h2" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h3" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h4" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h5" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h6" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h7" />
+              </node>
+              <node type="bar_fill" vertical="0" check_gen_data_name="0_1b" >
+                <ref name="wall2bar_h8" />
+              </node>
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="wall2_deco_edge" x="0" y="0" w="0" h="0" />
+            <ref name="wall2_deco_edge_1" x="0" y="0" w="0" h="0" />
+            <ref name="wall2_deco_upper" x="0" y="0" w="0" h="0" />
+            <!--node type="fiber" fiber_type="0" x="0" y="0" w="0" h="0" >
+              <block_type name="1" />
+              <block_type name="2" />
+              <block_type name="3" />
+              <node>
+                <ref name="wall2_deco_upper" />
+              </node>
+            </node-->
+            <ref name="wall2_deco" x="0" y="0" w="0" h="0" />
+            <!--node type="randomfill" x="0" y="0" w="0" h="0" >
+              <ref name="window4x4" sizeminx="4" sizeminy="4" p="0.6" />
+              <node type="empty" p="3" />
+            </node-->
+            <ref name="wall2_deco_0" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
+
       <node name="wall3_empty" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" shakeweightcoef="1" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall3.pf">
         <metadata minx="2" miny="2" maxx="32" maxy="32" />
         <types>0</types>
@@ -907,6 +1030,20 @@
             </node>
             <node type="randomfill" check_gen_data_name="3" x="0" y="0" w="0" h="0">
               <ref name="air_conditioner" sizeminx="3" sizeminy="2" p="1" />
+            </node>
+          </node>
+        </subitem>
+      </node>
+
+      <node name="scrap_bonus" movetype="1" width="1" height="1" layer_type="2" weight="0.3" weightperwidth="0.3" destroyweight="2" destroyweightperwidth="2"
+            absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" prefab="data/blocks/lv1/scrap.pf">
+        <metadata isdesignvalid="0" />
+        <types>4</types>
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <node type="randomfill" check_gen_data_name="1" x="0" y="0" w="0" h="0">
+              <ref name="cage2x2_bonus" sizeminx="2" sizeminy="2" p="5" />
+              <ref name="cage_bonus" sizeminx="1" sizeminy="1" p="1" />
             </node>
           </node>
         </subitem>
@@ -1283,21 +1420,112 @@
         </next_level>
       </node>
 
-      <node name="enemyroom2_2" type="subregion">
-          <node type="bar_fill" vertical="0" check_gen_data_name="block_x" x="0" y="0" w="0" h="0" >
-            <ref name="stonebar_room_h_1" />
+      <node name="enemyroom2_1_bonus" show_layer_type="0" type="room2" wall_mask="mask" width="8" height="8" weight="3" weightperwidth="1" destroyweight="45" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="25" shakedmg="20" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room_1.pf">
+        <metadata isdesignvalid="0" />
+        <types>
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+          0,0,0,0,0,0,0,0,
+        </types>
+        <wall_broken>
+          <ref name="wall_broken" />
+        </wall_broken>
+        <hbar>
+          <ref name="stonebar_room_h_1" />
+        </hbar>
+        <vbar>
+          <ref name="stonebar_room_v_1" />
+        </vbar>
+        <corner>
+          <ref name="stonebar_room_corner_1" />
+        </corner>
+        <door1_0>
+          <ref name="door0a_0" />
+        </door1_0>
+        <door1_1>
+          <ref name="door0a_3" />
+        </door1_1>
+        <door1_2>
+          <ref name="door0a_2" />
+        </door1_2>
+        <door1_3>
+          <ref name="door0a_1" />
+        </door1_3>
+        <door2_0>
+          <ref name="door0_0" />
+        </door2_0>
+        <door2_1>
+          <ref name="door0_3" />
+        </door2_1>
+        <door2_2>
+          <ref name="door0_2" />
+        </door2_2>
+        <door2_3>
+          <ref name="door0_1" />
+        </door2_3>
+
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <ref name="web_tile_bonus" x="0" y="0" w="0" h="0" />
           </node>
-          <node type="bar_fill" vertical="1" check_gen_data_name="block_y" x="0" y="0" w="0" h="0" >
-            <ref name="stonebar_room_v_1" />
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="pipe_deco" x="0" y="0" w="0" h="0" />
+            <ref name="wall_deco_edge01" x="0" y="0" w="0" h="0" />
+            <ref name="wall2_deco" x="0" y="0" w="0" h="0" />
           </node>
-          <node type="switch_tile" x="0" y="0" w="0" h="0">
-            <ref name="stonebar_room_corner_1" case="block" />
-            <node type="subregion" case="1" >
-              <ref name="block0_2" x="0" y="0" w="0" h="0"/>
-              <ref name="maggot_pile" x="0" y="0" w="0" h="0"/>
+        </next_level>
+      </node>
+
+      <node name="enemyroom2_2" show_layer_type="0" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall4.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <types>0</types>
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <node type="bar_fill" vertical="0" check_gen_data_name="block_x" x="0" y="0" w="0" h="0" >
+              <ref name="stonebar_room_h_1" />
             </node>
-            <ref name="block0_2" />
+            <node type="bar_fill" vertical="1" check_gen_data_name="block_y" x="0" y="0" w="0" h="0" >
+              <ref name="stonebar_room_v_1" />
+            </node>
+            <node type="switch_tile" x="0" y="0" w="0" h="0">
+              <ref name="stonebar_room_corner_1" case="block" />
+              <node type="empty" case="block_x" />
+              <node type="empty" case="block_y" />
+              <ref name="block0_2" />
+            </node>
           </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <node type="switch_tile" x="0" y="0" w="0" h="0">
+              <ref name="maggot_pile" case="1"/>
+            </node>
+          </node>
+        </next_level>
+      </node>
+
+      <node name="w4region" type="subregion">
+        <node type="bar_fill" vertical="0" check_gen_data_name="block_x" x="0" y="0" w="0" h="0" >
+          <ref name="stonebar_room_h_1" />
+        </node>
+        <node type="bar_fill" vertical="1" check_gen_data_name="block_y" x="0" y="0" w="0" h="0" >
+          <ref name="stonebar_room_v_1" />
+        </node>
+        <node type="switch_tile" x="0" y="0" w="0" h="0">
+          <ref name="stonebar_room_corner_1" case="block" />
+          <node type="subregion" case="1" >
+            <ref name="block0_2" x="0" y="0" w="0" h="0"/>
+            <ref name="maggot_pile" x="0" y="0" w="0" h="0"/>
+          </node>
+          <ref name="block0_2" />
+        </node>
       </node>
 
       <node name="brick_tile_1ax" type="bricktile" ofs="1" >
@@ -1340,6 +1568,10 @@
       <node name="cage_tile" type="randomfill" check_gen_data_name="mask">
         <ref name="cage2x2" sizeminx="2" sizeminy="2" p="5" />
         <ref name="cage" sizeminx="1" sizeminy="1" p="1" />
+      </node>
+      <node name="cage_tile_bonus" type="randomfill" check_gen_data_name="mask">
+        <ref name="cage2x2_bonus" sizeminx="2" sizeminy="2" p="5" />
+        <ref name="cage_bonus" sizeminx="1" sizeminy="1" p="1" />
       </node>
 
       <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">

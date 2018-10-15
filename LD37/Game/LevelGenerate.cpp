@@ -1145,7 +1145,7 @@ public:
 					int32 x = i + info.nOfsX;
 					int32 y = j + info.nOfsY;
 					if( x >= region.x && y >= region.y && x < region.GetRight() && y < region.GetBottom()
-						&& info.nType == context.blueprint[x + y * context.nWidth] || info.nType == -1 )
+						&& info.nType == context.blueprint[x + y * context.nWidth] || !info.str.length() )
 					{
 						info.pNode->Generate( context, TRectangle<int32>( i, j, 1, 1 ) );
 						break;
@@ -1710,6 +1710,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1type3_0", CLevelGenNode1_3_0 );
 	REGISTER_GENERATE_NODE( "lv1bonus0", CLevelBonusGenNode1_0 );
 	REGISTER_GENERATE_NODE( "lv1bonus1", CLevelBonusGenNode1_1 );
+	REGISTER_GENERATE_NODE( "lv1bonus2", CLevelBonusGenNode1_2 );
 
 	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 	REGISTER_GENERATE_NODE( "lv2type1_1", CLevelGenNode2_1_1 );

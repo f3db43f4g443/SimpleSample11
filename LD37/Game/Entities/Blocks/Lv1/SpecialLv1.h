@@ -74,6 +74,8 @@ private:
 	TResourceRef<CDrawableGroup> m_pDrawable1;
 	TResourceRef<CPrefab> m_pFlyPrefab;
 	TResourceRef<CPrefab> m_pPrefab1;
+	uint32 m_nPipeEftCD;
+	uint32 m_nPipeEftCD1;
 
 	vector<CReference<CChunkObject> > m_vecSubChunk;
 	struct SPipe1

@@ -499,7 +499,7 @@
             <ref name="wall2" />
           </wallchunk>
           <wallchunk0>
-            <ref name="enemyroom2_2" />
+            <ref name="w4region" />
           </wallchunk0>
           <wallchunk1>
             <ref name="wall3" />
@@ -555,7 +555,50 @@
       </node>
 
       <node type="subregion" name="lv1_9">
-        <ref name="lv1bonus1" x="0" y="0" w="32" h="60" />
+        <node type="lv1bonus2" x="0" y="0" w="32" h="60">
+          <wall>
+            <ref name="block0_2" />
+          </wall>
+          <wallchunk>
+            <ref name="wall2_bonuslv" />
+          </wallchunk>
+          <wallchunk0>
+            <ref name="enemyroom2_2" />
+          </wallchunk0>
+          <wallchunk1>
+            <ref name="wall3" />
+          </wallchunk1>
+          <block1>
+            <ref name="brick_tile_1ax" />
+          </block1>
+          <block2>
+            <ref name="brick_tile_1bx" />
+          </block2>
+          <room>
+            <ref name="enemyroom2_1_bonus" />
+          </room>
+          <crate1>
+            <ref name="cage_tile_bonus" />
+          </crate1>
+          <scrap>
+            <ref name="scrap_bonus" />
+          </scrap>
+          <window1_1>
+            <ref name="window1_1_0" />
+          </window1_1>
+          <window1_2>
+            <ref name="window1_1_1" />
+          </window1_2>
+          <window1_3>
+            <ref name="window1_2" />
+          </window1_3>
+          <window1_4>
+            <ref name="window1_3" />
+          </window1_4>
+          <bonus_pickup>
+            <ref name="pt_pickup" />
+          </bonus_pickup>
+        </node>
         <ref name="lv1floor_9" x="0" y="60" w="32" h="4" />
 
         <ref name="lv1_scroll_0" />
@@ -584,11 +627,12 @@
       </node>
 
       <node type="subregion" name="test_lv">
-        <!--metadata seed="348641911" /-->
+        <!--metadata seed="65464911" /-->
         <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0" />
         </node>
-        <ref name="lv1_8" x="0" y="4" w="32" h="60" />
+        <ref name="lv1floor_8" x="0" y="4" w="32" h="4" />
+        <ref name="lv1_9" x="0" y="8" w="32" h="64" />
       </node>
     </nodes>
   </level_gen>
