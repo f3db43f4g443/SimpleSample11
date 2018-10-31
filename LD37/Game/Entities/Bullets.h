@@ -84,6 +84,51 @@ protected:
 	CVector2 m_ofs;
 };
 
+class CPulse : public CCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CPulse( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CPulse ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override { m_pCreator = NULL; CCharacter::OnRemovedFromStage(); }
+	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
+	void SetLife( uint32 nLife ) { m_nLife = nLife; }
+	void SetDamage( uint32 nDamage, uint32 nDamage1 = 0, uint32 nDamage2 = 0 ) { m_nDamage = nDamage; m_nDamage1 = nDamage1; m_nDamage2 = nDamage2; }
+	virtual void OnHit( CEntity* pEntity, const CVector2& hitPoint ) { if( m_onHit ) m_onHit( this, pEntity ); }
+	void SetOnHit( function<void( CPulse*, CEntity* )> onHit ) { m_onHit = onHit; }
+	virtual void Kill() override;
+protected:
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+	void UpdateRenderObject();
+	uint8 m_nType;
+	uint8 m_nBoundType;
+	float m_fWidth;
+	float m_fHitWidth;
+	float m_fTexYTileLen;
+	float m_fMaxLen;
+
+	int32 m_nHitCD;
+	uint32 m_nLife;
+
+	uint32 m_nDamage;
+	uint32 m_nDamage1;
+	uint32 m_nDamage2;
+	float m_fKnockback;
+	TResourceRef<CPrefab> m_pDmgEft;
+	CReference<CEffectObject> m_pDeathEffect;
+
+	CVector2 m_acc;
+
+	CReference<CEntity> m_pCreator;
+	CRectangle m_bound;
+	CVector2 m_pos0;
+	int32 m_nHitCDLeft;
+	bool m_bKilled;
+	function<void( CPulse*, CEntity* )> m_onHit;
+};
+
 class CThrowObj : public CEnemy
 {
 	friend void RegisterGameClasses();
@@ -173,4 +218,33 @@ protected:
 	uint32 m_nFrameRows;
 	uint32 m_nFrameOffset;
 	float m_fKnockback;
+};
+
+class CFlood : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CFlood( const SClassCreateContext& context )
+		: CEntity( context ), m_onTick( this, &CFlood::OnTick ) { SET_BASEOBJECT_ID( CFlood ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void Set( float fTargetHeight, float fSpeed, bool bAutoKill = false ) { m_fTargetHeight = fTargetHeight; m_fSpeed = fSpeed; m_bAutoKill = bAutoKill; }
+	CRectangle GetRect();
+	float GetHeight() { return m_fHeight; }
+private:
+	void OnTick();
+	CRectangle UpdateImage();
+
+	uint8 m_nType;
+	float m_fHitDepth;
+	int32 m_nDamage;
+	float m_fKnockback;
+	int32 m_nHitInterval;
+
+	bool m_bAutoKill;
+	float m_fHeight;
+	float m_fTargetHeight;
+	float m_fSpeed;
+	TClassTrigger<CFlood> m_onTick;
+	map<CReference<CEntity>, int32> m_hit;
 };

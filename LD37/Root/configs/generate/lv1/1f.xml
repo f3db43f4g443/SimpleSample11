@@ -290,6 +290,13 @@
         </params>
         <ref name="lv1floor_bonus_end" x="0" y="0" w="0" h="0" />
       </node>
+      <node name="lv1floor_10" type="subregion">
+        <metadata isdesignvalid="1" minx="32" miny="4" maxx="32" maxy="4" minlevel="0" maxlevel="1" />
+        <params>
+          <item name="f" value="10" />
+        </params>
+        <ref name="lv1floor" x="0" y="0" w="0" h="0" />
+      </node>
       
       <node name="reward_floor" width="32" height="8" weight="44" destroyweight="0" destroyshake="50" shakedmgthreshold="1000000"
             prefab="data/blocks/lv1/barrier_reward.pf" islevelbarrier="1" show_layer_type="0" levelbarrierheight="6">

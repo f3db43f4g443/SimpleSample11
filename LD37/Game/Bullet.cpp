@@ -198,6 +198,8 @@ void CBullet::OnTickAfterHitTest()
 			CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 			if( pEnemy )
 			{
+				if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+					continue;
 				CReference<CEntity> pTempRef = pEntity;
 
 				SDamageContext context;
@@ -272,6 +274,13 @@ void CBullet::OnTickAfterHitTest()
 			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 			if( pCharacter && pCharacter != pPlayer )
 			{
+				if( m_pCreator )
+				{
+					auto pEnemy = SafeCast<CEnemy>( pEntity );
+					if( pEnemy && pEnemy->IsOwner( m_pCreator ) )
+						continue;
+				}
+
 				if( !m_nDamage2 )
 					continue;
 				if( SafeCast<CBullet>( pCharacter ) )

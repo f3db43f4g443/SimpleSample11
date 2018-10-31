@@ -11,8 +11,25 @@
 
 void CDetectTrigger::OnAddedToStage()
 {
+	if( m_nFrames1 && m_nFrames2 )
+	{
+		m_fFramesPerSec = static_cast<CMultiFrameImage2D*>( GetRenderObject() )->GetFramesPerSec();
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nFrames1, m_nFrames2, m_fFramesPerSec );
+	}
 	if( m_bEnabled )
-		GetStage()->RegisterAfterHitTest( 15, &m_onTick );
+	{
+		if( m_bBeginCD )
+		{
+			if( m_nFrames1 && m_nFrames2 )
+			{
+				static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( 0, m_nFrames1, m_nFrames1 / ( m_nCD * GetStage()->GetElapsedTimePerTick() ) );
+				static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetPlaySpeed( 1, false );
+			}
+			GetStage()->RegisterAfterHitTest( m_nCD, &m_onTick );
+		}
+		else
+			GetStage()->RegisterAfterHitTest( 15, &m_onTick );
+	}
 }
 
 void CDetectTrigger::OnRemovedFromStage()
@@ -44,8 +61,21 @@ void CDetectTrigger::OnTick()
 	{
 		m_nFireCountLeft--;
 		GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
+		if( !m_nFireCountLeft && m_nFrames1 && m_nFrames2 )
+		{
+			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( 0, m_nFrames1, m_nFrames1 / ( m_nCD * GetStage()->GetElapsedTimePerTick() ) );
+			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetPlaySpeed( 1, false );
+		}
 		Trigger();
 		return;
+	}
+	if( m_nFrames1 && m_nFrames2 )
+	{
+		if( !static_cast<CMultiFrameImage2D*>( GetRenderObject() )->IsLoop() )
+		{
+			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nFrames1, m_nFrames2, m_fFramesPerSec );
+			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetPlaySpeed( 1, true );
+		}
 	}
 
 	if( CheckTrigger() )
@@ -305,6 +335,8 @@ void CSpawner::Trigger()
 			SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
 			Insert_SpawnedEntity( pSpawnedEntity );
 		}
+
+		m_onSpawn.Trigger( 0, pEntity );
 	}
 	if( m_nMaxCount )
 		m_nCurCount += nSpawnCount;

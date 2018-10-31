@@ -2,8 +2,19 @@ float fColorTableSize;
 float4 colortable[16];
 
 Texture2D Texture0;
-Texture2D Texture1;
 SamplerState Sampler;
+
+void PSColorTable( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
+	out float4 outColor[2] : SV_Target )
+{
+	float texColor = Texture0.Sample( Sampler, tex ).x;
+	int a = (int)floor( min( 0.999, texColor ) * fColorTableSize );
+	outColor[1] = colortable[a];
+	outColor[0] = float4( 0, 0, 0, outColor[1].w );
+}
+
+Texture2D Texture1;
 SamplerState Sampler1;
 
 void PSBlendVividLight( in float4 inPos : SV_Position,

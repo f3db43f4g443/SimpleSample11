@@ -69,12 +69,16 @@ public:
 			else
 				return 0;
 		}
+
+		CVector4 GetEditColor( int32 nType ) const;
+
 		bool bIsDesignValid;
 		int8 nMinLevel, nMaxLevel;
 		int8 nEditType;
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
 		uint32 nSeed;
+		vector<pair<string, int32> > vecTypes;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

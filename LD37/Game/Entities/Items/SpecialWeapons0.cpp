@@ -141,6 +141,8 @@ void CDrill::OnTickAfterHitTest()
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 		if( pEnemy )
 		{
+			if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+				continue;
 			CReference<CEntity> pTempRef = pEntity;
 
 			CCharacter::SDamageContext context;

@@ -169,7 +169,7 @@ void CHouse0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 		for( int iX = 0; iX < pChunk->nWidth; iX++ )
 		{
 			uint8 nTag = pChunk->blocks[iX + iY * pChunk->nWidth].nTag;
-			if( nTag == m_nPipeTag || nTag == m_nPipe1Tag )
+			if( nTag >= m_nPipeTag && nTag < m_nPipeTag + 4 || nTag == m_nPipe1Tag )
 				continue;
 			uint32 tX, tY;
 			tX = SRand::Inst().Rand( 0u, nTileX );
@@ -208,11 +208,14 @@ void CHouse0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 		for( int iX = 0; iX < pChunk->nWidth - 1; iX++ )
 		{
 			uint8 nTag = pChunk->blocks[iX + iY * pChunk->nWidth].nTag;
-			if( nTag == m_nPipeTag )
+			if( nTag >= m_nPipeTag && nTag < m_nPipeTag + 4 )
 			{
 				CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 				pImage2D->SetRect( CRectangle( iX * 32, iY * 32, 64, 64 ) );
-				pImage2D->SetTexRect( m_texRectPipe );
+				int32 nX = ( nTag - m_nPipeTag ) & 1;
+				int32 nY = ( nTag - m_nPipeTag ) >> 1;
+				CVector2 ofs( nX * m_texRectPipe.width, nY * m_texRectPipe.height );
+				pImage2D->SetTexRect( m_texRectPipe.Offset( ofs ) );
 				GetRenderObject()->AddChild( pImage2D );
 				for( int j = 0; j < 2; j++ )
 				{
@@ -222,9 +225,16 @@ void CHouse0::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 						int iY1 = iY + j;
 						auto pBlock = GetBlock( iX1, iY1 );
 						pBlock->nTag = m_nTag0;
-						pBlock->rtTexRect = texRect0.Offset( CVector2( texRect0.width * i, texRect0.height * ( 1 - j ) ) );
+						pBlock->rtTexRect = texRect0.Offset( ofs + CVector2( texRect0.width * i, texRect0.height * ( 1 - j ) ) );
 					}
 				}
+
+				CVector2 dirs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+				SPipe0 pipe0;
+				CVector2 dir = dirs[nTag - m_nPipeTag];
+				pipe0.ofs = ( CVector2( iX + 1, iY + 1 ) + dir ) * CMyLevel::GetBlockSize();
+				pipe0.nType = nTag - m_nPipeTag;
+				m_vecPipe0.push_back( pipe0 );
 			}
 		}
 	}
@@ -1363,97 +1373,100 @@ void CScrap::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 		pRenderObject->AddChild( pImage );
 	}
 
-	static CRectangle signTexRectsH[] =
+	if( m_pDrawable1 )
 	{
-		{ 0, 0, 4, 2 }, { 4, 0, 5, 2 }, { 9, 0, 5, 2 },
-		{ 0, 2, 6, 2 }, { 6, 2, 6, 2 },
-		{ 0, 4, 4, 2 }, { 4, 4, 8, 2 },
-		{ 0, 6, 6, 2 }, { 6, 6, 4, 2 },
-		{ 0, 8, 3, 2 }, { 3, 8, 3, 2 }, { 6, 8, 4, 2 },
-		{ 0, 10, 4, 2 }, { 4, 10, 4, 2 },
-		{ 0, 12, 4, 2 }, { 4, 12, 4, 2 },
-		{ 0, 14, 4, 2 }, { 4, 14, 4, 2 },
-	};
-	static CRectangle signTexRectsV1[] =
-	{
-		{ 14, 0, 1, 2 }, { 15, 0, 1, 2 }, { 14, 2, 1, 2 }, { 15, 2, 1, 2 }, { 14, 4, 1, 2 }, { 15, 4, 1, 2 },
-		{ 14, 6, 1, 2 }, { 15, 6, 1, 2 }, { 14, 8, 1, 2 }, { 15, 8, 1, 2 },
-	};
-	static CRectangle signTexRectsV2[] =
-	{
-		{ 14, 10, 2, 3 }, { 14, 13, 2, 3 },
-		{ 12, 2, 2, 4 }, { 12, 6, 2, 5 }, { 12, 11, 2, 5 },
-		{ 10, 6, 2, 6 }, { 10, 12, 2, 4 },
-		{ 8, 10, 2, 3 }, { 8, 13, 2, 3 },
-	};
-	static bool bInit = false;
-	if( !bInit )
-	{
-		bInit = true;
-		SRand::Inst<eRand_Render>().Shuffle( signTexRectsH, ELEM_COUNT( signTexRectsH ) );
-		SRand::Inst<eRand_Render>().Shuffle( signTexRectsV1, ELEM_COUNT( signTexRectsV1 ) );
-		SRand::Inst<eRand_Render>().Shuffle( signTexRectsV2, ELEM_COUNT( signTexRectsV2 ) );
-	}
-
-	CRectangle* pRect = NULL;
-	int32 nRect = 0;
-	int32 h1 = 0;
-	if( !bFlip )
-	{
-		if( h <= 1 )
-			return;
-		pRect = signTexRectsH;
-		nRect = ELEM_COUNT( signTexRectsH );
-		h1 = 2;
-	}
-	else
-	{
-		if( h <= 1 || w <= SRand::Inst().Rand( 3, 7 ) )
+		static CRectangle signTexRectsH[] =
 		{
-			pRect = signTexRectsV1;
-			nRect = ELEM_COUNT( signTexRectsV1 );
-			h1 = 1;
+			{ 0, 0, 4, 2 }, { 4, 0, 5, 2 }, { 9, 0, 5, 2 },
+			{ 0, 2, 6, 2 }, { 6, 2, 6, 2 },
+			{ 0, 4, 4, 2 }, { 4, 4, 8, 2 },
+			{ 0, 6, 6, 2 }, { 6, 6, 4, 2 },
+			{ 0, 8, 3, 2 }, { 3, 8, 3, 2 }, { 6, 8, 4, 2 },
+			{ 0, 10, 4, 2 }, { 4, 10, 4, 2 },
+			{ 0, 12, 4, 2 }, { 4, 12, 4, 2 },
+			{ 0, 14, 4, 2 }, { 4, 14, 4, 2 },
+		};
+		static CRectangle signTexRectsV1[] =
+		{
+			{ 14, 0, 1, 2 }, { 15, 0, 1, 2 }, { 14, 2, 1, 2 }, { 15, 2, 1, 2 }, { 14, 4, 1, 2 }, { 15, 4, 1, 2 },
+			{ 14, 6, 1, 2 }, { 15, 6, 1, 2 }, { 14, 8, 1, 2 }, { 15, 8, 1, 2 },
+		};
+		static CRectangle signTexRectsV2[] =
+		{
+			{ 14, 10, 2, 3 }, { 14, 13, 2, 3 },
+			{ 12, 2, 2, 4 }, { 12, 6, 2, 5 }, { 12, 11, 2, 5 },
+			{ 10, 6, 2, 6 }, { 10, 12, 2, 4 },
+			{ 8, 10, 2, 3 }, { 8, 13, 2, 3 },
+		};
+		static bool bInit = false;
+		if( !bInit )
+		{
+			bInit = true;
+			SRand::Inst<eRand_Render>().Shuffle( signTexRectsH, ELEM_COUNT( signTexRectsH ) );
+			SRand::Inst<eRand_Render>().Shuffle( signTexRectsV1, ELEM_COUNT( signTexRectsV1 ) );
+			SRand::Inst<eRand_Render>().Shuffle( signTexRectsV2, ELEM_COUNT( signTexRectsV2 ) );
+		}
+
+		CRectangle* pRect = NULL;
+		int32 nRect = 0;
+		int32 h1 = 0;
+		if( !bFlip )
+		{
+			if( h <= 1 )
+				return;
+			pRect = signTexRectsH;
+			nRect = ELEM_COUNT( signTexRectsH );
+			h1 = 2;
 		}
 		else
 		{
-			pRect = signTexRectsV2;
-			nRect = ELEM_COUNT( signTexRectsV2 );
-			h1 = 2;
-		}
-	}
-	int32 w1 = Max( h, w - SRand::Inst().Rand( 0, 3 ) );
-
-	for( int i = 0; i <= h - h1; i += h1 )
-	{
-		CRectangle r( 0, 0, 0, 0 );
-		for( int iRect = 0; iRect < nRect; iRect++ )
-		{
-			auto r1 = pRect[iRect];
-			if( ( bFlip ? r1.height : r1.width ) < w1 )
+			if( h <= 1 || w <= SRand::Inst().Rand( 3, 7 ) )
 			{
-				r = r1;
-				for( int i1 = iRect; i1 < nRect - 1; i1++ )
-					pRect[i1] = pRect[i1 + 1];
-				pRect[nRect - 1] = r1;
-				break;
-			}
-		}
-		if( r.width > 0 )
-		{
-			auto pImage = static_cast<CImage2D*>( m_pDrawable1->CreateInstance() );
-			pImage->SetTexRect( r * ( 1.0f / 16 ) );
-			if( bFlip )
-			{
-				r.x = i;
-				r.y = SRand::Inst().Rand<int32>( 0, w - r.height + 1 );
+				pRect = signTexRectsV1;
+				nRect = ELEM_COUNT( signTexRectsV1 );
+				h1 = 1;
 			}
 			else
 			{
-				r.x = SRand::Inst().Rand<int32>( 0, w - r.width + 1 );
-				r.y = i;
+				pRect = signTexRectsV2;
+				nRect = ELEM_COUNT( signTexRectsV2 );
+				h1 = 2;
 			}
-			pImage->SetRect( r * CMyLevel::GetBlockSize() );
-			pRenderObject->AddChild( pImage );
+		}
+		int32 w1 = Max( h, w - SRand::Inst().Rand( 0, 3 ) );
+
+		for( int i = 0; i <= h - h1; i += h1 )
+		{
+			CRectangle r( 0, 0, 0, 0 );
+			for( int iRect = 0; iRect < nRect; iRect++ )
+			{
+				auto r1 = pRect[iRect];
+				if( ( bFlip ? r1.height : r1.width ) < w1 )
+				{
+					r = r1;
+					for( int i1 = iRect; i1 < nRect - 1; i1++ )
+						pRect[i1] = pRect[i1 + 1];
+					pRect[nRect - 1] = r1;
+					break;
+				}
+			}
+			if( r.width > 0 )
+			{
+				auto pImage = static_cast<CImage2D*>( m_pDrawable1->CreateInstance() );
+				pImage->SetTexRect( r * ( 1.0f / 16 ) );
+				if( bFlip )
+				{
+					r.x = i;
+					r.y = SRand::Inst().Rand<int32>( 0, w - r.height + 1 );
+				}
+				else
+				{
+					r.x = SRand::Inst().Rand<int32>( 0, w - r.width + 1 );
+					r.y = i;
+				}
+				pImage->SetRect( r * CMyLevel::GetBlockSize() );
+				pRenderObject->AddChild( pImage );
+			}
 		}
 	}
 

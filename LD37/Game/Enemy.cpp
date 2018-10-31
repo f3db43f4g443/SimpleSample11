@@ -70,3 +70,13 @@ void CEnemyPart::Damage( SDamageContext& context )
 		context.nHitType = nHitType;
 	}
 }
+
+bool CEnemyPart::IsOwner( CEntity* pEntity )
+{
+	if( pEntity == this )
+		return true;
+	auto pParent = SafeCast<CEnemy>( GetParentEntity() );
+	if( pParent )
+		return pParent->IsOwner( pEntity );
+	return false;
+}

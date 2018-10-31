@@ -182,6 +182,7 @@ struct SCharacterWalkData : public SCharacterMovementData
 	}
 	uint8 nState;
 	int8 nIsSlidingDownWall;
+	bool bJumpCheck;
 	CVector2 velocity;
 	float fJumpHoldingTime;
 	float fRollTime;

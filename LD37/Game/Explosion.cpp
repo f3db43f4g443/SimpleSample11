@@ -101,12 +101,11 @@ void CExplosion::OnTick()
 			continue;
 		}
 
-		if( !m_bHitCreator && pEntity == m_pCreator )
-			continue;
-
 		CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
 		if( pPlayer )
 		{
+			if( !m_bHitCreator && pEntity == m_pCreator )
+				continue;
 			if( pPlayer->IsHiding() ? m_bHitHidingPlayer : m_bHitPlayer )
 			{
 				int32 nDmg = m_nDamage1 + m_nHitFrame * m_nDeltaDamage1;
@@ -134,6 +133,8 @@ void CExplosion::OnTick()
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 		if( pEnemy )
 		{
+			if( !m_bHitCreator && m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+				continue;
 			if( pEnemy->IsHiding() ? m_bHitHidingEnemy : m_bHitEnemy )
 			{
 				int32 nDmg = m_nDamage2 + m_nHitFrame * m_nDeltaDamage2;
@@ -161,6 +162,8 @@ void CExplosion::OnTick()
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 		if( pCharacter )
 		{
+			if( !m_bHitCreator && pEntity == m_pCreator )
+				continue;
 			if( pCharacter->IsHiding() ? m_bHitHidingNeutral : m_bHitNeutral )
 			{
 				int32 nDmg = m_nDamage2 + m_nHitFrame * m_nDeltaDamage2;

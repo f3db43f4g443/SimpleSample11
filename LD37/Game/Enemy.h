@@ -16,6 +16,8 @@ public:
 	void SetHp( int32 nHp ) { m_nHp = nHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
 
+	virtual bool IsOwner( CEntity* pEntity ) { return pEntity == this; }
+
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
 protected:
 	int32 m_nHp;
@@ -33,4 +35,6 @@ public:
 	CEnemyPart( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CEnemyPart ); }
 
 	virtual void Damage( SDamageContext& context ) override;
+
+	virtual bool IsOwner( CEntity* pEntity ) override;
 };

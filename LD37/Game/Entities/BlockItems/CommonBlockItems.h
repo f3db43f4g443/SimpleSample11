@@ -23,9 +23,13 @@ protected:
 	uint32 m_nFireCount;
 	uint32 m_nFireCD;
 	TResourceRef<CPrefab> m_strPrefab;
+	uint32 m_nFrames1;
+	uint32 m_nFrames2;
+	bool m_bBeginCD;
 
 	bool m_bEnabled;
 	uint32 m_nFireCountLeft;
+	float m_fFramesPerSec;
 private:
 	TClassTrigger<CDetectTrigger> m_onTick;
 };
@@ -80,6 +84,8 @@ public:
 	CSpawner( const SClassCreateContext& context ) : CDetectTrigger( context ), m_nCurCount( 0 ) { SET_BASEOBJECT_ID( CSpawner ); }
 
 	virtual void OnRemovedFromStage() override;
+
+	void RegisterSpawn( CTrigger* pTrigger ) { m_onSpawn.Register( 0, pTrigger ); }
 protected:
 	virtual CEntity* Spawn() { return SafeCast<CEntity>( m_strPrefab->GetRoot()->CreateInstance() ); }
 	virtual void Trigger() override;
@@ -109,6 +115,7 @@ private:
 	void OnSpawnedEntityDeath( SSpawnedEntity* pSpawnedEntity );
 	uint32 m_nCurCount;
 
+	CEventTrigger<1> m_onSpawn;
 	LINK_LIST_HEAD( m_pSpawnedEntities, SSpawnedEntity, SpawnedEntity )
 };
 

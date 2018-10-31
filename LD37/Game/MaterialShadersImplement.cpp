@@ -95,6 +95,7 @@ IMPLEMENT_MATERIAL_SHADER( GSWrapTex, "Shader/GSWrapTex.shader", "GSMain", "gs_5
 IMPLEMENT_MATERIAL_SHADER( GSWrapTex1, "Shader/GSWrapTex.shader", "GSMain1", "gs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( GSWrapTex2, "Shader/GSWrapTex.shader", "GSMain2", "gs_5_0" );
 
+IMPLEMENT_MATERIAL_SHADER( PSColorTable, "Shader/Decorator.shader", "PSColorTable", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendMul, "Shader/Decorator.shader", "PSBlendMul", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDecoratorBlendVividLight, "Shader/Decorator.shader", "PSBlendVividLight", "ps_5_0" );
 
@@ -110,6 +111,10 @@ IMPLEMENT_MATERIAL_SHADER( VSParticleGlitch, "Shader/TutorialGame_Particle.shade
 
 IMPLEMENT_MATERIAL_SHADER( PSWater, "Shader/Water.shader", "PSWater", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSWaterOneColor, "Shader/Water.shader", "PSWaterOneColor", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWaterDistortion, "Shader/Water.shader", "PSWaterDistortion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWaterDistortionOcc, "Shader/Water.shader", "PSWaterDistortionOcc", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWaterDistortion1, "Shader/Water.shader", "PSWaterDistortion1", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWaterDistortionOcc1, "Shader/Water.shader", "PSWaterDistortionOcc1", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskColor, "Shader/Distortion.shader", "PSDistortionMaskColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskOcc, "Shader/Distortion.shader", "PSDistortionMaskOcc", "ps_5_0" );

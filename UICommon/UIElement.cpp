@@ -269,6 +269,7 @@ void CUIElement::Replace( CUIElement* pElement )
 	pElement->GetParent()->AddChildBefore( this, pElement );
 	SetPosition( pElement->GetPosition() );
 	Resize( pElement->GetSize() );
+	SetAlignType( pElement->GetAlignType() );
 	pElement->RemoveThis();
 }
 

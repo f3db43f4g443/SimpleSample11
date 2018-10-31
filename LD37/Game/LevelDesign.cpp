@@ -13,13 +13,14 @@
 #include "Common/FileUtil.h"
 #include "Common/Utf8Util.h"
 #include "PlayerData.h"
+#include "MyLevel.h"
 
 CEntity * CChunkPreview::GetPreviewRoot()
 {
 	return this;
 }
 
-void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region )
+void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region, int8* pData, int32 nDataSize )
 {
 	if( pNode == m_pNode && region == m_region )
 		return;
@@ -41,6 +42,14 @@ void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& re
 		return;
 
 	SLevelBuildContext context( region.width, region.height );
+	if( pData )
+	{
+		nDataSize = Min( nDataSize, region.width * region.height );
+		memcpy( &context.blueprint[0], pData, nDataSize );
+	}
+	auto& types = pNode->GetMetadata().vecTypes;
+	for( auto& item : types )
+		context.mapTags[item.first] = item.second;
 	pNode->Generate( context, TRectangle<int32>( 0, 0, region.width, region.height ) );
 	context.Build();
 
@@ -48,8 +57,8 @@ void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& re
 	auto pChunk = context.chunks[0];
 	assert( pChunk->nWidth == region.width && pChunk->nHeight == region.height );
 
-	pChunk->pos.x = region.x * 32;
-	pChunk->pos.y = region.y * 32;
+	pChunk->pos.x = region.x * CMyLevel::GetBlockSize();
+	pChunk->pos.y = region.y * CMyLevel::GetBlockSize();
 	m_pChunk = pChunk;
 
 	m_pChunk->CreateChunkObjectPreview( GetPreviewRoot() );
@@ -68,13 +77,13 @@ void CChunkPreview::Clear()
 	}
 }
 
-void CChunkEdit::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region )
+void CChunkEdit::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region, int8* pData, int32 nDataSize )
 {
-	CChunkPreview::Set( pNode, region );
+	CChunkPreview::Set( pNode, region, pData, nDataSize );
 
 	if( pNode )
 	{
-		uint32 nBlockSize = 32;
+		uint32 nBlockSize = CMyLevel::GetBlockSize();
 		SetPosition( CVector2( region.x, region.y ) * nBlockSize );
 		CRectangle chunkRect( 0, 0, region.width * nBlockSize, region.height * nBlockSize );
 		static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, 0, 4, 4 ) );
@@ -238,6 +247,95 @@ void SLevelDesignContext::RemoveItem( SLevelDesignItem * pItem )
 	}
 }
 
+void CChunkDetailEdit::Set( SLevelDesignItem* pItem )
+{
+	Refresh();
+	m_pCurItem = pItem;
+
+	if( pItem )
+	{
+		bVisible = true;
+		uint32 nBlockSize = CMyLevel::GetBlockSize();
+		auto& region = pItem->region;
+		SetPosition( CVector2( region.x, region.y ) * nBlockSize );
+		CRectangle chunkRect( 0, 0, region.width * nBlockSize, region.height * nBlockSize );
+		static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, 0, 4, 4 ) );
+		static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 4, 0, region.width * nBlockSize - 8, 4 ) );
+		static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 0, 4, 4 ) );
+		static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 4, 4, region.height * nBlockSize - 8 ) );
+		static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 4, 4, region.height * nBlockSize - 8 ) );
+		static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, region.height * nBlockSize - 4, 4, 4 ) );
+		static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 4, region.height * nBlockSize - 4, region.width * nBlockSize - 8, 4 ) );
+		static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, region.height * nBlockSize - 4, 4, 4 ) );
+
+		int32 nSize = pItem->region.width * pItem->region.height;
+		int32 nSize0 = m_vecGrids.size();
+		m_vecGrids.resize( Max( nSize, nSize0 ) );
+		for( int i = nSize0 - 1; i >= nSize; i-- )
+		{
+			m_vecGrids[i]->RemoveThis();
+		}
+		for( int i = 0; i < pItem->region.width; i++ )
+		{
+			for( int j = 0; j < pItem->region.height; j++ )
+			{
+				auto p = m_vecGrids[i + j * pItem->region.width];
+				if( !p )
+				{
+					p = m_pGridDrawable->CreateInstance();
+					m_vecGrids[i + j * pItem->region.width] = p;
+				}
+				if( p->GetParent() != this )
+					AddChild( p );
+				p->SetPosition( CVector2( i, j ) * nBlockSize );
+				RefreshGrid( i, j );
+			}
+		}
+	}
+	else
+		bVisible = false;
+}
+
+void CChunkDetailEdit::Edit( int32 x, int32 y, int32 nType )
+{
+	if( !m_pCurItem )
+		return;
+	if( x < 0 || x >= m_pCurItem->region.width || y < 0 || y >= m_pCurItem->region.height )
+		return;
+	m_pCurItem->vecData.resize( m_pCurItem->region.width * m_pCurItem->region.height );
+	m_pCurItem->vecData[x + y * m_pCurItem->region.width] = nType;
+	RefreshGrid( x, y );
+	m_bDirty = true;
+}
+
+void CChunkDetailEdit::Refresh()
+{
+	if( !m_bDirty || !m_pCurItem )
+		return;
+	auto pData = m_pCurItem->vecData.size() ? &m_pCurItem->vecData[0] : NULL;
+	if( m_pCurItem->pEntity )
+	{
+		m_pCurItem->pEntity->Clear();
+		m_pCurItem->pEntity->Set( m_pCurItem->pGenNode, m_pCurItem->region, pData, m_pCurItem->vecData.size() );
+	}
+	m_bDirty = false;
+}
+
+void CChunkDetailEdit::RefreshGrid( int32 x, int32 y )
+{
+	int32 nIndex = x + y * m_pCurItem->region.width;
+	uint32 nBlockSize = CMyLevel::GetBlockSize();
+	auto pImg = static_cast<CImage2D*>( m_vecGrids[nIndex].GetPtr() );
+	pImg->SetRect( CRectangle( 0, 0, nBlockSize, nBlockSize ) );
+
+	int32 nType = 0;
+	if( nIndex < m_pCurItem->vecData.size() )
+		nType = m_pCurItem->vecData[nIndex];
+	CVector4 color = m_pCurItem->pGenNode->GetMetadata().GetEditColor( nType );
+	pImg->SetTexRect( CRectangle( nType % m_nGridTexCols, nType / m_nGridTexCols, 1, 1 ) * CVector2( 1.0f / m_nGridTexCols , 1.0f / m_nGridTexRows ) );
+	*pImg->GetParam() = color;
+}
+
 CDesignLevel* CDesignLevel::s_pLevel = NULL;
 
 void CDesignLevel::OnAddedToStage()
@@ -247,6 +345,7 @@ void CDesignLevel::OnAddedToStage()
 		m_pChunkEditPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strChunkEditPrefab.c_str() );
 	Init();
 
+	m_pDetailEdit->Set( NULL );
 	for( int k = 0; k < 2; k++ )
 	{
 		for( int i = 0; i < nWidth; i++ )
@@ -283,28 +382,45 @@ void CDesignLevel::OnRemovedFromStage()
 		s_pLevel = NULL;
 }
 
-void SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName )
+SLevelDesignItem* SLevelDesignContext::Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer )
 {
 	auto pNode = FindNode( szFullName );
 	if( !pNode )
-		return;
+		return NULL;
 	auto pItem = AddItem( pNode, region, false );
 	if( !pItem )
-		return;
+		return NULL;
 	pItem->strFullName = szFullName;
-	pItem->strChunkName = szChunkName;
+
+	if( pExtraBuffer )
+	{
+		pExtraBuffer->Read( pItem->strChunkName );
+		if( pExtraBuffer->GetBytesLeft() )
+		{
+			pExtraBuffer->Read( pItem->vecData );
+		}
+	}
+	return pItem;
 }
 
-void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName )
+SLevelDesignItem* CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer )
 {
 	auto pNode = FindNode( szFullName );
 	if( !pNode )
-		return;
+		return NULL;
 	auto pItem = AddItem( pNode, region, m_bAutoErase );
 	if( !pItem )
-		return;
+		return NULL;
 	pItem->strFullName = szFullName;
-	pItem->strChunkName = szChunkName;
+
+	if( pExtraBuffer )
+	{
+		pExtraBuffer->Read( pItem->strChunkName );
+		if( pExtraBuffer->GetBytesLeft() )
+		{
+			pExtraBuffer->Read( pItem->vecData );
+		}
+	}
 
 	CreatePreviewForItem( pItem );
 	if( m_bBeginEdit )
@@ -312,13 +428,14 @@ void CDesignLevel::Add( const char* szFullName, const TRectangle<int32>& region,
 		pItem->bLocked = true;
 		m_vecLockedItems.push_back( pItem );
 	}
+	return pItem;
 }
 
 void CDesignLevel::CreatePreviewForItem( SLevelDesignItem* pItem )
 {
 	auto pChunkEdit = SafeCast<CChunkEdit>( m_pChunkEditPrefab->GetRoot()->CreateInstance() );
 	pChunkEdit->SetParentEntity( m_pChunkEditRoot[pItem->pGenNode->GetMetadata().GetLayerType() - 1] );
-	pChunkEdit->Set( pItem->pGenNode, pItem->region );
+	pChunkEdit->Set( pItem->pGenNode, pItem->region, pItem->vecData.size() ? &pItem->vecData[0] : NULL, pItem->vecData.size() );
 	pItem->pEntity = pChunkEdit;
 }
 
@@ -645,7 +762,30 @@ void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 			{
 				auto pItem = items[k][i + j * nWidth];
 				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+				{
+					if( pItem->strChunkName.length() )
+						context.strChunkName = pItem->strChunkName;
+
+					for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
+					{
+						context.mapTags[item.first] = item.second;
+					}
+					for( int y = 0; y < pItem->region.height; y++ )
+					{
+						for( int x = 0; x < pItem->region.width; x++ )
+						{
+							int8 nType = x + y * pItem->region.width < pItem->vecData.size() ? pItem->vecData[x + y * pItem->region.width] : 0;
+							context.blueprint[x + pItem->region.x + ( y + pItem->region.y ) * context.nWidth] = nType;
+						}
+					}
 					pItem->pGenNode->Generate( context, pItem->region );
+					for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
+					{
+						context.mapTags.erase( item.first );
+					}
+
+					pItem->pGenNode->Generate( context, pItem->region );
+				}
 			}
 		}
 	}
@@ -678,10 +818,8 @@ void SLevelDesignContext::Load( IBufReader & buf )
 		TRectangle<int32> region;
 		buf.Read( region );
 
-		string strNodeName;
 		CBufReader extraData( buf );
-		extraData.Read( strNodeName );
-		Add( strFullName.c_str(), region, strNodeName.c_str() );
+		Add( strFullName.c_str(), region, &extraData );
 	}
 }
 
@@ -701,6 +839,7 @@ void SLevelDesignContext::Save( CBufFile & buf )
 
 					CBufFile extraData;
 					extraData.Write( pItem->strChunkName );
+					extraData.Write( pItem->vecData );
 					buf.Write( extraData );
 				}
 			}
@@ -912,6 +1051,7 @@ protected:
 	virtual void OnClick( const CVector2& mousePos ) override
 	{
 		m_pOwner->SelectNode( this );
+		m_pOwner->SelectItem( NULL );
 		m_pOwner->SetDeleteMode( false );
 	}
 
@@ -960,7 +1100,7 @@ protected:
 			m_nDragType = 0;
 			auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos );
 			if( pItem )
-				m_pOwner->SelectItem( pItem );
+				m_pOwner->OnPickItem( pItem, m_startDragPos );
 		}
 
 		m_bStartDrag = true;
@@ -1033,6 +1173,7 @@ void CDesignView::Load( const char * szFileName )
 {
 	if( !IsFileExist( szFileName ) )
 		return;
+	SelectItem( NULL );
 	vector<char> content;
 	uint32 nSize = GetFileContent( content, szFileName, false );
 	CBufReader buf( &content[0], nSize );
@@ -1090,9 +1231,53 @@ void CDesignView::SelectItem( SLevelDesignItem * pItem )
 	{
 		pItem->onRemoved.Register( 0, &m_onSelectedItemDeleted );
 		m_pChunkName->SetText( pItem->strChunkName.c_str() );
+
+		vector<CGameDropDownBox::SItem> vecItems;
+		auto& types = pItem->pGenNode->GetMetadata().vecTypes;
+		uint8 bNeedNone = true;
+		for( int i = 0; i < types.size(); i++ )
+		{
+			if( (void*)types[i].second == 0 )
+			{
+				bNeedNone = false;
+				break;
+			}
+		}
+		vecItems.resize( types.size() + bNeedNone );
+		if( bNeedNone )
+		{
+			vecItems[0].name = "(None)";
+			vecItems[0].pData = 0;
+		}
+		for( int i = 0; i < types.size(); i++ )
+		{
+			vecItems[i + bNeedNone].name = types[i].first;
+			vecItems[i + bNeedNone].pData = (void*)types[i].second;
+		}
+		m_pDetailEditType->SetItems( &vecItems[0], vecItems.size() );
+		CDesignLevel::GetInst()->GetDetailEdit()->Set( pItem );
 	}
 	else
+	{
 		m_pChunkName->SetText( "" );
+		CGameDropDownBox::SItem item = { "(None)", 0 };
+		m_pDetailEditType->SetItems( &item, 1 );
+		CDesignLevel::GetInst()->GetDetailEdit()->Set( NULL );
+	}
+}
+
+void CDesignView::OnPickItem( SLevelDesignItem* pItem, const CVector2& pos )
+{
+	if( m_pSelectedItem != pItem )
+	{
+		SelectItem( pItem );
+		return;
+	}
+	CVector2 localPos = globalTransform.MulTVector2PosNoScale( pos );
+	TVector2<int32> posGrid( floor( localPos.x / 32 ), floor( localPos.y / 32 ) );
+	posGrid.x -= pItem->region.x;
+	posGrid.y -= pItem->region.y;
+	CDesignLevel::GetInst()->GetDetailEdit()->Edit( posGrid.x, posGrid.y, (int32)m_pDetailEditType->GetSelectedItem()->pData );
 }
 
 void CDesignView::OnInited()
@@ -1109,6 +1294,9 @@ void CDesignView::OnInited()
 	m_pChunkName = GetChildByName<CUITextBox>( "chunkname" );
 	m_onChunkNameChanged.Set( this, &CDesignView::OnChunkNameChanged );
 	m_pChunkName->Register( eEvent_Action, &m_onChunkNameChanged );
+	CGameDropDownBox::SItem item = { "(None)", 0 };
+	m_pDetailEditType = CGameDropDownBox::Create( &item, 1 );
+	m_pDetailEditType->Replace( GetChildByName( "chunk_detail_type" ) );
 
 	m_pStateText = m_pMainViewport->GetChildByName<CUILabel>( "state_text" );
 
@@ -1196,10 +1384,12 @@ void CDesignView::OnChar( uint32 nChar )
 		break;
 	case VK_BACK:
 		SelectNode( NULL );
+		SelectItem( NULL );
 		SetDeleteMode( false );
 		break;
 	case 127:
 		SelectNode( NULL );
+		SelectItem( NULL );
 		SetDeleteMode( true );
 		break;
 	case '`':

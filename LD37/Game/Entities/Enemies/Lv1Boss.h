@@ -100,6 +100,15 @@ private:
 	TResourceRef<CPrefab> m_strParticle2;
 	TResourceRef<CPrefab> m_strParticle3;
 	TResourceRef<CPrefab> m_strKillEffect;
+
+	TResourceRef<CPrefab> m_pWaterFall;
+	TResourceRef<CPrefab> m_pFlood;
+	TResourceRef<CPrefab> m_pMaggot;
+	TResourceRef<CPrefab> m_pMaggotSpawner;
+	TResourceRef<CPrefab> m_pFog;
+	TResourceRef<CPrefab> m_pSmoke;
+	TResourceRef<CDrawableGroup> m_pShock;
+
 	CString m_strTransparentChunkName;
 	CString m_strTentacleName1;
 
@@ -228,4 +237,45 @@ protected:
 
 	SCharacterPhysicsFlyData m_flyData;
 	CVector2 m_moveTarget;
+};
+
+class CLv1BossMaggot : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CLv1BossMaggot( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ), m_nAnimState( 0 ), m_nKnockBackTimeLeft( 0 ) { SET_BASEOBJECT_ID( CLv1BossMaggot ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
+	virtual void Kill() override;
+
+	void SetAIType( uint8 nType );
+	void Jump( const CVector2& vel, uint32 nDelay );
+	void KillOnTouchFlood( CEntity* pFlood, uint32 nDelay );
+protected:
+	virtual void OnTickAfterHitTest() override;
+private:
+	SCharacterSurfaceWalkData m_moveData;
+	uint32 m_nLife;
+	float m_fAIStepTimeMin;
+	float m_fAIStepTimeMax;
+	float m_fFallChance;
+	uint32 m_nKnockbackTime;
+	float m_fKnockbackSpeed;
+	CReference<CEntity> m_pExplosion;
+	uint32 m_nAnimSpeed;
+	TResourceRef<CPrefab> m_pBullet;
+
+	uint32 m_nAIStepTimeLeft;
+	int8 m_nDir;
+	uint8 m_nAIType;
+	uint8 m_nAnimState;
+	uint32 m_nKnockBackTimeLeft;
+
+	CVector2 m_jumpVel;
+	uint32 m_nJumpDelay;
+	CReference<CEntity> m_pFlood;
+	uint32 m_nFloodDelay;
 };

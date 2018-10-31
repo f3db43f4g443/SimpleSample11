@@ -86,7 +86,7 @@ void CLevelGenNode1_3::Generate( SLevelBuildContext & context, const TRectangle<
 	context.mapTags["0_1a"] = eType_WallChunk_0_1a;
 	context.mapTags["0_1b"] = eType_WallChunk_0_1b;
 	context.mapTags["1"] = eType_WallChunk_1;
-	context.mapTags["2"] = eType_WallChunk_2;
+	//context.mapTags["2"] = eType_WallChunk_2;
 	context.mapTags["3"] = eType_WallChunk_3;
 	for( auto& chunk : m_wallChunks )
 	{
@@ -1553,7 +1553,7 @@ namespace __LvGen1_3__
 					if( r.width > 0 )
 						r.SetBottom( SRand::Inst().Rand( r.GetBottom(), rect.GetBottom() ) );
 				}
-				else if( nType2 >= 0 && nLen >= 2 + SRand::Inst().Rand( 0, 2 ) )
+				/*else if( nType2 >= 0 && nLen >= 2 + SRand::Inst().Rand( 0, 2 ) )
 				{
 					int32 x = nMax + SRand::Inst().Rand( 0, nLen - 1 );
 					int32 y = rect.y;
@@ -1566,7 +1566,7 @@ namespace __LvGen1_3__
 							genData[i + j * nWidth] = nType2;
 						}
 					}
-				}
+				}*/
 				else if( SRand::Inst().Rand( 0, 2 ) )
 				{
 					r.width = SRand::Inst().Rand( 2, rect.width );
@@ -2511,7 +2511,7 @@ void CLevelGenNode1_3_0::Generate( SLevelBuildContext & context, const TRectangl
 	context.mapTags["0_1a"] = eType_WallChunk_0_1a;
 	context.mapTags["0_1b"] = eType_WallChunk_0_1b;
 	context.mapTags["1"] = eType_WallChunk_1;
-	context.mapTags["2"] = eType_WallChunk_2;
+	//context.mapTags["2"] = eType_WallChunk_2;
 	context.mapTags["3"] = eType_WallChunk_3;
 	for( auto& chunk : m_wallChunks )
 	{

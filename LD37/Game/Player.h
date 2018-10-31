@@ -116,6 +116,8 @@ public:
 	void DecSpecialFlag( int8 nFlag ) { m_nSpecialFlags[nFlag]--; }
 	int32 GetSpecialFlag( int8 nFlag ) { return m_nSpecialFlags[nFlag]; }
 
+	void Test() { m_bTest = !m_bTest; }
+
 	void RegisterItemChanged( CTrigger* pTrigger ) { m_onItemChanged.Register( 0, pTrigger ); }
 	void RegisterMoneyChanged( CTrigger* pTrigger ) { m_onMoneyChanged.Register( 0, pTrigger ); }
 private:
@@ -189,6 +191,8 @@ private:
 	CReference<CEntity> m_pHook;
 
 	int32 m_nSpecialFlags[eSpecialFlag_Count];
+
+	bool m_bTest;
 
 	map<CString, CItem*> m_mapKeyItems;
 	map<CString, int32> m_mapKeyItemLevels;

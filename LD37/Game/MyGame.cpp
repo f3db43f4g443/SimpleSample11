@@ -599,6 +599,24 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fFadeOutSpeed )
 	REGISTER_CLASS_END()
 		
+	REGISTER_CLASS_BEGIN( CPulse )
+		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_nBoundType )
+		REGISTER_MEMBER( m_fWidth )
+		REGISTER_MEMBER( m_fHitWidth )
+		REGISTER_MEMBER( m_fTexYTileLen )
+		REGISTER_MEMBER( m_fMaxLen )
+		REGISTER_MEMBER( m_nHitCD )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_nDamage1 )
+		REGISTER_MEMBER( m_nDamage2 )
+		REGISTER_MEMBER( m_fKnockback )
+		REGISTER_MEMBER( m_pDmgEft )
+		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, deatheft );
+	REGISTER_CLASS_END()
+		
 	REGISTER_CLASS_BEGIN( CThrowObj )
 		REGISTER_BASE_CLASS( CEnemy )
 		REGISTER_MEMBER( m_nLife )
@@ -667,6 +685,15 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nFrameRows )
 		REGISTER_MEMBER( m_nFrameOffset )
 		REGISTER_MEMBER( m_fKnockback )
+	REGISTER_CLASS_END()
+		
+	REGISTER_CLASS_BEGIN( CFlood )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_fHitDepth )
+		REGISTER_MEMBER( m_nDamage )
+		REGISTER_MEMBER( m_fKnockback )
+		REGISTER_MEMBER( m_nHitInterval )
 	REGISTER_CLASS_END()
 	
 	REGISTER_CLASS_BEGIN( CPickUp )
@@ -1356,6 +1383,13 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_strParticle2 )
 		REGISTER_MEMBER( m_strParticle3 )
 		REGISTER_MEMBER( m_strKillEffect )
+		REGISTER_MEMBER( m_pWaterFall )
+		REGISTER_MEMBER( m_pFlood )
+		REGISTER_MEMBER( m_pMaggot )
+		REGISTER_MEMBER( m_pMaggotSpawner )
+		REGISTER_MEMBER( m_pFog )
+		REGISTER_MEMBER( m_pSmoke )
+		REGISTER_MEMBER( m_pShock )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBoss, boss )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[0], boss/face/eye_l )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFaceEye[1], boss/face/eye_r )
@@ -1399,6 +1433,20 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_flyData )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CLv1BossMaggot )
+		REGISTER_BASE_CLASS( CEnemy )
+		REGISTER_MEMBER( m_moveData )
+		REGISTER_MEMBER( m_nLife )
+		REGISTER_MEMBER( m_fAIStepTimeMin )
+		REGISTER_MEMBER( m_fAIStepTimeMax )
+		REGISTER_MEMBER( m_fFallChance )
+		REGISTER_MEMBER( m_nKnockbackTime )
+		REGISTER_MEMBER( m_fKnockbackSpeed )
+		REGISTER_MEMBER_TAGGED_PTR( m_pExplosion, explosion )
+		REGISTER_MEMBER( m_nAnimSpeed )
+		REGISTER_MEMBER( m_pBullet )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CSpike )
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
@@ -1432,6 +1480,9 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nFireCount )
 		REGISTER_MEMBER( m_nFireCD )
 		REGISTER_MEMBER( m_strPrefab )
+		REGISTER_MEMBER( m_nFrames1 )
+		REGISTER_MEMBER( m_nFrames2 )
+		REGISTER_MEMBER( m_bBeginCD )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CKillTrigger )
@@ -2206,6 +2257,21 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[7], frame/22 );
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CChunkDetailEdit )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[0], frame/00 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[1], frame/01 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[2], frame/02 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[3], frame/10 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[4], frame/12 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[5], frame/20 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[6], frame/21 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pFrameImg[7], frame/22 );
+		REGISTER_MEMBER( m_pGridDrawable )
+		REGISTER_MEMBER( m_nGridTexCols )
+		REGISTER_MEMBER( m_nGridTexRows )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CDesignLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strChunkEditPrefab )
@@ -2215,6 +2281,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[0], chunkedit );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[1], chunkedit1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[2], chunkedit2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pDetailEdit, detailedit );
 	REGISTER_CLASS_END()
 }
 

@@ -418,6 +418,20 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
 		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
 		m_metadata.nSeed = XmlGetAttr<uint32>( pMetadata, "seed", m_metadata.nSeed );
+
+		auto pTypes = pMetadata->FirstChildElement( "types" );
+		if( pTypes )
+		{
+			int32 nMaxType = 0;
+			for( auto pItem = pTypes->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+			{
+				pair<string, int32> item;
+				item.first = XmlGetAttr( pItem, "name", "" );
+				item.second = XmlGetAttr( pItem, "value", nMaxType + 1 );
+				nMaxType = Max( nMaxType, item.second );
+				m_metadata.vecTypes.push_back( item );
+			}
+		}
 	}
 	if( m_metadata.maxSize == m_metadata.minSize )
 		m_metadata.nEditType = eEditType_Brush;
@@ -449,6 +463,42 @@ void CLevelGenerateNode::Generate( SLevelBuildContext& context, const TRectangle
 		if( SRand::Inst().Rand( 0.0f, 1.0f ) < m_fNextLevelChance )
 			m_pNextLevel->Generate( context, region );
 	}
+}
+
+CVector4 CLevelGenerateNode::SMetadata::GetEditColor( int32 nType ) const
+{
+	static CVector4 colors[] = 
+	{
+		{ 1, 0, 0, 1 },
+		{ 1, 1, 0, 1 },
+		{ 0, 1, 0, 1 },
+		{ 0, 1, 1, 1 },
+		{ 0, 0, 1, 1 },
+		{ 1, 0, 1, 1 },
+		{ 0, 1, 0.5f, 1 },
+		{ 0.5f, 0, 1, 1 },
+		{ 1, 0.5f, 0, 1 },
+		{ 0, 0.5f, 1, 1 },
+		{ 1, 0, 0.5f, 1 },
+		{ 0.5f, 1, 0, 1 },
+	};
+	for( int i = 0; i < vecTypes.size(); i++ )
+	{
+		if( vecTypes[i].second == nType )
+		{
+			CVector4 color = colors[i % ELEM_COUNT( colors )];
+			int32 n1 = ( i / ELEM_COUNT( colors ) ) & 3;
+			if( n1 == 1 )
+				color = ( color + CVector4( 0, 0, 0, 1 ) ) * 0.5f;
+			else if( n1 == 2 )
+				color = ( color + CVector4( 1, 1, 1, 1 ) ) * 0.5f;
+			else if( n1 == 3 )
+				color = ( color + CVector4( 0.5f, 0.5f, 0.5f, 0.5f ) ) * 0.5f;
+
+			return color;
+		}
+	}
+	return CVector4( 0.4f, 0.4f, 0.4f, 0.4f );
 }
 
 #define GET_GRID( g, i, j ) ( g[(i) + (j) * size.x] )
@@ -658,7 +708,25 @@ public:
 					{
 						if( pItem->strChunkName.length() )
 							context.strChunkName = pItem->strChunkName;
-						pItem->pGenNode->Generate( context, pItem->region.Offset( TVector2<int32>( region.x, region.y ) ) );
+						auto reg = pItem->region.Offset( TVector2<int32>( region.x, region.y ) );
+
+						for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
+						{
+							context.mapTags[item.first] = item.second;
+						}
+						for( int y = 0; y < reg.height; y++ )
+						{
+							for( int x = 0; x < reg.width; x++ )
+							{
+								int8 nType = x + y * reg.width < pItem->vecData.size() ? pItem->vecData[x + y * reg.width] : 0;
+								context.blueprint[x + reg.x + ( y + reg.y ) * region.width] = nType;
+							}
+						}
+						pItem->pGenNode->Generate( context, reg );
+						for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
+						{
+							context.mapTags.erase( item.first );
+						}
 					}
 				}
 			}

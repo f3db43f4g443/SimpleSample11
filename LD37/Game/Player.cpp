@@ -181,6 +181,12 @@ void CPlayer::Damage( SDamageContext& context )
 		IRenderSystem::Inst()->SetTimeScale( 0.0f, 0.25f );
 		CMyLevel::GetInst()->OnPlayerKilled( this );
 	}
+	else if( m_bTest )
+	{
+		m_hp.SetCurValue( m_hp.GetMaxValue() );
+		if( pMainUI )
+			pMainUI->OnModifyHp( m_hp, m_hp.GetMaxValue() );
+	}
 }
 
 void CPlayer::HealHp( int32 nValue )

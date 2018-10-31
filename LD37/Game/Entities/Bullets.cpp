@@ -62,6 +62,9 @@ void CBomb::Explode()
 			m_pExp->SetPosition( globalTransform.GetPosition() );
 		else
 			m_pExp->SetPosition( GetPosition() );
+		auto pExplosion = SafeCast<CExplosion>( m_pExp.GetPtr() );
+		if( pExplosion )
+			pExplosion->SetCreator( m_pCreator );
 		m_pExp->SetParentBeforeEntity( pParent ? (CEntity*)pParent : this );
 		m_pExp = NULL;
 	}
@@ -289,6 +292,312 @@ void CWaterFall1::UpdateEftParams()
 	}
 }
 
+void CPulse::OnAddedToStage()
+{
+	CCharacter::OnAddedToStage();
+	if( m_pDeathEffect )
+		m_pDeathEffect->SetParentEntity( NULL );
+
+	switch( m_nBoundType )
+	{
+	case 0:
+		m_bound = CMyLevel::GetInst()->GetLargeBound();
+		break;
+	case 1:
+		m_bound = CMyLevel::GetInst()->GetBound();
+		break;
+	default:
+	{
+		CRectangle rect1 = CMyLevel::GetInst()->GetBound();
+		CRectangle rect2 = CMyLevel::GetInst()->GetLargeBound();
+		m_bound = CRectangle( rect2.x, rect1.y, rect2.width, rect1.height );
+		break;
+	}
+	}
+
+	m_pos0 = GetPosition();
+	UpdateRenderObject();
+}
+
+void CPulse::Kill()
+{
+	if( m_pDeathEffect )
+	{
+		CMatrix2D mat = globalTransform;
+		CMatrix2D mat1;
+		mat1.Transform( m_pDeathEffect->x, m_pDeathEffect->y, m_pDeathEffect->r, m_pDeathEffect->s );
+		( mat1 * mat ).Decompose( m_pDeathEffect->x, m_pDeathEffect->y, m_pDeathEffect->r, m_pDeathEffect->s );
+		m_pDeathEffect->SetParentBeforeEntity( this );
+		m_pDeathEffect->SetState( 2 );
+	}
+	m_bKilled = true;
+}
+
+void CPulse::OnTickBeforeHitTest()
+{
+	CCharacter::OnTickBeforeHitTest();
+	if( !m_bKilled )
+	{
+		CVector2 newVelocity = m_velocity + m_acc * GetStage()->GetElapsedTimePerTick();
+		SetPosition( GetPosition() + ( m_velocity + newVelocity ) * ( GetStage()->GetElapsedTimePerTick() * 0.5f ) );
+		m_velocity = newVelocity;
+	}
+
+	CVector2 d = m_pos0 - GetPosition();
+	float l2 = d.Length2();
+	float fMaxLen = !m_bKilled ? m_fMaxLen : 0;
+	if( l2 > fMaxLen * fMaxLen )
+	{
+		float l = sqrt( l2 );
+		float l1 = l;
+		if( m_bKilled )
+		{
+			l1 = Max( l1 - m_velocity.Length() * GetStage()->GetElapsedTimePerTick(), 0.0f );
+			if( l1 <= 0 )
+			{
+				SetParentEntity( NULL );
+				return;
+			}
+		}
+		else
+			l1 = Min( l1, fMaxLen );
+		d = d * ( l1 / l );
+		m_pos0 = GetPosition() + d;
+	}
+
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( !m_nLife )
+			Kill();
+	}
+}
+
+void CPulse::OnTickAfterHitTest()
+{
+	CCharacter::OnTickAfterHitTest();
+	if( !m_bKilled )
+	{
+		if( !m_bound.Contains( globalTransform.GetPosition() ) )
+		{
+			CVector2 globalPos = globalTransform.GetPosition();
+			globalPos.x = Min( m_bound.GetRight(), Max( m_bound.x, globalPos.x ) );
+			globalPos.y = Min( m_bound.GetBottom(), Max( m_bound.y, globalPos.y ) );
+			globalTransform.SetPosition( globalPos );
+			Kill();
+		}
+	}
+
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	CVector2 beginCenter = m_pos0;
+	CVector2 endCenter = GetPosition();
+	auto dCenter = endCenter - beginCenter;
+	if( m_fHitWidth > 0 && !m_nHitCDLeft && dCenter.Length2() > 0.01f )
+	{
+		switch( m_nType )
+		{
+		case 0:
+			if( pPlayer && pPlayer->CanBeHit() )
+			{
+				SHitProxyPolygon polygon;
+				polygon.nVertices = 4;
+				dCenter.Normalize();
+				dCenter = CVector2( dCenter.y, -dCenter.x ) * m_fHitWidth * 0.5f;
+
+				polygon.vertices[0] = beginCenter - dCenter;
+				polygon.vertices[1] = beginCenter + dCenter;
+				polygon.vertices[2] = endCenter + dCenter;
+				polygon.vertices[3] = endCenter - dCenter;
+				polygon.CalcNormals();
+
+				CMatrix2D mat;
+				mat.Identity();
+
+				GetStage()->GetHitTestMgr().CalcBound( &polygon, mat );
+				SHitTestResult hitResult;
+				if( pPlayer->GetCore()->HitTest( &polygon, mat, &hitResult ) )
+				{
+					if( m_nDamage )
+					{
+						CCharacter::SDamageContext context;
+						context.nDamage = m_nDamage;
+						context.nType = 0;
+						context.nSourceType = 0;
+						context.hitPos = hitResult.hitPoint1;
+						context.hitDir = endCenter - beginCenter;
+						context.nHitType = -1;
+						pPlayer->Damage( context );
+						if( m_pDmgEft )
+							m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+					}
+					if( m_fKnockback > 0 && pPlayer->CanKnockback() )
+					{
+						CVector2 norm = hitResult.normal;
+						norm.Normalize();
+						pPlayer->Knockback( norm * -1 );
+					}
+					OnHit( pPlayer, hitResult.hitPoint1 );
+				}
+			}
+			break;
+		case 1:
+		case 2:
+		case 3:
+		{
+			SHitProxyPolygon polygon;
+			polygon.nVertices = 4;
+			dCenter.Normalize();
+			CVector2 d = dCenter;
+			dCenter = CVector2( dCenter.y, -dCenter.x ) * m_fHitWidth * 0.5f;
+
+			polygon.vertices[0] = beginCenter - dCenter;
+			polygon.vertices[1] = beginCenter + dCenter;
+			polygon.vertices[2] = beginCenter + dCenter + d;
+			polygon.vertices[3] = beginCenter - dCenter + d;
+			polygon.CalcNormals();
+			CMatrix2D mat;
+			mat.Identity();
+
+			vector<CReference<CEntity> > result;
+			vector<SRaycastResult> testResult;
+			GetStage()->MultiSweepTest( &polygon, mat, endCenter - beginCenter - d, result, &testResult );
+
+			for( auto& hitResult : testResult )
+			{
+				CEntity* pEntity = static_cast<CEntity*>( hitResult.pHitProxy );
+				if( !pEntity->GetStage() )
+					continue;
+
+				if( pEntity == m_pCreator )
+					continue;
+
+				if( m_nType == 1 )
+				{
+					CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
+					if( pEnemy )
+					{
+						if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+							continue;
+						CReference<CEntity> pTempRef = pEntity;
+
+						CCharacter::SDamageContext context;
+						context.nDamage = m_nDamage;
+						context.nType = 0;
+						context.nSourceType = 0;
+						context.hitPos = hitResult.hitPoint;
+						context.hitDir = endCenter - beginCenter;
+						context.nHitType = -1;
+						pEnemy->Damage( context );
+						if( m_pDmgEft )
+							m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+
+						OnHit( pEnemy, hitResult.hitPoint );
+						continue;
+					}
+				}
+				else
+				{
+					if( m_nType == 3 )
+					{
+						CBlockObject* pBlockObject = SafeCast<CBlockObject>( pEntity );
+						if( pBlockObject )
+						{
+							if( pBlockObject->GetBlock()->eBlockType != eBlockType_Block )
+								continue;
+							auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
+							if( pChunk == m_pCreator )
+								continue;
+							OnHit( pBlockObject, hitResult.hitPoint );
+						}
+					}
+
+					CDoor* pDoor = SafeCast<CDoor>( pEntity );
+					if( pDoor )
+					{
+						pDoor->OpenForFrame( 5 );
+						continue;
+					}
+
+					CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+					if( pCharacter && pCharacter != pPlayer )
+					{
+						if( !m_nDamage2 )
+							continue;
+						if( m_pCreator )
+						{
+							auto pEnemy = SafeCast<CEnemy>( pEntity );
+							if( pEnemy && pEnemy->IsOwner( m_pCreator ) )
+								continue;
+						}
+						if( !SafeCast<CBullet>( pCharacter ) )
+						{
+							CCharacter::SDamageContext context;
+							context.nDamage = m_nDamage2;
+							context.nType = 0;
+							context.nSourceType = 0;
+							context.hitPos = hitResult.hitPoint;
+							context.hitDir = endCenter - beginCenter;
+							context.nHitType = -1;
+							pCharacter->Damage( context );
+							if( m_pDmgEft )
+								m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+						}
+						OnHit( pCharacter, hitResult.hitPoint );
+						continue;
+					}
+
+					if( pPlayer && pPlayer->CanBeHit() && pEntity == pPlayer->GetCore() )
+					{
+						if( !m_nDamage1 && m_fKnockback <= 0 )
+							continue;
+						if( m_nDamage1 )
+						{
+							CCharacter::SDamageContext context;
+							context.nDamage = m_nDamage1;
+							context.nType = 0;
+							context.nSourceType = 0;
+							context.hitPos = hitResult.hitPoint;
+							context.hitDir = endCenter - beginCenter;
+							context.nHitType = -1;
+							pPlayer->Damage( context );
+							if( m_pDmgEft )
+								m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( context );
+						}
+						if( m_fKnockback > 0 && pPlayer->CanKnockback() )
+						{
+							CVector2 norm( d.y, -d.x );
+							norm = ( pPlayer->globalTransform.GetPosition() - beginCenter ).Dot( norm ) > 0 ? norm : norm * -1;
+							pPlayer->Knockback( norm );
+						}
+						OnHit( pPlayer, hitResult.hitPoint );
+					}
+				}
+			}
+
+			break;
+		}
+		}
+
+		if( !GetStage() )
+			return;
+	}
+
+	UpdateRenderObject();
+}
+
+void CPulse::UpdateRenderObject()
+{
+	auto pEft = static_cast<CRopeObject2D*>( GetRenderObject() );
+	auto& data0 = pEft->GetData().data[0];
+	auto& data1 = pEft->GetData().data[1];
+	data0.center = m_pos0 - GetPosition();
+	data1.center = CVector2( 0, 0 );
+	data0.fWidth = data1.fWidth = m_fWidth;
+	data1.tex0.y = data1.tex1.y = data0.center.Length() / m_fTexYTileLen;
+	data0.tex1.x = data1.tex1.x = data1.tex0.y;
+	pEft->SetTransformDirty();
+}
+
 void CBulletWithBlockBuff::OnAddedToStage()
 {
 	CBullet::OnAddedToStage();
@@ -368,6 +677,8 @@ void CPlayerBulletMultiHit::OnTickAfterHitTest()
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 		if( pEnemy )
 		{
+			if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+				continue;
 			CReference<CEntity> pTempRef = pEntity;
 
 			CCharacter::SDamageContext context;
@@ -539,6 +850,8 @@ void CWaterSplash::OnTickAfterHitTest()
 			CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 			if( pEnemy )
 			{
+				if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+					continue;
 				if( m_nDamage )
 				{
 					CCharacter::SDamageContext context;
@@ -592,4 +905,137 @@ void CWaterSplash::OnTickAfterHitTest()
 			}
 		}
 	}
+}
+
+
+void CFlood::OnAddedToStage()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	if( m_nType == 1 )
+		m_fHeight = CMyLevel::GetInst()->GetBound().GetBottom();
+	UpdateImage();
+}
+
+void CFlood::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	m_hit.clear();
+}
+
+CRectangle CFlood::GetRect()
+{
+	auto bound = CMyLevel::GetInst()->GetBound();
+	if( m_nType == 0 )
+	{
+		bound.height = m_fHeight;
+		bound.height = Max( 0.0f, bound.height - m_fHitDepth );
+	}
+	else if( m_nType == 1 )
+	{
+		bound.SetTop( m_fHeight );
+		bound.SetTop( Min( bound.GetBottom(), bound.y + m_fHitDepth ) );
+	}
+	return bound;
+}
+
+void CFlood::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+
+	if( m_fHeight != m_fTargetHeight )
+	{
+		if( m_fHeight < m_fTargetHeight )
+			m_fHeight = Min( m_fTargetHeight, m_fHeight + m_fSpeed * GetStage()->GetElapsedTimePerTick() );
+		else
+			m_fHeight = Max( m_fTargetHeight, m_fHeight - m_fSpeed * GetStage()->GetElapsedTimePerTick() );
+	}
+
+	auto rect = UpdateImage();
+	if( rect.height <= 0 && m_bAutoKill )
+	{
+		SetParentEntity( NULL );
+		return;
+	}
+	if( m_nType == 0 )
+	{
+		rect.height = Max( 0.0f, rect.height - m_fHitDepth );
+	}
+	else if( m_nType == 1 )
+	{
+		rect.SetTop( Min( rect.GetBottom(), rect.y + m_fHitDepth ) );
+	}
+	if( rect.height > 0 )
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( pPlayer && rect.Contains( pPlayer->GetPosition() ) )
+		{
+			if( m_hit.find( pPlayer ) == m_hit.end() )
+			{
+				if( m_nDamage )
+				{
+					CCharacter::SDamageContext context;
+					context.nDamage = m_nDamage;
+					context.nType = 0;
+					context.nSourceType = 0;
+					context.hitPos = pPlayer->GetPosition();
+					context.hitDir = CVector2( 0, 0 );
+					context.nHitType = -1;
+					pPlayer->Damage( context );
+				}
+				if( m_fKnockback )
+				{
+					CVector2 dir;
+					if( m_nType == 0 )
+						dir = CVector2( 0, 1 );
+					else
+						dir = CVector2( 0, -1 );
+					pPlayer->Knockback( dir * m_fKnockback );
+				}
+				if( pPlayer->GetStage() )
+					m_hit[pPlayer] = m_nHitInterval;
+			}
+		}
+	}
+
+	if( m_nHitInterval )
+	{
+		for( auto itr = m_hit.begin(); itr != m_hit.end(); )
+		{
+			itr->second--;
+			if( !itr->second )
+				itr = m_hit.erase( itr );
+			else
+				itr++;
+		}
+	}
+}
+
+CRectangle CFlood::UpdateImage()
+{
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	auto bound = CMyLevel::GetInst()->GetBound();
+	if( m_nType == 0 )
+		bound.height = m_fHeight;
+	else if( m_nType == 1 )
+		bound.SetTop( m_fHeight );
+	if( bound.height <= 0 )
+	{
+		pImage->bVisible = false;
+		return bound;
+	}
+
+	pImage->bVisible = true;
+	pImage->SetRect( bound );
+	pImage->SetBoundDirty();
+	auto& param = *pImage->GetParam();
+	if( m_nType == 0 )
+	{
+		param.x = m_fHeight;
+	}
+	else if( m_nType == 1 )
+	{
+		param.x = -m_fHeight;
+	}
+	return bound;
 }

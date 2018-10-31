@@ -145,6 +145,9 @@ void CMainGameState::UpdateInput()
 
 		if( pGame->IsKeyDown( VK_TAB ) )
 			pPlayer->ToggleBlockUIVisible();
+
+		if( pGame->IsKeyDown( VK_F1 ) )
+			pPlayer->Test();
 	}
 }
 

@@ -61,6 +61,9 @@ public:
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 	virtual bool Damage( SDamageContext& context ) override;
 	virtual void OnRemovedFromStage() override;
+
+	uint32 GetPipe0Count() { return m_vecPipe0.size(); }
+	void GetPipe0( uint32 i, CVector2& ofs, uint8& nType ) { ofs = m_vecPipe0[i].ofs; nType = m_vecPipe0[i].nType; }
 private:
 	void OnTick();
 	CRectangle m_texRectPipe;
@@ -78,6 +81,12 @@ private:
 	uint32 m_nPipeEftCD1;
 
 	vector<CReference<CChunkObject> > m_vecSubChunk;
+	struct SPipe0
+	{
+		CVector2 ofs;
+		uint8 nType;
+	};
+	vector<SPipe0> m_vecPipe0;
 	struct SPipe1
 	{
 		SPipe1() : nCD( 0 ) {}

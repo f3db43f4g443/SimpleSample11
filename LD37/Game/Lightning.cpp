@@ -289,6 +289,8 @@ void CLightning::OnTick()
 					CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
 					if( pEnemy )
 					{
+						if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
+							continue;
 						CReference<CEntity> pTempRef = pEntity;
 
 						CCharacter::SDamageContext context;
@@ -334,6 +336,12 @@ void CLightning::OnTick()
 					{
 						if( !m_nDamage2 )
 							continue;
+						if( m_pCreator )
+						{
+							auto pEnemy = SafeCast<CEnemy>( pEntity );
+							if( pEnemy && pEnemy->IsOwner( m_pCreator ) )
+								continue;
+						}
 						if( !SafeCast<CBullet>( pCharacter ) )
 						{
 							CCharacter::SDamageContext context;

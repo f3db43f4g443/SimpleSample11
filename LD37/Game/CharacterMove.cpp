@@ -555,10 +555,10 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		if( fJumpHoldingTime >= fJumpMaxHoldTime )
 		{
 			fJumpHoldingTime = fJumpMaxHoldTime;
-			if( pLandedEntity || nIsSlidingDownWall )
-				ReleaseJump( pCharacter );
-			else
-				FallOff();
+			//if( pLandedEntity || nIsSlidingDownWall )
+			ReleaseJump( pCharacter );
+			//else
+				//FallOff();
 		}
 	}
 
@@ -609,12 +609,6 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 			t1 = fDeltaTime - t0;
 			dVelocity = dVelocity + gravityDir * ( fAcc * t0 );
 			dPos = dPos + gravityDir * ( fAcc * t0 * t0 * 0.5f );
-
-			if( !nIsSlidingDownWall )
-			{
-				if( nState == eState_JumpHolding )
-					nState = eState_Normal;
-			}
 		}
 		velocity = velocity + dVelocity;
 
@@ -627,7 +621,8 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 	CVector2 v0 = velocity;
-	TryMove( pCharacter, dPos, velocity );
+	SRaycastResult res[3];
+	TryMove( pCharacter, dPos, velocity, res );
 	if( nState != eState_Hooked )
 	{
 		bool bPreLandedEntity = pLandedEntity != NULL;
@@ -637,9 +632,37 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		if( !pLandedEntity && nState < eState_Knockback )
 		{
 			if( moveAxis.x > 0 && v0.x > velocity.x )
-				nIsSlidingDownWall = 1;
+			{
+				for( int i = 0; i < 3; i++ )
+				{
+					auto& result = res[i];
+					if( !result.pHitProxy )
+						break;
+					if( static_cast<CEntity*>( result.pHitProxy )->GetHitType() != eEntityHitType_WorldStatic )
+						continue;
+					if( result.normal.x < 0 )
+					{
+						nIsSlidingDownWall = 1;
+						break;
+					}
+				}
+			}
 			else if( moveAxis.x < 0 && v0.x < velocity.x )
-				nIsSlidingDownWall = -1;
+			{
+				for( int i = 0; i < 3; i++ )
+				{
+					auto& result = res[i];
+					if( !result.pHitProxy )
+						break;
+					if( static_cast<CEntity*>( result.pHitProxy )->GetHitType() != eEntityHitType_WorldStatic )
+						continue;
+					if( result.normal.x > 0 )
+					{
+						nIsSlidingDownWall = -1;
+						break;
+					}
+				}
+			}
 			if( nIsSlidingDownWall )
 			{
 				if( moveAxis.y < 0 )
@@ -649,9 +672,9 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 				else
 					velocity.y = Max( velocity.y, 0.0f );
 			}
-			if( bPreLandedEntity )
-				ReleaseJump( pCharacter );
 		}
+		if( nState == eState_JumpHolding && ( pLandedEntity || nIsSlidingDownWall ) )
+			bJumpCheck = true;
 	}
 	else
 		nState = eState_Normal;
@@ -690,6 +713,7 @@ void SCharacterWalkData::Jump( CCharacter * pCharacter )
 	if( nState == eState_Normal )
 	{
 		nState = eState_JumpHolding;
+		bJumpCheck = pLandedEntity || nIsSlidingDownWall;
 		fJumpHoldingTime = 0;
 	}
 }
@@ -698,23 +722,27 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 {
 	if( nState == eState_JumpHolding )
 	{
-		CVector2 dVelocity;
-		if( nIsSlidingDownWall > 0 )
+		if( bJumpCheck )
 		{
-			dVelocity = CVector2( -0.5f, 0.732f );
-			velocity.y = 0;
+			CVector2 dVelocity;
+			if( nIsSlidingDownWall > 0 )
+			{
+				dVelocity = CVector2( -0.5f, 0.732f );
+				velocity.y = 0;
+			}
+			else if( nIsSlidingDownWall < 0 )
+			{
+				dVelocity = CVector2( 0.5f, 0.732f );
+				velocity.y = 0;
+			}
+			else
+				dVelocity = CVector2( 0, 1 );
+			float t = fJumpHoldingTime < fJumpMaxHoldTime ? fJumpHoldingTime * 0.66f / fJumpMaxHoldTime : 1;
+			dVelocity = dVelocity * ( sqrt( t ) * fJumpMaxSpeed );
+			velocity.y = 0.0f;
+			velocity = velocity + dVelocity;
+			bSleep = false;
 		}
-		else if( nIsSlidingDownWall < 0 )
-		{
-			dVelocity = CVector2( 0.5f, 0.732f );
-			velocity.y = 0;
-		}
-		else
-			dVelocity = CVector2( 0, 1 );
-		float t = fJumpHoldingTime < fJumpMaxHoldTime ? fJumpHoldingTime * 0.66f / fJumpMaxHoldTime : 1;
-		dVelocity = dVelocity * ( sqrt( t ) * fJumpMaxSpeed );
-		velocity = velocity + dVelocity;
-		bSleep = false;
 		nState = eState_Normal;
 	}
 }

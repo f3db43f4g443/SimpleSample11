@@ -12,6 +12,8 @@
 #include "Entities/Barrage.h"
 #include "Common/MathUtil.h"
 #include "Lightning.h"
+#include "Entities/Bullets.h"
+#include "Entities/Blocks/Lv1/SpecialLv1.h"
 
 #define BOSS_HEIGHT 24
 
@@ -126,11 +128,12 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 {
 	auto pChunk = context.mapChunkNames["nose"];
 	CChunkStopEvent* pEvent = new CChunkStopEvent;
-	pEvent->nHeight = 64;
+	pEvent->nHeight = 160;
 	pEvent->func = [this] ( struct SChunk* pChunk ) {
 		pChunk->bInvulnerable = false;
 		m_pNose->SetPosition( m_pNose->GetPosition() - pChunk->pChunkObject->GetPosition() );
-		m_pNose->SetParentEntity( pChunk->pChunkObject );
+		m_pNose->SetParentEntity( pChunk->pChunkObject->GetDecoratorRoot() );
+		m_pNose->SetRenderParent( pChunk->pChunkObject );
 		m_pAINose->Throw( (void*)pChunk->pChunkObject );
 	};
 	pEvent->killedFunc = [this] ( struct SChunk* pChunk ) {
@@ -166,7 +169,7 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 
 	pChunk = context.mapChunkNames["eye_l"];
 	pEvent = new CChunkStopEvent;
-	pEvent->nHeight = 480;
+	pEvent->nHeight = 512;
 	pEvent->func = [this] ( struct SChunk* pChunk ) {
 		pChunk->fDestroyBalance = 0;
 		pChunk->fDestroyWeight = 100000;
@@ -188,7 +191,7 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 
 	pChunk = context.mapChunkNames["eye_r"];
 	pEvent = new CChunkStopEvent;
-	pEvent->nHeight = 480;
+	pEvent->nHeight = 512;
 	pEvent->func = [this] ( struct SChunk* pChunk ) {
 		m_pEyeHole[1]->SetPosition( m_pEyeHole[1]->GetPosition() - pChunk->pChunkObject->GetPosition() );
 		m_pEyeHole[1]->SetParentEntity( pChunk->pChunkObject );
@@ -207,7 +210,7 @@ void CLv1Boss::PostBuild( SLevelBuildContext & context )
 	pChunk->Insert_StopEvent( pEvent );
 
 	const char* szChunks[] = { "1", "2", "3", "4", "5a", "5b", "6", "7", "8", "9", "10", "11" };
-	uint32 nHeights[] = { 8, 8, 8, 8, 11, 11, 10, 10, 10, 5, 2, 6 };
+	uint32 nHeights[] = { 10, 10, 9, 9, 8, 8, 10, 10, 10, 5, 4, 6 };
 	for( int i = 0; i < ELEM_COUNT( szChunks ); i++ )
 	{
 		pChunk = context.mapChunkNames[szChunks[i]];
@@ -265,7 +268,7 @@ void CLv1Boss::CreateTentacle( uint8 i, CChunkObject* pChunkObject )
 
 	static uint32 nBegin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 	static uint32 nCount[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2 };
-	static TVector2<int32> pos[] = { { 0, 9 }, { 28, 9 }, { 1, 8 }, { 27, 8 }, { 5, 12 }, { 23, 12 }, { 0, 10 }, { 28, 10 }, { 2, 10 }, { 24, 7 }, { 2, 5 }, { 26, 6 }, { 25, 11 }, { 27, 11 } };
+	static TVector2<int32> pos[] = { { 0, 11 }, { 28, 11 }, { 3, 9 }, { 25, 9 }, { 4, 8 }, { 24, 8 }, { 0, 10 }, { 28, 10 }, { 2, 10 }, { 24, 7 }, { 2, 5 }, { 26, 6 }, { 25, 11 }, { 27, 11 } };
 
 	class CTentacle : public CAIObject
 	{
@@ -751,7 +754,7 @@ void CLv1Boss::AIFuncNose1()
 		m_pAINose->Yield( 0.1f, false );
 
 		float fAngle = i * 11 * PI * 2 / 255;
-		if( !CheckBlocked( TRectangle<int32>( 12, 6, 4, 2 ) ) )
+		if( !CheckBlocked( TRectangle<int32>( 13, 6, 2, 2 ) ) )
 		{
 			auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( CVector2( 14, 7 ) * CMyLevel::GetBlockSize() );
@@ -759,7 +762,7 @@ void CLv1Boss::AIFuncNose1()
 			pBullet->SetRotation( atan2( pBullet->GetVelocity().y, pBullet->GetVelocity().x ) );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
-		if( !CheckBlocked( TRectangle<int32>( 16, 6, 4, 2 ) ) )
+		if( !CheckBlocked( TRectangle<int32>( 17, 6, 2, 2 ) ) )
 		{
 			auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
 			pBullet->SetPosition( CVector2( 18, 7 ) * CMyLevel::GetBlockSize() );
@@ -777,6 +780,7 @@ void CLv1Boss::AIFuncNose1()
 void CLv1Boss::AIFuncNose2( CChunkObject* pChunkObject )
 {
 	typedef void* SKilled;
+	CReference<CFlood> pFlood;
 	try
 	{
 		auto pEffect = SafeCast<CEffectObject>( m_strParticle1->GetRoot()->CreateInstance() );
@@ -788,81 +792,180 @@ void CLv1Boss::AIFuncNose2( CChunkObject* pChunkObject )
 		CMessagePump pump( m_pAINose );
 		pChunkObject->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled>() );
 
-		SBarrageContext context;
-		context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
-		context.nBulletPageSize = 100;
+		pFlood = SafeCast<CFlood>( m_pFlood->GetRoot()->CreateInstance() );
+		pFlood->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 
-		float fTargetV = 0;
-		float fTargetV1 = 0;
-		CBarrageAutoStopHolder pBarrage[2] = { new CBarrage( context ), new CBarrage( context ) };
-		for( int i = 0; i < 2; i++ )
+		auto pHouse0 = SafeCast<CHouse0>( pChunkObject );
+		uint32 n = pHouse0->GetPipe0Count();
+		CVector2 p[4];
+		for( int i = 0; i < n; i++ )
 		{
-			int32 nIndex = i;
-			pBarrage[i]->AddFunc( [nIndex, &fTargetV, &fTargetV1] ( CBarrage* pBarrage )
+			CVector2 ofs;
+			uint8 nType;
+			pHouse0->GetPipe0( i, ofs, nType );
+			if( ofs.x == 0 )
+				p[0] = ofs + pChunkObject->GetPosition() + CVector2( -16, 0 );
+			else if( ofs.x == pHouse0->GetChunk()->nWidth * CMyLevel::GetBlockSize() )
+				p[1] = ofs + pChunkObject->GetPosition() + CVector2( 16, 0 );
+			else if( ofs.y == 0 )
 			{
-				CMatrix2D mat;
-				int32 nBullet = 0;
-				int8 nDir = nIndex ? 1 : -1;
-				float fAngle = 0;
-				float vAngle = 0;
-				float v = 0;
-				const float a1 = 0.005f;
-				const float a = a1 * 2;
-
-				for( ;; )
-				{
-					int32 nBulletBegin = nBullet;
-					if( !pBarrage->IsStopNewBullet() )
-					{
-						pBarrage->InitBullet( nBullet++, -1, -1, CVector2( 0, 0 ), CVector2( 0, 0 ), CVector2( 0, 0 ), false,
-							0, nDir * vAngle * 6 );
-						for( int i = 0; i < 3; i++ )
-						{
-							float fAngle1 = PI * ( 0.5f + i * 2.0f / 3 ) + nDir * fAngle;
-							pBarrage->InitBullet( nBullet++, 0, nBulletBegin, CVector2( 0, 0 ), CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * 200, CVector2( 0, 0 ), false, fAngle1 );
-						}
-
-						fAngle += v;
-						if( fTargetV > vAngle )
-							vAngle = Min( vAngle + a, fTargetV );
-						else
-							vAngle = Max( vAngle - a, fTargetV );
-						if( fTargetV1 > v )
-							v = Min( v + a, fTargetV1 );
-						else
-							v = Max( v - a, fTargetV1 );
-					}
-
-					nBulletBegin -= 100;
-					if( nBulletBegin >= 0 )
-					{
-						for( int i = 0; i < 4; i++ )
-							pBarrage->DestroyBullet( i + nBulletBegin );
-					}
-
-					pBarrage->Yield( 10 );
-				}
-			} );
-			pBarrage[i]->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-			pBarrage[i]->SetPosition( CVector2( 14 + 4 * i, 7 ) * CMyLevel::GetBlockSize() );
-			pBarrage[i]->Start();
+				if( ofs.x < pHouse0->GetChunk()->nWidth * CMyLevel::GetBlockSize() / 2 )
+					p[2] = ofs + pChunkObject->GetPosition() + CVector2( 0, -16 );
+				else
+					p[3] = ofs + pChunkObject->GetPosition() + CVector2( 0, -16 );
+			}
+			else
+			{
+				auto pEntity = SafeCast<CEntity>( m_pMaggotSpawner->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( ofs );
+				pEntity->SetRotation( nType * PI * 0.5f );
+				pEntity->SetParentEntity( pChunkObject );
+				auto pTrigger = new CFunctionTrigger1<CLv1BossMaggot*>( [pFlood] ( CLv1BossMaggot* p ) {
+					p->KillOnTouchFlood( pFlood, 60 );
+				} );
+			}
 		}
 
 		while( 1 )
 		{
-			fTargetV = fTargetV1 = 0.1f;
-			m_pAINose->Yield( 10.0f, false );
-			fTargetV1= -0.3f;
-			fTargetV = 0;
-			m_pAINose->Yield( 10.0f, false );
-			fTargetV1 = 0.3f;
-			m_pAINose->Yield( 10.0f, false );
-			fTargetV = fTargetV1 = -0.1f;
-			m_pAINose->Yield( 10.0f, false );
+			CReference<CWaterFall1> pEft[2];
+			for( int i = 0; i < 2; i++ )
+			{
+				pEft[i] = SafeCast<CWaterFall1>( m_pWaterFall->GetRoot()->CreateInstance() );
+				pEft[i]->SetParentAfterEntity( pFlood );
+				pEft[i]->Set( pChunkObject, CVector2( 14 + i * 4, 6.5f ) * CMyLevel::GetBlockSize() - pChunkObject->GetPosition() );
+			}
+			pFlood->Set( 432, 16 );
+			m_pAINose->Yield( 1.0f, true );
+
+			while( 1 )
+			{
+				if( pFlood->GetHeight() < 128 )
+				{
+					m_pAINose->Yield( 1.0f, true );
+					continue;
+				}
+				int32 nType = SRand::Inst().Rand( 0, 2 );
+				if( nType == 0 )
+				{
+					for( int k = 0; k < 3; k++ )
+					{
+						for( int i = 0; i < 5; i++ )
+						{
+							int32 j = SRand::Inst().Rand( 0, 2 );
+							auto pMaggot = SafeCast<CLv1BossMaggot>( m_pMaggot->GetRoot()->CreateInstance() );
+							pMaggot->SetPosition( p[j + 2] );
+							CVector2 vel;
+							vel.x = SRand::Inst().Rand( -200.0f, 200.0f );
+							vel.y = -sqrt( 250 * 250 - vel.x * vel.x );
+							pMaggot->SetVelocity( vel );
+							pMaggot->KillOnTouchFlood( pFlood, 60 );
+							pMaggot->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+							m_pAINose->Yield( 0.5f, true );
+						}
+						m_pAINose->Yield( 1.0f, false );
+					}
+					m_pAINose->Yield( 2.0f, false );
+				}
+				else
+				{
+					int32 j = SRand::Inst().Rand( 0, 2 );
+					float velX1 = SRand::Inst().Rand( -100.0f, 100.0f );
+					float velX = velX1 * 0.5f + SRand::Inst().Rand( -10.0f, 10.0f );
+					float velY = SRand::Inst().Rand( -50.0f, 20.0f );
+					for( int i = 0; i < 8; i++ )
+					{
+						auto pMaggot = SafeCast<CLv1BossMaggot>( m_pMaggot->GetRoot()->CreateInstance() );
+						pMaggot->SetPosition( p[j + 2] );
+						CVector2 vel;
+						vel.x = ( velX + ( velX1 - velX ) * i / 8.0f ) * ( j * 2 - 1 );
+						vel.y = velY;
+						pMaggot->SetVelocity( vel );
+						pMaggot->SetAIType( velX > 0 ? 1 : -1 );
+						if( velY >= -5.0f )
+							pMaggot->Jump( CVector2( vel.x, -vel.y ) * 2, 60 + i * 30 );
+						pMaggot->KillOnTouchFlood( pFlood, 90 + i * 30 );
+						pMaggot->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+						m_pAINose->Yield( 0.15f, true );
+					}
+					m_pAINose->Yield( 6.0f, false );
+				}
+
+				if( pFlood->GetHeight() >= 432 )
+				{
+					m_pAINose->Yield( 2.0f, false );
+					break;
+				}
+			}
+
+			for( int i = 0; i < 2; i++ )
+			{
+				pEft[i]->Kill();
+				pEft[i] = NULL;
+			}
+			pFlood->Set( 0, 16 );
+			m_pAINose->Yield( 1.0f, true );
+
+			while( 1 )
+			{
+				int32 nType = SRand::Inst().Rand( 0, 2 );
+				if( nType == 0 )
+				{
+					for( int i = 0; i < 12; i++ )
+					{
+						for( int j = 0; j < 2; j++ )
+						{
+							auto pMaggot = SafeCast<CLv1BossMaggot>( m_pMaggot->GetRoot()->CreateInstance() );
+							pMaggot->SetPosition( p[j] );
+							CVector2 vel;
+							vel.y = SRand::Inst().Rand( -300.0f, 0.0f );
+							vel.x = sqrt( 500 * 500 - vel.y * vel.y ) * ( j * 2 - 1 ) * 0.8f;
+							vel.y += 200.0f;
+							pMaggot->SetVelocity( vel );
+							pMaggot->KillOnTouchFlood( pFlood, 15 );
+							pMaggot->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+						}
+						m_pAINose->Yield( 0.4f, true );
+					}
+					m_pAINose->Yield( 1.0f, false );
+				}
+				else if( nType == 1 )
+				{
+					m_pAINose->Yield( 1.5f, false );
+					float velY1 = SRand::Inst().Rand( -300.0f, 300.0f );
+					float velX = SRand::Inst().Rand( 30.0f, 50.0f );
+					float velX1 = sqrt( 500 * 500 - velY1 * velY1 ) * 0.8f;
+					velY1 += 200.0f;
+					float velY = velY1 / 2 - SRand::Inst().Rand( 50.0f, 100.0f );
+					int32 b = SRand::Inst().Rand( 0, 2 );
+					for( int k = 0; k < 2; k++ )
+					{
+						int32 j = b ^ k;
+						for( int i = 0; i < 9; i++ )
+						{
+							auto pMaggot = SafeCast<CLv1BossMaggot>( m_pMaggot->GetRoot()->CreateInstance() );
+							pMaggot->SetPosition( p[j] );
+							CVector2 vel;
+							vel.x = ( velX + ( velX1 - velX ) * i / 8.0f ) * ( j * 2 - 1 );
+							vel.y = velY + ( velY1 - velY ) * i / 8.0f;
+							pMaggot->SetVelocity( vel );
+							pMaggot->KillOnTouchFlood( pFlood, 15 );
+							pMaggot->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+							m_pAINose->Yield( 0.2f, true );
+						}
+						m_pAINose->Yield( 0.5f, false );
+					}
+					m_pAINose->Yield( 1.5f, false );
+				}
+
+				if( pFlood->GetHeight() <= 200 )
+					break;
+			}
 		}
 	}
 	catch( SKilled e )
 	{
+		pFlood->Set( 0, 200, true );
 		m_pNose = NULL;
 		m_pFaceNose->SetParentEntity( NULL );
 		m_pFaceNose = NULL;
@@ -881,7 +984,7 @@ void CLv1Boss::AIFuncNose3()
 		t = abs( t - 0.5f ) * 2;
 		float fTime = 5.0f;
 		float g = 200.0f;
-		if( !CheckBlocked( TRectangle<int32>( 12, 5, 4, 2 ) ) )
+		if( !CheckBlocked( TRectangle<int32>( 13, 5, 3, 2 ) ) )
 		{
 			CVector2 pos = CVector2( 14, 6 ) * CMyLevel::GetBlockSize();
 			CVector2 target( t * 1024, 0 );
@@ -894,7 +997,7 @@ void CLv1Boss::AIFuncNose3()
 			pBullet->SetAngularVelocity( 2.5f );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 		}
-		if( !CheckBlocked( TRectangle<int32>( 16, 5, 4, 2 ) ) )
+		if( !CheckBlocked( TRectangle<int32>( 16, 5, 3, 2 ) ) )
 		{
 			CVector2 pos = CVector2( 18, 6 ) * CMyLevel::GetBlockSize();
 			CVector2 target( ( 1 - t ) * 1024, 0 );
@@ -938,7 +1041,7 @@ void CLv1Boss::AIFuncMouth1()
 		int32 n = 0;
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 13, 0, 6, 4 ) );
 			if( bBlocked )
 				n = 0;
 			else
@@ -952,7 +1055,7 @@ void CLv1Boss::AIFuncMouth1()
 
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 13, 0, 6, 4 ) );
 			if( bBlocked )
 				break;
 
@@ -979,6 +1082,8 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 {
 	typedef int32 SKilled;
 	typedef void* SKilled1;
+	CReference<CFlood> pFog;
+	CReference<CImage2D> pShock;
 	try
 	{
 		auto pEffect = SafeCast<CEffectObject>( m_strParticle2->GetRoot()->CreateInstance() );
@@ -990,6 +1095,9 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 		CMessagePump pump( m_pAIMouth );
 		m_pTongue->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled>() );
 		pChunkObject->RegisterEntityEvent( eEntityEvent_RemovedFromStage, pump.Register<SKilled1>() );
+
+		pFog = SafeCast<CFlood>( m_pFog->GetRoot()->CreateInstance() );
+		pFog->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 
 		CVector2 basePos = m_pTongueHole->GetPosition() + pChunkObject->GetPosition();
 		CRopeObject2D* pRope = static_cast<CRopeObject2D*>( m_pTongue->GetRenderObject() );
@@ -1035,13 +1143,65 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 			vecSegOrigs.push_back( m_vecTongueSegs[i]->GetPosition() );
 		}
 
+		CVector2 smokeAcc( 0, 50 );
+		float fSmokeAttract = 0;
+		vector<CReference<CBullet> > vecSmokeBullets;
+		auto CreateSmokeBullet = [=, &vecSmokeBullets, &smokeAcc] ( const CVector2& vel )
+		{
+			auto pBullet = SafeCast<CBullet>( m_pSmoke->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( basePos );
+			pBullet->SetVelocity( vel );
+			pBullet->SetAcceleration( smokeAcc );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			vecSmokeBullets.push_back( pBullet );
+		};
+		auto UpdateBulletAcc = [=, &vecSmokeBullets, &smokeAcc, &fSmokeAttract] ()
+		{
+			for( int i = vecSmokeBullets.size() - 1; i >= 0; i-- )
+			{
+				auto& pBullet = vecSmokeBullets[i];
+				if( !pBullet->GetStage() )
+				{
+					pBullet = vecSmokeBullets.back();
+					vecSmokeBullets.pop_back();
+					continue;
+				}
+				CVector2 acc = smokeAcc;
+				if( fSmokeAttract > 0 )
+				{
+					CVector2 acc1 = basePos - pBullet->GetPosition();
+					acc1.Normalize();
+					acc = acc + acc1 * fSmokeAttract;
+				}
+				pBullet->SetAcceleration( acc );
+			}
+		};
+		float fShockFade = 0;
+		auto UpdateShockImg = [=, &pShock, &fShockFade] ()
+		{
+			if( pShock )
+			{
+				auto& param = *pShock->GetParam();
+				param.x -= fShockFade * GetStage()->GetElapsedTimePerTick();
+				if( param.x <= -1.0f )
+				{
+					pShock->RemoveThis();
+					pShock = NULL;
+				}
+			}
+		};
+
 		CPrefab* pPrefab[4] = { m_strExplosive0, m_strExplosive1, m_strExplosive2, m_strExplosive3 };
-		uint32 nFireSeg = 0;
+		uint8 nPrefab = 0;
+		int32 nTick = SRand::Inst().Rand( 10 * 60, 20 * 60 );
+		int8 nLastMoveType = -1;
 		while( 1 )
 		{
-			int32 nTick = SRand::Inst().Rand( 10 * 60, 20 * 60 );
+			pFog->Set( 256, 32 );
 			uint32 nFireCD = 15;
 			uint32 nFireCD1 = 60;
+			uint8 nMoveType;
+
 			for( ; nTick; nTick-- )
 			{
 				CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -1096,26 +1256,13 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 				if( ( m_vecTongueSegs.back()->GetPosition() - target ).Length2() < 80 * 80 )
 					nTick = Max( 1, nTick - 10 );
 
-				nFireCD--;
+				if( nFireCD )
+					nFireCD--;
 				if( !nFireCD )
 				{
-					float fAngle0 = SRand::Inst().Rand( -PI, PI );
-					int32 nCount = nFireSeg < m_vecTongueSegs.size() - 1 ? 4 : 12;
-					for( int i = 0; i < nCount; i++ )
-					{
-						float fAngle = fAngle0 + i * PI * 2 / nCount;
-
-						auto pBullet = SafeCast<CBullet>( m_strBullet1->GetRoot()->CreateInstance() );
-						pBullet->SetPosition( m_vecTongueSegs[nFireSeg]->GetPosition() + basePos );
-						pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * 175 );
-						pBullet->SetRotation( fAngle );
-						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-					}
-
-					nFireSeg++;
-					if( nFireSeg >= m_vecTongueSegs.size() )
-						nFireSeg = 0;
-					nFireCD = 15;
+					float fAngle = SRand::Inst().Rand( -0.7f, 0.7f );
+					CreateSmokeBullet( CVector2( sin( fAngle ), cos( fAngle ) ) * 80 );
+					nFireCD = 30;
 				}
 
 				nFireCD1--;
@@ -1123,16 +1270,18 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 				{
 					SBarrageContext context;
 					context.vecBulletTypes.push_back( m_strBullet1.GetPtr() );
-					context.vecBulletTypes.push_back( pPrefab[SRand::Inst().Rand( 0, 4 )] );
+					context.vecBulletTypes.push_back( pPrefab[nPrefab] );
+					nPrefab = ( nPrefab + 1 ) % 4;
 					context.nBulletPageSize = 40;
+					context.pCreator = m_pTongue;
 
 					CVector2 acc = CVector2( 0, -400 );
 					CVector2 velocity;
 
 					CVector2 dPos = target;
-					dPos.x = Max( -250.0f, Min( dPos.x, 250.0f ) );
+					dPos.x = Max( -400.0f, Min( dPos.x, 400.0f ) );
 					dPos = dPos + CVector2( SRand::Inst().Rand( -32, 32 ), SRand::Inst().Rand( -32, 32 ) );
-					float t = -abs( dPos.x ) / 400.0f + SRand::Inst().Rand( 3.5f, 3.7f );
+					float t = -abs( dPos.x ) / 500.0f + SRand::Inst().Rand( 2.8f, 3.0f );
 					velocity.y = dPos.y / t - 0.5f * acc.y * t;
 					velocity.x = dPos.x / t;
 
@@ -1165,146 +1314,404 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 					nFireCD1 = 180;
 				}
 
+				CVector2 dAcc = smokeAcc - CVector2( 0, 50 );
+				float l = dAcc.Length2();
+				if( l > 0 )
+				{
+					l = sqrt( l );
+					float l1 = l - 300 * GetStage()->GetElapsedTimePerTick();
+					smokeAcc = CVector2( 0, 50 ) + dAcc * ( l1 / l );
+					UpdateBulletAcc();
+				}
+				UpdateShockImg();
 				m_pAIMouth->Yield( 0, false );
 			}
 
-			CVector2 dir0( 0, 1 );
-			float fMaxTime = 0;
-			float fRotSpeed = 3.0f;
-			float fLenSpeed = 32.0f;
-			for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer )
+				continue;
+			float l = ( m_vecTongueSegs.back()->GetPosition() - pPlayer->GetPosition() ).Length2();
+			float l1 = SRand::Inst().Rand( 96.0f, 160.0f );
+			if( l < l1 * l1 )
 			{
-				CVector2 dPos = m_vecTongueSegs[i]->GetPosition() - ( i > 0 ? m_vecTongueSegs[i - 1]->GetPosition() : CVector2( 0, 0 ) );
-				CVector2 dir = dPos;
-				float l = dir.Normalize();
-				float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
-				CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
-				float dl = l - dPos0.Length();
-				rot /= fRotSpeed;
-				dl /= fLenSpeed;
-				fMaxTime = Max( fMaxTime, sqrt( dl * dl + rot * rot ) );
-				dir0 = dir;
+				nMoveType = SRand::Inst().Rand( 1, 3 );
+				if( nLastMoveType == nMoveType )
+					nMoveType = 1 + 2 - nMoveType;
 			}
-			int32 nFrames = ceil( fMaxTime * 60.0f );
-			int32 iFrame = nFrames;
-
-			nFireCD = 2;
-			nFireCD1 = 8;
-			float fPos = 0;
-			int8 k = m_vecTongueSegs.back()->x > 0 ? -1 : 1;
-			int32 nHits = SRand::Inst().Rand( 2, 5 );
-			while( nHits )
+			else
 			{
-				if( iFrame )
-				{
-					CVector2 dir0( 0, 1 );
-					CVector2 dir1( 0, 1 );
-					float t = ( iFrame - 1.0f ) / iFrame;
-					for( int i = 0; i < m_vecTongueSegs.size(); i++ )
-					{
-						auto& data0 = pRope->GetData().data[i];
-						auto& data = pRope->GetData().data[i + 1];
-						CVector2 dPos = m_vecTongueSegs[i]->GetPosition() - ( i > 0 ? m_vecTongueSegs[i - 1]->GetPosition() : CVector2( 0, 0 ) );
-						CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
-						CVector2 dir = dPos;
-						float l = dir.Normalize();
-						float l0 = dPos0.Length();
-						float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
-						dir0 = dir;
+				nMoveType = SRand::Inst().Rand( 0, 3 );
+				if( nLastMoveType == nMoveType )
+					nMoveType = ( nMoveType + 1 ) % 3;
+			}
+			nLastMoveType = nMoveType;
 
-						l = l0 + ( l - l0 ) * t;
-						rot *= t;
-						dir = CVector2( cos( rot ), sin( rot ) );
-						dir1 = CVector2( dir.x * dir1.x - dir.y * dir1.y, dir.x * dir1.y + dir.y * dir1.x );
-						dPos = dir1 * l;
-						data.center = data0.center + dPos;
-					}
-					iFrame--;
-				}
-				else
+			if( nMoveType == 0 )
+			{
+				nTick = SRand::Inst().Rand( 6 * 60, 8 * 60 );
+				CVector2 d = pRope->GetData().data.back().center - pRope->GetData().data[0].center;
+				int8 nDir = d.x < 0 ? 1 : -1;
+
+				int32 nTime = 200;
+				for( int iTime = 1; iTime <= nTime + 40; iTime++ )
 				{
-					if( k > 0 )
+					float fAngle = Min( iTime, nTime ) * PI * 2 / nTime * nDir;
+					CVector2 d0( sin( fAngle ), cos( fAngle ) );
+					smokeAcc = d0 * 125;
+					UpdateBulletAcc();
+
+					float fDeltaTime = GetStage()->GetElapsedTimePerTick();
+					float k = 60.0f;
+					float k1 = 25.0f;
+					for( int i = 1; i <= m_vecTongueSegs.size(); i++ )
 					{
-						fPos += 4.0f * GetStage()->GetElapsedTimePerTick();
-						if( fPos >= 1.0f )
+						auto& data = pRope->GetData().data[i];
+						auto& prevData = pRope->GetData().data[i - 1];
+						auto& nextData = pRope->GetData().data[i + 1];
+						float fLen1 = ( data.tex0.y - prevData.tex0.y ) * fLength;
+						float fLen2 = ( nextData.tex0.y - data.tex0.y ) * fLength;
+
+						CVector2 force( 0, 0 );
+						CVector2 force1 = prevData.center - data.center;
+						float l = force1.Normalize();
+						force1 = force1 * ( l - fLen1 ) * k;
+						force = force + force1;
+
+						CVector2 dir1 = data.center - prevData.center;
+						CVector2 dir0 = i == 1 ? d0 : prevData.center - pRope->GetData().data[i - 2].center;
+						dir0.Normalize();
+						CVector2 tangent( dir1.y, -dir1.x );
+						tangent.Normalize();
+						force1 = CVector2( dir1.y, -dir1.x ) * ( dir0.Dot( tangent ) * k1 );
+						force = force + force1;
+
+						if( i < m_vecTongueSegs.size() )
 						{
-							fPos = 1.0f;
-							k = -k;
-							nHits--;
+							force1 = nextData.center - data.center;
+							float l = force1.Normalize();
+							force1 = force1 * ( l - fLen2 ) * k;
+							force = force + force1;
 						}
+
+						data.center = data.center + force * fDeltaTime;
+					}
+
+					auto& end = pRope->GetData().data[nDataCount - 1];
+					end.center = pRope->GetData().data[nDataCount - 2].center + ( pRope->GetData().data[nDataCount - 2].center - pRope->GetData().data[nDataCount - 3].center )
+						* ( ( end.tex0.y - pRope->GetData().data[nDataCount - 2].tex0.y ) / ( pRope->GetData().data[nDataCount - 2].tex0.y - pRope->GetData().data[nDataCount - 3].tex0.y ) );
+					pRope->SetTransformDirty();
+					for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+						m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
+
+					if( nFireCD )
+						nFireCD--;
+					if( !nFireCD )
+					{
+						CreateSmokeBullet( CVector2( sin( fAngle ), cos( fAngle ) ) * 60 );
+						nFireCD = 15;
+					}
+
+					UpdateShockImg();
+					m_pAIMouth->Yield( 0, false );
+				}
+			}
+			else if( nMoveType == 1 )
+			{
+				pFog->Set( 32, 64 );
+				smokeAcc = CVector2( 0, 100 );
+				UpdateBulletAcc();
+
+				nTick = SRand::Inst().Rand( 10 * 60, 20 * 60 );
+				CVector2 dir0( 0, 1 );
+				float fMaxTime = 0;
+				float fRotSpeed = 3.0f;
+				float fLenSpeed = 32.0f;
+				for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+				{
+					CVector2 dPos = m_vecTongueSegs[i]->GetPosition() - ( i > 0 ? m_vecTongueSegs[i - 1]->GetPosition() : CVector2( 0, 0 ) );
+					CVector2 dir = dPos;
+					float l = dir.Normalize();
+					float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
+					CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
+					float dl = l - dPos0.Length();
+					rot /= fRotSpeed;
+					dl /= fLenSpeed;
+					fMaxTime = Max( fMaxTime, sqrt( dl * dl + rot * rot ) );
+					dir0 = dir;
+				}
+				int32 nFrames = ceil( fMaxTime * 60.0f );
+				int32 iFrame = nFrames;
+
+				nFireCD1 = 8;
+				float fPos = 0;
+				int8 k = m_vecTongueSegs.back()->x > 0 ? -1 : 1;
+				int32 nHits = SRand::Inst().Rand( 2, 5 );
+				while( nHits )
+				{
+					if( iFrame )
+					{
+						CVector2 dir0( 0, 1 );
+						CVector2 dir1( 0, 1 );
+						float t = ( iFrame - 1.0f ) / iFrame;
+						for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+						{
+							auto& data0 = pRope->GetData().data[i];
+							auto& data = pRope->GetData().data[i + 1];
+							CVector2 dPos = m_vecTongueSegs[i]->GetPosition() - ( i > 0 ? m_vecTongueSegs[i - 1]->GetPosition() : CVector2( 0, 0 ) );
+							CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
+							CVector2 dir = dPos;
+							float l = dir.Normalize();
+							float l0 = dPos0.Length();
+							float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
+							dir0 = dir;
+
+							l = l0 + ( l - l0 ) * t;
+							rot *= t;
+							dir = CVector2( cos( rot ), sin( rot ) );
+							dir1 = CVector2( dir.x * dir1.x - dir.y * dir1.y, dir.x * dir1.y + dir.y * dir1.x );
+							dPos = dir1 * l;
+							data.center = data0.center + dPos;
+						}
+						iFrame--;
 					}
 					else
 					{
-						fPos -= 4.0f * GetStage()->GetElapsedTimePerTick();
-						if( fPos <= -1.0f )
+						if( k > 0 )
 						{
-							fPos = -1.0f;
-							k = -k;
-							nHits--;
+							fPos += 4.0f * GetStage()->GetElapsedTimePerTick();
+							if( fPos >= 1.0f )
+							{
+								fPos = 1.0f;
+								k = -k;
+								nHits--;
+							}
+						}
+						else
+						{
+							fPos -= 4.0f * GetStage()->GetElapsedTimePerTick();
+							if( fPos <= -1.0f )
+							{
+								fPos = -1.0f;
+								k = -k;
+								nHits--;
+							}
+						}
+
+						int8 nDir = fPos < 0 ? -1 : 1;
+						float t = fPos * nDir;
+						CVector2 dir0( 0, 1 );
+						CVector2 dir1( 0, 1 );
+						for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+						{
+							auto& data0 = pRope->GetData().data[i];
+							auto& data = pRope->GetData().data[i + 1];
+							CVector2 dPos = vecSegTargets[i] - ( i > 0 ? vecSegTargets[i - 1] : CVector2( 0, 0 ) );
+							CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
+							CVector2 dir = dPos;
+							float l = dir.Normalize();
+							float l0 = dPos0.Length();
+							float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
+							dir0 = dir;
+
+							l = l0 * ( 1 - t ) + l * t;
+							rot *= t;
+							dir = CVector2( cos( rot ), sin( rot ) );
+							dir1 = CVector2( dir.x * dir1.x - dir.y * dir1.y, dir.x * dir1.y + dir.y * dir1.x );
+							dPos = dir1 * l;
+							dPos.x *= nDir;
+							data.center = data0.center + dPos;
 						}
 					}
 
-					int8 nDir = fPos < 0 ? -1 : 1;
-					float t = fPos * nDir;
-					CVector2 dir0( 0, 1 );
-					CVector2 dir1( 0, 1 );
+					auto& end = pRope->GetData().data[nDataCount - 1];
+					end.center = pRope->GetData().data[nDataCount - 2].center + ( pRope->GetData().data[nDataCount - 2].center - pRope->GetData().data[nDataCount - 3].center )
+						* ( ( end.tex0.y - pRope->GetData().data[nDataCount - 2].tex0.y ) / ( pRope->GetData().data[nDataCount - 2].tex0.y - pRope->GetData().data[nDataCount - 3].tex0.y ) );
+					pRope->SetTransformDirty();
 					for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+						m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
+
+					if( !iFrame )
 					{
-						auto& data0 = pRope->GetData().data[i];
-						auto& data = pRope->GetData().data[i + 1];
-						CVector2 dPos = vecSegTargets[i] - ( i > 0 ? vecSegTargets[i - 1] : CVector2( 0, 0 ) );
-						CVector2 dPos0 = vecSegOrigs[i] - ( i > 0 ? vecSegOrigs[i - 1] : CVector2( 0, 0 ) );
-						CVector2 dir = dPos;
-						float l = dir.Normalize();
-						float l0 = dPos0.Length();
-						float rot = atan2( CVector2( -dir0.y, dir0.x ).Dot( dir ), dir0.Dot( dir ) );
-						dir0 = dir;
+						nFireCD1--;
+						if( !nFireCD1 )
+						{
+							auto pBullet = SafeCast<CBullet>( pPrefab[nPrefab]->GetRoot()->CreateInstance() );
+							nPrefab = ( nPrefab + 1 ) % 4;
+							pBullet->SetPosition( basePos );
+							pBullet->SetVelocity( CVector2( sin( fPos * 0.7f ) * 900, cos( fPos * 0.7f ) * 550 ) );
+							pBullet->SetAcceleration( CVector2( 0, -400 ) );
+							pBullet->SetTangentDir( true );
+							pBullet->SetCreator( m_pTongue );
+							pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 
-						l = l0 * ( 1 - t ) + l * t;
-						rot *= t;
-						dir = CVector2( cos( rot ), sin( rot ) );
-						dir1 = CVector2( dir.x * dir1.x - dir.y * dir1.y, dir.x * dir1.y + dir.y * dir1.x );
-						dPos = dir1 * l;
-						dPos.x *= nDir;
-						data.center = data0.center + dPos;
+							nFireCD1 = 6;
+						}
 					}
-				}
-
-				auto& end = pRope->GetData().data[nDataCount - 1];
-				end.center = pRope->GetData().data[nDataCount - 2].center + ( pRope->GetData().data[nDataCount - 2].center - pRope->GetData().data[nDataCount - 3].center )
-					* ( ( end.tex0.y - pRope->GetData().data[nDataCount - 2].tex0.y ) / ( pRope->GetData().data[nDataCount - 2].tex0.y - pRope->GetData().data[nDataCount - 3].tex0.y ) );
-				pRope->SetTransformDirty();
-				for( int i = 0; i < m_vecTongueSegs.size(); i++ )
-					m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
-
-				if( !iFrame )
-				{
-					nFireCD--;
+					
+					if( nFireCD )
+						nFireCD--;
 					if( !nFireCD )
 					{
-						auto pBullet = SafeCast<CBullet>( m_strBullet->GetRoot()->CreateInstance() );
-						pBullet->SetPosition( m_vecTongueSegs.back()->GetPosition() + basePos );
-						pBullet->SetVelocity( CVector2( sin( fPos * 0.15f ) * 100, cos( fPos * 0.15f ) * 200 ) );
-						pBullet->SetAcceleration( CVector2( 0, -200 ) );
-						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-
-						nFireCD = 2;
+						CVector2 dir = pRope->GetData().data[1].center;
+						dir.Normalize();
+						CreateSmokeBullet( dir * 250 );
+						nFireCD = 8;
 					}
-
-					nFireCD1--;
-					if( !nFireCD1 )
-					{
-						auto pBullet = SafeCast<CBullet>( pPrefab[SRand::Inst().Rand( 0, 4 )]->GetRoot()->CreateInstance() );
-						pBullet->SetPosition( basePos );
-						pBullet->SetVelocity( CVector2( sin( fPos * 0.5f ), cos( fPos * 0.5f ) ) * 400 );
-						pBullet->SetRotation( PI * 0.5f - fPos * 1.1f );
-						pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-
-						nFireCD1 = 8;
-					}
+					UpdateShockImg();
+					m_pAIMouth->Yield( 0, false );
 				}
+			}
+			else if( nMoveType == 2 )
+			{
+				nTick = SRand::Inst().Rand( 6 * 60, 8 * 60 );
+				CVector2 d = pPlayer->GetPosition() - basePos;
+				int8 nDir = d.x < 0 ? -1 : 1;
+				int8 nType = pFog->GetHeight() > SRand::Inst().Rand( 150, 300 ) && SRand::Inst().Rand( 0, 3 ) ? 1 : 0;
 
-				m_pAIMouth->Yield( 0, false );
+				if( nType == 0 )
+				{
+					smokeAcc = CVector2( 0, 0 );
+					fSmokeAttract = 160;
+				}
+				else
+				{
+					smokeAcc = CVector2( 0, -80 );
+					fSmokeAttract = 0;
+				}
+				pFog->Set( 512, 32 );
+
+				float k = 36.0f;
+				float k1 = 10.0f;
+				bool bHit = false;
+				float fForce = nType == 0 ? 200 : 500;
+				for( int iTime = 0; iTime < 180; iTime++ )
+				{
+					for( int iStep = 0; iStep < 3; iStep++ )
+					{
+						float fDeltaTime = GetStage()->GetElapsedTimePerTick();
+						CVector2 t0( pRope->GetData().data.back().center - pRope->GetData().data[0].center );
+						t0 = CVector2( t0.y, -t0.x );
+						t0.Normalize();
+						for( int i = 1; i <= m_vecTongueSegs.size(); i++ )
+						{
+							auto& data = pRope->GetData().data[i];
+							auto& prevData = pRope->GetData().data[i - 1];
+							auto& nextData = pRope->GetData().data[i + 1];
+							float fLen1 = ( data.tex0.y - prevData.tex0.y ) * fLength;
+							float fLen2 = ( nextData.tex0.y - data.tex0.y ) * fLength;
+
+							CVector2 force( 0, 0 );
+							CVector2 force1 = prevData.center - data.center;
+							float l = force1.Normalize();
+							force1 = force1 * ( l - fLen1 ) * k;
+							force = force + force1;
+
+							CVector2 dir1 = data.center - prevData.center;
+							CVector2 dir0 = i == 1 ? CVector2( 0, 1 ) : prevData.center - pRope->GetData().data[i - 2].center;
+							dir0.Normalize();
+							CVector2 tangent( dir1.y, -dir1.x );
+							tangent.Normalize();
+							force1 = CVector2( dir1.y, -dir1.x ) * ( dir0.Dot( tangent ) * k1 );
+							force = force + force1;
+
+							if( iTime < 90 )
+							{
+								force = force + CVector2( data.tex0.y * 100 * -nDir, 0 );
+							}
+							else
+							{
+								if( nType == 0 )
+								{
+									force = force + CVector2( data.tex0.y * fForce * nDir, 0 );
+									if( !bHit && iTime == 95 )
+									{
+										fShockFade = 2.0f;
+										if( !pShock )
+										{
+											pShock = static_cast<CImage2D*>( m_pShock->CreateInstance() );
+											pShock->SetRect( CMyLevel::GetInst()->GetBound() );
+											CMyLevel::GetInst()->AddChildBefore( pShock, CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+										}
+										auto& param = *pShock->GetParam();
+										param = CVector4( 1, 1, nDir * 0.5f, 0 );
+										CPlayer* pPlayer = GetStage()->GetPlayer();
+										if( pPlayer )
+											pPlayer->Knockback( CVector2( nDir * 5, 2 ) );
+										bHit = true;
+									}
+								}
+								else
+								{
+									force = force + t0 * nDir * fForce * data.tex0.y;
+									if( data.center.y + basePos.y <= data.fWidth * 0.5f )
+									{
+										force = force + CVector2( 0, ( data.fWidth * 0.5f - ( data.center.y + basePos.y ) ) * 50 );
+										if( !bHit )
+										{
+											fShockFade = 2.0f;
+											if( !pShock )
+											{
+												pShock = static_cast<CImage2D*>( m_pShock->CreateInstance() );
+												pShock->SetRect( CMyLevel::GetInst()->GetBound() );
+												CMyLevel::GetInst()->AddChildBefore( pShock, CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+											}
+											auto& param = *pShock->GetParam();
+											param = CVector4( 1, 1, 0, 0.5f );
+											CPlayer* pPlayer = GetStage()->GetPlayer();
+											if( pPlayer )
+												pPlayer->Knockback( CVector2( 0, 3.0f ) );
+											bHit = true;
+										}
+									}
+								}
+							}
+
+							if( i < m_vecTongueSegs.size() )
+							{
+								force1 = nextData.center - data.center;
+								float l = force1.Normalize();
+								force1 = force1 * ( l - fLen2 ) * k;
+								force = force + force1;
+							}
+
+							data.center = data.center + force * fDeltaTime;
+						}
+						if( nType == 1 && bHit )
+							fForce = fForce - 600.0f / 3 * GetStage()->GetElapsedTimePerTick();
+
+						auto& end = pRope->GetData().data[nDataCount - 1];
+						end.center = pRope->GetData().data[nDataCount - 2].center + ( pRope->GetData().data[nDataCount - 2].center - pRope->GetData().data[nDataCount - 3].center )
+							* ( ( end.tex0.y - pRope->GetData().data[nDataCount - 2].tex0.y ) / ( pRope->GetData().data[nDataCount - 2].tex0.y - pRope->GetData().data[nDataCount - 3].tex0.y ) );
+					}
+
+					pRope->SetTransformDirty();
+					for( int i = 0; i < m_vecTongueSegs.size(); i++ )
+						m_vecTongueSegs[i]->SetPosition( pRope->GetData().data[i + 1].center );
+
+					if( iTime == 30 )
+					{
+						fShockFade = 0.5f;
+						pShock = static_cast<CImage2D*>( m_pShock->CreateInstance() );
+						pShock->SetRect( CMyLevel::GetInst()->GetBound() );
+						auto& param = *pShock->GetParam();
+						param = nType == 0 ? CVector4( 0, 1, nDir, 0 ) : CVector4( 0, 1, 0, 1 );
+						CMyLevel::GetInst()->AddChildBefore( pShock, CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+					}
+					if( iTime == 90 )
+					{
+						if( nType == 0 )
+							smokeAcc = CVector2( 200 * nDir, -50 );
+						else
+							smokeAcc = CVector2( 160 * nDir, -160 );
+						fSmokeAttract = 0;
+						k = 36.0f;
+						k1 = 10.0f;
+					}
+
+					UpdateBulletAcc();
+					UpdateShockImg();
+					m_pAIMouth->Yield( 0, false );
+				}
 			}
 		}
 	}
@@ -1328,6 +1735,12 @@ void CLv1Boss::AIFuncTongue( CChunkObject* pChunkObject )
 		m_pFaceMouth->SetParentEntity( NULL );
 		m_pFaceMouth = NULL;
 	}
+	pFog->Set( CMyLevel::GetInst()->GetBound().GetBottom(), 200, true );
+	if( pShock )
+	{
+		pShock->RemoveThis();
+		pShock = NULL;
+	}
 }
 
 void CLv1Boss::AIFuncMouth3()
@@ -1337,7 +1750,7 @@ void CLv1Boss::AIFuncMouth3()
 		int32 n = 0;
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 13, 0, 6, 4 ) );
 			if( bBlocked )
 				n = 0;
 			else
@@ -1351,7 +1764,7 @@ void CLv1Boss::AIFuncMouth3()
 
 		while( 1 )
 		{
-			bool bBlocked = CheckBlocked( TRectangle<int32>( 12, 0, 8, 4 ) );
+			bool bBlocked = CheckBlocked( TRectangle<int32>( 13, 0, 6, 4 ) );
 			if( bBlocked )
 				break;
 
@@ -2103,12 +2516,14 @@ void CLv1BossWorm1::AIFuncFire()
 				}
 				else
 				{
+					int8 nDir = m_parts.back()->GetPosition().x > m_parts[0]->GetPosition().x ? 1 : -1;
+					CVector2 target0( pPlayer->x - 160 * nDir, 0 );
+					CVector2 target1( pPlayer->x + 160 * nDir, 0 );
 					for( int i = 0; i < m_parts.size(); i++ )
 					{
 						CVector2 pos = m_parts[m_parts.size() - 1 - i]->GetPosition();
-						pPlayer = GetStage()->GetPlayer();
-						if( pPlayer )
-							dPos = CVector2( pPlayer->x, 0 ) - pos;
+						CVector2 target = target0 + ( target1 - target0 ) * ( i / ( m_parts.size() - 1.0f ) );
+						dPos = target - pos;
 						CVector2 vel = dPos;
 						vel.Normalize();
 						vel = vel * 200;
@@ -2817,4 +3232,188 @@ void CLv1BossBullet1::OnTickAfterHitTest()
 	}
 	SetRotation( atan2( m_velocity.y, m_velocity.x ) );
 	CEnemyTemplate::OnTickAfterHitTest();
+}
+
+
+void CLv1BossMaggot::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	m_nDir = SRand::Inst().Rand( -1, 2 );
+
+	m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
+	if( m_pExplosion )
+		m_pExplosion->SetParentEntity( NULL );
+}
+
+void CLv1BossMaggot::OnRemovedFromStage()
+{
+	m_pFlood = NULL;
+	CEnemy::OnRemovedFromStage();
+}
+
+bool CLv1BossMaggot::Knockback( const CVector2 & vec )
+{
+	CVector2 tangent( m_moveData.normal.y, -m_moveData.normal.x );
+	float fTangent = tangent.Dot( vec );
+	CVector2 vecKnockback = ( tangent * fTangent + m_moveData.normal ) * m_fKnockbackSpeed;
+	if( m_moveData.bHitSurface )
+		m_moveData.Fall( this, vecKnockback );
+	else
+		SetVelocity( GetVelocity() + vecKnockback );
+
+	m_nKnockBackTimeLeft = m_nKnockbackTime;
+	return true;
+}
+
+bool CLv1BossMaggot::IsKnockback()
+{
+	return m_nKnockBackTimeLeft > 0;
+}
+
+void CLv1BossMaggot::Kill()
+{
+	if( m_pExplosion )
+	{
+		m_pExplosion->SetPosition( GetPosition() );
+		m_pExplosion->SetParentBeforeEntity( this );
+		m_pExplosion = NULL;
+	}
+	CEnemy::Kill();
+}
+
+void CLv1BossMaggot::SetAIType( uint8 nType )
+{
+	m_nAIType = nType;
+	if( m_nAIType != 0 )
+		m_nDir = m_nAIType;
+}
+
+void CLv1BossMaggot::Jump( const CVector2 & vel, uint32 nDelay )
+{
+	m_jumpVel = vel;
+	m_nJumpDelay = nDelay;
+}
+
+void CLv1BossMaggot::KillOnTouchFlood( CEntity* pFlood, uint32 nDelay )
+{
+	m_pFlood = pFlood;
+	m_nFloodDelay = nDelay;
+}
+
+void CLv1BossMaggot::OnTickAfterHitTest()
+{
+	DEFINE_TEMP_REF_THIS();
+	if( m_nLife )
+	{
+		m_nLife--;
+		if( !m_nLife )
+		{
+			Kill();
+			return;
+		}
+	}
+
+	if( m_nFloodDelay )
+		m_nFloodDelay--;
+	if( m_pFlood && !m_nFloodDelay )
+	{
+		auto rect = SafeCast<CFlood>( m_pFlood.GetPtr() )->GetRect();
+		if( rect.Contains( GetPosition() ) )
+		{
+			CVector2 vel = GetVelocity();
+			if( vel.x < -100 )
+				vel.x = Min( 40.0f, -vel.x - 100 ) * 3.0f;
+			else if( vel.x > 100 )
+				vel.x = -Min( 40.0f, vel.x - 100 ) * 3.0f;
+			else
+				vel.x = 0;
+			vel.y = sqrt( 20000 - vel.x * vel.x );
+			auto p = SafeCast<CCharacter>( m_pBullet->GetRoot()->CreateInstance() );
+			p->SetPosition( GetPosition() );
+			p->SetVelocity( vel * 1.5f );
+			p->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			Kill();
+			return;
+		}
+	}
+
+	m_moveData.UpdateMove( this, m_nDir );
+	if( !GetStage() )
+		return;
+	if( m_nAIType )
+	{
+		if( m_nJumpDelay )
+		{
+			m_nJumpDelay--;
+			if( !m_nJumpDelay )
+				m_moveData.Fall( this, m_jumpVel );
+		}
+	}
+	else
+	{
+		if( !m_nAIStepTimeLeft )
+		{
+			if( m_moveData.bHitSurface )
+			{
+				if( SRand::Inst().Rand( 0.0f, 1.0f ) < m_fFallChance && ( m_moveData.normal.y > 0.8f || m_moveData.normal.y < -0.8f ) )
+					m_moveData.Fall( this, CVector2( m_moveData.normal.x * m_moveData.fFallInitSpeed, m_moveData.fFallInitSpeed ) );
+				else
+					m_nDir = SRand::Inst().Rand( -1, 2 );
+			}
+
+			m_nAIStepTimeLeft = SRand::Inst().Rand( m_fAIStepTimeMin, m_fAIStepTimeMax ) / GetStage()->GetElapsedTimePerTick();
+		}
+	}
+
+	uint8 newAnimState = 0;
+	if( m_moveData.bHitSurface )
+	{
+		GetRenderObject()->SetRotation( atan2( -m_moveData.normal.x, m_moveData.normal.y ) );
+		if( m_nDir == 1 )
+			newAnimState = 1;
+		else if( m_nDir == -1 )
+			newAnimState = 2;
+		else
+			newAnimState = 0;
+	}
+	else
+	{
+		GetRenderObject()->SetRotation( 0 );
+		if( GetVelocity().x > 0 )
+			newAnimState = 3;
+		else
+			newAnimState = 4;
+	}
+
+	if( newAnimState != m_nAnimState )
+	{
+		auto pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+		switch( newAnimState )
+		{
+		case 0:
+			pImage->SetFrames( 0, 1, 0 );
+			break;
+		case 1:
+			pImage->SetFrames( 0, 4, m_nAnimSpeed );
+			break;
+		case 2:
+			pImage->SetFrames( 4, 8, m_nAnimSpeed );
+			break;
+		case 3:
+			pImage->SetFrames( 8, 12, m_nAnimSpeed );
+			break;
+		case 4:
+			pImage->SetFrames( 12, 16, m_nAnimSpeed );
+			break;
+		default:
+			break;
+		}
+		m_nAnimState = newAnimState;
+	}
+
+	if( m_nAIStepTimeLeft )
+		m_nAIStepTimeLeft--;
+	if( m_nKnockBackTimeLeft )
+		m_nKnockBackTimeLeft--;
+	CEnemy::OnTickAfterHitTest();
 }

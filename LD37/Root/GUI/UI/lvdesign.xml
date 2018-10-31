@@ -14,4 +14,6 @@
   </template>
   <template type="GUI/UI/textbox.xml" name="chunkname" x="300" y="10" rectX="0" rectY="0" rectWidth="200" rectHeight="20" alignX="1" alignY="1" >
   </template>
+  <element type="element" name="chunk_detail_type" x="550" y="10" rectX="0" rectY="0" rectWidth="200" rectHeight="20" alignX="1" alignY="1" >
+  </element>
 </root>

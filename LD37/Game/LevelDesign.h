@@ -3,6 +3,7 @@
 #include "UICommon/UITreeView.h"
 #include "UICommon/UIViewport.h"
 #include "UICommon/UITextBox.h"
+#include "GUI/UIUtils.h"
 
 class CChunkPreview : public CEntity
 {
@@ -13,7 +14,7 @@ public:
 	CLevelGenerateNode* GetNode() { return m_pNode; }
 	const TRectangle<int32>& GetRegion() { return m_region; }
 	virtual CEntity* GetPreviewRoot();
-	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region );
+	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region, int8* pData = NULL, int32 nDataSize = 0 );
 	virtual void Clear();
 protected:
 	CReference<CLevelGenerateNode> m_pNode;
@@ -27,7 +28,7 @@ class CChunkEdit : public CChunkPreview
 	friend void RegisterGameClasses();
 public:
 	CChunkEdit( const SClassCreateContext& context ) : CChunkPreview( context ), m_bTempEdit( false ), m_bEditValid( false ) { SET_BASEOBJECT_ID( CChunkEdit ); }
-	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region ) override;
+	virtual void Set( CLevelGenerateNode* pNode, const TRectangle<int32>& region, int8* pData = NULL, int32 nDataSize = 0 ) override;
 	void SetTempEdit( bool bTempEdit );
 
 	virtual CEntity* GetPreviewRoot() override;
@@ -54,6 +55,7 @@ struct SLevelDesignItem : public CReferenceObject
 	CReference<CLevelGenerateNode> pGenNode;
 	CReference<CChunkEdit> pEntity;
 	TRectangle<int32> region;
+	vector<int8> vecData;
 	string strChunkName;
 	bool bLocked;
 	CEventTrigger<1> onRemoved;
@@ -70,7 +72,7 @@ struct SLevelDesignContext
 
 	SLevelDesignItem* AddItem( CLevelGenerateNode* pNode, const TRectangle<int32>& region, bool bAutoErase );
 	void RemoveItem( SLevelDesignItem* pItem );
-	virtual void Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName = "" );
+	virtual SLevelDesignItem* Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer = NULL );
 	virtual void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
 
 	CLevelGenerateNode* FindNode( const char* szFullName );
@@ -87,6 +89,26 @@ struct SLevelDesignContext
 	bool bInited;
 };
 
+class CChunkDetailEdit : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CChunkDetailEdit( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CChunkDetailEdit ); }
+
+	void Set( SLevelDesignItem* pItem );
+	void Edit( int32 x, int32 y, int32 nType );
+	void Refresh();
+private:
+	void RefreshGrid( int32 x, int32 y );
+	CReference<CRenderObject2D> m_pFrameImg[8];
+	TResourceRef<CDrawableGroup> m_pGridDrawable;
+	uint32 m_nGridTexCols, m_nGridTexRows;
+
+	CReference<SLevelDesignItem> m_pCurItem;
+	vector<CReference<CRenderObject2D> > m_vecGrids;
+	bool m_bDirty;
+};
+
 class CDesignLevel : public CEntity, public SLevelDesignContext
 {
 	friend class CDesignView;
@@ -99,7 +121,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	virtual void Add( const char* szFullName, const TRectangle<int32>& region, const char* szChunkName = "" ) override;
+	virtual SLevelDesignItem* Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer = NULL ) override;
 	void CreatePreviewForItem( SLevelDesignItem* pItem );
 	void SetShowLevelType( uint8 nType );
 	void ToggloShowEditLevel();
@@ -113,6 +135,7 @@ public:
 	CRectangle GetBrushRect();
 	uint8 GetBrushSize() { return m_nBrushSize; }
 	void SetBrushSize( uint8 nSize );
+	CChunkDetailEdit* GetDetailEdit() { return m_pDetailEdit; }
 
 	TVector2<int32> CalcBrushDims( CLevelGenerateNode* pNode );
 	TRectangle<int32> CalcEditRegion( CLevelGenerateNode* pNode, CVector2 begin, CVector2 end );
@@ -139,6 +162,7 @@ private:
 
 	CReference<CEntity> m_pChunkRoot[3];
 	CReference<CEntity> m_pChunkEditRoot[3];
+	CReference<CChunkDetailEdit> m_pDetailEdit;
 
 	CVector2 m_curEditPos;
 	bool m_bBeginEdit;
@@ -164,7 +188,7 @@ public:
 	CDesignView() : m_pSelectedFile( NULL ), m_pSelectedNode( NULL ), m_pSelectedItem( NULL ), m_bIsDeleteMode( false ), m_bHelp( false ), m_onSelectedItemDeleted( this, &CDesignView::OnSelectedItemDeleted ) {}
 
 	void OnHelp();
-	void OnNew() { CDesignLevel::GetInst()->New(); }
+	void OnNew() { SelectItem( NULL ); CDesignLevel::GetInst()->New(); }
 	void OnLoad();
 	void OnSave();
 
@@ -175,6 +199,7 @@ public:
 	void SelectNode( class CDesignViewNodeElem* pItem );
 	void SetDeleteMode( bool bDelete ) { m_bIsDeleteMode = bDelete; FormatStateText(); }
 	void SelectItem( SLevelDesignItem* pItem );
+	void OnPickItem( SLevelDesignItem* pItem, const CVector2& pos );
 
 	bool IsDeleteMode() { return m_bIsDeleteMode; }
 	class CDesignViewNodeElem* GetSelectedNode() { return !m_bIsDeleteMode ? m_pSelectedNode : NULL; }
@@ -197,6 +222,7 @@ private:
 	CReference<CUIScrollView> m_pNodeView;
 
 	CReference<CUITextBox> m_pChunkName;
+	CReference<CGameDropDownBox> m_pDetailEditType;
 
 	CReference<CUILabel> m_pStateText;
 

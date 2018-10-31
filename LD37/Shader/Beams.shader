@@ -110,9 +110,9 @@ void PSThruster1Color( in float4 inPos : SV_Position,
 	float4 texMask2 = Texture2.Sample( Sampler2, tex1.xy );
 	float4 texBlended = texBase + texMask1;
 	texBlended.yz -= fNrml0 * 2;
+	texBlended *= min( 1, ( 1 - abs( 0.5 - tex.x ) * 2 ) * fFade );
 	texBlended = texBlended * ( 1 - texMask2.w );
 	texBlended.x += texMask2.x;
-	texBlended *= min( 1, ( 1 - abs( 0.5 - tex.x ) * 2 ) * fFade );
 
 	float fFadeIn = extraData.x;
 	float fFadeOut = extraData.y;
@@ -152,9 +152,9 @@ void PSThruster1Occ( in float4 inPos : SV_Position,
 	float4 texMask2 = Texture2.Sample( Sampler2, tex1.xy );
 	float4 texBlended = texBase + texMask1;
 	texBlended.yz -= fNrml0 * 2;
+	texBlended *= min( 1, ( 1 - abs( 0.5 - tex.x ) * 2 ) * fFade );
 	texBlended = texBlended * ( 1 - texMask2.w );
 	texBlended.x += texMask2.x;
-	texBlended *= min( 1, ( 1 - abs( 0.5 - tex.x ) * 2 ) * fFade );
 
 	float fFadeIn = extraData.x;
 	float fFadeOut = extraData.y;
