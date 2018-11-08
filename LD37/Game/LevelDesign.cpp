@@ -41,28 +41,51 @@ void CChunkPreview::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& re
 		|| pNode->GetMetadata().maxSize.x < region.width || pNode->GetMetadata().maxSize.y < region.height )
 		return;
 
-	SLevelBuildContext context( region.width, region.height );
-	if( pData )
+	if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
 	{
-		nDataSize = Min( nDataSize, region.width * region.height );
-		memcpy( &context.blueprint[0], pData, nDataSize );
+		if( region.height > 0 )
+		{
+			SLevelBuildContext context( 1, region.height, true );
+			pNode->Generate( context, TRectangle<int32>( 0, 0, 1, region.height ) );
+			context.Build();
+			assert( context.chains.size() == 1 );
+			auto pChain = context.chains[0];
+			assert( pChain->nY1 == 0 && pChain->nY2 == region.height );
+
+			pChain->nX += region.x;
+			pChain->nY1 += region.y;
+			pChain->nY2 += region.y;
+			m_pChain = pChain;
+
+			m_pChain->CreateChainObjectPreview( GetPreviewRoot() );
+			m_pChainObject = m_pChain->pChainObject;
+		}
 	}
-	auto& types = pNode->GetMetadata().vecTypes;
-	for( auto& item : types )
-		context.mapTags[item.first] = item.second;
-	pNode->Generate( context, TRectangle<int32>( 0, 0, region.width, region.height ) );
-	context.Build();
+	else
+	{
+		SLevelBuildContext context( region.width, region.height, true );
+		if( pData )
+		{
+			nDataSize = Min( nDataSize, region.width * region.height );
+			memcpy( &context.blueprint[0], pData, nDataSize );
+		}
+		auto& types = pNode->GetMetadata().vecTypes;
+		for( auto& item : types )
+			context.mapTags[item.strName] = item.nType;
+		pNode->Generate( context, TRectangle<int32>( 0, 0, region.width, region.height ) );
+		context.Build();
 
-	assert( context.chunks.size() == 1 );
-	auto pChunk = context.chunks[0];
-	assert( pChunk->nWidth == region.width && pChunk->nHeight == region.height );
+		assert( context.chunks.size() == 1 );
+		auto pChunk = context.chunks[0];
+		assert( pChunk->nWidth == region.width && pChunk->nHeight == region.height );
 
-	pChunk->pos.x = region.x * CMyLevel::GetBlockSize();
-	pChunk->pos.y = region.y * CMyLevel::GetBlockSize();
-	m_pChunk = pChunk;
+		pChunk->pos.x = region.x * CMyLevel::GetBlockSize();
+		pChunk->pos.y = region.y * CMyLevel::GetBlockSize();
+		m_pChunk = pChunk;
 
-	m_pChunk->CreateChunkObjectPreview( GetPreviewRoot() );
-	m_pChunkObject = m_pChunk->pChunkObject;
+		m_pChunk->CreateChunkObjectPreview( GetPreviewRoot() );
+		m_pChunkObject = m_pChunk->pChunkObject;
+	}
 }
 
 void CChunkPreview::Clear()
@@ -75,6 +98,13 @@ void CChunkPreview::Clear()
 		m_pChunk = NULL;
 		m_pChunkObject = NULL;
 	}
+	if( m_pChain )
+	{
+		m_pChainObject->SetParentEntity( NULL );
+		m_pChain->ForceDestroy();
+		m_pChain = NULL;
+		m_pChainObject = NULL;
+	}
 }
 
 void CChunkEdit::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& region, int8* pData, int32 nDataSize )
@@ -83,17 +113,31 @@ void CChunkEdit::Set( CLevelGenerateNode * pNode, const TRectangle<int32>& regio
 
 	if( pNode )
 	{
-		uint32 nBlockSize = CMyLevel::GetBlockSize();
+		int32 nBlockSize = CMyLevel::GetBlockSize();
 		SetPosition( CVector2( region.x, region.y ) * nBlockSize );
-		CRectangle chunkRect( 0, 0, region.width * nBlockSize, region.height * nBlockSize );
-		static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, 0, 4, 4 ) );
-		static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 4, 0, region.width * nBlockSize - 8, 4 ) );
-		static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 0, 4, 4 ) );
-		static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 4, 4, region.height * nBlockSize - 8 ) );
-		static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 4, 4, region.height * nBlockSize - 8 ) );
-		static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, region.height * nBlockSize - 4, 4, 4 ) );
-		static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 4, region.height * nBlockSize - 4, region.width * nBlockSize - 8, 4 ) );
-		static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, region.height * nBlockSize - 4, 4, 4 ) );
+		if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+		{
+			int32 nHalfBlockSize = nBlockSize / 2;
+			static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, -nHalfBlockSize, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 4, -nHalfBlockSize, region.width * nBlockSize - 8, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, -nHalfBlockSize, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 4 - nHalfBlockSize, 4, ( region.height + 1 ) * nBlockSize - 8 ) );
+			static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 4 - nHalfBlockSize, 4, ( region.height + 1 ) * nBlockSize - 8 ) );
+			static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, region.height * nBlockSize + nHalfBlockSize - 4, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 4, region.height * nBlockSize + nHalfBlockSize - 4, region.width * nBlockSize - 8, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, region.height * nBlockSize + nHalfBlockSize - 4, 4, 4 ) );
+		}
+		else
+		{
+			static_cast<CImage2D*>( m_pFrameImg[0].GetPtr() )->SetRect( CRectangle( 0, 0, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[1].GetPtr() )->SetRect( CRectangle( 4, 0, region.width * nBlockSize - 8, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[2].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 0, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[3].GetPtr() )->SetRect( CRectangle( 0, 4, 4, region.height * nBlockSize - 8 ) );
+			static_cast<CImage2D*>( m_pFrameImg[4].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, 4, 4, region.height * nBlockSize - 8 ) );
+			static_cast<CImage2D*>( m_pFrameImg[5].GetPtr() )->SetRect( CRectangle( 0, region.height * nBlockSize - 4, 4, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[6].GetPtr() )->SetRect( CRectangle( 4, region.height * nBlockSize - 4, region.width * nBlockSize - 8, 4 ) );
+			static_cast<CImage2D*>( m_pFrameImg[7].GetPtr() )->SetRect( CRectangle( region.width * nBlockSize - 4, region.height * nBlockSize - 4, 4, 4 ) );
+		}
 		Check();
 	}
 }
@@ -107,7 +151,10 @@ void CChunkEdit::SetTempEdit( bool bTempEdit )
 CEntity * CChunkEdit::GetPreviewRoot()
 {
 	auto pDesignLevel = CDesignLevel::GetInst();
-	return pDesignLevel->GetChunkRoot( m_pChunk->nLayerType );
+	if( m_pChunk )
+		return pDesignLevel->GetChunkRoot( m_pChunk->nLayerType );
+	else
+		return pDesignLevel->GetChunkRoot( m_pChain->nLayer + 3 );
 }
 
 void CChunkEdit::Check()
@@ -121,12 +168,75 @@ void CChunkEdit::Check()
 		color = CVector4( 0.0f, 1.0f, 0.0f, 1.0f );
 		m_bEditValid = true;
 		if( m_pNode->GetMetadata().minSize.x > m_region.width || m_pNode->GetMetadata().minSize.y > m_region.height
-			|| m_pNode->GetMetadata().maxSize.x < m_region.width || m_pNode->GetMetadata().maxSize.y < m_region.height )
+		|| m_pNode->GetMetadata().maxSize.x < m_region.width || m_pNode->GetMetadata().maxSize.y < m_region.height )
 			m_bEditValid = false;
-		else if( m_region.x < 0 || m_region.y < 0 || m_region.GetRight() > CDesignLevel::GetInst()->nWidth || m_region.GetBottom() > CDesignLevel::GetInst()->nHeight )
-			m_bEditValid = false;
+		else if( m_pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+		{
+			do
+			{
+				auto reg = m_region;
+				reg.SetTop( reg.y - 1 );
+				if( reg.x < 0 || reg.y < 0 || reg.GetRight() > CDesignLevel::GetInst()->nWidth || reg.GetBottom() > CDesignLevel::GetInst()->nHeight - 1 )
+				{
+					m_bEditValid = false;
+					break;
+				}
+				auto nLevel = m_pNode->GetMetadata().nMinLevel;
+				if( !CDesignLevel::GetInst()->IsAutoErase() )
+				{
+					for( int j = reg.y; j < reg.GetBottom(); j++ )
+					{
+						if( CDesignLevel::GetInst()->GetItemByGrid( nLevel, TVector2<int32>( reg.x, j ) ) )
+						{
+							m_bEditValid = false;
+							break;
+						}
+					}
+					if( !m_bEditValid )
+						break;
+				}
+
+				for( int j = reg.y; j <= reg.GetBottom(); j++ )
+				{
+					auto p = CDesignLevel::GetInst()->GetItemByGrid( nLevel - 2, TVector2<int32>( reg.x, j ) );
+					if( j == reg.y || j == reg.GetBottom() )
+					{
+						if( !p )
+						{
+							m_bEditValid = false;
+							break;
+						}
+						
+						int32 iData = reg.x - p->region.x + ( j - p->region.y ) * p->region.width;
+						int8 nData = iData < p->vecData.size() ? p->vecData[iData] : 0;
+						int8 nChainType = p->pGenNode->GetMetadata().GetChainType( nData, nLevel - 2 );
+						if( nChainType != 1 )
+						{
+							m_bEditValid = false;
+							break;
+						}
+					}
+					else if( p )
+					{
+						int32 iData = reg.x - p->region.x + ( j - p->region.y ) * p->region.width;
+						int8 nData = iData < p->vecData.size() ? p->vecData[iData] : 0;
+						int8 nChainType = p->pGenNode->GetMetadata().GetChainType( nData, nLevel - 2 );
+						if( nChainType != 0 )
+						{
+							m_bEditValid = false;
+							break;
+						}
+					}
+				}
+				if( !m_bEditValid )
+					break;
+
+			} while( 0 );
+		}
 		else
 		{
+			if( m_region.x < 0 || m_region.y < 0 || m_region.GetRight() > CDesignLevel::GetInst()->nWidth || m_region.GetBottom() > CDesignLevel::GetInst()->nHeight )
+				m_bEditValid = false;
 			for( int i = m_region.x; i < m_region.GetRight(); i++ )
 			{
 				if( !m_bEditValid )
@@ -155,7 +265,9 @@ void CChunkEdit::Check()
 	}
 	else
 	{
-		if( m_pNode->GetMetadata().nMinLevel == 0 && m_pNode->GetMetadata().nMaxLevel == 1 )
+		if( m_pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+			color = CVector4( 0.75f, 0.75f, 0, 0.5f );
+		else if( m_pNode->GetMetadata().nMinLevel == 0 && m_pNode->GetMetadata().nMaxLevel == 1 )
 			color = CVector4( 0.5f, 0.5f, 0.5f, 0.5f );
 		else if( m_pNode->GetMetadata().nMinLevel == 1 && m_pNode->GetMetadata().nMaxLevel == 1 )
 			color = CVector4( 0, 0.75f, 0.75f, 0.5f );
@@ -189,16 +301,33 @@ void SLevelDesignContext::Init()
 	}
 }
 
+SLevelDesignItem* SLevelDesignContext::GetItemByGrid( uint8 nLevel, const TVector2<int32> grid )
+{
+	if( grid.x < 0 || grid.y < 0 || grid.x >= nWidth || grid.y >= ( nLevel >= 2 ? nHeight - 1 : nHeight ) )
+		return NULL;
+	return items[nLevel][grid.x + grid.y * nWidth];
+}
+
 SLevelDesignItem * SLevelDesignContext::AddItem( CLevelGenerateNode * pNode, const TRectangle<int32>& region, bool bAutoErase )
 {
-	if( region.x < 0 || region.y < 0 || region.GetRight() > nWidth || region.GetBottom() > nHeight )
-		return NULL;
+	auto reg = region;
+	if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+	{
+		if( region.x < 0 || region.y < 1 || region.GetRight() > nWidth || region.GetBottom() >= nHeight )
+			return NULL;
+		reg.SetTop( reg.y - 1 );
+	}
+	else
+	{
+		if( region.x < 0 || region.y < 0 || region.GetRight() > nWidth || region.GetBottom() > nHeight )
+			return NULL;
+	}
 	
 	for( int k = pNode->GetMetadata().nMinLevel; k <= pNode->GetMetadata().nMaxLevel; k++ )
 	{
-		for( int i = region.x; i < region.GetRight(); i++ )
+		for( int i = reg.x; i < reg.GetRight(); i++ )
 		{
-			for( int j = region.y; j < region.GetBottom(); j++ )
+			for( int j = reg.y; j < reg.GetBottom(); j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
 				if( pItem )
@@ -210,12 +339,40 @@ SLevelDesignItem * SLevelDesignContext::AddItem( CLevelGenerateNode * pNode, con
 		}
 	}
 
+	if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+	{
+		auto nLevel = pNode->GetMetadata().nMinLevel;
+		for( int j = reg.y; j <= reg.GetBottom(); j++ )
+		{
+			auto p = GetItemByGrid( nLevel - 2, TVector2<int32>( reg.x, j ) );
+			if( j == reg.y || j == reg.GetBottom() )
+			{
+				if( !p )
+					return NULL;
+
+				int32 iData = reg.x - p->region.x + ( j - p->region.y ) * p->region.width;
+				int8 nData = iData < p->vecData.size() ? p->vecData[iData] : 0;
+				int8 nChainType = p->pGenNode->GetMetadata().GetChainType( nData, nLevel - 2 );
+				if( nChainType != 1 )
+					return NULL;
+			}
+			else if( p )
+			{
+				int32 iData = reg.x - p->region.x + ( j - p->region.y ) * p->region.width;
+				int8 nData = iData < p->vecData.size() ? p->vecData[iData] : 0;
+				int8 nChainType = p->pGenNode->GetMetadata().GetChainType( nData, nLevel - 2 );
+				if( nChainType != 0 )
+					return NULL;
+			}
+		}
+	}
+
 	auto pItem = new SLevelDesignItem;
 	for( int k = pNode->GetMetadata().nMinLevel; k <= pNode->GetMetadata().nMaxLevel; k++ )
 	{
-		for( int i = region.x; i < region.GetRight(); i++ )
+		for( int i = reg.x; i < reg.GetRight(); i++ )
 		{
-			for( int j = region.y; j < region.GetBottom(); j++ )
+			for( int j = reg.y; j < reg.GetBottom(); j++ )
 			{
 				if( bAutoErase )
 				{
@@ -229,19 +386,69 @@ SLevelDesignItem * SLevelDesignContext::AddItem( CLevelGenerateNode * pNode, con
 	}
 	pItem->pGenNode = pNode;
 	pItem->region = region;
+
+	if( pNode->GetMetadata().nEditType != CLevelGenerateNode::eEditType_Chain )
+		CheckChain( pItem );
+
 	return pItem;
 }
 
 void SLevelDesignContext::RemoveItem( SLevelDesignItem * pItem )
 {
+	auto reg = pItem->region;
+	if( pItem->pGenNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+		reg.SetTop( reg.y - 1 );
 	CReference<SLevelDesignItem> pTemp = pItem;
 	for( int k = pItem->pGenNode->GetMetadata().nMinLevel; k <= pItem->pGenNode->GetMetadata().nMaxLevel; k++ )
 	{
-		for( int i = pItem->region.x; i < pItem->region.GetRight(); i++ )
+		for( int i = reg.x; i < reg.GetRight(); i++ )
 		{
-			for( int j = pItem->region.y; j < pItem->region.GetBottom(); j++ )
+			for( int j = reg.y; j < reg.GetBottom(); j++ )
 			{
 				items[k][i + j * nWidth] = NULL;
+			}
+		}
+	}
+
+	if( pItem->pGenNode->GetMetadata().nEditType != CLevelGenerateNode::eEditType_Chain )
+		CheckChain( pItem, true );
+}
+
+void SLevelDesignContext::CheckChain( SLevelDesignItem* pItem, bool bDelete )
+{
+	auto reg = pItem->region;
+	auto pNode = pItem->pGenNode;
+	for( int k = pNode->GetMetadata().nMinLevel; k <= pNode->GetMetadata().nMaxLevel; k++ )
+	{
+		for( int i = reg.x; i < reg.GetRight(); i++ )
+		{
+			for( int j = reg.y; j < reg.GetBottom(); j++ )
+			{
+				int32 iData = i - reg.x + ( j - reg.y ) * reg.width;
+				int8 nData = iData < pItem->vecData.size() ? pItem->vecData[iData] : 0;
+				int8 nChainType = pNode->GetMetadata().GetChainType( nData, k );
+
+				int32 y1 = Max( 0, j - 1 );
+				int32 y2 = Min<int32>( nWidth - 1, j );
+				for( int j1 = y1; j1 <= y2; j1++ )
+				{
+					auto pItem1 = items[k + 2][i + j1 * nWidth];
+					if( pItem1 )
+					{
+						auto reg1 = pItem1->region;
+						reg1.SetTop( reg1.GetBottom() - 1 );
+						if( j == reg1.y || j == reg1.GetBottom() )
+						{
+							if( bDelete || nChainType != 1 )
+								RemoveItem( pItem1 );
+						}
+						else
+						{
+							if( nChainType != 0 )
+								RemoveItem( pItem1 );
+						}
+					}
+				}
 			}
 		}
 	}
@@ -318,6 +525,7 @@ void CChunkDetailEdit::Refresh()
 		m_pCurItem->pEntity->Clear();
 		m_pCurItem->pEntity->Set( m_pCurItem->pGenNode, m_pCurItem->region, pData, m_pCurItem->vecData.size() );
 	}
+	CDesignLevel::GetInst()->CheckChain( m_pCurItem );
 	m_bDirty = false;
 }
 
@@ -346,15 +554,21 @@ void CDesignLevel::OnAddedToStage()
 	Init();
 
 	m_pDetailEdit->Set( NULL );
-	for( int k = 0; k < 2; k++ )
+	for( int k = 0; k < 4; k++ )
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
 			for( int j = 0; j < nHeight; j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
-				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
-					CreatePreviewForItem( pItem );
+				if( pItem )
+				{
+					auto reg = pItem->region;
+					if( pItem->pGenNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+						reg.SetTop( reg.y - 1 );
+					if( reg.x == i && reg.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+						CreatePreviewForItem( pItem );
+				}
 			}
 		}
 	}
@@ -362,17 +576,23 @@ void CDesignLevel::OnAddedToStage()
 
 void CDesignLevel::OnRemovedFromStage()
 {
-	for( int k = 0; k < 2; k++ )
+	for( int k = 3; k >= 0; k-- )
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
 			for( int j = 0; j < nHeight; j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
-				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+				if( pItem )
 				{
-					pItem->pEntity->SetParentEntity( NULL );
-					pItem->pEntity = NULL;
+					auto reg = pItem->region;
+					if( pItem->pGenNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+						reg.SetTop( reg.y - 1 );
+					if( reg.x == i && reg.y == j && pItem->pGenNode->GetMetadata().nMaxLevel == k )
+					{
+						pItem->pEntity->SetParentEntity( NULL );
+						pItem->pEntity = NULL;
+					}
 				}
 			}
 		}
@@ -434,7 +654,10 @@ SLevelDesignItem* CDesignLevel::Add( const char* szFullName, const TRectangle<in
 void CDesignLevel::CreatePreviewForItem( SLevelDesignItem* pItem )
 {
 	auto pChunkEdit = SafeCast<CChunkEdit>( m_pChunkEditPrefab->GetRoot()->CreateInstance() );
-	pChunkEdit->SetParentEntity( m_pChunkEditRoot[pItem->pGenNode->GetMetadata().GetLayerType() - 1] );
+	if( pItem->pGenNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+		pChunkEdit->SetParentEntity( m_pChunkEditRoot[pItem->pGenNode->GetMetadata().nMinLevel + 1] );
+	else
+		pChunkEdit->SetParentEntity( m_pChunkEditRoot[pItem->pGenNode->GetMetadata().GetLayerType() - 1] );
 	pChunkEdit->Set( pItem->pGenNode, pItem->region, pItem->vecData.size() ? &pItem->vecData[0] : NULL, pItem->vecData.size() );
 	pItem->pEntity = pChunkEdit;
 }
@@ -442,21 +665,11 @@ void CDesignLevel::CreatePreviewForItem( SLevelDesignItem* pItem )
 void CDesignLevel::SetShowLevelType( uint8 nType )
 {
 	m_nShowLevelType = nType;
-	switch( m_nShowLevelType )
-	{
-	case 1:
-		m_pChunkRoot[0]->bVisible = true;
-		m_pChunkRoot[1]->bVisible = false;
-		break;
-	case 2:
-		m_pChunkRoot[0]->bVisible = false;
-		m_pChunkRoot[1]->bVisible = true;
-		break;
-	case 3:
-		m_pChunkRoot[0]->bVisible = true;
-		m_pChunkRoot[1]->bVisible = true;
-		break;
-	}
+	m_pChunkRoot[0]->bVisible = !!( m_nShowLevelType & 1 );
+	m_pChunkRoot[1]->bVisible = !!( m_nShowLevelType & 2 );
+	m_pChunkRoot[2]->bVisible = !!( m_nShowLevelType & 3 );
+	m_pChunkRoot[3]->bVisible = !!( m_nShowLevelType & 4 );
+	m_pChunkRoot[4]->bVisible = !!( m_nShowLevelType & 8 );
 }
 
 void CDesignLevel::ToggloShowEditLevel()
@@ -474,30 +687,6 @@ void CDesignLevel::SetAutoErase( bool bAutoErase )
 		m_vecTempChunkEdits[i]->Check();
 }
 
-SLevelDesignItem* CDesignLevel::GetItemByGrid( uint8 nLevel, const TVector2<int32> grid )
-{
-	if( grid.x < 0 || grid.y < 0 || grid.x >= nWidth || grid.y >= nHeight )
-		return NULL;
-	return items[nLevel][grid.x + grid.y * nWidth];
-}
-
-SLevelDesignItem * CDesignLevel::GetItemByGrid( const TVector2<int32> grid, bool bPick )
-{
-	if( grid.x < 0 || grid.y < 0 || grid.x >= nWidth || grid.y >= nHeight )
-		return NULL;
-	uint8 nShowLevelType = bPick ? m_nShowLevelType : 3;
-	switch( nShowLevelType )
-	{
-	case 1:
-		return items[0][grid.x + grid.y * nWidth];
-	case 2:
-		return items[1][grid.x + grid.y * nWidth];
-	case 3:
-		return items[1][grid.x + grid.y * nWidth] ? items[1][grid.x + grid.y * nWidth] : items[0][grid.x + grid.y * nWidth];
-	}
-	return NULL;
-}
-
 SLevelDesignItem* CDesignLevel::GetItemByWorldPos( uint8 nLevel, const CVector2& worldPos )
 {
 	CVector2 localPos = globalTransform.MulTVector2PosNoScale( worldPos );
@@ -505,11 +694,21 @@ SLevelDesignItem* CDesignLevel::GetItemByWorldPos( uint8 nLevel, const CVector2&
 	return GetItemByGrid( nLevel, pos );
 }
 
-SLevelDesignItem* CDesignLevel::GetItemByWorldPos( const CVector2 & worldPos, bool bPick )
+SLevelDesignItem* CDesignLevel::GetItemByWorldPos( const CVector2 & worldPos, uint8 nMask )
 {
 	CVector2 localPos = globalTransform.MulTVector2PosNoScale( worldPos );
 	TVector2<int32> pos( floor( localPos.x / 32 ), floor( localPos.y / 32 ) );
-	return GetItemByGrid( pos, bPick );
+	TVector2<int32> pos1( floor( localPos.x / 32 ), floor( ( localPos.y - 16 ) / 32 ) );
+
+	for( int i = 3; i >= 0; i-- )
+	{
+		if( !( nMask & ( 1 << i ) ) )
+			continue;
+		auto p = GetItemByGrid( i, i >= 2 ? pos1 : pos );
+		if( p )
+			return p;
+	}
+	return NULL;
 }
 
 CRectangle CDesignLevel::GetBrushRect()
@@ -519,6 +718,8 @@ CRectangle CDesignLevel::GetBrushRect()
 	else
 	{
 		auto size = m_pEditNode->GetMetadata().minSize;
+		if( m_pEditNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+			size.y++;
 		float fWidth = Max( m_nBrushSize * 32, ( size.x + 1 ) * 32 );
 		float fHeight = Max( m_nBrushSize * 32, ( size.y + 1 ) * 32 );
 		return CRectangle( fWidth * -0.5f, fHeight * -0.5f, fWidth, fHeight );
@@ -532,14 +733,14 @@ void CDesignLevel::SetBrushSize( uint8 nSize )
 		return;
 	m_nBrushSize = nSize;
 
-	if( m_bBeginEdit && m_pEditNode && m_pEditNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Fence )
+	if( m_bBeginEdit && m_pEditNode && m_pEditNode->GetMetadata().nEditType != CLevelGenerateNode::eEditType_Brush )
 		return;
 	RefreshBrush();
 }
 
 TVector2<int32> CDesignLevel::CalcBrushDims( CLevelGenerateNode * pNode )
 {
-	if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Fence )
+	if( pNode->GetMetadata().nEditType != CLevelGenerateNode::eEditType_Brush )
 		return TVector2<int32>( 1, 1 );
 
 	TVector2<int32> minSize = pNode->GetMetadata().minSize;
@@ -563,8 +764,8 @@ TRectangle<int32> CDesignLevel::CalcEditRegion( CLevelGenerateNode* pNode, CVect
 	begin = begin - CVector2( ( minSize.x - 1 ) * 32 / 2, ( minSize.y - 1 ) * 32 / 2 );
 	end = end + CVector2( ( minSize.x - 1 ) * 32 / 2, ( minSize.y - 1 ) * 32 / 2 );
 
-	TVector2<int32> beginPos( floor( begin.x / 32 ), floor( begin.y / 32 ) );
-	TVector2<int32> endPos( floor( end.x / 32 ) + 1, floor( end.y / 32 ) + 1 );
+	TVector2<int32> beginPos( floor( begin.x / 32 ), floor( ( begin.y ) / 32 ) );
+	TVector2<int32> endPos( floor( end.x / 32 ) + 1, floor( ( end.y ) / 32 ) + 1 );
 	
 	return TRectangle<int32>( beginPos.x, beginPos.y, endPos.x - beginPos.x, endPos.y - beginPos.y );
 }
@@ -667,7 +868,15 @@ bool CDesignLevel::BeginEdit( const CVector2 & worldPos )
 		return false;
 
 	RefreshBrush();
-	if( !IsEditValid() )
+	if( m_pEditNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+	{
+		auto p = m_vecTempChunkEdits[0];
+		auto reg = p->GetRegion();
+		reg.SetTop( reg.y - 1 );
+		if( reg.x < 0 || reg.y < 0 || reg.GetRight() > CDesignLevel::GetInst()->nWidth || reg.GetBottom() > CDesignLevel::GetInst()->nHeight - 1 )
+			return false;
+	}
+	else if( !IsEditValid() )
 		return false;
 
 	m_bBeginEdit = true;
@@ -691,7 +900,7 @@ void CDesignLevel::UpdateEdit( const CVector2 & worldPos )
 	}
 
 	int8 nEditType = m_pEditNode->GetMetadata().nEditType;
-	if( nEditType == CLevelGenerateNode::eEditType_Fence )
+	if( nEditType >= CLevelGenerateNode::eEditType_Fence )
 	{
 		RefreshBrushEditingFence();
 	}
@@ -707,7 +916,7 @@ void CDesignLevel::EndEdit()
 	if( m_bBeginEdit )
 	{
 		int8 nEditType = m_pEditNode->GetMetadata().nEditType;
-		if( nEditType == CLevelGenerateNode::eEditType_Fence )
+		if( nEditType >= CLevelGenerateNode::eEditType_Fence )
 			ApplyBrush();
 		m_bBeginEdit = false;
 	}
@@ -754,21 +963,21 @@ void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 {
 	SLevelBuildContext context( pLevel );
 
-	for( int k = 0; k < 2; k++ )
+	for( int k = 0; k < 4; k++ )
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
 			for( int j = 0; j < nHeight; j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
-				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+				if( pItem && pItem->region.x == i && pItem->region.y == ( k >= 2 ? j + 1 : j ) && pItem->pGenNode->GetMetadata().nMinLevel == k )
 				{
 					if( pItem->strChunkName.length() )
 						context.strChunkName = pItem->strChunkName;
 
 					for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
 					{
-						context.mapTags[item.first] = item.second;
+						context.mapTags[item.strName] = item.nType;
 					}
 					for( int y = 0; y < pItem->region.height; y++ )
 					{
@@ -781,7 +990,7 @@ void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 					pItem->pGenNode->Generate( context, pItem->region );
 					for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
 					{
-						context.mapTags.erase( item.first );
+						context.mapTags.erase( item.strName );
 					}
 
 					pItem->pGenNode->Generate( context, pItem->region );
@@ -795,7 +1004,7 @@ void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 
 void SLevelDesignContext::New()
 {
-	for( int k = 0; k < 2; k++ )
+	for( int k = 0; k < 4; k++ )
 	{
 		for( auto& pItem : items[k] )
 		{
@@ -825,14 +1034,14 @@ void SLevelDesignContext::Load( IBufReader & buf )
 
 void SLevelDesignContext::Save( CBufFile & buf )
 {
-	for( int k = 0; k < 2; k++ )
+	for( int k = 0; k < 4; k++ )
 	{
 		for( int i = 0; i < nWidth; i++ )
 		{
 			for( int j = 0; j < nHeight; j++ )
 			{
 				auto pItem = items[k][i + j * nWidth];
-				if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+				if( pItem && pItem->region.x == i && pItem->region.y == ( k >= 2 ? j + 1 : j ) && pItem->pGenNode->GetMetadata().nMinLevel == k )
 				{
 					buf.Write( pItem->strFullName );
 					buf.Write( pItem->region );
@@ -1041,6 +1250,8 @@ protected:
 		}
 
 		TVector2<int32> size = pNode->GetMetadata().minSize;
+		if( pNode->GetMetadata().nEditType == CLevelGenerateNode::eEditType_Chain )
+			size.y = Max( size.y, Min( pNode->GetMetadata().maxSize.y, 4 ) );
 		float fScale = Min( 1.0f, Min( previewSize.width / ( size.x * 32 ), previewSize.height / ( size.y * 32 ) ) );
 		m_pPreview->s = fScale;
 		m_pPreview->Set( pNode, TRectangle<int32>( 0, 0, size.x, size.y ) );
@@ -1082,10 +1293,11 @@ protected:
 
 		auto pSelectedNode = m_pOwner->GetSelectedNode();
 		bool bDeleteMode = m_pOwner->IsDeleteMode();
-		auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos );
-		if( bDeleteMode && pItem )
+		if( bDeleteMode )
 		{
-			CDesignLevel::GetInst()->Remove( pItem );
+			auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos, CDesignLevel::GetInst()->GetShowLevelType() );
+			if( pItem )
+				CDesignLevel::GetInst()->Remove( pItem );
 			return;
 		}
 		else if( pSelectedNode )
@@ -1098,7 +1310,7 @@ protected:
 		else
 		{
 			m_nDragType = 0;
-			auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos );
+			auto pItem = CDesignLevel::GetInst()->GetItemByWorldPos( m_startDragPos, CDesignLevel::GetInst()->GetShowLevelType() & 3 );
 			if( pItem )
 				m_pOwner->OnPickItem( pItem, m_startDragPos );
 		}
@@ -1227,7 +1439,7 @@ void CDesignView::SelectItem( SLevelDesignItem * pItem )
 	if( m_pSelectedItem )
 		m_onSelectedItemDeleted.Unregister();
 	m_pSelectedItem = pItem;
-	if( pItem )
+	if( pItem && pItem->pGenNode->GetMetadata().nEditType != CLevelGenerateNode::eEditType_Chain )
 	{
 		pItem->onRemoved.Register( 0, &m_onSelectedItemDeleted );
 		m_pChunkName->SetText( pItem->strChunkName.c_str() );
@@ -1237,7 +1449,7 @@ void CDesignView::SelectItem( SLevelDesignItem * pItem )
 		uint8 bNeedNone = true;
 		for( int i = 0; i < types.size(); i++ )
 		{
-			if( (void*)types[i].second == 0 )
+			if( (void*)types[i].nType == 0 )
 			{
 				bNeedNone = false;
 				break;
@@ -1251,8 +1463,8 @@ void CDesignView::SelectItem( SLevelDesignItem * pItem )
 		}
 		for( int i = 0; i < types.size(); i++ )
 		{
-			vecItems[i + bNeedNone].name = types[i].first;
-			vecItems[i + bNeedNone].pData = (void*)types[i].second;
+			vecItems[i + bNeedNone].name = types[i].strName;
+			vecItems[i + bNeedNone].pData = (void*)types[i].nType;
 		}
 		m_pDetailEditType->SetItems( &vecItems[0], vecItems.size() );
 		CDesignLevel::GetInst()->GetDetailEdit()->Set( pItem );
@@ -1374,13 +1586,16 @@ void CDesignView::OnChar( uint32 nChar )
 	switch( nChar )
 	{
 	case '1':
-		CDesignLevel::GetInst()->SetShowLevelType( 1 );
+		CDesignLevel::GetInst()->SetShowLevelType( CDesignLevel::GetInst()->GetShowLevelType() ^ 1 );
 		break;
 	case '2':
-		CDesignLevel::GetInst()->SetShowLevelType( 2 );
+		CDesignLevel::GetInst()->SetShowLevelType( CDesignLevel::GetInst()->GetShowLevelType() ^ 2 );
 		break;
 	case '3':
-		CDesignLevel::GetInst()->SetShowLevelType( 3 );
+		CDesignLevel::GetInst()->SetShowLevelType( CDesignLevel::GetInst()->GetShowLevelType() ^ 4 );
+		break;
+	case '4':
+		CDesignLevel::GetInst()->SetShowLevelType( CDesignLevel::GetInst()->GetShowLevelType() ^ 8 );
 		break;
 	case VK_BACK:
 		SelectNode( NULL );

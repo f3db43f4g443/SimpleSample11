@@ -48,7 +48,8 @@ void CCharacter::KillEffect()
 	if( pKillEffectPrefab )
 	{
 		auto pKillEffect = SafeCast<CEffectObject>( pKillEffectPrefab->GetRoot()->CreateInstance() );
-		ForceUpdateTransform();
+		if( GetParentEntity() )
+			ForceUpdateTransform();
 		pKillEffect->SetState( 2 );
 		pKillEffect->SetPosition( globalTransform.GetPosition() );
 		pKillEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );

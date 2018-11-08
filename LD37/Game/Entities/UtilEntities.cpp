@@ -8,6 +8,7 @@
 #include "MyLevel.h"
 #include "Interfaces.h"
 #include "MyGame.h"
+#include "Enemy.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -294,4 +295,42 @@ bool COperatingArea::Operate( CCharacter* pCharacter, bool bCheck )
 	if( !bCheck )
 		pOperateable->Operate( operatorPos );
 	return true;
+}
+
+void CEnemyHp::OnAddedToStage()
+{
+	auto pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+	if( !pEnemy || m_nParams < 2 )
+		return;
+	OnHpChanged();
+	pEnemy->RegisterHpChanged( &m_onHPChanged );
+}
+
+void CEnemyHp::OnRemovedFromStage()
+{
+	if( m_onHPChanged.IsRegistered() )
+		m_onHPChanged.Unregister();
+}
+
+void CEnemyHp::OnHpChanged()
+{
+	auto pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+	if( !pEnemy )
+		return;
+	float f = Min( m_nParams - 1.0f, Max( 0.0f, pEnemy->GetHp() * 1.0f * ( m_nParams - 1 ) / pEnemy->GetMaxHp() ) );
+	int32 n = Min( m_nParams - 2, (int32)floor( f ) );
+	CVector4 param = m_params[n] + ( m_params[n + 1] - m_params[n] ) * ( f - n );
+
+	if( m_nType == 0 )
+	{
+		auto pImage = static_cast<CImage2D*>( pEnemy->GetRenderObject() );
+		*pImage->GetParam() = param;
+	}
+	else
+	{
+		auto pRope = static_cast<CRopeObject2D*>( pEnemy->GetRenderObject() );
+		uint32 nDataCount = pRope->GetData().data.size();
+		for( int i = 0; i < nDataCount; i++ )
+			*pRope->GetParam( i ) = param;
+	}
 }

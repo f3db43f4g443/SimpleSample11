@@ -78,7 +78,7 @@ void CLvFloor1::OnCrateKilled( int32 i )
 	}
 	m_nKilledCrates++;
 	if( m_pChunk )
-		m_pChunk->fWeight = m_fWeights[m_nKilledCrates - 1];
+		m_pChunk->fWeight = Max( m_pChunk->fWeight, m_fWeights[m_nKilledCrates - 1] );
 	m_vecPickups[m_vecPickups.size() - 1 - i]->bVisible = true;
 }
 

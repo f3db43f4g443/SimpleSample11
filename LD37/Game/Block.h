@@ -88,6 +88,62 @@ private:
 	bool m_bBlockRTActive;
 };
 
+
+struct SChainBaseInfo
+{
+	uint8 nAttachType1, nAttachType2;
+	uint8 nLayer;
+	int32 nLen;
+	CReference<CPrefab> pPrefab;
+};
+
+struct SChain
+{
+	SChain() : pChainObject( NULL ), p1( NULL ), p2( NULL ), pEf2( NULL ) {}
+	SChain( SChainBaseInfo& baseInfo, int32 x, int32 y1, int32 y2 );
+	SChain( SChainBaseInfo& baseInfo, SChunk* a, SChunk* b, int32 x, int32 y1, int32 y2 );
+	SChunk* p1;
+	SChunk* p2;
+	int32 nX;
+	int32 nY1, nY2;
+	int32 nMaxLen;
+	uint8 nLayer;
+	CReference<CPrefab> pPrefab;
+
+	void Init();
+	void CreateChainObject( CMyLevel* pLevel );
+	void CreateChainObjectPreview( CEntity* pRootEntity );
+	void ForceDestroy();
+
+	class CChainObject* pChainObject;
+	int32 nYLim;
+	SChunk* pEf1;
+	SChunk* pEf2;
+	LINK_LIST( SChain, Chain1 )
+	LINK_LIST( SChain, Chain2 )
+	LINK_LIST( SChain, ChainEf1 )
+	LINK_LIST( SChain, ChainEf2 )
+};
+
+class CChainObject : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CChainObject( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CChainObject ); }
+	void SetChain( SChain* pChain, class CMyLevel* pLevel );
+	void Preview( SChain* pChain, CEntity* pParent );
+
+	void RemoveChain();
+	void Update();
+	virtual void OnRemovedFromStage() override { RemoveChain(); }
+private:
+	float m_fTexYTileLen;
+	uint8 m_nEftType;
+
+	SChain* m_pChain;
+};
+
+
 class CChunkStopEvent : public CReferenceObject
 {
 public:
@@ -141,7 +197,7 @@ struct SChunkSpawnInfo
 
 struct SChunk
 {
-	SChunk() { memset( this, 0, sizeof( SChunk ) ); }
+	SChunk();
 	SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size );
 	~SChunk();
 	uint32 nWidth;
@@ -201,6 +257,11 @@ struct SChunk
 	LINK_LIST_HEAD( m_pSpawnInfos, SChunkSpawnInfo, SpawnInfo )
 	LINK_LIST_HEAD( m_pSubChunks, SChunk, SubChunk )
 	LINK_LIST_REF_HEAD( m_pChunkStopEvents, CChunkStopEvent, StopEvent )
+
+	LINK_LIST_HEAD( m_pChain1, SChain, Chain1 )
+	LINK_LIST_HEAD( m_pChain2, SChain, Chain2 )
+	LINK_LIST_HEAD( m_pChainEf1, SChain, ChainEf1 )
+	LINK_LIST_HEAD( m_pChainEf2, SChain, ChainEf2 )
 };
 
 class CChunkObject : public CEntity

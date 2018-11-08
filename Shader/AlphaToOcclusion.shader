@@ -30,3 +30,19 @@ void PSOcclusion( in float4 inPos : SV_Position,
 	outColor.w = saturate( fAlpha * fHeightScale + fBaseHeight );
 	clip( fAlpha - 0.001 );
 }
+
+void PSColorMulInstData( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
+	in float4 instData : ExtraInstData0,
+	in float4 instData1 : ExtraInstData1,
+	out float4 outColor[2] : SV_Target )
+{
+	float fHeightClip = instData.z;
+	float4 texColor = Texture0.Sample( LinearSampler, tex ) * instData1;
+	float fAlpha = texColor.w;
+	fAlpha = fAlpha - fHeightClip;
+
+	outColor[0] = texColor;
+	outColor[1] = float4( 0, 0, 0, outColor[0].w );
+	clip( fAlpha - 0.001 );
+}

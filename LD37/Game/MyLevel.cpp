@@ -353,6 +353,10 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 		return;
 	}
 
+	while( pChunk->Get_Chain1() )
+		RemoveChain( pChunk->Get_Chain1() );
+	while( pChunk->Get_Chain2() )
+		RemoveChain( pChunk->Get_Chain2() );
 	vector< pair<SChunk*, TVector2<int32> > > newChunks;
 	uint32 nChunks = 0;
 	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
@@ -386,6 +390,7 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 				pChunk->nLevelBarrierType = 0;
 		}
 	}
+
 	SplitChunks( pChunk, newChunks );
 }
 
@@ -396,6 +401,11 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 		pChunk->pChunkObject->SetParentEntity( NULL );
 		return;
 	}
+
+	while( pChunk->Get_Chain1() )
+		RemoveChain( pChunk->Get_Chain1() );
+	while( pChunk->Get_Chain2() )
+		RemoveChain( pChunk->Get_Chain2() );
 
 	if( !pChunk->bIsSubChunk )
 	{
@@ -617,7 +627,41 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 		}
 	}
 
+	while( pOldChunk->Get_ChainEf1() )
+		pOldChunk->Get_ChainEf1()->Init();
+	while( pOldChunk->Get_ChainEf2() )
+		pOldChunk->Get_ChainEf2()->Init();
 	RemoveChunk( pOldChunk );
+}
+
+void CMyLevel::RemoveChain( SChain* pChain )
+{
+	if( pChain->pChainObject )
+	{
+		pChain->pChainObject->SetParentEntity( NULL );
+		return;
+	}
+	if( pChain->pEf1 )
+	{
+		pChain->pEf1 = NULL;
+		pChain->RemoveFrom_ChainEf2();
+	}
+	if( pChain->pEf2 )
+	{
+		pChain->pEf2 = NULL;
+		pChain->RemoveFrom_ChainEf1();
+	}
+	if( pChain->p1 )
+	{
+		pChain->p1 = NULL;
+		pChain->RemoveFrom_Chain1();
+	}
+	if( pChain->p2 )
+	{
+		pChain->p2 = NULL;
+		pChain->RemoveFrom_Chain2();
+	}
+	delete pChain;
 }
 
 void CMyLevel::AddShakeStrength( float fShakeStrength )
@@ -848,6 +892,25 @@ void CMyLevel::UpdateBlocksMovementNormal()
 					else
 						nMinY = Max<int32>( nMinY, pBlock->nLowerMargin );
 				}
+				int32 nMinY1 = nMinY;
+
+				for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+				{
+					auto pEf2 = pChain->pEf2;
+					if( pEf2 != pChunk )
+					{
+						int32 y1 = pEf2->pos.y - pChain->nYLim;
+						if( y1 > nMinY )
+						{
+							nMinY = y1;
+							nMaxFallSpeed = pEf2->nFallSpeed;
+						}
+						else if( y1 == nMinY )
+						{
+							nMaxFallSpeed = Min( nMaxFallSpeed, pEf2->nFallSpeed );
+						}
+					}
+				}
 
 				if( pChunk->nFallSpeed < 40 )
 					pChunk->nFallSpeed++;
@@ -964,7 +1027,7 @@ void CMyLevel::UpdateBlocksMovementNormal()
 				}
 				else
 				{
-					bHit = pChunk->pos.y == nMinY && pChunk->nFallSpeed == 0;
+					bHit = pChunk->pos.y == nMinY1 && pChunk->nFallSpeed == 0;
 				}
 			}
 			else
@@ -1082,6 +1145,18 @@ void CMyLevel::UpdateBlocksMovementNormal()
 						basementLayer.pVisitedBlock = pLayer;
 					}
 				}
+
+				for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+				{
+					auto pEf2 = pChain->pEf2;
+					if( pEf2 != pChunk )
+					{
+						int32 y1 = pEf2->pos.y - pChain->nYLim;
+						if( y1 > nMinY )
+							nMinY = y1;
+					}
+				}
+
 				pChunk->pos.y = nMinY;
 				if( preY != pChunk->pos.y )
 				{
@@ -1121,6 +1196,12 @@ void CMyLevel::UpdateBlocksMovementNormal()
 	{
 		auto pChunk = vecUpdatedChunks[iChunk];
 		pChunk->nUpdateCount = 0;
+
+		for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+		{
+			if( pChain->pChainObject )
+				pChain->pChainObject->Update();
+		}
 
 		if( iChunk <= nChunks0 )
 		{
@@ -1321,6 +1402,24 @@ void CMyLevel::UpdateBlocksMovementBonusStage()
 						nMinY = Max<int32>( nMinY, pBlock->nLowerMargin );
 				}
 
+				for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+				{
+					auto pEf2 = pChain->pEf2;
+					if( pEf2 != pChunk )
+					{
+						int32 y1 = pEf2->pos.y - pChain->nYLim;
+						if( y1 > nMinY )
+						{
+							nMinY = y1;
+							nMaxFallSpeed = pEf2->nFallSpeed;
+						}
+						else if( y1 == nMinY )
+						{
+							nMaxFallSpeed = Min( nMaxFallSpeed, pEf2->nFallSpeed );
+						}
+					}
+				}
+
 				if( pChunk->nFallSpeed < 40 )
 					pChunk->nFallSpeed++;
 				int32 nFallDist = floor( pChunk->nFallSpeed * m_fFallDistPerSpeedFrame );
@@ -1452,6 +1551,18 @@ void CMyLevel::UpdateBlocksMovementBonusStage()
 						basementLayer.pVisitedBlock = pLayer;
 					}
 				}
+
+				for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+				{
+					auto pEf2 = pChain->pEf2;
+					if( pEf2 != pChunk )
+					{
+						int32 y1 = pEf2->pos.y - pChain->nYLim;
+						if( y1 > nMinY )
+							nMinY = y1;
+					}
+				}
+
 				pChunk->pos.y = nMinY;
 				if( preY != pChunk->pos.y )
 				{
@@ -1495,6 +1606,12 @@ void CMyLevel::UpdateBlocksMovementBonusStage()
 
 		if( !pChunk->nUpdateCount )
 		{
+			for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+			{
+				if( pChain->pChainObject )
+					pChain->pChainObject->Update();
+			}
+
 			if( pChunk->pos.y == 0 )
 			{
 				if( !pChunk->bMovedLastFrame )

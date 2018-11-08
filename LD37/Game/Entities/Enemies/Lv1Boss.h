@@ -75,6 +75,7 @@ private:
 	bool m_bActive;
 
 	SChunk* m_pFinalChunk;
+	CReference<CChunkObject> m_pFinalChunkObject;
 
 	bool CheckBlocked( const TRectangle<int32>& rect );
 

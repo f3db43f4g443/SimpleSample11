@@ -16,6 +16,8 @@ public:
 	void SetHp( int32 nHp ) { m_nHp = nHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
 
+	void RegisterHpChanged( CTrigger* pTrigger ) { m_onHpChanged.Register( 0, pTrigger ); }
+
 	virtual bool IsOwner( CEntity* pEntity ) { return pEntity == this; }
 
 	void SetDefence( float fDefence ) { m_fDefence = fDefence; }
@@ -26,6 +28,7 @@ protected:
 	uint8 m_nHitType;
 
 	int32 m_nMaxHp;
+	CEventTrigger<1> m_onHpChanged;
 };
 
 class CEnemyPart : public CEnemy

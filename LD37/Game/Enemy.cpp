@@ -15,8 +15,11 @@ void CEnemy::Damage( SDamageContext& context )
 		{
 			context.nDamage += m_nHp;
 			m_nHp = 0;
+			m_onHpChanged.Trigger( 0, this );
 			Kill();
 		}
+		else
+			m_onHpChanged.Trigger( 0, this );
 	}
 	else
 		context.nDamage = 0;

@@ -915,6 +915,12 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CChainObject )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_fTexYTileLen )
+		REGISTER_MEMBER( m_nEftType )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CChunkObject )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_strEffect )
@@ -2171,6 +2177,13 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CEnemyHp )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_params )
+		REGISTER_MEMBER( m_nParams )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CStartPoint )
 		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
@@ -2278,9 +2291,13 @@ void RegisterGameClasses()
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[0], chunks );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[1], chunks1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[2], chunks2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[3], chains1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkRoot[4], chains2 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[0], chunkedit );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[1], chunkedit1 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[2], chunkedit2 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[3], chainedit1 );
+		REGISTER_MEMBER_TAGGED_PTR( m_pChunkEditRoot[4], chainedit2 );
 		REGISTER_MEMBER_TAGGED_PTR( m_pDetailEdit, detailedit );
 	REGISTER_CLASS_END()
 }

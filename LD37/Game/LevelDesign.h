@@ -8,7 +8,7 @@
 class CChunkPreview : public CEntity
 {
 public:
-	CChunkPreview() : m_pChunk( NULL ), m_region( 0, 0, 0, 0 ) { SET_BASEOBJECT_ID( CChunkPreview ); bVisible = false; }
+	CChunkPreview() : m_pChunk( NULL ), m_pChain( NULL ), m_region( 0, 0, 0, 0 ) { SET_BASEOBJECT_ID( CChunkPreview ); bVisible = false; }
 	CChunkPreview( const SClassCreateContext& context ) : CEntity( context ), m_pChunk( NULL ) { SET_BASEOBJECT_ID( CChunkPreview ); }
 	virtual void OnRemovedFromStage() override { Clear(); }
 	CLevelGenerateNode* GetNode() { return m_pNode; }
@@ -21,6 +21,8 @@ protected:
 	TRectangle<int32> m_region;
 	SChunk* m_pChunk;
 	CReference<CChunkObject> m_pChunkObject;
+	SChain* m_pChain;
+	CReference<CChainObject> m_pChainObject;
 };
 
 class CChunkEdit : public CChunkPreview
@@ -65,16 +67,18 @@ struct SLevelDesignContext
 {
 	SLevelDesignContext( uint32 nWidth, uint32 nHeight ) : nWidth( nWidth ), nHeight( nHeight ), bInited( false )
 	{
-		items[0].resize( nWidth * nHeight );
-		items[1].resize( nWidth * nHeight );
+		for( int i = 0; i < 4; i++ )
+			items[i].resize( nWidth * nHeight );
 	}
 	void Init();
 
 	SLevelDesignItem* AddItem( CLevelGenerateNode* pNode, const TRectangle<int32>& region, bool bAutoErase );
 	void RemoveItem( SLevelDesignItem* pItem );
+	void CheckChain( SLevelDesignItem* pItem, bool bDelete = false );
 	virtual SLevelDesignItem* Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer = NULL );
 	virtual void Remove( SLevelDesignItem* pItem ) { RemoveItem( pItem ); }
 
+	SLevelDesignItem* GetItemByGrid( uint8 nLevel, const TVector2<int32> grid );
 	CLevelGenerateNode* FindNode( const char* szFullName );
 	void GenerateLevel( class CMyLevel* pLevel );
 
@@ -83,7 +87,7 @@ struct SLevelDesignContext
 	void Save( CBufFile& buf );
 
 	uint32 nWidth, nHeight;
-	vector<CReference<SLevelDesignItem> > items[2];
+	vector<CReference<SLevelDesignItem> > items[4];
 
 	map<string, CReference<CLevelGenerateNode> > mapGenerateNodes;
 	bool bInited;
@@ -115,7 +119,7 @@ class CDesignLevel : public CEntity, public SLevelDesignContext
 	friend void RegisterGameClasses();
 public:
 	CDesignLevel( const SClassCreateContext& context ) : CEntity( context ), m_bInited( false )
-		, m_bBeginEdit( false ), m_bAutoErase( false ), m_nBrushSize( 1 ), m_brushDims( 0, 0 ), m_nShowLevelType( 3 )
+		, m_bBeginEdit( false ), m_bAutoErase( false ), m_nBrushSize( 1 ), m_brushDims( 0, 0 ), m_nShowLevelType( 1 | 2 | 4 | 8 )
 		, SLevelDesignContext( 32, 128 ), m_strChunkEditPrefab( context ), m_curEditPos( 0, 0 ) { SET_BASEOBJECT_ID( CDesignLevel ); }
 
 	virtual void OnAddedToStage() override;
@@ -123,15 +127,13 @@ public:
 
 	virtual SLevelDesignItem* Add( const char* szFullName, const TRectangle<int32>& region, IBufReader* pExtraBuffer = NULL ) override;
 	void CreatePreviewForItem( SLevelDesignItem* pItem );
+	uint8 GetShowLevelType() { return m_nShowLevelType; }
 	void SetShowLevelType( uint8 nType );
 	void ToggloShowEditLevel();
 	bool IsAutoErase() { return m_bAutoErase; }
 	void SetAutoErase( bool bAutoErase );
-
-	SLevelDesignItem* GetItemByGrid( uint8 nLevel, const TVector2<int32> grid );
-	SLevelDesignItem* GetItemByGrid( const TVector2<int32> grid, bool bPick = false );
 	SLevelDesignItem* GetItemByWorldPos( uint8 nLevel, const CVector2& worldPos );
-	SLevelDesignItem* GetItemByWorldPos( const CVector2& worldPos, bool bPick = false );
+	SLevelDesignItem* GetItemByWorldPos( const CVector2& worldPos, uint8 nMask );
 	CRectangle GetBrushRect();
 	uint8 GetBrushSize() { return m_nBrushSize; }
 	void SetBrushSize( uint8 nSize );
@@ -160,8 +162,8 @@ private:
 	CString m_strChunkEditPrefab;
 	CReference<CPrefab> m_pChunkEditPrefab;
 
-	CReference<CEntity> m_pChunkRoot[3];
-	CReference<CEntity> m_pChunkEditRoot[3];
+	CReference<CEntity> m_pChunkRoot[5];
+	CReference<CEntity> m_pChunkEditRoot[5];
 	CReference<CChunkDetailEdit> m_pDetailEdit;
 
 	CVector2 m_curEditPos;

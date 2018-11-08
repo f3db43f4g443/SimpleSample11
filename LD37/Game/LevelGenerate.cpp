@@ -15,7 +15,7 @@
 #include "LevelGenerating/LvGen2.h"
 #include "LevelGenerating/LvBonusGen1.h"
 
-SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
+SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL ), bTest( false )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
 	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
@@ -39,10 +39,11 @@ SLevelBuildContext::SLevelBuildContext( const SLevelBuildContext& par, SChunk * 
 	for( auto& item : par.mapTags )
 		mapTags[item.first] = item.second;
 	nSeed = par.nSeed;
+	bTest = par.bTest;
 }
 
-SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight )
-	: pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
+SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight, bool bTest )
+	: pLevel( NULL ), pParentChunk( NULL ), nWidth( nWidth ), nHeight( nHeight ), nBlockSize( 32 ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL ), bTest( bTest )
 {
 	blueprint.resize( nWidth * nHeight );
 	blocks.resize( nWidth * nHeight * 2 );
@@ -94,7 +95,71 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		strChunkName = "";
 	}
 	nMaxChunkHeight = Max<uint32>( nMaxChunkHeight, region.GetBottom() );
+	pChunk->pParentChunk = pParentChunk;
 	return pChunk;
+}
+
+void SLevelBuildContext::CreateChain( SChainBaseInfo& baseInfo, int32 x, int32 y1, int32 y2 )
+{
+	if( bTest )
+	{
+		SChain* pChain = new SChain( baseInfo, x, y1, y2 );
+		chains.push_back( pChain );
+		return;
+	}
+
+	auto nLayer = baseInfo.nLayer;
+	SBlockLayer *p[2] = { NULL, NULL };
+	int32 y[2];
+
+	for( y[0] = y1; y[0] > 0; y[0]-- )
+	{
+		p[0] = GetBlock( x, y[0] - 1, nLayer );
+		if( p[0] )
+			break;
+	}
+	for( y[1] = y2; y[1] < nHeight; y[1]++ )
+	{
+		p[1] = GetBlock( x, y[1], nLayer );
+		if( p[1] )
+			break;
+	}
+	if( !p[0] || !p[1] )
+		return;
+
+	SChunk* pChunk[2];
+	TVector2<int32> ofs[2];
+	for( int i = 0; i < 2; i++ )
+	{
+		pChunk[i] = p[i]->pParent->pOwner;
+		ofs[i] = pChunk[i]->pos / CMyLevel::GetBlockSize();
+		if( baseInfo.nAttachType1 )
+		{
+			while( 1 )
+			{
+				SChunk* pSubChunk1 = NULL;
+				for( auto pSubChunk = pChunk[i]->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+				{
+					if( pSubChunk->nSubChunkType == 0 )
+						continue;
+					TVector2<int32> ofs1 = ofs[i] + pSubChunk->pos / CMyLevel::GetBlockSize();
+					if( x < ofs1.x || x >= ofs1.x + pSubChunk->nWidth || y[i] != ( i == 1 ? ofs1.y : ofs1.y + pSubChunk->nHeight ) )
+						continue;
+					pSubChunk1 = pSubChunk;
+					ofs[i] = ofs1;
+					break;
+				}
+				if( !pSubChunk1 )
+					break;
+				pChunk[i] = pSubChunk1;
+			}
+		}
+	}
+	if( !pChunk[0]->pPrefab || !pChunk[1]->pPrefab )
+		return;
+
+	SChain* pChain = new SChain( baseInfo, pChunk[0], pChunk[1], x, y1 - ofs[0].y, y2 - ofs[1].y );
+	chains.push_back( pChain );
 }
 
 void SLevelBuildContext::AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 )
@@ -418,6 +483,8 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 		m_metadata.nMinLevel = XmlGetAttr<int32>( pMetadata, "minlevel", m_metadata.nMinLevel );
 		m_metadata.nMaxLevel = XmlGetAttr<int32>( pMetadata, "maxlevel", m_metadata.nMaxLevel );
 		m_metadata.nSeed = XmlGetAttr<uint32>( pMetadata, "seed", m_metadata.nSeed );
+		m_metadata.nDefaultChainType[0] = XmlGetAttr<uint32>( pMetadata, "chain_type1", m_metadata.nDefaultChainType[0] );
+		m_metadata.nDefaultChainType[1] = XmlGetAttr<uint32>( pMetadata, "chain_type2", m_metadata.nDefaultChainType[1] );
 
 		auto pTypes = pMetadata->FirstChildElement( "types" );
 		if( pTypes )
@@ -425,10 +492,12 @@ void CLevelGenerateNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 			int32 nMaxType = 0;
 			for( auto pItem = pTypes->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 			{
-				pair<string, int32> item;
-				item.first = XmlGetAttr( pItem, "name", "" );
-				item.second = XmlGetAttr( pItem, "value", nMaxType + 1 );
-				nMaxType = Max( nMaxType, item.second );
+				SMetadata::SType item;
+				item.strName = XmlGetAttr( pItem, "name", "" );
+				item.nType = XmlGetAttr( pItem, "value", nMaxType + 1 );
+				item.nChainType[0] = XmlGetAttr<uint32>( pItem, "chain_type1", m_metadata.nDefaultChainType[0] );
+				item.nChainType[1] = XmlGetAttr<uint32>( pItem, "chain_type2", m_metadata.nDefaultChainType[1] );
+				nMaxType = Max( nMaxType, item.nType );
 				m_metadata.vecTypes.push_back( item );
 			}
 		}
@@ -465,6 +534,18 @@ void CLevelGenerateNode::Generate( SLevelBuildContext& context, const TRectangle
 	}
 }
 
+int8 CLevelGenerateNode::SMetadata::GetChainType( int32 nType, uint8 nLayer ) const
+{
+	for( int i = 0; i < vecTypes.size(); i++ )
+	{
+		if( vecTypes[i].nType == nType )
+		{
+			return vecTypes[i].nChainType[nLayer];
+		}
+	}
+	return nDefaultChainType[nLayer];
+}
+
 CVector4 CLevelGenerateNode::SMetadata::GetEditColor( int32 nType ) const
 {
 	static CVector4 colors[] = 
@@ -484,7 +565,7 @@ CVector4 CLevelGenerateNode::SMetadata::GetEditColor( int32 nType ) const
 	};
 	for( int i = 0; i < vecTypes.size(); i++ )
 	{
-		if( vecTypes[i].second == nType )
+		if( vecTypes[i].nType == nType )
 		{
 			CVector4 color = colors[i % ELEM_COUNT( colors )];
 			int32 n1 = ( i / ELEM_COUNT( colors ) ) & 3;
@@ -697,14 +778,14 @@ public:
 		context1.Init();
 		context1.Load( buf );
 
-		for( int k = 0; k < 2; k++ )
+		for( int k = 0; k < 4; k++ )
 		{
 			for( int i = 0; i < context1.nWidth; i++ )
 			{
 				for( int j = 0; j < context1.nHeight; j++ )
 				{
 					auto pItem = context1.items[k][i + j * context1.nWidth];
-					if( pItem && pItem->region.x == i && pItem->region.y == j && pItem->pGenNode->GetMetadata().nMinLevel == k )
+					if( pItem && pItem->region.x == i && pItem->region.y == ( k >= 2 ? j + 1 : j ) && pItem->pGenNode->GetMetadata().nMinLevel == k )
 					{
 						if( pItem->strChunkName.length() )
 							context.strChunkName = pItem->strChunkName;
@@ -712,7 +793,7 @@ public:
 
 						for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
 						{
-							context.mapTags[item.first] = item.second;
+							context.mapTags[item.strName] = item.nType;
 						}
 						for( int y = 0; y < reg.height; y++ )
 						{
@@ -725,7 +806,7 @@ public:
 						pItem->pGenNode->Generate( context, reg );
 						for( auto& item : pItem->pGenNode->GetMetadata().vecTypes )
 						{
-							context.mapTags.erase( item.first );
+							context.mapTags.erase( item.strName );
 						}
 					}
 				}
@@ -910,6 +991,34 @@ protected:
 	uint8 m_nLayer;
 	uint8 m_nType;
 	bool m_bType1;
+};
+
+class CLevelGenerateChainNode : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		m_baseInfo.nAttachType1 = XmlGetAttr( pXml, "attach_type1", 0 );
+		m_baseInfo.nAttachType2 = XmlGetAttr( pXml, "attach_type2", 0 );
+		m_baseInfo.nLayer = XmlGetAttr( pXml, "layer", 0 );
+		m_baseInfo.nLen = XmlGetAttr( pXml, "len", 16 );
+		const char* szPrefab = XmlGetAttr( pXml, "prefab", "" );
+		if( szPrefab[0] )
+			m_baseInfo.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+
+		m_metadata.bIsDesignValid = true;
+		m_metadata.minSize.y = m_metadata.maxSize.y = 0;
+		CLevelGenerateNode::Load( pXml, context );
+		m_metadata.minSize.x = m_metadata.maxSize.x = 1;
+		m_metadata.nMinLevel = m_metadata.nMaxLevel = m_baseInfo.nLayer + 2;
+		m_metadata.nEditType = eEditType_Chain;
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		context.CreateChain( m_baseInfo, region.x, region.y, region.GetBottom() );
+	}
+protected:
+	SChainBaseInfo m_baseInfo;
 };
 
 class CLevelGenerateScrollObjNode : public CLevelGenerateNode
@@ -1742,6 +1851,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "designed_level", CLevelGenerateDesignedLevelNode );
 	REGISTER_GENERATE_NODE( "simple_attach", CLevelGenerateAttachNode );
 	REGISTER_GENERATE_NODE( "simple_spawn", CLevelGenerateSpawnNode );
+	REGISTER_GENERATE_NODE( "chain", CLevelGenerateChainNode );
 	REGISTER_GENERATE_NODE( "filltag", CLevelGenerateFillTagNode );
 	REGISTER_GENERATE_NODE( "scrollobj", CLevelGenerateScrollObjNode );
 	REGISTER_GENERATE_NODE( "tile", CLevelGenerateTileNode );

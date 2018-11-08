@@ -7,8 +7,9 @@ struct SLevelBuildContext
 {
 	SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk = NULL );
 	SLevelBuildContext( const SLevelBuildContext& par, SChunk* pParentChunk = NULL );
-	SLevelBuildContext( uint32 nWidth, uint32 nHeight );
+	SLevelBuildContext( uint32 nWidth, uint32 nHeight, bool bTest = false );
 	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
+	void CreateChain( SChainBaseInfo& baseInfo, int32 x, int32 y1, int32 y2 );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32>& ofs );
 	void PushScrollObj( CPrefab* pPrefab, uint32 nType );
@@ -20,6 +21,7 @@ struct SLevelBuildContext
 	uint32 nHeight;
 	vector<SBlockLayer*> blocks;
 	vector<SChunk*> chunks;
+	vector<SChain*> chains;
 	struct SAttach
 	{
 		CReference<CPrefab> pPrefab;
@@ -40,6 +42,7 @@ struct SLevelBuildContext
 	SChunk* pParentChunk;
 	uint32 nBlockSize;
 	uint32 nSeed;
+	bool bTest;
 };
 
 class CLevelGenerateNode : public CReferenceObject
@@ -54,10 +57,14 @@ public:
 	{
 		eEditType_Brush,
 		eEditType_Fence,
+		eEditType_Chain,
 	};
 	struct SMetadata
 	{
-		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ), nEditType( eEditType_Brush ), nSeed( 0 ) {}
+		SMetadata() : bIsDesignValid( false ), minSize( 1, 1 ), maxSize( 1, 1 ), nMinLevel( 0 ), nMaxLevel( -1 ), nEditType( eEditType_Brush ), nSeed( 0 )
+		{
+			nDefaultChainType[0] = nDefaultChainType[1] = 0;
+		}
 		uint8 GetLayerType() const
 		{
 			if( nMinLevel == 0 && nMaxLevel == 0 )
@@ -70,6 +77,13 @@ public:
 				return 0;
 		}
 
+		struct SType
+		{
+			string strName;
+			int32 nType;
+			int8 nChainType[2];
+		};
+		int8 GetChainType( int32 nType, uint8 nLayer ) const;
 		CVector4 GetEditColor( int32 nType ) const;
 
 		bool bIsDesignValid;
@@ -78,7 +92,8 @@ public:
 		TVector2<int32> minSize;
 		TVector2<int32> maxSize;
 		uint32 nSeed;
-		vector<pair<string, int32> > vecTypes;
+		int8 nDefaultChainType[2];
+		vector<SType> vecTypes;
 	};
 	const SMetadata& GetMetadata() { return m_metadata; }
 

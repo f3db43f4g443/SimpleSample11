@@ -25,6 +25,7 @@ public:
 
 	void SetOnHit( function<void( CBullet*, CEntity* )> onHit ) { m_onHit = onHit; }
 
+	uint8 GetBulletType() { return m_nType; }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override { m_pCreator = NULL; SetBulletContext( NULL ); CCharacter::OnRemovedFromStage(); }
 

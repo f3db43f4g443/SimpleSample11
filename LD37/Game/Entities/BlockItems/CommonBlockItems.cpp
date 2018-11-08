@@ -8,6 +8,7 @@
 #include "Common/Rand.h"
 #include "Pickup.h"
 #include "GlobalCfg.h"
+#include "Bullet.h"
 
 void CDetectTrigger::OnAddedToStage()
 {
@@ -329,7 +330,16 @@ void CSpawner::Trigger()
 		}
 		}
 
-		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		auto pBullet = SafeCast<CBullet>( pEntity );
+		if( pBullet )
+		{
+			if( pBullet->GetBulletType() == 0 )
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			else
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
+		else
+			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		if( m_nMaxCount )
 		{
 			SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
@@ -453,7 +463,16 @@ void CKillSpawner::Trigger()
 		else if( m_bTangentRotate )
 			pEntity->SetRotation( atan2( vel.y, vel.x ) );
 
-		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		auto pBullet = SafeCast<CBullet>( pEntity );
+		if( pBullet )
+		{
+			if( pBullet->GetBulletType() == 0 )
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			else
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
+		else
+			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 }
 
@@ -521,7 +540,16 @@ void CDamageSpawnEnemy::Trigger()
 		else if( m_bTangentRotate )
 			pEntity->SetRotation( atan2( vel.y, vel.x ) );
 
-		pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		auto pBullet = SafeCast<CBullet>( pEntity );
+		if( pBullet )
+		{
+			if( pBullet->GetBulletType() == 0 )
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			else
+				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
+		else
+			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 }
 

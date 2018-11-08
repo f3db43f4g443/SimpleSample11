@@ -26,6 +26,8 @@ public:
 	void RemoveChunk( SChunk* pChunk );
 	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks );
 
+	void RemoveChain( SChain* pChain );
+
 	FORCE_INLINE static uint32 GetBlockSize() { return 32; }
 	FORCE_INLINE float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
 	FORCE_INLINE float GetShakeStrength() { return m_basements[0].fShakeStrength; }

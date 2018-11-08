@@ -70,6 +70,7 @@ IMPLEMENT_MATERIAL_SHADER( Default2DVertexShader, "Shader/Default2D.shader", "VS
 IMPLEMENT_MATERIAL_SHADER( SingleImage2DVertexShader, "Shader/SingleImage2D.shader", "VSMain", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( Rope2DVertexShader, "Shader/Rope2D.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( Rope2DVSStaticData1, "Shader/Rope2D.shader", "VSDefaultStaticData1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( Rope2DVSS1P1, "Shader/Rope2D.shader", "VSDefaultS1P1", "vs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2D.shader", "VSDefaultExtraInstData", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DVertexShader2, CDefault2DVertexShaderExtraInstData<2>, "Shader/Default2D.shader", "VSDefaultExtraInstData", "vs_5_0" );
@@ -97,6 +98,7 @@ IMPLEMENT_MATERIAL_SHADER( PSEmissionAlpha, "Shader/CommonMaterial.shader", "PSE
 
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColor, "Shader/AlphaToOcclusion.shader", "PSColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusion, "Shader/AlphaToOcclusion.shader", "PSOcclusion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColorMulInstData, "Shader/AlphaToOcclusion.shader", "PSColorMulInstData", "ps_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( Default2DUIVertexShader, "Shader/Default2DUI.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DUIVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DUI.shader", "VSDefaultExtraInstData", "vs_5_0" );

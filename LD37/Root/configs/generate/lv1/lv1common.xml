@@ -112,27 +112,32 @@
       </node>
 
       <node name="box" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/box.pf">
+        <metadata chain_type1="0" chain_type2="1" />
         <types>4</types>
       </node>
       <node name="box_pt" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" prefab="data/blocks/lv1/box_pt.pf">
         <types>4</types>
       </node>
       <node name="crate" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/crate.pf">
+        <metadata chain_type1="0" chain_type2="1" />
         <types>4</types>
       </node>
       <node name="crate2x2" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/crate2x2.pf">
+        <metadata chain_type1="0" chain_type2="1" />
         <types>4,4,4,4</types>
       </node>
       <node name="cage" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage.pf">
+        <metadata chain_type1="0" chain_type2="1" />
         <types>4</types>
       </node>
       <node name="cage2x2" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage2x2.pf">
+        <metadata chain_type1="0" chain_type2="1" />
         <types>4,4,4,4</types>
       </node>
-      <node name="cage_bonus" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage_pt.pf">
+      <node name="cage_bonus" width="1" height="1" weight="0.5" destroyweight="2" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/crate.pf">
         <types>4</types>
       </node>
-      <node name="cage2x2_bonus" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/cage2x2_pt.pf">
+      <node name="cage2x2_bonus" width="2" height="2" weight="1" destroyweight="4" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/crate2x2.pf">
         <types>4,4,4,4</types>
       </node>
       <node name="air_conditioner" width="3" height="2" weight="1.3" destroyweight="6" layer_type="2" subchunk_type="1" prefab="data/blocks/lv1/air_conditioner.pf">
@@ -773,12 +778,12 @@
       </node>
 
       <node name="wall2" width="1" height="1" weight="1" weightperwidth="1" destroyweight="15" destroyweightperwidth="2.5" shakeweightcoef="1" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="10"  shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall2.pf">
-        <metadata minx="4" miny="4" maxx="32" maxy="32">
+        <metadata minx="4" miny="4" maxx="32" maxy="32" chain_type1="1" chain_type2="1">
           <types>
             <item name="0" />
-            <item name="0_1" />
-            <item name="0_1a" />
-            <item name="0_1b" />
+            <item name="0_1" chain_type2="0" />
+            <item name="0_1a" chain_type2="2" />
+            <item name="0_1b" chain_type2="2" />
             <item name="1" />
             <item name="2_1" />
             <item name="2_2" />
@@ -982,12 +987,12 @@
       </node>
       
       <node name="wall2_boss" width="1" height="1" weight="1" weightperwidth="1" destroyweight="15" destroyweightperwidth="2.5" shakeweightcoef="1" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="10"  shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall2_boss.pf">
-        <metadata minx="4" miny="4" maxx="32" maxy="32">
+        <metadata minx="4" miny="4" maxx="32" maxy="32" chain_type1="1" chain_type2="1">
           <types>
             <item name="0" />
-            <item name="0_1" />
-            <item name="0_1a" />
-            <item name="0_1b" />
+            <item name="0_1" chain_type2="0" />
+            <item name="0_1a" chain_type2="2" />
+            <item name="0_1b" chain_type2="2" />
             <item name="1" />
             <item name="2_1" />
             <item name="2_2" />
@@ -1109,7 +1114,7 @@
       </node>
 
       <node name="wall3" movetype="1" width="1" height="1" layer_type="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" shakeweightcoef="1" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall3.pf">
-        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <metadata minx="2" miny="2" maxx="32" maxy="32" chain_type1="1" chain_type2="0" />
         <types>0</types>
         <subitem copy_blueprint="3">
           <node type="subregion">
@@ -1132,7 +1137,7 @@
       </node>
 
       <node name="wall4" show_layer_type="0" width="1" height="1" weight="1" weightperwidth="1" destroyweight="2" destroyweightperwidth="2" absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" shakedmgperwidth="0.8" prefab="data/blocks/lv1/wall4.pf">
-        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <metadata minx="2" miny="2" maxx="32" maxy="32" chain_type1="1" chain_type2="0" />
         <types>0</types>
         <subitem copy_blueprint="1">
           <node type="subregion">
@@ -1166,7 +1171,7 @@
 
       <node name="scrap_1x" movetype="1" width="1" height="1" layer_type="2" weight="0.3" weightperwidth="0.3" destroyweight="2" destroyweightperwidth="2"
             absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" prefab="data/blocks/lv1/scrap_1.pf">
-        <metadata minx="4" miny="1" maxx="32" maxy="2">
+        <metadata minx="4" miny="1" maxx="32" maxy="2" chain_type2="1">
           <types>
             <item name="1" />
             <item name="2" />
@@ -1193,7 +1198,7 @@
 
       <node name="scrap_1y" movetype="1" width="1" height="1" layer_type="2" weight="0.3" weightperwidth="0.3" destroyweight="2" destroyweightperwidth="2"
             absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="5" shakedmg="0.8" prefab="data/blocks/lv1/scrap_1.pf">
-        <metadata minx="1" miny="4" maxx="2" maxy="16">
+        <metadata minx="1" miny="4" maxx="2" maxy="16" chain_type2="1">
           <types>
             <item name="1" />
             <item name="2" />
@@ -1257,11 +1262,12 @@
         </subitem>
       </node>
       <node name="stonebar_room_corner_1" width="1" height="1" weight="1" destroyweight="1.3" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_corner_1.pf">
+        <metadata chain_type1="1" chain_type2="1" />
         <types>4</types>
       </node>
       <node name="stonebar_room_h_1" width="8" height="1" weight="8" destroyweight="40" destroybalance="0.51" imbalancetime="1" absorbshakestrength="10000"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="5" shakedmgperwidth="0.5"  subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_h_1.pf">
-        <metadata minx="2" maxx="32" />
+        <metadata minx="2" maxx="32" chain_type1="1" chain_type2="1" />
         <types>4,4,4,4,4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -1271,7 +1277,7 @@
       </node>
       <node name="stonebar_room_v_1" width="1" height="4" weight="1" destroyweight="6" absorbshakestrength="10000"
             absorbshakestrengthperheight="0.25" shakedmg="4" subchunk_type="1" prefab="data/blocks/lv1/stonebar_room_v_1.pf">
-        <metadata miny="2" maxy="32" />
+        <metadata miny="2" maxy="32" chain_type1="1" chain_type2="1" />
         <types>4,4,4,4</types>
         <subitem>
           <node type="tile">
@@ -1534,9 +1540,9 @@
       <node name="enemyroom2_1" show_layer_type="0" type="room2" wall_mask="mask" width="8" height="8" weight="8" weightperwidth="1"  destroyweight="32" destroyweightperwidth="4" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="25" shakedmg="20" movetype="1" isroom="1" prefab="data/blocks/lv1/wall_room_1.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="32">
           <types>
-            <item name="room" value="0" />
-            <item name="mask" />
-            <item name="door" />
+            <item name="room" value="0" chain_type1="1" chain_type2="1" />
+            <item name="mask" chain_type1="2" chain_type2="2" />
+            <item name="door" chain_type1="2" chain_type2="2" />
           </types>
         </metadata>
         <types>
@@ -1760,6 +1766,11 @@
       <node name="cage_tile_bonus" type="randomfill" check_gen_data_name="mask">
         <ref name="cage2x2_bonus" sizeminx="2" sizeminy="2" p="5" />
         <ref name="cage_bonus" sizeminx="1" sizeminy="1" p="1" />
+      </node>
+      
+      <node name="chain1" type="chain" attach_type1="1" attach_type2="1" layer="1" len="16" prefab="data/blocks/lv1/chain1.pf">
+        <metadata maxy="10" />
+        <types>4</types>
       </node>
 
       <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">

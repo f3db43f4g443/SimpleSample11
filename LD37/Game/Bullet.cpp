@@ -61,6 +61,7 @@ void CBullet::OnAddedToStage()
 		m_bound = CMyLevel::GetInst()->GetLargeBound();
 		break;
 	case 1:
+	case 3:
 		m_bound = CMyLevel::GetInst()->GetBound();
 		break;
 	default:
@@ -109,12 +110,22 @@ void CBullet::OnTickAfterHitTest()
 
 	if( !m_bound.Contains( globalTransform.GetPosition() ) )
 	{
-		CVector2 globalPos = globalTransform.GetPosition();
-		globalPos.x = Min( m_bound.GetRight(), Max( m_bound.x, globalPos.x ) );
-		globalPos.y = Min( m_bound.GetBottom(), Max( m_bound.y, globalPos.y ) );
-		globalTransform.SetPosition( globalPos );
-		Kill();
-		return;
+		if( m_nBoundType == 3 )
+		{
+			if( x < m_bound.x && m_velocity.x < 0 || x > m_bound.GetRight() && m_velocity.x > 0 )
+				m_velocity.x = -m_velocity.x;
+			if( y < m_bound.y && m_velocity.y < 0 || y > m_bound.GetBottom() && m_velocity.y > 0 )
+				m_velocity.y = -m_velocity.y;
+		}
+		else
+		{
+			CVector2 globalPos = globalTransform.GetPosition();
+			globalPos.x = Min( m_bound.GetRight(), Max( m_bound.x, globalPos.x ) );
+			globalPos.y = Min( m_bound.GetBottom(), Max( m_bound.y, globalPos.y ) );
+			globalTransform.SetPosition( globalPos );
+			Kill();
+			return;
+		}
 	}
 
 	switch( m_nType )

@@ -124,3 +124,20 @@ public:
 private:
 	CReference<CCharacter> m_pCharacter;
 };
+
+class CEnemyHp : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CEnemyHp( const SClassCreateContext& context ) : CEntity( context ), m_onHPChanged( this, &CEnemyHp::OnHpChanged ) { SET_BASEOBJECT_ID( CEnemyHp ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnHpChanged();
+
+	uint8 m_nType;
+	CVector4 m_params[4];
+	int32 m_nParams;
+
+	TClassTrigger<CEnemyHp> m_onHPChanged;
+};

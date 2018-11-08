@@ -47,3 +47,26 @@ void VSDefaultStaticData1( in float2 tex : Position,
 	outTex.y = texData.z;
 	outInstData = g_staticData;
 }
+
+void VSDefaultS1P1( in float2 tex : Position,
+	in uint instID : SV_InstanceID,
+	out float4 outPos : SV_Position,
+	out float2 outTex : TexCoord0,
+	out float4 outInstData : ExtraInstData0,
+	out float4 outInstData1 : ExtraInstData1 )
+{
+	float pos = tex.x * 2.0 - 1.0;
+	float fracInstID = tex.y / g_segmentsPerData;
+
+	float4 center_dir = lerp( g_insts[( uint )instID * 3], g_insts[( uint )instID * 3 + 3], fracInstID );
+
+	float2 matX = center_dir.zw;
+	center_dir.xy = center_dir.xy + pos * matX;
+	outPos = mul( g_matView, float4( center_dir.xy, g_insts[( uint )instID * 3 + 1].w, 1.0 ) );
+
+	float4 texData = lerp( g_insts[( uint )instID * 3 + 1], g_insts[( uint )instID * 3 + 4], fracInstID );
+	outTex.x = lerp( texData.x, texData.y, tex.x );
+	outTex.y = texData.z;
+	outInstData = g_staticData;
+	outInstData1 = lerp( g_insts[( uint )instID * 3 + 2], g_insts[( uint )instID * 3 + 5], fracInstID );
+}

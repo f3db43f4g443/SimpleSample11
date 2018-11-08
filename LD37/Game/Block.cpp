@@ -9,6 +9,7 @@
 #include "BlockItem.h"
 #include "Entities/Decorator.h"
 #include "BlockBuff.h"
+#include "Render/Rope2D.h"
 
 CBlockObject::CBlockObject( SBlock* pBlock, CEntity* pParent, CMyLevel* pLevel )
 	: m_pBlock( pBlock ), m_nBlockRTIndex( -1 ), m_bBlockRTActive( false )
@@ -59,6 +60,177 @@ void CBlockObject::ClearEfts()
 		m_pDetectUI->RemoveThis();
 }
 
+
+SChain::SChain( SChainBaseInfo & baseInfo, int32 x, int32 y1, int32 y2 )
+	: p1( NULL ), p2( NULL ), nX( x ), nY1( y1 ), nY2( y2 ), nMaxLen( 0 )
+	, nLayer( baseInfo.nLayer ), pPrefab( baseInfo.pPrefab )
+	, pChainObject( NULL ), pEf2( NULL ), nYLim( 0 )
+{
+}
+
+SChain::SChain( SChainBaseInfo& baseInfo, SChunk* a, SChunk* b, int32 x, int32 y1, int32 y2 )
+	: p1( a ), p2( b ), nX( x ), nY1( y1 ), nY2( y2 )
+	, nLayer( baseInfo.nLayer ), pPrefab( baseInfo.pPrefab )
+	, pChainObject( NULL ), pEf1( NULL ), pEf2( NULL )
+{
+	y1 = nY1 * CMyLevel::GetBlockSize() + p1->pos.y;
+	y2 = nY2 * CMyLevel::GetBlockSize() + p2->pos.y;
+	p1->Insert_Chain2( this );
+	p2->Insert_Chain1( this );
+	SChunk* pRoot1 = p1;
+	while( pRoot1->pParentChunk && pRoot1->nSubChunkType >= 1 )
+	{
+		pRoot1 = pRoot1->pParentChunk;
+		y1 += pRoot1->pos.y;
+	}
+	SChunk* pRoot2 = p2;
+	while( pRoot2->pParentChunk && pRoot2->nSubChunkType >= 1 )
+	{
+		pRoot2 = pRoot2->pParentChunk;
+		y2 += pRoot2->pos.y;
+	}
+	nMaxLen = y2 - y1 + baseInfo.nLen;
+	Init();
+}
+
+void SChain::Init()
+{
+	if( pEf1 )
+	{
+		pEf1 = NULL;
+		RemoveFrom_ChainEf2();
+	}
+	if( pEf2 )
+	{
+		pEf2 = NULL;
+		RemoveFrom_ChainEf1();
+	}
+
+	int32 y1 = nY1 * CMyLevel::GetBlockSize(), y2 = nY2 * CMyLevel::GetBlockSize();
+	SChunk* pRoot1 = p1;
+	while( pRoot1->pParentChunk && pRoot1->nSubChunkType >= 1 )
+	{
+		y1 += pRoot1->pos.y;
+		pRoot1 = pRoot1->pParentChunk;
+	}
+	SChunk* pRoot2 = p2;
+	while( pRoot2->pParentChunk && pRoot2->nSubChunkType >= 1 )
+	{
+		y2 += pRoot2->pos.y;
+		pRoot2 = pRoot2->pParentChunk;
+	}
+	pEf1 = pRoot1;
+	pEf2 = pRoot2;
+	pRoot1->Insert_ChainEf2( this );
+	pRoot2->Insert_ChainEf1( this );
+
+	nYLim = nMaxLen + y1 - y2;
+	if( pChainObject )
+		pChainObject->Update();
+}
+
+void SChain::CreateChainObject( CMyLevel* pLevel )
+{
+	if( pChainObject )
+		return;
+	auto pChainObject = SafeCast<CChainObject>( pPrefab->GetRoot()->CreateInstance() );
+	pChainObject->SetChain( this, pLevel );
+}
+
+void SChain::CreateChainObjectPreview( CEntity* pRootEntity )
+{
+	if( pChainObject )
+		return;
+	auto pChainObject = SafeCast<CChainObject>( pPrefab->GetRoot()->CreateInstance() );
+	pChainObject->Preview( this, pRootEntity );
+}
+
+void SChain::ForceDestroy()
+{
+	if( p1 )
+	{
+		RemoveFrom_Chain1();
+		p1 = NULL;
+	}
+	if( p2 )
+	{
+		RemoveFrom_Chain2();
+		p2 = NULL;
+	}
+	delete this;
+}
+
+void CChainObject::SetChain( SChain* pChain, CMyLevel* pLevel )
+{
+	m_pChain = pChain;
+	pChain->pChainObject = this;
+	SetParentBeforeEntity( pChain->nLayer == 0 ? CMyLevel::GetInst()->GetChunkRoot() : CMyLevel::GetInst()->GetChunkRoot1() );
+	Update();
+}
+
+void CChainObject::Preview( SChain* pChain, CEntity * pParent )
+{
+	m_pChain = pChain;
+	pChain->pChainObject = this;
+	SetParentEntity( pParent );
+
+	auto pRope = static_cast<CRopeObject2D*>( GetRenderObject() );
+	auto& data = pRope->GetData();
+	auto& begin = data.data[0];
+	auto& end = data.data[1];
+	begin.center.x = end.center.x = ( m_pChain->nX + 0.5f ) * CMyLevel::GetBlockSize();
+	begin.center.y = m_pChain->nY1 * CMyLevel::GetBlockSize();
+	end.center.y = m_pChain->nY2 * CMyLevel::GetBlockSize();
+	if( m_fTexYTileLen > 0 )
+		end.tex0.y = end.tex1.y = ( m_pChain->nY2 - m_pChain->nY1 ) * CMyLevel::GetBlockSize() / m_fTexYTileLen;
+	if( m_nEftType == 1 )
+		begin.tex1.x = end.tex1.x = end.tex0.y;
+	pRope->SetTransformDirty();
+}
+
+void CChainObject::RemoveChain()
+{
+	if( m_pChain && CMyLevel::GetInst() )
+	{
+		auto pChain = m_pChain;
+		m_pChain = NULL;
+		pChain->pChainObject = NULL;
+		CMyLevel::GetInst()->RemoveChain( pChain );
+	}
+}
+
+void CChainObject::Update()
+{
+	auto pRope = static_cast<CRopeObject2D*>( GetRenderObject() );
+	auto& data = pRope->GetData();
+	auto& begin = data.data[0];
+	auto& end = data.data[1];
+	begin.center.x = end.center.x = ( m_pChain->nX + 0.5f ) * CMyLevel::GetBlockSize();
+
+	int32 y1 = m_pChain->nY1 * CMyLevel::GetBlockSize() + m_pChain->p1->pos.y,
+		y2 = m_pChain->nY2 * CMyLevel::GetBlockSize() + m_pChain->p2->pos.y;
+	SChunk* pRoot1 = m_pChain->p1;
+	while( pRoot1->pParentChunk && pRoot1->nSubChunkType >= 1 )
+	{
+		pRoot1 = pRoot1->pParentChunk;
+		y1 += pRoot1->pos.y;
+	}
+	SChunk* pRoot2 = m_pChain->p2;
+	while( pRoot2->pParentChunk && pRoot2->nSubChunkType >= 1 )
+	{
+		pRoot2 = pRoot2->pParentChunk;
+		y2 += pRoot2->pos.y;
+	}
+	begin.center.y = y1;
+	end.center.y = y2;
+
+	if( m_fTexYTileLen > 0 )
+		end.tex0.y = end.tex1.y = ( y2 - y1 ) / m_fTexYTileLen;
+	if( m_nEftType == 1 )
+		begin.tex1.x = end.tex1.x = end.tex0.y;
+	pRope->SetTransformDirty();
+}
+
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )
 	: nWidth( size.x )
 	, nHeight( size.y )
@@ -96,6 +268,10 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, m_pSubChunks( NULL )
 	, m_pSpawnInfos( NULL )
 	, m_pChunkStopEvents( NULL )
+	, m_pChain1( NULL )
+	, m_pChain2( NULL )
+	, m_pChainEf1( NULL )
+	, m_pChainEf2( NULL )
 {
 	blocks.resize( size.x * size.y );
 	for( int j = 0; j < size.y; j++ )
@@ -142,6 +318,11 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 		pParentChunk = pParent;
 		pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
 		pChunkObject->SetChunk( this, pLevel );
+
+		for( auto pChain = Get_Chain2(); pChain; pChain = pChain->NextChain2() )
+		{
+			pChain->CreateChainObject( pLevel );
+		}
 
 		if( Get_SpawnInfo() )
 		{
@@ -212,11 +393,16 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 	return true;
 }
 
-void SChunk::CreateChunkObjectPreview( CEntity * pRootEntity, SChunk * pParent )
+void SChunk::CreateChunkObjectPreview( CEntity* pRootEntity, SChunk* pParent )
 {
 	pParentChunk = pParent;
 	pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
 	pChunkObject->Preview( this, pRootEntity );
+
+	for( auto pChain = Get_Chain2(); pChain; pChain = pChain->NextChain2() )
+	{
+		pChain->CreateChainObjectPreview( pRootEntity );
+	}
 
 	for( auto pSpawnInfo = m_pSpawnInfos; pSpawnInfo; pSpawnInfo = pSpawnInfo->NextSpawnInfo() )
 	{
@@ -256,6 +442,10 @@ float SChunk::GetFallSpeed()
 
 void SChunk::ForceDestroy()
 {
+	while( m_pChain1 )
+		m_pChain1->ForceDestroy();
+	while( m_pChain2 )
+		m_pChain2->ForceDestroy();
 	while( m_pSubChunks )
 	{
 		auto pChunk = m_pSubChunks;
