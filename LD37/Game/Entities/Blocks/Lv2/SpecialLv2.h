@@ -2,6 +2,36 @@
 #include "Block.h"
 #include "Entities/BlockItems/BlockItemsLv2.h"
 
+class CLv2RandomChunk1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CLv2RandomChunk1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CLv2RandomChunk1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+private:
+	uint32 m_nHpPerSize;
+};
+
+class CGarbageBin1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CGarbageBin1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CGarbageBin1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) override;
+protected:
+	virtual void OnKilled() override;
+	void Trigger();
+	uint32 m_nTriggerImpact;
+	uint32 m_nMaxTriggerCount;
+	uint32 m_nMaxDeathTriggerCount;
+	float m_h;
+	float m_fMaxTriggerHeight;
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pBullet1;
+};
+
 class CBarrel : public CExplosiveChunk
 {
 	friend void RegisterGameClasses();
@@ -61,11 +91,14 @@ public:
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 	void DelayExplode();
 	void Explode();
+	CCharacter* GetOneThrowObj();
+	CVector4* GetParam( int8 i ) { return m_params[i]; }
 protected:
 	virtual void OnKilled() override;
 
 	void OnTick();
 private:
+	uint8 m_nType;
 	uint32 m_nHpPerSize;
 
 	TResourceRef<CPrefab> m_pInitCharPrefabs[4];
@@ -76,17 +109,26 @@ private:
 	uint32 m_nThrowObjMax[4];
 
 	TResourceRef<CPrefab> m_pExp;
+	TResourceRef<CPrefab> m_pExp1;
 	TResourceRef<CPrefab> m_pExpEft;
 	TResourceRef<CPrefab> m_pEft1;
+
+	float m_fHeightOfs;
+	float m_fHeightOfs1;
+	uint8 m_nTag1;
+	uint8 m_nTag2;
 
 	bool m_bAnyoneEntered;
 	bool m_bExploding;
 	bool m_bExploded;
 	int32 m_nCount;
 	vector<pair<CReference<CCharacter>, int32> > m_characters;
-	vector<CReference<CHousePart> > m_houseParts;
 	vector<CReference<CHouseEntrance> > m_houseEntrances;
+	vector<CReference<CHouseWindow> > m_windows;
 	vector<int8> m_throwObjs;
+
+	int32 m_nY[3];
+	CVector4 m_params[3][3];
 
 	TClassTrigger<CHouse> m_onTick;
 };

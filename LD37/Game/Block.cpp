@@ -661,6 +661,9 @@ void CChunkObject::CreateBlockRTLayer( CBlockObject* pBlockObject )
 	CDrawableGroup* pDrawable = m_strBlockRTDrawable;
 	if( !pDrawable )
 		return;
+	auto& texRect = pBlockObject->GetBlock()->rtTexRect;
+	if( texRect.width <= 0 || texRect.height <= 0 )
+		return;
 
 	auto pImage2D = SafeCast<CImage2D>( pDrawable->CreateInstance() );
 	pImage2D->SetRect( CRectangle( pBlockObject->m_pBlock->nX * CMyLevel::GetBlockSize(), pBlockObject->m_pBlock->nY * CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() ) );

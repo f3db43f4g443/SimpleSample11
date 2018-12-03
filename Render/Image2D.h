@@ -66,6 +66,7 @@ public:
 	uint32 GetFrameEnd() { return m_nFrameEnd; }
 	float GetFramesPerSec() { return m_fFramesPerSec; }
 	float GetPlaySpeed() { return m_fPlaySpeed; }
+	void SetFrameParams( int32 nBegin, int32 nEnd );
 	bool IsLoop() { return m_bLoop; }
 
 	void SetPlaySpeed( float fPlaySpeed, bool bLoop );
@@ -80,5 +81,7 @@ protected:
 	uint32 m_nFrameEnd;
 	float m_fFramesPerSec;
 	float m_fPlaySpeed;
+	int32 m_nFrameParamBegin;
+	int32 m_nFrameParamEnd;
 	bool m_bLoop;
 };

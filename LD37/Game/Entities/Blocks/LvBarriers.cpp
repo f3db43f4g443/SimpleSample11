@@ -166,20 +166,54 @@ void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	auto texRect0 = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
 
 	SetRenderObject( new CRenderObject2D );
+	auto pRenderObject1 = new CRenderObject2D;
+	pRenderObject1->SetZOrder( 1 );
+	AddChild( pRenderObject1 );
 	for( int j = 0; j < pChunk->nHeight; j += 2 )
 	{
 		for( int i = 0; i < pChunk->nWidth; i += 2 )
 		{
 			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 			pImage2D->SetRect( CRectangle( i * 32, j * 32, 64, 64 ) );
-			pImage2D->SetTexRect( texRect0 );
-			GetRenderObject()->AddChild( pImage2D );
-			for( int iX = i; iX < i + 2; iX++ )
+			bool b = true;
+			if( j == 0 )
 			{
-				for( int iY = j; iY < j + 2; iY++ )
+				if( i < 4 )
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * ( 1 + i / 2 ), texRect0.height ) ) );
+				else if( i >= pChunk->nWidth - 4 )
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * ( 8 - ( pChunk->nWidth - i ) / 2 ), texRect0.height ) ) );
+				else
 				{
-					GetBlock( iX, iY )->rtTexRect = CRectangle( texRect0.x + iX * texRect0.width / 2, texRect0.y + iY * texRect0.height / 2,
-						texRect0.width / 2, texRect0.height / 2 );
+					pImage2D->SetTexRect( texRect0 );
+					b = false;
+				}
+			}
+			else
+			{
+				if( i < 4 )
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * ( 1 + i / 2 ), 0 ) ) );
+				else if( i >= pChunk->nWidth - 4 )
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * ( 8 - ( pChunk->nWidth - i ) / 2 ), 0 ) ) );
+				else if( i >= pChunk->nWidth / 2 - 2 && i < pChunk->nWidth / 2 + 2 )
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * ( 5 + ( i - (int32)pChunk->nWidth / 2 ) / 2 ), 0 ) ) );
+				else
+					pImage2D->SetTexRect( texRect0.Offset( CVector2( texRect0.width * 3, 0 ) ) );
+			}
+
+			GetRenderObject()->AddChild( pImage2D );
+			if( b )
+			{
+				pImage2D->SetRenderParent( pRenderObject1 );
+			}
+			else
+			{
+				for( int iX = i; iX < i + 2; iX++ )
+				{
+					for( int iY = j; iY < j + 2; iY++ )
+					{
+						GetBlock( iX, iY )->rtTexRect = CRectangle( texRect0.x + iX * texRect0.width / 2, texRect0.y + iY * texRect0.height / 2,
+							texRect0.width / 2, texRect0.height / 2 );
+					}
 				}
 			}
 		}
@@ -344,6 +378,21 @@ void CLvFloor2::OnTick()
 
 	if( y <= 0 )
 	{
+		if( m_pBonusStageReward )
+		{
+			auto pPlayer = GetStage()->GetPlayer();
+			if( pPlayer )
+			{
+				CVector2 p( m_pChunk->nWidth * CMyLevel::GetBlockSize() * 0.5f, ( m_pChunk->nHeight - 1 ) * CMyLevel::GetBlockSize() );
+				auto pBonusStageDrop = SafeCast<CBonusStageReward>( m_pBonusStageReward->GetRoot()->CreateInstance() );
+				pBonusStageDrop->SetPosition( GetPosition() + p );
+				pBonusStageDrop->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+				SItemDropContext context;
+				CGlobalCfg::Inst().bonusStageDrop.Drop( context, pPlayer->GetPoint() );
+				pBonusStageDrop->Set( context, CGlobalCfg::Inst().Point2Reward( pPlayer->GetPoint() ) );
+			}
+		}
+
 		CChunkObject::Kill();
 		return;
 	}

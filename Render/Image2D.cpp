@@ -123,6 +123,8 @@ CMultiFrameImage2D::CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOc
 	, m_fFramesPerSec( pData->fFramesPerSec )
 	, m_fPlaySpeed( 1 )
 	, m_bLoop( true )
+	, m_nFrameParamBegin( -1 )
+	, m_nFrameParamEnd( -1 )
 {
 	m_localBound = pData->bound;
 }
@@ -140,6 +142,12 @@ void CMultiFrameImage2D::SetFrames( uint32 nBegin, uint32 nEnd, float fFramesPer
 void CMultiFrameImage2D::SetPlayPercent( float fPlayPercent )
 {
 	m_fCurFrame = ( m_nFrameEnd - m_nFrameBegin ) * fPlayPercent;
+}
+
+void CMultiFrameImage2D::SetFrameParams( int32 nBegin, int32 nEnd )
+{
+	m_nFrameParamBegin = Min<int32>( m_params.size(), nBegin );
+	m_nFrameParamEnd = Min<int32>( m_params.size(), nEnd );
 }
 
 void CMultiFrameImage2D::SetPlaySpeed( float fPlaySpeed, bool bLoop )
@@ -183,7 +191,12 @@ void CMultiFrameImage2D::UpdateImage()
 		m_element2D.rect = frame.rect;
 		m_element2D.texRect = frame.texRect;
 		if( m_params.size() )
-			memcpy( &m_params[0], &frame.params[0], sizeof(CVector4)* m_params.size() );
+		{
+			if( m_nFrameParamBegin < 0 )
+				memcpy( &m_params[0], &frame.params[0], sizeof( CVector4 ) * m_params.size() );
+			else if( m_nFrameParamEnd > m_nFrameParamBegin )
+				memcpy( &m_params[m_nFrameParamBegin], &frame.params[m_nFrameParamBegin], sizeof( CVector4 ) * ( m_nFrameParamEnd - m_nFrameParamBegin ) );
+		}
 	}
 }
 

@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "Block.h"
 #include "Render/Image2D.h"
+#include "Entities/Blocks/Lv2/SpecialLv2.h"
 
 CDoor::CDoor( const SClassCreateContext& context )
 	: CEntity( context ), m_bOpen( false ), m_nOpenFrame( 0 ), m_onTick( this, &CDoor::OnTick )
@@ -18,6 +19,21 @@ void CDoor::OnAddedToStage()
 
 	CMultiFrameImage2D* pImage = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
 	pImage->SetPlaySpeed( 0, false );
+	uint16 nParamCount;
+	auto pParam = pImage->GetParam( nParamCount );
+	if( nParamCount >= 3 )
+	{
+		pImage->SetFrameParams( 0, 0 );
+		auto pHouse = SafeCast<CHouse>( GetParentEntity() );
+		if( pHouse )
+		{
+			auto pParam = pImage->GetParam();
+			auto pParam1 = pHouse->GetParam( 0 );
+			pParam[0].w = pParam1[0].w;
+			pParam[1] = pParam1[1];
+			pParam[2] = pParam1[2];
+		}
+	}
 }
 
 void CDoor::OnRemovedFromStage()

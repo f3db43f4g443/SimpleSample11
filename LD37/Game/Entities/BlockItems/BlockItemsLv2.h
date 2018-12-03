@@ -2,15 +2,26 @@
 #include "CommonBlockItems.h"
 #include "Entities/AIObject.h"
 #include "Entities/EffectObject.h"
+#include "Entities/Decorator.h"
 #include "Enemy.h"
 #include "Lightning.h"
 #include "Interfaces.h"
+#include "Render/DrawableGroup.h"
+
+class CLv2Wall1Deco : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CLv2Wall1Deco( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CLv2Wall1Deco ); }
+	virtual void Init( const CVector2& size ) override;
+};
 
 class CCarSpawner : public CDetectTrigger
 {
 	friend void RegisterGameClasses();
 public:
 	CCarSpawner( const SClassCreateContext& context ) : CDetectTrigger( context ) { SET_BASEOBJECT_ID( CCarSpawner ); }
+	virtual void OnAddedToStage() override;
 protected:
 	virtual void Trigger() override;
 	virtual bool CheckTrigger() override;
@@ -26,20 +37,53 @@ class CHouseEntrance : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
-	CHouseEntrance( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CHouseEntrance ); }
+	CHouseEntrance( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CHouseEntrance::OnTick ){ SET_BASEOBJECT_ID( CHouseEntrance ); }
 
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 	void SetState( uint8 nState );
 	bool CanEnter( CCharacter* pCharacter );
 	bool Enter( CCharacter* pCharacter );
 	bool Exit( CCharacter* pCharacter );
 	uint8 GetDir() { return m_nDir; }
 private:
+	void OpenDoor();
+	void OnTick();
+	CReference<CRenderObject2D> m_p1;
+	CReference<CRenderObject2D> m_p2;
 	CReference<CRenderObject2D> m_pSign;
 	CReference<CRenderObject2D> m_pLight;
 	CRectangle m_spawnRect;
 	CRectangle m_spawnRect1;
 	uint8 m_nDir;
+
+	int32 m_nFrameBegin;
+	TClassTrigger<CHouseEntrance> m_onTick;
+};
+
+class CHouseWindow : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CHouseWindow( const SClassCreateContext& context ) : CDecorator( context ), m_pChunkObject( NULL ), m_onTick( this, &CHouseWindow::OnTick ) { SET_BASEOBJECT_ID( CHouseWindow ); }
+	virtual void Init( const CVector2& size ) override;
+	virtual void OnRemovedFromStage() override;
+	void SetState( uint8 nState );
+private:
+	void Break();
+	void OnTick();
+
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pEft;
+	TResourceRef<CDrawableGroup> m_pCrack;
+	CReference<CEntity> m_p1;
+	CReference<CEntity> m_p2;
+
+	uint8 m_nType;
+	bool m_bBroken;
+	CVector2 m_size;
+	class CChunkObject* m_pChunkObject;
+	TClassTrigger<CHouseWindow> m_onTick;
 };
 
 class CThruster : public CEntity

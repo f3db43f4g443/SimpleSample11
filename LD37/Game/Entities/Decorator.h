@@ -44,7 +44,10 @@ private:
 	CVector2 m_texSize;
 	float m_fTexelSize;
 	float m_fWidth;
+	uint8 m_nType;
 	bool m_bVertical;
+	uint8 m_nBlockTag;
+	uint8 m_nBlockTag1;
 	uint32 m_nAlignment;
 	float m_fMaxHeightPercent;
 	float m_fMinHeightPercent;
@@ -112,4 +115,20 @@ private:
 	uint32 m_nTileBegin[16];
 	uint32 m_nTileCount[16];
 	uint8 m_nBlockTag;
+};
+
+class CDecoratorEdge1 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorEdge1( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorEdge1 ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	int32 m_nCornerSize;
+	int32 m_nMinLen;
+	int32 m_nMaxLen;
+	float m_fPercent;
+	uint8 m_nBlockTag;
+	uint8 m_nBlockTag1;
 };

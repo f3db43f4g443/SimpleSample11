@@ -34,6 +34,12 @@ void VSParticle( in float2 tex : Position,
 	float2 p0 = instData1.xy;
 	float2 v = instData1.zw;
 	float2 a = instData2.xy;
+
+	float rot = instData2.w * t;
+	float2 matX = float2( cos( rot ), sin( rot ) );
+	float2 matY = float2( -matX.y, matX.x );
+	pos = pos.x * matX + pos.y * matY;
+
 	pos = p0 + v * t + 0.5 * a * t * t + pos + g_specialOfs;
 
 	float frameCount = floor( min( t * g_frames, g_frames - 0.01 ) );

@@ -527,6 +527,7 @@
     <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
+    <None Include="..\Shader\GameCommon.shader" />
     <None Include="..\Shader\ParticleFlipbook1.shader" />
     <None Include="..\Shader\ParticleFlipbookSplash.shader" />
     <None Include="..\Shader\ParticleRandomTex.shader" />

@@ -260,6 +260,8 @@ void CEnemyPhysics::OnTickAfterHitTest()
 	if( m_nLife )
 	{
 		m_nLife--;
+		if( m_fKillVel > 0 && GetVelocity().Length2() < m_fKillVel * m_fKillVel )
+			m_nLife /= 2;
 		if( !m_nLife )
 		{
 			Kill();

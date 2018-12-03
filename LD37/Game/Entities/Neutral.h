@@ -17,7 +17,7 @@ protected:
 	SCharacterPhysicsMovementData m_moveData;
 	uint32 m_nKnockbackTime;
 	uint32 m_nLife;
-
+	float m_fKillVel;
 	uint32 m_nKnockbackTimeLeft;
 };
 

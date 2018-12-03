@@ -141,3 +141,40 @@ private:
 
 	TClassTrigger<CEnemyHp> m_onHPChanged;
 };
+
+class CBulletEmitter : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CBulletEmitter( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CBulletEmitter::OnTick ) { SET_BASEOBJECT_ID( CBulletEmitter ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void OnTick();
+
+	void Fire();
+
+	TResourceRef<CPrefab> m_pBullet;
+	uint8 m_nTargetType;
+	float m_fTargetParam;
+	float m_fTargetParam1;
+
+	uint32 m_nFireCD;
+	uint32 m_nFireInterval;
+	uint32 m_nAmmoCount;
+	uint32 m_nCheckInterval;
+
+	uint32 m_nBulletCount;
+	float m_fAngle;
+	uint8 m_nDistribution;
+
+	float m_fSpeed;
+	float m_fGravity;
+	uint32 m_nBulletLife;
+	float m_fShakePerFire;
+	CVector2 m_fireOfs;
+	float m_fAngularSpeed;
+
+	uint32 m_nAmmoLeft;
+	TClassTrigger<CBulletEmitter> m_onTick;
+};

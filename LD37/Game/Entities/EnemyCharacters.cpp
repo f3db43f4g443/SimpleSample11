@@ -761,21 +761,18 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 	}
 	else
 	{
-		if( pGrid->nType == 2 )
+		auto pHitTestGrid = GetStage()->GetHitTestMgr().GetGrid( pGrid->pos );
+		for( auto pProxyGrid = pHitTestGrid->Get_InGrid(); pProxyGrid; pProxyGrid = pProxyGrid->NextInGrid() )
 		{
-			auto pHitTestGrid = GetStage()->GetHitTestMgr().GetGrid( pGrid->pos );
-			for( auto pProxyGrid = pHitTestGrid->Get_InGrid(); pProxyGrid; pProxyGrid = pProxyGrid->NextInGrid() )
-			{
-				auto pEntity = static_cast<CEntity*>( pProxyGrid->pHitProxy->pOwner );
+			auto pEntity = static_cast<CEntity*>( pProxyGrid->pHitProxy->pOwner );
 
-				auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
-				if( pEntrance && pEntrance->CanEnter( this ) )
+			auto pEntrance = SafeCast<CHouseEntrance>( pEntity );
+			if( pEntrance && pEntrance->CanEnter( this ) )
+			{
+				if( pGrid->fDist < m_fNearestDist )
 				{
-					if( pGrid->fDist < m_fNearestDist )
-					{
-						m_fNearestDist = pGrid->fDist;
-						m_nearestGrid = pGrid->pos;
-					}
+					m_fNearestDist = pGrid->fDist;
+					m_nearestGrid = pGrid->pos;
 				}
 			}
 		}
@@ -785,14 +782,22 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 void CThug::OnFindPath( CNavigationUnit::SGridData * pGrid )
 {
 	if( pGrid )
+	{
 		m_pNav->BuildPath( pGrid, this );
-	else if( m_fNearestDist != FLT_MAX )
+		return;
+	}
+	if( m_fNearestDist != FLT_MAX )
+	{
 		m_pNav->BuildPath( &m_pNav->GetGrid( m_nearestGrid ), this );
+	}
 	else
 	{
 		float r = SRand::Inst().Rand( -PI, PI );
 		m_curMoveDir = CVector2( cos( r ), sin( r ) );
 	}
+
+	if( m_pThrowObj && m_nStateTime == 0 )
+		m_bAtRoof = true;
 }
 
 void CWorker::OnAddedToStage()

@@ -7,41 +7,6 @@
   </includes>
   <level_gen>
     <nodes>
-      
-      <node type="lv2type1_0" name="lv2f1">
-        <wall>
-          <ref name="block0" />
-        </wall>
-        <road>
-          <ref name="road_old" />
-        </road>
-        <road1>
-          <ref name="road_large" />
-        </road1>
-        <block>
-          <node type="randomfill" check_gen_data_name="mask">
-            <ref name="block1_tiled" sizeminx="2" sizeminy="2" sizemaxx="4" sizemaxy="4" p="1" />
-            <ref name="block1_tiled" sizeminx="2" sizeminy="1" sizemaxx="4" sizemaxy="1" p="1" />
-            <ref name="block1_tiled" sizeminx="1" sizeminy="2" sizemaxx="1" sizemaxy="4" p="1" />
-            <ref name="block1" sizeminx="1" sizeminy="1" p="1" />
-          </node>
-        </block>
-        <block1>
-          <ref name="brick_tile_1ax" />
-        </block1>
-        <block2>
-          <ref name="brick_tile_1bx" />
-        </block2>
-        <obj>
-          <ref name="obj_tile_old" />
-        </obj>
-        <cargo>
-          <ref name="cargo1s" />
-        </cargo>
-        <cargo2>
-          <ref name="cargo" />
-        </cargo2>
-      </node>
 
       <node type="lv2type1_1" name="lv2f2">
         <wall>
@@ -208,16 +173,27 @@
       </node>
     
       <node type="subregion" name="lv2_1">
-        <ref name="lv2f4" x="0" y="0" w="32" h="24" />
-
-        <ref name="lv2f4" x="0" y="24" w="32" h="24" />
-
-        <ref name="lv2f4" x="0" y="48" w="32" h="24" />
-
-        <ref name="lv2f4" x="0" y="72" w="32" h="24" />
-
-        <ref name="lv2f4" x="0" y="96" w="32" h="24" />
-        <ref name="1f" x="0" y="120" w="32" h="8" />
+        <node type="lv2type1_0" x="0" y="0" w="32" h="60">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <wall1>
+            <ref name="wall1" />
+          </wall1>
+          <house>
+            <ref name="house" />
+          </house>
+          <cargo>
+            <ref name="cargo" />
+          </cargo>
+          <garbage_bin>
+            <ref name="garbage_bin1" />
+          </garbage_bin>
+          <garbage_bin2>
+            <ref name="garbage_bin1a" />
+          </garbage_bin2>
+        </node>
+        <ref name="lv2floor_1" x="0" y="60" w="32" h="4" />
         
         <ref name="lv1_scroll_0" />
         <ref name="lv1_scroll_0" />
@@ -406,6 +382,11 @@
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
+      </node>
+
+      <node type="subregion" name="test_lv">
+        <!--metadata seed="642166666" /-->
+        <ref name="lv2_1" x="0" y="0" w="32" h="64" />
       </node>
       
     </nodes>

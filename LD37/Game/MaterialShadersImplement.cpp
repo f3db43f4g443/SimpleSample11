@@ -28,8 +28,13 @@ protected:
 	}
 };
 
+
+IMPLEMENT_MATERIAL_SHADER( PSColorMat, "Shader/GameCommon.shader", "PSColorMat", "ps_5_0" );
+
 IMPLEMENT_MATERIAL_SHADER( Default2DWithOrigTexVertexShader, "Shader/Default2DWithOrigTex.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithOrigTexVertexShader1, CMyDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWithOrigTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( Default2DWithOrigTexVSEX, "Shader/Default2DWithOrigTex.shader", "VSDefault1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithOrigTexVSEX1, CMyDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWithOrigTex.shader", "VSDefaultExtraInstData1", "vs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( VSBlockRTLayer, "Shader/Blocks.shader", "VSBlockRTLayer", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSBlockRTLayer, "Shader/Blocks.shader", "PSBlockRTLayer", "ps_5_0" );

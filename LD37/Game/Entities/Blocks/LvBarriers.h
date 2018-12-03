@@ -59,6 +59,7 @@ protected:
 	TResourceRef<CPrefab> m_pPrefab1;
 	TResourceRef<CPrefab> m_pCrate;
 	TResourceRef<CPrefab> m_pItemDropPrefab;
+	TResourceRef<CPrefab> m_pBonusStageReward;
 	TResourceRef<CPrefab> m_pKillEffect;
 	uint32 m_nKillEffectInterval;
 

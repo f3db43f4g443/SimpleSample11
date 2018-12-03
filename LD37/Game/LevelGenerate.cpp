@@ -9,6 +9,7 @@
 #include "Entities/Decorator.h"
 #include "LevelScrollObj.h"
 #include "MainMenu.h"
+#include "Common/Algorithm.h"
 
 #include "LevelGenerating/LvGenCommon.h"
 #include "LevelGenerating/LvGen1.h"
@@ -228,7 +229,6 @@ void SLevelBuildContext::Build()
 						if( pBlock->pParent->pOwner->nSubChunkType == 1 )
 						{
 							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
-							pBlock->pParent->nTag = pParentChunk->GetBlock( i, j )->nTag;
 							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
 							pParentChunk->GetBlock( i, j )->bImmuneToBlockBuff = pBlock->pParent->bImmuneToBlockBuff;
 						}
@@ -1433,6 +1433,129 @@ protected:
 	uint32 m_nLeftSize, m_nRightSize, m_nTopSize, m_nBottomSize;
 };
 
+class CLevelAutoFillGenerateNode : public CLevelGenerateNode
+{
+public:
+	struct SSubNodeInfo
+	{
+		TVector2<int32> sizeMin;
+		TVector2<int32> sizeMax;
+		CReference<CLevelGenerateNode> pNode;
+	};
+
+	virtual void Load( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context ) override
+	{
+		for( auto pChild = pXml->FirstChildElement(); pChild; pChild = pChild->NextSiblingElement() )
+		{
+			auto pNode = CreateNode( pChild, context );
+			if( !pNode )
+				continue;
+			m_infos.resize( m_infos.size() + 1 );
+			auto& item = m_infos.back();
+			item.pNode = pNode;
+			item.sizeMin.x = XmlGetAttr( pChild, "sizeminx", 1 );
+			item.sizeMin.y = XmlGetAttr( pChild, "sizeminy", 1 );
+			item.sizeMax.x = XmlGetAttr( pChild, "sizemaxx", item.sizeMin.x );
+			item.sizeMax.y = XmlGetAttr( pChild, "sizemaxy", item.sizeMin.y );
+		}
+		m_nCheckBlockType = XmlGetAttr( pXml, "check_block", 0 );
+		m_nCheckGenData = XmlGetAttr( pXml, "check_gen_data", -1 );
+		m_strCheckGenData = XmlGetAttr( pXml, "check_gen_data_name", "" );
+		m_strCheckGenData1 = XmlGetAttr( pXml, "check_gen_data_name1", "" );
+		CLevelGenerateNode::Load( pXml, context );
+	}
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
+	{
+		auto size = region.GetSize();
+		vector<int8> vecTemp;
+		vecTemp.resize( size.x * size.y );
+
+		if( m_nCheckBlockType || m_nCheckGenData >= 0 || m_strCheckGenData.length() )
+		{
+			int32 nCheckGenData1 = -1;
+			if( m_strCheckGenData.length() )
+			{
+				auto itr = context.mapTags.find( m_strCheckGenData );
+				if( itr != context.mapTags.end() )
+					nCheckGenData1 = itr->second;
+				else
+				{
+					for( int j = 0; j < size.y; j++ )
+					{
+						for( int i = 0; i < size.x; i++ )
+							GET_GRID( vecTemp, i, j ) = 1;
+					}
+				}
+			}
+
+			int32 nCheckGenData2 = nCheckGenData1;
+			if( m_strCheckGenData1.length() )
+			{
+				auto itr = context.mapTags.find( m_strCheckGenData1 );
+				if( itr != context.mapTags.end() )
+					nCheckGenData2 = itr->second;
+				else
+				{
+					for( int j = 0; j < size.y; j++ )
+					{
+						for( int i = 0; i < size.x; i++ )
+							GET_GRID( vecTemp, i, j ) = 1;
+					}
+				}
+			}
+
+			for( int j = 0; j < size.y; j++ )
+			{
+				for( int i = 0; i < size.x; i++ )
+				{
+					int32 x = i + region.x;
+					int32 y = j + region.y;
+					auto& grid = GET_GRID( vecTemp, i, j );
+					for( int iLayer = 0; iLayer < 2; iLayer++ )
+					{
+						if( !!( m_nCheckBlockType & ( 1 << iLayer ) ) && context.GetBlock( x, y, iLayer ) )
+							grid = 1;
+						else if( m_nCheckGenData >= 0 && context.blueprint[x + y * context.nWidth] != m_nCheckGenData )
+							grid = 1;
+						else if( nCheckGenData2 > nCheckGenData1 )
+						{
+							if( context.blueprint[x + y * context.nWidth] < nCheckGenData1 ||
+								context.blueprint[x + y * context.nWidth] > nCheckGenData2 )
+								grid = 1;
+						}
+						else if( nCheckGenData1 >= 0 && context.blueprint[x + y * context.nWidth] != nCheckGenData1 )
+							grid = 1;
+					}
+				}
+			}
+		}
+
+		for( auto& item : m_infos )
+		{
+			for( int j = 0; j < size.y; j++ )
+			{
+				for( int i = 0; i < size.x; i++ )
+				{
+					if( GET_GRID( vecTemp, i, j ) == 1 )
+						continue;
+					auto rect = PutRect( vecTemp, size.x, size.y, TVector2<int32>( i, j ), item.sizeMin, item.sizeMax, TRectangle<int32>( 0, 0, size.x, size.y ), -1, 1 );
+					if( rect.width > 0 )
+					{
+						item.pNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+					}
+				}
+			}
+
+		}
+	}
+protected:
+	uint8 m_nCheckBlockType;
+	int32 m_nCheckGenData;
+	string m_strCheckGenData;
+	string m_strCheckGenData1;
+	vector<SSubNodeInfo> m_infos;
+};
+
 class CLevelRandomFillGenerateNode : public CLevelGenerateNode
 {
 public:
@@ -1860,6 +1983,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "switch", CLevelGenerateSwitchNode );
 	REGISTER_GENERATE_NODE( "switch_tile", CLevelGenerateSwitchTileNode );
 	REGISTER_GENERATE_NODE( "frame", CLevelGenerateFrameNode );
+	REGISTER_GENERATE_NODE( "autofill", CLevelAutoFillGenerateNode );
 	REGISTER_GENERATE_NODE( "randomfill", CLevelRandomFillGenerateNode );
 
 	REGISTER_GENERATE_NODE( "mainmenu", CMainMenuGenerateNode );

@@ -625,15 +625,7 @@
         <ref name="lv1_scroll_1" />
         <ref name="lv1_scroll_2" />
       </node>
-
-      <node type="subregion" name="test_lv">
-        <!--metadata seed="65464911" /-->
-        <node type="tile" x="0" y="0" w="32" h="4">
-          <ref name="block0" />
-        </node>
-        <ref name="lv1floor_8" x="0" y="4" w="32" h="4" />
-        <ref name="lv1_9" x="0" y="8" w="32" h="64" />
-      </node>
+      
     </nodes>
   </level_gen>
 </root>

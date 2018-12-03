@@ -467,6 +467,9 @@
     <None Include="..\Shader\Web.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\GameCommon.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">

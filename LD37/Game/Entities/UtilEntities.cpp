@@ -9,6 +9,7 @@
 #include "Interfaces.h"
 #include "MyGame.h"
 #include "Enemy.h"
+#include "Bullet.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -333,4 +334,135 @@ void CEnemyHp::OnHpChanged()
 		for( int i = 0; i < nDataCount; i++ )
 			*pRope->GetParam( i ) = param;
 	}
+}
+
+void CBulletEmitter::OnAddedToStage()
+{
+	GetStage()->RegisterAfterHitTest( m_nFireCD, &m_onTick );
+}
+
+void CBulletEmitter::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CBulletEmitter::OnTick()
+{
+	if( m_nAmmoLeft == 0 )
+	{
+		if( m_fTargetParam > 0 )
+		{
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer || ( pPlayer->GetPosition() - globalTransform.GetPosition() ).Length2() > m_fTargetParam * m_fTargetParam )
+			{
+				GetStage()->RegisterAfterHitTest( m_nCheckInterval, &m_onTick );
+				return;
+			}
+		}
+
+		m_nAmmoLeft = m_nAmmoCount;
+	}
+
+	if( m_nAmmoLeft > 0 )
+	{
+		if( m_nTargetType == 2 )
+		{
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( !pPlayer )
+			{
+				m_nAmmoLeft = 0;
+				return;
+			}
+		}
+
+		Fire();
+		m_nAmmoLeft--;
+		GetStage()->RegisterAfterHitTest( m_nAmmoLeft ? m_nFireInterval : m_nFireCD, &m_onTick );
+	}
+}
+
+void CBulletEmitter::Fire()
+{
+	CVector2 dir;
+	switch( m_nTargetType )
+	{
+	case 0:
+		dir = CVector2( cos( m_fTargetParam1 * PI / 180 ), sin( m_fTargetParam1 * PI / 180 ) );
+		break;
+	case 1:
+		dir = GetGlobalTransform().MulVector2Dir( CVector2( cos( m_fTargetParam1 * PI / 180 ), sin( m_fTargetParam1 * PI / 180 ) ) );
+		break;
+	case 2 :
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		dir = pPlayer->GetPosition() - globalTransform.GetPosition();
+		if( dir.Normalize() < 0.0001f )
+			dir = CVector2( 0, -1 );
+		if( m_fTargetParam1 > 0 )
+		{
+			CVector2 vel = pPlayer->GetVelocity();
+			float v = vel.Normalize();
+			float sn = dir.x * vel.y - dir.y * vel.x;
+			float sn1 = sn / m_fSpeed * v;
+			if( sn1 > -1.0f && sn1 < 1.0f )
+			{
+				float fAngle = asin( sn ) * m_fTargetParam1;
+				sn = sin( fAngle );
+				float cs = cos( fAngle );
+				dir = CVector2( dir.x * cs - dir.y * sn, dir.x * sn + dir.y * cs );
+			}
+		}
+	}
+		break;
+	default:
+		return;
+	}
+
+	if( !m_nBulletCount )
+	{
+		CBullet* pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+		pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
+		CVector2 velocity = dir * m_fSpeed;
+		pBullet->SetVelocity( velocity );
+		pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
+		pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+		pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
+		pBullet->SetLife( m_nBulletLife );
+		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	}
+	else
+	{
+		for( int i = 0; i < m_nBulletCount; i++ )
+		{
+			CBullet* pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+
+			float fAngle = 0;
+			float fAngle1 = m_fAngle * PI / 180;
+			switch( m_nDistribution )
+			{
+			case 0:
+				fAngle = m_nBulletCount > 1 ? ( i / ( m_nBulletCount - 1.0f ) - 0.5f ) * fAngle1 : 0;
+				break;
+			case 1:
+				fAngle = ( ( i + SRand::Inst().Rand( 0.0f, 1.0f ) ) / m_nBulletCount - 0.5f ) * fAngle1;
+				break;
+			case 2:
+				fAngle = SRand::Inst().Rand( -fAngle1 * 0.5f, fAngle1 * 0.5f );
+				break;
+			}
+
+			pBullet->SetPosition( GetGlobalTransform().MulVector2Pos( m_fireOfs ) );
+			CVector2 velocity = CVector2( cos( fAngle ), sin( fAngle ) ) * m_fSpeed;
+			velocity = CVector2( velocity.x * dir.x - velocity.y * dir.y, velocity.x * dir.y + velocity.y * dir.x );
+			pBullet->SetVelocity( velocity );
+			pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
+			pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
+			pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
+			pBullet->SetLife( m_nBulletLife );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
+	}
+
+	CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
 }

@@ -70,46 +70,120 @@ void CDecoratorFiber::Init( const CVector2 & size )
 	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
 	TVector2<int32> texelTexSize = TVector2<int32>( m_texSize.x, m_texSize.y );
 	uint32 nWidth = m_bVertical ? size.x : size.y;
-	uint32 nCount = ceil( nWidth / m_fWidth );
-	float fMaxHeight = Min( size.y * m_fMaxHeightPercent, m_bVertical ? m_texSize.y * m_fTexelSize : m_texSize.x * m_fTexelSize );
+	float fMaxHeight = Min( ( m_nType == 1 ? CMyLevel::GetBlockSize() : size.y ) * m_fMaxHeightPercent, m_bVertical ? m_texSize.y * m_fTexelSize : m_texSize.x * m_fTexelSize );
 
-	for( int i = 0; i < nCount; i++ )
+	uint32 nCount = ceil( nWidth / ( m_nType == 1 ? CMyLevel::GetBlockSize() : m_fWidth ) );
+	if( m_nType == 1 )
 	{
-		float fWidth = i < nCount - 1 ? m_fWidth : nWidth - m_fWidth * ( nCount - 1 );
-		float fHeight = fMaxHeight * SRand::Inst().Rand( m_fMinHeightPercent, 1.0f );
-		uint32 nWidth = floor( fWidth / m_fTexelSize );
-		uint32 nHeight = floor( fHeight / m_fTexelSize );
-		uint32 nBaseX = SRand::Inst().Rand( 0u, texelTexSize.x - nWidth );
-		uint32 nBaseY = SRand::Inst().Rand( 0u, texelTexSize.y - nHeight );
-		CRectangle texRect( nBaseX, nBaseY, nWidth, nHeight  );
-		CRectangle rect( m_fWidth * i, 0, nWidth * m_fTexelSize, nHeight * m_fTexelSize );
-
-		switch( m_nAlignment )
+		CChunkObject* pChunkObject = NULL;
+		for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
 		{
-		case 0:
-			break;
-		case 2:
-			rect.y = size.y - rect.height;
-			break;
-		default:
-			rect.y = floor( ( size.y - rect.height ) * 0.5f / m_fTexelSize ) * m_fTexelSize;
-			break;
+			pChunkObject = SafeCast<CChunkObject>( pParent );
+			if( pChunkObject )
+				break;
 		}
 
-		if( !m_bVertical )
+		float fWidth = CMyLevel::GetBlockSize();
+		int32 iBegin = floor( ( m_bVertical ? x : y ) / CMyLevel::GetBlockSize() );
+		int32 jBegin = floor( ( m_bVertical ? y : x ) / CMyLevel::GetBlockSize() );
+		int32 jEnd = floor( ( m_bVertical ? y + size.y : x + size.x ) / CMyLevel::GetBlockSize() );
+		for( int i = 0; i < nCount; i++ )
 		{
-			swap( rect.x, rect.y );
-			swap( rect.width, rect.height );
-			swap( texRect.x, texRect.y );
-			swap( texRect.width, texRect.height );
+			int j0 = 0;
+			for( int j = 0; j <= jEnd - jBegin; j++ )
+			{
+				int32 nBlockX = i + iBegin;
+				int32 nBlockY = j + jBegin;
+				if( !m_bVertical )
+					swap( nBlockX, nBlockY );
+				auto pBlock = j < jEnd - jBegin ? pChunkObject->GetBlock( nBlockX, nBlockY ) : NULL;
+				bool b = pBlock && pBlock->nTag >= m_nBlockTag && pBlock->nTag < m_nBlockTag1;
+				if( !b )
+				{
+					if( j > j0 )
+					{
+						float fHeight = fMaxHeight * SRand::Inst().Rand( m_fMinHeightPercent, 1.0f );
+						float h1 = ( j - j0 ) * CMyLevel::GetBlockSize();
+						fHeight = Min( fHeight, h1 );
+						uint32 nWidth = floor( fWidth / m_fTexelSize );
+						uint32 nHeight = floor( fHeight / m_fTexelSize );
+						uint32 nBaseX = SRand::Inst().Rand( 0u, texelTexSize.x - nWidth );
+						uint32 nBaseY = SRand::Inst().Rand( 0u, texelTexSize.y - nHeight );
+						CRectangle texRect( nBaseX, nBaseY, nWidth, nHeight );
+						CRectangle rect( fWidth * i, 0, nWidth * m_fTexelSize, nHeight * m_fTexelSize );
+
+						switch( m_nAlignment )
+						{
+						case 0:
+							break;
+						case 2:
+							rect.y = j * CMyLevel::GetBlockSize() - rect.height;
+							break;
+						default:
+							rect.y = floor( ( ( j + j0 ) * CMyLevel::GetBlockSize() - rect.height ) * 0.5f / m_fTexelSize ) * m_fTexelSize;
+							break;
+						}
+
+						if( !m_bVertical )
+						{
+							swap( rect.x, rect.y );
+							swap( rect.width, rect.height );
+							swap( texRect.x, texRect.y );
+							swap( texRect.width, texRect.height );
+						}
+
+						texRect = texRect * CVector2( 1.0f / texelTexSize.x, 1.0f / texelTexSize.y );
+
+						auto pImage2D = static_cast<CImage2D*>( pResource->CreateInstance() );
+						pImage2D->SetRect( rect );
+						pImage2D->SetTexRect( texRect );
+						AddChild( pImage2D );
+					}
+					j0 = j + 1;
+				}
+			}
 		}
+	}
+	else
+	{
+		for( int i = 0; i < nCount; i++ )
+		{
+			float fWidth = i < nCount - 1 ? m_fWidth : nWidth - m_fWidth * ( nCount - 1 );
+			float fHeight = fMaxHeight * SRand::Inst().Rand( m_fMinHeightPercent, 1.0f );
+			uint32 nWidth = floor( fWidth / m_fTexelSize );
+			uint32 nHeight = floor( fHeight / m_fTexelSize );
+			uint32 nBaseX = SRand::Inst().Rand( 0u, texelTexSize.x - nWidth );
+			uint32 nBaseY = SRand::Inst().Rand( 0u, texelTexSize.y - nHeight );
+			CRectangle texRect( nBaseX, nBaseY, nWidth, nHeight );
+			CRectangle rect( fWidth * i, 0, nWidth * m_fTexelSize, nHeight * m_fTexelSize );
 
-		texRect = texRect * CVector2( 1.0f / texelTexSize.x, 1.0f / texelTexSize.y );
+			switch( m_nAlignment )
+			{
+			case 0:
+				break;
+			case 2:
+				rect.y = size.y - rect.height;
+				break;
+			default:
+				rect.y = floor( ( size.y - rect.height ) * 0.5f / m_fTexelSize ) * m_fTexelSize;
+				break;
+			}
 
-		auto pImage2D = static_cast<CImage2D*>( pResource->CreateInstance() );
-		pImage2D->SetRect( rect );
-		pImage2D->SetTexRect( texRect );
-		AddChild( pImage2D );
+			if( !m_bVertical )
+			{
+				swap( rect.x, rect.y );
+				swap( rect.width, rect.height );
+				swap( texRect.x, texRect.y );
+				swap( texRect.width, texRect.height );
+			}
+
+			texRect = texRect * CVector2( 1.0f / texelTexSize.x, 1.0f / texelTexSize.y );
+
+			auto pImage2D = static_cast<CImage2D*>( pResource->CreateInstance() );
+			pImage2D->SetRect( rect );
+			pImage2D->SetTexRect( texRect );
+			AddChild( pImage2D );
+		}
 	}
 
 	SetRenderObject( NULL );
@@ -508,6 +582,223 @@ void CDecoratorTile2::Init( const CVector2& size )
 			CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
 			CVector4* dst = pImg->GetParam();
 			memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+		}
+	}
+
+	SetRenderObject( NULL );
+}
+
+void CDecoratorEdge1::Init( const CVector2& size )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
+	if( !pChunkObject )
+		return;
+	auto pChunk = pChunkObject->GetChunk();
+	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
+	auto Func = [this, pChunk] ( int32 x, int32 y ) -> bool 
+	{
+		auto pBlock = pChunk->GetBlock( x, y );
+		if( !pBlock )
+			return false;
+		auto nTag = pBlock->nTag;
+		return nTag >= m_nBlockTag && nTag < m_nBlockTag1;
+	};
+	auto Func1 = [this, pChunk] ( int32 x, int32 y ) -> bool
+	{
+		auto pBlock = pChunk->GetBlock( x, y );
+		if( !pBlock )
+			return true;
+		auto nTag = pBlock->nTag;
+		return nTag >= m_nBlockTag1;
+	};
+
+	vector<int32> vecTemp;
+	for( int k = 0; k < 2; k++ )
+	{
+		for( int j = 0; j < pChunk->nHeight; j++ )
+		{
+			int32 y = k ? pChunk->nHeight - 1 - j : j;
+			int32 y1 = k ? y + 1 : y - 1;
+			int32 i0 = 0;
+			for( int i = 0; i <= pChunk->nWidth; i++ )
+			{
+				if( i < pChunk->nWidth && Func( i, y ) && Func1( i, y1 ) )
+					continue;
+
+				if( i > i0 )
+				{
+					int32 l = i0 * CMyLevel::GetBlockSize();
+					int32 r = i * CMyLevel::GetBlockSize();
+					if( Func1( i0 - 1, y ) )
+						l += m_nCornerSize;
+					if( Func1( i, y ) )
+						r -= m_nCornerSize;
+
+					int32 len = r - l;
+					int32 len1 = floor( len * m_fPercent / 2 ) * 2;
+					if( len1 > 0 )
+					{
+						int32 len2 = len - len1;
+						do
+						{
+							int32 l1 = Min( len1, SRand::Inst().Rand( m_nMinLen / 2, m_nMaxLen / 2 + 1 ) * 2 );
+							vecTemp.push_back( l1 );
+							len1 -= l1;
+						} while( len1 > 0 );
+						int32 n1 = vecTemp.size() + 1;
+						for( int i1 = 0; i1 < n1; i1++ )
+						{
+							int32 l1 = ( ( len2 / 2 + i1 ) / n1 ) * 2;
+							if( l1 > 0 )
+								vecTemp.push_back( -l1 );
+						}
+						SRand::Inst().Shuffle( vecTemp );
+
+						for( auto item : vecTemp )
+						{
+							if( item > 0 )
+							{
+								CRectangle rect( l, ( y + k * 0.5f ) * CMyLevel::GetBlockSize(), item, CMyLevel::GetBlockSize() / 2 );
+								int32 ty = SRand::Inst().Rand( Min( 3, item / 32 ), 4 );
+								int32 tx = SRand::Inst().Rand( m_nCornerSize / 2, ( ty + 1 ) * 32 - m_nCornerSize / 2 - item / 2 + 1 );
+								CRectangle texRect( ( 3 - ty ) * 0.125f + tx / 128.0f, ( k ? ty + 4.5f : 3 - ty ) * 0.125f, rect.width / 256.0f, rect.height / 256.0f );
+								texRect.y = 1 - texRect.y - texRect.height;
+								auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+								pImg->SetRect( rect );
+								pImg->SetTexRect( texRect );
+								uint16 nParamCount;
+								CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+								if( nParamCount )
+								{
+									CVector4* dst = pImg->GetParam();
+									memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+								}
+								AddChild( pImg );
+								l += item;
+							}
+							else
+								l += -item;
+						}
+
+						vecTemp.resize( 0 );
+					}
+				}
+				i0 = i + 1;
+			}
+		}
+
+		for( int i = 0; i < pChunk->nWidth; i++ )
+		{
+			int32 x = k ? pChunk->nWidth - 1 - i : i;
+			int32 x1 = k ? x + 1 : x - 1;
+			int32 j0 = 0;
+			for( int j = 0; j <= pChunk->nHeight; j++ )
+			{
+				if( j < pChunk->nHeight && Func( x, j ) && Func1( x1, j ) )
+					continue;
+
+				if( j > j0 )
+				{
+					int32 l = j0 * CMyLevel::GetBlockSize();
+					int32 r = j * CMyLevel::GetBlockSize();
+					if( Func1( x, j0 - 1 ) )
+						l += m_nCornerSize;
+					if( Func1( x, j ) )
+						r -= m_nCornerSize;
+
+					int32 len = r - l;
+					int32 len1 = floor( len * m_fPercent / 2 ) * 2;
+					if( len1 > 0 )
+					{
+						int32 len2 = len - len1;
+						do
+						{
+							int32 l1 = Min( len1, SRand::Inst().Rand( m_nMinLen / 2, m_nMaxLen / 2 + 1 ) * 2 );
+							vecTemp.push_back( l1 );
+							len1 -= l1;
+						} while( len1 > 0 );
+						int32 n1 = vecTemp.size() + 1;
+						for( int i1 = 0; i1 < n1; i1++ )
+						{
+							int32 l1 = ( ( len2 / 2 + i1 ) / n1 ) * 2;
+							if( l1 > 0 )
+								vecTemp.push_back( -l1 );
+						}
+						SRand::Inst().Shuffle( vecTemp );
+
+						for( auto item : vecTemp )
+						{
+							if( item > 0 )
+							{
+								CRectangle rect( ( x + k * 0.5f ) * CMyLevel::GetBlockSize(), l, CMyLevel::GetBlockSize() / 2, item );
+								int32 tx = SRand::Inst().Rand( Min( 3, item / 32 ), 4 );
+								int32 ty = SRand::Inst().Rand( m_nCornerSize / 2, ( tx + 1 ) * 32 - m_nCornerSize / 2 - item / 2 + 1 );
+								CRectangle texRect( ( k ? tx + 4.5f : 3 - tx ) * 0.125f, ( 3 - tx ) * 0.125f + ty / 128.0f, rect.width / 256.0f, rect.height / 256.0f );
+								texRect.y = 1 - texRect.y - texRect.height;
+								auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+								pImg->SetRect( rect );
+								pImg->SetTexRect( texRect );
+								uint16 nParamCount;
+								CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+								if( nParamCount )
+								{
+									CVector4* dst = pImg->GetParam();
+									memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+								}
+								AddChild( pImg );
+								l += item;
+							}
+							else
+								l += -item;
+						}
+
+						vecTemp.resize( 0 );
+					}
+				}
+				j0 = j + 1;
+			}
+		}
+	}
+
+	for( int k1 = 0; k1 < 2; k1++ )
+	{
+		for( int k2 = 0; k2 < 2; k2++ )
+		{
+			for( int i = 0; i < pChunk->nWidth; i++ )
+			{
+				int32 x = k1 ? pChunk->nWidth - 1 - i : i;
+				int32 x1 = k1 ? x + 1 : x - 1;
+				for( int j = 0; j < pChunk->nHeight; j++ )
+				{
+					int32 y = k2 ? pChunk->nHeight - 1 - j : j;
+					int32 y1 = k2 ? y + 1 : y - 1;
+
+					if( Func( x, y ) && Func1( x, y1 ) && Func1( x1, y ) )
+					{
+						CRectangle rect( ( x + k1 * 0.5f ) * CMyLevel::GetBlockSize(), ( y + k2 * 0.5f ) * CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() / 2, CMyLevel::GetBlockSize() / 2 );
+						int32 t = SRand::Inst().Rand( 0, 4 );
+						CRectangle texRect( ( k1 ? t + 4.5f : 3 - t ) * 0.125f, ( k2 ? t + 4.5f : 3 - t ) * 0.125f, rect.width / 256.0f, rect.height / 256.0f );
+						texRect.y = 1 - texRect.y - texRect.height;
+						auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+						pImg->SetRect( rect );
+						pImg->SetTexRect( texRect );
+						uint16 nParamCount;
+						CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+						if( nParamCount )
+						{
+							CVector4* dst = pImg->GetParam();
+							memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+						}
+						AddChild( pImg );
+					}
+				}
+			}
 		}
 	}
 
