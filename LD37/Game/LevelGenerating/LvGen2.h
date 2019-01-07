@@ -1,6 +1,13 @@
 #pragma once
 #include "LevelGenerate.h"
 
+class CLevelGen2
+{
+public:
+	static void GenHouse( vector<int8>& genData, int32 nWidth, int32 nHeight, const TRectangle<int32>& rect, int8 nTypeBegin, int32 la = 3, int32 lb = 5 );
+	static void GenRoom( vector<int8>& genData, int32 nWidth, int32 nHeight, const TRectangle<int32>& rect, int8 nTypeBegin );
+};
+
 class CLevelGenNode2_1_0 : public CLevelGenerateNode
 {
 public:
@@ -49,152 +56,72 @@ private:
 	CReference<CLevelGenerateNode> m_pGarbageBin2Node;
 };
 
-struct SHouse
-{
-	SHouse() {}
-	SHouse( int32 x, int32 y, int32 w, int32 h ) : rect( x, y, w, h ) { memset( exit, 0, sizeof( exit ) ); memset( nExitType, 0, sizeof( nExitType ) ); }
-	SHouse( const TRectangle<int32>& r ) : rect( r ) { memset( exit, 0, sizeof( exit ) ); memset( nExitType, 0, sizeof( nExitType ) ); }
-	TRectangle<int32> rect;
-	TVector2<int32> exit[4];
-	uint8 nExitType[4];
-
-	bool Generate( vector<int8>& genData, int32 nWidth, int32 nHeight, uint8 nType, uint8 nType0, uint8 nType0a, uint8 nType1, uint8 nType2,
-		vector<int8>& genData1, uint8 nWalkableType, uint8 nPathType, vector<TVector2<int32> >& par );
-};
-
 class CLevelGenNode2_1_1 : public CLevelGenerateNode
 {
 public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
-	void GenAreas();
+	void GenChunks();
+	void GenChunks1();
+	bool GenChunks2( const TRectangle<int32>& r, const TRectangle<int32>& r0, int8 nDir, bool b1 );
+	TRectangle<int32> GenChunks3( const TVector2<int32>& p, int8 nDir, int32 xBegin, int32 xEnd );
+	void GenRoads();
 	void GenObjs();
-	TRectangle<int32> PlaceChunk( TVector2<int32>& p, uint8 nType );
+	void GenHouse();
+
+	void AddChunk( const TRectangle<int32>& rect, int8 nType, vector<TRectangle<int32> >* pVec );
 	enum
 	{
 		eType_None,
-		eType_Unwalkable,
-		eType_Temp0_0,
-		eType_Walkable_a,
-		eType_Walkable_b,
-		eType_Walkable_c,
-		eType_Walkable_d,
+		eType_Wall1,
+
 		eType_Road,
-		eType_Temp0,
-		eType_Temp1,
-		eType_Temp2,
-		eType_Block,
-		eType_Block_a,
-		eType_Block_b,
-		eType_Block_c,
-		eType_Block_d,
-		eType_Chunk,
-		eType_Chunk_Plant,
-		eType_Chunk1,
+		eType_Road_1,
+		eType_Road_1_1,
+		eType_Road_1_2,
+
+		eType_House_0,
+		eType_House_1,
+		eType_House_2,
+		eType_House_2_0,
+		eType_House_2_1,
+		eType_House_2_2,
+		eType_House_2_3,
+		eType_House_2_4,
 
 		eType_Room,
-		eType_Door,
-		eType_House,
-		eType_House_1,
-		eType_House_2 = eType_House_1 + 4,
-		eType_House_Exit1,
-		eType_House_Exit2,
-	};
-	enum
-	{
-		eType1_None,
-		eType1_Block,
-		eType1_Obj,
+		eType_Room_1,
+		eType_Room_2,
+		eType_Room_Door,
+		eType_Room_Car_0,
+		eType_Room_Car_2,
+		eType_Room_Car_3,
+
+		eType_Obj,
+		eType_Temp,
+		eType_Temp1,
 	};
 
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
-	vector<int8> m_gendata1;
-	vector<TVector2<int32> > m_par;
-	uint8 m_nType;
-	vector<TRectangle<int32> > m_vecRoads;
-	vector<TRectangle<int32> > m_vecFences;
-	vector<TRectangle<int32> > m_vecFenceBlock;
-	vector<TRectangle<int32> > m_vecArea1;
-	vector<TRectangle<int32> > m_vecArea2;
-	vector<TRectangle<int32> > m_vecRooms;
-
-	vector<SHouse> m_vecHouses;
-	vector<TRectangle<int32> > m_vecCargoSmall;
-	vector<TRectangle<int32> > m_vecCargoLarge;
-	vector<TRectangle<int32> > m_vecBarrels;
-	vector<TRectangle<int32> > m_vecBarrels1;
+	vector<TRectangle<int32> > m_vecWall1;
+	vector<TRectangle<int32> > m_vecRoad;
+	vector<TRectangle<int32> > m_vecHouse;
+	vector<TRectangle<int32> > m_vecRoom;
+	vector<TRectangle<int32> > m_vecCargo;
+	vector<TRectangle<int32> > m_vecGarbageBin;
+	vector<TRectangle<int32> > m_vecGarbageBin2;
 
 	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pWall1Node;
 	CReference<CLevelGenerateNode> m_pRoadNode;
-	CReference<CLevelGenerateNode> m_pFenceNode;
-	CReference<CLevelGenerateNode> m_pPlantNode;
-	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
-	CReference<CLevelGenerateNode> m_pBlockNode;
-	CReference<CLevelGenerateNode> m_pBlockNodes[4];
 	CReference<CLevelGenerateNode> m_pHouseNode;
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pCargoNode;
-	CReference<CLevelGenerateNode> m_pCargo2Node;
-	CReference<CLevelGenerateNode> m_pBarrelNode;
-	CReference<CLevelGenerateNode> m_pBarrel1Node;
-};
-
-class CLevelGenNode2_1_2 : public CLevelGenerateNode
-{
-public:
-	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
-	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
-private:
-	void GenAreas();
-	void GenObjs();
-	enum
-	{
-		eType_None,
-		eType_Walkable_a,
-		eType_Walkable_b,
-		eType_Walkable_c,
-		eType_Walkable_d,
-		eType_Road,
-		eType_Temp0,
-		eType_Chunk,
-		eType_Chunk_Plant,
-		eType_Chunk1,
-
-		eType_Room,
-		eType_Door,
-		eType_House,
-		eType_House_1,
-		eType_House_2 = eType_House_1 + 4,
-		eType_House_Exit1,
-		eType_House_Exit2,
-	};
-	enum
-	{
-		eType1_None,
-		eType1_Block,
-		eType1_Obj,
-	};
-
-	SLevelBuildContext* m_pContext;
-	TRectangle<int32> m_region;
-	vector<int8> m_gendata;
-	vector<int8> m_gendata1;
-	vector<TVector2<int32> > m_par;
-	vector<TRectangle<int32> > m_vecRoads;
-	vector<TRectangle<int32> > m_vecRooms;
-	vector<TRectangle<int32> > m_vecFences;
-	vector<TRectangle<int32> > m_vecFenceBlock;
-	vector<SHouse> m_vecHouses;
-
-	CReference<CLevelGenerateNode> m_pRoadNode;
-	CReference<CLevelGenerateNode> m_pFenceNode;
-	CReference<CLevelGenerateNode> m_pPlantNode;
-	CReference<CLevelGenerateNode> m_pWalkableNodes[4];
-	CReference<CLevelGenerateNode> m_pRoomNode;
-	CReference<CLevelGenerateNode> m_pHouseNode;
+	CReference<CLevelGenerateNode> m_pGarbageBinNode;
+	CReference<CLevelGenerateNode> m_pGarbageBin2Node;
 };
 
 class CTruckNode : public CLevelGenerateNode
@@ -207,6 +134,76 @@ private:
 	CReference<CLevelGenerateNode> m_pControlRoomNode[2];
 	CReference<CLevelGenerateNode> m_pCargoNode;
 	CReference<CLevelGenerateNode> m_pCargo2Node;
+};
+
+class CLevelGenNode2_2_0 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenRoads();
+	void GenRooms();
+	void ConnRoads();
+	void FillEmpty();
+	void GenObjs();
+	void GenHouses();
+
+	enum
+	{
+		eType_None,
+		eType_Road,
+
+		eType_Greenbelt,
+		eType_Greenbelt_1,
+		eType_Greenbelt_1_1,
+		eType_Greenbelt_1_2,
+
+		eType_House_0,
+		eType_House_1,
+		eType_House_2,
+		eType_House_2_0,
+		eType_House_2_1,
+		eType_House_2_2,
+		eType_House_2_3,
+		eType_House_2_4,
+
+		eType_Room,
+		eType_Room_1,
+		eType_Room_2,
+		eType_Room_Door,
+		eType_Room_Car_0,
+		eType_Room_Car_2,
+		eType_Room_Car_3,
+
+		eType_Cargo1,
+
+		eType_Obj,
+		eType_Temp,
+		eType_Temp1,
+		eType_Temp2,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<int8> m_gendata1;
+	vector<TRectangle<int32> > m_vecRoad;
+	vector<TRectangle<int32> > m_vecGreenbelt;
+	vector<TRectangle<int32> > m_vecHouse;
+	vector<TRectangle<int32> > m_vecRoom;
+	vector<TRectangle<int32> > m_vecCargo;
+	vector<TRectangle<int32> > m_vecCargo1;
+	vector<TRectangle<int32> > m_vecBarrel[3];
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pRoadNode;
+	CReference<CLevelGenerateNode> m_pGreenbeltNode;
+	CReference<CLevelGenerateNode> m_pHouseNode;
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo1Node;
+	CReference<CLevelGenerateNode> m_pBarrelNode[3];
 };
 
 class CLevelGenNode2_2_1 : public CLevelGenerateNode
@@ -252,7 +249,6 @@ private:
 	vector<TRectangle<int32> > m_vecFences;
 	vector<TRectangle<int32> > m_vecFenceBlock;
 	vector<TRectangle<int32> > m_vecRooms;
-	vector<SHouse> m_vecHouses;
 
 	vector<TRectangle<int32> > m_vecCargos;
 	vector<TRectangle<int32> > m_vecControlRooms;

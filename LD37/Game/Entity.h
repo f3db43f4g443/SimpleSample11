@@ -82,6 +82,7 @@ public:
 
 	bool HasHitFilter() { return m_bHasHitFilter; }
 	virtual bool CanHit( CEntity* pEntity ) { return true; }
+	virtual bool CanHit1( CEntity* pEntity, SRaycastResult& result ) { return true; }
 	void SetTransparent( bool bTransparent );
 	void SetTransparentRec( bool bTransparent );
 	

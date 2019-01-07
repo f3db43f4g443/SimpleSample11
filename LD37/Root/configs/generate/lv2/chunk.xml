@@ -4,7 +4,7 @@
   </includes>
   <level_gen>
     <nodes>
-      <node name="house" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="10000" destroybalance="0.35" imbalancetime="1"
+      <node name="house" show_layer_type="0" subchunk_type="1" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="10000" destroybalance="0.35" imbalancetime="1"
            weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/house.pf">
         <metadata minx="2" miny="2" maxx="16" maxy="16">
           <types>
@@ -95,9 +95,9 @@
               <ref name="block0" case="2" />
               <ref name="block0" case="door" />
               <ref name="house_broken_a" case="1" />
-              <ref name="house_broken_a" case="car_0" />
-              <ref name="house_broken_a" case="car_2" />
-              <ref name="house_broken_a" case="car_3" />
+              <ref name="block0" case="car_0" />
+              <ref name="block0" case="car_2" />
+              <ref name="block0" case="car_3" />
             </node>
             <node type="autofill" check_gen_data_name="door" x="1" y="0" w="-1" h="1">
               <ref name="door1_0" sizeminx="2" sizeminy="1" />
@@ -131,18 +131,46 @@
                   x="1" y="1" w="-1" h="-1" />
 
             <node type="autofill" check_gen_data_name="car_0" x="0" y="0" w="0" h="0">
-              <ref name="car1_spawner_0" sizeminx="4" sizeminy="2" />
+              <node type="switch" str="is_bonus" sizeminx="4" sizeminy="2">
+                <ref name="car_pt_spawner_0" case="1" />
+                <ref name="car1_spawner_0" />
+              </node>
             </node>
             <node type="autofill" check_gen_data_name="car_2" x="0" y="0" w="0" h="0">
-              <ref name="car1_spawner_2" sizeminx="4" sizeminy="2" />
+              <node type="switch" str="is_bonus" sizeminx="4" sizeminy="2">
+                <ref name="car_pt_spawner_2" case="1" />
+                <ref name="car1_spawner_2" />
+              </node>
             </node>
             <node type="autofill" check_gen_data_name="car_3" x="0" y="0" w="0" h="0">
+              <node type="switch" str="is_bonus" sizeminx="2" sizeminy="4">
+                <ref name="car_pt_spawner_3" case="1" />
+                <ref name="car1_spawner_3" />
+              </node>
               <ref name="car1_spawner_3" sizeminx="2" sizeminy="4" />
             </node>
           </node>
         </next_level>
       </node>
 
+      <node name="cargo1" width="1" height="1" weight="1.2" destroyweight="3" shakeweightcoef="1" absorbshakestrength="10000" destroybalance="0.35" imbalancetime="1"
+           weightperwidth="1.2" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" destroyshake="1" destroyshakepersize="1" prefab="data/blocks/lv2/cargo1.pf">
+        <metadata minx="2" miny="2" maxx="16" maxy="16" />
+        <types>4</types>
+        <subitem>
+          <node type="tile">
+            <node type="randompick">
+              <ref name="metal_broken" p="1" />
+              <node type="empty" p="1" />
+            </node>
+          </node>
+        </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="text_ss" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
+      </node>
 
       <node name="billboard" type="billboard" show_layer_type="0" width="4" height="4" weight="2" weightperwidth="1" destroyweight="33" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20" shakedmg="20" prefab="data/blocks/lv2/billboard.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="16" />

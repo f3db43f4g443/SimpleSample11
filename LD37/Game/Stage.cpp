@@ -309,6 +309,12 @@ CEntity * CStage::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CV
 		return NULL;
 	vector<SRaycastResult> result;
 	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
+	CEntity* p = NULL;
+	for( int i = 0; i < result.size(); i++ )
+	{
+		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
+		pEntity1->AddRef();
+	}
 	for( int i = 0; i < result.size(); i++ )
 	{
 		if( result[i].pHitProxy == pEntity )
@@ -318,13 +324,19 @@ CEntity * CStage::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CV
 			continue;
 		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
 			continue;
-		if( !pEntity1->CanHit( pEntity ) || !pEntity->CanHit( pEntity1 ) )
+		if( !pEntity1->CanHit( pEntity ) || !pEntity->CanHit1( pEntity1, result[i] ) )
 			continue;
 		if( pResult )
 			*pResult = result[i];
-		return pEntity1;
+		p = pEntity1;
+		break;
 	}
-	return NULL;
+	for( int i = 0; i < result.size(); i++ )
+	{
+		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
+		pEntity1->Release();
+	}
+	return p;
 }
 
 void CStage::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )

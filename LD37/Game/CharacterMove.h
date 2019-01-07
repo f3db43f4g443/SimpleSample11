@@ -88,7 +88,7 @@ struct SCharacterSimpleWalkData : public SCharacterMovementData
 {
 	SCharacterSimpleWalkData( const SClassCreateContext& context ) { Reset(); }
 
-	CVector2 UpdateMove( CCharacter* pCharacter, int8 nDir, bool bJump );
+	CVector2 UpdateMove( CCharacter* pCharacter, float fDir, bool bJump );
 
 	float fMoveSpeed;
 	float fGravity;
@@ -288,6 +288,7 @@ struct SCharacterVehicleMovementData : public SCharacterMovementData
 	float fMaxFallSpeed;
 
 	bool bHitWall;
+	bool bHitWall1;
 	float fDamage;
 };
 

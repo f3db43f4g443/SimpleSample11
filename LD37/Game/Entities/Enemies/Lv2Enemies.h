@@ -126,6 +126,7 @@ public:
 	}
 
 	virtual bool CanHit( CEntity* pEntity ) override;
+	virtual bool CanHit1( CEntity* pEntity, SRaycastResult& result ) override;
 	virtual void OnRemovedFromStage() override;
 
 	virtual void Damage( SDamageContext& context ) override;
@@ -136,6 +137,7 @@ protected:
 	SCharacterVehicleMovementData m_moveData;
 	float m_fAcc;
 	float m_fHitDamage;
+	float m_fHitDmg1Coef;
 	uint32 m_nBurnHp;
 	uint32 m_nBurnDamage;
 	uint32 m_nBurnDamageInterval;

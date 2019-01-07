@@ -55,6 +55,7 @@ public:
 	FORCE_INLINE static CMyLevel* GetInst() { return s_pLevel; }
 	
 	FORCE_INLINE bool IsLevelDesignTest() { return m_bIsLevelDesignTest; }
+	FORCE_INLINE uint32 GetWidth() { return m_nWidth; }
 	FORCE_INLINE CRectangle GetBound() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), m_nSpawnHeight * GetBlockSize() ); }
 	FORCE_INLINE float GetLvBarrierHeight() { return m_fCurLvBarrierHeight; }
 	FORCE_INLINE CRectangle GetBoundWithLvBarrier() { return CRectangle( 0, 0, m_nWidth * GetBlockSize(), Min<float>( m_fCurLvBarrierHeight, m_nSpawnHeight * GetBlockSize() ) ); }

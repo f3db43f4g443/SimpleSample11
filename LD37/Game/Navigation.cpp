@@ -4,9 +4,10 @@
 #include "Stage.h"
 #include "Common/Rand.h"
 
-void CNavigationUnit::Set( bool bCanFly, float fMaxScanDist, uint32 nGridsPerStep )
+void CNavigationUnit::Set( bool bCanFly, uint32 nMaxJumpHeight, float fMaxScanDist, uint32 nGridsPerStep )
 {
 	m_bCanFly = bCanFly;
+	m_nMaxJumpHeight = nMaxJumpHeight;
 	m_fMaxScanDist = fMaxScanDist;
 	m_nGridsPerStep = nGridsPerStep;
 	Reset();
@@ -120,6 +121,7 @@ void CNavigationUnit::Step( CCharacter * pChar )
 
 				grid1.fDist = fDist;
 				grid1.par = pGrid->pos;
+				grid1.nParType = 0;
 				if( !grid1.bInserted )
 				{
 					m_q.Insert( &grid1 );
@@ -131,7 +133,68 @@ void CNavigationUnit::Step( CCharacter * pChar )
 				if( grid1.nType != pGrid->nType )
 					break;
 			}
+		}
 
+		if( !m_bCanFly && m_nMaxJumpHeight && pGrid->pos.y < mapRect.height - 1 )
+		{
+			bool bJump = false;
+			if( pGrid->nType == 1 && !bFall )
+				bJump = true;
+			else if( pGrid->nType == 2 && CacheGridData( TVector2<int32>( pGrid->pos.x, pGrid->pos.y + 1 ), pProvider ).nType == 1 )
+				bJump = true;
+			if( bJump )
+			{
+				int32 w = 2;
+				int32 x = pGrid->pos.x;
+				int32 yMax = Min<int32>( mapRect.height - 1, pGrid->pos.y + m_nMaxJumpHeight );
+				int8 b = SRand::Inst().Rand( 0, 2 );
+				for( int y = pGrid->pos.y + 1; y <= yMax; y++, w += 2 )
+				{
+					auto& grid1 = CacheGridData( TVector2<int32>( x, y ), pProvider );
+					if( grid1.bClosed )
+						break;
+					if( grid1.nType == 0 )
+						break;
+					float fDist = pGrid->fDist + w;
+					if( grid1.fDist > fDist )
+					{
+						grid1.fDist = fDist;
+						grid1.par = pGrid->pos;
+						grid1.nParType = 1;
+						if( !grid1.bInserted )
+						{
+							m_q.Insert( &grid1 );
+							grid1.bInserted = true;
+						}
+						else
+							m_q.Modify( &grid1 );
+					}
+
+					if( grid1.nType == 2 )
+						break;
+					fDist = fDist + 1;
+					for( int k = 0; k < 2; k++ )
+					{
+						int32 x1 = x + ( ( k ^ b ) ? 1 : -1 );
+						if( x1 < 0 || x1 >= mapRect.width )
+							continue;
+						auto& grid2 = CacheGridData( TVector2<int32>( x1, y ), pProvider );
+						if( grid2.bClosed || grid2.nType == 0 || grid2.fDist <= fDist )
+							continue;
+
+						grid2.fDist = fDist;
+						grid2.par = pGrid->pos;
+						grid2.nParType = 1;
+						if( !grid2.bInserted )
+						{
+							m_q.Insert( &grid2 );
+							grid2.bInserted = true;
+						}
+						else
+							m_q.Modify( &grid2 );
+					}
+				}
+			}
 		}
 	}
 
@@ -172,17 +235,17 @@ void CNavigationUnit::BuildPath( SGridData * pGridData, CCharacter* pCharacter )
 
 	while( pGridData->par.x >= 0 )
 	{
-		m_curPath.push_back( pGridData->pos );
+		m_curPath.push_back( SPathNode( pGridData->pos, pGridData->nParType ) );
 		pGridData = &GetGrid( pGridData->par );
 	}
 	if( !m_curPath.size() )
 		return;
 
 	bool hitTypeFilter[eEntityHitType_Count] = { true, false };
-	if( pCharacter->GetStage()->SweepTest( pCharacter, pCharacter->globalTransform,
-		GridToRect( m_curPath.back() ).GetCenter() - pCharacter->GetPosition(), hitTypeFilter ) )
+	if( !m_curPath.back().nType && pCharacter->GetStage()->SweepTest( pCharacter, pCharacter->globalTransform,
+		GridToRect( m_curPath.back().p ).GetCenter() - pCharacter->GetPosition(), hitTypeFilter ) )
 	{
-		m_curPath.push_back( GetGridByPos( pCharacter->GetPosition() ) );
+		m_curPath.push_back( SPathNode( GetGridByPos( pCharacter->GetPosition() ), false ) );
 	}
 }
 
@@ -192,13 +255,17 @@ void CNavigationUnit::ClearPath()
 	m_curPath.clear();
 }
 
-CVector2 CNavigationUnit::FollowPath( CCharacter * pCharacter, float fSpeed )
+bool CNavigationUnit::FollowPath( CCharacter* pCharacter, float fSpeed, CVector2& moveDir, CVector2& jumpTarget )
 {
 	if( !m_curPath.size() )
-		return CVector2( 0, 0 );
+	{
+		moveDir = CVector2( 0, 0 );
+		return false;
+	}
 
-	CRectangle targetRect = GridToRect( m_curPath.back() );
-	CVector2 res = targetRect.GetCenter() - pCharacter->globalTransform.GetPosition();
+	auto& pathNode = m_curPath.back();
+	CRectangle targetRect = GridToRect( pathNode.p );
+	moveDir = targetRect.GetCenter() - pCharacter->globalTransform.GetPosition();
 	CRectangle charRect;
 	pCharacter->Get_HitProxy()->CalcBound( pCharacter->globalTransform, charRect );
 	if( targetRect.Contains( charRect ) )
@@ -207,11 +274,16 @@ CVector2 CNavigationUnit::FollowPath( CCharacter * pCharacter, float fSpeed )
 	if( fSpeed > 0 )
 	{
 		float fMaxDist = fSpeed * pCharacter->GetStage()->GetElapsedTimePerTick();
-		float l = res.Normalize();
+		float l = moveDir.Normalize();
 		if( l < fMaxDist )
-			res = res * ( l / fMaxDist );
+			moveDir = moveDir * ( l / fMaxDist );
 	}
-	return res;
+	if( pathNode.nType == 1 )
+	{
+		jumpTarget = targetRect.GetCenter();
+		return true;
+	}
+	return false;
 }
 
 CNavigationUnit * CNavigationUnit::Alloc()

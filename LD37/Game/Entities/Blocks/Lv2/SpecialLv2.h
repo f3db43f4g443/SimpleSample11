@@ -133,6 +133,27 @@ private:
 	TClassTrigger<CHouse> m_onTick;
 };
 
+class CCargo1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CCargo1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+private:
+	uint32 m_nHpPerSize;
+	TResourceRef<CDrawableGroup> m_pDeco;
+	TResourceRef<CDrawableGroup> m_pColorMat;
+};
+
+class CRoadSign : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CRoadSign( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CRoadSign ); }
+
+	virtual void Init( const CVector2& size ) override;
+};
+
 class CControlRoom : public CChunkObject
 {
 	friend void RegisterGameClasses();

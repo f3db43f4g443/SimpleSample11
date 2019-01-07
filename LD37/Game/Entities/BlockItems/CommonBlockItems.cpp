@@ -9,6 +9,7 @@
 #include "Pickup.h"
 #include "GlobalCfg.h"
 #include "Bullet.h"
+#include "Explosion.h"
 
 void CDetectTrigger::OnAddedToStage()
 {
@@ -338,6 +339,8 @@ void CSpawner::Trigger()
 			else
 				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		}
+		else if( SafeCast<CExplosion>( pEntity ) )
+			pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		else
 			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 		if( m_nMaxCount )
@@ -471,6 +474,8 @@ void CKillSpawner::Trigger()
 			else
 				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		}
+		else if( SafeCast<CExplosion>( pEntity ) )
+			pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		else
 			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
@@ -548,6 +553,8 @@ void CDamageSpawnEnemy::Trigger()
 			else
 				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		}
+		else if( SafeCast<CExplosion>( pEntity ) )
+			pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		else
 			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}

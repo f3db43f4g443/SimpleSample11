@@ -14,13 +14,13 @@ struct SRand
 
 	uint32 Rand()
 	{
-		return( ( (nSeed = 1103515245UL * nSeed + 12345UL ) ) & 0x7fff );
+		return( nSeed = ( nSeed * 196314165 ) + 907633515 );
 	}
 
 	template<typename T>
 	T Rand( T randMin, T randMax )
 	{
-		return Rand() * ( randMax - randMin ) / ( 0x7fff + 1 ) + randMin;
+		return (uint64)Rand() * ( randMax - randMin ) / ( 0xffffffffULL + 1 ) + randMin;
 	}
 
 	template<typename T>

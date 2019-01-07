@@ -8,6 +8,7 @@
     <attachs>
       <node name="plant" prefab="data/blockitems/plant.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
       <node name="plant1" prefab="data/blockitems/plant1.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
+      <node name="plant_pt" prefab="data/blockitems/plant_pt.pf" sizex="1" sizey="1" attach_type="0" type1="1" />
       <node name="car1_spawner_0" prefab="data/blockitems/car1_spawner_0.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car1_spawner_1" prefab="data/blockitems/car1_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car1_spawner_2" prefab="data/blockitems/car1_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
@@ -16,6 +17,10 @@
       <node name="car2_spawner_1" prefab="data/blockitems/car2_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="car2_spawner_2" prefab="data/blockitems/car2_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
       <node name="car2_spawner_3" prefab="data/blockitems/car2_spawner_3.pf" sizex="2" sizey="4" attach_type="0" />
+      <node name="car_pt_spawner_0" prefab="data/blockitems/car_pt_spawner_0.pf" sizex="4" sizey="2" attach_type="0" />
+      <node name="car_pt_spawner_1" prefab="data/blockitems/car_pt_spawner_1.pf" sizex="2" sizey="4" attach_type="0" />
+      <node name="car_pt_spawner_2" prefab="data/blockitems/car_pt_spawner_2.pf" sizex="4" sizey="2" attach_type="0" />
+      <node name="car_pt_spawner_3" prefab="data/blockitems/car_pt_spawner_3.pf" sizex="2" sizey="4" attach_type="0" />
       <node name="house_entrance_0" prefab="data/blockitems/house_entrance_0.pf" sizex="1" sizey="2" attach_type="0" />
       <node name="house_entrance_1" prefab="data/blockitems/house_entrance_1.pf" sizex="2" sizey="1" attach_type="0" />
       <node name="house_entrance_2" prefab="data/blockitems/house_entrance_2.pf" sizex="1" sizey="2" attach_type="0" />
@@ -53,7 +58,9 @@
       <node name="deco_fiber1_b_1" prefab="data/misc/fiber1_b_1.pf" />
       <node name="deco_fiber1_c_1" prefab="data/misc/fiber1_c_1.pf" />
       <node name="deco_fiber1_d_1" prefab="data/misc/fiber1_d_1.pf" />
+      <node name="text_ss" prefab="data/blocks/lv2/text_ss.pf" sizex="-8" sizey="-8" sizewidth="32" sizeheight="32" />
       <node name="fence" prefab="data/blocks/lv2/fence.pf" />
+      <node name="roadsign" prefab="data/blocks/lv2/roadsign.pf" />
       <node name="billboard_frame" prefab="data/blocks/lv2/billboard_frame.pf" />
     </spawns>
     <scrollobjs>
@@ -222,10 +229,15 @@
         <types>0</types>
         <immune_to_block_buff>1</immune_to_block_buff>
         <subitem>
-          <node type="tile">
+          <node type="tile" x="0" y="0" w="0" h="0">
             <ref name="road_large_broken" />
           </node>
         </subitem>
+        <next_level>
+          <node type="subregion">
+            <ref name="roadsign" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
       <node name="greenbelt" movetype="1" show_layer_type="0" width="1" height="1" weight="0.8" weightperwidth="0.8" destroyweight="2.5" destroyweightperwidth="2.5" shakeweightcoef="1"
             absorbshakestrength="5" absorbshakestrengthperheight="5" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/greenbelt.pf">
@@ -237,14 +249,15 @@
           </types>
         </metadata>
         <types>0</types>
+        <immune_to_block_buff>1</immune_to_block_buff>
         <subitem copy_blueprint="2">
           <node type="subregion">
             <node type="tile" x="0" y="0" w="0" h="0" >
               <ref name="block0" />
             </node>
-            <node type="filltag" gen_data_name="1" block_type="2" x="0" y="0" w="0" h="0" />
-            <node type="filltag" gen_data_name="1_1" block_type="2" x="0" y="0" w="0" h="0" />
-            <node type="filltag" gen_data_name="1_2" block_type="2" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="1" block_type="2" immune_to_block_buff="0" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="1_1" block_type="2" immune_to_block_buff="0" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="1_2" block_type="2" immune_to_block_buff="0" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         
@@ -255,21 +268,38 @@
             </node>
             <node type="switch_tile" x="0" y="0" w="0" h="0">
               <ref name="plant" case="1_1" />
-              <ref name="plant1" case="1_2" />
+              <node type="switch" str="is_bonus" case="1_2">
+                <ref name="plant_pt" case="1" />
+                <ref name="plant1" />
+              </node>
             </node>
           </node>
         </next_level>
       </node>
       
-      <node name="box" width="1" height="1" weight="1" destroyweight="2" layer_type="2" prefab="data/blocks/lv2/box.pf">
+      <node name="box" width="1" height="1" weight="1" destroyweight="2" layer_type="2" ctag0="1" prefab="data/blocks/lv2/box.pf">
         <types>4</types>
       </node>
+      
+      <node name="box_pt" width="1" height="1" weight="1" destroyweight="2" layer_type="2" ctag0="1" prefab="data/blocks/lv2/box_pt.pf">
+        <types>4</types>
+      </node>
+
+      <node name="barrel_s" layer_type="2" width="1" height="2" weight="0.5" destroyweight="2" destroyshake="8" absorbshakestrength="2" ctag1="1" prefab="data/blocks/lv2/barrel_s.pf">
+        <types>4,4</types>
+      </node>
+      <node name="barrel_s1_r" layer_type="2" width="2" height="1" weight="1" destroyweight="4" destroyshake="8" absorbshakestrength="1" ctag1="1" prefab="data/blocks/lv2/barrel_s1_r.pf">
+        <types>4,4</types>
+      </node>
+      <node name="barrel_s1_l" layer_type="2" width="2" height="1" weight="1" destroyweight="4" destroyshake="8" absorbshakestrength="1" ctag1="1" prefab="data/blocks/lv2/barrel_s1_l.pf">
+        <types>4,4</types>
+      </node>
     
-      <node name="barrel" layer_type="2" width="2" height="3" weight="1" destroyweight="8" destroyshake="30" shakedmg="3" prefab="data/blocks/lv2/barrel.pf">
+      <node name="barrel" layer_type="2" width="2" height="3" weight="1" destroyweight="8" destroyshake="30" shakedmg="3" ctag1="1" prefab="data/blocks/lv2/barrel.pf">
         <types>4,4,4,4,4,4</types>
       </node>
     
-      <node name="barrel1" layer_type="2" width="4" height="2" weight="2" destroyweight="16" destroyshake="30" shakedmg="4" prefab="data/blocks/lv2/barrel1.pf">
+      <node name="barrel1" layer_type="2" width="4" height="2" weight="2" destroyweight="16" destroyshake="30" shakedmg="4" ctag1="1" prefab="data/blocks/lv2/barrel1.pf">
         <types>4,4,4,4,4,4,4,4</types>
       </node>
       
@@ -280,7 +310,10 @@
         <subitem>
           <node type="tile">
             <node type="randompick">
-              <ref name="box" p="1" />
+              <node type="switch" str="is_bonus" p="1">
+                <ref name="box_pt" case="1" />
+                <ref name="box" />
+              </node>
               <ref name="metal_broken" p="1" />
               <node type="empty" p="2" />
             </node>
@@ -288,6 +321,7 @@
         </subitem>
         <next_level>
           <node type="subregion">
+            <ref name="text_ss" x="0" y="0" w="0" h="0" />
             <node type="randompick" x="0" y="0" w="0" h="0">
               <ref name="deco_fiber1_a" p="1" />
               <ref name="deco_fiber1_b" p="1" />
@@ -366,50 +400,6 @@
         <ref name="cargo1s_d_thruster" p="1" />
       </node>
       
-      <node name="cargo1_a" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_a.pf">
-        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <node type="randompick">
-              <ref name="metal_broken" p="1" />
-              <node type="empty" p="1" />
-            </node>
-          </node>
-        </subitem>
-      </node>
-      <node name="cargo1_b" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_b.pf">
-        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <node type="randompick">
-              <ref name="metal_broken" p="1" />
-              <node type="empty" p="1" />
-            </node>
-          </node>
-        </subitem>
-      </node>
-      <node name="cargo1_c" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_c.pf">
-        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <node type="randompick">
-              <ref name="metal_broken" p="1" />
-              <node type="empty" p="1" />
-            </node>
-          </node>
-        </subitem>
-      </node>
-      <node name="cargo1_d" width="4" height="4" weight="5" destroyweight="8" destroyshake="16" shakeweightcoef="1" absorbshakestrength="4" shakedmg="4" prefab="data/blocks/lv2/cargo1_d.pf">
-        <types>4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4</types>
-        <subitem>
-          <node type="tile">
-            <node type="randompick">
-              <ref name="metal_broken" p="1" />
-              <node type="empty" p="1" />
-            </node>
-          </node>
-        </subitem>
-      </node>
       <node name="cargo1l_a" width="8" height="8" weight="10" destroyweight="16" destroyshake="64" shakeweightcoef="1" absorbshakestrength="8" shakedmg="8" prefab="data/blocks/lv2/cargo1l_a.pf">
         <types>
           4,4,4,4,4,4,4,4,

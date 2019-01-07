@@ -813,6 +813,27 @@ void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, in
 	}
 }
 
+void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, const TRectangle<int32>& bound, TVector2<int32>* pOfs, int32 nOfs )
+{
+	vector<int8> vecTemp;
+	vecTemp.resize( bound.width * bound.height );
+	for( int i = 0; i < bound.width; i++ )
+	{
+		for( int j = 0; j < bound.height; j++ )
+		{
+			vecTemp[i + j * nWidth] = vec[i + bound.x + ( j + bound.y ) * nWidth];
+		}
+	}
+	ConnectAll( vecTemp, bound.width, bound.height, nType, nBackType, pOfs, nOfs );
+	for( int i = 0; i < bound.width; i++ )
+	{
+		for( int j = 0; j < bound.height; j++ )
+		{
+			vec[i + bound.x + ( j + bound.y ) * nWidth] = vecTemp[i + j * nWidth];
+		}
+	}
+}
+
 void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge )
 {
 	vector<TVector2<int32> > q1;

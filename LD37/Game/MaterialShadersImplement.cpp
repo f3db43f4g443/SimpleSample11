@@ -123,3 +123,4 @@ IMPLEMENT_MATERIAL_SHADER( PSWaterDistortionOcc1, "Shader/Water.shader", "PSWate
 
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskColor, "Shader/Distortion.shader", "PSDistortionMaskColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMaskOcc, "Shader/Distortion.shader", "PSDistortionMaskOcc", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSOnProcessColorMat, "Shader/OnProcess.shader", "PSOnProcessColorMat", "ps_5_0" );

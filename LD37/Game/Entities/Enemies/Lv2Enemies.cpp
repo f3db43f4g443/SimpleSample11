@@ -522,13 +522,54 @@ bool CCar::CanHit( CEntity * pEntity )
 	if( m_pExcludeChunkObject )
 	{
 		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
-		if( pBlockObject && pBlockObject->GetParent() == m_pExcludeChunkObject )
+		if( pBlockObject )
 		{
-			auto pBlock = pBlockObject->GetBlock();
-			if( pBlock->nX >= m_excludeRect.x && pBlock->nY >= m_excludeRect.y && pBlock->nX < m_excludeRect.GetRight() && pBlock->nY < m_excludeRect.GetBottom() )
+			if( pBlockObject->GetParent() == m_pExcludeChunkObject )
 			{
-				m_bHitExcludeChunk = true;
-				return false;
+				auto pBlock = pBlockObject->GetBlock();
+				if( pBlock->nX >= m_excludeRect.x && pBlock->nY >= m_excludeRect.y && pBlock->nX < m_excludeRect.GetRight() && pBlock->nY < m_excludeRect.GetBottom() )
+				{
+					m_bHitExcludeChunk = true;
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+bool CCar::CanHit1( CEntity * pEntity, SRaycastResult & result )
+{
+	auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+	if( pBlockObject )
+	{
+		if( m_pExcludeChunkObject )
+		{
+			if( pBlockObject->GetParent() == m_pExcludeChunkObject )
+			{
+				auto pBlock = pBlockObject->GetBlock();
+				if( pBlock->nX >= m_excludeRect.x && pBlock->nY >= m_excludeRect.y && pBlock->nX < m_excludeRect.GetRight() && pBlock->nY < m_excludeRect.GetBottom() )
+				{
+					m_bHitExcludeChunk = true;
+					return false;
+				}
+			}
+		}
+
+		auto pChunkObject = SafeCast<CChunkObject>( pBlockObject->GetParentEntity() );
+		if( pChunkObject )
+		{
+			if( pChunkObject->GetCrushCost() > 0 )
+			{
+				CVector2 dir( globalTransform.m00, globalTransform.m10 );
+				CVector2 vel1 = dir * GetVelocity().Dot( dir );
+				float fDmg = vel1.Dot( result.normal ) * -m_fHitDmg1Coef * 1000.0f / pChunkObject->GetCrushCost();
+				if( fDmg > 0 )
+				{
+					pChunkObject->Damage( fDmg );
+					if( !pChunkObject->GetParentEntity() )
+						return false;
+				}
 			}
 		}
 	}
@@ -630,7 +671,7 @@ void CCar::OnTickAfterHitTest()
 {
 	DEFINE_TEMP_REF_THIS();
 	CEnemy::OnTickAfterHitTest();
-	CVector2 dir( cos( r ), sin( r ) );
+	CVector2 dir( globalTransform.m00, globalTransform.m10 );
 	SetVelocity( GetVelocity() + dir * ( m_fAcc * GetStage()->GetElapsedTimePerTick() ) );
 	m_moveData.UpdateMove( this );
 	if( !GetStage() )

@@ -54,7 +54,7 @@ void CLv2Wall1Deco::Init( const CVector2& size )
 	{
 		SRand::Inst<eRand_Render>().Shuffle( vec );
 
-		int32 s = SRand::Inst().Rand( nWidth * nHeight / 6, nWidth * nHeight / 4 );
+		int32 s = SRand::Inst().Rand( nWidth * nHeight / 3, nWidth * nHeight / 2 );
 		for( auto& p : vec )
 		{
 			if( vecTemp[p.x + p.y * nWidth] )

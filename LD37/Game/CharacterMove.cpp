@@ -243,6 +243,8 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter )
 	for( int i = 0; i < hitResult.size(); i++ )
 	{
 		auto pEntity = static_cast<CEntity*>( hitResult[i] );
+		if( pEntity == pCharacter )
+			continue;
 		auto eHitType = static_cast<CEntity*>( hitResult[i] )->GetHitType();
 		if( pCharacter->HasHitFilter() )
 		{
@@ -834,7 +836,7 @@ void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
 		pLandedEntity = NULL;
 }
 
-CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, int8 nDir, bool bJump )
+CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, float fDir, bool bJump )
 {
 	if( !ResolvePenetration( pCharacter ) )
 	{
@@ -851,15 +853,15 @@ CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, int8 nDi
 	float t1 = fTime - t;
 	dY -= dFallSpeed * ( t * 0.5f + t1 );
 
-	float dX = nDir * fMoveSpeed * fTime;
+	float dX = fDir * fMoveSpeed * fTime;
 	CVector2 dPos( dX, dY );
-	CVector2 velocity( nDir * fMoveSpeed, -fFallSpeed1 );
+	CVector2 velocity( fDir * fMoveSpeed, -fFallSpeed1 );
 
 	if( fKnockbackTime > 0 )
 	{
 		float fKnockbackTime0 = fKnockbackTime;
 		fKnockbackTime = Max( 0.0f, fKnockbackTime - fTime );
-		nDir = 0;
+		fDir = 0;
 		vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
 		velocity = vecKnockback;
 	}
@@ -1169,45 +1171,80 @@ void SCharacterVehicleMovementData::UpdateMove( CCharacter * pCharacter )
 {
 	float deltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
 	bHitWall = false;
-	bool bHitBlock = false;
+	bHitWall1 = false;
 	fDamage = 0;
 	for( auto pManifold = pCharacter->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 	{
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 		if( pCharacter->HasHitFilter() )
 		{
 			if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
 			{
 				bHitWall = true;
+				bHitWall1 = true;
 				continue;
 			}
 		}
 
-		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 		if( pBlockObject )
 		{
+			bHitWall = true;
 			if( pBlockObject->GetHitType() != eEntityHitType_WorldStatic )
-				bHitWall = true;
-			else
 			{
-				if( pManifold->normal.y > 0 )
-					pBlockObject->GetBlock()->pOwner->bForceStop = true;
-				fDamage += 500 * deltaTime;
+				auto pChunkObject = SafeCast<CChunkObject>( pBlockObject->GetParentEntity() );
+				if( pChunkObject && pChunkObject->GetChunk()->nMoveType )
+					bHitWall1 = true;
 			}
 		}
 	}
 
 	if( !ResolvePenetration( pCharacter ) )
 	{
-		/*pCharacter->Crush();
-		return;*/
+		for( auto pManifold = pCharacter->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( pCharacter->HasHitFilter() )
+			{
+				if( !pCharacter->CanHit( pEntity ) || !pEntity->CanHit( pCharacter ) )
+					continue;
+			}
+
+			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+			if( pBlockObject )
+			{
+				if( pBlockObject->GetHitType() == eEntityHitType_WorldStatic )
+				{
+					if( pManifold->normal.y > 0 )
+					{
+						auto pChunk = pBlockObject->GetBlock()->pOwner->pChunkObject;
+						for( auto pChunk1 = SafeCast<CChunkObject>( pChunk->GetParentEntity() ); pChunk1;
+							pChunk1 = SafeCast<CChunkObject>( pChunk->GetParentEntity() ) )
+							pChunk = pChunk1;
+						float fFallSpeed = pChunk->GetChunk()->GetFallSpeed();
+						CVector2 vel = pCharacter->GetVelocity();
+						vel.y = Min( vel.y, -fFallSpeed );
+						pCharacter->SetVelocity( vel );
+						pChunk->GetChunk()->bForceStop = true;
+					}
+					fDamage += 500 * deltaTime;
+				}
+			}
+		}
 	}
 
 	CVector2 vel = pCharacter->GetVelocity();
 	if( bHitWall )
 	{
 		CVector2 vel0 = vel;
-		CVector2 ofs = vel * deltaTime;
+		CVector2 ofs;
+		if( !bHitWall1 )
+		{
+			vel.y = Max( -fMaxFallSpeed, vel.y - fFallGravity * deltaTime );
+			ofs = ( vel0 + vel ) * 0.5f * deltaTime;
+		}
+		else
+			ofs = vel * 0.5f * deltaTime;
 		TryMove( pCharacter, ofs, vel );
 		if( vel != vel0 )
 		{

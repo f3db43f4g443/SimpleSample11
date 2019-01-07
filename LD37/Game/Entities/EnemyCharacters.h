@@ -30,6 +30,7 @@ protected:
 	virtual void UpdateAnimFrame();
 	void UpdateMove();
 	void UpdateFire();
+	void CheckJump();
 	virtual void OnBeginFire() {}
 	virtual void OnFire() {}
 	virtual void OnEndFire() {}
@@ -53,7 +54,11 @@ protected:
 
 	uint8 m_nState;
 	uint8 m_nAnimState;
+	bool m_bJumpTarget;
+	bool m_bJump;
 	CVector2 m_curMoveDir;
+	CVector2 m_curJumpTarget;
+	float m_fCurJumpDir;
 
 	uint32 m_nFireCDLeft;
 	uint32 m_nFireStopTimeLeft;

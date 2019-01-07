@@ -264,6 +264,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 	, bIsBeingRepaired( false )
 	, nSubChunkType( baseInfo.nSubChunkType )
 	, nVisitFlag( 0 )
+	, nChunkTag( baseInfo.nChunkTag )
 	, pParentChunk( NULL )
 	, m_pSubChunks( NULL )
 	, m_pSpawnInfos( NULL )

@@ -78,5 +78,6 @@ TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, int8 n
 TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVector2<int32> src, int8 nPathType, int8 nDstType,
 	vector<TVector2<int32> >& par, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
+void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, const TRectangle<int32>& bound, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge = true );
 int32 SplitDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q );

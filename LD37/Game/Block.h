@@ -178,6 +178,7 @@ struct SChunkBaseInfo
 	uint8 nMoveType;
 	uint8 nSubChunkType;
 	uint8 nShowLevelType;
+	uint8 nChunkTag;
 
 	vector<SBlockBaseInfo> blockInfos;
 	CReference<CPrefab> pPrefab;
@@ -197,7 +198,6 @@ struct SChunkSpawnInfo
 
 struct SChunk
 {
-	SChunk();
 	SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size );
 	~SChunk();
 	uint32 nWidth;
@@ -251,6 +251,9 @@ struct SChunk
 
 	uint8 nLevelBarrierType : 2;
 	uint8 nBarrierHeight : 4;
+	uint8 nReserved : 2;
+
+	uint8 nChunkTag;
 
 	SChunk* pParentChunk;
 	LINK_LIST( SChunk, SubChunk )

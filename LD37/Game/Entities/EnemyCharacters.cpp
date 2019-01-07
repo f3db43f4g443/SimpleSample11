@@ -18,6 +18,9 @@ void CEnemyCharacter::OnAddedToStage()
 	m_nState = 0;
 	float angle = SRand::Inst().Rand( -PI, PI );
 	m_curMoveDir = CVector2( cos( angle ), sin( angle ) );
+	CVector2 knockback = GetVelocity() / 500;
+	if( knockback.Length2() > 0.1f * 0.1f )
+		Knockback( knockback );
 	UpdateAnimFrame();
 }
 
@@ -70,9 +73,24 @@ void CEnemyCharacter::UpdateMove()
 
 	if( m_nState == 1 )
 	{
-		CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_nFireStopTimeLeft || m_bLeader ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 ), false );
-		if( !GetStage() )
-			return;
+		if( m_bJump )
+		{
+			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_fCurJumpDir, false );
+			if( !GetStage() )
+				return;
+			if( fixedVelocity.y <= 0 )
+				m_bJump = false;
+		}
+		else
+		{
+			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_nFireStopTimeLeft || m_bLeader ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 ), false );
+			if( !GetStage() )
+				return;
+			if( fixedVelocity.x == 0 )
+				m_curMoveDir.x = -m_curMoveDir.x;
+
+			CheckJump();
+		}
 
 		auto levelBound = CMyLevel::GetInst()->GetBound();
 		if( x < levelBound.x || x > levelBound.GetRight() || y < levelBound.y )
@@ -80,9 +98,6 @@ void CEnemyCharacter::UpdateMove()
 			Kill();
 			return;
 		}
-
-		if( fixedVelocity.x == 0 )
-			m_curMoveDir.x = -m_curMoveDir.x;
 
 		CChunkObject* pCurRoom = NULL;
 		for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
@@ -212,6 +227,7 @@ void CEnemyCharacter::UpdateMove()
 			m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 			m_walkData.vecKnockback = m_flyData.vecKnockback;
 			m_nState = 1;
+			CheckJump();
 		}
 	}
 
@@ -304,6 +320,48 @@ void CEnemyCharacter::UpdateFire()
 			m_nNextFireTime = m_nFireInterval;
 		}
 	}
+}
+
+void CEnemyCharacter::CheckJump()
+{
+	if( !m_bJumpTarget || m_bJump )
+		return;
+	m_bJumpTarget = false;
+	CVector2 d = m_curJumpTarget - GetPosition();
+	float fGravity = m_walkData.fGravity;
+	float fMaxJumpSpeed = m_walkData.fJumpSpeed;
+	float fMaxSpeed = m_walkData.fMoveSpeed;
+
+	{
+		float t = abs( d.x ) / fMaxSpeed;
+		if( t > 0.01f )
+		{
+			float fJump = d.y / t + fGravity * 0.5f * t;
+			if( fJump <= fMaxJumpSpeed )
+			{
+				m_velocity = CVector2( 0, fJump );
+				m_fCurJumpDir = d.x > 0 ? 1.0f : -1.0f;
+				m_walkData.fFallSpeed = -fJump;
+				return;
+			}
+		}
+	}
+	if( d.y > 0.01f )
+	{
+		float vy = sqrt( 2 * fGravity * d.y );
+		float t = vy / fGravity;
+		float vx = d.x / t;
+		if( abs( vx ) < fMaxSpeed )
+		{
+			m_velocity = CVector2( 0, vy );
+			m_fCurJumpDir = vx / fMaxSpeed;
+			m_walkData.fFallSpeed = -vy;
+			return;
+		}
+	}
+	m_velocity = CVector2( 0, fMaxJumpSpeed );
+	m_fCurJumpDir = 0.0f;
+	m_walkData.fFallSpeed = -fMaxJumpSpeed;
 }
 
 bool CEnemyCharacter::Knockback( const CVector2& vec )
@@ -419,7 +477,8 @@ void CCop::OnAddedToStage()
 {
 	CEnemyCharacter::OnAddedToStage();
 	m_pNav = CNavigationUnit::Alloc();
-	m_pNav->Set( false, m_fMaxScanDist, m_nGridsPerStep );
+	int32 nMaxJumpHeight = floor( m_walkData.fJumpSpeed * m_walkData.fJumpSpeed / m_walkData.fGravity * 0.5f / CMyLevel::GetBlockSize() );
+	m_pNav->Set( false, nMaxJumpHeight, m_fMaxScanDist, m_nGridsPerStep );
 	m_pNav->RegisterVisitGridEvent( &m_onVisitGrid );
 	m_pNav->RegisterFindTargetEvent( &m_onFindPath );
 }
@@ -488,7 +547,15 @@ void CCop::OnTickAfterHitTest()
 	}
 
 	if( m_pNav->HasPath() )
-		m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
+	{
+		bool bJump = m_pNav->FollowPath( this, GetCurMoveSpeed(), m_curMoveDir, m_curJumpTarget );
+		if( bJump )
+		{
+			if( abs( GetPosition().x - m_curJumpTarget.x ) <= CMyLevel::GetBlockSize() * 0.5f && GetPosition().y >= m_curJumpTarget.y - CMyLevel::GetBlockSize() * 0.5f )
+				bJump = false;
+		}
+		m_bJumpTarget = bJump;
+	}
 
 	CEnemyCharacter::OnTickAfterHitTest();
 }
@@ -579,7 +646,8 @@ void CThug::OnAddedToStage()
 	CEnemyCharacter::OnAddedToStage();
 	m_pNav = CNavigationUnit::Alloc();
 	m_fNearestDist = FLT_MAX;
-	m_pNav->Set( false, m_fMaxScanDist, m_nGridsPerStep );
+	int32 nMaxJumpHeight = floor( m_walkData.fJumpSpeed * m_walkData.fJumpSpeed / m_walkData.fGravity * 0.5f / CMyLevel::GetBlockSize() );
+	m_pNav->Set( false, nMaxJumpHeight, m_fMaxScanDist, m_nGridsPerStep );
 	m_pNav->RegisterVisitGridEvent( &m_onVisitGrid );
 	m_pNav->RegisterFindTargetEvent( &m_onFindPath );
 }
@@ -610,7 +678,15 @@ void CThug::OnTickAfterHitTest()
 
 		m_pNav->Step( this );
 		if( m_pNav->HasPath() )
-			m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
+		{
+			bool bJump = m_pNav->FollowPath( this, GetCurMoveSpeed(), m_curMoveDir, m_curJumpTarget );
+			if( bJump )
+			{
+				if( abs( GetPosition().x - m_curJumpTarget.x ) <= CMyLevel::GetBlockSize() * 0.5f && GetPosition().y >= m_curJumpTarget.y - CMyLevel::GetBlockSize() * 0.5f )
+					bJump = false;
+			}
+			m_bJumpTarget = bJump;
+		}
 		if( pPlayer && !m_nStateTime )
 		{
 			CVector2 dPos = pPlayer->GetPosition() - globalTransform.GetPosition();
@@ -629,7 +705,15 @@ void CThug::OnTickAfterHitTest()
 		if( !m_nStateTime )
 		{
 			if( m_pNav->HasPath() )
-				m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
+			{
+				bool bJump = m_pNav->FollowPath( this, GetCurMoveSpeed(), m_curMoveDir, m_curJumpTarget );
+				if( bJump )
+				{
+					if( abs( GetPosition().x - m_curJumpTarget.x ) <= CMyLevel::GetBlockSize() * 0.5f && GetPosition().y >= m_curJumpTarget.y - CMyLevel::GetBlockSize() * 0.5f )
+						bJump = false;
+				}
+				m_bJumpTarget = bJump;
+			}
 
 			for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 			{
@@ -805,7 +889,8 @@ void CWorker::OnAddedToStage()
 	CEnemyCharacter::OnAddedToStage();
 	m_pNav = CNavigationUnit::Alloc();
 	m_fNearestDist = FLT_MAX;
-	m_pNav->Set( false, m_fMaxScanDist, m_nGridsPerStep );
+	int32 nMaxJumpHeight = floor( m_walkData.fJumpSpeed * m_walkData.fJumpSpeed / m_walkData.fGravity * 0.5f / CMyLevel::GetBlockSize() );
+	m_pNav->Set( false, nMaxJumpHeight, m_fMaxScanDist, m_nGridsPerStep );
 	m_pNav->RegisterVisitGridEvent( &m_onVisitGrid );
 	m_pNav->RegisterFindTargetEvent( &m_onFindPath );
 }
@@ -834,7 +919,15 @@ void CWorker::OnTickAfterHitTest()
 	{
 		m_pNav->Step( this );
 		if( m_pNav->HasPath() )
-			m_curMoveDir = m_pNav->FollowPath( this, GetCurMoveSpeed() );
+		{
+			bool bJump = m_pNav->FollowPath( this, GetCurMoveSpeed(), m_curMoveDir, m_curJumpTarget );
+			if( bJump )
+			{
+				if( abs( GetPosition().x - m_curJumpTarget.x ) <= CMyLevel::GetBlockSize() * 0.5f && GetPosition().y >= m_curJumpTarget.y - CMyLevel::GetBlockSize() * 0.5f )
+					bJump = false;
+			}
+			m_bJumpTarget = bJump;
+		}
 
 		if( m_pTarget )
 		{

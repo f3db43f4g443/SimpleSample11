@@ -191,6 +191,9 @@
     <ClCompile Include="LevelGenerating\LvBonusGen1.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvBonusGen2.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -372,6 +375,9 @@
     <ClInclude Include="LevelGenerating\LvBonusGen1.h">
       <Filter>LevelGenerating</Filter>
     </ClInclude>
+    <ClInclude Include="LevelGenerating\LvBonusGen2.h">
+      <Filter>LevelGenerating</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\Blood.shader">
@@ -468,6 +474,9 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\GameCommon.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\OnProcess.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

@@ -528,6 +528,7 @@
     <None Include="..\Shader\Footprint.shader" />
     <None Include="..\Shader\FootprintLiquid.shader" />
     <None Include="..\Shader\GameCommon.shader" />
+    <None Include="..\Shader\OnProcess.shader" />
     <None Include="..\Shader\ParticleFlipbook1.shader" />
     <None Include="..\Shader\ParticleFlipbookSplash.shader" />
     <None Include="..\Shader\ParticleRandomTex.shader" />
@@ -610,6 +611,7 @@
     <ClCompile Include="LevelGenerate.cpp" />
     <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
     <ClCompile Include="LevelGenerating\LvBonusGen1.cpp" />
+    <ClCompile Include="LevelGenerating\LvBonusGen2.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_2.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_3.cpp" />
@@ -706,6 +708,7 @@
     <ClInclude Include="LevelDesign.h" />
     <ClInclude Include="LevelGenerate.h" />
     <ClInclude Include="LevelGenerating\LvBonusGen1.h" />
+    <ClInclude Include="LevelGenerating\LvBonusGen2.h" />
     <ClInclude Include="LevelGenerating\LvGen1.h" />
     <ClInclude Include="LevelGenerating\LvGen2.h" />
     <ClInclude Include="LevelGenerating\LvGenCommon.h" />

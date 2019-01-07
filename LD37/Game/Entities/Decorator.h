@@ -132,3 +132,18 @@ private:
 	uint8 m_nBlockTag;
 	uint8 m_nBlockTag1;
 };
+
+class CDecoratorLabel : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorLabel( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorLabel ); }
+
+	virtual void Init( const CVector2& size ) override;
+private:
+	void CalcCount( class SChunk* pChunk, int32* nCount );
+	CVector4 m_param[4];
+	CVector4 m_param1[4];
+	float m_fPercent;
+	float m_fMarginPercent;
+};

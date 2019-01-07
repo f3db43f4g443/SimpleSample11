@@ -15,6 +15,7 @@
 #include "LevelGenerating/LvGen1.h"
 #include "LevelGenerating/LvGen2.h"
 #include "LevelGenerating/LvBonusGen1.h"
+#include "LevelGenerating/LvBonusGen2.h"
 
 SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL ), bTest( false )
 {
@@ -609,6 +610,13 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.nMoveType = XmlGetAttr( pXml, "movetype", 0 );
 	chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
 	chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
+	chunk.nChunkTag = 0;
+	static char szCTags[8][16] = { "ctag0", "ctag1", "ctag2", "ctag3", "ctag4", "ctag5", "ctag6", "ctag7" };
+	for( int i = 0; i < 8; i++ )
+	{
+		chunk.nChunkTag |= ( !!XmlGetAttr( pXml, szCTags[i], 0 ) << i );
+	}
+
 	chunk.nShowLevelType = XmlGetAttr( pXml, "show_layer_type", chunk.nLayerType > 1 ? 1 : 0 );
 	chunk.pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( XmlGetAttr( pXml, "prefab", "" ) );
 	chunk.blockInfos.resize( chunk.nWidth * chunk.nHeight );
@@ -825,6 +833,7 @@ public:
 		m_strGenData = XmlGetAttr( pXml, "gen_data_name", "" );
 		m_nBlockType = XmlGetAttr( pXml, "block_type", -1 );
 		m_nTag = XmlGetAttr( pXml, "tag", -1 );
+		m_nImmuneToBlockBuff = XmlGetAttr( pXml, "immune_to_block_buff", -1 );
 	}
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
 	{
@@ -842,6 +851,8 @@ public:
 						context.pParentChunk->blocks[i + j * context.nWidth].eBlockType = m_nBlockType;
 					if( m_nTag!= INVALID_8BITID )
 						context.pParentChunk->blocks[i + j * context.nWidth].nTag = m_nTag;
+					if( m_nImmuneToBlockBuff != INVALID_8BITID )
+						context.pParentChunk->blocks[i + j * context.nWidth].bImmuneToBlockBuff = m_nImmuneToBlockBuff;
 				}
 			}
 		}
@@ -850,6 +861,7 @@ protected:
 	string m_strGenData;
 	uint8 m_nBlockType;
 	uint8 m_nTag;
+	uint8 m_nImmuneToBlockBuff;
 };
 
 class CLevelGenerateSpawnNode : public CLevelGenerateNode
@@ -2016,10 +2028,11 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 
 	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 	REGISTER_GENERATE_NODE( "lv2type1_1", CLevelGenNode2_1_1 );
-	REGISTER_GENERATE_NODE( "lv2type1_2", CLevelGenNode2_1_2 );
 	REGISTER_GENERATE_NODE( "trucknode", CTruckNode );
+	REGISTER_GENERATE_NODE( "lv2type2_0", CLevelGenNode2_2_0 );
 	REGISTER_GENERATE_NODE( "lv2type2_1", CLevelGenNode2_2_1 );
 	REGISTER_GENERATE_NODE( "lv2type2_2", CLevelGenNode2_2_2 );
+	REGISTER_GENERATE_NODE( "lv2bonus0", CLevelBonusGenNode2_0 );
 	REGISTER_GENERATE_NODE( "barrier2", CLvBarrierNodeGen2 );
 }
 

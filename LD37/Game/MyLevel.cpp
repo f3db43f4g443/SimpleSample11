@@ -1769,7 +1769,10 @@ void CMyLevel::UpdateBlockRT()
 		{
 			auto pBlockObject = SafeCast<CBlockObject>( pEntity );
 			if( pBlockObject && !pBlockObject->m_bBlockRTActive )
+			{
+				pBlockObject->m_bBlockRTActive = true;
 				hitBlocks.push_back( pBlockObject );
+			}
 		}
 		hitEntities.resize( 0 );
 	}

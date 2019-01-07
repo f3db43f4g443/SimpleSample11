@@ -13,8 +13,8 @@ public:
 class CNavigationUnit
 {
 public:
-	CNavigationUnit() : m_mapRect( 0, 0, 0, 0 ), m_gridSize( 0, 0 ), m_bCanFly( false ) {}
-	void Set( bool bCanFly, float fMaxScanDist, uint32 nGridsPerStep );
+	CNavigationUnit() : m_mapRect( 0, 0, 0, 0 ), m_gridSize( 0, 0 ), m_bCanFly( false ), m_nMaxJumpHeight( 0 ) {}
+	void Set( bool bCanFly, uint32 nMaxJumpHeight, float fMaxScanDist, uint32 nGridsPerStep );
 	void Reset();
 	void Clear();
 	CEntity* GetTarget() { return m_pTarget; }
@@ -23,11 +23,12 @@ public:
 
 	struct SGridData : public TPriorityQueueNode<SGridData, float>
 	{
-		SGridData() : nType( -1 ), bClosed( false ), bInserted( false ), par( -1, -1 ), fDist( FLT_MAX ), fAStarDist( FLT_MAX ) {}
+		SGridData() : nType( -1 ), bClosed( false ), bInserted( false ), nParType( 0 ), par( -1, -1 ), fDist( FLT_MAX ), fAStarDist( FLT_MAX ) {}
 		virtual float GetPriority() { return fDist + fAStarDist; }
 		uint8 nType;
 		bool bClosed;
 		bool bInserted;
+		uint8 nParType;
 		TVector2<int32> pos;
 		TVector2<int32> par;
 		float fDist;
@@ -51,9 +52,16 @@ public:
 		return grid;
 	}
 
+	struct SPathNode
+	{
+		SPathNode( const TVector2<int32>& p, uint8 nType ) : p( p ), nType( nType ) {}
+		TVector2<int32> p;
+		uint8 nType;
+	};
+
 	void BuildPath( SGridData* pGridData, CCharacter* pCharacter );
 	void ClearPath();
-	CVector2 FollowPath( CCharacter* pCharacter, float fSpeed );
+	bool FollowPath( CCharacter* pCharacter, float fSpeed, CVector2& moveDir, CVector2& jumpTarget );
 	bool HasPath() { return m_curPath.size() > 0; }
 
 	void RegisterVisitGridEvent( CTrigger* pTrigger ) { m_trigger.Register( 0, pTrigger ); }
@@ -65,7 +73,7 @@ private:
 	vector<SGridData> m_vecGrid;
 	TPriorityQueue<SGridData, float> m_q;
 	vector<TVector2<int32> > m_visited;
-	vector<TVector2<int32> > m_curPath;
+	vector<SPathNode> m_curPath;
 
 	TRectangle<int32> m_mapRect;
 	CVector2 m_gridSize;
@@ -75,6 +83,7 @@ private:
 	TVector2<int32> m_curTargetGrid;
 
 	bool m_bCanFly;
+	uint32 m_nMaxJumpHeight;
 	float m_fMaxScanDist;
 	uint32 m_nGridsPerStep;
 
