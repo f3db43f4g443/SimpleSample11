@@ -997,7 +997,8 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 			{
 				if( !bFlee && pCurRoom && pCurRoom->GetChunk() && pCurRoom->GetChunk()->bIsRoom )
 				{
-					if( !pCurRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
+					auto p = CVector2( pGrid->pos.x + 0.5f, pGrid->pos.y + 0.5f ) * CMyLevel::GetBlockSize();
+					if( !pCurRoom->GetRect().Contains( p ) )
 						continue;
 				}
 				if( pPlayer )

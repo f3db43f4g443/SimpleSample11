@@ -4,6 +4,9 @@
 #include "Render/Image2D.h"
 #include "MyGame.h"
 #include "Enemy.h"
+#include "Common/MathUtil.h"
+#include "EffectObject.h"
+#include "MyLevel.h"
 
 void CEnemyPileEft::OnAddedToStage()
 {
@@ -375,11 +378,11 @@ void CLimbsAttackEft::OnTick()
 			auto texRect = pImg->GetElem().texRect;
 			float fBaseX = texRect.x >= 0.5f ? 0.5f : 0;
 			if( fNxtY > fCurY )
-				texRect.x = fBaseX;
+				texRect.x = fBaseX + 0.125f - texRect.width;
 			else if( fNxtY < fCurY )
-				texRect.x = fBaseX + 0.125f;
+				texRect.x = fBaseX + 0.25f - texRect.width;
 			else
-				texRect.x = fBaseX + 0.25f;
+				texRect.x = fBaseX + 0.375f - texRect.width;
 			pImg->SetTexRect( texRect );
 
 			fCurY = fNxtY;
@@ -390,6 +393,257 @@ void CLimbsAttackEft::OnTick()
 	m_nTick++;
 	if( m_nTick == 8 )
 		m_nTick = 0;
+}
+
+void CManChunkEft::OnAddedToStage()
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	m_pImg = p;
+	SetRenderObject( NULL );
+}
+
+void CManChunkEft::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CManChunkEft::UpdateRendered( double dTime )
+{
+	m_fTime += dTime * 2.0f;
+	m_fTime -= floor( m_fTime );
+	for( int i = 0; i < m_nElem; i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.m_element2D.worldMat = globalTransform;
+		CalcElemTex( elem );
+	}
+}
+
+void CManChunkEft::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+		{
+			for( int i = 0; i < m_nElem; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pColorDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		else if( pGUIDrawable )
+		{
+			for( int i = 0; i < m_nElem; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pGUIDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem, 1 );
+			}
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+		{
+			for( int i = 0; i < m_nElem; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pOcclusionDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void CManChunkEft::Set( float fRadius )
+{
+	m_fRadius = Max( 0.0f, fRadius );
+	static float fBegins[] = { 0, 20, 28, 36, 56 };
+	static float fOfs[] = { 0, 4, 16, 32, 56 };
+	static float fWidths[] = { 8, 20, 24, 64, 0 };
+	static int32 rs[] = { 16, 16, 32, 32, 64 };
+	int32 nElem = 0;
+	CRectangle bound( 0, 0, 0, 0 );
+	for( int iSize = 0; iSize < 5; iSize++ )
+	{
+		if( fRadius < fBegins[iSize] )
+			continue;
+		float r = fRadius + rs[iSize] / 2;
+		float r1 = r - fOfs[iSize];
+		float r2 = iSize == 4 ? 0.0f : Max( 0.0f, r1 - fWidths[iSize] - rs[iSize] );
+		int32 n1 = floor( r1 / rs[iSize] );
+		int32 n2 = iSize == 4 ? 0 : ceil( r2 / rs[iSize] );
+
+		int32* l1 = (int32*)alloca( ( n1 + 1 ) * sizeof( int32 ) );
+		int32* l2 = (int32*)alloca( ( n1 + 1 ) * sizeof( int32 ) );
+		for( int i = 0; i <= n1; i++ )
+		{
+			l1[i] = floor( sqrt( Max( 0.0f, r1 * r1 / ( rs[iSize] * rs[iSize] ) - i * i ) ) );
+			l2[i] = iSize == 4 ? 0 : ceil( sqrt( Max( 0.0f, r2 * r2 / ( rs[iSize] * rs[iSize] ) - i * i ) ) );
+		}
+		for( int n = n2; n <= n1 * 1.5f; n++ )
+		{
+			for( int i = 0; i <= Min( n, n1 ); i++ )
+			{
+				int32 x = n - i;
+				int32 y = i;
+				if( x > l1[y] || x < l2[y] )
+					continue;
+				if( !!( iSize & 1 ) )
+				{
+					if( !!( ( x + y ) & 1 ) )
+						continue;
+					int32 x1 = ( x + y ) / 2;
+					int32 y1 = ( x - y ) / 2;
+					x = x1;
+					y = y1;
+				}
+
+				TVector2<int32> v[4] = { { x, y }, { -y, x }, { -x, -y }, { y, -x } };
+				for( int k = x == 0 && y == 0 ? 0 : 3; k >= 0; k-- )
+				{
+					if( nElem >= m_elems.size() )
+						m_elems.resize( nElem + 1 );
+					if( SetElem( m_elems[nElem], v[k].x, v[k].y, iSize, fRadius - fOfs[iSize], r2 ) )
+					{
+						bound = bound + m_elems[nElem].m_element2D.rect;
+						nElem++;
+					}
+				}
+			}
+		}
+	}
+	SetLocalBound( bound );
+	m_nElem = nElem;
+}
+
+void CManChunkEft::Kill()
+{
+	m_fKillRadius = m_fRadius;
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+bool CManChunkEft::SetElem( SElem& elem, int32 nX, int32 nY, int32 nSize, float fRad, float fRad1 )
+{
+	CVector2 p;
+	if( nX == 0 && nY == 0 )
+		p = CVector2( 0, 0 );
+	else
+	{
+		static int32 rs[] = { 10, 16, 22, 32, 44 };
+		static int32 r2s[] = { 16 * 16, 16 * 16 * 2, 32 * 32, 32 * 32 * 2, 64 * 64 };
+
+		static CVector2 ofs[] = { { 16, 0 }, { 16, 16 }, { 32, 0 }, { 32, 32 }, { 64, 0 } };
+		float r2 = ( nX * nX + nY * nY ) * r2s[nSize];
+		float rMax = Max( 0.0f, fRad - rs[nSize] );
+		float r2Max = rMax * rMax;
+		if( r2 > r2Max )
+		{
+			int32 nX1 = nX, nY1 = nY;
+			if( abs( nX1 ) > abs( nY1 ) )
+				nX1 = nX1 > 0 ? nX1 - 1 : nX1 + 1;
+			else if( abs( nX1 ) < abs( nY1 ) )
+				nY1 = nY1 > 0 ? nY1 - 1 : nY1 + 1;
+			else
+			{
+				nX1 = nX1 > 0 ? nX1 - 1 : nX1 + 1;
+				nY1 = nY1 > 0 ? nY1 - 1 : nY1 + 1;
+			}
+			float r2_1 = ( nX1 * nX1 + nY1 * nY1 ) * r2s[nSize];
+			float t = ( r2Max - r2_1 ) / ( r2 - r2_1 );
+			if( t <= 0 )
+				return false;
+			p = ofs[nSize] * ( nX1 + ( nX - nX1 ) * t ) + CVector2( ofs[nSize].y, -ofs[nSize].x ) * ( nY1 + ( nY - nY1 ) * t );
+		}
+		else
+			p = ofs[nSize] * nX + CVector2( -ofs[nSize].y, ofs[nSize].x ) * nY;
+		p = CVector2( floor( p.x * 0.5f + 0.5f ) * 2, floor( p.y * 0.5f + 0.5f ) * 2 );
+	}
+	elem.p = p;
+	elem.nType = nSize;
+	static int32 img_r[] = { 16, 16, 32, 32, 48 };
+	elem.m_element2D.rect = CRectangle( p.x - img_r[nSize], p.y - img_r[nSize], img_r[nSize] * 2, img_r[nSize] * 2 );
+	elem.nAnim = GetAnim( nX, nY, nSize );
+	CalcElemTex( elem );
+	return true;
+}
+
+void CManChunkEft::CalcElemTex( SElem& elem )
+{
+	static int32 img_r[] = { 16, 16, 32, 32, 48 };
+	static int32 nFrameCount[] = { 4, 2, 2, 2, 2 };
+	int32 nFrame = floor( m_fTime * nFrameCount[elem.nType] );
+	if( elem.nType > 0 )
+		nFrame += elem.nAnim * nFrameCount[elem.nType];
+	else
+		nFrame = ( nFrame + elem.nAnim ) % 4;
+
+	TVector2<int32> texBegin[] = { { 0, 0 }, { 64, 0 }, { 0, 16 }, { 0, 48 }, { 0, 80 } };
+	elem.m_element2D.texRect = CRectangle( texBegin[elem.nType].x + img_r[elem.nType] * nFrame, texBegin[elem.nType].y,
+		img_r[elem.nType], img_r[elem.nType] ) * ( 1.0f / 128 );
+}
+
+int8 CManChunkEft::GetAnim( int32 nX, int32 nY, int32 nType )
+{
+	if( nType == 4 )
+		return 0;
+	uint32 n = ZCurveOrderSigned( nX, nY );
+	int32 nSize = m_elemAnim.size();
+	if( n >= nSize )
+	{
+		m_elemAnim.resize( n + 1 );
+		for( int i = nSize; i <= n; i++ )
+			m_elemAnim[i] = SRand::Inst<eRand_Render>().Rand( 0, 256 );
+	}
+	return ( m_elemAnim[n] >> ( nType * 2 ) ) & ( nType == 0 ? 3 : 1 );
+}
+
+void CManChunkEft::OnTick()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	Set( m_fRadius - m_fKillSpeed * GetStage()->GetElapsedTimePerTick() );
+	int32 nKillEft = floor( ( m_fKillRadius - m_fRadius ) / m_fKillEftSize + 0.5f );
+	for( ; nKillEft > m_nKillEft; m_nKillEft++ )
+	{
+		if( m_pKillEft )
+		{
+			float r = m_fKillRadius - ( m_nKillEft + 0.5f ) * m_fKillEftSize;
+			int32 n = ceil( r * PI * 2 / m_fKillEftSize );
+			float fAngle0 = SRand::Inst().Rand( -PI, PI );
+			for( int i = 0; i < n; i++ )
+			{
+				float fAngle = fAngle0 + i * PI * 2 / n;
+				auto pKillEffect = SafeCast<CEffectObject>( m_pKillEft->GetRoot()->CreateInstance() );
+				if( GetParentEntity() )
+					ForceUpdateTransform();
+				pKillEffect->SetState( 2 );
+				pKillEffect->SetPosition( globalTransform.GetPosition() + CVector2( cos( fAngle ) * r, sin( fAngle ) * r ) );
+				pKillEffect->SetRotation( fAngle + PI );
+				pKillEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			}
+		}
+		if( m_pKillSound )
+			m_pKillSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+	}
+
+	if( m_fRadius <= 0 )
+	{
+		SetParentEntity( NULL );
+		return;
+	}
 }
 
 void CAuraEft::OnAddedToStage()

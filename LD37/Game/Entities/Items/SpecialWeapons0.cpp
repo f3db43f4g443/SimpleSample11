@@ -139,7 +139,7 @@ void CDrill::OnTickAfterHitTest()
 		CReference<CEntity> pTempRef = pEntity;
 
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-		if( pEnemy )
+		if( pEnemy && !pEnemy->IsIgnoreBullet() )
 		{
 			if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 				continue;

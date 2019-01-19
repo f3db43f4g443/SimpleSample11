@@ -649,7 +649,7 @@ void CLvBarrier1::Tick()
 			if( pChunk->nSubChunkType == 2 )
 				delete pChunk;
 			else
-				CMyLevel::GetInst()->KillChunk( pChunk );
+				CMyLevel::GetInst()->KillChunk( pChunk, this );
 		}
 		SetParentEntity( NULL );
 	}
@@ -1248,7 +1248,7 @@ void CLvBarrier2::KillTick()
 			if( pChunk->nSubChunkType == 2 )
 				delete pChunk;
 			else
-				CMyLevel::GetInst()->KillChunk( pChunk );
+				CMyLevel::GetInst()->KillChunk( pChunk, this );
 		}
 		SetParentEntity( NULL );
 	}

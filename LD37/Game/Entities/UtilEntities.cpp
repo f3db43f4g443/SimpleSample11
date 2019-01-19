@@ -23,7 +23,15 @@ void CTexRectRandomModifier::OnAddedToStage()
 	}
 	else
 		Apply( GetParentEntity()->GetRenderObject(), ofs );
+	m_nCols = m_nRows = 1;
+	m_fWidth = m_fHeight = 0;
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CTexRectRandomModifier::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
 }
 
 void CTexRectRandomModifier::Apply( CRenderObject2D * pImage, const CVector2& ofs )
@@ -52,8 +60,17 @@ void CAnimFrameRandomModifier::OnAddedToStage()
 {
 	auto pImage2D = static_cast<CMultiFrameImage2D*>( GetParentEntity()->GetRenderObject() );
 	uint32 nRand = SRand::Inst().Rand( 0u, m_nRandomCount );
-	pImage2D->SetFrames( nRand * m_nFrameCount, ( nRand + 1 ) * m_nFrameCount, pImage2D->GetFramesPerSec() );
+	uint32 nBegin = pImage2D->GetFrameBegin();
+	pImage2D->SetFrames( nRand * m_nFrameCount + nBegin, ( nRand + 1 ) * m_nFrameCount + nBegin, pImage2D->GetFramesPerSec() );
+	m_nRandomCount = 1;
+	m_nFrameCount = 0;
 	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CAnimFrameRandomModifier::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
 }
 
 void CRopeAnimator::OnRemovedFromStage()

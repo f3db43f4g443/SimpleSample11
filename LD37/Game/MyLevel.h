@@ -21,10 +21,10 @@ public:
 	virtual void OnPlayerEntered( class CPlayer* pPlayer );
 	void Clear();
 
-	void KillChunk( SChunk* pChunk, bool bCrush = false );
+	void KillChunk( SChunk* pChunk, bool bCrush = false, CChunkObject* pPreObject = NULL );
 
 	void RemoveChunk( SChunk* pChunk );
-	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks );
+	void SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks, CChunkObject* pPreObject = NULL );
 
 	void RemoveChain( SChain* pChain );
 

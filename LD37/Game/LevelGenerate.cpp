@@ -17,6 +17,10 @@
 #include "LevelGenerating/LvBonusGen1.h"
 #include "LevelGenerating/LvBonusGen2.h"
 
+SLevelBuildContext::SLevelBuildContext() : pLevel( NULL ), pParentChunk( NULL ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL )
+{
+}
+
 SLevelBuildContext::SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk ) : pLevel( pLevel ), pParentChunk( pParentChunk ), nMaxChunkHeight( 0 ), pLastLevelBarrier( NULL ), bTest( false )
 {
 	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
@@ -54,7 +58,24 @@ SLevelBuildContext::SLevelBuildContext( uint32 nWidth, uint32 nHeight, bool bTes
 	nSeed = SRand::Inst().nSeed;
 }
 
-SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region )
+void SLevelBuildContext::Set( const SLevelBuildContext & par, SChunk * pParentChunk )
+{
+	pLevel = par.pLevel;
+	this->pParentChunk = pParentChunk;
+	nWidth = pParentChunk ? pParentChunk->nWidth : pLevel->m_nWidth;
+	nHeight = pParentChunk ? pParentChunk->nHeight : pLevel->m_nHeight;
+	nBlockSize = CMyLevel::GetBlockSize();
+	blueprint.resize( nWidth * nHeight );
+	blocks.resize( nWidth * nHeight * 2 );
+	for( int i = 0; i < ELEM_COUNT( attachedPrefabs ); i++ )
+		attachedPrefabs[i].resize( nWidth * nHeight * 2 );
+	for( auto& item : par.mapTags )
+		mapTags[item.first] = item.second;
+	nSeed = par.nSeed;
+	bTest = par.bTest;
+}
+
+SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region, SLevelBuildContext* pSubContext )
 {
 	if( region.x < 0 || region.GetRight() > nWidth )
 		return NULL;
@@ -70,14 +91,55 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		{
 			for( int i = region.x; i < region.GetRight(); i++ )
 			{
-				if( GetBlock( i, j, iLayer ) )
-					return NULL;
+				auto pBlock = GetBlock( i, j, iLayer );
+				if( pBlock )
+				{
+					if( !baseInfo.bPack )
+						return NULL;
+					auto pChunk = pBlock->pParent->pOwner;
+					int32 x = pChunk->pos.x / nBlockSize;
+					int32 y = pChunk->pos.y / nBlockSize;
+					if( x < region.x || y < region.y || x + pChunk->nWidth > region.GetRight() || y + pChunk->nHeight > region.GetBottom() )
+						return NULL;
+					for( auto pChain = pChunk->Get_ChainEf1(); pChain; pChain = pChain->NextChainEf1() )
+					{
+						auto pChunk1 = pChain->pEf1;
+						int32 x1 = pChunk1->pos.x / nBlockSize;
+						int32 y1 = pChunk1->pos.y / nBlockSize;
+						if( x1 < region.x || y1 < region.y || x1 + pChunk1->nWidth > region.GetRight() || y1 + pChunk1->nHeight > region.GetBottom() )
+							return NULL;
+					}
+					for( auto pChain = pChunk->Get_ChainEf2(); pChain; pChain = pChain->NextChainEf2() )
+					{
+						auto pChunk1 = pChain->pEf2;
+						int32 x1 = pChunk1->pos.x / nBlockSize;
+						int32 y1 = pChunk1->pos.y / nBlockSize;
+						if( x1 < region.x || y1 < region.y || x1 + pChunk1->nWidth > region.GetRight() || y1 + pChunk1->nHeight > region.GetBottom() )
+							return NULL;
+					}
+				}
+
+				if( baseInfo.bPack )
+				{
+					for( int iType = 0; iType < ELEM_COUNT( attachedPrefabs ); iType++ )
+					{
+						auto& item = attachedPrefabs[iType][iLayer + ( i + j * nWidth ) * 2];
+						if( item.pPrefab )
+						{
+							if( item.rect.x < region.x || item.rect.y < region.y || item.rect.GetRight() > region.GetRight() || item.rect.GetBottom() > region.GetBottom() )
+								return NULL;
+						}
+					}
+				}
 			}
 		}
 	}
 
 	auto pChunk = new SChunk( baseInfo, TVector2<int32>( region.x * nBlockSize, region.y * nBlockSize ), region.GetSize() );
 	chunks.push_back( pChunk );
+	if( pSubContext )
+		pSubContext->Set( *this, pChunk );
+
 	for( int iLayer = 0; iLayer < 2; iLayer++ )
 	{
 		if( !baseInfo.HasLayer( iLayer ) )
@@ -86,6 +148,59 @@ SChunk* SLevelBuildContext::CreateChunk( SChunkBaseInfo& baseInfo, const TRectan
 		{
 			for( int i = 0; i < pChunk->nWidth; i++ )
 			{
+				if( baseInfo.bPack )
+				{
+					auto pBlock = GetBlock( i + region.x, j + region.y, iLayer );
+					if( pBlock )
+					{
+						auto pChunk1 = pBlock->pParent->pOwner;
+						int32 x = pChunk1->pos.x / nBlockSize;
+						int32 y = pChunk1->pos.y / nBlockSize;
+						for( int iLayer = 0; iLayer < 2; iLayer++ )
+						{
+							if( !pChunk1->HasLayer( iLayer ) )
+								continue;
+							for( int j = 0; j < pChunk1->nHeight; j++ )
+							{
+								for( int i = 0; i < pChunk1->nWidth; i++ )
+								{
+									pSubContext->GetBlock( i + x - region.x, j + y - region.y, iLayer ) = pChunk1->blocks[i + j * pChunk1->nWidth].layers + iLayer;
+									GetBlock( i + x, j + y, iLayer ) = NULL;
+								}
+							}
+						}
+						pSubContext->chunks.push_back( pChunk1 );
+						pChunk1->pos = pChunk1->pos - TVector2<int32>( region.x, region.y ) * nBlockSize;
+						pChunk1->pParentChunk = pChunk;
+					}
+
+					for( int iType = 0; iType < ELEM_COUNT( attachedPrefabs ); iType++ )
+					{
+						auto& item = attachedPrefabs[iType][iLayer + ( i + region.x + ( j + region.y ) * nWidth ) * 2];
+						if( item.pPrefab )
+						{
+							auto r = item.rect.Offset( TVector2<int32>( -region.x, -region.y ) );
+							for( int j = r.y; j < r.GetBottom(); j++ )
+							{
+								for( int i = r.x; i < r.GetRight(); i++ )
+								{
+									auto& item1 = pSubContext->attachedPrefabs[iType][iLayer + ( i + j * nWidth ) * 2];
+									item1.pPrefab = item.pPrefab;
+									item1.rect = r;
+									item1.bType = item.bType;
+								}
+							}
+							r = item.rect;
+							for( int j = r.y; j < r.GetBottom(); j++ )
+							{
+								for( int i = r.x; i < r.GetRight(); i++ )
+								{
+									attachedPrefabs[iType][iLayer + ( i + j * nWidth ) * 2].pPrefab = NULL;
+								}
+							}
+						}
+					}
+				}
 				GetBlock( i + region.x, j + region.y, iLayer ) = pChunk->blocks[i + j * pChunk->nWidth].layers + iLayer;
 			}
 		}
@@ -610,6 +725,7 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 	chunk.nMoveType = XmlGetAttr( pXml, "movetype", 0 );
 	chunk.bIsRoom = XmlGetAttr( pXml, "isroom", 0 );
 	chunk.nSubChunkType = XmlGetAttr( pXml, "subchunk_type", 0 );
+	chunk.bPack = XmlGetAttr( pXml, "ispack", 0 );
 	chunk.nChunkTag = 0;
 	static char szCTags[8][16] = { "ctag0", "ctag1", "ctag2", "ctag3", "ctag4", "ctag5", "ctag6", "ctag7" };
 	for( int i = 0; i < 8; i++ )
@@ -728,15 +844,15 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 
 void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, m_pSubChunk || m_pChunkBaseInfo->bPack ? &tempContext : NULL );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 
-		if( m_pSubChunk )
+		if( m_pSubChunk || m_pChunkBaseInfo->bPack )
 		{
-			SLevelBuildContext tempContext( context, pChunk );
 			if( !!( m_bCopyBlueprint & 2 ) )
 			{
 				for( int i = 0; i < tempContext.nWidth; i++ )
@@ -748,7 +864,8 @@ void CLevelGenerateSimpleNode::Generate( SLevelBuildContext& context, const TRec
 					}
 				}
 			}
-			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			if( m_pSubChunk )
+				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 			if( !!( m_bCopyBlueprint & 1 ) )
 			{
@@ -2033,7 +2150,6 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv2type2_1", CLevelGenNode2_2_1 );
 	REGISTER_GENERATE_NODE( "lv2type2_2", CLevelGenNode2_2_2 );
 	REGISTER_GENERATE_NODE( "lv2bonus0", CLevelBonusGenNode2_0 );
-	REGISTER_GENERATE_NODE( "barrier2", CLvBarrierNodeGen2 );
 }
 
 CLevelGenerateNode* CLevelGenerateFactory::LoadNode( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )

@@ -22,16 +22,16 @@ void CMainMenuGenerateNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadCon
 
 void CMainMenuGenerateNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, m_pSubChunk || m_pChunkBaseInfo->bPack ? &tempContext : NULL );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
-		if( m_pSubChunk )
+		if( m_pSubChunk || m_pChunkBaseInfo->bPack )
 		{
-			SLevelBuildContext tempContext( context, pChunk );
 			if( m_pSubChunk )
 				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			

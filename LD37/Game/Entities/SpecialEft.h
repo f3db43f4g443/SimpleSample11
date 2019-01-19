@@ -68,6 +68,51 @@ private:
 	TClassTrigger<CLimbsAttackEft> m_onTick;
 };
 
+class CManChunkEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunkEft( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CManChunkEft::OnTick ) { SET_BASEOBJECT_ID( CManChunkEft ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+	float GetRadius() { return m_fRadius; }
+	void Set( float fRadius );
+	void Kill();
+private:
+	TResourceRef<CPrefab> m_pKillEft;
+	TResourceRef<CSoundFile> m_pKillSound;
+	float m_fKillEftSize;
+	float m_fKillSpeed;
+
+	struct SElem
+	{
+		SElem() : nType( -1 )
+		{
+			m_element2D.worldMat.Identity();
+		}
+		CElement2D m_element2D;
+		CVector2 p;
+		uint8 nType;
+		int8 nAnim;
+	};
+	bool SetElem( SElem& elem, int32 nX, int32 nY, int32 nSize, float fRad, float fRad1 );
+	void CalcElemTex( SElem& elem );
+	int8 GetAnim( int32 nX, int32 nY, int32 nType );
+	void OnTick();
+	vector<SElem> m_elems;
+	int32 m_nElem;
+	vector<int8> m_elemAnim;
+	CReference<CRenderObject2D> m_pImg;
+	float m_fTime;
+	float m_fRadius;
+	float m_fKillRadius;
+	int32 m_nKillEft;
+	TClassTrigger<CManChunkEft> m_onTick;
+};
+
 class CAuraEft : public CEntity
 {
 	friend void RegisterGameClasses();

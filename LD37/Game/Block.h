@@ -179,6 +179,7 @@ struct SChunkBaseInfo
 	uint8 nSubChunkType;
 	uint8 nShowLevelType;
 	uint8 nChunkTag;
+	uint8 bPack;
 
 	vector<SBlockBaseInfo> blockInfos;
 	CReference<CPrefab> pPrefab;
@@ -320,6 +321,7 @@ public:
 	void RegisterDamagedEvent( CTrigger* pTrigger ) { m_triggerDamaged.Register( 0, pTrigger ); }
 	void RegisterKilledEvent( CTrigger* pTrigger ) { m_triggerKilled.Register( 0, pTrigger ); }
 	void RegisterCrushedEvent( CTrigger* pTrigger ) { m_triggerCrushed.Register( 0, pTrigger ); }
+	void RegisterPostKilledEvent( CTrigger* pTrigger ) { m_triggerPostKilled.Register( 0, pTrigger ); }
 
 	virtual void OnRemovedFromStage() override { ClearHitShake(); RemoveChunk(); }
 protected:
@@ -352,48 +354,7 @@ protected:
 	CEventTrigger<1> m_triggerDamaged;
 	CEventTrigger<1> m_triggerKilled;
 	CEventTrigger<1> m_triggerCrushed;
-};
-
-class CSpecialChunk : public CChunkObject
-{
-	friend void RegisterGameClasses();
-public:
-	CSpecialChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_strBullet( context ) { SET_BASEOBJECT_ID( CSpecialChunk ); }
-
-	virtual void OnAddedToStage() override;
-	virtual void OnLandImpact( uint32 nPreSpeed, uint32 nCurSpeed ) override { if( m_nTriggerImpact && nPreSpeed - nCurSpeed >= m_nTriggerImpact ) Trigger(); }
-
-	virtual void Trigger();
-protected:
-	virtual void OnKilled() override { if( m_bKillTrigger ) Trigger(); CChunkObject::OnKilled(); }
-	bool m_bKillTrigger;
-	uint32 m_nTriggerImpact;
-	CString m_strBullet;
-	CReference<CPrefab> m_pBulletPrefab;
-};
-
-class CSpecialChunk1 : public CSpecialChunk
-{
-	friend void RegisterGameClasses();
-public:
-	CSpecialChunk1( const SClassCreateContext& context ) : CSpecialChunk( context ) { SET_BASEOBJECT_ID( CSpecialChunk1 ); }
-	virtual void Trigger() override;
-};
-
-class CSpecialChunk2 : public CSpecialChunk
-{
-	friend void RegisterGameClasses();
-public:
-	CSpecialChunk2( const SClassCreateContext& context ) : CSpecialChunk( context ) { SET_BASEOBJECT_ID( CSpecialChunk2 ); }
-	virtual void Trigger() override;
-};
-
-class CSpecialChunk3 : public CSpecialChunk
-{
-	friend void RegisterGameClasses();
-public:
-	CSpecialChunk3( const SClassCreateContext& context ) : CSpecialChunk( context ) { SET_BASEOBJECT_ID( CSpecialChunk3 ); }
-	virtual void Trigger() override;
+	CEventTrigger<1> m_triggerPostKilled;
 };
 
 class CCharacterChunk : public CChunkObject
@@ -463,17 +424,4 @@ private:
 	CVector2 m_dmgTexScale[4];
 	CVector2 m_dmgTexOfs[4];
 	uint32 m_nHpPerSize;
-};
-
-class CRandomEnemyRoom : public CChunkObject
-{
-	friend void RegisterGameClasses();
-public:
-	CRandomEnemyRoom( const SClassCreateContext& context ) : CChunkObject( context ), m_strRes( context ), m_strDoor( context ) { SET_BASEOBJECT_ID( CRandomEnemyRoom ); }
-	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
-protected:
-	virtual void OnKilled() override;
-private:
-	CString m_strRes;
-	CString m_strDoor;
 };

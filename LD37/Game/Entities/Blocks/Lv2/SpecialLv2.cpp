@@ -969,7 +969,7 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 	}
 	else
 	{
-		if( pChunk->nWidth >= pChunk->nWidth )
+		if( pChunk->nWidth >= pChunk->nHeight )
 		{
 			wMin = rnd.Rand( 3, 7 );
 			if( wMin > pChunk->nWidth / 2 )
@@ -996,8 +996,18 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		nType2 ^= 8;
 	}
 
-	function<void( const TRectangle<int32>& rect, uint8 nEdge, uint8 nEdge1 )> Func;
-	Func = [=, &Func, &pDamageEftDrawableGroups, &pDamageEftTex] ( const TRectangle<int32>& rect, uint8 nEdge, uint8 nEdge1 )
+	uint8 bTag = 0;
+	for( int iY = 0; iY < pChunk->nHeight && !bTag; iY++ )
+	{
+		for( int iX = 0; iX < pChunk->nWidth && !bTag; iX++ )
+		{
+			if( GetBlock( iX, iY )->nTag )
+				bTag = 1;
+		}
+	}
+
+	function<void( const TRectangle<int32>& rect, uint8 nEdge, uint8 nEdge1, uint8 t )> Func;
+	Func = [=, &Func, &pDamageEftDrawableGroups, &pDamageEftTex] ( const TRectangle<int32>& rect, uint8 nEdge, uint8 nEdge1, uint8 t )
 	{
 		auto& rnd = SRand::Inst<eRand_Render>();
 		int8 k1 = rect.width + rnd.Rand( 0, 2 ) > rect.height ? 0 : 1;
@@ -1005,42 +1015,128 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		{
 			if( !!( k ^ k1 ) )
 			{
-				if( rect.width <= wMax || !!( nEdge1 & 1 ) || !!( nEdge1 & 4 ) )
-					continue;
-				int32 w = rnd.Rand( wMin, Max( wMin, Min( rect.width / 2, wMax ) ) + 1 );
-				if( w >= rect.width - 1 )
-					continue;
+				int32 w;
+				if( t )
+				{
+					int32 l[2] = { 0 };
+					bool b0;
+					for( int k2 = 0; k2 < 2; k2++ )
+					{
+						b0 = false;
+						for( ; l[k2] < rect.width; l[k2]++ )
+						{
+							int32 x = k2 ? rect.GetRight() - 1 - l[k2] : l[k2] + rect.x;
+							bool b = false;
+							for( int y = rect.y; y < rect.GetBottom(); y++ )
+							{
+								if( GetBlock( x, y )->nTag )
+								{
+									b = true;
+									break;
+								}
+							}
+							if( b )
+								b0 = true;
+							else if( b0 )
+								break;
+						}
+					}
+					if( !b0 )
+						t = false;
+					else
+					{
+						if( abs( l[0] - rect.width / 2 ) + SRand::Inst().Rand( 0, 2 ) > abs( l[1] - rect.width / 2 ) )
+							w = rect.width - l[1];
+						else
+							w = l[0];
+						if( w < 3 || rect.width - w < 3 )
+							continue;
+					}
+				}
+				if( !t )
+				{
+					if( rect.width <= wMax || !!( nEdge1 & 1 ) || !!( nEdge1 & 4 ) )
+						continue;
+					w = rnd.Rand( wMin, Max( wMin, Min( rect.width / 2, wMax ) ) + 1 );
+					if( w >= rect.width - 1 )
+						continue;
+				}
 				int32 a = !!( nEdge & 1 );
 				int32 b = !!( nEdge & 4 );
 				if( a + rnd.Rand( 0, 2 ) > b )
 				{
-					Func( TRectangle<int32>( rect.x, rect.y, w, rect.height ), nEdge & ~4 | ( !!( nEdge & 1 ) * 4 ), nEdge1 | 1 );
-					Func( TRectangle<int32>( rect.x + w, rect.y, rect.width - w, rect.height ), nEdge ^ 1, nEdge1 );
+					Func( TRectangle<int32>( rect.x, rect.y, w, rect.height ), nEdge & ~4 | ( !!( nEdge & 1 ) * 4 ), nEdge1 | 1, t );
+					Func( TRectangle<int32>( rect.x + w, rect.y, rect.width - w, rect.height ), nEdge ^ 1, nEdge1, t );
 				}
 				else
 				{
-					Func( TRectangle<int32>( rect.x, rect.y, rect.width - w, rect.height ), nEdge ^ 4, nEdge1 );
-					Func( TRectangle<int32>( rect.x + rect.width - w, rect.y, w, rect.height ), nEdge & ~1 | ( !!( nEdge & 4 ) * 1 ), nEdge1 | 4 );
+					if( !t )
+						w = rect.width - w;
+					Func( TRectangle<int32>( rect.x, rect.y, w, rect.height ), nEdge ^ 4, nEdge1, t );
+					Func( TRectangle<int32>( rect.x + w, rect.y, rect.width - w, rect.height ), nEdge & ~1 | ( !!( nEdge & 4 ) * 1 ), nEdge1 | 4, t );
 				}
 			}
 			else
 			{
-				if( rect.height <= hMax || !!( nEdge1 & 2 ) || !!( nEdge1 & 8 ) )
-					continue;
-				int32 h = rnd.Rand( hMin, Max( hMin, Min( rect.height / 2, hMax ) ) + 1 );
-				if( h >= rect.height - 1 )
-					continue;
+				int32 h;
+				if( t )
+				{
+					int32 l[2] = { 0 };
+					bool b0;
+					for( int k2 = 0; k2 < 2; k2++ )
+					{
+						b0 = false;
+						for( ; l[k2] < rect.height; l[k2]++ )
+						{
+							int32 y = k2 ? rect.GetBottom() - 1 - l[k2] : l[k2] + rect.y;
+							bool b = false;
+							for( int x = rect.x; x < rect.GetRight(); x++ )
+							{
+								if( GetBlock( x, y )->nTag )
+								{
+									b = true;
+									break;
+								}
+							}
+							if( b )
+								b0 = true;
+							else if( b0 )
+								break;
+						}
+					}
+					if( !b0 )
+						t = false;
+					else
+					{
+						if( abs( l[0] - rect.height / 2 ) + SRand::Inst().Rand( 0, 2 ) > abs( l[1] - rect.height / 2 ) )
+							h = rect.height - l[1];
+						else
+							h = l[0];
+						if( h < 3 || rect.height - h < 3 )
+							continue;
+					}
+				}
+				if( !t )
+				{
+					if( rect.height <= hMax || !!( nEdge1 & 2 ) || !!( nEdge1 & 8 ) )
+						continue;
+					h = rnd.Rand( hMin, Max( hMin, Min( rect.height / 2, hMax ) ) + 1 );
+					if( h >= rect.height - 1 )
+						continue;
+				}
 				int32 a = !!( nEdge & 2 );
 				int32 b = !!( nEdge & 8 );
 				if( a + rnd.Rand( 0, 2 ) > b )
 				{
-					Func( TRectangle<int32>( rect.x, rect.y, rect.width, h ), nEdge & ~8 | ( !!( nEdge & 2 ) * 8 ), nEdge1 | 2 );
-					Func( TRectangle<int32>( rect.x, rect.y + h, rect.width, rect.height - h ), nEdge ^ 2, nEdge1 );
+					Func( TRectangle<int32>( rect.x, rect.y, rect.width, h ), nEdge & ~8 | ( !!( nEdge & 2 ) * 8 ), nEdge1 | 2, t );
+					Func( TRectangle<int32>( rect.x, rect.y + h, rect.width, rect.height - h ), nEdge ^ 2, nEdge1, t );
 				}
 				else
 				{
-					Func( TRectangle<int32>( rect.x, rect.y, rect.width, rect.height - h ), nEdge ^ 8, nEdge1 );
-					Func( TRectangle<int32>( rect.x, rect.y + rect.height - h, rect.width, h ), nEdge & ~2 | ( !!( nEdge & 8 ) * 2 ), nEdge1 | 8 );
+					if( !t )
+						h = rect.height - h;
+					Func( TRectangle<int32>( rect.x, rect.y, rect.width, h ), nEdge ^ 8, nEdge1, t );
+					Func( TRectangle<int32>( rect.x, rect.y + h, rect.width, rect.height - h ), nEdge & ~2 | ( !!( nEdge & 8 ) * 2 ), nEdge1 | 8, t );
 				}
 			}
 			return;
@@ -1071,6 +1167,8 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 			}
 		}
 
+		if( t )
+			return;
 		int32 nType = nEdge == 5 || nEdge == 10 ? nType2 : nType1;
 		if( nType < 0 )
 			return;
@@ -1100,69 +1198,315 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 			}
 		}
 	};
-	Func( TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), 0xf, 0 );
+	Func( TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ), 0xf, 0, bTag );
 	GetRenderObject()->AddChild( pRenderObject1 );
-	auto pColorMat = static_cast<CImage2D*>( m_pColorMat->CreateInstance() );
-	pColorMat->SetRect( CRectangle( 0, 0, pChunk->nWidth * 32, pChunk->nHeight * 32 ) );
-	CVector3 colors[3];
-	float fHue = rnd.Rand( -0.15f, 2.0f );
-	float f = fHue;
-	if( fHue < 0 )
-		fHue += 3.0f;
-	for( int i = 0; i < 3; i++ )
-		*( &colors[0].x + i ) = Max( 0.0f, 1 - Min( abs( fHue - 3 - i ), abs( fHue - i ) ) );
-	colors[0].Normalize();
-	colors[0] = colors[0] + CVector3( 0.1f, 0.1f, 0.1f ) * ( 2 - abs( fHue - 2 ) );
-	float l1 = 1.0f / colors[0].Dot( CVector3( 0.3f, 0.5f, 0.2f ) );
-	float fHue1 = fHue + rnd.Rand( 1.4f, 1.6f );
-	fHue1 = fHue1 >= 3.0f ? fHue1 - 3.0f : fHue1;
-	for( int i = 0; i < 3; i++ )
-		*( &colors[2].x + i ) = Max( 0.0f, 1 - Min( abs( fHue1 - 3 - i ), abs( fHue1 - i ) ) );
-	colors[2].Normalize();
-	float l2 = 1.0f / colors[2].Dot( CVector3( 0.3f, 0.5f, 0.2f ) );
-	if( rnd.Rand( 0, 4 ) )
-	{
-		colors[1] = CVector3( 1, rnd.Rand( 0.8f, 1.0f ) * Min( 1.0f, abs( 1.0f - f ) ), 0 )
-			* ( rnd.Rand( 0.13f, 0.15f ) + Min( 0.5f, Max( 0.0f, f - 0.7f ) ) * 0.15f );
-		if( rnd.Rand( 0, 3 ) )
-		{
-			colors[0] = colors[0] + ( CVector3( 0.54f, 0.54f, 0.54f ) - CVector3( 0.07f, 0.07f, 0.07f ) * l1 - colors[0] ) * rnd.Rand( 0.5f, 0.65f );
-			float k = rnd.Rand( 0.8f, 1.0f );
-			colors[0] = colors[0] * k * ( 0.54f + l1 * 0.42f );
-			colors[2] = colors[2] + ( CVector3( 0.8f, 0.8f, 0.8f ) - colors[2] ) * rnd.Rand( 0.65f, 0.75f );
-			colors[2] = colors[2] * k * rnd.Rand( 1.2f, 1.3f ) * ( 0.45f + l2 * 0.4f );
-		}
-		else
-		{
-			colors[0] = colors[0] + ( CVector3( 0.1f, 0.1f, 0.1f ) + CVector3( 0.13f, 0.13f, 0.13f ) * l1 - colors[0] ) * rnd.Rand( 0.27f, 0.4f );
-			float k = rnd.Rand( 0.6f, 0.7f );
-			colors[0] = colors[0] * k * ( 0.57f + l1 * 0.19f );
-			colors[2] = colors[2] + ( CVector3( 0.75f, 0.75f, 0.75f ) - colors[2] ) * rnd.Rand( 0.5f, 0.6f );
-			colors[2] = colors[2] * rnd.Rand( 1.05f, 1.15f ) * ( 0.84f + l2 * 0.1f );
-		}
-	}
-	else
-	{
-		swap( colors[0], colors[2] );
-		colors[1] = CVector3( 1, rnd.Rand( 0.45f, 0.65f ), 0 ) * rnd.Rand( 0.3f, 0.34f )
-			+ colors[2] * 0.02f;
-		colors[0] = ( colors[0] + ( CVector3( 0.8f, 0.8f, 0.8f ) + CVector3( 0.1f, 0.1f, 0.1f ) * l2 - colors[0] ) * rnd.Rand( 0.85f, 0.95f ) )
-			* rnd.Rand( 0.95f, 1.2f );
-		colors[2] = colors[2] + ( CVector3( 0.5f, 0.5f, 0.5f ) + CVector3( 0.2f, 0.2f, 0.2f ) * l1 - colors[2] ) * rnd.Rand( 0.5f, 0.6f );
-		colors[2] = colors[2] * rnd.Rand( 0.95f, 1.15f );
-	}
-
-	auto pParam = pColorMat->GetParam();
-	pParam[0] = CVector4( colors[0].x, colors[1].x, colors[2].x, 0 );
-	pParam[1] = CVector4( colors[0].y, colors[1].y, colors[2].y, 0 );
-	pParam[2] = CVector4( colors[0].z, colors[1].z, colors[2].z, 0 );
-	GetRenderObject()->AddChild( pColorMat );
+	if( bTag )
+		GenLayer1();
 
 	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
 	m_fHp = m_nMaxHp;
 }
 
-void CRoadSign::Init( const CVector2& size )
+void CCargo1::GenLayer1()
+{
+	int32 nWidth = m_pChunk->nWidth;
+	int32 nHeight = m_pChunk->nHeight;
+	vector<int8> vecTemp;
+	vecTemp.resize( ( nWidth + 1 ) * ( nHeight + 1 ) );
+	for( int i = 0; i <= nWidth; i++ )
+	{
+		for( int j = 0; j <= nHeight; j++ )
+		{
+			int8 nType = 0;
+			if( i == 0 || i == nWidth || j == 0 || j == nHeight )
+				nType = -1;
+			else
+			{
+				for( int x = i - 1; x < i + 1; x++ )
+				{
+					for( int y = j - 1; y < j + 1; y++ )
+					{
+						int8 nTag = m_pChunk->GetBlock( x, y )->nTag;
+						if( nTag != 1 )
+						{
+							nType = -1;
+							break;
+						}
+					}
+					if( nType == -1 )
+						break;
+				}
+			}
+			vecTemp[i + j * ( nWidth + 1 )] = nType;
+		}
+	}
+
+	for( int j = 0; j < nHeight; j += nHeight - 1 )
+	{
+		for( int i = 1; i < nWidth - 2; i++ )
+		{
+			int8 a = m_pChunk->GetBlock( i, j )->nTag;
+			int8 b = m_pChunk->GetBlock( i + 1, j )->nTag;
+			if( a == b && a >= 2 )
+			{
+				vecTemp[i + 1 + ( j == 0 ? 0 : nHeight ) * ( nWidth + 1 )] = 1;
+				vecTemp[i + 1 + ( j == 0 ? 1 : nHeight - 1 ) * ( nWidth + 1 )] = 1;
+				i++;
+			}
+		}
+	}
+	for( int i = 0; i < nWidth; i += nWidth - 1 )
+	{
+		for( int j = 1; j < nHeight - 2; j++ )
+		{
+			int8 a = m_pChunk->GetBlock( i, j )->nTag;
+			int8 b = m_pChunk->GetBlock( i, j + 1 )->nTag;
+			if( a == b && a >= 2 )
+			{
+				vecTemp[( i == 0 ? 0 : nWidth ) + ( j + 1 ) * ( nWidth + 1 )] = 1;
+				vecTemp[( i == 0 ? 1 : nWidth - 1 ) + ( j + 1 ) * ( nWidth + 1 )] = 1;
+				j++;
+			}
+		}
+	}
+	ConnectAll( vecTemp, nWidth + 1, nHeight + 1, 1, 0 );
+	auto nBlockSize = CMyLevel::GetBlockSize();
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( m_pChunk->GetBlock( i, j )->nTag >= 3 )
+				continue;
+			TVector2<int32> v[4] = { { i, j }, { i + 1, j }, { i, j + 1 }, { i + 1, j + 1 } };
+			int8 n = 0;
+			for( int k = 0; k < 4; k++ )
+				n |= ( vecTemp[v[k].x + v[k].y * ( nWidth + 1 )] == 1 ) << k;
+			if( !n )
+				continue;
+			auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+			pImage->SetRect( CRectangle( i, j, 1, 1 ) * nBlockSize );
+			pImage->SetTexRect( CRectangle( n % 4, n / 4, 1, 1 ) * 0.125f );
+			GetRenderObject()->AddChild( pImage );
+		}
+	}
+
+	vector<CReference<CEntity> > vecTemp1;
+	vecTemp1.resize( vecTemp.size() );
+	for( int j = 0; j < nHeight; j += nHeight - 1 )
+	{
+		for( int i = 1; i < nWidth - 2; i++ )
+		{
+			int8 a = m_pChunk->GetBlock( i, j )->nTag;
+			int8 b = m_pChunk->GetBlock( i + 1, j )->nTag;
+			if( a == b )
+			{
+				if( a == 2 )
+				{
+					auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+					pImage->SetRect( CRectangle( i + 0.5f, j, 1, 1 ) * nBlockSize );
+					pImage->SetTexRect( CRectangle( 0, 0, 0.125f, 0.125f ) );
+					GetRenderObject()->AddChild( pImage );
+					auto p = SafeCast<CEntity>( m_pPrefab[0]->GetRoot()->CreateInstance() );
+					p->SetPosition( CVector2( i + 1, j + 0.5f ) * nBlockSize );
+					p->SetParentEntity( this );
+					vecTemp1[i + 1 + ( j == 0 ? 0 : nHeight ) * ( nWidth + 1 )] = p;
+				}
+				else if( a == 3 )
+				{
+					auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+					pImage->SetRect( CRectangle( i, j, 2, 1 ) * nBlockSize );
+					pImage->SetTexRect( CRectangle( 0.75f, j == 0 ? 0 : 0.125f, 0.25f, 0.125f ) );
+					GetRenderObject()->AddChild( pImage );
+					auto p = SafeCast<CEntity>( m_pPrefab[j == 0 ? 4 : 2]->GetRoot()->CreateInstance() );
+					p->SetPosition( CVector2( i + 1, j + 0.5f ) * nBlockSize );
+					p->SetParentEntity( this );
+					vecTemp1[i + 1 + ( j == 0 ? 0 : nHeight ) * ( nWidth + 1 )] = p;
+				}
+				i++;
+			}
+		}
+	}
+	for( int i = 0; i < nWidth; i += nWidth - 1 )
+	{
+		for( int j = 1; j < nHeight - 2; j++ )
+		{
+			int8 a = m_pChunk->GetBlock( i, j )->nTag;
+			int8 b = m_pChunk->GetBlock( i, j + 1 )->nTag;
+			if( a == b )
+			{
+				if( a == 2 )
+				{
+					auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+					pImage->SetRect( CRectangle( i, j + 0.5f, 1, 1 ) * nBlockSize );
+					pImage->SetTexRect( CRectangle( 0, 0, 0.125f, 0.125f ) );
+					GetRenderObject()->AddChild( pImage );
+					auto p = SafeCast<CEntity>( m_pPrefab[0]->GetRoot()->CreateInstance() );
+					p->SetPosition( CVector2( i + 0.5f, j + 1 ) * nBlockSize );
+					p->SetParentEntity( this );
+					vecTemp1[( i == 0 ? 0 : nWidth ) + ( j + 1 ) * ( nWidth + 1 )] = p;
+				}
+				else if( a == 3 )
+				{
+					auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+					pImage->SetRect( CRectangle( i, j, 1, 2 ) * nBlockSize );
+					pImage->SetTexRect( CRectangle( i == 0 ? 0.625f : 0.5f, 0, 0.125f, 0.25f ) );
+					GetRenderObject()->AddChild( pImage );
+					auto p = SafeCast<CEntity>( m_pPrefab[i == 0 ? 3 : 1]->GetRoot()->CreateInstance() );
+					p->SetPosition( CVector2( i + 0.5f, j + 1 ) * nBlockSize );
+					p->SetParentEntity( this );
+					vecTemp1[( i == 0 ? 0 : nWidth ) + ( j + 1 ) * ( nWidth + 1 )] = p;
+				}
+				j++;
+			}
+		}
+	}
+
+	vector<TVector2<int32> > q;
+	vector<CReference<CEntity> > vec;
+	for( int i = 0; i <= nWidth; i++ )
+	{
+		for( int j = 0; j <= nHeight; j++ )
+		{
+			if( vecTemp[i + j * ( nWidth + 1 )] == 1 )
+			{
+				FloodFill( vecTemp, nWidth + 1, nHeight + 1, i, j, 0, q );
+				for( auto& p : q )
+				{
+					auto pEntity = vecTemp1[p.x + p.y * ( nWidth + 1 )];
+					if( pEntity )
+						vec.push_back( pEntity );
+				}
+				for( CEntity* pEntity : vec )
+				{
+					auto pButton = SafeCast<COperateableButton>( pEntity );
+					if( pButton )
+					{
+						for( CEntity* pEntity1 : vec )
+						{
+							if( SafeCast<COperateableButton>( pEntity1 ) )
+								continue;
+							pButton->AddOperateable( pEntity1 );
+						}
+					}
+				}
+				q.resize( 0 );
+				vec.resize( 0 );
+			}
+		}
+	}
+}
+
+void CCargoAutoColor::Init( const CVector2 & size, SChunk* pPreParent )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
+	if( !pChunkObject )
+		return;
+	CCargoAutoColor* p = NULL;
+	if( pPreParent && pPreParent->pChunkObject )
+	{
+		auto pRoot = pPreParent->pChunkObject->GetDecoratorRoot();
+		if( !pRoot )
+			pRoot = pPreParent->pChunkObject;
+		for( auto pChild = pRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		{
+			p = SafeCast<CCargoAutoColor>( pChild );
+			if( p )
+				break;
+		}
+	}
+
+	if( !p )
+	{
+		auto& rnd = SRand::Inst<eRand_Render>();
+		float fHue = rnd.Rand( 0.0f, 1.0f );
+		fHue = rnd.Rand( 0, 2 ) ? 1 - fHue * fHue * 0.5f : fHue * fHue * 0.5f;
+		fHue = -0.15f + fHue * 2.15f;
+		float f = fHue;
+		if( fHue < 0 )
+			fHue += 3.0f;
+		for( int i = 0; i < 3; i++ )
+			*( &m_colors[0].x + i ) = Max( 0.0f, 1 - Min( abs( fHue - 3 - i ), abs( fHue - i ) ) );
+		m_colors[0].Normalize();
+		m_colors[0] = m_colors[0] + CVector3( 0.1f, 0.1f, 0.1f ) * ( 2 - abs( fHue - 2 ) );
+		float l1 = 1.0f / m_colors[0].Dot( CVector3( 0.3f, 0.5f, 0.2f ) );
+		float fHue1 = fHue + rnd.Rand( 1.4f, 1.6f );
+		fHue1 = fHue1 >= 3.0f ? fHue1 - 3.0f : fHue1;
+		for( int i = 0; i < 3; i++ )
+			*( &m_colors[2].x + i ) = Max( 0.0f, 1 - Min( abs( fHue1 - 3 - i ), abs( fHue1 - i ) ) );
+		m_colors[2].Normalize();
+		float l2 = 1.0f / m_colors[2].Dot( CVector3( 0.3f, 0.5f, 0.2f ) );
+		if( rnd.Rand( 0, 4 ) )
+		{
+			m_colors[1] = CVector3( 1, rnd.Rand( 0.8f, 1.0f ) * Min( 1.0f, abs( 1.0f - f ) ), 0 )
+				* ( rnd.Rand( 0.13f, 0.15f ) + Min( 0.5f, Max( 0.0f, f - 0.7f ) ) * 0.15f );
+			if( rnd.Rand( 0, 3 ) )
+			{
+				m_colors[0] = m_colors[0] + ( CVector3( 0.54f, 0.54f, 0.54f ) - CVector3( 0.07f, 0.07f, 0.07f ) * l1 - m_colors[0] ) * rnd.Rand( 0.5f, 0.65f );
+				float k = rnd.Rand( 0.8f, 1.0f );
+				m_colors[0] = m_colors[0] * k * ( 0.54f + l1 * 0.42f );
+				m_colors[2] = m_colors[2] + ( CVector3( 0.8f, 0.8f, 0.8f ) - m_colors[2] ) * rnd.Rand( 0.65f, 0.75f );
+				m_colors[2] = m_colors[2] * k * rnd.Rand( 1.2f, 1.3f ) * ( 0.45f + l2 * 0.4f );
+			}
+			else
+			{
+				m_colors[0] = m_colors[0] + ( CVector3( 0.1f, 0.1f, 0.1f ) + CVector3( 0.13f, 0.13f, 0.13f ) * l1 - m_colors[0] ) * rnd.Rand( 0.27f, 0.4f );
+				float k = rnd.Rand( 0.6f, 0.7f );
+				m_colors[0] = m_colors[0] * k * ( 0.57f + l1 * 0.19f );
+				m_colors[2] = m_colors[2] + ( CVector3( 0.75f, 0.75f, 0.75f ) - m_colors[2] ) * rnd.Rand( 0.5f, 0.6f );
+				m_colors[2] = m_colors[2] * rnd.Rand( 1.05f, 1.15f ) * ( 0.84f + l2 * 0.1f );
+			}
+		}
+		else
+		{
+			swap( m_colors[0], m_colors[2] );
+			m_colors[1] = CVector3( 1, rnd.Rand( 0.45f, 0.65f ), 0 ) * rnd.Rand( 0.3f, 0.34f )
+				+ m_colors[2] * 0.02f;
+			m_colors[0] = ( m_colors[0] + ( CVector3( 0.8f, 0.8f, 0.8f ) + CVector3( 0.1f, 0.1f, 0.1f ) * l2 - m_colors[0] ) * rnd.Rand( 0.85f, 0.95f ) )
+				* rnd.Rand( 0.95f, 1.2f );
+			m_colors[2] = m_colors[2] + ( CVector3( 0.5f, 0.5f, 0.5f ) + CVector3( 0.2f, 0.2f, 0.2f ) * l1 - m_colors[2] ) * rnd.Rand( 0.5f, 0.6f );
+			m_colors[2] = m_colors[2] * rnd.Rand( 0.95f, 1.15f );
+		}
+	}
+	else
+		memcpy( m_colors, p->m_colors, sizeof( m_colors ) );
+
+	if( GetRenderObject() )
+	{
+		auto pColorMat = static_cast<CImage2D*>( GetRenderObject() );
+		pColorMat->SetRect( CRectangle( 0, 0, size.x, size.y ) );
+		auto pParam = pColorMat->GetParam();
+		pParam[0] = CVector4( m_colors[0].x, m_colors[1].x, m_colors[2].x, 0 );
+		pParam[1] = CVector4( m_colors[0].y, m_colors[1].y, m_colors[2].y, 0 );
+		pParam[2] = CVector4( m_colors[0].z, m_colors[1].z, m_colors[2].z, 0 );
+	}
+	else
+	{
+		auto pRoot = pChunkObject->GetRenderObject();
+		if( !pRoot )
+			return;
+		for( auto pChild = pRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		{
+			auto pImage = SafeCast<CImage2D>( pChild );
+			if( !pImage )
+				continue;
+			uint16 nParamCount;
+			auto pParams = pImage->GetParam( nParamCount );
+			if( nParamCount != 3 )
+				continue;
+			pParams[0].w = m_colors[0].z;
+			pParams[1] = CVector4( m_colors[0].x, m_colors[1].x, m_colors[2].x, m_colors[1].z );
+			pParams[2] = CVector4( m_colors[0].y, m_colors[1].y, m_colors[2].y, m_colors[2].z );
+		}
+	}
+}
+
+void CRoadSign::Init( const CVector2& size, SChunk* pPreParent )
 {
 	CChunkObject* pChunkObject = NULL;
 	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )

@@ -63,24 +63,3 @@ protected:
 	CReference<CEffectObject> m_pDeathEffect;
 	CReference<CRenderObject2D> m_pParticle;
 };
-
-class CEnemyBullet : public CBullet
-{
-public:
-	CEnemyBullet( const SClassCreateContext& context ) : CBullet( context ) { SET_BASEOBJECT_ID( CEnemyBullet ); }
-protected:
-	virtual void OnTickAfterHitTest() override;
-	virtual void OnHitPlayer( CPlayer* pPlayer );
-};
-
-class CPlayerBullet : public CBullet
-{
-	friend void RegisterGameClasses();
-public:
-	CPlayerBullet( const SClassCreateContext& context ) : CBullet( context ) { SET_BASEOBJECT_ID( CPlayerBullet ); }
-protected:
-	virtual void OnTickAfterHitTest() override;
-	virtual void OnHit( CEntity* pEntity );
-
-	uint32 m_nDmg;
-};

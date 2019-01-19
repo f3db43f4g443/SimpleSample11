@@ -138,7 +138,7 @@ void CPipe1::OnTick()
 	pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 }
 
-void CWindow0::Init( const CVector2& size )
+void CWindow0::Init( const CVector2& size, SChunk* pPreParent )
 {
 	CChunkObject* pChunkObject = NULL;
 	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
@@ -806,7 +806,7 @@ dead:
 	pHead->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
 }
 
-void CWindow1::Init( const CVector2& size )
+void CWindow1::Init( const CVector2& size, SChunk* pPreParent )
 {
 	m_size = size;
 	CChunkObject* pChunkObject = NULL;
@@ -1730,7 +1730,7 @@ void CWindow2::UpdateLink( uint8 nEye )
 	}
 }
 
-void CHouse0Deco::Init( const CVector2& size )
+void CHouse0Deco::Init( const CVector2& size, SChunk* pPreParent )
 {
 	const uint32 nTexSize = 256;
 	const uint32 nTexScale = 2;

@@ -114,7 +114,7 @@ void CWaterFall::OnTickAfterHitTest()
 			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 
 			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter && pCharacter != pPlayer )
+			if( pCharacter && pCharacter != pPlayer && !pCharacter->IsIgnoreBullet() )
 			{
 				if( !m_nDamage1 )
 					continue;
@@ -474,7 +474,7 @@ void CPulse::OnTickAfterHitTest()
 				if( m_nType == 1 )
 				{
 					CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-					if( pEnemy )
+					if( pEnemy && !pEnemy->IsIgnoreBullet() )
 					{
 						if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 							continue;
@@ -519,7 +519,7 @@ void CPulse::OnTickAfterHitTest()
 					}
 
 					CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-					if( pCharacter && pCharacter != pPlayer )
+					if( pCharacter && pCharacter != pPlayer && !pCharacter->IsIgnoreBullet() )
 					{
 						if( !m_nDamage2 )
 							continue;
@@ -675,7 +675,7 @@ void CPlayerBulletMultiHit::OnTickAfterHitTest()
 		CReference<CEntity> pTempRef = pEntity;
 
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-		if( pEnemy )
+		if( pEnemy && !pEnemy->IsIgnoreBullet() )
 		{
 			if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 				continue;
@@ -848,7 +848,7 @@ void CWaterSplash::OnTickAfterHitTest()
 		if( m_nDamage )
 		{
 			CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-			if( pEnemy )
+			if( pEnemy && !pEnemy->IsIgnoreBullet() )
 			{
 				if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 					continue;

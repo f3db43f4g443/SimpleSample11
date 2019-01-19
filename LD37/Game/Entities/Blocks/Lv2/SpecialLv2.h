@@ -140,9 +140,23 @@ public:
 	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CCargo1 ); }
 	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
 private:
+	void GenLayer1();
 	uint32 m_nHpPerSize;
 	TResourceRef<CDrawableGroup> m_pDeco;
-	TResourceRef<CDrawableGroup> m_pColorMat;
+	TResourceRef<CDrawableGroup> m_pDeco1;
+	TResourceRef<CPrefab> m_pPrefab[5];
+};
+
+class CCargoAutoColor : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CCargoAutoColor( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CCargoAutoColor ); }
+
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
+	CVector3* GetColors() { return m_colors; }
+private:
+	CVector3 m_colors[3];
 };
 
 class CRoadSign : public CDecorator
@@ -151,7 +165,7 @@ class CRoadSign : public CDecorator
 public:
 	CRoadSign( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CRoadSign ); }
 
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 };
 
 class CControlRoom : public CChunkObject

@@ -8,6 +8,7 @@ public:
 	CTexRectRandomModifier( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CTexRectRandomModifier::OnTick )
 	{ SET_BASEOBJECT_ID( CTexRectRandomModifier ); }
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 private:
 	void Apply( CRenderObject2D* pImage, const CVector2& ofs );
 	void OnTick() { SetParentEntity( NULL ); }
@@ -28,6 +29,7 @@ public:
 		SET_BASEOBJECT_ID( CAnimFrameRandomModifier );
 	}
 	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 private:
 	void OnTick() { SetParentEntity( NULL ); }
 	uint32 m_nFrameCount;

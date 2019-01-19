@@ -167,15 +167,16 @@ void CCommonRoomNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext &
 
 void CCommonRoomNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
 
-		SLevelBuildContext tempContext( context, pChunk );
-		m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+		if( m_pSubChunk )
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 
 		for( int i = 0; i < region.width; i++ )
 		{
@@ -217,7 +218,8 @@ void CRoom0Node::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 
 void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
@@ -225,8 +227,6 @@ void CRoom0Node::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
-		SLevelBuildContext tempContext( context, pChunk );
-
 		{
 			uint32 nMaxLen = 0;
 			int i;
@@ -332,7 +332,8 @@ void CRoom1Node::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & cont
 
 void CRoom1Node::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
@@ -340,7 +341,6 @@ void CRoom1Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 		CLevelGenerateNode::Generate( context, region );
 
 		int8 nDoor = context.mapTags["door"];
-		SLevelBuildContext tempContext( context, pChunk );
 
 		{
 			uint32 nMaxLen = 0;
@@ -497,7 +497,8 @@ void CRoom2Node::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & cont
 
 void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
@@ -508,7 +509,6 @@ void CRoom2Node::Generate( SLevelBuildContext & context, const TRectangle<int32>
 		int8 nMask = -1;
 		if( m_strMask.length() )
 			nMask = context.mapTags[m_strMask];
-		SLevelBuildContext tempContext( context, pChunk );
 		if( !!( m_bCopyBlueprint & 2 ) )
 		{
 			for( int i = 0; i < tempContext.nWidth; i++ )
@@ -718,7 +718,8 @@ void CBillboardNode::Load( TiXmlElement * pXml, SLevelGenerateNodeLoadContext & 
 
 void CBillboardNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
@@ -733,7 +734,6 @@ void CBillboardNode::Generate( SLevelBuildContext & context, const TRectangle<in
 			sprintf( buf, "%d", i + 1 );
 			vecTypes[i] = context.mapTags[buf];
 		}
-		SLevelBuildContext tempContext( context, pChunk );
 
 		for( int i = region.x; i < region.GetRight(); i++ )
 		{
@@ -1049,7 +1049,8 @@ void CHouseNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 
 void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
 	if( pChunk )
 	{
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
@@ -1060,7 +1061,6 @@ void CHouseNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		int8 n2 = context.mapTags["2"];
 		int8 nExit1 = context.mapTags["exit1"];
 		int8 nExit2 = context.mapTags["exit2"];
-		SLevelBuildContext tempContext( context, pChunk );
 
 		for( int i = 0; i < region.width; i++ )
 		{
@@ -1209,7 +1209,8 @@ void CFenceNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext&
 
 void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>& region )
 {
-	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region );
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, m_pSubChunk || m_pChunkBaseInfo->bPack ? &tempContext : NULL );
 	vector<int8> vecType;
 	vecType.resize( region.width * region.height );
 	if( pChunk )
@@ -1217,10 +1218,10 @@ void CFenceNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		pChunk->nLevelBarrierType = m_nLevelBarrierType;
 		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
 		CLevelGenerateNode::Generate( context, region );
-		if( m_pSubChunk )
+		if( m_pSubChunk || m_pChunkBaseInfo->bPack )
 		{
-			SLevelBuildContext tempContext( context, pChunk );
-			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+			if( m_pSubChunk )
+				m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
 			tempContext.Build();
 			if( m_bCopyBlueprint )
 			{

@@ -14,6 +14,10 @@ void CLevelGenNode2_2_0::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoad
 	m_pRoomNode = CreateNode( pXml->FirstChildElement( "room" )->FirstChildElement(), context );
 	m_pCargoNode = CreateNode( pXml->FirstChildElement( "cargo" )->FirstChildElement(), context );
 	m_pCargo1Node = CreateNode( pXml->FirstChildElement( "cargo1" )->FirstChildElement(), context );
+	m_pBrokenNode = CreateNode( pXml->FirstChildElement( "broken" )->FirstChildElement(), context );
+	m_pBoxNode = CreateNode( pXml->FirstChildElement( "box" )->FirstChildElement(), context );
+	m_pBarNode[0] = CreateNode( pXml->FirstChildElement( "bar_h" )->FirstChildElement(), context );
+	m_pBarNode[1] = CreateNode( pXml->FirstChildElement( "bar_v" )->FirstChildElement(), context );
 	m_pBarrelNode[0] = CreateNode( pXml->FirstChildElement( "barrel_s" )->FirstChildElement(), context );
 	m_pBarrelNode[1] = CreateNode( pXml->FirstChildElement( "barrel_s1_r" )->FirstChildElement(), context );
 	m_pBarrelNode[2] = CreateNode( pXml->FirstChildElement( "barrel_s1_l" )->FirstChildElement(), context );
@@ -83,25 +87,48 @@ void CLevelGenNode2_2_0::Generate( SLevelBuildContext & context, const TRectangl
 	context.mapTags["car_0"] = eType_Room_Car_0;
 	context.mapTags["car_2"] = eType_Room_Car_2;
 	context.mapTags["car_3"] = eType_Room_Car_3;
+	sort( m_vecRoom.begin(), m_vecRoom.end(), [] ( const TRectangle<int32>& a, const TRectangle<int32>& b ) {
+		return a.y < b.y;
+	} );
+	int nRoom = SRand::Inst().Rand( 5, 7 );
 	for( auto& rect : m_vecRoom )
 	{
+		nRoom--;
+		context.mapTags["car_type"] = nRoom ? 0 : 1;
+		if( !nRoom )
+			nRoom = SRand::Inst().Rand( 5, 7 );
 		m_pRoomNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
-	for( auto& rect : m_vecCargo1 )
-	{
-		m_pCargo1Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
-	}
 
-	for( auto& rect : m_vecCargo )
-	{
-		m_pCargoNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
-	}
 	for( int i = 0; i < 3; i++ )
 	{
 		for( auto& rect : m_vecBarrel[i] )
 		{
 			m_pBarrelNode[i]->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 		}
+	}
+	for( int i = 0; i < 2; i++ )
+	{
+		for( auto& rect : m_vecBar[i] )
+		{
+			m_pBarNode[i]->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+		}
+	}
+	for( auto& p : m_vecBroken )
+	{
+		m_pBrokenNode->Generate( context, TRectangle<int32>( p.x + region.x, p.y + region.y, 1, 1 ) );
+	}
+	for( auto& p : m_vecBox )
+	{
+		m_pBoxNode->Generate( context, TRectangle<int32>( p.x + region.x, p.y + region.y, 1, 1 ) );
+	}
+	for( auto& rect : m_vecCargo )
+	{
+		m_pCargoNode->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
+	}
+	for( auto& rect : m_vecCargo1 )
+	{
+		m_pCargo1Node->Generate( context, rect.Offset( TVector2<int32>( region.x, region.y ) ) );
 	}
 
 	context.mapTags.clear();
@@ -113,6 +140,10 @@ void CLevelGenNode2_2_0::Generate( SLevelBuildContext & context, const TRectangl
 	m_vecRoom.clear();
 	m_vecCargo.clear();
 	m_vecCargo1.clear();
+	m_vecBroken.clear();
+	m_vecBox.clear();
+	m_vecBar[0].clear();
+	m_vecBar[1].clear();
 	m_vecBarrel[0].clear();
 	m_vecBarrel[1].clear();
 	m_vecBarrel[2].clear();
@@ -365,6 +396,8 @@ void CLevelGenNode2_2_0::GenRoads()
 	vecTemp.resize( nWidth * nHeight );
 	auto AddRoom = [=, &vecTemp] ( const TRectangle<int32>& room, int8 nType )
 	{
+		if( nType == eType_Room_Car_3 && room.y < 14 )
+			return false;
 		for( int i = room.x; i < room.GetRight(); i++ )
 		{
 			for( int j = room.y; j < room.GetBottom(); j++ )
@@ -480,13 +513,16 @@ void CLevelGenNode2_2_0::GenRoads()
 							break;
 						}
 					}
-					auto w1 = Min( rect.width - 3, SRand::Inst().Rand( 4, 7 ) );
-					TRectangle<int32> r( nType == eType_Room_Car_0 ? rect.x : rect.GetRight() - w1, rect.y, w1, rect.height );
-					if( AddRoom( r, nType ) )
+					else
 					{
-						room = r;
-						rect = TRectangle<int32>( nType == eType_Room_Car_0 ? rect.x + w1 : rect.x, rect.y, rect.width - w1, rect.height );
-						break;
+						auto w1 = Min( rect.width - 3, SRand::Inst().Rand( 4, 7 ) );
+						TRectangle<int32> r( nType == eType_Room_Car_0 ? rect.x : rect.GetRight() - w1, rect.y, w1, rect.height );
+						if( AddRoom( r, nType ) )
+						{
+							room = r;
+							rect = TRectangle<int32>( nType == eType_Room_Car_0 ? rect.x + w1 : rect.x, rect.y, rect.width - w1, rect.height );
+							break;
+						}
 					}
 				}
 				else
@@ -525,21 +561,24 @@ void CLevelGenNode2_2_0::GenRoads()
 							break;
 						}
 					}
-					int32 h1 = Min( rect.height - 3, SRand::Inst().Rand( 4, 7 ) );
-					bool b = false;
-					for( int k = 0; k < 2; k++ )
+					else
 					{
-						TRectangle<int32> r( rect.x, k ? rect.y : rect.GetBottom() - h1, rect.width, h1 );
-						if( AddRoom( r, nType ) )
+						int32 h1 = Min( rect.height - 3, SRand::Inst().Rand( 4, 7 ) );
+						bool b = false;
+						for( int k = 0; k < 2; k++ )
 						{
-							room = r;
-							rect = TRectangle<int32>( rect.x, k ? rect.y + h1 : rect.y, rect.width, rect.height - h1 );
-							b = true;
-							break;
+							TRectangle<int32> r( rect.x, k ? rect.y : rect.GetBottom() - h1, rect.width, h1 );
+							if( AddRoom( r, nType ) )
+							{
+								room = r;
+								rect = TRectangle<int32>( rect.x, k ? rect.y + h1 : rect.y, rect.width, rect.height - h1 );
+								b = true;
+								break;
+							}
 						}
+						if( b )
+							break;
 					}
-					if( b )
-						break;
 				}
 				else if( rect.height <= 6 && rect.width >= 10 )
 				{
@@ -1259,6 +1298,17 @@ void CLevelGenNode2_2_0::ConnRoads()
 			m_vecGreenbelt[iRect] = m_vecGreenbelt.back();
 			m_vecGreenbelt.pop_back();
 		}
+		else if( j2 - j1 >= 3 && i2 - i1 <= ( j2 - j1 ) * 2 )
+		{
+			for( int i = rect.x; i < rect.GetRight(); i++ )
+			{
+				for( int j = rect.y; j < rect.GetBottom(); j++ )
+					m_gendata[i + j * nWidth] = 0;
+			}
+
+			m_vecGreenbelt[iRect] = m_vecGreenbelt.back();
+			m_vecGreenbelt.pop_back();
+		}
 	}
 }
 
@@ -1271,12 +1321,12 @@ void CLevelGenNode2_2_0::FillEmpty()
 	{
 		auto& road = m_vecRoad[iRoad];
 		auto rect = road;
-		if( road.GetRight() < nWidth / 2 - 3 )
+		if( road.GetRight() < nWidth / 2 - 3 || road.x == 0 )
 		{
 			rect.SetLeft( 0 );
 			rect.SetRight( road.x );
 		}
-		else if( road.x >= nWidth - nWidth / 2 + 3 )
+		else if( road.x >= nWidth - nWidth / 2 + 3 || road.GetRight() == nWidth )
 		{
 			rect.SetRight( nWidth );
 			rect.SetLeft( road.GetRight() );
@@ -1430,7 +1480,7 @@ void CLevelGenNode2_2_0::FillEmpty()
 						}
 					}
 				}
-				int32 s = rect.width * rect.height * ( nDir ? SRand::Inst().Rand( 0.8f, 0.9f ) : SRand::Inst().Rand( 0.5f, 0.6f ) );
+				int32 s = rect.width * rect.height * SRand::Inst().Rand( 0.8f, 0.9f );
 				int32 i1 = vec1.size() - 1;
 				for( auto& p : vec1 )
 				{
@@ -1769,10 +1819,147 @@ void CLevelGenNode2_2_0::GenObjs()
 		}
 		vec1.resize( 0 );
 	}
+
+	vector<TRectangle<int32> > vecRect;
+	for( auto rect : m_vecCargo1 )
+	{
+		bool b[4] = { false };
+		if( rect.x + rect.GetRight() + SRand::Inst().Rand( 0, 2 ) > nWidth )
+			b[0] = rect.width >= SRand::Inst().Rand( 4, 6 );
+		else
+			b[2] = rect.width >= SRand::Inst().Rand( 4, 6 );
+		if( rect.height >= SRand::Inst().Rand( 5, 10 ) )
+			b[1] = b[3] = true;
+		else if( rect.height >= SRand::Inst().Rand( 3, 6 ) )
+		{
+			if( SRand::Inst().Rand( 0, 2 ) )
+				b[1] = true;
+			else
+				b[3] = true;
+		}
+		if( b[1] )
+		{
+			m_vecBar[0].push_back( TRectangle<int32>( rect.x, rect.GetBottom() - 1, rect.width, 1 ) );
+			rect.height--;
+		}
+		if( b[3] )
+		{
+			m_vecBar[0].push_back( TRectangle<int32>( rect.x, rect.y, rect.width, 1 ) );
+			rect.SetTop( rect.y + 1 );
+		}
+		if( b[0] )
+		{
+			m_vecBar[1].push_back( TRectangle<int32>( rect.GetRight() - 1, rect.y, 1, rect.height ) );
+			rect.width--;
+		}
+		if( b[2] )
+		{
+			m_vecBar[1].push_back( TRectangle<int32>( rect.x, rect.y, 1, rect.height ) );
+			rect.SetLeft( rect.x + 1 );
+		}
+		vecRect.push_back( rect );
+	}
+
+	for( int iRect = 0; iRect < vecRect.size(); iRect++ )
+	{
+		auto& rect = vecRect[iRect];
+		if( rect.width > rect.height )
+		{
+			if( rect.width >= SRand::Inst().Rand( 7, 9 ) && rect.height >= 3 )
+			{
+				int32 w = SRand::Inst().Rand( 2, rect.width - 2 );
+				vecRect.push_back( TRectangle<int32>( rect.x, rect.y, w, rect.height ) );
+				m_vecBar[1].push_back( TRectangle<int32>( rect.x + w, rect.y, 1, SRand::Inst().Rand( Max( 3, rect.height / 2 ), rect.height + 1 ) ) );
+				vecRect.push_back( TRectangle<int32>( rect.x + w + 1, rect.y, rect.width - w - 1, rect.height ) );
+				continue;
+			}
+		}
+		else
+		{
+			if( rect.height >= SRand::Inst().Rand( 7, 9 ) && rect.width >= 3 )
+			{
+				int32 h = SRand::Inst().Rand( 2, rect.height - 2 );
+				vecRect.push_back( TRectangle<int32>( rect.x, rect.y, rect.width, h ) );
+				int32 w1 = SRand::Inst().Rand( Max( 3, rect.width / 2 ), rect.width + 1 );
+				m_vecBar[0].push_back( TRectangle<int32>( rect.x + SRand::Inst().Rand( 0, rect.width - w1 + 1 ), rect.y + h, w1, 1 ) );
+				vecRect.push_back( TRectangle<int32>( rect.x, rect.y + h + 1, rect.width, rect.height - h - 1 ) );
+				continue;
+			}
+		}
+
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = 0;
+				vec1.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+		SRand::Inst().Shuffle( vec1 );
+		int32 s = rect.width * rect.height * SRand::Inst().Rand( 0.85f, 0.9f );
+		int32 s1 = ( s + SRand::Inst().Rand( 0, 6 ) ) / 6;
+		for( auto& p : vec1 )
+		{
+			if( s > 0 )
+			{
+				auto r1 = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 2, 2 ), TVector2<int32>( SRand::Inst().Rand( 2, 5 ), SRand::Inst().Rand( 2, 4 ) ),
+					rect, -1, eType_Obj1 );
+				if( r1.width > 0 )
+				{
+					m_vecCargo.push_back( r1 );
+					s -= r1.width * r1.height;
+				}
+			}
+			else if( s1 > 0 )
+			{
+				int32 a = SRand::Inst().Rand( 0, 5 );
+				if( a > 0 )
+				{
+					if( rect.x + rect.GetRight() + SRand::Inst().Rand( 0, 2 ) >= nWidth )
+						a = 2;
+					else
+						a = 1;
+				}
+				TVector2<int32> size[3] = { { 1, 2 }, { 2, 1 }, { 2, 1 } };
+				auto r1 = PutRect( m_gendata, nWidth, nHeight, p, size[a], size[a], rect, -1, eType_Obj1 );
+				if( r1.width > 0 )
+				{
+					m_vecBarrel[a].push_back( r1 );
+					s1--;
+				}
+			}
+			else
+				break;
+		}
+		vec1.resize( 0 );
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				m_gendata[i + j * nWidth] = eType_Cargo1;
+			}
+		}
+	}
+
+	for( auto& rect : m_vecCargo )
+	{
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				int32 a = SRand::Inst().Rand( 0, 4 );
+				if( a == 0 )
+					m_vecBroken.push_back( TVector2<int32>( i, j ) );
+				else if( a == 1 )
+					m_vecBox.push_back( TVector2<int32>( i, j ) );
+			}
+		}
+	}
+
 	for( int i = 0; i < m_gendata1.size(); i++ )
 	{
 		if( m_gendata1[i] == 1 && m_gendata[i] <= eType_Road )
-			m_gendata[i] = eType_Obj;
+			m_gendata[i] = m_gendata[i] == eType_Road ? eType_Obj1 : eType_Obj;
 		else if( m_gendata[i] == eType_Road || m_gendata[i] == eType_Greenbelt || m_gendata[i] == eType_House_2 )
 			m_gendata[i] = 0;
 	}
@@ -1783,6 +1970,7 @@ void CLevelGenNode2_2_0::GenHouses()
 	int32 nWidth = m_region.width;
 	int32 nHeight = m_region.height;
 	vector<TRectangle<int32> > vecRect;
+	vector<TVector2<int32> > vec;
 	auto Func = [=] ( const TRectangle<int32>& rect, const TVector2<int32>& p )
 	{
 		TRectangle<int32> r( p.x - 1, p.y - 1, 3, 3 );
@@ -1799,6 +1987,8 @@ void CLevelGenNode2_2_0::GenHouses()
 	};
 	for( auto& rect : m_vecHouse )
 	{
+		if( rect.width <= 2 || rect.height <= 2 )
+			continue;
 		for( int i = rect.x; i < rect.GetRight(); i++ )
 		{
 			for( int j = rect.y; j < rect.GetBottom(); j++ )
@@ -1825,7 +2015,7 @@ void CLevelGenNode2_2_0::GenHouses()
 					}
 					if( r.width >= 2 )
 					{
-						int32 x = SRand::Inst().Rand( r.x, r.GetRight() );
+						int32 x = Max( rect.x + 1, Min( rect.GetRight() - 2, SRand::Inst().Rand( r.x, r.GetRight() ) ) );
 						int32 y = SRand::Inst().Rand( 0, r.height / 2 + 1 );
 						int32 y1 = SRand::Inst().Rand( 0, r.height );
 						for( int j = 0; j < y; j++ )
@@ -1842,7 +2032,7 @@ void CLevelGenNode2_2_0::GenHouses()
 					}
 					if( r.height >= 2 )
 					{
-						int32 y = SRand::Inst().Rand( r.y, r.GetBottom() );
+						int32 y = Max( rect.y + 1, Min( rect.GetRight() - 2, SRand::Inst().Rand( r.y, r.GetBottom() ) ) );
 						int32 x = SRand::Inst().Rand( 0, r.width / 2 + 1 );
 						int32 x1 = SRand::Inst().Rand( 0, r.width );
 						for( int i = 0; i < x; i++ )
@@ -1893,10 +2083,33 @@ void CLevelGenNode2_2_0::GenHouses()
 		{
 			for( int j = rect.y; j < rect.GetBottom(); j++ )
 			{
-				if( !m_gendata[i + j * nWidth] )
-					m_gendata[i + j * nWidth] = eType_House_2;
+				if( m_gendata[i + j * nWidth] == eType_House_2 )
+					m_gendata[i + j * nWidth] = 0;
+				if( m_gendata[i + j * nWidth] == 0 )
+					vec.push_back( TVector2<int32>( i, j ) );
 			}
 		}
+
+		SRand::Inst().Shuffle( vec );
+		for( auto& p : vec )
+		{
+			if( m_gendata[p.x + p.y * nWidth] )
+				continue;
+			auto r = PutRect( m_gendata, nWidth, nHeight, p, TVector2<int32>( 2, 2 ), TVector2<int32>( 4, 4 ), rect, -1, eType_House_2 );
+			if( r.width <= 0 )
+			{
+				m_gendata[p.x + p.y * nWidth] = eType_House_2;
+				continue;
+			}
+			r = TRectangle<int32>( r.x + ( r.width - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2, r.y + ( r.height - 2 + SRand::Inst().Rand( 0, 2 ) ) / 2, 2, 2 );
+			for( int i = r.x; i < r.GetRight(); i++ )
+			{
+				for( int j = r.y; j < r.GetBottom(); j++ )
+					m_gendata[i + j * nWidth] = eType_House_2_4;
+			}
+		}
+
+		vec.resize( 0 );
 	}
 	for( auto& rect : m_vecRoad )
 	{
@@ -1917,6 +2130,28 @@ void CLevelGenNode2_2_0::GenHouses()
 			{
 				if( !m_gendata[i + j * nWidth] )
 					m_gendata[i + j * nWidth] = eType_Greenbelt;
+			}
+		}
+	}
+
+	vector<int32> vec1;
+	vec1.resize( nWidth );
+	for( int i = 0; i < nWidth; i++ )
+		vec1[i] = i;
+	int32 n = SRand::Inst().Rand( 20, 25 );
+	for( int j = 0; j < nHeight; j++ )
+	{
+		SRand::Inst().Shuffle( vec1 );
+		for( int i = 0; i < nWidth; i++ )
+		{
+			int32 x = vec1[i];
+			if( m_gendata[x + j * nWidth] != eType_Greenbelt_1_1 )
+				continue;
+			n--;
+			if( n <= 0 )
+			{
+				n = SRand::Inst().Rand( 20, 25 );
+				m_gendata[x + j * nWidth] = eType_Greenbelt_1_2;
 			}
 		}
 	}

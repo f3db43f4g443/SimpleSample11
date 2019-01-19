@@ -330,7 +330,7 @@ void CMyLevel::Clear()
 	}
 }
 
-void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
+void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush, CChunkObject* pPreObject )
 {
 	while( pChunk->Get_StopEvent() )
 	{
@@ -391,7 +391,7 @@ void CMyLevel::KillChunk( SChunk * pChunk, bool bCrush )
 		}
 	}
 
-	SplitChunks( pChunk, newChunks );
+	SplitChunks( pChunk, newChunks, pPreObject );
 }
 
 void CMyLevel::RemoveChunk( SChunk* pChunk )
@@ -485,8 +485,9 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 	delete pChunk;
 }
 
-void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks )
+void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<int32> > >& newChunks, CChunkObject* pPreObject )
 {
+	pOldChunk->pChunkObject = pPreObject;
 	uint32 nX = pOldChunk->pos.x / GetBlockSize();
 	uint32 nY = pOldChunk->pos.y / GetBlockSize();
 	uint32 nWidth = pOldChunk->nWidth;
@@ -631,6 +632,7 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 		pOldChunk->Get_ChainEf1()->Init();
 	while( pOldChunk->Get_ChainEf2() )
 		pOldChunk->Get_ChainEf2()->Init();
+	pOldChunk->pChunkObject = NULL;
 	RemoveChunk( pOldChunk );
 }
 

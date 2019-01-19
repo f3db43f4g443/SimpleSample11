@@ -23,6 +23,7 @@ public:
 	virtual bool StartHooked( CEntity* pEntity ) { return false; }
 	virtual bool Hooked( const CVector2& vec ) { return false; }
 	virtual bool EndHooked() { return false; }
+	bool IsIgnoreBullet() { return m_bIgnoreBullet; }
 
 	struct SDamageContext
 	{
@@ -45,6 +46,7 @@ protected:
 	TResourceRef<CPrefab> m_pKillEffect;
 	TResourceRef<CSoundFile> m_pKillSound;
 	TResourceRef<CPrefab> m_pCrushEffect;
+	bool m_bIgnoreBullet;
 
 	CVector2 m_velocity;
 	bool m_bCrushed;

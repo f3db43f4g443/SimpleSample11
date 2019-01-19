@@ -992,8 +992,6 @@ void SLevelDesignContext::GenerateLevel( CMyLevel * pLevel )
 					{
 						context.mapTags.erase( item.strName );
 					}
-
-					pItem->pGenNode->Generate( context, pItem->region );
 				}
 			}
 		}

@@ -6,21 +6,25 @@
 #include "Entities/Decorator.h"
 #include "Interfaces.h"
 
-class CLimbs : public CEnemy
+class CLimbs : public CEnemy, public IOperateable
 {
 	friend void RegisterGameClasses();
 public:
-	CLimbs( const SClassCreateContext& context ) : CEnemy( context ), m_onChunkKilled( this, &CLimbs::Kill ) { SET_BASEOBJECT_ID( CLimbs ); }
+	CLimbs( const SClassCreateContext& context ) : CEnemy( context ), m_onChunkKilled( this, &CLimbs::OnChunkKilled ) { SET_BASEOBJECT_ID( CLimbs ); }
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void Damage( SDamageContext& context ) override;
 	virtual void Kill() override;
+	virtual int8 IsOperateable( const CVector2& pos ) override;
+	virtual void Operate( const CVector2& pos ) override;
 protected:
+	void OnChunkKilled();
 	void KillAttackEft();
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 
+	bool m_bAuto;
 	CRectangle m_detectRect;
 	int32 m_nAITick;
 	CRectangle m_attackRect;
@@ -55,7 +59,7 @@ class CLimbs1 : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CLimbs1( const SClassCreateContext& context ) : CDecorator( context ), m_onTick( this, &CLimbs1::OnTick ), m_onChunkKilled( this, &CLimbs1::Kill ) { SET_BASEOBJECT_ID( CLimbs1 ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	void Kill();
@@ -89,6 +93,7 @@ public:
 	virtual void Kill() override;
 	virtual void OnDetach() override;
 protected:
+	void OnEndHook();
 	void KillAttackEft();
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
@@ -105,12 +110,49 @@ protected:
 	CRectangle m_rectHook;
 	CRectangle m_rectDetach;
 	CReference<CEntity> m_pLimbsAttackEft;
+	TResourceRef<CPrefab> m_pBullet;
 
 	float m_fEftLen;
 	uint8 m_nState;
 	CMatrix2D m_lastMatrix;
 	CReference<CCharacter> m_pHooked;
 	TClassTrigger<CLimbsHook> m_onChunkKilled;
+};
+
+class CManChunk1 : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunk1( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ), m_onChunkKilled( this, &CManChunk1::Kill ) { SET_BASEOBJECT_ID( CManChunk1 ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+	virtual void Kill() override;
+	virtual void Crush() override;
+private:
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+
+	SCharacterPhysicsMovementData m_moveData;
+	float m_fAttackDist;
+	float m_fStopDist;
+	float m_fSpeed;
+	float m_fSpeed1;
+	float m_fMaxRadius;
+	int32 m_nAttackCD;
+	int32 m_nSelfDmg;
+	float m_fKillY;
+	CReference<CEntity> m_pManChunkEft;
+	CReference<CEnemyPart> m_pEnemyPart;
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pBullet1;
+
+	uint8 m_nType;
+	uint8 m_nState;
+	int32 m_nCDLeft;
+	float m_fHit0;
+	TClassTrigger<CManChunk1> m_onChunkKilled;
 };
 
 class CCar : public CEnemy

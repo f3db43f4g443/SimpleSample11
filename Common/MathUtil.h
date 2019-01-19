@@ -12,4 +12,5 @@ float NormalizeAngle( float f );
 float InterpAngle( float a, float b, float t );
 
 uint32 ZCurveOrder( uint16 x, uint16 y );
+uint32 ZCurveOrderSigned( int32 x, int32 y );
 void ZCurveOrderInv( uint32 nZCurveOrder, uint16& x, uint16& y );

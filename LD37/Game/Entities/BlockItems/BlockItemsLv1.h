@@ -41,7 +41,7 @@ class CWindow0 : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CWindow0( const SClassCreateContext& context ) : CDecorator( context ), m_onDamaged( this, &CWindow0::OnDamaged ), m_pChunkObject( NULL ) { SET_BASEOBJECT_ID( CWindow0 ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 	virtual void OnRemovedFromStage() override;
 private:
 	void OnDamaged();
@@ -111,7 +111,7 @@ class CWindow1 : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CWindow1( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CWindow1 ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 protected:
 	void AIFunc();
 	void AIFunc1( class CChunkObject* pChunkObject );
@@ -184,5 +184,5 @@ class CHouse0Deco : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CHouse0Deco( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CHouse0Deco ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 };

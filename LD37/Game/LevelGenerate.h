@@ -5,10 +5,12 @@
 class CMyLevel;
 struct SLevelBuildContext
 {
+	SLevelBuildContext();
 	SLevelBuildContext( CMyLevel* pLevel, SChunk* pParentChunk = NULL );
 	SLevelBuildContext( const SLevelBuildContext& par, SChunk* pParentChunk = NULL );
 	SLevelBuildContext( uint32 nWidth, uint32 nHeight, bool bTest = false );
-	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region );
+	void Set( const SLevelBuildContext& par, SChunk* pParentChunk );
+	SChunk* CreateChunk( SChunkBaseInfo& baseInfo, const TRectangle<int32>& region, SLevelBuildContext* pSubContext );
 	void CreateChain( SChainBaseInfo& baseInfo, int32 x, int32 y1, int32 y2 );
 	void AttachPrefab( CPrefab* pPrefab, TRectangle<int32> rect, uint8 nLayer, uint8 nType, bool bType1 );
 	void AddSpawnInfo( SChunkSpawnInfo* pInfo, const TVector2<int32>& ofs );

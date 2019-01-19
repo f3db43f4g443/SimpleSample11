@@ -609,7 +609,6 @@
     <ClCompile Include="ItemDrop.cpp" />
     <ClCompile Include="LevelDesign.cpp" />
     <ClCompile Include="LevelGenerate.cpp" />
-    <ClCompile Include="LevelGenerating\LvBarrierGen.cpp" />
     <ClCompile Include="LevelGenerating\LvBonusGen1.cpp" />
     <ClCompile Include="LevelGenerating\LvBonusGen2.cpp" />
     <ClCompile Include="LevelGenerating\LvGen1_1.cpp" />

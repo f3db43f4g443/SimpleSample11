@@ -287,7 +287,7 @@ void CLightning::OnTick()
 				if( m_nType == 1 )
 				{
 					CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-					if( pEnemy )
+					if( pEnemy && !pEnemy->IsIgnoreBullet() )
 					{
 						if( m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 							continue;
@@ -332,7 +332,7 @@ void CLightning::OnTick()
 					}
 
 					CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-					if( pCharacter && pCharacter != pPlayer )
+					if( pCharacter && pCharacter != pPlayer && !pCharacter->IsIgnoreBullet() )
 					{
 						if( !m_nDamage2 )
 							continue;

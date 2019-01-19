@@ -14,7 +14,7 @@
 #include "Entities/Bullets.h"
 #include "Common/Algorithm.h"
 
-void CLv2Wall1Deco::Init( const CVector2& size )
+void CLv2Wall1Deco::Init( const CVector2& size, SChunk* pPreParent )
 {
 	uint32 nTileSize = CMyLevel::GetBlockSize();
 	CChunkObject* pChunkObject = NULL;
@@ -333,7 +333,7 @@ void CHouseEntrance::OnTick()
 	p->SetTexRect( texRect );
 }
 
-void CHouseWindow::Init( const CVector2 & size )
+void CHouseWindow::Init( const CVector2 & size, SChunk* pPreParent )
 {
 	m_size = size;
 	CChunkObject* pChunkObject = NULL;
@@ -824,6 +824,45 @@ void COperateableTurret1::OnTick()
 	CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
 	m_nAmmoLeft--;
 	GetStage()->RegisterAfterHitTest( m_nAmmoLeft ? m_nFireInterval : m_nFireCD, &m_onTick );
+}
+
+void COperateableButton::OnAddedToStage()
+{
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	auto p = GetRenderObject();
+	if( p && pChunkObject )
+	{
+		p->RemoveThis();
+		pChunkObject->GetRenderObject()->AddChild( p );
+		p->SetPosition( GetPosition() );
+		p->SetRenderParent( this );
+	}
+}
+
+int8 COperateableButton::IsOperateable( const CVector2& pos )
+{
+	int8 n = -1;
+	for( auto& p : m_vec )
+	{
+		auto pOperateable = SafeCastToInterface<IOperateable>( p.GetPtr() );
+		if( !pOperateable )
+			continue;
+		if( n == -1 )
+			n = 0;
+		n |= pOperateable->IsOperateable( pos );
+	}
+	return n;
+}
+
+void COperateableButton::Operate( const CVector2 & pos )
+{
+	for( auto& p : m_vec )
+	{
+		auto pOperateable = SafeCastToInterface<IOperateable>( p.GetPtr() );
+		if( !pOperateable )
+			continue;
+		pOperateable->Operate( pos );
+	}
 }
 
 void CWindow3::OnAddedToStage()

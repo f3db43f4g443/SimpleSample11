@@ -92,6 +92,11 @@ uint32 ZCurveOrder( uint16 x, uint16 y )
 		 | ( g_table.nValue[x >> 8] | ( g_table.nValue[y >> 8] << 1 ) ) << 16;
 }
 
+uint32 ZCurveOrderSigned( int32 x, int32 y )
+{
+	return ZCurveOrder( x >= 0 ? x << 1 : 1 | ( ( -1 - x ) << 1 ), y >= 0 ? y << 1 : 1 | ( ( -1 - y ) << 1 ) );
+}
+
 void ZCurveOrderInv( uint32 nZCurveOrder, uint16& x, uint16& y )
 {
 	uint32 nValue;

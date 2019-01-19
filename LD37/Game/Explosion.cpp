@@ -131,7 +131,7 @@ void CExplosion::OnTick()
 		}
 
 		CEnemy* pEnemy = SafeCast<CEnemy>( pEntity );
-		if( pEnemy )
+		if( pEnemy && !pEnemy->IsIgnoreBullet() )
 		{
 			if( !m_bHitCreator && m_pCreator && pEnemy->IsOwner( m_pCreator ) )
 				continue;
@@ -160,7 +160,7 @@ void CExplosion::OnTick()
 		}
 
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter )
+		if( pCharacter && !pCharacter->IsIgnoreBullet() )
 		{
 			if( !m_bHitCreator && pEntity == m_pCreator )
 				continue;

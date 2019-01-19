@@ -13,6 +13,28 @@
 
 void CDetectTrigger::OnAddedToStage()
 {
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	auto p = GetRenderObject();
+	if( p && pChunkObject )
+	{
+		auto p1 = pChunkObject->GetDecoratorRoot();
+		if( p1 )
+		{
+			auto pEntity = SafeCast<CEntity>( p );
+			if( pEntity )
+			{
+				pEntity->SetParentEntity( p1 );
+			}
+			else
+			{
+				p->RemoveThis();
+				p1->AddChild( p );
+			}
+			p->SetPosition( GetPosition() );
+			p->SetRotation( GetRotation() );
+			p->SetRenderParent( this );
+		}
+	}
 	if( m_nFrames1 && m_nFrames2 )
 	{
 		m_fFramesPerSec = static_cast<CMultiFrameImage2D*>( GetRenderObject() )->GetFramesPerSec();
@@ -416,7 +438,7 @@ void CKillSpawner::Trigger()
 	if( !nCount )
 		return;
 
-	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount );
+	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount + 1 );
 	for( int i = 0; i < nSpawnCount; i++ )
 	{
 		float r = SRand::Inst().Rand( 0.0f, fTotalChance );
@@ -495,7 +517,7 @@ void CDamageSpawnEnemy::Trigger()
 	if( !nCount )
 		return;
 
-	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount );
+	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount + 1 );
 	for( int i = 0; i < nSpawnCount; i++ )
 	{
 		float r = SRand::Inst().Rand( 0.0f, fTotalChance );

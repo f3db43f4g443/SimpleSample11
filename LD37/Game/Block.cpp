@@ -316,6 +316,7 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 
 	if( !pChunkObject )
 	{
+		auto pPreParent = pParentChunk ? pParentChunk : pParent;
 		pParentChunk = pParent;
 		pChunkObject = SafeCast<CChunkObject>( pPrefab->GetRoot()->CreateInstance() );
 		pChunkObject->SetChunk( this, pLevel );
@@ -351,7 +352,7 @@ bool SChunk::CreateChunkObject( CMyLevel* pLevel, SChunk* pParent )
 					else
 						pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
 					pDecorator->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
-					pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ) );
+					pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ), pPreParent );
 				}
 				else if( pSpawnInfo->bForceAttach )
 				{
@@ -419,7 +420,7 @@ void SChunk::CreateChunkObjectPreview( CEntity* pRootEntity, SChunk* pParent )
 				else
 					pDecorator->SetParentBeforeEntity( pChunkObject->GetRenderObject() );
 				pDecorator->SetPosition( CVector2( pSpawnInfo->rect.x, pSpawnInfo->rect.y ) );
-				pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ) );
+				pDecorator->Init( CVector2( pSpawnInfo->rect.width, pSpawnInfo->rect.height ), pParent );
 			}
 		}
 	}
@@ -807,6 +808,7 @@ float CChunkObject::Repair( float fAmount )
 
 void CChunkObject::Kill()
 {
+	DEFINE_TEMP_REF_THIS()
 	while( m_pChunk->Get_StopEvent() )
 	{
 		CReference<CChunkStopEvent> pStopEvent = m_pChunk->Get_StopEvent();
@@ -822,8 +824,9 @@ void CChunkObject::Kill()
 	{
 		m_pChunk = NULL;
 		pChunk->pChunkObject = NULL;
-		CMyLevel::GetInst()->KillChunk( pChunk );
+		CMyLevel::GetInst()->KillChunk( pChunk, false, this );
 	}
+	m_triggerPostKilled.Trigger( 0, this );
 	SetParentEntity( NULL );
 }
 
@@ -885,89 +888,6 @@ void CChunkObject::HandleHitShake( const CVector2& ofs )
 		m_pDamagedEffectsRoot->SetPosition( ofs );
 }
 
-void CSpecialChunk::OnAddedToStage()
-{
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBullet.c_str() );
-	CChunkObject::OnAddedToStage();
-}
-
-void CSpecialChunk::Trigger()
-{
-}
-
-void CSpecialChunk1::Trigger()
-{
-	CSpecialChunk::Trigger();
-	SBarrageContext context;
-	context.pCreator = GetBlock( 0, 0 )->pEntity;
-	context.vecBulletTypes.push_back( m_pBulletPrefab );
-	context.nBulletPageSize = 8;
-
-	CBarrage* pBarrage = new CBarrage( context );
-	pBarrage->AddFunc( [this] ( CBarrage* pBarrage )
-	{
-		for( int i = 0; i < 4; i++ )
-		{
-			pBarrage->InitBullet( i * 2, 0, -1, CVector2( 32, i * 8 + 4 ), CVector2( 400, 0 ), CVector2( 0, 0 ), true );
-			pBarrage->InitBullet( i * 2 + 1, 0, -1, CVector2( 0, i * 8 + 4 ), CVector2( -400, 0 ), CVector2( 0, 0 ), true );
-			pBarrage->Yield( 5 );
-		}
-		pBarrage->StopNewBullet();
-	} );
-	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( globalTransform.GetPosition() );
-	pBarrage->Start();
-}
-
-void CSpecialChunk2::Trigger()
-{
-	CSpecialChunk::Trigger();
-	SBarrageContext context;
-	context.pCreator = GetBlock( 0, 0 )->pEntity;
-	context.vecBulletTypes.push_back( m_pBulletPrefab );
-	context.nBulletPageSize = 12;
-
-	CBarrage* pBarrage = new CBarrage( context );
-	pBarrage->AddFunc( []( CBarrage* pBarrage )
-	{
-		CVector2 ofs[4] = { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } };
-		CVector2 ofs1[12] = { { 0, 0 }, { 0, 1 }, { 1, 0 }, { 0, 1 }, { 0, 0 }, { 1, 1 }, { 1, 0 }, { 1, 1 }, { 0, 0 }, { 1, 1 }, { 1, 0 }, { 0, 0 } };
-		for( int i = 0; i < 12; i++ )
-		{
-			pBarrage->InitBullet( i, 0, -1, ofs1[i] * 32, ofs[i / 3] * 300, CVector2( 0, 0 ), true );
-		}
-		pBarrage->Yield( 1 );
-		pBarrage->StopNewBullet();
-	} );
-	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( globalTransform.GetPosition() );
-	pBarrage->Start();
-}
-
-void CSpecialChunk3::Trigger()
-{
-	CSpecialChunk::Trigger();
-	SBarrageContext context;
-	context.pCreator = GetBlock( 0, 0 )->pEntity;
-	context.vecBulletTypes.push_back( m_pBulletPrefab );
-	context.nBulletPageSize = 12;
-
-	CBarrage* pBarrage = new CBarrage( context );
-	pBarrage->AddFunc( []( CBarrage* pBarrage )
-	{
-		for( int i = 0; i < 12; i++ )
-		{
-			float fAngle = i * PI / 6;
-			pBarrage->InitBullet( i, 0, -1, CVector2( 16, 16 ), CVector2( cos( fAngle ), sin( fAngle ) ) * 400, CVector2( 0, 0 ), true );
-			pBarrage->Yield( 2 );
-		}
-		pBarrage->StopNewBullet();
-	} );
-	pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-	pBarrage->SetPosition( globalTransform.GetPosition() );
-	pBarrage->Start();
-}
-
 bool CExplosiveChunk::Damage( SDamageContext& context )
 {
 	if( m_bKilled )
@@ -1027,173 +947,6 @@ void CExplosiveChunk::Tick()
 	{
 		m_nDeathDamageCDLeft = m_nDeathDamageInterval;
 		CChunkObject::Damage( m_nDeathDamage );
-	}
-}
-
-void CRandomEnemyRoom::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
-{
-	CDrawableGroup* pDrawableGroup = CResourceManager::Inst()->CreateResource<CDrawableGroup>( m_strRes.c_str() );
-	CDrawableGroup* pDamageEftDrawableGroups[4];
-
-	CRectangle damageEftTexRects[4];
-	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
-	{
-		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
-		damageEftTexRects[i] = static_cast<CImage2D*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetRenderObject() )->GetElem().texRect;
-		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
-	}
-	SetRenderObject( new CRenderObject2D );
-	for( int i = 0; i < pChunk->nWidth; i++ )
-	{
-		for( int j = 0; j < pChunk->nHeight; j++ )
-		{
-			uint32 nTileX, nTileY;
-			bool bDoor = ( i == 0 || i == pChunk->nWidth - 1 ) && ( j == pChunk->nHeight / 2 - 1 || j == pChunk->nHeight / 2 )
-				|| ( j == 0 || j == pChunk->nHeight - 1 ) && ( i == pChunk->nWidth / 2 - 1 || i == pChunk->nWidth / 2 );
-			if( bDoor )
-			{
-				nTileX = 11 + ( SRand::Inst().Rand( 0, 2 ) );
-				nTileY = 3 + ( SRand::Inst().Rand( 0, 2 ) );
-			}
-			else
-			{
-				if( i == 0 && j == 0 )
-				{
-					nTileX = 10;
-					nTileY = 5;
-				}
-				else if( i == 1 && j == 0 )
-				{
-					nTileX = 11;
-					nTileY = 5;
-				}
-				else if( i == 0 && j == 1 )
-				{
-					nTileX = 10;
-					nTileY = 4;
-				}
-				else if( i == pChunk->nWidth - 1 && j == 0 )
-				{
-					nTileX = 13;
-					nTileY = 5;
-				}
-				else if( i == pChunk->nWidth - 2 && j == 0 )
-				{
-					nTileX = 12;
-					nTileY = 5;
-				}
-				else if( i == pChunk->nWidth - 1 && j == 1 )
-				{
-					nTileX = 13;
-					nTileY = 4;
-				}
-
-				else if( i == 0 && j == pChunk->nHeight - 1 )
-				{
-					nTileX = 10;
-					nTileY = 2;
-				}
-				else if( i == 1 && j == pChunk->nHeight - 1 )
-				{
-					nTileX = 11;
-					nTileY = 2;
-				}
-				else if( i == 0 && j == pChunk->nHeight - 2 )
-				{
-					nTileX = 10;
-					nTileY = 3;
-				}
-				else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 1 )
-				{
-					nTileX = 13;
-					nTileY = 2;
-				}
-				else if( i == pChunk->nWidth - 2 && j == pChunk->nHeight - 1 )
-				{
-					nTileX = 12;
-					nTileY = 2;
-				}
-				else if( i == pChunk->nWidth - 1 && j == pChunk->nHeight - 2 )
-				{
-					nTileX = 13;
-					nTileY = 3;
-				}
-
-				else if( i == 0 )
-				{
-					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
-					nTileY = 3;
-				}
-				else if( i == pChunk->nWidth - 1 )
-				{
-					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
-					nTileY = 5;
-				}
-				else if( j == 0 )
-				{
-					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
-					nTileY = 4;
-				}
-				else if( j == pChunk->nHeight - 1 )
-				{
-					nTileX = 14 + ( SRand::Inst().Rand( 0, 2 ) );
-					nTileY = 2;
-				}
-				else
-				{
-					nTileX = 11 + ( SRand::Inst().Rand( 0, 2 ) );
-					nTileY = 3 + ( SRand::Inst().Rand( 0, 2 ) );
-				}
-			}
-
-			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-			pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
-			pImage2D->SetTexRect( CRectangle( nTileX / 16.0f, nTileY / 16.0f, 1 / 16.0f, 1 / 16.0f ) );
-			GetRenderObject()->AddChild( pImage2D );
-
-			for( int k = 0; k < m_nDamagedEffectsCount; k++ )
-			{
-				CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[k]->CreateInstance() );
-				pImage2D->SetRect( CRectangle( i * 32, j * 32, 32, 32 ) );
-				pImage2D->SetTexRect( damageEftTexRects[k] );
-				m_pDamagedEffects[k]->AddChild( pImage2D );
-			}
-		}
-	}
-
-	auto pDoorPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strDoor.c_str() );
-	auto pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, 0.5f ) * CMyLevel::GetBlockSize() );
-	pDoor->SetParentEntity( this );
-	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth / 2, pChunk->nHeight - 0.5f ) * CMyLevel::GetBlockSize() );
-	pDoor->SetRotation( PI );
-	pDoor->SetParentEntity( this );
-	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( 0.5f, pChunk->nHeight / 2 ) * CMyLevel::GetBlockSize() );
-	pDoor->SetRotation( PI * 1.5f );
-	pDoor->SetParentEntity( this );
-	pDoor = SafeCast<CEntity>( pDoorPrefab->GetRoot()->CreateInstance() );
-	pDoor->SetPosition( CVector2( pChunk->nWidth - 0.5f, pChunk->nHeight / 2 ) * CMyLevel::GetBlockSize() );
-	pDoor->SetRotation( PI * 0.5f );
-	pDoor->SetParentEntity( this );
-}
-
-void CRandomEnemyRoom::OnKilled()
-{
-	if( m_strEffect )
-	{
-		ForceUpdateTransform();
-		for( int i = 0; i < m_pChunk->nWidth; i++ )
-		{
-			for( int j = 0; j < m_pChunk->nHeight; j++ )
-			{
-				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
-				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( globalTransform.GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
-				pEffect->SetState( 2 );
-			}
-		}
 	}
 }
 

@@ -33,6 +33,30 @@ void CDoor::OnAddedToStage()
 			pParam[1] = pParam1[1];
 			pParam[2] = pParam1[2];
 		}
+		else
+		{
+			auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+			if( !pChunkObject )
+				return;
+			CCargoAutoColor* p = NULL;
+			auto pRoot = pChunkObject->GetDecoratorRoot();
+			if( !pRoot )
+				pRoot = pChunkObject;
+			for( auto pChild = pRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+			{
+				p = SafeCast<CCargoAutoColor>( pChild );
+				if( p )
+					break;
+			}
+			if( p )
+			{
+				auto pParam = pImage->GetParam();
+				auto pColor = p->GetColors();
+				pParam[0].w = pColor[0].z;
+				pParam[1] = CVector4( pColor[0].x, pColor[1].x, pColor[2].x, pColor[1].z );
+				pParam[2] = CVector4( pColor[0].y, pColor[1].y, pColor[2].y, pColor[2].z );
+			}
+		}
 	}
 }
 

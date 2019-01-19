@@ -11,6 +11,14 @@
       <node name="door1_1_a" prefab="data/misc/door1_1.pf" sizex="1" sizey="2" />
       <node name="door1_2_a" prefab="data/misc/door1_2.pf" sizex="2" sizey="1" />
       <node name="door1_3_a" prefab="data/misc/door1_3.pf" sizex="1" sizey="2" />
+      <node name="door2s_0_a" prefab="data/misc/door2s_0.pf" sizex="1" sizey="1" />
+      <node name="door2s_1_a" prefab="data/misc/door2s_1.pf" sizex="1" sizey="1" />
+      <node name="door2s_2_a" prefab="data/misc/door2s_2.pf" sizex="1" sizey="1" />
+      <node name="door2s_3_a" prefab="data/misc/door2s_3.pf" sizex="1" sizey="1" />
+      <node name="door2_0_a" prefab="data/misc/door2_0.pf" sizex="2" sizey="1" />
+      <node name="door2_1_a" prefab="data/misc/door2_1.pf" sizex="1" sizey="2" />
+      <node name="door2_2_a" prefab="data/misc/door2_2.pf" sizex="2" sizey="1" />
+      <node name="door2_3_a" prefab="data/misc/door2_3.pf" sizex="1" sizey="2" />
     </attachs>
     <nodes>
 
@@ -60,6 +68,55 @@
         <types>3,3</types>
         <next_level>
           <ref name="door1_3_a" />
+        </next_level>
+      </node>
+
+      <node name="door2s_0" width="1" height="1" layer_type="2" subchunk_type="1">
+        <types>3</types>
+        <next_level>
+          <ref name="door2s_0_a" />
+        </next_level>
+      </node>
+      <node name="door2s_1" width="1" height="1" layer_type="2" subchunk_type="1">
+        <types>3</types>
+        <next_level>
+          <ref name="door2s_1_a" />
+        </next_level>
+      </node>
+      <node name="door2s_2" width="1" height="1" layer_type="2" subchunk_type="1">
+        <types>3</types>
+        <next_level>
+          <ref name="door2s_2_a" />
+        </next_level>
+      </node>
+      <node name="door2s_3" width="1" height="1" layer_type="2" subchunk_type="1">
+        <types>3</types>
+        <next_level>
+          <ref name="door2s_3_a" />
+        </next_level>
+      </node>
+      <node name="door2_0" width="2" height="1" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door2_0_a" />
+        </next_level>
+      </node>
+      <node name="door2_1" width="1" height="2" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door2_1_a" />
+        </next_level>
+      </node>
+      <node name="door2_2" width="2" height="1" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door2_2_a" />
+        </next_level>
+      </node>
+      <node name="door2_3" width="1" height="2" layer_type="2" subchunk_type="1">
+        <types>3,3</types>
+        <next_level>
+          <ref name="door2_3_a" />
         </next_level>
       </node>
       

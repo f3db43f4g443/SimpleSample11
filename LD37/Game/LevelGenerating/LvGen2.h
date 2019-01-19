@@ -179,6 +179,7 @@ private:
 		eType_Cargo1,
 
 		eType_Obj,
+		eType_Obj1,
 		eType_Temp,
 		eType_Temp1,
 		eType_Temp2,
@@ -194,6 +195,9 @@ private:
 	vector<TRectangle<int32> > m_vecRoom;
 	vector<TRectangle<int32> > m_vecCargo;
 	vector<TRectangle<int32> > m_vecCargo1;
+	vector<TVector2<int32> > m_vecBroken;
+	vector<TVector2<int32> > m_vecBox;
+	vector<TRectangle<int32> > m_vecBar[2];
 	vector<TRectangle<int32> > m_vecBarrel[3];
 
 	CReference<CLevelGenerateNode> m_pWallNode;
@@ -203,6 +207,9 @@ private:
 	CReference<CLevelGenerateNode> m_pRoomNode;
 	CReference<CLevelGenerateNode> m_pCargoNode;
 	CReference<CLevelGenerateNode> m_pCargo1Node;
+	CReference<CLevelGenerateNode> m_pBrokenNode;
+	CReference<CLevelGenerateNode> m_pBoxNode;
+	CReference<CLevelGenerateNode> m_pBarNode[2];
 	CReference<CLevelGenerateNode> m_pBarrelNode[3];
 };
 
@@ -332,30 +339,4 @@ private:
 	CReference<CLevelGenerateNode> m_pThrusterNode;
 	CReference<CLevelGenerateNode> m_pFill1Node;
 	CReference<CLevelGenerateNode> m_pFill2Node;
-};
-
-class CLvBarrierNodeGen2 : public CLevelGenerateSimpleNode
-{
-public:
-	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
-	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
-private:
-	void GenBlocks();
-	void GenTracks( SChunk* pChunk );
-
-	CReference<CLevelGenerateNode> m_pBlockNode;
-	CReference<CLevelGenerateNode> m_pChunkNode;
-	CReference<CLevelGenerateNode> m_pLabelNode;
-
-	enum
-	{
-		eType_None,
-		eType_Blocked,
-		eType_Track,
-	};
-
-	SLevelBuildContext* m_pContext;
-	TRectangle<int32> m_region;
-	vector<int8> m_gendata;
-	TRectangle<int32> m_labelRect;
 };

@@ -42,12 +42,13 @@ void PSPreTransmission( in float2 tex : TexCoord0, //color
 	float4 TransmissionMapTex = TransmissionMap.Sample( PointSampler, tex2 );
 	float4 OcclusionMapTex = OcclusionMap.Sample( PointSampler, tex1 );
 
-	float fPercent = 0.8;
-	float fLInject1 = 0.65;
+	float fLInject1 = 0.75;
 	float fEInject1 = 1;
 
 	outTrans = TransmissionMapTex;
-	outTransTemp.xyz = TransmissionMapTex.xyz * fPercent + ( LightMapTex.xyz * fLInject1 + EmissionMapTex.xyz * ( fEInject1 + ( 1 - OcclusionMapTex.xyz ) * ( 1 - fEInject1 ) ) ) * ( 1 - fPercent );
+	float3 target = ( LightMapTex.xyz * fLInject1 + EmissionMapTex.xyz * fEInject1 );
+	float3 d = target - outTrans.xyz;
+	outTransTemp.xyz = outTrans.xyz + max( -0.1, min( 0.1, d ) );
 	outTrans.w = outTransTemp.w = OcclusionMapTex.w;
 }
 
@@ -91,7 +92,7 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	float hScale = 10.0;
 	float hScale1 = 10.0;
 
-	float fDecay = 0.2;
+	float fDecay = 0;
 	float fWeight = ( 1 - fDecay ) * 0.25;
 	float fWeight1 = 0;
 	outTransmission.xyz = 0;
@@ -108,7 +109,7 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	outTransmission.xyz += TransmissionMapTex.xyz * ( 1 - fWeight1 );
 	outTransmission.w = 1;
 
-	float fLightMapCoef = 0.35;
+	float fLightMapCoef = 0.25;
 	outScene.xyz = ( LightMapTex.xyz * fLightMapCoef + outTransmission.xyz ) * ColorMapTex.xyz + EmissionMapTex.xyz;
 	outScene.w = 1;
 }

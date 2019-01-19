@@ -1496,7 +1496,7 @@ float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fM
 			fMaxX = fLen;
 			break;
 		case 1:
-			fLen = Max( fMinY, fMaxX + fMaxDeltaLen );
+			fLen = Max( fMinY, fMaxY + fMaxDeltaLen );
 			fDist = fLen - fMaxY;
 			fMaxY = fLen;
 			break;

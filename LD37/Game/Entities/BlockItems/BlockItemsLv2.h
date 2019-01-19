@@ -13,7 +13,7 @@ class CLv2Wall1Deco : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CLv2Wall1Deco( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CLv2Wall1Deco ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 };
 
 class CCarSpawner : public CDetectTrigger
@@ -66,7 +66,7 @@ class CHouseWindow : public CDecorator
 	friend void RegisterGameClasses();
 public:
 	CHouseWindow( const SClassCreateContext& context ) : CDecorator( context ), m_pChunkObject( NULL ), m_onTick( this, &CHouseWindow::OnTick ) { SET_BASEOBJECT_ID( CHouseWindow ); }
-	virtual void Init( const CVector2& size ) override;
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 	virtual void OnRemovedFromStage() override;
 	void SetState( uint8 nState );
 private:
@@ -136,6 +136,23 @@ private:
 
 	uint32 m_nAmmoLeft;
 	TClassTrigger<COperateableTurret1> m_onTick;
+};
+
+class COperateableButton : public CEntity, public IOperateable
+{
+	friend void RegisterGameClasses();
+public:
+	COperateableButton( const SClassCreateContext& context ) : CEntity( context )
+	{
+		SET_BASEOBJECT_ID( COperateableButton );
+	}
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override { m_vec.clear(); }
+	virtual int8 IsOperateable( const CVector2& pos ) override;
+	virtual void Operate( const CVector2& pos ) override;
+	void AddOperateable( CEntity* p ) { m_vec.push_back( p ); }
+private:
+	vector<CReference<CEntity> > m_vec;
 };
 
 class CWindow3 : public CEnemy
