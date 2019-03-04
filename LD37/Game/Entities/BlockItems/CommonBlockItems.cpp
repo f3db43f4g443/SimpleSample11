@@ -200,6 +200,7 @@ void CDamageTriggerEnemy::Damage( SDamageContext & context )
 
 void CDamageTriggerEnemy::Kill()
 {
+	ForceUpdateTransform();
 	for( int j = 0; j < m_nKillFireCount; j++ )
 		Trigger();
 	CEnemy::Kill();
@@ -437,7 +438,7 @@ void CKillSpawner::Trigger()
 	}
 	if( !nCount )
 		return;
-
+	ForceUpdateTransform();
 	int32 nSpawnCount = SRand::Inst().Rand( m_nMinCount, m_nMaxCount + 1 );
 	for( int i = 0; i < nSpawnCount; i++ )
 	{

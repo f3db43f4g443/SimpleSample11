@@ -167,8 +167,10 @@ void CLvFloor2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 	SetRenderObject( new CRenderObject2D );
 	auto pRenderObject1 = new CRenderObject2D;
-	pRenderObject1->SetZOrder( 1 );
 	AddChild( pRenderObject1 );
+	if( CMyLevel::GetInst() )
+		pRenderObject1->SetRenderParent( CMyLevel::GetInst()->GetChunkRoot1() );
+	pRenderObject1->SetZOrder( 1 );
 	for( int j = 0; j < pChunk->nHeight; j += 2 )
 	{
 		for( int i = 0; i < pChunk->nWidth; i += 2 )

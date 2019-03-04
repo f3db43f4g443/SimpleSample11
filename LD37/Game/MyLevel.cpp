@@ -627,6 +627,10 @@ void CMyLevel::SplitChunks( SChunk* pOldChunk, vector< pair<SChunk*, TVector2<in
 			}
 		}
 	}
+	for( auto& item : newChunks )
+	{
+		item.first->pParentChunk = NULL;
+	}
 
 	while( pOldChunk->Get_ChainEf1() )
 		pOldChunk->Get_ChainEf1()->Init();

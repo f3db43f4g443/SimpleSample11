@@ -71,6 +71,21 @@ private:
 	uint32 m_nMaskRows;
 };
 
+class CDecoratorTile0 : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CDecoratorTile0( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CDecoratorTile0 ); }
+
+	virtual void Init( const CVector2& size, struct SChunk* pPreParent ) override;
+private:
+	uint32 m_nTexCols;
+	uint32 m_nTexRows;
+	float m_fPercent;
+	int32 m_nMaxSizeX, m_nMaxSizeY;
+	uint8 m_nBlockTag;
+};
+
 class CDecoratorTile : public CDecorator
 {
 	friend void RegisterGameClasses();

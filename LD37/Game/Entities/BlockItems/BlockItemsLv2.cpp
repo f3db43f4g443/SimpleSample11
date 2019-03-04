@@ -115,6 +115,7 @@ void CLv2Wall1Deco::Init( const CVector2& size, SChunk* pPreParent )
 
 void CCarSpawner::OnAddedToStage()
 {
+	memcpy( m_nSpawnCountsLeft, m_nSpawnCounts, sizeof( m_nSpawnCounts ) );
 	auto pChunk = SafeCast<CChunkObject>( GetParentEntity() );
 	if( pChunk )
 	{
@@ -143,11 +144,20 @@ void CCarSpawner::Trigger()
 	uint8 nCar;
 	for( nCar = 0; nCar < 4; nCar++ )
 	{
-		if( m_nSpawnCounts[nCar] )
+		if( m_nSpawnCountsLeft[nCar] )
 			break;
 	}
 	if( nCar >= 4 )
-		return;
+	{
+		memcpy( m_nSpawnCountsLeft, m_nSpawnCounts, sizeof( m_nSpawnCounts ) );
+		for( nCar = 0; nCar < 4; nCar++ )
+		{
+			if( m_nSpawnCountsLeft[nCar] )
+				break;
+		}
+		if( nCar >= 4 )
+			return;
+	}
 
 	auto rect1 = m_carRect1;
 	SHitProxyPolygon polygon;
@@ -331,6 +341,61 @@ void CHouseEntrance::OnTick()
 	else
 		texRect.x -= texRect.width;
 	p->SetTexRect( texRect );
+}
+
+void CFuse::OnAddedToStage()
+{
+	CChunkObject* pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunkObject && CMyLevel::GetInst() )
+	{
+		pChunkObject->RegisterKilledEvent( &m_onChunkKilled );
+		auto p1 = pChunkObject->GetDecoratorRoot();
+		if( p1 )
+		{
+			auto p = GetRenderObject();
+			p->SetPosition( GetPosition() );
+			p->SetRotation( GetRotation() );
+			p->RemoveThis();
+			p1->AddChild( p );
+			p->SetRenderParent( this );
+		}
+	}
+	m_pEft->SetParentEntity( NULL );
+}
+
+void CFuse::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	if( m_onChunkKilled.IsRegistered() )
+		m_onChunkKilled.Unregister();
+}
+
+void CFuse::DelayKill()
+{
+	GetStage()->RegisterAfterHitTest( m_nExpHit, &m_onTick );
+}
+
+void CFuse::OnTick()
+{
+	CChunkObject* pParChunk = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pParChunk )
+		pParChunk->Kill();
+}
+
+void CFuse::OnChunkKilled()
+{
+	ForceUpdateTransform();
+	SafeCast<CEffectObject>( m_pEft.GetPtr() )->SetState( 2 );;
+	m_pEft->SetPosition( globalTransform.GetPosition() );
+	m_pEft->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		auto pFuse = SafeCast<CFuse>( pEntity );
+		if( pFuse )
+			pFuse->DelayKill();
+	}
 }
 
 void CHouseWindow::Init( const CVector2 & size, SChunk* pPreParent )
@@ -921,7 +986,7 @@ void CWindow3::AIFunc( uint8 nType )
 	auto pImg = static_cast<CMultiFrameImage2D*>( pEnemyPart->GetRenderObject() );
 	try
 	{
-		pImg->SetFrames( 0, 4, 8 );
+		pImg->SetFrames( 0, 8, 6 );
 		pImg->SetPlaySpeed( 1, false );
 		m_pAI->Yield( 0.5f, false );
 		pEnemyPart->SetTransparentRec( false );
@@ -981,6 +1046,7 @@ void CWindow3::AIFunc( uint8 nType )
 					float a[2];
 					for( int i = 0; i < 2; i++ )
 						a[i] = fAngle + ( i - 0.5f + SRand::Inst().Rand( -0.1f, 0.1f ) ) * 1.0f;
+					float f1 = 0.5f;
 					CVector2 p0[2] = { p, p };
 					CVector2 v[2];
 					for( int i = 0; ; i++ )
@@ -991,9 +1057,12 @@ void CWindow3::AIFunc( uint8 nType )
 							if( !b[i1] )
 								continue;
 							v[i1] = CVector2( cos( a[i1] ), sin( a[i1] ) ) * 250;
-							pBarrage->InitBullet( i1 + ( i & 1 ) * 2, 0, -1, p0[i1], v[i1], CVector2( 0, 0 ) );
+							if( i == 0 )
+								v[i1] = ( v[i1] - dir * v[i1].Dot( dir ) * 0.75f ) * 0.5f;
+							pBarrage->InitBullet( i1 + ( i & 1 ) * 2, 0, -1, p0[i1], i == 0 ? CVector2( 0, 0 ) : v[i1],
+								i == 0 ? v[i1] * 2 : CVector2( 0, 0 ) );
 						}
-						pBarrage->Yield( 6 );
+						pBarrage->Yield( i ? 6 : 60 );
 
 						for( int i1 = 0; i1 < 2; i1++ )
 						{
@@ -1003,11 +1072,12 @@ void CWindow3::AIFunc( uint8 nType )
 								b[i1] = false;
 								continue;
 							}
-							p0[i1] = p0[i1] + v[i1] * 0.1f;
-							a[i1] += SRand::Inst().Rand( -0.3f, 0.3f );
+							p0[i1] = p0[i1] + v[i1] * ( i == 0 ? 1.0f : 0.1f );
+							a[i1] += SRand::Inst().Rand( -f1, f1 );
 							SafeCast<CBullet>( pContext->pEntity.GetPtr() )->Kill();
 							n++;
 						}
+						f1 *= 0.8f;
 						if( !n )
 							break;
 					}
@@ -1311,7 +1381,7 @@ void CWindow3::AIFunc( uint8 nType )
 		pEnemyPart->SetTransparentRec( true );
 
 		pImg->SetPlaySpeed( -1, false );
-		m_pAI->Yield( 0.5f, false );
+		m_pAI->Yield( 1.34f, false );
 		pEnemyPart->bVisible = false;
 	}
 	catch( uint32 e )
@@ -1319,12 +1389,12 @@ void CWindow3::AIFunc( uint8 nType )
 		m_bKilled = true;
 		pEnemyPart->SetTransparentRec( true );
 		pEnemyPart->KillEffect();
-		pImg->SetFrames( 4, 5, 0 );
+		pImg->SetFrames( 8, 9, 0 );
 		pImg->SetPlaySpeed( 0, false );
 
-		m_pAI->Yield( 1.0f, false );
+		m_pAI->Yield( 0.75f, false );
 
-		pImg->SetFrames( 4, 8, 8 );
+		pImg->SetFrames( 8, 12, 6 );
 		pImg->SetPlaySpeed( 1, false );
 	}
 }
@@ -1333,6 +1403,19 @@ void CWindow3Controller::OnAddedToStage()
 {
 	m_pAI = new AI();
 	m_pAI->SetParentEntity( this );
+}
+
+void CWindow3Controller::KillAll()
+{
+	for( auto& p : m_vecWindow3 )
+	{
+		if( p )
+		{
+			if( !p->IsKilled() )
+				p->Kill();
+			p = NULL;
+		}
+	}
 }
 
 void CWindow3Controller::AIFunc()
@@ -1367,7 +1450,7 @@ void CWindow3Controller::AIFunc()
 				if( pCurWindow )
 					pWindow->SetHp( pCurWindow->GetHp() );
 				pCurWindow = pWindow;
-				pAIObject = pWindow->TryPlay( /*m_nType*/ 0 );
+				pAIObject = pWindow->TryPlay( 0 );
 				if( pAIObject )
 					break;
 			}

@@ -1150,12 +1150,12 @@ void CWorker::OnFire()
 		for( int i = 0; i < 6; i++ )
 		{
 			float fAngle = PI * ( i - 2.5f ) / 5.0f;
-			pBarrage->InitBullet( i + 1, 0, 0, CVector2( cos( fAngle ), sin( fAngle ) ) * 50.0f, CVector2( 0, 0 ), CVector2( 0, 0 ), false );
+			pBarrage->InitBullet( i + 1, 0, 0, CVector2( cos( fAngle ), sin( fAngle ) ) * 30.0f, CVector2( 0, 0 ), CVector2( 0, 0 ), false );
 		}
 		for( int i = 1; i < 4; i++ )
 		{
 			float fAngle = PI * ( i - 2.0f ) / 4.0f;
-			pBarrage->InitBullet( i + 6, 0, 0, CVector2( cos( fAngle ) * 35.0f, sin( fAngle ) * 50.0f ), CVector2( 0, 0 ), CVector2( 0, 0 ), false );
+			pBarrage->InitBullet( i + 6, 0, 0, CVector2( cos( fAngle ) * 20.0f, sin( fAngle ) * 30.0f ), CVector2( 0, 0 ), CVector2( 0, 0 ), false );
 		}
 
 		pBarrage->Yield( 2 );

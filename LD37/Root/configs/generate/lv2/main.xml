@@ -7,86 +7,6 @@
   </includes>
   <level_gen>
     <nodes>
-
-      <node type="lv2type2_1" name="lv2f5">
-        <road>
-          <ref name="road_large" />
-        </road>
-        <walkable_a>
-          <ref name="block0a" />
-        </walkable_a>
-        <walkable_b>
-          <ref name="block0b" />
-        </walkable_b>
-        <walkable_c>
-          <ref name="block0c" />
-        </walkable_c>
-        <walkable_d>
-          <ref name="block0d" />
-        </walkable_d>
-        <block>
-          <node type="randomfill" check_gen_data_name="mask">
-            <ref name="block1" sizeminx="2" sizeminy="2" sizemaxx="4" sizemaxy="4" p="1" />
-            <ref name="block1" sizeminx="2" sizeminy="1" sizemaxx="4" sizemaxy="1" p="1" />
-            <ref name="block1" sizeminx="1" sizeminy="2" sizemaxx="1" sizemaxy="4" p="1" />
-            <ref name="block1" sizeminx="1" sizeminy="1" p="1" />
-          </node>
-        </block>
-
-        <house>
-          <ref name="house" />
-        </house>
-        <room>
-          <ref name="room_1" />
-        </room>
-        <fence>
-          <ref name="greenbelt" />
-        </fence>
-        <plant>
-          <node type="randomfill" check_gen_data_name="1">
-            <ref name="plant" p="1" />
-          </node>
-        </plant>
-        
-        <cargo>
-          <ref name="cargo" />
-        </cargo>
-        <cargo2>
-          <ref name="cargo1s" />
-        </cargo2>
-        <barrel>
-          <ref name="barrel" />
-        </barrel>
-        <barrel1>
-          <ref name="barrel1" />
-        </barrel1>
-        <control_room>
-          <ref name="control_room_1" />
-        </control_room>
-        <truck>
-          <node type="trucknode">
-            <base0>
-              <ref name="bar_truck_a" />
-            </base0>
-            <base1>
-              <ref name="bar_truck_b" />
-            </base1>
-            <room0>
-              <ref name="control_room_2" />
-            </room0>
-            <room1>
-              <ref name="control_room_3" />
-            </room1>
-            <cargo>
-              <ref name="cargo" />
-            </cargo>
-            <cargo2>
-              <ref name="cargo2_a" />
-            </cargo2>
-          </node>
-        </truck>
-      </node>
-
       <node type="lv2type2_2" name="lv2f6">
         <chunk>
           <ref name="block1" />
@@ -339,10 +259,178 @@
         <ref name="lv1_scroll_2" />
         <ref name="lv1_scroll_2" />
       </node>
+      
+      <node type="subregion" name="lv2_5">
+        <node type="lv2type2_1" x="0" y="0" w="32" h="60">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <road>
+            <ref name="road_large" />
+          </road>
+          <room>
+            <ref name="room1" />
+          </room>
+          <billboard>
+            <ref name="billboard" />
+          </billboard>
+          <cargo>
+            <ref name="cargo_pack" />
+          </cargo>
+          <cargo1>
+            <ref name="cargo1" />
+          </cargo1>
+          <broken>
+            <ref name="metal_broken" />
+          </broken>
+          <box>
+            <ref name="box1" />
+          </box>
+          <bar0>
+            <ref name="bar0" />
+          </bar0>
+          <bar_h>
+            <ref name="bar1" />
+          </bar_h>
+          <bar_v>
+            <ref name="bar2" />
+          </bar_v>
+          <bar_h_a>
+            <ref name="bar1_a" />
+          </bar_h_a>
+          <bar_v_a>
+            <ref name="bar2_a" />
+          </bar_v_a>
+          <bar2>
+            <ref name="bar_large" />
+          </bar2>
+          <barrel_s>
+            <ref name="barrel_s" />
+          </barrel_s>
+          <barrel_s1_r>
+            <ref name="barrel_s1_r" />
+          </barrel_s1_r>
+          <barrel_s1_l>
+            <ref name="barrel_s1_l" />
+          </barrel_s1_l>
+          <barrel>
+            <ref name="barrel" />
+          </barrel>
+          <barrel1>
+            <ref name="barrel1" />
+          </barrel1>
+          <control_room>
+            <ref name="control_room" />
+          </control_room>
+          <fuse>
+            <ref name="fuse" />
+          </fuse>
+          <chain>
+            <ref name="chain" />
+          </chain>
+        </node>
+        <ref name="lv2floor_5" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
+      
+      <node type="subregion" name="lv2_6">
+        <node type="lv2bonus1" x="0" y="0" w="32" h="60">
+          <wall>
+            <ref name="block0" />
+          </wall>
+          <road>
+            <ref name="road_large" />
+          </road>
+          <room>
+            <ref name="room1" />
+          </room>
+          <cargo>
+            <ref name="cargo_pack" />
+          </cargo>
+          <cargo1>
+            <ref name="cargo1" />
+          </cargo1>
+          <broken>
+            <ref name="metal_broken" />
+          </broken>
+          <box>
+            <node type="randompick">
+              <ref name="box1_empty" p="5" />
+              <ref name="box1_pt" p="1" />
+            </node>
+          </box>
+          <bar0>
+            <ref name="bar0" />
+          </bar0>
+          <bar_h>
+            <ref name="bar1" />
+          </bar_h>
+          <bar_v>
+            <ref name="bar2" />
+          </bar_v>
+          <bar_h_a>
+            <ref name="bar1_a" />
+          </bar_h_a>
+          <bar_v_a>
+            <ref name="bar2_a" />
+          </bar_v_a>
+          <bar2>
+            <ref name="bar_large" />
+          </bar2>
+          <barrel_s>
+            <ref name="barrel_s_pt" />
+          </barrel_s>
+          <barrel_s1_r>
+            <ref name="barrel_s1_r_pt" />
+          </barrel_s1_r>
+          <barrel_s1_l>
+            <ref name="barrel_s1_l_pt" />
+          </barrel_s1_l>
+          <fuse>
+            <ref name="fuse" />
+          </fuse>
+          <chain>
+            <ref name="chain_pt" />
+          </chain>
+          <pt1>
+            <ref name="man_chunk_eye_pt" />
+          </pt1>
+        </node>
+        <ref name="lv2floor_6" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_0" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_1" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+        <ref name="lv1_scroll_2" />
+      </node>
 
       <node type="subregion" name="test_lv">
-        <!--metadata seed="1202521486" /-->
-        <ref name="lv2_4" x="0" y="0" w="32" h="64" />
+        <metadata seed="234816913" />
+        <ref name="lv2_6" x="0" y="8" w="32" h="64" />
+        <node type="tile" x="0" y="0" w="32" h="4">
+          <ref name="block0" />
+        </node>
+        <ref name="lv2floor_5" x="0" y="4" w="32" h="4" />
       </node>
       
     </nodes>

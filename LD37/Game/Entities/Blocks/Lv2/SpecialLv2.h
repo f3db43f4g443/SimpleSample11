@@ -168,25 +168,64 @@ public:
 	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 };
 
+class CBillboardDeco : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CBillboardDeco( const SClassCreateContext& context ) : CDecorator( context ) { SET_BASEOBJECT_ID( CBillboardDeco ); }
+
+	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
+};
+
+class CControlRoomSubChunk : public CChunkObject
+{
+	friend void RegisterGameClasses();
+	friend class CControlRoom;
+public:
+	CControlRoomSubChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_nDist( -1 )
+		, m_onBlobKilled( this, &CControlRoomSubChunk::OnBlobKilled ), m_onTick( this, &CControlRoomSubChunk::OnTick ) { SET_BASEOBJECT_ID( CControlRoomSubChunk ); }
+
+	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+	virtual void Kill() override;
+	virtual void OnRemovedFromStage() override;
+	void DelayKill();
+private:
+	void OnBlobKilled();
+	void OnTick() { if( m_pBlob ) m_pBlob->Kill(); }
+	CReference<CEnemy> m_pBlob;
+	CReference<CRenderObject2D> m_pBlobRenderObject;
+	uint8 m_nType;
+	uint8 m_nType1;
+	CRectangle m_tex1;
+
+	int32 m_nDist;
+	vector<CRectangle> m_vecTexs;
+	TClassTrigger<CControlRoomSubChunk> m_onBlobKilled;
+	TClassTrigger<CControlRoomSubChunk> m_onTick;
+};
+
 class CControlRoom : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
 	CControlRoom( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CControlRoom ); }
 
+	virtual void OnRemovedFromStage() override;
 	virtual void OnSetChunk( SChunk * pChunk, CMyLevel * pLevel ) override;
 	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
+	CRenderObject2D* GetLayer1() { return m_pLayer1; }
+	CWindow3Controller* GetController() { return m_pController; }
 
-	virtual bool Damage( SDamageContext& context ) override;
-protected:
-	virtual void OnKilled() override;
+	void OnSubChunkAdded( CControlRoomSubChunk* p );
+	void OnSubChunkKilled( CControlRoomSubChunk* p );
 private:
-	uint8 m_nType;
-	uint8 m_nAltX, m_nAltY;
 	uint32 m_nHpPerSize;
+	TResourceRef<CDrawableGroup> m_pDeco;
 	TResourceRef<CPrefab> m_pWindow[4];
-	CReference<CEntity> m_pDmgParticles[4];
-	int32 m_nDmgParticles;
+	vector<CReference<CControlRoomSubChunk> > m_vecSub;
+
+	CReference<CRenderObject2D> m_pLayer1;
+	CReference<CWindow3Controller> m_pController;
 };
 
 class CHouse2 : public CChunkObject

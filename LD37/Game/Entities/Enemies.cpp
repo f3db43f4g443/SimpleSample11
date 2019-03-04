@@ -9,8 +9,6 @@
 #include "Rand.h"
 #include "Block.h"
 
-#define ENTER_SIGHT_HEIGHT 600
-
 void CEnemyTemplate::OnAddedToStage()
 {
 	if( !CMyLevel::GetInst() )
@@ -18,116 +16,6 @@ void CEnemyTemplate::OnAddedToStage()
 	CEnemy::OnAddedToStage();
 	m_pAI = new AI();
 	m_pAI->SetParentEntity( this );
-}
-
-void CEnemy1::OnAddedToStage()
-{
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab.c_str() );
-	CEnemyTemplate::OnAddedToStage();
-}
-
-void CEnemy1::AIFunc()
-{
-	m_pAI->Yield( 0, true );
-
-	for( ;; )
-	{
-		while( true )
-		{
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( pPlayer && ( pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition() ).Length2() < m_fSight * m_fSight )
-				break;
-
-			m_pAI->Yield( 0.5f, true );
-		}
-
-		for( int i = 0; i < m_nAmmoCount; i++ )
-		{
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( !pPlayer )
-				return;
-			CVector2 p = pPlayer->GetPosition() - globalTransform.GetPosition();
-			for( int i = 0; i < m_nBulletCount; i++ )
-			{
-				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
-				pBullet->SetPosition( globalTransform.GetPosition() );
-				float r = atan2( p.y, p.x ) + ( i - ( m_nBulletCount - 1 ) * 0.5f ) * m_fBulletAngle;
-				pBullet->SetRotation( atan2( p.y, p.x ) );
-				pBullet->SetVelocity( CVector2( cos( r ), sin( r ) ) * m_fBulletSpeed );
-				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-			}
-
-			CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
-			m_pAI->Yield( m_fFireRate, true );
-		}
-
-		m_pAI->Yield( m_fFireInterval, true );
-	}
-}
-
-void CEnemy2::OnAddedToStage()
-{
-	m_pBulletPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strPrefab.c_str() );
-	CEnemyTemplate::OnAddedToStage();
-}
-
-void CEnemy2::AIFunc()
-{
-	m_pAI->Yield( 0, true );
-
-	SBarrageContext context;
-	context.vecBulletTypes.push_back( m_pBulletPrefab );
-	context.nBulletPageSize = 12;
-
-	for( ;; )
-	{
-		while( true )
-		{
-			CPlayer* pPlayer = GetStage()->GetPlayer();
-			if( pPlayer && ( pPlayer->globalTransform.GetPosition() - globalTransform.GetPosition() ).Length2() < m_fSight * m_fSight )
-				break;
-
-			m_pAI->Yield( 0.5f, true );
-		}
-
-		CBarrageAutoStopHolder pBarrage = new CBarrage( context );
-		pBarrage->AddFunc( []( CBarrage* pBarrage )
-		{
-			float fAngle0 = SRand::Inst().Rand( -PI, PI );
-			float fAngle1 = SRand::Inst().Rand( 0.5f, 1.5f );
-			CMatrix2D matA;
-			matA.Rotate( fAngle0 );
-			CMatrix2D matB;
-			matB.Rotate( fAngle0 + fAngle1 );
-			for( int i = 0; i < 12; i++ )
-			{
-				float fBaseAngle = i * PI / 6;
-				CVector2 vel0 = CVector2( cos( fBaseAngle ) * 350, sin( fBaseAngle ) * 80 );
-				CVector2 vel = matA.MulVector2Dir( vel0 );
-				pBarrage->InitBullet( i * 2, 0, -1, CVector2( 0, 0 ), vel, vel * -0.5f, true );
-				vel = matB.MulVector2Dir( vel0 );
-				pBarrage->InitBullet( i * 2 + 1, 0, -1, CVector2( 0, 0 ), vel, vel * -0.5f, true );
-			}
-
-			CMyLevel::GetInst()->AddShakeStrength( 10 );
-			pBarrage->Yield( 120 );
-
-			CPlayer* pPlayer = pBarrage->GetStage()->GetPlayer();
-			if( !pPlayer )
-				return;
-			for( int i = 0; i < 24; i++ )
-			{
-				pBarrage->GetBulletContext( i )->SetBulletMove( CVector2( 0, 0 ), CVector2( 0, 0 ) );
-				pBarrage->GetBulletContext( i )->SetBulletMove( CVector2( 0, 0 ), ( pPlayer->GetPosition() - pBarrage->GetPosition() - pBarrage->GetBulletContext( i )->p0 ) * 2 );
-			}
-			CMyLevel::GetInst()->AddShakeStrength( 10 );
-		} );
-		pBarrage->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-		pBarrage->SetPosition( globalTransform.GetPosition() );
-		pBarrage->Start();
-
-		m_pAI->Yield( 10, true );
-	}
 }
 
 #define MOVE_LIM0 64
@@ -150,7 +38,7 @@ void CBoss::AIFunc()
 	m_pAI->Yield( 0, true );
 	SafeCast<CChunkObject>( GetParentEntity() )->GetChunk()->fWeight = 1000;
 
-	while( globalTransform.GetPosition().y > ENTER_SIGHT_HEIGHT )
+	while( globalTransform.GetPosition().y > 600 )
 		m_pAI->Yield( 1.0f, true );
 
 	for( ;; )

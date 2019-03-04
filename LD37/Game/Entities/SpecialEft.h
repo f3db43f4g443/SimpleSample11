@@ -30,7 +30,7 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-
+	void SetMask( uint8 nMask );
 	CRenderObject2D* GetImg( uint8 n ) { return m_pImg[n]; }
 private:
 	void OnTick();
@@ -39,7 +39,10 @@ private:
 	float m_fSize;
 	uint32 m_nFrames;
 
+	uint8 m_nMask;
 	int32 m_nTick;
+	CRectangle m_texRect[4];
+	int32 m_nSubFrames[4];
 	CReference<CRenderObject2D> m_pImg[4];
 	TClassTrigger<CLimbsEft> m_onTick;
 };
@@ -52,7 +55,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 
-	void CreateAttackEft( CLimbsEft* pLimbsEft, uint8 nMask = 0 ) { CreateAttackEft( pLimbsEft->GetImg( 3 ), pLimbsEft->GetImg( 2 ), nMask ); }
+	void CreateAttackEft( CLimbsEft* pLimbsEft, uint8 nMask = 0 ) { CreateAttackEft( pLimbsEft->GetImg( 1 ), pLimbsEft->GetImg( 3 ), nMask ); }
 	void CreateAttackEft( CRenderObject2D* pRenderParent1, CRenderObject2D* pRenderParent2, uint8 nMask = 0 );
 	void SetAttackEftLen( float fLen );
 	void DestroyAttackEft();
@@ -111,6 +114,41 @@ private:
 	float m_fKillRadius;
 	int32 m_nKillEft;
 	TClassTrigger<CManChunkEft> m_onTick;
+};
+
+class CEyeEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CEyeEft( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CEyeEft::OnTick ) { SET_BASEOBJECT_ID( CEyeEft ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+	void SetTarget( const CVector2& p );
+	void SetEyeColor( uint8 nEyeColor ) { m_nEyeColor = nEyeColor; }
+	CVector2 GetCenter() { return m_elems[0].p; }
+private:
+	uint8 m_nElems;
+	bool m_bAuto;
+	struct SElem
+	{
+		SElem()
+		{
+			m_element2D.worldMat.Identity();
+		}
+		CElement2D m_element2D;
+		CVector2 p;
+		int8 nAnim;
+	};
+	void OnTick();
+	void CalcElemTex( SElem& elem, int32 i );
+
+	uint8 m_nEyeColor;
+	SElem m_elems[4];
+	float m_fTime;
+	CReference<CRenderObject2D> m_pImg;
+	TClassTrigger<CEyeEft> m_onTick;
 };
 
 class CAuraEft : public CEntity

@@ -426,7 +426,7 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	if( nLength >= 2 )
 	{
 		SetRenderObject( new CRenderObject2D );
-		uint32 nSeg2Count = m_nTexRect2X && m_nTexRect2Y ? SRand::Inst().Rand( 0, nLength / 2 ) : 0;
+		uint32 nSeg2Count = m_nTexRect2X && m_nTexRect2Y ? SRand::Inst<eRand_Render>().Rand( 0, nLength / 2 ) : 0;
 		uint32 nTotalSegCount = nLength - nSeg2Count;
 		bool* bSeg2 = (bool*)alloca( nTotalSegCount );
 		memset( bSeg2, 0, nTotalSegCount );
@@ -437,48 +437,80 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				bSeg2[i] = true;
 			}
 		}
-		SRand::Inst().Shuffle( bSeg2, nTotalSegCount );
+		SRand::Inst<eRand_Render>().Shuffle( bSeg2, nTotalSegCount );
 
 		int nCurLen = 0;
+		int8 b = SRand::Inst<eRand_Render>().Rand( 0, 2 );
+		int8 bDir = SRand::Inst<eRand_Render>().Rand( 0, 2 );
 		for( int i = 0; i < nTotalSegCount; i++ )
 		{
+			int8 b1;
+			if( m_nFlip > 0 )
+				b1 = SRand::Inst<eRand_Render>().Rand( 0, m_nFlip + 2 ) ? b : !b;
+			else if( m_nFlip < 0 )
+				b1 = SRand::Inst<eRand_Render>().Rand( 0, m_nFlip + 2 ) ? !b : b;
+			else
+				b1 = SRand::Inst<eRand_Render>().Rand( 0, 2 );
+			int32 nSubTex;
+			if( i == 0 )
+				nSubTex = b1 ? 1 : 0;
+			else if( i == nTotalSegCount - 1 )
+				nSubTex = b ? 1 : 0;
+			else
+			{
+				if( bDir )
+					nSubTex = b ? ( b1 ? 2 : 1 ) : ( b1 ? 3 : 0 );
+				else
+					nSubTex = b ? ( b1 ? 2 : 3 ) : ( b1 ? 1 : 0 );
+			}
+			b = b1;
 			CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
 			bool b2 = bSeg2[i];
 			TRectangle<int32> rect = !m_bVertical ? TRectangle<int32>( nCurLen, 0, b2 ? 2 : 1, m_nWidth )
 				: TRectangle<int32>( 0, nCurLen, m_nWidth, b2 ? 2 : 1 );
+			if( bDir )
+			{
+				if( !m_bVertical )
+					rect.x = pChunk->nWidth - rect.GetRight();
+				else
+					rect.y = pChunk->nHeight - rect.GetBottom();
+			}
 			pImage2D->SetRect( CRectangle( rect.x * CMyLevel::GetBlockSize(), rect.y * CMyLevel::GetBlockSize(), rect.width * CMyLevel::GetBlockSize(), rect.height * CMyLevel::GetBlockSize() ) );
 			nCurLen += b2 ? 2 : 1;
 
 			CRectangle texRect;
-			if( i == 0 || i == nTotalSegCount - 1 )
+			int32 i1 = bDir ? nTotalSegCount - 1 - i : i;
+			if( i1 == 0 || i1 == nTotalSegCount - 1 )
 			{
 				if( b2 )
 				{
 					texRect = m_texRect2End;
 					texRect.width /= m_nTexRect2EndX;
-					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2EndX );
 					texRect.height /= m_nTexRect2EndY;
-					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2EndY );
+					int32 n = SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect2EndX * m_nTexRect2EndY / 2 ) + m_nTexRect2EndX * m_nTexRect2EndY / 2 * nSubTex;
+					texRect.x += texRect.width * ( m_bVertical ? n / m_nTexRect2EndY : n % m_nTexRect2EndX );
+					texRect.y += texRect.height * ( m_bVertical ? n % m_nTexRect2EndY : n / m_nTexRect2EndX );
 				}
 				else
 				{
 					texRect = m_texRect1End;
 					texRect.width /= m_nTexRect1EndX;
-					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1EndX );
 					texRect.height /= m_nTexRect1EndY;
-					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1EndY );
+					int32 n = SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect1EndX * m_nTexRect1EndY / 2 ) + m_nTexRect1EndX * m_nTexRect1EndY / 2 * nSubTex;
+					texRect.x += texRect.width * ( m_bVertical ? n / m_nTexRect1EndY : n % m_nTexRect1EndX );
+					texRect.y += texRect.height * ( m_bVertical ? n % m_nTexRect1EndY : n / m_nTexRect1EndX );
 				}
 
 				if( !m_bVertical )
 				{
 					texRect.width *= 0.5f;
-					if( i == nTotalSegCount - 1 )
+					if( i1 == nTotalSegCount - 1 )
 						texRect.x += texRect.width;
 				}
 				else
 				{
 					texRect.height *= 0.5f;
-					if( i == 0 )
+					if( i1 == 0 )
 						texRect.y += texRect.height;
 				}
 			}
@@ -488,17 +520,19 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 				{
 					texRect = m_texRect2;
 					texRect.width /= m_nTexRect2X;
-					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect2X );
 					texRect.height /= m_nTexRect2Y;
-					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect2Y );
+					int32 n = SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect2X * m_nTexRect2Y / 4 ) * 4 + nSubTex;
+					texRect.x += texRect.width * ( m_bVertical ? n / m_nTexRect2Y : n % m_nTexRect2X );
+					texRect.y += texRect.height * ( m_bVertical ? n % m_nTexRect2Y : n / m_nTexRect2X );
 				}
 				else
 				{
 					texRect = m_texRect1;
 					texRect.width /= m_nTexRect1X;
-					texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1X );
 					texRect.height /= m_nTexRect1Y;
-					texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1Y );
+					int32 n = SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect1X * m_nTexRect1Y / 4 ) * 4 + nSubTex;
+					texRect.x += texRect.width * ( m_bVertical ? n / m_nTexRect1Y : n % m_nTexRect1X );
+					texRect.y += texRect.height * ( m_bVertical ? n % m_nTexRect1Y : n / m_nTexRect1X );
 				}
 			}
 
@@ -526,9 +560,9 @@ void CRandomChunk2::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 		CRectangle texRect;
 		texRect = m_texRect1;
 		texRect.width /= m_nTexRect1X;
-		texRect.x += texRect.width * SRand::Inst().Rand( 0u, m_nTexRect1X );
+		texRect.x += texRect.width * SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect1X );
 		texRect.height /= m_nTexRect1Y;
-		texRect.y += texRect.height * SRand::Inst().Rand( 0u, m_nTexRect1Y );
+		texRect.y += texRect.height * SRand::Inst<eRand_Render>().Rand( 0u, m_nTexRect1Y );
 		pImage2D->SetTexRect( texRect );
 		SetRenderObject( pImage2D );
 		CChunkObject::OnSetChunk( pChunk, pLevel );

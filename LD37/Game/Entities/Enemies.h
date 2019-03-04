@@ -18,43 +18,6 @@ protected:
 	AI* m_pAI;
 };
 
-class CEnemy1 : public CEnemyTemplate
-{
-	friend void RegisterGameClasses();
-public:
-	CEnemy1( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_strPrefab( context ) { SET_BASEOBJECT_ID( CEnemy1 ); }
-
-	virtual void OnAddedToStage() override;
-protected:
-	virtual void AIFunc() override;
-
-	float m_fFireInterval;
-	uint32 m_nAmmoCount;
-	float m_fFireRate;
-	uint32 m_nBulletCount;
-	float m_fBulletSpeed;
-	float m_fBulletAngle;
-	float m_fSight;
-	float m_fShakePerFire;
-	CString m_strPrefab;
-	CReference<CPrefab> m_pBulletPrefab;
-};
-
-class CEnemy2 : public CEnemyTemplate
-{
-	friend void RegisterGameClasses();
-public:
-	CEnemy2( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_strPrefab( context ) { SET_BASEOBJECT_ID( CEnemy2 ); }
-
-	virtual void OnAddedToStage() override;
-protected:
-	virtual void AIFunc() override;
-
-	float m_fSight;
-	CString m_strPrefab;
-	CReference<CPrefab> m_pBulletPrefab;
-};
-
 class CBoss : public CEnemyTemplate
 {
 	friend void RegisterGameClasses();

@@ -11,11 +11,12 @@
 #include "Common/MathUtil.h"
 #include "Entities/SpecialEft.h"
 #include "Common/Algorithm.h"
+#include "Entities/Blocks/Lv2/SpecialLv2.h"
 
 void CLimbs::OnAddedToStage()
 {
 	if( !m_bAuto )
-		SetTransparent( true );
+		m_bIgnoreBullet = true;
 	else
 		GetStage()->RegisterAfterHitTest( 1, &m_tickAfterHitTest );
 	CChunkObject* pParChunk = NULL;
@@ -28,7 +29,28 @@ void CLimbs::OnAddedToStage()
 	if( pParChunk && CMyLevel::GetInst() )
 	{
 		pParChunk->RegisterPostKilledEvent( &m_onChunkKilled );
-		SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		auto pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+		if( pEnemy )
+		{
+			auto pChunk = SafeCast<CChunkObject>( pEnemy->GetParentEntity() );
+			if( pChunk )
+			{
+				if( m_pLimbsEft )
+				{
+					m_pLimbsEft->SetPosition( m_pLimbsEft->GetPosition() + GetPosition() + pEnemy->GetPosition() );
+					m_pLimbsEft->SetParentEntity( pChunk->GetDecoratorRoot() );
+					m_pLimbsEft->SetRenderParent( pEnemy );
+				}
+				if( m_pLimbsAttackEft )
+				{
+					m_pLimbsAttackEft->SetPosition( m_pLimbsAttackEft->GetPosition() + GetPosition() + pEnemy->GetPosition() );
+					m_pLimbsAttackEft->SetParentEntity( pChunk->GetDecoratorRoot() );
+					m_pLimbsAttackEft->SetRenderParent( pEnemy );
+				}
+			}
+		}
+		else
+			SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	}
 }
 
@@ -44,8 +66,30 @@ void CLimbs::Damage( SDamageContext & context )
 	int32 nDmg = context.nDamage;
 	if( m_nState == 2 )
 		m_nDamage += nDmg;
-	CEnemy::Damage( context );
-	context.nDamage = nDmg;
+
+	CEnemy* pEnemy = SafeCast<CEnemy>( GetParentEntity() );
+	if( pEnemy )
+	{
+		uint8 nHitType = m_nHitType;
+		context.nDamage = ceil( context.nDamage * ( 1 - m_fDefence ) );
+		pEnemy->Damage( context );
+		context.nHitType = nHitType;
+	}
+	else
+	{
+		CEnemy::Damage( context );
+		context.nDamage = nDmg;
+	}
+}
+
+bool CLimbs::IsOwner( CEntity * pEntity )
+{
+	if( pEntity == this )
+		return true;
+	auto pParent = SafeCast<CEnemy>( GetParentEntity() );
+	if( pParent )
+		return pParent->IsOwner( pEntity );
+	return false;
 }
 
 void CLimbs::Kill()
@@ -55,7 +99,7 @@ void CLimbs::Kill()
 	m_bKilled = true;
 	if( m_pLimbsEft )
 		m_pLimbsEft->SetParentEntity( NULL );
-	SetTransparent( true );
+	m_bIgnoreBullet = true;
 	float r1 = SRand::Inst().Rand( 0.0f, 1.0f ), r2 = SRand::Inst().Rand( 0.0f, 1.0f );
 	CVector2 vel1( m_killSpawnVelMin1.x + r1 * ( m_killSpawnVelMax1.x - m_killSpawnVelMin1.x ),
 		m_killSpawnVelMin1.y + r2 * ( m_killSpawnVelMax1.y - m_killSpawnVelMin1.y ) );
@@ -92,27 +136,49 @@ int8 CLimbs::IsOperateable( const CVector2& pos )
 {
 	if( m_bKilled )
 		return 3;
+	int8 n = 0;
 	if( m_nState != 0 || m_tickAfterHitTest.IsRegistered() )
-		return 2;
+		n |= 2;
 	CPlayer* pPlayer = GetStage()->GetPlayer();
 	if( !pPlayer )
-		return 1;
+		return n | 1;
 	CVector2 p = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
 	if( !m_attackRect.Contains( p ) )
-		return 1;
-	return 0;
+		return n | 1;
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto type = static_cast<CEntity*>( pManifold->pOtherHitProxy )->GetHitType();
+		if( type == eEntityHitType_WorldStatic || type == eEntityHitType_Platform )
+			return n | 1;
+	}
+	return n;
 }
 
 void CLimbs::Operate( const CVector2 & pos )
 {
 	m_nState = 1;
+	m_nAmmoLeft = m_nAmmoCount;
+	m_nFireCDLeft = m_nFireCD;
 	m_fEftLen = 0;
 	if( m_pLimbsEft )
 		SafeCast<CLimbsAttackEft>( m_pLimbsAttackEft.GetPtr() )->CreateAttackEft( SafeCast<CLimbsEft>( m_pLimbsEft.GetPtr() ) );
 	else
 		SafeCast<CLimbsAttackEft>( m_pLimbsAttackEft.GetPtr() )->CreateAttackEft( NULL, NULL, 0 );
-	SetTransparent( false );
+	m_bIgnoreBullet = false;
 	GetStage()->RegisterAfterHitTest( m_nAttackTime, &m_tickAfterHitTest );
+}
+
+void CLimbs::OnHitPlayer( CPlayer * pPlayer, const CVector2 & normal )
+{
+	if( !m_bAuto && !SafeCast<CEnemy>( GetParentEntity() ) && !m_nState )
+		return;
+	CEnemy::OnHitPlayer( pPlayer, normal );
+}
+
+void CLimbs::SetMask( uint8 nMask )
+{
+	if( m_pLimbsEft )
+		SafeCast<CLimbsEft>( m_pLimbsEft.GetPtr() )->SetMask( nMask );
 }
 
 void CLimbs::OnChunkKilled()
@@ -135,7 +201,7 @@ void CLimbs::OnChunkKilled()
 
 void CLimbs::KillAttackEft()
 {
-	if( m_fEftLen <= 0 )
+	if( !m_nState )
 		return;
 	if( m_pKillEffect )
 	{
@@ -154,7 +220,7 @@ void CLimbs::KillAttackEft()
 	m_nState = 0;
 	m_fEftLen = 0;
 	if( !m_bAuto )
-		SetTransparent( true );
+		m_bIgnoreBullet = true;
 }
 
 void CLimbs::OnTickBeforeHitTest()
@@ -188,6 +254,27 @@ void CLimbs::OnTickAfterHitTest()
 				CCharacterMoveUtil::Stretch( this, m_nAttackDir, -m_fEftLen );
 				KillAttackEft();
 				return;
+			}
+		}
+		if( m_pBullet && m_nAmmoLeft )
+		{
+			if( m_nFireCDLeft )
+				m_nFireCDLeft--;
+			if( !m_nFireCDLeft )
+			{
+				float fAngle = SRand::Inst().Rand( -0.5f, 0.5f ) + m_nAttackDir * PI * 0.5f;
+				auto vel = CVector2( cos( fAngle ), sin( fAngle ) ) * m_fBulletSpeed;
+				for( int i = 0; i < m_nBulletCount; i++ )
+				{
+					auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+					pBullet->SetCreator( this );
+					pBullet->SetPosition( globalTransform.GetPosition() + CVector2( SRand::Inst().Rand( -8.0f, 8.0f ), SRand::Inst().Rand( -8.0f, 8.0f ) ) );
+					pBullet->SetVelocity( vel );
+					pBullet->SetRotation( fAngle );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
+				m_nFireCDLeft = m_nFireCD;
+				m_nAmmoLeft--;
 			}
 		}
 	}
@@ -224,6 +311,8 @@ void CLimbs::OnTickAfterHitTest()
 			}
 
 			m_nState = 1;
+			m_nAmmoLeft = m_nAmmoCount;
+			m_nFireCDLeft = m_nFireCD;
 			m_fEftLen = 0;
 			if( m_pLimbsEft )
 				SafeCast<CLimbsAttackEft>( m_pLimbsAttackEft.GetPtr() )->CreateAttackEft( SafeCast<CLimbsEft>( m_pLimbsEft.GetPtr() ) );
@@ -256,7 +345,7 @@ void CLimbs::OnTickAfterHitTest()
 			m_nState = 0;
 			GetStage()->RegisterAfterHitTest( m_nAttackTime1, &m_tickAfterHitTest );
 			if( !m_bAuto )
-				SetTransparent( true );
+				m_bIgnoreBullet = true;
 		}
 		else
 		{
@@ -266,11 +355,125 @@ void CLimbs::OnTickAfterHitTest()
 	}
 }
 
+
+void CLimbsController::OnAddedToStage()
+{
+	if( !m_vecLimbs.size() )
+	{
+		CChunkObject* pParChunk = SafeCast<CChunkObject>( GetParentEntity() );
+		if( pParChunk )
+		{
+			auto pChunk = pParChunk->GetChunk();
+			int32 nCount = pChunk->nWidth * pChunk->nHeight;
+			m_nHp += pChunk->nWidth * pChunk->nHeight * 50;
+			m_vecLimbs.resize( nCount );
+			int32 n1 = nCount / 6 + 1;
+			int32 n2 = nCount / 3 + 1;
+			int32 nLimb = 0;
+			for( int i = 0; i < pChunk->nWidth; i++ )
+			{
+				for( int j = 0; j < pChunk->nHeight; j++ )
+				{
+					auto p = SafeCast<CLimbs>( m_pLimbPrefab->GetRoot()->CreateInstance() );
+					p->SetPosition( CVector2( i + 0.5f, j + 0.5f ) * CMyLevel::GetBlockSize() );
+					p->SetParentEntity( this );
+					if( nLimb >= n2 && nLimb < nCount - n2 )
+						p->SetMask( 3 );
+					else if( nLimb >= n1 && nLimb < nCount - n1 )
+						p->SetMask( 2 );
+					m_vecLimbs[nLimb++] = p;
+				}
+			}
+			AddRect( CRectangle( 0, 0, pChunk->nWidth, pChunk->nHeight ) * CMyLevel::GetBlockSize() );
+			GetStage()->GetHitTestMgr().ReAdd( this );
+			m_attackRect = CRectangle( m_attackRect.x, m_attackRect.y,
+				m_attackRect.width + pChunk->nWidth * CMyLevel::GetBlockSize(), m_attackRect.height + pChunk->nHeight * CMyLevel::GetBlockSize() );
+			m_nWidth = pChunk->nWidth;
+			m_nHeight = pChunk->nHeight;
+		}
+	}
+	CEnemy::OnAddedToStage();
+}
+
+void CLimbsController::Kill()
+{
+	if( m_bKilled )
+		return;
+	for( CLimbs* p : m_vecLimbs )
+	{
+		p->Kill();
+	}
+	m_vecLimbs.clear();
+	m_bKilled = true;
+	KillEft();
+	m_nKillEftCount = 15;
+	m_nKillEftCD = 10;
+
+	CChunkObject* pParChunk = NULL;
+	for( auto pParent = GetParentEntity(); pParent; pParent = pParent->GetParentEntity() )
+	{
+		auto pChunk = SafeCast<CControlRoom>( pParent );
+		if( pChunk && pChunk->GetController() )
+		{
+			pChunk->GetController()->KillAll();
+		}
+	}
+}
+
+void CLimbsController::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+	if( m_bKilled )
+	{
+		m_nKillEftCD--;
+		if( !m_nKillEftCD )
+		{
+			KillEft();
+			m_nKillEftCount--;
+			if( !m_nKillEftCount )
+			{
+				SetParentEntity( NULL );
+				return;
+			}
+			m_nKillEftCD = 10;
+		}
+		return;
+	}
+
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer )
+	{
+		if( m_attackRect.Contains( globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() ) ) )
+		{
+			for( int i = 1; i < m_vecLimbs.size() - 1; i++ )
+			{
+				CLimbs* p = m_vecLimbs[i];
+				if( !( p->IsOperateable( CVector2( 0, 0 ) ) & 2 ) )
+					p->Operate( CVector2( 0, 0 ) );
+			}
+		}
+	}
+}
+
+void CLimbsController::KillEft()
+{
+	CVector2 ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	for( int i = 0; i < m_nWidth; i++ )
+	{
+		for( int j = 0; j < m_nHeight; j++ )
+		{
+			auto pEffect = SafeCast<CEffectObject>( m_pExpEft->GetRoot()->CreateInstance() );
+			pEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			pEffect->SetRotation( m_nDir * PI * 0.5f );
+			pEffect->SetPosition( globalTransform.GetPosition() + ( CVector2( i + 0.5f, j + 0.5f ) - ofs[m_nDir] * 0.5f ) * 32 );
+			pEffect->SetState( 2 );
+		}
+	}
+}
+
+
 void CLimbs1::Init( const CVector2 & size, SChunk* pPreParent )
 {
-	SetRenderObject( NULL );
-	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
-
 	int32 nWidth = size.x / 8 - 1;
 	int32 nHeight = size.y / 8 - 1;
 	m_nWidth = nWidth;
@@ -287,6 +490,7 @@ void CLimbs1::Init( const CVector2 & size, SChunk* pPreParent )
 	SRand::Inst().Shuffle( vec );
 
 	uint8 k = SRand::Inst().Rand( 0, 4 );
+	CRectangle localBound( 0, 0, 0, 0 );
 	for( auto& p : vec )
 	{
 		if( m_vecMask[p.x + p.y * nWidth] )
@@ -296,27 +500,30 @@ void CLimbs1::Init( const CVector2 & size, SChunk* pPreParent )
 		if( rect.width <= 0 )
 			continue;
 		
-		auto pImg = static_cast<CMultiFrameImage2D*>( pDrawable->CreateInstance() );
-		pImg->SetPosition( CVector2( ( rect.x + rect.width * 0.5f ) * 8 + 4, ( rect.y + rect.height * 0.5f ) * 8 + 4 ) );
-		pImg->SetRotation( PI * 0.5f * SRand::Inst().Rand( -2, 2 ) );
-		uint32 n = nSize == 2 ? SRand::Inst().Rand( 0, 4 ) : SRand::Inst().Rand( 4, 8 );
-		pImg->SetFrames( n * 2, n * 2 + 2, pImg->GetFramesPerSec() );
-		pImg->SetPlayPercent( SRand::Inst().Rand( 0.0f, 1.0f ) );
-		pImg->SetAutoUpdateAnim( true );
-		AddChild( pImg );
-		m_vecKillSpawn.push_back( pair<CVector2, uint8>( pImg->GetPosition(), k ) );
+		SElem elem;
+		elem.m_element2D.rect = CRectangle( ( rect.x + rect.width * 0.5f - 2 ) * 8 + 4, ( rect.y + rect.height * 0.5f - 2 ) * 8 + 4, 32, 32 );
+		localBound = localBound.width == 0 ? elem.m_element2D.rect : elem.m_element2D.rect + localBound;
+		elem.nX = SRand::Inst().Rand( 0, 4 );
+		elem.nY = nSize == 2 ? 0 : 1;
+		elem.nFrame = SRand::Inst().Rand( 0, 8 );
+		m_elems.push_back( elem );
+		m_vecKillSpawn.push_back( pair<CVector2, uint8>( elem.m_element2D.rect.GetCenter(), k ) );
 		if( nSize == 3 )
-			m_vecKillSpawn.push_back( pair<CVector2, uint8>( pImg->GetPosition(), ( k + 2 ) % 4 ) );
+			m_vecKillSpawn.push_back( pair<CVector2, uint8>( elem.m_element2D.rect.GetCenter(), ( k + 2 ) % 4 ) );
 		k++;
 		if( k >= 4 )
 			k = 0;
 	}
 	m_attackRect.width += size.x;
 	m_attackRect.height += size.y;
+	SetLocalBound( localBound );
 }
 
 void CLimbs1::OnAddedToStage()
 {
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	m_pImg = p;
+	SetRenderObject( NULL );
 	if( CMyLevel::GetInst() )
 		SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
 	GetStage()->RegisterAfterHitTest( m_nAITick, &m_onTick );
@@ -337,6 +544,68 @@ void CLimbs1::OnRemovedFromStage()
 		m_onTick.Unregister();
 	if( m_onChunkKilled.IsRegistered() )
 		m_onChunkKilled.Unregister();
+}
+
+void CLimbs1::UpdateRendered( double dTime )
+{
+	m_fTime += dTime * 2.0f;
+	m_fTime -= floor( m_fTime );
+	int32 nFrame = floor( m_fTime * 8 );
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.m_element2D.worldMat = globalTransform;
+		int32 nFrame1 = ( nFrame + elem.nFrame ) & 7;
+		elem.m_element2D.texRect = CRectangle( elem.nX + ( nFrame1 >> 2 ) * 4, elem.nY + ( nFrame1 & 3 ) * 2, 1, 1 ) * 0.125f;
+	}
+}
+
+void CLimbs1::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+		{
+			for( int i = 0; i < m_elems.size(); i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pColorDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		else if( pGUIDrawable )
+		{
+			for( int i = 0; i < m_elems.size(); i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pGUIDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem, 1 );
+			}
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+		{
+			for( int i = 0; i < m_elems.size(); i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pOcclusionDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 void CLimbs1::Kill()
@@ -822,6 +1091,149 @@ void CManChunk1::OnTickAfterHitTest()
 		if( pPlayer && ( pPlayer->GetPosition() - globalTransform.GetPosition() ).Length2() > m_fStopDist * m_fStopDist )
 			m_nState = 0;
 	}
+}
+
+void CManChunkEye::AIFunc()
+{
+	if( !CMyLevel::GetInst() )
+		return;
+	m_pAI->Yield( 0, true );
+	CVector2 target( 0, 0 );
+	while( 1 )
+	{
+		int32 nCD = m_nCD;
+		int32 nFireCD = m_nFireCD;
+		float fAngle0;
+		float dAngle;
+		TTempEntityHolder<CLightning> pLightning;
+		for( int i = 0; i < m_nTraceTime1; )
+		{
+			if( nCD )
+				nCD--;
+			CPlayer* pPlayer = GetStage()->GetPlayer();
+			if( pPlayer )
+			{
+				CVector2 p = pPlayer->GetPosition() - globalTransform.GetPosition();
+				CVector2 d = p - target;
+				float l = d.Length();
+				float dl = m_fTraceSpeed * GetStage()->GetElapsedTimePerTick();
+				target = target + d * dl / Max( dl, l );
+				if( i < m_nTraceTime )
+				{
+					if( pLightning )
+					{
+						if( p.Length2() > m_fRange1 * m_fRange1 || ( target - p ).Length2() > m_fDist1 * m_fDist1 )
+						{
+							pLightning->SetParentEntity( NULL );
+							pLightning = NULL;
+						}
+					}
+					else if( !nCD )
+					{
+						if( p.Length2() <= m_fRange * m_fRange && ( target - p ).Length2() <= m_fDist * m_fDist )
+						{
+							pLightning = SafeCast<CLightning>( m_pLightning0->GetRoot()->CreateInstance() );
+							pLightning->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						}
+					}
+				}
+				else if( pLightning )
+				{
+					if( i == m_nTraceTime )
+					{
+						pLightning->SetParentEntity( NULL );
+						pLightning = NULL;
+						pLightning = SafeCast<CLightning>( m_pLightning->GetRoot()->CreateInstance() );
+						pLightning->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						fAngle0 = SRand::Inst().Rand( -PI, PI );
+						dAngle = m_fAngle *( SRand::Inst().Rand( 0, 2 ) * 2 - 1 );
+					}
+					nFireCD--;
+					if( !nFireCD )
+					{
+						for( int i = 0; i < m_nBullet; i++ )
+						{
+							float fAngle = fAngle0 + i * PI / ( m_nBullet * 0.5f );
+							CVector2 dir( cos( fAngle ), sin( fAngle ) );
+							auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+							pBullet->SetCreator( this );
+							pBullet->SetPosition( globalTransform.GetPosition() + target );
+							pBullet->SetRotation( fAngle );
+							pBullet->SetVelocity( dir * m_v );
+							pBullet->SetAcceleration( dir * m_a );
+							pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+						}
+						fAngle0 += dAngle;
+						nFireCD = m_nFireCD;
+					}
+				}
+
+				auto pEft = SafeCast<CEyeEft>( m_pEft.GetPtr() );
+				pEft->SetTarget( target + globalTransform.GetPosition() );
+				if( pLightning )
+				{
+					CVector2 ofs = pEft->GetCenter();
+					pLightning->Set( this, this, ofs, target, -1, -1 );
+					i++;
+				}
+				else
+				{
+					i = 0;
+					nFireCD = m_nFireCD;
+				}
+			}
+			m_pAI->Yield( 0, true );
+		}
+	}
+}
+
+void CManChunkEyeBouns::OnAddedToStage()
+{
+	auto pEft = SafeCast<CEyeEft>( m_pEft.GetPtr() );
+	pEft->SetEyeColor( 1 );
+	CEnemy::OnAddedToStage();
+}
+
+void CManChunkEyeBouns::Damage( SDamageContext & context )
+{
+	DEFINE_TEMP_REF_THIS();
+	CVector2 pos = globalTransform.GetPosition() + SafeCast<CEyeEft>( m_pEft.GetPtr() )->GetCenter();
+	int32 nSpawn0 = ( m_nHp * m_nSpawn + m_nMaxHp - 1 ) / m_nMaxHp;
+	CEnemy::Damage( context );
+	int32 nSpawn1 = ( m_nHp * m_nSpawn + m_nMaxHp - 1 ) / m_nMaxHp;
+	for( int i = nSpawn1; i < nSpawn0; i++ )
+	{
+		for( int j = 0; j < m_nSpawnCount; j++ )
+		{
+			auto p = SafeCast<CCharacter>( m_pSpawn->GetRoot()->CreateInstance() );
+			p->SetPosition( pos );
+			CVector2 vel = m_target;
+			if( vel.Normalize() < 0.0001f )
+				vel = CVector2( 0, -1 );
+			float fAngle = ( SRand::Inst().Rand( -0.5f, 0.5f ) + j - ( m_nSpawnCount - 1 ) * 0.5f ) * m_fSpawnAngle / m_nSpawnCount;
+			p->SetVelocity( vel * m_fSpawnSpeed );
+			p->SetRotation( atan2( vel.y, vel.x ) );
+			p->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+		}
+	}
+}
+
+void CManChunkEyeBouns::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer )
+	{
+		CVector2 p = pPlayer->GetPosition() - globalTransform.GetPosition();
+		CVector2 d = p - m_target;
+		float l = d.Length();
+		float dl = m_fTraceSpeed * GetStage()->GetElapsedTimePerTick();
+		m_target = m_target + d * dl / Max( dl, l );
+	}
+
+	auto pEft = SafeCast<CEyeEft>( m_pEft.GetPtr() );
+	pEft->SetTarget( m_target + globalTransform.GetPosition() );
 }
 
 bool CCar::CanHit( CEntity * pEntity )

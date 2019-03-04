@@ -1310,3 +1310,262 @@ void CFiberNode::Generate( SLevelBuildContext& context, const TRectangle<int32>&
 		m_pNode->Generate( context, TRectangle<int32>( x, y, 1, j ) );
 	}
 }
+
+void CControlRoomNode::Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context )
+{
+	CLevelGenerateSimpleNode::Load( pXml, context );
+	const char* szNames0[] = { "sub_0_1", "sub_0_2x", "sub_0_2y", "sub_0_4" };
+	const char* szNames1[] = { "sub_1_l", "sub_1_l0", "sub_1_t", "sub_1_t0", "sub_1_r", "sub_1_r0", "sub_1_b", "sub_1_b0" };
+	const char* szNames2[] = { "sub_2_l", "sub_2_l0", "sub_2_t", "sub_2_t0", "sub_2_r", "sub_2_r0", "sub_2_b", "sub_2_b0" };
+	const char* szNames3[] = { "sub_3_l", "sub_3_t", "sub_3_r", "sub_3_b" };
+	for( int i = 0; i < ELEM_COUNT( szNames0 ); i++ )
+		m_pNode0[i] = CreateNode( pXml->FirstChildElement( szNames0[i] )->FirstChildElement(), context );
+	for( int i = 0; i < ELEM_COUNT( szNames1 ); i++ )
+		m_pNode1[i] = CreateNode( pXml->FirstChildElement( szNames1[i] )->FirstChildElement(), context );
+	for( int i = 0; i < ELEM_COUNT( szNames2 ); i++ )
+		m_pNode2[i] = CreateNode( pXml->FirstChildElement( szNames2[i] )->FirstChildElement(), context );
+	for( int i = 0; i < ELEM_COUNT( szNames3 ); i++ )
+		m_pNode3[i] = CreateNode( pXml->FirstChildElement( szNames3[i] )->FirstChildElement(), context );
+}
+
+void CControlRoomNode::Generate( SLevelBuildContext & context, const TRectangle<int32>& region )
+{
+	SLevelBuildContext tempContext;
+	auto pChunk = context.CreateChunk( *m_pChunkBaseInfo, region, &tempContext );
+	if( pChunk )
+	{
+		pChunk->nLevelBarrierType = m_nLevelBarrierType;
+		pChunk->nBarrierHeight = m_nLevelBarrierHeight;
+
+		if( !!( m_bCopyBlueprint & 2 ) )
+		{
+			for( int i = 0; i < tempContext.nWidth; i++ )
+			{
+				for( int j = 0; j < tempContext.nHeight; j++ )
+				{
+					tempContext.blueprint[i + j * tempContext.nWidth]
+						= context.blueprint[i + region.x + ( j + region.y ) * context.nWidth];
+				}
+			}
+		}
+
+		bool b[4] = { true, true, true, true };
+		const char* szTag[] = { "left", "top", "right", "bottom" };
+		for( int i = 0; i < 4; i++ )
+		{
+			auto itr = context.mapTags.find( szTag[i] );
+			if( itr != context.mapTags.end() )
+				b[i] = itr->second;
+		}
+		int8 nTag1 = -1;
+		auto itr = context.mapTags.find( "1" );
+		if( itr != context.mapTags.end() )
+			nTag1 = itr->second;
+		int8 nTag2 = -1;
+		itr = context.mapTags.find( "2" );
+		if( itr != context.mapTags.end() )
+			nTag2 = itr->second;
+		int8 nTag3 = -1;
+		itr = context.mapTags.find( "3" );
+		if( itr != context.mapTags.end() )
+			nTag3 = itr->second;
+		int8 nTag4 = -1;
+		itr = context.mapTags.find( "4" );
+		if( itr != context.mapTags.end() )
+			nTag4 = itr->second;
+		int8 nTag5 = -1;
+		itr = context.mapTags.find( "5" );
+		if( itr != context.mapTags.end() )
+			nTag5 = itr->second;
+		vector<int8> vecTemp;
+		vecTemp.resize( region.width * region.height );
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				auto pBlock = pChunk->GetBlock( i, j );
+				if( i == 0 && b[0] )
+					pBlock->nTag = 1;
+				if( j == 0 && b[1] )
+					pBlock->nTag = 1;
+				if( i == region.width - 1 && b[2] )
+					pBlock->nTag = 1;
+				if( j == region.height - 1 && b[3] )
+					pBlock->nTag = 1;
+				auto nTag = context.blueprint[i + region.x + ( j + region.y ) * context.nWidth];
+				if( nTag == nTag1 )
+				{
+					pBlock->eBlockType = eBlockType_Wall;
+					vecTemp[i + j * region.width] = 1;
+				}
+				else if( nTag == nTag2 )
+				{
+					pBlock->eBlockType = eBlockType_Wall;
+					vecTemp[i + j * region.width] = 2;
+				}
+				else if( nTag == nTag3 )
+				{
+					pBlock->eBlockType = eBlockType_Wall;
+					vecTemp[i + j * region.width] = 3;
+				}
+				else if( nTag == nTag4 )
+				{
+					if( pBlock->nTag == 1 )
+					{
+						pBlock->nTag = 2;
+						if( nTag5 >= 0 )
+							context.blueprint[i + region.x + ( j + region.y ) * context.nWidth] = nTag5;
+					}
+					else
+						pBlock->nTag = 4;
+				}
+				else if( nTag == nTag5 )
+					pBlock->nTag = 3;
+			}
+		}
+
+		for( int k = 0; k < 2; k++ )
+		{
+			for( int x = 0; x < region.width - 2; x++ )
+			{
+				int32 y = k == 0 ? 0 : region.height - 1;
+				if( x < region.width - 3 && !vecTemp[x + y * region.width] && vecTemp[x + 1 + y * region.width] == 1
+					&& vecTemp[x + 2 + y * region.width] == 1 && !vecTemp[x + 3 + y * region.width] )
+				{
+					for( int j = 0; j < region.height; j++ )
+					{
+						y = k == 0 ? j : region.height - 1 - j;
+						if( !vecTemp[x + y * region.width] && vecTemp[x + 1 + y * region.width] == 1
+							&& vecTemp[x + 2 + y * region.width] == 1 && !vecTemp[x + 3 + y * region.width] )
+						{
+							m_pNode2[y == 0 && b[1] ? 3 : ( y == region.height - 1 && b[3] ? 7 : ( k == 0 ? 2 : 6 ) )]->Generate( tempContext, TRectangle<int32>( x + 1, y, 2, 1 ) );
+							vecTemp[x + 1 + y * region.width] = vecTemp[x + 2 + y * region.width] = 0;
+						}
+						else
+							break;
+					}
+				}
+				else if( !vecTemp[x + y * region.width] && vecTemp[x + 1 + y * region.width] == 1
+					&& !vecTemp[x + 2 + y * region.width] )
+				{
+					for( int j = 0; j < region.height; j++ )
+					{
+						y = k == 0 ? j : region.height - 1 - j;
+						if( !vecTemp[x + y * region.width] && vecTemp[x + 1 + y * region.width] == 1
+							&& !vecTemp[x + 2 + y * region.width] )
+						{
+							m_pNode1[y == 0 && b[1] ? 3 : ( y == region.height - 1 && b[3] ? 7 : ( k == 0 ? 2 : 6 ) )]->Generate( tempContext, TRectangle<int32>( x + 1, y, 1, 1 ) );
+							vecTemp[x + 1 + y * region.width] = 0;
+						}
+						else
+							break;
+					}
+				}
+			}
+
+			for( int y = 0; y < region.height - 2; y++ )
+			{
+				int32 x = k == 0 ? 0 : region.width - 1;
+				if( y < region.height - 3 && !vecTemp[x + y * region.width] && vecTemp[x + ( y + 1 ) * region.width] == 1
+					&& vecTemp[x + ( y + 2 ) * region.width] == 1 && !vecTemp[x + ( y + 3 ) * region.width] )
+				{
+					for( int i = 0; i < region.width; i++ )
+					{
+						x = k == 0 ? i : region.width - 1 - i;
+						if( !vecTemp[x + y * region.width] && vecTemp[x + ( y + 1 ) * region.width] == 1
+							&& vecTemp[x + ( y + 2 ) * region.width] == 1 && !vecTemp[x + ( y + 3 ) * region.width] )
+						{
+							m_pNode2[x == 0 && b[0] ? 1 : ( x == region.width - 1 && b[2] ? 5 : ( k == 0 ? 0 : 4 ) )]->Generate( tempContext, TRectangle<int32>( x, y + 1, 1, 2 ) );
+							vecTemp[x + ( y + 1 ) * region.width] = vecTemp[x + ( y + 2 ) * region.width] = 0;
+						}
+						else
+							break;
+					}
+				}
+				else if( !vecTemp[x + y * region.width] && vecTemp[x + ( y + 1 ) * region.width] == 1
+					&& !vecTemp[x + ( y + 2 ) * region.width] )
+				{
+					for( int i = 0; i < region.width; i++ )
+					{
+						x = k == 0 ? i : region.width - 1 - i;
+						if( !vecTemp[x + y * region.width] && vecTemp[x + ( y + 1 ) * region.width] == 1
+							&& !vecTemp[x + ( y + 2 ) * region.width] )
+						{
+							m_pNode1[x == 0 && b[0] ? 1 : ( x == region.width - 1 && b[2] ? 5 : ( k == 0 ? 0 : 4 ) )]->Generate( tempContext, TRectangle<int32>( x, y + 1, 1, 1 ) );
+							vecTemp[x + ( y + 1 ) * region.width] = 0;
+						}
+						else
+							break;
+					}
+				}
+			}
+		}
+		for( int i = 0; i < region.width; i++ )
+		{
+			for( int j = 0; j < region.height; j++ )
+			{
+				if( vecTemp[i + j * region.width] == 2 )
+				{
+					auto rect = PutRect( vecTemp, region.width, region.height, TVector2<int32>( i, j ), TVector2<int32>( 1, 1 ), TVector2<int32>( 2, 2 ),
+						TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
+					if( rect.width > 0 )
+					{
+						if( rect.width == 2 && rect.height == 2 )
+							m_pNode0[3]->Generate( tempContext, rect );
+						else if( rect.width == 2 )
+							m_pNode0[1]->Generate( tempContext, rect );
+						else if( rect.height == 2 )
+							m_pNode0[2]->Generate( tempContext, rect );
+						else
+							m_pNode0[0]->Generate( tempContext, rect );
+					}
+				}
+			}
+		}
+
+		for( int k = 0; k < 2; k++ )
+		{
+			int32 y = k == 0 ? 0 : region.height - 1;
+			for( int x = 1; x < region.width - 1; x++ )
+			{
+				if( vecTemp[x + y * region.width] == 3 )
+				{
+					auto rect = PutRect( vecTemp, region.width, region.height, TVector2<int32>( x, y ), TVector2<int32>( 2, 1 ), TVector2<int32>( region.width, 1 ),
+						TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
+					if( rect.width > 0 )
+						( k == 0 ? m_pNode3[1] : m_pNode3[3] )->Generate( tempContext, rect );
+				}
+			}
+		}
+		for( int k = 0; k < 2; k++ )
+		{
+			int32 x = k == 0 ? 0 : region.width - 1;
+			for( int y = 1; y < region.height - 1; y++ )
+			{
+				if( vecTemp[x + y * region.width] == 3 )
+				{
+					auto rect = PutRect( vecTemp, region.width, region.height, TVector2<int32>( x, y ), TVector2<int32>( 1, 2 ), TVector2<int32>( 1, region.height ),
+						TRectangle<int32>( 0, 0, region.width, region.height ), -1, 0 );
+					if( rect.width > 0 )
+						( k == 0 ? m_pNode3[0] : m_pNode3[2] )->Generate( tempContext, rect );
+				}
+			}
+		}
+
+		if( m_pSubChunk )
+			m_pSubChunk->Generate( tempContext, TRectangle<int32>( 0, 0, pChunk->nWidth, pChunk->nHeight ) );
+		tempContext.Build();
+		if( !!( m_bCopyBlueprint & 1 ) )
+		{
+			for( int i = 0; i < tempContext.nWidth; i++ )
+			{
+				for( int j = 0; j < tempContext.nHeight; j++ )
+				{
+					context.blueprint[i + region.x + ( j + region.y ) * context.nWidth]
+						= tempContext.blueprint[i + j * tempContext.nWidth];
+				}
+			}
+		}
+		CLevelGenerateNode::Generate( context, region );
+	}
+}

@@ -15,9 +15,12 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual void Damage( SDamageContext& context ) override;
+	virtual bool IsOwner( CEntity* pEntity ) override;
 	virtual void Kill() override;
 	virtual int8 IsOperateable( const CVector2& pos ) override;
 	virtual void Operate( const CVector2& pos ) override;
+	virtual void OnHitPlayer( class CPlayer* pPlayer, const CVector2& normal ) override;
+	void SetMask( uint8 nMask );
 protected:
 	void OnChunkKilled();
 	void KillAttackEft();
@@ -44,6 +47,11 @@ protected:
 	CReference<CEntity> m_pLimbsEft;
 	CReference<CEntity> m_pLimbsAttackEft;
 	TResourceRef<CPrefab> m_pKillSpawn;
+	TResourceRef<CPrefab> m_pBullet;
+	uint32 m_nAmmoCount;
+	uint32 m_nBulletCount;
+	uint32 m_nFireCD;
+	float m_fBulletSpeed;
 
 	float m_fEftLen;
 	uint8 m_nState;
@@ -51,7 +59,30 @@ protected:
 	CVector2 m_vel1, m_vel2;
 	uint32 m_nKillSpawnLeft;
 	uint32 m_nDamage;
+	int32 m_nAmmoLeft;
+	int32 m_nFireCDLeft;
 	TClassTrigger<CLimbs> m_onChunkKilled;
+};
+
+class CLimbsController : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CLimbsController( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CLimbsController ); }
+	virtual void OnAddedToStage() override;
+	virtual void Kill() override;
+private:
+	virtual void OnTickAfterHitTest() override;
+	void KillEft();
+	int8 m_nDir;
+	TResourceRef<CPrefab> m_pLimbPrefab;
+	CRectangle m_attackRect;
+	TResourceRef<CPrefab> m_pExpEft;
+
+	vector<CReference<CLimbs> > m_vecLimbs;
+	int32 m_nWidth, m_nHeight;
+	int32 m_nKillEftCD, m_nKillEftCount;
+	bool m_bKilled;
 };
 
 class CLimbs1 : public CDecorator
@@ -62,6 +93,8 @@ public:
 	virtual void Init( const CVector2& size, SChunk* pPreParent ) override;
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
 	void Kill();
 private:
 	void OnTick();
@@ -80,6 +113,18 @@ private:
 	vector<pair<CVector2, uint8> > m_vecKillSpawn;
 	TClassTrigger<CLimbs1> m_onTick;
 	TClassTrigger<CLimbs1> m_onChunkKilled;
+	struct SElem
+	{
+		SElem()
+		{
+			m_element2D.worldMat.Identity();
+		}
+		CElement2D m_element2D;
+		int8 nX, nY, nFrame;
+	};
+	vector<SElem> m_elems;
+	CReference<CRenderObject2D> m_pImg;
+	float m_fTime;
 };
 
 class CLimbsHook : public CEnemy, public IHook
@@ -153,6 +198,50 @@ private:
 	int32 m_nCDLeft;
 	float m_fHit0;
 	TClassTrigger<CManChunk1> m_onChunkKilled;
+};
+
+class CManChunkEye : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunkEye( const SClassCreateContext& context ) : CEnemyTemplate( context ) { SET_BASEOBJECT_ID( CManChunkEye ); }
+protected:
+	virtual void AIFunc() override;
+
+	float m_fTraceSpeed;
+	float m_fRange, m_fRange1;
+	float m_fDist, m_fDist1;
+	int32 m_nCD;
+	int32 m_nBullet;
+	int32 m_nTraceTime, m_nTraceTime1;
+	int32 m_nFireCD;
+	float m_fAngle;
+	float m_v, m_a;
+	CReference<CEntity> m_pEft;
+	TResourceRef<CPrefab> m_pBullet;
+	TResourceRef<CPrefab> m_pLightning;
+	TResourceRef<CPrefab> m_pLightning0;
+};
+
+class CManChunkEyeBouns : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunkEyeBouns( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CManChunkEyeBouns ); }
+	virtual void OnAddedToStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	int32 m_nSpawn;
+	float m_fSpawnSpeed;
+	float m_fTraceSpeed;
+	int32 m_nSpawnCount;
+	float m_fSpawnAngle;
+	CReference<CEntity> m_pEft;
+	TResourceRef<CPrefab> m_pSpawn;
+
+	CVector2 m_target;
 };
 
 class CCar : public CEnemy

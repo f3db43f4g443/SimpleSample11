@@ -58,31 +58,42 @@ void CLimbsEft::OnAddedToStage()
 	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
 	SetRenderObject( NULL );
 
+	for( int i = 0; i < 4; i++ )
+		m_nSubFrames[i] = i;
+	SRand::Inst<eRand_Render>().Shuffle( m_nSubFrames, 4 );
+
 	auto pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * 0.5f, m_fSize, m_fSize ) );
-	pImg->SetTexRect( CRectangle( 0.5f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.25f, 0.25f ) );
+	m_texRect[1] = CRectangle( 0.5f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.25f, 0.25f );
 	AddChild( pImg );
 	m_pImg[1] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * 0.5f + SRand::Inst().Rand( -2, 3 ) * ( 1.0f / 16 ), m_fSize, m_fSize ) );
-	pImg->SetTexRect( CRectangle( 0, SRand::Inst<eRand_Render>().Rand( 0, 4 ) * 0.25f, 0.25f, 0.25f ) );
+	m_texRect[3] = CRectangle( 0, SRand::Inst<eRand_Render>().Rand( 0, 4 ) * 0.25f, 0.25f, 0.25f );
 	AddChild( pImg );
 	m_pImg[3] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y + m_fSize * ( SRand::Inst().Rand( 0, 4 ) * ( 1.0f / 16 )  - 0.5f ), m_fSize * 0.5f, m_fSize * 0.5f ) );
-	pImg->SetTexRect( CRectangle( 0.75f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f ) );
+	m_texRect[0] = CRectangle( 0.75f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f );
 	AddChild( pImg );
 	m_pImg[0] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * SRand::Inst().Rand( 0, 4 ) * ( 1.0f / 16 ), m_fSize * 0.5f, m_fSize * 0.5f ) );
-	pImg->SetTexRect( CRectangle( 0.875f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f ) );
+	m_texRect[2] = CRectangle( 0.875f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f );
 	AddChild( pImg );
 	m_pImg[2] = pImg;
 
-	m_nTick = SRand::Inst().Rand( 0, 4 );
+	for( int i = 0; i < 4; i++ )
+	{
+		static_cast<CImage2D*>( m_pImg[i].GetPtr() )->SetTexRect( ( m_texRect[i] * 0.5f ).Offset(
+			CVector2( ( m_nSubFrames[i] & 1 ) * 0.5f, ( m_nSubFrames[i] & 2 ) * 0.25f ) ) );
+		m_pImg[i]->bVisible = !( m_nMask & ( 1 << i ) );
+	}
+
+	m_nTick = SRand::Inst().Rand( 0, 8 );
 	GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
 }
 
@@ -92,51 +103,67 @@ void CLimbsEft::OnRemovedFromStage()
 		m_onTick.Unregister();
 }
 
+void CLimbsEft::SetMask( uint8 nMask )
+{
+	m_nMask = nMask;
+	for( int i = 0; i < 4; i++ )
+	{
+		if( m_pImg[i] )
+			m_pImg[i]->bVisible = !( m_nMask & ( 1 << i ) );
+	}
+}
+
 void CLimbsEft::OnTick()
 {
 	GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
-
-	CImage2D* pImage2D = static_cast<CImage2D*>( m_pImg[m_nTick].GetPtr() );
-	auto rect = pImage2D->GetElem().rect;
-	auto texRect = pImage2D->GetElem().texRect;
-	switch( m_nTick )
+	if( !( m_nTick & 1 ) )
 	{
-	case 0:
-		rect.y = ( ( rect.y - m_ofs.y ) / m_fSize + 0.5f ) * 16;
-		rect.y = Min( 3.0f, Max( 0.0f, rect.y + SRand::Inst<eRand_Render>().Rand( -1, 2 ) ) );
-		rect.y = ( rect.y * ( 1.0f / 16 ) - 0.5f ) * m_fSize + m_ofs.y;
-		texRect.x = texRect.x == 0.75f ? 0.875f : 0.75f;
-		pImage2D->SetRect( rect );
-		pImage2D->SetTexRect( texRect );
-		pImage2D->SetBoundDirty();
-		break;
-	case 2:
-		rect.y = ( ( rect.y - m_ofs.y ) / m_fSize ) * 16;
-		rect.y = Min( 0.0f, Max( -3.0f, rect.y + SRand::Inst<eRand_Render>().Rand( -1, 2 ) ) );
-		rect.y = ( rect.y * ( 1.0f / 16 ) ) * m_fSize + m_ofs.y;
-		texRect.x = texRect.x == 0.75f ? 0.875f : 0.75f;
-		pImage2D->SetRect( rect );
-		pImage2D->SetTexRect( texRect );
-		pImage2D->SetBoundDirty();
-		break;
-	case 1:
-	{
-		uint32 nY = texRect.y * 8;
-		nY = nY + SRand::Inst().Rand( 2, 6 );
-		if( nY >= 8 )
-			nY -= 8;
-		texRect.y = nY * 0.125f;
-		pImage2D->SetTexRect( texRect );
-		break;
-	}
-	case 3:
-		texRect.x = texRect.x == 0 ? 0.25f : 0;
-		pImage2D->SetTexRect( texRect );
-		break;
+		int32 nTick1 = m_nTick >> 1;
+		CImage2D* pImage2D = static_cast<CImage2D*>( m_pImg[nTick1].GetPtr() );
+		auto rect = pImage2D->GetElem().rect;
+		auto& texRect = m_texRect[nTick1];
+		switch( nTick1 )
+		{
+		case 0:
+			rect.y = ( ( rect.y - m_ofs.y ) / m_fSize + 0.5f ) * 16;
+			rect.y = Min( 3.0f, Max( 0.0f, rect.y + SRand::Inst<eRand_Render>().Rand( -1, 2 ) ) );
+			rect.y = ( rect.y * ( 1.0f / 16 ) - 0.5f ) * m_fSize + m_ofs.y;
+			texRect.x = texRect.x == 0.75f ? 0.875f : 0.75f;
+			pImage2D->SetRect( rect );
+			pImage2D->SetBoundDirty();
+			break;
+		case 2:
+			rect.y = ( ( rect.y - m_ofs.y ) / m_fSize ) * 16;
+			rect.y = Min( 0.0f, Max( -3.0f, rect.y + SRand::Inst<eRand_Render>().Rand( -1, 2 ) ) );
+			rect.y = ( rect.y * ( 1.0f / 16 ) ) * m_fSize + m_ofs.y;
+			texRect.x = texRect.x == 0.75f ? 0.875f : 0.75f;
+			pImage2D->SetRect( rect );
+			pImage2D->SetBoundDirty();
+			break;
+		case 1:
+		{
+			uint32 nY = texRect.y * 8;
+			nY = nY + SRand::Inst().Rand( 2, 6 );
+			if( nY >= 8 )
+				nY -= 8;
+			texRect.y = nY * 0.125f;
+			break;
+		}
+		case 3:
+			texRect.x = texRect.x == 0 ? 0.25f : 0;
+			break;
+		}
 	}
 	m_nTick++;
-	if( m_nTick == 4 )
+	if( m_nTick == 8 )
 		m_nTick = 0;
+
+	for( int i = 0; i < 4; i++ )
+	{
+		m_nSubFrames[i] = ( m_nSubFrames[i] + 1 ) & 3;
+		static_cast<CImage2D*>( m_pImg[i].GetPtr() )->SetTexRect( ( m_texRect[i] * 0.5f ).Offset(
+			CVector2( ( m_nSubFrames[i] & 1 ) * 0.5f, ( m_nSubFrames[i] & 2 ) * 0.25f ) ) );
+	}
 }
 
 void CLimbsAttackEft::OnAddedToStage()
@@ -644,6 +671,159 @@ void CManChunkEft::OnTick()
 		SetParentEntity( NULL );
 		return;
 	}
+}
+
+void CEyeEft::OnAddedToStage()
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	m_pImg = p;
+	SetRenderObject( NULL );
+
+	static int32 img_r[] = { 8, 16, 16, 32 };
+	for( int i = 0; i < m_nElems; i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.p = CVector2( 0, 0 );
+		elem.m_element2D.rect = CRectangle( -img_r[i], -img_r[i], img_r[i] * 2, img_r[i] * 2 );
+		elem.nAnim = i == 0 ? 0 : ( i == 1 ? SRand::Inst<eRand_Render>().Rand( 0, 4 ) : SRand::Inst<eRand_Render>().Rand( 0, 2 ) );
+		CalcElemTex( elem, i );
+	}
+	SetLocalBound( CRectangle( -img_r[m_nElems - 1], -img_r[m_nElems - 1], img_r[m_nElems - 1] * 2, img_r[m_nElems - 1] * 2 ) );
+	if( m_bAuto )
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CEyeEft::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CEyeEft::UpdateRendered( double dTime )
+{
+	m_fTime += dTime * 2.0f;
+	m_fTime -= floor( m_fTime );
+	for( int i = 0; i < m_nElems; i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.m_element2D.worldMat = globalTransform;
+		CalcElemTex( elem, i );
+	}
+}
+
+void CEyeEft::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+		{
+			for( int i = 0; i < m_nElems; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pColorDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		else if( pGUIDrawable )
+		{
+			for( int i = 0; i < m_nElems; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pGUIDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem, 1 );
+			}
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+		{
+			for( int i = 0; i < m_nElems; i++ )
+			{
+				auto& elem = m_elems[i].m_element2D;
+				elem.SetDrawable( pOcclusionDrawable );
+				static_cast<CImage2D*>( m_pImg.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+				context.AddElement( &elem );
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void CEyeEft::SetTarget( const CVector2 & p )
+{
+	static int32 img_r[] = { 8, 16, 16, 32 };
+	static int32 rs[] = { 8, 10, 16, 22 };
+	CVector2 d = p - globalTransform.GetPosition();
+	float l = d.Normalize();
+	l = 300.0f / Max( 400.0f, l );
+	float rMax = rs[m_nElems - 1];
+	for( int i = 0; i < m_nElems - 1; i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.p = d * ( rMax - rs[i] ) * l;
+		elem.p = CVector2( floor( elem.p.x * 0.5f + 0.5f ) * 2, floor( elem.p.y * 0.5f + 0.5f ) * 2 );
+		elem.m_element2D.rect = CRectangle( elem.p.x - img_r[i], elem.p.y - img_r[i], img_r[i] * 2, img_r[i] * 2 );
+	}
+}
+
+void CEyeEft::OnTick()
+{
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( !pPlayer )
+		return;
+	SetTarget( pPlayer->GetPosition() );
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void CEyeEft::CalcElemTex( SElem& elem, int32 i )
+{
+	static int32 img_r[] = { 8, 16, 16, 32 };
+	static int32 nFrameCount[] = { 1, 4, 2, 2, 2 };
+	TVector2<int32> texBegin[] = { { 96, 80 }, { 0, 0 }, { 64, 0 }, { 0, 16 } };
+	if( m_nEyeColor )
+		texBegin[0] = TVector2<int32>( 96, 104 );
+	int32 nFrame = floor( m_fTime * nFrameCount[i] );
+	if( i > 1 )
+		nFrame += elem.nAnim * nFrameCount[i];
+	else if( i > 0 )
+		nFrame = ( nFrame + elem.nAnim ) % 4;
+
+	if( i == 0 )
+	{
+		int32 r = img_r[m_nElems - 1] / 3;
+		if( elem.p.Length2() < r * r )
+			elem.m_element2D.texRect = CRectangle( texBegin[i].x + img_r[i], texBegin[i].y + img_r[i], img_r[i], img_r[i] ) * ( 1.0f / 128 );
+		else
+		{
+			static CVector2 dir[8] = { { 1, 0 }, { sqrt( 0.5f ), sqrt( 0.5f ) }, { 0, 1 }, { -sqrt( 0.5f ), sqrt( 0.5f ) },
+				{ -1, 0 }, { -sqrt( 0.5f ), -sqrt( 0.5f ) }, { 0, -1 }, { sqrt( 0.5f ), -sqrt( 0.5f ) }, };
+			static TVector2<int32> tex[8] = { { 2, 1 }, { 2, 0 }, { 1, 0 }, { 0, 0 }, { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 2 } };
+			float d = -10000.0f;
+			int32 n = -1;
+			for( int i1 = 0; i1 < 8; i1++ )
+			{
+				float d1 = dir[i1].Dot( elem.p );
+				if( d1 > d )
+				{
+					d = d1;
+					n = i1;
+				}
+			}
+			elem.m_element2D.texRect = CRectangle( texBegin[i].x + img_r[i] * tex[n].x, texBegin[i].y + img_r[i] * tex[n].y, img_r[i], img_r[i] ) * ( 1.0f / 128 );
+		}
+	}
+	else
+		elem.m_element2D.texRect = CRectangle( texBegin[i].x + img_r[i] * nFrame, texBegin[i].y, img_r[i], img_r[i] ) * ( 1.0f / 128 );
 }
 
 void CAuraEft::OnAddedToStage()

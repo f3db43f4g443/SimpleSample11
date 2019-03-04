@@ -139,8 +139,18 @@ public:
 private:
 	float m_fTexYTileLen;
 	uint8 m_nEftType;
+	int32 m_nChainTileLen;
+	int32 m_nChainTileBegin;
+	TResourceRef<CPrefab> m_pChainTilePrefab;
 
 	SChain* m_pChain;
+	struct SChainTileObject
+	{
+		SChainTileObject() : nState( 0 ) {}
+		int8 nState;
+		CReference<CEntity> pEntity;
+	};
+	vector<SChainTileObject> m_vecChainTileObject;
 };
 
 
@@ -357,24 +367,6 @@ protected:
 	CEventTrigger<1> m_triggerPostKilled;
 };
 
-class CCharacterChunk : public CChunkObject
-{
-	friend void RegisterGameClasses();
-public:
-	CCharacterChunk( const SClassCreateContext& context ) : CChunkObject( context )
-	{
-		SET_BASEOBJECT_ID( CChunkObject );
-	}
-
-	virtual void OnAddedToStage() override { if( m_pCharacter ) m_charOrigPos = m_pCharacter->GetPosition(); }
-	virtual void Crush() override;
-	virtual void HandleHitShake( const CVector2& ofs ) override { if( m_pCharacter ) m_pCharacter->SetPosition( m_charOrigPos + ofs ); CChunkObject::HandleHitShake( ofs );}
-protected:
-	virtual void OnKilled() override;
-	CReference<CEntity> m_pCharacter;
-	CVector2 m_charOrigPos;
-};
-
 class CExplosiveChunk : public CChunkObject
 {
 	friend void RegisterGameClasses();
@@ -407,21 +399,4 @@ protected:
 	uint32 m_nDeathDamageCDLeft;
 	uint32 m_nKillEffectCDLeft;
 	TClassTrigger<CExplosiveChunk> m_deathTick;
-};
-
-class CRandomChunk : public CChunkObject
-{
-	friend void RegisterGameClasses();
-public:
-	CRandomChunk( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CRandomChunk ); }
-
-	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
-protected:
-	virtual void OnKilled() override;
-private:
-	CVector2 m_texScale;
-	CVector2 m_texOfs;
-	CVector2 m_dmgTexScale[4];
-	CVector2 m_dmgTexOfs[4];
-	uint32 m_nHpPerSize;
 };

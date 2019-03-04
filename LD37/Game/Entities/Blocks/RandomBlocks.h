@@ -86,6 +86,7 @@ private:
 	uint32 m_nHpPerLength;
 	
 	bool m_bVertical;
+	int32 m_nFlip;
 	uint32 m_nWidth;
 	CRectangle m_texRect1;
 	uint32 m_nTexRect1X, m_nTexRect1Y;

@@ -165,3 +165,15 @@ private:
 	CReference<CLevelGenerateNode> m_pNode;
 	uint8 m_nType;
 };
+
+class CControlRoomNode : public CLevelGenerateSimpleNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	CReference<CLevelGenerateNode> m_pNode0[4];
+	CReference<CLevelGenerateNode> m_pNode1[8];
+	CReference<CLevelGenerateNode> m_pNode2[8];
+	CReference<CLevelGenerateNode> m_pNode3[4];
+};

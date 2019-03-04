@@ -31,6 +31,8 @@ protected:
 	CVector2 m_spawnVel;
 	TResourceRef<CPrefab> m_pCarPrefabs[4];
 	uint32 m_nSpawnCounts[4];
+
+	uint32 m_nSpawnCountsLeft[4];
 };
 
 class CHouseEntrance : public CEntity
@@ -59,6 +61,26 @@ private:
 
 	int32 m_nFrameBegin;
 	TClassTrigger<CHouseEntrance> m_onTick;
+};
+
+class CFuse : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CFuse( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CFuse::OnTick )
+		, m_onChunkKilled( this, &CFuse::OnChunkKilled ) { SET_BASEOBJECT_ID( CFuse ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void DelayKill();
+private:
+	void OnTick();
+	void OnChunkKilled();
+	CReference<CEntity> m_pEft;
+	int32 m_nExpHit;
+
+	TClassTrigger<CFuse> m_onTick;
+	TClassTrigger<CFuse> m_onChunkKilled;
 };
 
 class CHouseWindow : public CDecorator
@@ -193,9 +215,10 @@ protected:
 class CWindow3Controller : public CEntity
 {
 public:
-	CWindow3Controller( uint8 nType ) : m_nType( nType ) {}
+	CWindow3Controller() {}
 	virtual void OnAddedToStage() override;
 	void Add( CWindow3* pWindow ) { m_vecWindow3.push_back( pWindow ); }
+	void KillAll();
 protected:
 	void AIFunc();
 	class AI : public CAIObject
@@ -204,7 +227,6 @@ protected:
 		virtual void AIFunc() override { static_cast<CWindow3Controller*>( GetParentEntity() )->AIFunc(); }
 	};
 	CReference<AI> m_pAI;
-	uint8 m_nType;
 
 	vector<CReference<CWindow3> > m_vecWindow3;
 };

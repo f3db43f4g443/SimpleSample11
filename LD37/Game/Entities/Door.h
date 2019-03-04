@@ -14,6 +14,7 @@ protected:
 	virtual void OnTick();
 private:
 	bool m_bOpen;
+	bool m_bFirstTick;
 	int32 m_nOpenFrame;
 	TClassTrigger<CDoor> m_onTick;
 };

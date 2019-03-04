@@ -2130,6 +2130,7 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "house", CHouseNode );
 	REGISTER_GENERATE_NODE( "fence", CFenceNode );
 	REGISTER_GENERATE_NODE( "fiber", CFiberNode );
+	REGISTER_GENERATE_NODE( "control_room", CControlRoomNode );
 
 	REGISTER_GENERATE_NODE( "lv1type1", CLevelGenNode1_1 );
 	REGISTER_GENERATE_NODE( "lv1type1_0", CLevelGenNode1_1_0 );
@@ -2145,11 +2146,11 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 
 	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 	REGISTER_GENERATE_NODE( "lv2type1_1", CLevelGenNode2_1_1 );
-	REGISTER_GENERATE_NODE( "trucknode", CTruckNode );
 	REGISTER_GENERATE_NODE( "lv2type2_0", CLevelGenNode2_2_0 );
 	REGISTER_GENERATE_NODE( "lv2type2_1", CLevelGenNode2_2_1 );
 	REGISTER_GENERATE_NODE( "lv2type2_2", CLevelGenNode2_2_2 );
 	REGISTER_GENERATE_NODE( "lv2bonus0", CLevelBonusGenNode2_0 );
+	REGISTER_GENERATE_NODE( "lv2bonus1", CLevelBonusGenNode2_1 );
 }
 
 CLevelGenerateNode* CLevelGenerateFactory::LoadNode( TiXmlElement* pXml, SLevelGenerateNodeLoadContext& context )

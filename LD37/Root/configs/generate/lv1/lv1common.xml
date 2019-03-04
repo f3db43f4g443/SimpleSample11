@@ -1770,7 +1770,6 @@
       
       <node name="chain1" type="chain" attach_type1="1" attach_type2="1" layer="1" len="16" prefab="data/blocks/lv1/chain1.pf">
         <metadata maxy="10" />
-        <types>4</types>
       </node>
 
       <node name="clearer" width="1" height="1" weight="10000" destroyweight="0" destroybalance="10" absorbshakestrength="0" imbalancetime="1" prefab="data/misc/clearer.pf">

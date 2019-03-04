@@ -165,6 +165,11 @@ void CChainObject::SetChain( SChain* pChain, CMyLevel* pLevel )
 	m_pChain = pChain;
 	pChain->pChainObject = this;
 	SetParentBeforeEntity( pChain->nLayer == 0 ? CMyLevel::GetInst()->GetChunkRoot() : CMyLevel::GetInst()->GetChunkRoot1() );
+	if( m_pChainTilePrefab )
+	{
+		int32 nChain = pChain->nMaxLen < m_nChainTileBegin ? 0 : ( pChain->nMaxLen - m_nChainTileBegin ) / m_nChainTileLen + 1;
+		m_vecChainTileObject.resize( nChain );
+	}
 	Update();
 }
 
@@ -229,6 +234,39 @@ void CChainObject::Update()
 	if( m_nEftType == 1 )
 		begin.tex1.x = end.tex1.x = end.tex0.y;
 	pRope->SetTransformDirty();
+
+	for( int i = 0; i < m_vecChainTileObject.size(); i++ )
+	{
+		auto& item = m_vecChainTileObject[i];
+		if( item.nState == 1 && !item.pEntity->GetStage() )
+		{
+			item.nState = 2;
+			item.pEntity = NULL;
+		}
+		if( item.nState == 2 )
+			continue;
+
+		int32 y = y1 + m_nChainTileBegin + m_nChainTileLen * i;
+		if( y > y2 )
+		{
+			if( item.nState == 1 )
+			{
+				item.nState = 0;
+				item.pEntity->SetParentEntity( NULL );
+			}
+		}
+		else
+		{
+			if( item.nState == 0 )
+			{
+				if( !item.pEntity )
+					item.pEntity = SafeCast<CEntity>( m_pChainTilePrefab->GetRoot()->CreateInstance() );
+				item.nState = 1;
+				item.pEntity->SetParentEntity( this );
+			}
+			item.pEntity->SetPosition( CVector2( begin.center.x, y ) );
+		}
+	}
 }
 
 SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, const TVector2<int32>& size )
@@ -475,7 +513,10 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 			if( pChunk->nSubChunkType <= 1 )
 				SetParentAfterEntity( pChunk->pParentChunk->pChunkObject->GetChunk()->blocks[0].pEntity );
 			else
+			{
 				SetParentEntity( pChunk->pParentChunk->pChunkObject );
+				SetRenderParent( pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
+			}
 		}
 		else
 			SetParentEntity( pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
@@ -852,6 +893,14 @@ void CChunkObject::ClearHitShake()
 		m_onHitShakeTick.Unregister();
 	m_hitShakeVector = CVector2( 0, 0 );
 	HandleHitShake( CVector2( 0, 0 ) );
+	if( m_pChunk )
+	{
+		for( auto pSubChunk = m_pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
+		{
+			if( pSubChunk->pChunkObject )
+				pSubChunk->pChunkObject->HandleHitShake( CVector2( 0, 0 ) );
+		}
+	}
 }
 
 void CChunkObject::HitShakeTick()
@@ -947,92 +996,5 @@ void CExplosiveChunk::Tick()
 	{
 		m_nDeathDamageCDLeft = m_nDeathDamageInterval;
 		CChunkObject::Damage( m_nDeathDamage );
-	}
-}
-
-void CRandomChunk::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
-{
-	CDrawableGroup* pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
-	CDrawableGroup* pDamageEftDrawableGroups[4];
-	for( int i = 0; i < m_nDamagedEffectsCount; i++ )
-	{
-		pDamageEftDrawableGroups[i] = static_cast<CDrawableGroup*>( SafeCast<CEntity>( m_pDamagedEffects[i] )->GetResource() );
-		SafeCast<CEntity>( m_pDamagedEffects[i] )->SetRenderObject( NULL );
-	}
-
-	SetRenderObject( new CRenderObject2D );
-	for( auto pSubChunk = pChunk->Get_SubChunk(); pSubChunk; pSubChunk = pSubChunk->NextSubChunk() )
-	{
-		auto texRect = static_cast<CImage2D*>( pSubChunk->pPrefab->GetRoot()->GetRenderObject() )->GetElem().texRect;
-
-		CImage2D* pImage2D = static_cast<CImage2D*>( pDrawableGroup->CreateInstance() );
-		pImage2D->SetRect( CRectangle( pSubChunk->pos.x, pSubChunk->pos.y, 32, 32 ) );
-		pImage2D->SetTexRect( ( texRect * m_texScale ).Offset( m_texOfs ) );
-		GetRenderObject()->AddChild( pImage2D );
-
-		for( int i = 0; i < m_nDamagedEffectsCount; i++ )
-		{
-			CImage2D* pImage2D = static_cast<CImage2D*>( pDamageEftDrawableGroups[i]->CreateInstance() );
-			pImage2D->SetRect( CRectangle( pSubChunk->pos.x, pSubChunk->pos.y, 32, 32 ) );
-			pImage2D->SetTexRect( ( texRect * m_dmgTexScale[m_nDamagedEffectsCount - i - 1] ).Offset( m_dmgTexOfs[m_nDamagedEffectsCount - i - 1] ) );
-			m_pDamagedEffects[i]->AddChild( pImage2D );
-		}
-	}
-
-	if( pChunk->pParentChunk )
-		return;
-	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
-	m_fHp = m_nMaxHp;
-}
-
-void CRandomChunk::OnKilled()
-{
-	if( m_strEffect )
-	{
-		ForceUpdateTransform();
-		for( int i = 0; i < m_pChunk->nWidth; i++ )
-		{
-			for( int j = 0; j < m_pChunk->nHeight; j++ )
-			{
-				auto pEffect = SafeCast<CEffectObject>( m_strEffect->GetRoot()->CreateInstance() );
-				pEffect->SetParentEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-				pEffect->SetPosition( GetPosition() + CVector2( i, j ) * CMyLevel::GetBlockSize() );
-				pEffect->SetState( 2 );
-			}
-		}
-	}
-}
-
-void CCharacterChunk::Crush()
-{
-	m_triggerCrushed.Trigger( 0, this );
-	ClearHitShake();
-	if( m_pCharacter )
-	{
-		m_pCharacter->globalTransform.Decompose( m_pCharacter->x, m_pCharacter->y, m_pCharacter->r, m_pCharacter->s );
-		m_pCharacter->SetParentEntity( GetParentEntity() );
-		auto pChar = SafeCast<CCharacter>( m_pCharacter.GetPtr() );
-		if( pChar )
-			pChar->Kill();
-
-		m_pCharacter = NULL;
-	}
-	Kill();
-}
-
-void CCharacterChunk::OnKilled()
-{
-	CChunkObject::OnKilled();
-
-	ClearHitShake();
-	if( m_pCharacter )
-	{
-		m_pCharacter->globalTransform.Decompose( m_pCharacter->x, m_pCharacter->y, m_pCharacter->r, m_pCharacter->s );
-		m_pCharacter->SetParentEntity( GetParentEntity() );
-		auto pChar = SafeCast<CCharacter>( m_pCharacter.GetPtr() );
-		if( pChar )
-			pChar->Awake();
-
-		m_pCharacter = NULL;
 	}
 }

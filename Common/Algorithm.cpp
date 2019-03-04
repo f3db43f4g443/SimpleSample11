@@ -173,8 +173,6 @@ TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TRe
 	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, function<bool( TRectangle<int32>, TRectangle<int32> )> func )
 {
 	TRectangle<int32> rect = init;
-
-
 	for( int j = 0; j < nExtend; )
 	{
 		uint32 nExtendDirs[] = { 0, 1, 2, 3 };
@@ -821,7 +819,7 @@ void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, in
 	{
 		for( int j = 0; j < bound.height; j++ )
 		{
-			vecTemp[i + j * nWidth] = vec[i + bound.x + ( j + bound.y ) * nWidth];
+			vecTemp[i + j * bound.width] = vec[i + bound.x + ( j + bound.y ) * nWidth];
 		}
 	}
 	ConnectAll( vecTemp, bound.width, bound.height, nType, nBackType, pOfs, nOfs );
@@ -829,7 +827,7 @@ void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, in
 	{
 		for( int j = 0; j < bound.height; j++ )
 		{
-			vec[i + bound.x + ( j + bound.y ) * nWidth] = vecTemp[i + j * nWidth];
+			vec[i + bound.x + ( j + bound.y ) * nWidth] = vecTemp[i + j * bound.width];
 		}
 	}
 }
