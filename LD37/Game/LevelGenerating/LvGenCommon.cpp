@@ -1377,6 +1377,10 @@ void CControlRoomNode::Generate( SLevelBuildContext & context, const TRectangle<
 		itr = context.mapTags.find( "5" );
 		if( itr != context.mapTags.end() )
 			nTag5 = itr->second;
+		int8 nTag6 = -1;
+		itr = context.mapTags.find( "6" );
+		if( itr != context.mapTags.end() )
+			nTag6 = itr->second;
 		vector<int8> vecTemp;
 		vecTemp.resize( region.width * region.height );
 		for( int i = 0; i < region.width; i++ )
@@ -1408,7 +1412,7 @@ void CControlRoomNode::Generate( SLevelBuildContext & context, const TRectangle<
 					pBlock->eBlockType = eBlockType_Wall;
 					vecTemp[i + j * region.width] = 3;
 				}
-				else if( nTag == nTag4 )
+				else if( nTag == nTag4 || nTag == nTag6 )
 				{
 					if( pBlock->nTag == 1 )
 					{
@@ -1421,6 +1425,17 @@ void CControlRoomNode::Generate( SLevelBuildContext & context, const TRectangle<
 				}
 				else if( nTag == nTag5 )
 					pBlock->nTag = 3;
+				else if( nTag == nTag6 )
+				{
+					if( pBlock->nTag == 1 )
+					{
+						pBlock->nTag = 2;
+						if( nTag5 >= 0 )
+							context.blueprint[i + region.x + ( j + region.y ) * context.nWidth] = nTag5;
+					}
+					else
+						pBlock->nTag = 4;
+				}
 			}
 		}
 

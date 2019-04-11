@@ -510,12 +510,21 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		}
 		if( pChunk->pParentChunk )
 		{
+			SetParentEntity( pChunk->pParentChunk->pChunkObject );
+			SetRenderParent( pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
+			if( pChunk->nShowLevelType == pChunk->pParentChunk->nShowLevelType )
+				SetZOrder( 1 );
 			if( pChunk->nSubChunkType <= 1 )
-				SetParentAfterEntity( pChunk->pParentChunk->pChunkObject->GetChunk()->blocks[0].pEntity );
-			else
 			{
-				SetParentEntity( pChunk->pParentChunk->pChunkObject );
-				SetRenderParent( pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
+				int32 x0 = pChunk->pos.x / CMyLevel::GetBlockSize();
+				int32 y0 = pChunk->pos.y / CMyLevel::GetBlockSize();
+				for( int i = 0; i < pChunk->nWidth; i++ )
+				{
+					for( int j = 0; j < pChunk->nHeight; j++ )
+					{
+						pChunk->pParentChunk->pChunkObject->GetChunk()->GetBlock( i + x0, j + y0 )->pEntity->SetRenderParentBefore( this );
+					}
+				}
 			}
 		}
 		else
@@ -747,6 +756,11 @@ CVector2 CChunkObject::GetShake()
 	return pos;
 }
 
+CVector2 CChunkObject::GetSurfaceVel( const CVector2& pos )
+{
+	return m_surfaceVel;
+}
+
 void CChunkObject::OnKilled()
 {
 	if( m_strEffect )
@@ -881,7 +895,7 @@ void CChunkObject::AddHitShake( CVector2 shakeVector )
 	float l = m_hitShakeVector.Length();
 	if( l > 8 )
 		m_hitShakeVector = m_hitShakeVector * ( 8 / l );
-	MoveToTopmost();
+	//MoveToTopmost( true );
 
 	if( !m_onHitShakeTick.IsRegistered() )
 		GetStage()->RegisterBeforeHitTest( 1, &m_onHitShakeTick );
@@ -929,12 +943,12 @@ void CChunkObject::HitShakeTick()
 
 void CChunkObject::HandleHitShake( const CVector2& ofs )
 {
-	if( GetRenderObject() )
+	/*if( GetRenderObject() )
 		GetRenderObject()->SetPosition( ofs );
 	if( m_p1 )
 		m_p1->SetPosition( ofs );
 	if( m_pDamagedEffectsRoot )
-		m_pDamagedEffectsRoot->SetPosition( ofs );
+		m_pDamagedEffectsRoot->SetPosition( ofs );*/
 }
 
 bool CExplosiveChunk::Damage( SDamageContext& context )

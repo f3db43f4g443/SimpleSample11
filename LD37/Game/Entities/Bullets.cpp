@@ -12,6 +12,8 @@
 #include "Render/Rope2D.h"
 #include "Common/Rand.h"
 #include "Entities/Enemies/Lv1Enemies.h"
+#include "Entities/EnemyCharacters.h"
+#include "Entities/BlockItems/BlockItemsLv2.h"
 
 void CBomb::OnAddedToStage()
 {
@@ -907,6 +909,45 @@ void CWaterSplash::OnTickAfterHitTest()
 	}
 }
 
+void CSawBlade::OnTickAfterHitTest()
+{
+	CCharacter::OnTickAfterHitTest();
+	for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+	{
+		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+		auto pPlayer = SafeCast<CPlayer>( pEntity );
+		if( pPlayer && pPlayer->CanBeHit() )
+		{
+			CVector2 knockback = pManifold->normal;
+			knockback.Normalize();
+			pPlayer->Knockback( knockback );
+			CCharacter::SDamageContext context;
+			context.nDamage = m_nDamage;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = pManifold->hitPoint;
+			context.hitDir = knockback;
+			context.nHitType = -1;
+			pPlayer->Damage( context );
+			continue;
+		}
+		auto pEnemy = SafeCast<CEnemyCharacter>( pEntity );
+		if( pEnemy )
+		{
+			float fAngle0 = SRand::Inst().Rand( -PI, PI );
+			for( int i = 0; i < m_nBulletCount; i++ )
+			{
+				float fAngle = fAngle0 + i * PI * 2 / m_nBulletCount;
+				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
+				pBullet->SetPosition( pEnemy->GetPosition() );
+				pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * m_fBulletSpeed );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			}
+			pEnemy->Kill();
+			continue;
+		}
+	}
+}
 
 void CFlood::OnAddedToStage()
 {
@@ -1038,4 +1079,71 @@ CRectangle CFlood::UpdateImage()
 		param.x = -m_fHeight;
 	}
 	return bound;
+}
+
+void CBloodPower::OnTickBeforeHitTest()
+{
+	if( m_pTarget )
+	{
+		if( !m_pTarget->GetStage() )
+			m_pTarget = NULL;
+		else
+		{
+			auto p = SafeCast<CBloodConsumer>( m_pTarget.GetPtr() );
+			if( p->GetBloodCount() >= p->GetMaxCount() )
+				m_pTarget = NULL;
+		}
+	}
+	if( !m_bKilled && m_pTarget )
+	{
+		CCharacter::OnTickBeforeHitTest();
+		CVector2 d = m_pTarget->globalTransform.GetPosition() - GetPosition();
+		float l = d.Length();
+		float v = m_velocity.Length();
+		float l1 = v * GetStage()->GetElapsedTimePerTick();
+		if( l1 >= l )
+		{
+			SetPosition( m_pTarget->globalTransform.GetPosition() );
+			SafeCast<CBloodConsumer>( m_pTarget.GetPtr() )->SetBloodCount( SafeCast<CBloodConsumer>( m_pTarget.GetPtr() )->GetBloodCount() + 1 );
+			ForceUpdateTransform();
+			Kill();
+			return;
+		}
+		d = d / l;
+		SetPosition( GetPosition() + d * l1 );
+		m_velocity = d * v;
+		if( m_bTangentDir )
+			SetRotation( atan2( m_velocity.y, m_velocity.x ) );
+		else
+			SetRotation( r + m_fAngularVelocity * GetStage()->GetElapsedTimePerTick() );
+		return;
+	}
+	CBullet::OnTickBeforeHitTest();
+}
+
+void CBloodPower::OnTickAfterHitTest()
+{
+	if( !m_bKilled && !m_pTarget )
+	{
+		if( m_nCheckTimeLeft )
+			m_nCheckTimeLeft--;
+		if( !m_nCheckTimeLeft )
+		{
+			m_nCheckTimeLeft = m_nCheckTime;
+			static vector<CReference<CEntity> > vecTemp;
+			vecTemp.resize( 0 );
+			GetStage()->MultiPick( globalTransform.GetPosition(), vecTemp );
+			for( CEntity* pEntity : vecTemp )
+			{
+				auto p = SafeCast<CBloodConsumer>( pEntity );
+				if( !p )
+					continue;
+				if( p->GetBloodCount() >= p->GetMaxCount() )
+					continue;
+				m_pTarget = p;
+				break;
+			}
+		}
+	}
+	CBullet::OnTickAfterHitTest();
 }

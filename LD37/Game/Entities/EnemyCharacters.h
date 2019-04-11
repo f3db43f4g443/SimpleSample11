@@ -58,6 +58,8 @@ protected:
 	bool m_bJump;
 	CVector2 m_curMoveDir;
 	CVector2 m_curJumpTarget;
+	CVector2 m_curWalkBaseVel;
+	int32 m_nMoveOnBelt;
 	float m_fCurJumpDir;
 
 	uint32 m_nFireCDLeft;

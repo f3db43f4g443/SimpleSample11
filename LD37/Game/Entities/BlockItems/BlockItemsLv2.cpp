@@ -13,6 +13,7 @@
 #include "Render/LightRendering.h"
 #include "Entities/Bullets.h"
 #include "Common/Algorithm.h"
+#include "Entities/EnemyCharacters.h"
 
 void CLv2Wall1Deco::Init( const CVector2& size, SChunk* pPreParent )
 {
@@ -928,6 +929,368 @@ void COperateableButton::Operate( const CVector2 & pos )
 			continue;
 		pOperateable->Operate( pos );
 	}
+}
+
+void COperateableSawBlade::OnAddedToStage()
+{
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	CVector2 ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	if( pChunkObject )
+	{
+		auto p = GetRenderObject();
+		if( p )
+		{
+			p->RemoveThis();
+			pChunkObject->GetRenderObject()->AddChild( p );
+			p->SetPosition( GetPosition() );
+			p->SetRotation( m_nDir * PI * 0.5f );
+			p->SetRenderParent( this );
+			static_cast<CMultiFrameImage2D*>( p )->SetFrames( 5, 6, 0 );
+		}
+
+		m_pHit->SetTransparent( true );
+		m_pHit->SetPosition( ofs[m_nDir] * -16 );
+		p = m_pHit->GetRenderObject();
+		if( p && CMyLevel::GetInst() )
+		{
+			p->RemoveThis();
+			pChunkObject->GetRenderObject()->AddChild( p );
+			p->SetPosition( GetPosition() - ofs[m_nDir] * 16 );
+			p->SetRotation( m_nDir * PI * 0.5f );
+			p->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot() );
+			m_pParticle->SetPosition( p->GetPosition() );
+			m_pParticle->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			static_cast<CMultiFrameImage2D*>( p )->SetFrames( 0, 1, 0 );
+		}
+		else
+			m_pHit->bVisible = false;
+	}
+	static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = false;
+	m_chunkRect = CRectangle( 0, 0, pChunkObject->GetChunk()->nWidth, pChunkObject->GetChunk()->nHeight ) * CMyLevel::GetBlockSize();
+}
+
+void COperateableSawBlade::OnRemovedFromStage()
+{
+	if( m_pAI )
+	{
+		m_pAI->SetParentEntity( NULL );
+		m_pAI = NULL;
+	}
+}
+
+int8 COperateableSawBlade::IsOperateable( const CVector2 & pos )
+{
+	if( m_pAI )
+		return 3;
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	CRectangle rect = m_chunkRect.Offset( globalTransform.GetPosition() - GetPosition() );
+	rect = CRectangle( rect.x + m_detectRect.x, rect.y + m_detectRect.y, rect.width + m_detectRect.width, rect.height + m_detectRect.height );
+	if( !pPlayer || !rect.Contains( pPlayer->GetPosition() ) )
+		return 1;
+	return 0;
+}
+
+void COperateableSawBlade::Operate( const CVector2 & pos )
+{
+	if( m_pAI )
+		return;
+	auto pAI = new AI();
+	m_pAI = pAI;
+	pAI->SetParentEntity( this );
+}
+
+void COperateableSawBlade::AIFunc()
+{
+	m_pAI->Yield( 0, false );
+	uint8 bReverse = SRand::Inst().Rand( 0, 2 );
+	CVector2 ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	CVector2 ofs1[4] = { { 0, 1 }, { -1, 0 }, { 0, -1 }, { 1, 0 } };
+	CVector2 p[8];
+	p[0] = GetPosition() - ofs[m_nDir] * 16;
+	p[1] = GetPosition() + ofs[m_nDir] * 16;
+	p[2] = p[1] + ofs1[m_nDir] * 64;
+	p[3] = CVector2( m_chunkRect.GetRight(), m_chunkRect.GetBottom() );
+	p[4] = CVector2( m_chunkRect.x, m_chunkRect.GetBottom() );
+	p[5] = CVector2( m_chunkRect.x, m_chunkRect.y );
+	p[6] = CVector2( m_chunkRect.GetRight(), m_chunkRect.y );
+	p[7] = p[1] - ofs1[m_nDir] * 64;
+	if( m_nDir > 0 )
+	{
+		CVector2 p1[4];
+		for( int i = 0; i < 4; i++ )
+			p1[i] = p[( i + m_nDir ) % 4 + 3];
+		for( int i = 0; i < 4; i++ )
+			p[i + 3] = p1[i];
+	}
+	if( bReverse )
+	{
+		swap( p[2], p[7] );
+		swap( p[3], p[6] );
+		swap( p[4], p[5] );
+	}
+
+	int32 nTotalTime = 0;
+	for( int iTime = 0; iTime < 24; iTime++, nTotalTime++ )
+	{
+		int32 nFrame = iTime / 2;
+		int32 nFrame1 = bReverse ? ( 5 - nFrame ) % 5 : nFrame % 5;
+		int32 nFrame2 = bReverse ? 17 + nFrame : 5 + nFrame;
+		static_cast<CMultiFrameImage2D*>( m_pHit->GetRenderObject() )->SetFrames( nFrame1, nFrame1 + 1, 0 );
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( nFrame2, nFrame2 + 1, 0 );
+		CVector2 pos = nFrame <= 4 ? p[0] + ofs[m_nDir] * 8 * nFrame : p[1] + ofs1[m_nDir] * ( bReverse ? -8 : 8 ) * ( nFrame - 4 );
+		Step( pos );
+	}
+	GetRenderObject()->bVisible = false;
+	static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = true;
+
+	float fAngle = SRand::Inst().Rand( -PI, PI );
+	for( int i = 0; i <= 4; i++ )
+	{
+		auto p0 = p[i + 2];
+		auto p1 = p[i + 3];
+		CVector2 d = p1 - p0;
+		int32 nTime = Max( abs( d.x ), abs( d.y ) ) / 2;
+		for( int iTime = 0; iTime < nTime; iTime++, nTotalTime++ )
+		{
+			int32 nFrame = ( nTotalTime / 2 ) % 5;
+			if( bReverse )
+				nFrame = ( 5 - nFrame ) % 5;
+			static_cast<CMultiFrameImage2D*>( m_pHit->GetRenderObject() )->SetFrames( nFrame, nFrame + 1, 0 );
+			CVector2 pos = p0 + ( p1 - p0 ) * ( iTime + 1 ) / nTime;
+
+			auto p2 = p[i % 4 + 3];
+			int32 k = ( bReverse ? 4 - i + m_nDir : i + m_nDir ) % 4;
+			CVector2 pos1 = pos + ofs1[k] * ( bReverse ? -32 : 32 );
+			CVector2 dir1 = ofs[k];
+			float l = Max( abs( p2.x - pos.x ), abs( p2.y - pos.y ) );
+			if( l <= 32 )
+			{
+				pos1 = p2 - ofs[k] * sqrt( 32 * 32 - l * l );
+				dir1 = pos1 - pos;
+				dir1.Normalize();
+				dir1 = CVector2( dir1.y, -dir1.x ) * ( bReverse ? -1 : 1 );
+			}
+			m_pParticle->SetPosition( pos1 - GetPosition() );
+			m_pParticle->SetRotation( atan2( dir1.y, dir1.x ) );
+			if( m_pBullet && !( nTotalTime % 4 ) )
+			{
+				auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
+				CVector2 d( cos( fAngle ), sin( fAngle ) );
+				CVector2 d1( -d.y, d.x );
+				if( bReverse )
+					d1 = d1 * -1;
+				pBullet->SetPosition( globalTransform.GetPosition() + pos + d1 * 32 - GetPosition() );
+				pBullet->SetRotation( fAngle );
+				pBullet->SetVelocity( d * 175 );
+				fAngle += bReverse ? -0.3f : 0.3f;
+				pBullet->SetLife( 180 );
+				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			}
+			Step( pos );
+		}
+	}
+
+	static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = false;
+	GetRenderObject()->bVisible = true;
+	for( int iTime = 23; iTime >= 0; iTime--, nTotalTime++ )
+	{
+		int32 nFrame = iTime / 2;
+		int32 nFrame1 = bReverse ? nFrame % 5 : ( 5 - nFrame ) % 5;
+		int32 nFrame2 = bReverse ? 5 + nFrame : 17 + nFrame;
+		static_cast<CMultiFrameImage2D*>( m_pHit->GetRenderObject() )->SetFrames( nFrame1, nFrame1 + 1, 0 );
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( nFrame2, nFrame2 + 1, 0 );
+		CVector2 pos = nFrame <= 4 ? p[0] + ofs[m_nDir] * 8 * nFrame : p[1] - ofs1[m_nDir] * ( bReverse ? -8 : 8 ) * ( nFrame - 4 );
+		Step( pos );
+	}
+
+	auto pAI = m_pAI;
+	m_pAI = NULL;
+	pAI->SetParentEntity( NULL );
+}
+
+void COperateableSawBlade::Step( const CVector2& pos )
+{
+	m_pHit->SetPosition( pos - GetPosition() );
+	m_pHit->GetRenderObject()->SetPosition( pos );
+	m_pAI->Yield( 0, true );
+
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer && pPlayer->CanBeHit() )
+	{
+		SHitTestResult result;
+		if( m_pHit->HitTest( pPlayer, &result ) )
+		{
+			CVector2 knockback = result.normal;
+			knockback.Normalize();
+			pPlayer->Knockback( knockback );
+			CCharacter::SDamageContext context;
+			context.nDamage = m_nDamage;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = result.hitPoint1;
+			context.hitDir = knockback;
+			context.nHitType = -1;
+			pPlayer->Damage( context );
+		}
+	}
+
+	m_pAI->Yield( 0, false );
+}
+
+void COperateableAssembler::OnAddedToStage()
+{
+	GetAllInsts().insert( this );
+}
+
+void COperateableAssembler::OnRemovedFromStage()
+{
+	GetAllInsts().erase( this );
+	if( m_pOwner )
+	{
+		SafeCastToInterface<IAttachable>( m_pOwner.GetPtr() )->OnSlotDetach( m_pTarget );
+		m_pOwner = NULL;
+		m_pTarget = NULL;
+	}
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+int8 COperateableAssembler::IsOperateable( const CVector2& pos )
+{
+	if( !m_pOwner )
+		return 1;
+	return 0;
+}
+
+void COperateableAssembler::Operate( const CVector2 & pos )
+{
+	GetStage()->RegisterAfterHitTest( m_nOperateTime, &m_onTick );
+}
+
+bool COperateableAssembler::CanAttach( CEntity * pOwner, CEntity * pTarget )
+{
+	return m_pOwner == NULL;
+}
+
+void COperateableAssembler::Attach( CEntity * pOwner, CEntity * pTarget )
+{
+	m_pOwner = pOwner;
+	m_pTarget = pTarget;
+}
+
+void COperateableAssembler::OnEntityDetach()
+{
+	m_pOwner = NULL;
+	m_pTarget = NULL;
+}
+
+void CSlider::OnAddedToStage()
+{
+	if( !CMyLevel::GetInst() )
+		return;
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTickBeforeHitTest );
+	GetStage()->RegisterAfterHitTest( 1, &m_onTickAfterHitTest );
+}
+
+void CSlider::OnRemovedFromStage()
+{
+	if( m_onTickBeforeHitTest.IsRegistered() )
+		m_onTickBeforeHitTest.Unregister();
+	if( m_onTickAfterHitTest.IsRegistered() )
+		m_onTickAfterHitTest.Unregister();
+}
+
+void CSlider::Init( const CVector2& size, SChunk * pPreParent )
+{
+	CChunkObject* pChunkObject = NULL;
+	for( auto pParent = GetParentEntity(); pParent && !pChunkObject; pParent = pParent->GetParentEntity() )
+	{
+		pChunkObject = SafeCast<CChunkObject>( pParent );
+		if( pChunkObject )
+			break;
+	}
+	if( !pChunkObject )
+		return;
+	CVector2 size1 = size - CVector2( CMyLevel::GetBlockSize(), CMyLevel::GetBlockSize() );
+	m_sliderBegin = m_pSlider->GetPosition() + m_beginOfs;
+	m_sliderEnd = m_pSlider->GetPosition() + size1 + m_endOfs;
+	m_nState = SRand::Inst().Rand( 0, 2 );
+	m_pSlider->SetPosition( m_nState ? m_sliderEnd : m_sliderBegin );
+	if( CMyLevel::GetInst() )
+		m_pSlider->SetRenderParentBefore( pChunkObject->GetParentEntity() );
+	float l = Max( abs( m_sliderBegin.x - m_sliderEnd.x ), abs( m_sliderBegin.y - m_sliderEnd.y ) );
+	m_nMoveTime = l * 60 / m_fSpeed;
+
+	if( m_bActiveType )
+	{
+		auto rect = CRectangle( m_detectRect.x, m_detectRect.y, m_detectRect.width + size1.x, m_detectRect.height + size1.y );
+		m_rect = rect;
+		AddRect( rect );
+	}
+}
+
+void CSlider::OnTickBeforeHitTest()
+{
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTickBeforeHitTest );
+	if( m_nState >= 2 )
+	{
+		m_nTime++;
+		CVector2 pos = m_nState == 2 ? m_sliderBegin + ( m_sliderEnd - m_sliderBegin ) * m_nTime / m_nMoveTime :
+			m_sliderEnd + ( m_sliderBegin - m_sliderEnd ) * m_nTime / m_nMoveTime;
+		m_pSlider->SetPosition( pos );
+		if( m_nTime >= m_nMoveTime )
+		{
+			m_nTime = m_nCD;
+			m_nState = 3 - m_nState;
+		}
+	}
+}
+
+void CSlider::OnTickAfterHitTest()
+{
+	GetStage()->RegisterAfterHitTest( 1, &m_onTickAfterHitTest );
+	if( m_nState < 2 )
+	{
+		if( m_nTime )
+			m_nTime--;
+		if( !m_nTime )
+		{
+			if( m_bActiveType )
+			{
+				for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+				{
+					auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+					if( SafeCast<CEnemyCharacter>( pEntity ) || SafeCast<CPlayer>( pEntity ) )
+					{
+						m_nState += 2;
+						break;
+					}
+				}
+			}
+			else
+			{
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( !pPlayer )
+					return;
+				SHitProxyPolygon polygon;
+				polygon.nVertices = 4;
+				polygon.vertices[0] = CVector2( m_rect.x, m_rect.y );
+				polygon.vertices[1] = CVector2( m_rect.x + m_rect.width, m_rect.y );
+				polygon.vertices[2] = CVector2( m_rect.x + m_rect.width, m_rect.y + m_rect.height );
+				polygon.vertices[3] = CVector2( m_rect.x, m_rect.y + m_rect.height );
+				polygon.CalcNormals();
+				polygon.CalcBoundGrid( globalTransform );
+				if( pPlayer->HitTest( &polygon, globalTransform ) )
+					m_nState += 2;
+			}
+		}
+	}
+}
+
+set<CReference<COperateableAssembler> >& COperateableAssembler::GetAllInsts()
+{
+	static set<CReference<COperateableAssembler> > g_insts;
+	return g_insts;
 }
 
 void CWindow3::OnAddedToStage()

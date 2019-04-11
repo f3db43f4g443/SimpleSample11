@@ -137,14 +137,38 @@ class CCargo1 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CCargo1 ); }
+	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CCargo1::OnTick ) { SET_BASEOBJECT_ID( CCargo1 ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
 	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+protected:
+	virtual void OnKilled() override;
 private:
 	void GenLayer1();
+	void GenLayer2();
+	void GenObj( const TRectangle<int32>& rect, uint8 nType );
+	void OnTick();
 	uint32 m_nHpPerSize;
+	bool m_bType;
+	CRectangle m_texRect1;
 	TResourceRef<CDrawableGroup> m_pDeco;
 	TResourceRef<CDrawableGroup> m_pDeco1;
-	TResourceRef<CPrefab> m_pPrefab[5];
+	TResourceRef<CPrefab> m_pPrefab[10];
+
+	struct SMapItem
+	{
+		SMapItem() : n( 0 ), n1( 0 ), bFlag( 0 ) {}
+		uint16 n;
+		uint8 n1;
+		uint8 bFlag;
+	};
+	vector<SMapItem> m_blobMap;
+	int32 GetMapItem( int32 x, int32 y );
+	uint8 GetMapItemValue( int32 x, int32 y );
+	vector<TVector2<int32> > m_q;
+	int32 m_nMaxIndex;
+	TClassTrigger<CCargo1> m_onTick;
+	CReference<CEntity> m_pBlob;
 };
 
 class CCargoAutoColor : public CDecorator
@@ -226,6 +250,17 @@ private:
 
 	CReference<CRenderObject2D> m_pLayer1;
 	CReference<CWindow3Controller> m_pController;
+};
+
+class CBillboard1 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CBillboard1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CBillboard1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+private:
+	uint32 m_nHpPerSize;
+	TResourceRef<CDrawableGroup> m_pDeco;
 };
 
 class CHouse2 : public CChunkObject

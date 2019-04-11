@@ -55,6 +55,7 @@ protected:
 
 	float m_fEftLen;
 	uint8 m_nState;
+	bool m_bIgnoreHit;
 	bool m_bKilled;
 	CVector2 m_vel1, m_vel2;
 	uint32 m_nKillSpawnLeft;
@@ -244,6 +245,103 @@ protected:
 	CVector2 m_target;
 };
 
+class CArmRotator : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CArmRotator( const SClassCreateContext& context ) : CEnemy( context ), m_onChunkKilled( this, &CArmRotator::Kill ) { SET_BASEOBJECT_ID( CArmRotator ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Kill() override;
+protected:
+	virtual void OnTickBeforeHitTest() override;
+
+	CReference<CEntity> m_pEft;
+	CReference<CEntity> m_pEnd;
+	float m_fRad;
+	float m_fASpeed;
+	float m_fWidth;
+	float m_fKillEftDist;
+
+	float m_fAngle;
+	float m_dAngle;
+	TClassTrigger<CArmRotator> m_onChunkKilled;
+};
+
+class CManChunkEgg : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunkEgg( const SClassCreateContext& context ) : CEnemy( context ), m_flyData( context ), m_onChunkKilled( this, &CManChunkEgg::Kill ) { SET_BASEOBJECT_ID( CManChunkEgg ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+	virtual void Kill() override;
+	bool Hatch();
+private:
+	void AIFunc();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<CManChunkEgg*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+
+	float m_fSpeed;
+	float m_fMaxRadius;
+	CReference<CEntity> m_pManChunkEft;
+	TResourceRef<CPrefab> m_pBullet;
+	SCharacterPhysicsFlyData m_flyData;
+
+	TClassTrigger<CManChunkEgg> m_onChunkKilled;
+};
+
+class CArmAdvanced : public CEnemyTemplate, public IAttachable
+{
+	friend void RegisterGameClasses();
+public:
+	CArmAdvanced( const SClassCreateContext& context ) : CEnemyTemplate( context ), m_onChunkKilled( this, &CArmAdvanced::Kill ) { SET_BASEOBJECT_ID( CArmAdvanced ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Damage( SDamageContext& context ) override;
+	virtual void Kill() override;
+protected:
+	virtual void AIFunc() override;
+	void Step( CVector2& moveTarget );
+	void Spawn();
+	void Hatch( int32 n, int8 nType );
+	void Attach( CEntity* pEntity, const CVector2& ofs );
+	void KillItem();
+	virtual void OnSlotDetach( CEntity* pTarget ) override;
+	float m_fArmLen;
+	float m_fArmLenSpeed;
+	float m_fArmWidth;
+	float m_fKillEftDist;
+	int32 m_nWaitTime;
+	CReference<CEntity> m_pBloodConsumer;
+	TResourceRef<CPrefab> m_pPrefabArm;
+	TResourceRef<CPrefab> m_pPrefabEgg;
+	TResourceRef<CPrefab> m_pPrefabComponent;
+
+	struct SItem
+	{
+		uint8 nType;
+		uint8 nState;
+		CReference<CEntity> pArm;
+		CReference<CEntity> pArmEft;
+		CReference<CEntity> pComponent;
+		float fArmLen;
+		CVector2 targetPos;
+		CReference<CEntity> pTarget;
+	};
+	vector<SItem> m_vecItems;
+
+	uint8 m_nState;
+	int32 m_nDamage;
+	TClassTrigger<CArmAdvanced> m_onChunkKilled;
+};
+
 class CCar : public CEnemy
 {
 	friend void RegisterGameClasses();
@@ -302,90 +400,4 @@ public:
 	virtual void Kill() override;
 private:
 	TResourceRef<CPrefab> m_pBullet;
-};
-
-class CWheel : public CEnemy
-{
-	friend void RegisterGameClasses();
-public:
-	CWheel( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CWheel ); }
-
-	virtual void OnAddedToStage() override;
-	virtual bool Knockback( const CVector2& vec ) override;
-	virtual void OnKnockbackPlayer( const CVector2 & vec ) override { Kill(); }
-	virtual bool IsKnockback() override { return m_nKnockBackTimeLeft > 0; }
-	virtual void Kill() override;
-protected:
-	virtual void OnTickAfterHitTest() override;
-
-	SCharacterSurfaceWalkData m_moveData;
-	float m_fAIStepTimeMin;
-	float m_fAIStepTimeMax;
-	uint32 m_nKnockbackTime;
-	float m_fFallChance;
-	float m_fRotSpeed;
-
-	TResourceRef<CPrefab> m_pBullet;
-
-	uint32 m_nAIStepTimeLeft;
-	int8 m_nDir;
-	uint32 m_nKnockBackTimeLeft;
-};
-
-class CSawBlade : public CEnemy
-{
-	friend void RegisterGameClasses();
-public:
-	CSawBlade( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CSawBlade ); }
-
-	virtual void OnAddedToStage() override;
-	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
-protected:
-	virtual void OnTickAfterHitTest() override;
-
-	SCharacterPhysicsFlyData1 m_moveData;
-	float m_fMoveSpeed;
-	float m_fRotSpeed;
-	uint32 m_nDamage;
-};
-
-class CGear : public CEnemy
-{
-	friend void RegisterGameClasses();
-public:
-	CGear( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CGear ); }
-	
-	virtual bool Knockback( const CVector2& vec ) override;
-	virtual bool IsKnockback() override { return m_nKnockBackTimeLeft > 0; }
-protected:
-	virtual void OnTickAfterHitTest() override;
-
-	SCharacterPhysicsFlyData1 m_moveData;
-	float m_fMoveSpeed;
-	float m_fRotSpeed;
-	uint32 m_nKnockbackTime;
-	TResourceRef<CPrefab> m_pBullet;
-	
-	uint32 m_nTargetDir;
-	uint32 m_nKnockBackTimeLeft;
-};
-
-class CExplosiveBall : public CEnemy
-{
-	friend void RegisterGameClasses();
-public:
-	CExplosiveBall( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CExplosiveBall ); }
-
-	virtual void OnAddedToStage() override;
-	virtual void OnKnockbackPlayer( const CVector2 & vec ) override;
-	virtual void Kill() override;
-protected:
-	virtual void OnTickAfterHitTest() override;
-
-	SCharacterPhysicsFlyData m_moveData;
-	uint32 m_nAITick;
-	TResourceRef<CPrefab> m_pBullet;
-
-	CVector2 m_moveTarget;
-	uint32 m_nAITickLeft;
 };

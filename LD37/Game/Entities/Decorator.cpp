@@ -454,21 +454,32 @@ void CDecoratorTile::AddTile( TVector2<int32> pos, uint8 nType, CChunkObject* pC
 	}
 
 	auto pResource = static_cast<CDrawableGroup*>( GetResource() );
-	auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
-	AddChild( pImg );
-	pImg->SetRect( CRectangle( m_nTileSize * pos.x, m_nTileSize * pos.y, m_nTileSize, m_nTileSize ) );
+	if( pResource->GetType() == CDrawableGroup::eType_MultiFrame )
+	{
+		auto pImg = static_cast<CMultiFrameImage2D*>( pResource->CreateInstance() );
+		pImg->SetAutoUpdateAnim( true );
+		AddChild( pImg );
+		pImg->SetPosition( CVector2( m_nTileSize * pos.x, m_nTileSize * pos.y ) );
+		pImg->SetFrames( m_nTileBegin[nType], m_nTileBegin[nType] + m_nTileCount[nType], pImg->GetFramesPerSec() );
+	}
+	else
+	{
+		auto pImg = static_cast<CImage2D*>( pResource->CreateInstance() );
+		AddChild( pImg );
+		pImg->SetRect( CRectangle( m_nTileSize * pos.x, m_nTileSize * pos.y, m_nTileSize, m_nTileSize ) );
 
-	auto& rnd = SRand::Inst<eRand_Render>();
-	uint32 nTex = m_nTileBegin[nType] + rnd.Rand( 0u, m_nTileCount[nType] );
-	uint32 texY = nTex / m_nTexCols;
-	uint32 texX = nTex - texY * m_nTexCols;
-	pImg->SetTexRect( CRectangle( texX * 1.0f / m_nTexCols, ( m_nTexRows - 1 - texY ) * 1.0f / m_nTexCols, 1.0f / m_nTexCols, 1.0f / m_nTexRows ) );
+		auto& rnd = SRand::Inst<eRand_Render>();
+		uint32 nTex = m_nTileBegin[nType] + rnd.Rand( 0u, m_nTileCount[nType] );
+		uint32 texY = nTex / m_nTexCols;
+		uint32 texX = nTex - texY * m_nTexCols;
+		pImg->SetTexRect( CRectangle( texX * 1.0f / m_nTexCols, ( m_nTexRows - 1 - texY ) * 1.0f / m_nTexCols, 1.0f / m_nTexCols, 1.0f / m_nTexRows ) );
 
-	uint16 nParamCount;
-	CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
-	CVector4* dst = pImg->GetParam();
-	if( nParamCount )
-		memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+		uint16 nParamCount;
+		CVector4* src = static_cast<CImage2D*>( GetRenderObject() )->GetParam( nParamCount );
+		CVector4* dst = pImg->GetParam();
+		if( nParamCount )
+			memcpy( dst, src, nParamCount * sizeof( CVector4 ) );
+	}
 }
 
 void CDecoratorTile1::Init( const CVector2& size, SChunk* pPreParent )

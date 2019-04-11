@@ -84,7 +84,7 @@ void PSTransmission( in float2 tex : TexCoord0, //color
 	float2 ofs[4] = { float2( ofsTex.x, ofsTex.y ), float2( -ofsTex.y, ofsTex.x ), float2( -ofsTex.x, -ofsTex.y ), float2( ofsTex.y, -ofsTex.x ) };
 	float4 TransmissionTempTex[4];
 	for( int i = 0; i < 4; i++ )
-		TransmissionTempTex[i] = TransmissionTemp.Sample( LinearSampler, tex + ofs[i] * dTex );
+		TransmissionTempTex[i] = TransmissionTemp.Sample( PointSampler, tex + ofs[i] * dTex );
 
 	float2 dHeight = float2( TransmissionTempTex[0].w - TransmissionTempTex[2].w, TransmissionTempTex[1].w - TransmissionTempTex[3].w );
 	dHeight *= 0.5;

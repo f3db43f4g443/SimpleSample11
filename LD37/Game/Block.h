@@ -327,6 +327,7 @@ public:
 	virtual void Crush() { m_triggerCrushed.Trigger( 0, this ); Kill(); }
 	void RemoveChunk();
 	CVector2 GetShake();
+	virtual CVector2 GetSurfaceVel( const CVector2& pos );
 
 	void RegisterDamagedEvent( CTrigger* pTrigger ) { m_triggerDamaged.Register( 0, pTrigger ); }
 	void RegisterKilledEvent( CTrigger* pTrigger ) { m_triggerKilled.Register( 0, pTrigger ); }
@@ -356,6 +357,7 @@ protected:
 	float m_fHp;
 	int32 m_nMaxHp;
 	float m_nCrushCost;
+	CVector2 m_surfaceVel;
 
 	CVector2 m_hitShakeVector;
 	int32 m_nHitShakeFrame;

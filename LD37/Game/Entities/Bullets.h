@@ -220,6 +220,21 @@ protected:
 	float m_fKnockback;
 };
 
+class CSawBlade : public CCharacter
+{
+	friend void RegisterGameClasses();
+public:
+	CSawBlade( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CSawBlade ); }
+protected:
+	virtual void OnTickAfterHitTest() override;
+
+	uint32 m_nDamage;
+	float m_fKnockback;
+	TResourceRef<CPrefab> m_pBulletPrefab;
+	int32 m_nBulletCount;
+	float m_fBulletSpeed;
+};
+
 class CFlood : public CEntity
 {
 	friend void RegisterGameClasses();
@@ -247,4 +262,18 @@ private:
 	float m_fSpeed;
 	TClassTrigger<CFlood> m_onTick;
 	map<CReference<CEntity>, int32> m_hit;
+};
+
+class CBloodPower : public CBullet
+{
+	friend void RegisterGameClasses();
+public:
+	CBloodPower( const SClassCreateContext& context ) : CBullet( context ) { SET_BASEOBJECT_ID( CBloodPower ); }
+protected:
+	virtual void OnTickBeforeHitTest() override;
+	virtual void OnTickAfterHitTest() override;
+	uint32 m_nCheckTime;
+
+	CReference<CEntity> m_pTarget;
+	uint32 m_nCheckTimeLeft;
 };

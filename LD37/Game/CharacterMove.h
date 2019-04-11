@@ -28,7 +28,7 @@ struct SCharacterFlyData : public SCharacterMovementData
 {
 	SCharacterFlyData( const SClassCreateContext& context ) : bApplyExtraGravity( false ) { Reset(); }
 
-	void UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis );
+	void UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis, float fStopBaseSpd2 = FLT_MAX );
 
 	void Roll( CCharacter* pCharacter, const CVector2& moveAxis );
 	void Hooked( const CVector2& vel )
@@ -88,7 +88,7 @@ struct SCharacterSimpleWalkData : public SCharacterMovementData
 {
 	SCharacterSimpleWalkData( const SClassCreateContext& context ) { Reset(); }
 
-	CVector2 UpdateMove( CCharacter* pCharacter, float fDir, bool bJump );
+	CVector2 UpdateMove( CCharacter* pCharacter, const CVector2& extraVelocity, float fDir, bool bJump );
 
 	float fMoveSpeed;
 	float fGravity;
@@ -182,7 +182,7 @@ struct SCharacterWalkData : public SCharacterMovementData
 	}
 	uint8 nState;
 	int8 nIsSlidingDownWall;
-	bool bJumpCheck;
+	int8 nJumpCheck;
 	CVector2 velocity;
 	float fJumpHoldingTime;
 	float fRollTime;

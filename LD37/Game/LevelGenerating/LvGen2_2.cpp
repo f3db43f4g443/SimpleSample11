@@ -4449,7 +4449,7 @@ void CLevelGenNode2_2_1::GenCargo0( const TRectangle<int32>& rect )
 		int8 nType = SRand::Inst().Rand( 0, 3 );
 		auto size = nType == 0 ? TVector2<int32>( 1, 2 ) : TVector2<int32>( 2, 1 );
 		TRectangle<int32> r( rect.x + SRand::Inst().Rand( 0, rect.width - size.x + 1 ), rect.y + SRand::Inst().Rand( 0, rect.height - size.y + 1 ), size.x, size.y );
-		AddChunk( rect, eType_Obj1, &m_vecBarrel[nType] );
+		AddChunk( r, eType_Obj1, &m_vecBarrel[nType] );
 	}
 	for( int i = rect.x; i < rect.GetRight(); i++ )
 	{

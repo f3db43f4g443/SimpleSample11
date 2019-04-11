@@ -29,7 +29,8 @@ void CBullet::Kill()
 		static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = false;
 	}
 
-	m_fDeathTime = m_fDeathFramesPerSec <= 0 ? 0 : ( m_nDeathFrameEnd - m_nDeathFrameBegin ) / m_fDeathFramesPerSec;
+	m_fDeathTime = m_fDeathFramesPerSec <= 0 ? 0 :
+		( m_nDeathFrameEnd > m_nDeathFrameBegin ?( m_nDeathFrameEnd - m_nDeathFrameBegin ) / m_fDeathFramesPerSec : m_fDeathFramesPerSec );
 	if( m_fDeathTime <= 0 )
 	{
 		SetParentEntity( NULL );

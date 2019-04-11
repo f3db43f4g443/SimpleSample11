@@ -71,6 +71,41 @@ private:
 	TClassTrigger<CLimbsAttackEft> m_onTick;
 };
 
+class CArmEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CArmEft( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CArmEft ); }
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+	void Init( const CVector2& begin, const CVector2& end, const CVector2& space, const CVector2& ofs, const TVector2<int32>& dim, int8* pMask );
+	void Set( const CVector2& begin, const CVector2& end );
+private:
+	struct SElem
+	{
+		vector<CElement2D> m_element2D;
+		CVector2 ofs0;
+		CVector2 ofs;
+		int8 nTex;
+		int8 nTick;
+		bool bMask;
+	};
+	void SetLen( SElem& elem, float fLen );
+
+	float m_fSize;
+
+	vector<SElem> m_elems;
+	TVector2<int32> m_dim;
+	CVector2 m_begin;
+	CVector2 m_end;
+	CVector2 m_space;
+	CVector2 m_ofs;
+	CMatrix2D m_mat0;
+	float m_fTime;
+	CReference<CRenderObject2D> m_pImg;
+	TClassTrigger<CArmEft> m_onTick;
+};
+
 class CManChunkEft : public CEntity
 {
 	friend void RegisterGameClasses();
@@ -83,12 +118,15 @@ public:
 	virtual void Render( CRenderContext2D& context ) override;
 	float GetRadius() { return m_fRadius; }
 	void Set( float fRadius );
+	void SetBound( const CRectangle& bound ) { m_bound = bound; }
 	void Kill();
 private:
 	TResourceRef<CPrefab> m_pKillEft;
 	TResourceRef<CSoundFile> m_pKillSound;
 	float m_fKillEftSize;
 	float m_fKillSpeed;
+	CReference<CEntity> m_pFangEft;
+	uint8 m_nFangEftType;
 
 	struct SElem
 	{
@@ -97,6 +135,7 @@ private:
 			m_element2D.worldMat.Identity();
 		}
 		CElement2D m_element2D;
+		CRectangle rect0;
 		CVector2 p;
 		uint8 nType;
 		int8 nAnim;
@@ -109,11 +148,83 @@ private:
 	int32 m_nElem;
 	vector<int8> m_elemAnim;
 	CReference<CRenderObject2D> m_pImg;
+	CRectangle m_bound;
 	float m_fTime;
 	float m_fRadius;
 	float m_fKillRadius;
 	int32 m_nKillEft;
 	TClassTrigger<CManChunkEft> m_onTick;
+};
+
+class CManChunkFangEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CManChunkFangEft( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CManChunkFangEft ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+	void Set( float fHalfLen );
+private:
+	struct SElem
+	{
+		SElem()
+		{
+			for( int i = 0; i < 3; i++ )
+				m_element2D[i].worldMat.Identity();
+		}
+		CElement2D m_element2D[3];
+		int8 nAnim[2];
+	};
+	vector<SElem> m_elems;
+	int32 m_nElem;
+	void CalcElemTex( SElem& elem );
+
+	CReference<CRenderObject2D> m_pImg;
+	float m_fTime;
+};
+
+class CManBlobEft : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CManBlobEft( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CManBlobEft::OnTick ) { SET_BASEOBJECT_ID( CManBlobEft ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+	void Set( int32 nMapSize, uint8* pMap );
+	void Kill( int32 nMapSize, uint8* pMap );
+private:
+	struct SElem
+	{
+		SElem()
+		{
+			m_element2D.worldMat.Identity();
+		}
+		CElement2D m_element2D;
+		CVector2 p;
+		int8 nAnim;
+	};
+	bool SetElem( SElem& elem, int32 nX, int32 nY, int32 nX1, int32 nY1, uint8 n );
+	void CalcElemTex( SElem& elem );
+	int8 GetAnim( int32 nX, int32 nY );
+	void OnTick();
+
+	int32 m_nType;
+	TResourceRef<CPrefab> m_pKillEft;
+	float m_fKillSpeed;
+
+	vector<SElem> m_elems;
+	int32 m_nElem;
+	vector<int8> m_elemAnim;
+	CReference<CRenderObject2D> m_pImg;
+	float m_fTime;
+	vector<uint8> m_tempMap;
+	int32 m_nTempMapSize;
+	TClassTrigger<CManBlobEft> m_onTick;
 };
 
 class CEyeEft : public CEntity

@@ -100,16 +100,16 @@ void CMyLevel::OnAddedToStage()
 		pBottom->SetParentEntity( pBorder );
 	}
 
-	s_pLevel = this;
-	StartUp();
-	CheckSpawn();
-	GetStage()->SetNavigationProvider( this );
-
 	for( int i = 0; i < ELEM_COUNT( m_pBulletRoot ); i++ )
 	{
 		m_pBulletRoot[i] = new CEntity;
 		m_pBulletRoot[i]->SetParentEntity( this );
 	}
+
+	s_pLevel = this;
+	StartUp();
+	CheckSpawn();
+	GetStage()->SetNavigationProvider( this );
 }
 
 void CMyLevel::OnRemovedFromStage()

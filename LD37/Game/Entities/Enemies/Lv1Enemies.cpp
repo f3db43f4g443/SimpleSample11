@@ -1874,7 +1874,7 @@ void CRat::OnTickAfterHitTest()
 			bJump = true;
 			m_nTick = SRand::Inst().Rand( 60, 120 );
 		}
-		CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_curMoveDir.x > 0 ? 1 : -1, bJump );
+		CVector2 fixedVelocity = m_walkData.UpdateMove( this, CVector2( 0, 0 ), m_curMoveDir.x > 0 ? 1 : -1, bJump );
 		if( !GetStage() )
 			return;
 

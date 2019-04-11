@@ -105,18 +105,18 @@
         </node>
         <ref name="lv2floor_1" x="0" y="60" w="32" h="4" />
         
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
     
       <node type="subregion" name="lv2_2">
@@ -148,18 +148,18 @@
         </node>
         <ref name="lv2floor_2" x="0" y="60" w="32" h="4" />
         
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
 
       <node type="subregion" name="lv2_3">
@@ -185,18 +185,18 @@
         </node>
         <ref name="lv2floor_3" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
 
       <node type="subregion" name="lv2_4">
@@ -246,18 +246,18 @@
         </node>
         <ref name="lv2floor_4" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
       
       <node type="subregion" name="lv2_5">
@@ -331,18 +331,18 @@
         </node>
         <ref name="lv2floor_5" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
       
       <node type="subregion" name="lv2_6">
@@ -410,27 +410,27 @@
         </node>
         <ref name="lv2floor_6" x="0" y="60" w="32" h="4" />
 
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_0" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_1" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
-        <ref name="lv1_scroll_2" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
       </node>
 
       <node type="subregion" name="test_lv">
-        <metadata seed="234816913" />
-        <ref name="lv2_6" x="0" y="8" w="32" h="64" />
+        <metadata seed="561813131" />
+        <ref name="lv2_5" x="0" y="8" w="32" h="64" />
         <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0" />
         </node>
-        <ref name="lv2floor_5" x="0" y="4" w="32" h="4" />
+        <ref name="lv2floor_4" x="0" y="4" w="32" h="4" />
       </node>
       
     </nodes>

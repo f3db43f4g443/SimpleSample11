@@ -36,7 +36,7 @@ void CTexRectRandomModifier::OnRemovedFromStage()
 
 void CTexRectRandomModifier::Apply( CRenderObject2D * pImage, const CVector2& ofs )
 {
-	auto pImage2D = SafeCast<CImage2D>( GetParentEntity()->GetRenderObject() );
+	auto pImage2D = SafeCast<CImage2D>( pImage );
 	if( !pImage2D )
 		return;
 	CRectangle texRect = pImage2D->GetElem().texRect;

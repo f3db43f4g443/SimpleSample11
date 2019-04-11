@@ -7,6 +7,7 @@
 #include "Lightning.h"
 #include "Interfaces.h"
 #include "Render/DrawableGroup.h"
+#include <set>
 
 class CLv2Wall1Deco : public CDecorator
 {
@@ -175,6 +176,110 @@ public:
 	void AddOperateable( CEntity* p ) { m_vec.push_back( p ); }
 private:
 	vector<CReference<CEntity> > m_vec;
+};
+
+class COperateableSawBlade : public CEntity, public IOperateable
+{
+	friend void RegisterGameClasses();
+public:
+	COperateableSawBlade( const SClassCreateContext& context ) : CEntity( context )
+	{
+		SET_BASEOBJECT_ID( COperateableSawBlade );
+	}
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual int8 IsOperateable( const CVector2& pos ) override;
+	virtual void Operate( const CVector2& pos ) override;
+private:
+	void AIFunc();
+	class AI : public CAIObject
+	{
+	protected:
+		virtual void AIFunc() override { static_cast<COperateableSawBlade*>( GetParentEntity() )->AIFunc(); }
+	};
+	AI* m_pAI;
+	void Step( const CVector2& pos );
+	
+	CReference<CEntity> m_pHit;
+	CReference<CRenderObject2D> m_pParticle;
+	int8 m_nDir;
+	int32 m_nDamage;
+	CRectangle m_detectRect;
+	TResourceRef<CPrefab> m_pBullet;
+
+	CRectangle m_chunkRect;
+};
+
+class COperateableAssembler : public CEntity, public IOperateable, public IAttachableSlot
+{
+	friend void RegisterGameClasses();
+public:
+	COperateableAssembler( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &COperateableAssembler::OnTick )
+	{
+		SET_BASEOBJECT_ID( COperateableAssembler );
+	}
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual int8 IsOperateable( const CVector2& pos ) override;
+	virtual void Operate( const CVector2& pos ) override;
+	virtual bool CanAttach( class CEntity* pOwner, class CEntity* pTarget ) override;
+	virtual void Attach( class CEntity* pOwner, class CEntity* pTarget ) override;
+	void Detach();
+	virtual void OnEntityDetach() override;
+	bool IsRunning() { return m_onTick.IsRegistered(); }
+
+	static set<CReference<COperateableAssembler> >& GetAllInsts();
+private:
+	void OnTick() {}
+	int32 m_nOperateTime;
+
+	CReference<CEntity> m_pOwner;
+	CReference<CEntity> m_pTarget;
+	TClassTrigger<COperateableAssembler> m_onTick;
+};
+
+class CSlider : public CDecorator
+{
+	friend void RegisterGameClasses();
+public:
+	CSlider( const SClassCreateContext& context ) : CDecorator( context ), m_onTickBeforeHitTest( this, &CSlider::OnTickBeforeHitTest )
+		, m_onTickAfterHitTest( this, &CSlider::OnTickAfterHitTest ) { SET_BASEOBJECT_ID( CSlider ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void Init( const CVector2& size, struct SChunk* pPreParent ) override;
+private:
+	void OnTickBeforeHitTest();
+	void OnTickAfterHitTest();
+
+	CReference<CEntity> m_pSlider;
+	CRectangle m_detectRect;
+	CVector2 m_beginOfs, m_endOfs;
+	float m_fSpeed;
+	int32 m_nCD;
+	bool m_bActiveType;
+
+	int32 m_nMoveTime;
+	int8 m_nState;
+	int32 m_nTime;
+	CRectangle m_rect;
+	CVector2 m_sliderBegin, m_sliderEnd;
+	TClassTrigger<CSlider> m_onTickBeforeHitTest;
+	TClassTrigger<CSlider> m_onTickAfterHitTest;
+};
+
+class CBloodConsumer : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CBloodConsumer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CBloodConsumer ); }
+	int32 GetBloodCount() { return m_nBlood; }
+	int32 GetMaxCount() { return m_nBloodMaxCount; }
+	void SetBloodCount( int32 nCount ) { m_nBlood = nCount; }
+private:
+	int32 m_nBloodMaxCount;
+
+	int32 m_nBlood;
 };
 
 class CWindow3 : public CEnemy

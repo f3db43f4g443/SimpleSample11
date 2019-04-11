@@ -75,7 +75,7 @@ void CEnemyCharacter::UpdateMove()
 	{
 		if( m_bJump )
 		{
-			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_fCurJumpDir, false );
+			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_curWalkBaseVel, m_fCurJumpDir, false );
 			if( !GetStage() )
 				return;
 			if( fixedVelocity.y <= 0 )
@@ -83,7 +83,12 @@ void CEnemyCharacter::UpdateMove()
 		}
 		else
 		{
-			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_nFireStopTimeLeft || m_bLeader ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 ), false );
+			float fDir;
+			if( m_curWalkBaseVel.Length2() > 20 * 20 && !m_nMoveOnBelt )
+				fDir = 0;
+			else
+				fDir = m_nFireStopTimeLeft || m_bLeader ? 0 : ( m_curMoveDir.x > 0 ? 1 : -1 );
+			CVector2 fixedVelocity = m_walkData.UpdateMove( this, m_curWalkBaseVel, fDir, false );
 			if( !GetStage() )
 				return;
 			if( fixedVelocity.x == 0 )
@@ -91,6 +96,35 @@ void CEnemyCharacter::UpdateMove()
 
 			CheckJump();
 		}
+		m_curWalkBaseVel = CVector2( 0, 0 );
+		for( int i = 0; i < ELEM_COUNT( m_walkData.hits ); i++ )
+		{
+			if( !m_walkData.hits[i].pHitProxy )
+				break;
+			if( m_walkData.hits[i].normal.y <= 0 )
+				continue;
+
+			auto pEntity = static_cast<CEntity*>( m_walkData.hits[0].pHitProxy );
+			auto pChunk = SafeCast<CChunkObject>( pEntity->GetParentEntity() );
+			if( pChunk )
+				m_curWalkBaseVel = m_curWalkBaseVel + pChunk->GetSurfaceVel( GetPosition() );
+		}
+		if( m_curWalkBaseVel.Length2() > 20 * 20 )
+		{
+			for( int i = 0; i < ELEM_COUNT( m_walkData.hits ); i++ )
+			{
+				if( !m_walkData.hits[i].pHitProxy )
+					break;
+				if( m_walkData.hits[i].normal.Dot( m_curWalkBaseVel ) < -0.01f )
+				{
+					m_nMoveOnBelt = 30;
+					m_curMoveDir = CVector2( m_curWalkBaseVel.x > 0 ? -1 : 1, 0 );
+					break;
+				}
+			}
+		}
+		if( m_nMoveOnBelt )
+			m_nMoveOnBelt--;
 
 		auto levelBound = CMyLevel::GetInst()->GetBound();
 		if( x < levelBound.x || x > levelBound.GetRight() || y < levelBound.y )
@@ -115,6 +149,7 @@ void CEnemyCharacter::UpdateMove()
 
 		if( pCurRoom )
 		{
+			m_curWalkBaseVel = CVector2( 0, 0 );
 			m_flyData.Reset();
 			m_flyData.SetLandedEntity( pCurRoom );
 			m_flyData.fKnockbackTime = m_walkData.fKnockbackTime;
@@ -181,8 +216,8 @@ void CEnemyCharacter::UpdateMove()
 				CMatrix2D mat;
 				mat.Identity();
 				Get_HitProxy()->CalcBound( mat, selfBound );
-				roomBound.x -= selfBound.x - CMyLevel::GetBlockSize() *0.5f;
-				roomBound.y -= selfBound.y - CMyLevel::GetBlockSize() *0.5f;
+				roomBound.x -= selfBound.x - CMyLevel::GetBlockSize() * 0.5f;
+				roomBound.y -= selfBound.y - CMyLevel::GetBlockSize() * 0.5f;
 				roomBound.width -= selfBound.width + CMyLevel::GetBlockSize();
 				roomBound.height -= selfBound.height + CMyLevel::GetBlockSize();
 
@@ -931,7 +966,7 @@ void CWorker::OnTickAfterHitTest()
 
 		if( m_pTarget )
 		{
-			if( IsFlee() )
+			if( IsFlee() && !m_pTarget->CanOperate( this ) )
 			{
 				m_pTarget = NULL;
 				m_pNav->Reset();
@@ -1004,12 +1039,12 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 				if( pPlayer )
 				{
 					auto pPlayerRoom = pPlayer->GetCurRoom();
-					if( pPlayerRoom && pPlayerRoom->GetChunk() && pPlayerRoom->GetChunk()->bIsRoom
+					if( pPlayerRoom && pPlayerRoom->GetChunk() && pPlayerRoom->GetChunk()->bIsRoom && pPlayerRoom != pCurRoom
 						&& pPlayerRoom->GetRect().Contains( pOperatingArea->globalTransform.GetPosition() ) )
 						continue;
 				}
 
-				if( pGrid->fDist < m_fNearestDist )
+				if( !m_pTarget || pGrid->fDist < m_fNearestDist )
 				{
 					SetTarget( pOperatingArea );
 					m_fNearestDist = pGrid->fDist;

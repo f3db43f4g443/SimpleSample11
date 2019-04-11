@@ -370,7 +370,7 @@ CEntity * SCharacterMovementData::DoSweepTest( CCharacter * pChar, const CMatrix
 		pChar->GetStage()->SweepTest( pChar->Get_HitProxy(), trans, sweepOfs, bHitChannel, pResult, bIgnoreInverseNormal );
 }
 
-void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis )
+void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis, float fStopBaseSpd2 )
 {
 	CVector2 landedEntityOfs( 0, 0 );
 	if( pLandedEntity )
@@ -399,7 +399,15 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 	pCharacter->globalTransform.SetPosition( pCharacter->GetPosition() );
 	pCharacter->GetStage()->GetHitTestMgr().Update( pCharacter );
 
+	CVector2 baseVel( 0, 0 );
+	if( pLandedEntity )
+	{
+		auto pChunk = SafeCast<CChunkObject>( pLandedEntity->GetParentEntity() );
+		if( pChunk )
+			baseVel = pChunk->GetSurfaceVel( pCharacter->GetPosition() );
+	}
 	CVector2 moveOfs;
+	float fDeltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
 	if( nState == eState_Rolling )
 	{
 		float fTime = pCharacter->GetStage()->GetElapsedTimePerTick();
@@ -417,7 +425,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 			moveOfs = moveOfs + CVector2( 0, -fExtraGravity * fTime );
 		}
 
-		moveOfs = moveOfs + landedEntityOfs;
+		moveOfs = moveOfs + landedEntityOfs + baseVel * fDeltaTime;
 		TryMove( pCharacter, moveOfs, hits );
 
 		if( fRollTime >= fRollMaxTime )
@@ -429,24 +437,28 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 	{
 		if( moveAxis.Length2() > 0 || nState >= eState_Knockback || landedEntityOfs.Length2() > 0 )
 		{
-			float fDeltaTime = pCharacter->GetStage()->GetElapsedTimePerTick();
-
 			if( nState == eState_Hooked )
 			{
-				moveOfs = vecKnockback * fDeltaTime;
+				moveOfs = ( vecKnockback + baseVel ) * fDeltaTime;
 				nState = eState_Normal;
 			}
 			else
 			{
-				moveOfs = ( moveAxis * fMoveSpeed ) * fDeltaTime;
 				if( nState == eState_Knockback )
 				{
 					float fKnockbackTime0 = fKnockbackTime;
 					fKnockbackTime = Max( 0.0f, fKnockbackTime - fDeltaTime );
 					vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
-					moveOfs = vecKnockback * fDeltaTime;
+					moveOfs = ( vecKnockback + baseVel ) * fDeltaTime;
 					if( fKnockbackTime <= 0 )
 						nState = eState_Normal;
+				}
+				else
+				{
+					if( baseVel.Length2() <= fStopBaseSpd2 )
+						moveOfs = ( moveAxis * fMoveSpeed + baseVel ) * fDeltaTime;
+					else
+						moveOfs = baseVel * fDeltaTime;
 				}
 
 				if( bApplyExtraGravity )
@@ -496,10 +508,6 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 		nDir = 1;
 	else if( moveAxis.x < 0 )
 		nDir = -1;
-	else if( velocity.x > 0 )
-		nDir = -1;
-	else if( velocity.x < 0 )
-		nDir = 1;
 	else
 		nDir = 0;
 
@@ -569,37 +577,51 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 	if( nState != eState_Hooked )
 	{
 		CVector2 moveDir;
-
+		CVector2 tangent;
+		float fSpeedTarget = 0;
 		if( pLandedEntity )
 		{
-			CVector2 groundTangent( -groundNorm.y, groundNorm.x );
-			moveDir = groundTangent * ( groundTangent.x > 0 ? 1 : -1 ) * nDir;
+			tangent = CVector2( -groundNorm.y, groundNorm.x );
+			moveDir = tangent * ( tangent.x > 0 ? 1 : -1 ) * nDir;
+			auto pChunk = SafeCast<CChunkObject>( pLandedEntity->GetParentEntity() );
+			if( pChunk )
+			{
+				CVector2 baseVel = pChunk->GetSurfaceVel( pCharacter->GetPosition() );
+				fSpeedTarget = baseVel.Dot( tangent );
+			}
 		}
 		else
 		{
-			CVector2 vec( -gravity.y, gravity.x );
-			moveDir = vec * ( vec.x > 0 ? 1 : -1 ) * nDir;
-			moveDir.Normalize();
+			tangent = CVector2( -gravity.y, gravity.x );
+			tangent.Normalize();
+			moveDir = tangent * ( tangent.x > 0 ? 1 : -1 ) * nDir;
 		}
-		float fTangentVelocity = velocity.Dot( moveDir );
-		bool bIsMoveOrStop = fTangentVelocity >= 0;
-		float fSpeedTarget = bIsMoveOrStop ? fMoveSpeed : 0;
-		float fMaxSpeed = pLandedEntity ? fMoveSpeed : fAirMaxSpeed;
-
-		if( fTangentVelocity > fMaxSpeed )
+		velocity = velocity;
+		float k = tangent.Dot( moveDir );
+		float fTangentVelocity = velocity.Dot( tangent );
+		float fMaxSpeed = ( pLandedEntity ? fMoveSpeed : fAirMaxSpeed ) * k + fSpeedTarget;
+		fSpeedTarget = fMoveSpeed * k + fSpeedTarget;
+		if( !pLandedEntity )
 		{
-			moveDir = moveDir * -1;
-			fTangentVelocity = -fTangentVelocity;
-			bIsMoveOrStop = false;
-			fSpeedTarget = -fMaxSpeed;
+			if( k > 0 )
+				fSpeedTarget = Min( fMaxSpeed, Max( fSpeedTarget, fTangentVelocity ) );
+			else if( k < 0 )
+				fSpeedTarget = Max( fMaxSpeed, Min( fSpeedTarget, fTangentVelocity ) );
 		}
+		bool bIsMoveOrStop = k == 0 ? false : fTangentVelocity * k >= 0 && fTangentVelocity * k < fSpeedTarget * k;
+
 		float fAcc = pLandedEntity ? ( bIsMoveOrStop ? fMoveAcc : fStopAcc ) : fAirAcc;
 		float fDeltaSpeed = fSpeedTarget - fTangentVelocity;
+		if( fDeltaSpeed < 0 )
+		{
+			fDeltaSpeed = -fDeltaSpeed;
+			tangent = tangent * -1;
+		}
 		float t0 = Min( fDeltaTime, fDeltaSpeed / fAcc );
 		float t1 = fDeltaTime - t0;
 
-		dVelocity = dVelocity + moveDir * ( fAcc * t0 );
-		dPos = dPos + moveDir * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
+		dVelocity = dVelocity + tangent * ( fAcc * t0 );
+		dPos = dPos + tangent * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
 
 		if( !pLandedEntity )
 		{
@@ -675,8 +697,13 @@ void SCharacterWalkData::HandleNormal( CCharacter* pCharacter, const CVector2& m
 					velocity.y = Max( velocity.y, 0.0f );
 			}
 		}
-		if( nState == eState_JumpHolding && ( pLandedEntity || nIsSlidingDownWall ) )
-			bJumpCheck = true;
+		if( nState == eState_JumpHolding && !nJumpCheck )
+		{
+			if( nIsSlidingDownWall )
+				nJumpCheck = 2 + nIsSlidingDownWall;
+			else if( pLandedEntity )
+				nJumpCheck = 2;
+		}
 	}
 	else
 		nState = eState_Normal;
@@ -715,7 +742,12 @@ void SCharacterWalkData::Jump( CCharacter * pCharacter )
 	if( nState == eState_Normal )
 	{
 		nState = eState_JumpHolding;
-		bJumpCheck = pLandedEntity || nIsSlidingDownWall;
+		if( nIsSlidingDownWall )
+			nJumpCheck = 2 + nIsSlidingDownWall;
+		else if( pLandedEntity )
+			nJumpCheck = 2;
+		else
+			nJumpCheck = 0;
 		fJumpHoldingTime = 0;
 	}
 }
@@ -724,15 +756,15 @@ void SCharacterWalkData::ReleaseJump( CCharacter * pCharacter )
 {
 	if( nState == eState_JumpHolding )
 	{
-		if( bJumpCheck )
+		if( nJumpCheck )
 		{
 			CVector2 dVelocity;
-			if( nIsSlidingDownWall > 0 )
+			if( nJumpCheck > 2 )
 			{
 				dVelocity = CVector2( -0.5f, 0.732f );
 				velocity.y = 0;
 			}
-			else if( nIsSlidingDownWall < 0 )
+			else if( nJumpCheck < 2 )
 			{
 				dVelocity = CVector2( 0.5f, 0.732f );
 				velocity.y = 0;
@@ -836,7 +868,7 @@ void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
 		pLandedEntity = NULL;
 }
 
-CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, float fDir, bool bJump )
+CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, const CVector2& extraVelocity, float fDir, bool bJump )
 {
 	if( !ResolvePenetration( pCharacter ) )
 	{
@@ -865,12 +897,15 @@ CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, float fD
 		vecKnockback = vecKnockback * ( fKnockbackTime / fKnockbackTime0 );
 		velocity = vecKnockback;
 	}
+	else
+		bLanded = false;
+	velocity = velocity + extraVelocity;
+	dPos = dPos + extraVelocity * fTime;
 
 	CVector2 fixedVelocity = velocity;
 	TryMove( pCharacter, dPos, fixedVelocity, hits );
 	pCharacter->SetPosition( PosTrunc( pCharacter->GetPosition() ) );
 
-	bLanded = false;
 	if( fixedVelocity.y > velocity.y )
 	{
 		if( bJump )
