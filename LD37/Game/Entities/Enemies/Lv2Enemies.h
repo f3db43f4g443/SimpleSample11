@@ -4,6 +4,7 @@
 #include "Block.h"
 #include "Entities/Bullets.h"
 #include "Entities/Decorator.h"
+#include "Common/Rand.h"
 #include "Interfaces.h"
 
 class CLimbs : public CEnemy, public IOperateable
@@ -165,6 +166,37 @@ protected:
 	TClassTrigger<CLimbsHook> m_onChunkKilled;
 };
 
+class CLimbsCargo2 : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CLimbsCargo2( const SClassCreateContext& context ) : CEnemy( context ), m_onTick( this, &CLimbsCargo2::OnTick ) { SET_BASEOBJECT_ID( CLimbsCargo2 ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void Render( CRenderContext2D& context ) override;
+
+	bool Spawn( int8 nType );
+	void UnSpawn();
+private:
+	void OnTick();
+	void GenBarrage();
+	int8 m_nType;
+	TResourceRef<CPrefab> m_pBullet[3];
+	TResourceRef<CDrawableGroup> m_pEft;
+
+	int8 m_nState;
+	int8 m_nType1;
+	CReference<CEntity> m_pBarrage;
+	float m_fAnimTime[3];
+	CElement2D m_element2D[3];
+	int8 m_bRender[3];
+	int8 m_nAnimOrder[3][4];
+	int8 m_nAnim1[3];
+	CReference<CRenderObject2D> m_pImg;
+	TClassTrigger<CLimbsCargo2> m_onTick;
+};
+
 class CManChunk1 : public CEnemy
 {
 	friend void RegisterGameClasses();
@@ -295,6 +327,93 @@ private:
 	SCharacterPhysicsFlyData m_flyData;
 
 	TClassTrigger<CManChunkEgg> m_onChunkKilled;
+};
+
+class CManBlob : public CEntity
+{
+	friend void RegisterGameClasses();
+public:
+	CManBlob( const SClassCreateContext& context ) : CEntity( context )
+		, m_onTick( this, &CManBlob::OnTick ), m_onTick1( this, &CManBlob::OnTick1 ) { SET_BASEOBJECT_ID( CManBlob ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void Set( const CVector2& vel ) { m_vel = vel; }
+	void SetTarget( CEntity * pTarget, const CVector2& targetOfs );
+	void Kill();
+private:
+	void OnTick();
+	void OnTick1();
+
+	CReference<CEntity> m_pBlob;
+	int32 m_nSpawnCD;
+	int32 m_nLife;
+	int32 m_nFadeTime;
+	float m_fSize, m_fSize1;
+
+	bool m_bKilled;
+	CVector2 m_vel;
+	CReference<CEntity> m_pTarget;
+	CVector2 m_targetOfs;
+	float m_k, m_b;
+	int32 m_nHeadPtTime;
+	int32 m_nBegin, m_nEnd;
+	vector<CVector2> m_vecPts;
+	TClassTrigger<CManBlob> m_onTick;
+	TClassTrigger<CManBlob> m_onTick1;
+};
+
+class CGolem : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CGolem( const SClassCreateContext& context ) : CEnemy( context ), m_moveData( context ) { SET_BASEOBJECT_ID( CGolem ); }
+	virtual void OnAddedToStage() override;
+	virtual bool Knockback( const CVector2& vec ) override;
+	virtual bool IsKnockback() override;
+	void SetSeed( int32 nSeed ) { m_rand.nSeed = nSeed; }
+protected:
+	virtual void OnTickAfterHitTest() override;
+private:
+	int8 GetActionDir();
+	void OnKnockback();
+	SCharacterSurfaceWalkData m_moveData;
+	int32 m_nLife;
+	float m_fAIStepTimeMin, m_fAIStepTimeMax;
+	float m_fFallChance;
+	int32 m_nKnockbackTime;
+	float m_fKnockbackSpeed;
+	int32 m_nActionCD;
+	CReference<CRenderObject2D> m_p1;
+
+	int32 m_nLifeLeft;
+	SRand m_rand;
+	int32 m_nFramesPerSec;
+	uint32 m_nAIStepTimeLeft;
+	int8 m_nDir;
+	uint8 m_nAnimState;
+	bool m_bKnockback;
+	uint32 m_nKnockBackTimeLeft;
+
+	int32 m_nActionCDLeft;
+	int32 m_nState;
+	int32 m_nActionDir;
+	float m_fEftLen;
+};
+
+class CMechHand : public CEnemyTemplate
+{
+	friend void RegisterGameClasses();
+public:
+	CMechHand( const SClassCreateContext& context ) : CEnemyTemplate( context ) { SET_BASEOBJECT_ID( CMechHand ); }
+protected:
+	virtual void AIFunc() override;
+	CEntity* GenBarrage1( const CVector2& ofs );
+	CEntity* GenBarrage2();
+	void SetAnim( int8 nAnim );
+
+	CReference<CEntity> m_pParts[8];
+	CReference<CEntity> m_pEft;
+	TResourceRef<CPrefab> m_pBullet[3];
 };
 
 class CArmAdvanced : public CEnemyTemplate, public IAttachable

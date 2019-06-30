@@ -8,7 +8,11 @@ void CEnemy::Damage( SDamageContext& context )
 	int32 nDmg = context.nDamage;
 	if( m_nHp )
 	{
-		nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
+		if( context.bHit )
+		{
+			nDmg = ceil( nDmg * ( 1 - m_fDefence ) );
+			context.bHit = false;
+		}
 		m_nHp -= nDmg;
 		context.nDamage = nDmg;
 		if( m_nHp <= 0 )
@@ -68,7 +72,11 @@ void CEnemyPart::Damage( SDamageContext& context )
 	if( pEnemy )
 	{
 		uint8 nHitType = m_nHitType;
-		context.nDamage = ceil( context.nDamage * ( 1 - m_fDefence ) );
+		if( context.bHit )
+		{
+			context.nDamage = ceil( context.nDamage * ( 1 - m_fDefence ) );
+			context.bHit = false;
+		}
 		pEnemy->Damage( context );
 		context.nHitType = nHitType;
 	}

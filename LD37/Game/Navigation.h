@@ -13,10 +13,10 @@ public:
 class CNavigationUnit
 {
 public:
-	CNavigationUnit() : m_mapRect( 0, 0, 0, 0 ), m_gridSize( 0, 0 ), m_bCanFly( false ), m_nMaxJumpHeight( 0 ) {}
+	CNavigationUnit() : m_mapRect( 0, 0, 0, 0 ), m_gridSize( 0, 0 ), m_bForceReset( true ), m_bCanFly( false ), m_nMaxJumpHeight( 0 ) {}
 	void Set( bool bCanFly, uint32 nMaxJumpHeight, float fMaxScanDist, uint32 nGridsPerStep );
-	void Reset();
 	void Clear();
+	void ForceReset() { m_bForceReset = true; }
 	CEntity* GetTarget() { return m_pTarget; }
 	void SetTarget( CEntity* pEntity );
 	void Step( CCharacter* pChar );
@@ -70,6 +70,7 @@ public:
 	static CNavigationUnit* Alloc();
 	static void Free( CNavigationUnit* pUnit );
 private:
+	void Reset();
 	vector<SGridData> m_vecGrid;
 	TPriorityQueue<SGridData, float> m_q;
 	vector<TVector2<int32> > m_visited;
@@ -82,6 +83,7 @@ private:
 	TVector2<int32> m_curSrcGrid;
 	TVector2<int32> m_curTargetGrid;
 
+	bool m_bForceReset;
 	bool m_bCanFly;
 	uint32 m_nMaxJumpHeight;
 	float m_fMaxScanDist;

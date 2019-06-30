@@ -47,7 +47,7 @@ void CExplosion::OnTick()
 		GetStage()->MultiHitTest( &circle, globalTransform, result, &hitResult );
 		break;
 	}
-	default:
+	case 1:
 	{
 		CRectangle rect;
 		rect.x = -m_fInitRange - m_nHitFrame * m_fDeltaRange;
@@ -55,6 +55,18 @@ void CExplosion::OnTick()
 		rect.width = m_fInitRange2 + m_nHitFrame * m_fDeltaRange2 - rect.x;
 		rect.height = m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 - rect.y;
 		SHitProxyPolygon polygon( rect );
+		GetStage()->MultiHitTest( &polygon, globalTransform, result, &hitResult );
+		break;
+	}
+	default:
+	{
+		SHitProxyPolygon polygon;
+		polygon.vertices[0] = CVector2( -m_fInitRange - m_nHitFrame * m_fDeltaRange, 0 );
+		polygon.vertices[1] = CVector2( 0, -m_fInitRange1 - m_nHitFrame * m_fDeltaRange1 );
+		polygon.vertices[2] = CVector2( m_fInitRange2 + m_nHitFrame * m_fDeltaRange2, 0 );
+		polygon.vertices[3] = CVector2( 0, m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 );
+		polygon.nVertices = 4;
+		polygon.CalcNormals();
 		GetStage()->MultiHitTest( &polygon, globalTransform, result, &hitResult );
 		break;
 	}

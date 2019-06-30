@@ -1044,6 +1044,7 @@ void COperateableSawBlade::AIFunc()
 	static_cast<CParticleSystemObject*>( m_pParticle.GetPtr() )->GetInstanceData()->GetData().isEmitting = true;
 
 	float fAngle = SRand::Inst().Rand( -PI, PI );
+	float dAngle = ( bReverse ? -1 : 1 ) * SRand::Inst().Rand( 0.6f, 1.0f );
 	for( int i = 0; i <= 4; i++ )
 	{
 		auto p0 = p[i + 2];
@@ -1080,10 +1081,11 @@ void COperateableSawBlade::AIFunc()
 				if( bReverse )
 					d1 = d1 * -1;
 				pBullet->SetPosition( globalTransform.GetPosition() + pos + d1 * 32 - GetPosition() );
-				pBullet->SetRotation( fAngle );
-				pBullet->SetVelocity( d * 175 );
-				fAngle += bReverse ? -0.3f : 0.3f;
-				pBullet->SetLife( 180 );
+				pBullet->SetRotation( fAngle + PI * 0.5f );
+				pBullet->SetVelocity( d * 200 );
+				pBullet->SetAngularVelocity( bReverse ? 3.0f : -3.0f );
+				fAngle += dAngle;
+				pBullet->SetLife( 12 + 3 * ( nTotalTime / 4 ) );
 				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
 			}
 			Step( pos );
@@ -1135,6 +1137,80 @@ void COperateableSawBlade::Step( const CVector2& pos )
 	}
 
 	m_pAI->Yield( 0, false );
+}
+
+void COperateableSpawner::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+int8 COperateableSpawner::IsOperateable( const CVector2 & pos )
+{
+	if( m_onTick.IsRegistered() )
+		return 3;
+	auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
+	if( pBloodConsumer->GetBloodCount() < pBloodConsumer->GetMaxCount() )
+		return 3;
+	return 0;
+}
+
+void COperateableSpawner::Operate( const CVector2 & pos )
+{
+	m_nSpawnLeft = m_nSpawnCount;
+	m_nSpawnSeed = SRand::Inst().Rand( 1, 10000 );
+	GetStage()->RegisterBeforeHitTest( 1, &m_onTick );
+}
+
+void COperateableSpawner::UpdateRendered( double dTime )
+{
+	if( !m_bColorInited )
+	{
+		m_bColorInited = true;
+		auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+		if( pChunkObject )
+		{
+			auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+			CCargoAutoColor* p = NULL;
+			auto pRoot = pChunkObject->GetDecoratorRoot();
+			if( !pRoot )
+				pRoot = pChunkObject;
+			for( auto pChild = pRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+			{
+				p = SafeCast<CCargoAutoColor>( pChild );
+				if( p )
+					break;
+			}
+			if( p )
+			{
+				auto pParam = pImage->GetParam();
+				auto pColor = p->GetColors();
+				pParam[0].w = pColor[0].z;
+				pParam[1] = CVector4( pColor[0].x, pColor[1].x, pColor[2].x, pColor[1].z );
+				pParam[2] = CVector4( pColor[0].y, pColor[1].y, pColor[2].y, pColor[2].z );
+			}
+		}
+	}
+
+	auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
+	int32 nFrame = Min( 3, Max( 0, pBloodConsumer->GetBloodCount() * 4 / pBloodConsumer->GetMaxCount() - 1 ) );
+	SafeCast<CImage2D>( GetRenderObject() )->SetTexRect( CRectangle( nFrame % 2, nFrame / 2, 1, 1 ) * 0.5f );
+}
+
+void COperateableSpawner::OnTick()
+{
+	auto p = SafeCast<CCharacter>( m_pPrefab->GetRoot()->CreateInstance() );
+	p->SetPosition( globalTransform.GetPosition() );
+	p->SetVelocity( CVector2( 0, m_nSpawnCount - m_nSpawnLeft + m_nSpawnSeed * 8 ) );
+	p->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+	m_nSpawnLeft--;
+	if( !m_nSpawnLeft )
+	{
+		auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
+		pBloodConsumer->SetBloodCount( 0 );
+		return;
+	}
+	GetStage()->RegisterBeforeHitTest( m_nSpawnInterval, &m_onTick );
 }
 
 void COperateableAssembler::OnAddedToStage()
@@ -1221,16 +1297,20 @@ void CSlider::Init( const CVector2& size, SChunk * pPreParent )
 	float l = Max( abs( m_sliderBegin.x - m_sliderEnd.x ), abs( m_sliderBegin.y - m_sliderEnd.y ) );
 	m_nMoveTime = l * 60 / m_fSpeed;
 
+	auto rect = CRectangle( m_detectRect.x, m_detectRect.y, m_detectRect.width + size1.x, m_detectRect.height + size1.y );
+	m_rect = rect;
 	if( m_bActiveType )
 	{
-		auto rect = CRectangle( m_detectRect.x, m_detectRect.y, m_detectRect.width + size1.x, m_detectRect.height + size1.y );
-		m_rect = rect;
 		AddRect( rect );
+		if( GetStage() )
+			GetStage()->GetHitTestMgr().Add( this );
 	}
 }
 
 void CSlider::OnTickBeforeHitTest()
 {
+	if( m_nMoveTime <= 0 )
+		return;
 	GetStage()->RegisterBeforeHitTest( 1, &m_onTickBeforeHitTest );
 	if( m_nState >= 2 )
 	{
@@ -1248,6 +1328,8 @@ void CSlider::OnTickBeforeHitTest()
 
 void CSlider::OnTickAfterHitTest()
 {
+	if( m_nMoveTime <= 0 )
+		return;
 	GetStage()->RegisterAfterHitTest( 1, &m_onTickAfterHitTest );
 	if( m_nState < 2 )
 	{

@@ -32,6 +32,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Run_LevelDesign", "Run_Leve
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmad", "..\implib\libmad-0.15.1b\msvc++\libmad.vcxproj", "{EF5DF351-45F9-4813-A798-D2080C6813AF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug Multithreaded|Win32 = Debug Multithreaded|Win32
@@ -474,6 +476,38 @@ Global
 		{EF5DF351-45F9-4813-A798-D2080C6813AF}.Release|Win32.ActiveCfg = Release|Win32
 		{EF5DF351-45F9-4813-A798-D2080C6813AF}.Release|Win32.Build.0 = Release|Win32
 		{EF5DF351-45F9-4813-A798-D2080C6813AF}.Release|x64.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Multithreaded|Win32.ActiveCfg = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Multithreaded|Win32.Build.0 = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Multithreaded|x64.ActiveCfg = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Multithreaded|x64.Build.0 = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Singlethreaded|Win32.ActiveCfg = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Singlethreaded|Win32.Build.0 = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Singlethreaded|x64.ActiveCfg = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug Singlethreaded|x64.Build.0 = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug|Win32.Build.0 = Debug|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug|x64.ActiveCfg = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Debug|x64.Build.0 = Debug|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Profile|Win32.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Profile|Win32.Build.0 = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Profile|x64.ActiveCfg = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Profile|x64.Build.0 = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Multithreaded|Win32.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Multithreaded|Win32.Build.0 = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Multithreaded|x64.ActiveCfg = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Multithreaded|x64.Build.0 = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Singlethreaded|Win32.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Singlethreaded|Win32.Build.0 = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Singlethreaded|x64.ActiveCfg = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release Singlethreaded|x64.Build.0 = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release_xp|Win32.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release_xp|Win32.Build.0 = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release_xp|x64.ActiveCfg = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release_xp|x64.Build.0 = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release|Win32.ActiveCfg = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release|Win32.Build.0 = Release|Win32
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release|x64.ActiveCfg = Release|x64
+		{88ABAEC5-35C2-4E21-A45F-1D3C719ED7F9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

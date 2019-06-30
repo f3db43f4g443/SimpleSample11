@@ -57,6 +57,10 @@ void CRandomChunkTiledSimple::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 	uint32 nTileY = rect0.height / 32;
 	texRect0.width /= nTileX;
 	texRect0.height /= nTileY;
+	int32 nAltX = texRect.width / ( nX * texRect0.width );
+	int32 nAltY = texRect.height / ( nY * texRect0.height );
+	texRect.x += texRect.width / nAltX * SRand::Inst().Rand( 0, nAltX );
+	texRect.y += texRect.height / nAltY * SRand::Inst().Rand( 0, nAltY );
 	texRect.width = texRect0.width;
 	texRect.height = texRect0.height;
 
@@ -329,8 +333,8 @@ void CRandomChunk1::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 	auto rect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
 	auto texRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
-	uint32 nAltX = Max( 0u, m_nAltX );
-	uint32 nAltY = Max( 0u, m_nAltY );
+	uint32 nAltX = Max( 1u, m_nAltX );
+	uint32 nAltY = Max( 1u, m_nAltY );
 	uint32 nTileX = rect.width / 32;
 	uint32 nTileY = rect.height / 32;
 	texRect.width /= nTileX;

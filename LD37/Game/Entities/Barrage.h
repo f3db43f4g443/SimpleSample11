@@ -114,6 +114,7 @@ public:
 	void Yield( uint32 nFrame = 1 );
 
 	CEntity* GetCreator() { return pCreator; }
+	void SetCreator( CEntity* p ) { pCreator = p; }
 	uint32 GetCurFrame() { return m_nCurFrame; }
 	SBulletPage* CreatePage( uint32 nPage );
 	SLightningPage* CreateLightningPage( uint32 nPage );

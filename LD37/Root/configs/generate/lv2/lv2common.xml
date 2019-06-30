@@ -68,10 +68,11 @@
       <node name="deco_fiber1_b_1" prefab="data/misc/fiber1_b_1.pf" />
       <node name="deco_fiber1_c_1" prefab="data/misc/fiber1_c_1.pf" />
       <node name="deco_fiber1_d_1" prefab="data/misc/fiber1_d_1.pf" />
-      <node name="text_ss" prefab="data/blocks/lv2/text_ss.pf" sizex="-8" sizey="-8" sizewidth="32" sizeheight="32" />
+      <node name="text_ss" prefab="data/blocks/lv2/text_ss.pf" sizex="-8" sizey="-8" sizewidth="16" sizeheight="16" />
       <node name="cargo_auto_color" prefab="data/blocks/lv2/cargo_auto_color.pf" />
       <node name="cargo_auto_color1" prefab="data/blocks/lv2/cargo_auto_color1.pf" />
-      <node name="cargo_label" prefab="data/blocks/lv2/cargo_label.pf" sizex="-8" sizey="-8" sizewidth="32" sizeheight="32" />
+      <node name="cargo_label" prefab="data/blocks/lv2/cargo_label.pf" sizex="-8" sizey="-8" sizewidth="16" sizeheight="16" />
+      <node name="cargo2_deco_0" prefab="data/blocks/lv2/cargo2_deco_0.pf" />
       <node name="fence" prefab="data/blocks/lv2/fence.pf" />
       <node name="roadsign" prefab="data/blocks/lv2/roadsign.pf" />
       <node name="bar_label" prefab="data/blocks/lv2/bar_label.pf" />
@@ -79,7 +80,11 @@
       <node name="billboard_deco" prefab="data/blocks/lv2/billboard_deco.pf" />
       <node name="conveyor_r" prefab="data/blocks/lv2/conveyor_r.pf" />
       <node name="conveyor_l" prefab="data/blocks/lv2/conveyor_l.pf" />
+      <node name="sawblade_slider_0" prefab="data/blockitems/cargos/sawblade_slider_0.pf" />
       <node name="sawblade_slider_1" prefab="data/blockitems/cargos/sawblade_slider_1.pf" />
+      <node name="sawblade_slider_2" prefab="data/blockitems/cargos/sawblade_slider_2.pf" />
+      <node name="sawblade_slider_3" prefab="data/blockitems/cargos/sawblade_slider_3.pf" />
+      <node name="sawblade_slider_h" prefab="data/blockitems/cargos/sawblade_slider_h.pf" />
     </spawns>
     <scrollobjs>
       <node name="lv2_scroll_0" prefab="data/scrollobjs/lv2_0.pf" scrollobj_type="0" />
@@ -146,13 +151,16 @@
         </next_level>
       </node>
 
-      <node name="block2" width="1" height="1" weight="0.5" layer_type="2" destroyweight="3" absorbshakestrength="1" absorbshakestrengthperheight="1"
-           weightperwidth="0.5" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" ctag2="1" prefab="data/blocks/lv2/block2.pf">
+      <node name="block2" width="1" height="1" weight="0.5" layer_type="1" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="0.5" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block2.pf">
         <metadata minx="1" miny="1" maxx="4" maxy="4" />
-        <types>4</types>
-        <next_level>
-          <ref name="limbs0" />
-        </next_level>
+        <types>0</types>
+      </node>
+
+      <node name="block2_bar" width="1" height="1" weight="0.5" layer_type="1" destroyweight="3" absorbshakestrength="10000"
+           weightperwidth="0.5" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block2_bar.pf">
+        <metadata minx="4" maxx="32" />
+        <types>0</types>
       </node>
 
       <node name="metal_broken" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/blocks/lv2/metal_broken.pf">
@@ -228,7 +236,20 @@
 
       <node name="building" movetype="1" width="1" height="1" weight="0.5" weightperwidth="0.5" destroyweight="2.5" destroyweightperwidth="2.5" shakeweightcoef="1"
             absorbshakestrength="10000" destroyshake="20" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/building.pf">
-        <metadata minx="2" miny="2" maxx="32" maxy="32" />
+        <metadata minx="2" miny="2" maxx="32" maxy="32">
+          <types>
+            <item name="1" />
+            <item name="2" />
+            <item name="3" />
+          </types>
+        </metadata>
+        <subitem copy_blueprint="2">
+          <node type="subregion">
+            <node type="filltag" gen_data_name="1" tag="1" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="2" tag="2" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="3" tag="3" x="0" y="0" w="0" h="0" />
+          </node>
+        </subitem>
         <types>2</types>
       </node>
       
@@ -315,6 +336,17 @@
             <ref name="conveyor_l" x="0" y="0" w="0" h="0" />
           </node>
         </next_level>
+      </node>
+
+      <node name="bar0_2" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="10000"
+           weightperwidth="1" destroyweightperwidth="5" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/bar0_2.pf">
+        <metadata minx="3" maxx="32" chain_type1="0" chain_type2="1"/>
+        <types>2</types>
+        <subitem>
+          <node type="tile">
+            <ref name="metal_broken" />
+          </node>
+        </subitem>
       </node>
       
       <node name="bar1" layer_type="2" width="8" height="1" weight="8" destroyweight="40" absorbshakestrength="24" absorbshakestrengthperheight="3"

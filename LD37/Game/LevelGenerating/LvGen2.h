@@ -300,65 +300,237 @@ private:
 	CReference<CLevelGenerateNode> m_pChainNode;
 };
 
-class CLevelGenNode2_2_2 : public CLevelGenerateNode
+class CLv2WallNode : public CLevelGenerateNode
 {
 public:
 	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
 private:
-	void GenPath();
-	void GenObjs();
+	string m_strMask;
+	CReference<CLevelGenerateNode> m_pNode;
+	CReference<CLevelGenerateNode> m_pNode0;
+	CReference<CLevelGenerateNode> m_pBar0;
+};
 
-	void AddRoad( const TRectangle<int32>& r );
-	void AddRoom( const TRectangle<int32>& r, bool bLeft, bool bRight, bool bTop, bool bBottom );
-	void AddChunk( const TRectangle<int32>& r, vector<TRectangle<int32> >& chunks );
-	void AddBigChunk( const TRectangle<int32>& r, int8 nType );
-	void AddThruster( const TRectangle<int32>& r );
-	void AddSupport( const TRectangle<int32>& r );
-
-	void ProcessTempBar( const vector<TRectangle<int32> >& v );
-	void ProcessTempChunks( const vector<TRectangle<int32> >& v );
-	void AddThrusters( const TRectangle<int32>& r );
-	void GenBigChunk( const TRectangle<int32>& r, int8 nType );
-
+class CLevelGenNode2_3_0 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenBase();
+	void GenArea( const TRectangle<int32>& rect );
+	void AddRooms( const TRectangle<int32>& r, TVector4<int8> doors, const TVector2<int32>& ofs, int32 nCount, bool bFlip, bool bRoomType );
+	void AddChunk( const TRectangle<int32>& rect, int8 nType, vector<TRectangle<int32> >* pVec, bool b = false );
+	void GenArea1( const TRectangle<int32>& rect1, const TRectangle<int32>& rect2, const TVector2<int32>& ofs, int32 nCount );
+	void AddWall1( const TRectangle<int32>& rect );
 	enum
 	{
 		eType_None,
-		eType_Road,
-		eType_Blocked,
-		eType_Chunk,
-		eType_Chunk1,
-		eType_Thruster,
+		eType_Wall,
 
-		eType_Room,
-		eType_Door,
+		eType_Wall1,
+		eType_Room_1,
+		eType_Room_2,
+		eType_Room_Door,
+
+		eType_Control_Room,
+		eType_Control_Room_1,
+		eType_Control_Room_2,
+		eType_Control_Room_3,
+		eType_Control_Room_4,
+		eType_Control_Room_5,
+
+		eType_Billboard,
+		eType_Billboard_1,
+		eType_Billboard_2,
+
+		eType_Cargo1,
+		eType_Cargo1_1,
+		eType_Cargo1_2,
+		eType_Cargo1_3,
+		eType_Cargo1_4,
+		eType_Cargo1_5,
+		eType_Cargo1_6,
+
+		eType_Cargo2,
+		eType_Cargo2_1,
+
+		eType_Building,
+		eType_Building_1,
+		eType_Building_2,
+		eType_Building_3,
+		eType_Chunk,
+
+		eType_Obj,
+		eType_Obj1,
+		eType_Temp0,
+		eType_Temp1,
+		eType_Temp2,
+		eType_Temp3,
+	};
+
+	SLevelBuildContext* m_pContext;
+	TRectangle<int32> m_region;
+	vector<int8> m_gendata;
+	vector<int8> m_gendata1;
+
+	vector<TRectangle<int32> > m_vecWall1;
+	vector<TVector2<int32> > m_vecBlocks[4];
+	vector<TRectangle<int32> > m_vecChunk1[2];
+	vector<TRectangle<int32> > m_vecChunk2[2];
+	vector<TRectangle<int32> > m_vecChunk3[2];
+	vector<TRectangle<int32> > m_vecChunk4[2];
+
+	vector<TRectangle<int32> > m_vecBuildings;
+	vector<TRectangle<int32> > m_vecRooms;
+	vector<TRectangle<int32> > m_vecBillboards;
+	vector<TRectangle<int32> > m_vecCargos;
+	vector<TRectangle<int32> > m_vecCargos1;
+	vector<TRectangle<int32> > m_vecCargos2;
+	struct SControlRoom
+	{
+		TRectangle<int32> rect;
+		uint8 b[4];
+	};
+	vector<SControlRoom> m_vecControlRooms;
+	vector<TVector2<int32> > m_vecBroken;
+	vector<TVector2<int32> > m_vecBox;
+	vector<TRectangle<int32> > m_vecBar0[3];
+	vector<TRectangle<int32> > m_vecBar[2];
+	vector<TRectangle<int32> > m_vecBar_a[2];
+	vector<TRectangle<int32> > m_vecSawBlade[4];
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pWall1Node;
+	CReference<CLevelGenerateNode> m_pBlockNode[4];
+	CReference<CLevelGenerateNode> m_pChunkNode1[2];
+	CReference<CLevelGenerateNode> m_pChunkNode2[2];
+	CReference<CLevelGenerateNode> m_pChunkNode3[2];
+	CReference<CLevelGenerateNode> m_pChunkNode4[2];
+	CReference<CLevelGenerateNode> m_pBuildingNode;
+
+	CReference<CLevelGenerateNode> m_pRoomNode;
+	CReference<CLevelGenerateNode> m_pBillboardNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo1Node;
+	CReference<CLevelGenerateNode> m_pCargo2Node;
+	CReference<CLevelGenerateNode> m_pBrokenNode;
+	CReference<CLevelGenerateNode> m_pBoxNode;
+	CReference<CLevelGenerateNode> m_pBar0Node[3];
+	CReference<CLevelGenerateNode> m_pBarNode[2];
+	CReference<CLevelGenerateNode> m_pBarNode_a[2];
+	CReference<CLevelGenerateNode> m_pControlRoomNode;
+	CReference<CLevelGenerateNode> m_pSawBladeNode[4];
+};
+
+class CLevelGenNode2_3_1 : public CLevelGenerateNode
+{
+public:
+	virtual void Load( TiXmlElement* pXml, struct SLevelGenerateNodeLoadContext& context ) override;
+	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override;
+private:
+	void GenBase();
+
+	void GenBillboard( const TRectangle<int32>& rect );
+	int32 GenTrap( const TRectangle<int32>& bar, const TRectangle<int32>& r1, int8 nDir, int8 nDir1 );
+	void GenWorkshop( const TRectangle<int32>& r, const TVector2<int32>& p0 );
+	void GenWorkshop1( const TRectangle<int32>& r, const TVector2<int32>& p0 );
+	void GenWorkshopRooms( const TRectangle<int32>& r, const TVector2<int32>& ofs, int8 nDir, int32 nCount );
+	void AddChunk( const TRectangle<int32>& rect, int8 nType, vector<TRectangle<int32> >* pVec );
+	enum
+	{
+		eType_None,
+		eType_Wall,
+
+		eType_Wall1,
+		eType_Room_1,
+		eType_Room_2,
+		eType_Room_Door,
+
+		eType_Control_Room,
+		eType_Control_Room_1,
+		eType_Control_Room_2,
+		eType_Control_Room_3,
+		eType_Control_Room_4,
+		eType_Control_Room_5,
+
+		eType_Billboard,
+		eType_Billboard_1,
+		eType_Billboard_2,
+
+		eType_Cargo1,
+		eType_Cargo1_1,
+		eType_Cargo1_2,
+		eType_Cargo1_3,
+		eType_Cargo1_4,
+		eType_Cargo1_5,
+		eType_Cargo1_6,
+
+		eType_Cargo2,
+		eType_Cargo2_1,
+		eType_Cargo2_2,
+		eType_Cargo2_3,
+		eType_Cargo2_4,
+		eType_Chunk,
+
+		eType_Obj,
+		eType_Obj1,
+		eType_Temp0,
+		eType_Temp1,
+		eType_Temp2,
+		eType_Temp3,
 	};
 
 	SLevelBuildContext* m_pContext;
 	TRectangle<int32> m_region;
 	vector<int8> m_gendata;
 
-	vector<TRectangle<int32> > m_vecChunks;
-	vector<TRectangle<int32> > m_vecBars;
-	vector<TRectangle<int32> > m_vecSupports;
-	vector<TRectangle<int32> > m_vecRoads;
-	vector<TRectangle<int32> > m_vecCargos;
-	vector<TRectangle<int32> > m_vecBigChunk1;
-	vector<TRectangle<int32> > m_vecBigChunk1_1;
-	vector<TRectangle<int32> > m_vecBigChunk2;
-	vector<TRectangle<int32> > m_vecRooms;
-	vector<TRectangle<int32> > m_vecThrusters;
+	vector<TVector2<int32> > m_vecBlocks[4];
+	vector<TRectangle<int32> > m_vecChunk1[2];
+	vector<TRectangle<int32> > m_vecChunk2[2];
+	vector<TRectangle<int32> > m_vecChunk3[2];
+	vector<TRectangle<int32> > m_vecChunk4[2];
 
-	CReference<CLevelGenerateNode> m_pChunkNode;
-	CReference<CLevelGenerateNode> m_pBarNode;
-	CReference<CLevelGenerateNode> m_pSupportANode;
-	CReference<CLevelGenerateNode> m_pSupportBNode;
-	CReference<CLevelGenerateNode> m_pRoadNode;
-	CReference<CLevelGenerateNode> m_pCargoNode;
-	CReference<CLevelGenerateNode> m_pBigChunk1Node;
-	CReference<CLevelGenerateNode> m_pBigChunk2Node;
+	vector<TRectangle<int32> > m_vecBuildings;
+	vector<TRectangle<int32> > m_vecRooms;
+	vector<TRectangle<int32> > m_vecBillboards;
+	vector<TRectangle<int32> > m_vecCargos;
+	vector<TRectangle<int32> > m_vecCargos1;
+	vector<TRectangle<int32> > m_vecCargos2;
+	struct SControlRoom
+	{
+		TRectangle<int32> rect;
+		uint8 b[4];
+	};
+	vector<SControlRoom> m_vecControlRooms;
+	vector<TVector2<int32> > m_vecBroken;
+	vector<TVector2<int32> > m_vecBox;
+	vector<TRectangle<int32> > m_vecBar0[3];
+	vector<TRectangle<int32> > m_vecBar[2];
+	vector<TRectangle<int32> > m_vecBar_a[2];
+	vector<TRectangle<int32> > m_vecSawBlade[4];
+
+	CReference<CLevelGenerateNode> m_pWallNode;
+	CReference<CLevelGenerateNode> m_pBlockNode[4];
+	CReference<CLevelGenerateNode> m_pChunkNode1[2];
+	CReference<CLevelGenerateNode> m_pChunkNode2[2];
+	CReference<CLevelGenerateNode> m_pChunkNode3[2];
+	CReference<CLevelGenerateNode> m_pChunkNode4[2];
+	CReference<CLevelGenerateNode> m_pBuildingNode;
+
 	CReference<CLevelGenerateNode> m_pRoomNode;
-	CReference<CLevelGenerateNode> m_pThrusterNode;
-	CReference<CLevelGenerateNode> m_pFill1Node;
-	CReference<CLevelGenerateNode> m_pFill2Node;
+	CReference<CLevelGenerateNode> m_pBillboardNode;
+	CReference<CLevelGenerateNode> m_pCargoNode;
+	CReference<CLevelGenerateNode> m_pCargo1Node;
+	CReference<CLevelGenerateNode> m_pCargo2Node;
+	CReference<CLevelGenerateNode> m_pBrokenNode;
+	CReference<CLevelGenerateNode> m_pBoxNode;
+	CReference<CLevelGenerateNode> m_pBar0Node[3];
+	CReference<CLevelGenerateNode> m_pBarNode[2];
+	CReference<CLevelGenerateNode> m_pBarNode_a[2];
+	CReference<CLevelGenerateNode> m_pControlRoomNode;
+	CReference<CLevelGenerateNode> m_pSawBladeNode[4];
+
+	vector<pair<TRectangle<int32>, TVector2<int32> > > m_vecTempWorkshop1;
 };

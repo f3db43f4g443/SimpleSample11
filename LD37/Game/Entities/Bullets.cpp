@@ -61,9 +61,15 @@ void CBomb::Explode()
 	{
 		auto pParent = SafeCast<CBarrage>( GetParentEntity() );
 		if( pParent )
+		{
 			m_pExp->SetPosition( globalTransform.GetPosition() );
+			m_pExp->SetRotation( atan2( globalTransform.m10, globalTransform.m00 ) );
+		}
 		else
+		{
 			m_pExp->SetPosition( GetPosition() );
+			m_pExp->SetRotation( GetRotation() );
+		}
 		auto pExplosion = SafeCast<CExplosion>( m_pExp.GetPtr() );
 		if( pExplosion )
 			pExplosion->SetCreator( m_pCreator );
@@ -1097,21 +1103,23 @@ void CBloodPower::OnTickBeforeHitTest()
 	if( !m_bKilled && m_pTarget )
 	{
 		CCharacter::OnTickBeforeHitTest();
-		CVector2 d = m_pTarget->globalTransform.GetPosition() - GetPosition();
-		float l = d.Length();
+		auto hitRect = SafeCast<CBloodConsumer>( m_pTarget.GetPtr() )->GetHitRect();
+		CVector2 d = m_pTarget->globalTransform.MulTVector2PosNoScale( GetPosition() );
+		CVector2 d1( d.x - Max( Min( d.x, hitRect.GetRight() ), hitRect.x ), d.y - Max( Min( d.y, hitRect.GetBottom() ), hitRect.y ) );
+		float l = d1.Length();
 		float v = m_velocity.Length();
 		float l1 = v * GetStage()->GetElapsedTimePerTick();
 		if( l1 >= l )
 		{
-			SetPosition( m_pTarget->globalTransform.GetPosition() );
+			SetPosition( m_pTarget->globalTransform.MulVector2Pos( d1 ) );
 			SafeCast<CBloodConsumer>( m_pTarget.GetPtr() )->SetBloodCount( SafeCast<CBloodConsumer>( m_pTarget.GetPtr() )->GetBloodCount() + 1 );
 			ForceUpdateTransform();
 			Kill();
 			return;
 		}
-		d = d / l;
-		SetPosition( GetPosition() + d * l1 );
-		m_velocity = d * v;
+		auto d2 = d1 / l;
+		SetPosition( m_pTarget->globalTransform.MulVector2Pos( d - d2 ) );
+		m_velocity = m_pTarget->globalTransform.MulVector2Dir( d2 * v );
 		if( m_bTangentDir )
 			SetRotation( atan2( m_velocity.y, m_velocity.x ) );
 		else
@@ -1136,7 +1144,7 @@ void CBloodPower::OnTickAfterHitTest()
 			for( CEntity* pEntity : vecTemp )
 			{
 				auto p = SafeCast<CBloodConsumer>( pEntity );
-				if( !p )
+				if( !p || p->GetType() != 0 )
 					continue;
 				if( p->GetBloodCount() >= p->GetMaxCount() )
 					continue;

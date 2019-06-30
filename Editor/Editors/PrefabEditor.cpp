@@ -655,8 +655,16 @@ public:
 			m_onRefresh[i].Set( this, &CTileMapNodeData::Refresh );
 		m_pTileSize->Register( CUIElement::eEvent_Action, &m_onRefresh[0] );
 		m_pBaseOffset->Register( CUIElement::eEvent_Action, &m_onRefresh[1] );
-		m_pTileSize->Register( CUIElement::eEvent_Action, &m_onRefresh[2] );
+		m_pWidth->Register( CUIElement::eEvent_Action, &m_onRefresh[2] );
 		m_pHeight->Register( CUIElement::eEvent_Action, &m_onRefresh[3] );
+
+		m_pTileExt = CVectorEdit::Create( "Tile Ext", 4 );
+		pView->AddContentChild( m_pTileExt, m_pResRoot );
+		m_pExt = static_cast<CUIButton*>( CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/button.xml" )->GetElement()->Clone() );
+		pView->AddContentChild( m_pExt, m_pResRoot );
+		m_onExt.Set( this, &CTileMapNodeData::OnExt );
+		m_pExt->Register( CUIElement::eEvent_Action, &m_onExt );
+		m_pExt->SetText( "Ext" );
 
 		m_pEnableEdit = CBoolEdit::Create( "Enable Edit" );
 		pView->AddContentChild( m_pEnableEdit, m_pResRoot );
@@ -691,6 +699,8 @@ public:
 		}
 		if( m_onFill.IsRegistered() )
 			m_onFill.Unregister();
+		if( m_onExt.IsRegistered() )
+			m_onExt.Unregister();
 		m_pView->RemoveContentTree( m_pResRoot );
 	}
 	
@@ -781,11 +791,20 @@ protected:
 		}
 		pTileMap->RefreshAll();
 	}
+
+	void OnExt()
+	{
+		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
+		auto size = m_pTileExt->GetFloat4();
+		pTileMap->Resize( TRectangle<int32>( size.x, size.y, size.z, size.w ) );
+		RefreshData();
+	}
 private:
 	CUITreeView* m_pView;
 	CReference<CUITreeView::CTreeViewContent> m_pResRoot;
 	
 	CReference<CVectorEdit> m_pTileSize;
+	CReference<CVectorEdit> m_pTileExt;
 	CReference<CVectorEdit> m_pBaseOffset;
 	CReference<CCommonEdit> m_pWidth;
 	CReference<CCommonEdit> m_pHeight;
@@ -793,12 +812,14 @@ private:
 	CReference<CBoolEdit> m_pEnableEdit;
 	CReference<CCommonEdit> m_pCurEditType;
 	CReference<CUIButton> m_pFill;
+	CReference<CUIButton> m_pExt;
 
 	bool m_bDragging;
 	bool m_bEnableEdit;
 	uint32 m_nCurEditType;
 	
 	TClassTrigger<CTileMapNodeData> m_onFill;
+	TClassTrigger<CTileMapNodeData> m_onExt;
 	TClassTrigger<CTileMapNodeData> m_onRefresh[4];
 	TClassTrigger<CTileMapNodeData> m_onEditTypeChanged[2];
 };

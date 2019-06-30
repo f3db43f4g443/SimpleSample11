@@ -289,6 +289,8 @@ SChunk* CMyLevel::CreateGrids( const char* szNode, SChunk* pLevelBarrier )
 	CLevelGenerateNode* pNode = cfg.pRootGenerateFile->FindNode( szNode );
 	if( pNode->GetMetadata().nSeed )
 		SRand::Inst().nSeed = pNode->GetMetadata().nSeed;
+	static int32 nSeed;
+	nSeed = SRand::Inst().nSeed;
 	pNode->Generate( context, TRectangle<int32>( 0, 0, m_nWidth, m_nHeight ) );
 	context.Build();
 	uint32 nCurBarrierHeight = m_vecBarrierHeightTags.size() ? m_vecBarrierHeightTags.back() : 0;
@@ -454,10 +456,7 @@ void CMyLevel::RemoveChunk( SChunk* pChunk )
 			}
 		}
 
-		for( auto& basement : m_basements )
-		{
-			basement.fShakeStrength += pChunk->nDestroyShake;
-		}
+		m_fShakeStrength += pChunk->nDestroyShake;
 	}
 	else
 		pChunk->RemoveFrom_SubChunk();
@@ -670,14 +669,6 @@ void CMyLevel::RemoveChain( SChain* pChain )
 	delete pChain;
 }
 
-void CMyLevel::AddShakeStrength( float fShakeStrength )
-{
-	for( auto& basement : m_basements )
-	{
-		basement.fShakeStrength += fShakeStrength;
-	}
-}
-
 bool CMyLevel::IsReachEnd()
 {
 	for( auto& basement : m_basements )
@@ -760,6 +751,7 @@ void CMyLevel::UpdateBlocksMovement()
 	}
 	else 
 		UpdateBlocksMovementNormal();
+	m_fShakeStrengthCurFrame = 0;
 
 	SChunk* pLevelBarrier = NULL;
 	for( auto pBlock = m_basements[0].layers[0].Get_BlockLayer(); pBlock; pBlock = pBlock->NextBlockLayer() )
@@ -792,6 +784,7 @@ void CMyLevel::UpdateBlocksMovementNormal()
 	auto& vecUpdatedBlocks = m_vecUpdatedBlocks;
 	auto& vecUpdatedChunks = m_vecUpdatedChunks;
 	uint32 nUpdatedBlock = 0;
+	int32 nCurShakeStrength = ceil( m_fShakeStrength + m_fShakeStrengthCurFrame );
 	for( auto& basement : m_basements )
 	{
 		for( int iLayer = 0; iLayer < 2; iLayer++ )
@@ -802,7 +795,7 @@ void CMyLevel::UpdateBlocksMovementNormal()
 				vecUpdatedBlocks.push_back( pBlockLayer );
 			}
 			basement.layers[iLayer].pVisitedBlock = NULL;
-			basement.layers[iLayer].nCurShakeStrength = ceil( basement.fShakeStrength );
+			basement.layers[iLayer].nCurShakeStrength = nCurShakeStrength;
 			basement.layers[iLayer].nShakeHeight = -1;
 		}
 	}
@@ -1952,9 +1945,9 @@ void CMyLevel::UpdateShake()
 			basementLayer.nCurShakeStrength = 0;
 			nShakeHeight = Max( nShakeHeight, basementLayer.nShakeHeight );
 		}
-		basement.fShakeStrength = Max( 0.0f, basement.fShakeStrength * 0.95f - 0.02f );
 		pMainUI->UpdateShakeSmallBar( i, nShakeHeight >= 0 ? Min( nShakeHeight, (int32)m_nHeight ) : (int32)m_nHeight );
 	}
+	m_fShakeStrength = Max( 0.0f, m_fShakeStrength * 0.95f - 0.02f );
 }
 
 void CMyLevel::CheckSpawn()

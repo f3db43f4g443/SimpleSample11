@@ -191,6 +191,9 @@
     <ClCompile Include="LevelGenerating\LvBonusGen2.cpp">
       <Filter>LevelGenerating</Filter>
     </ClCompile>
+    <ClCompile Include="LevelGenerating\LvGen2_3.cpp">
+      <Filter>LevelGenerating</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />

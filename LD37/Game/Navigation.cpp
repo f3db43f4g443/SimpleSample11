@@ -10,11 +10,12 @@ void CNavigationUnit::Set( bool bCanFly, uint32 nMaxJumpHeight, float fMaxScanDi
 	m_nMaxJumpHeight = nMaxJumpHeight;
 	m_fMaxScanDist = fMaxScanDist;
 	m_nGridsPerStep = nGridsPerStep;
-	Reset();
+	m_bForceReset = true;
 }
 
 void CNavigationUnit::Reset()
 {
+	m_bForceReset = false;
 	m_trigger.Trigger( 0, NULL );
 	for( auto pos : m_visited )
 	{
@@ -41,7 +42,7 @@ void CNavigationUnit::Clear()
 void CNavigationUnit::SetTarget( CEntity * pEntity )
 {
 	m_pTarget = pEntity;
-	Reset();
+	m_bForceReset = true;
 }
 
 void CNavigationUnit::Step( CCharacter * pChar )
@@ -53,145 +54,148 @@ void CNavigationUnit::Step( CCharacter * pChar )
 	auto mapRect = pProvider->GetMapRect();
 	if( gridSize != m_gridSize || mapRect != m_mapRect )
 	{
-		Reset();
+		m_bForceReset = true;
 		m_gridSize = gridSize;
 		m_mapRect = mapRect;
 		m_vecGrid.resize( mapRect.width * mapRect.height );
 	}
 
-	bool bReset = false;
-	for( int i = 0; i < m_nGridsPerStep && m_q.Size(); i++ )
+	bool bReset = m_bForceReset;
+	if( !bReset )
 	{
-		auto pGrid = static_cast<SGridData*>( m_q.Pop() );
-		pGrid->bClosed = true;
-		if( pGrid->pos == m_curTargetGrid )
+		for( int i = 0; i < m_nGridsPerStep && m_q.Size(); i++ )
 		{
-			m_trigger.Trigger( 1, pGrid );
-			bReset = true;
-			break;
-		}
-		if( !m_pTarget && ( pGrid->pos - m_curSrcGrid ).Length2() > m_fMaxScanDist * m_fMaxScanDist )
-		{
-			bReset = true;
-			break;
-		}
-
-		m_trigger.Trigger( 0, pGrid );
-
-		bool bFall = !m_bCanFly && pGrid->nType == 1 && pGrid->pos.y > 0
-			&& CacheGridData( TVector2<int32>( pGrid->pos.x, pGrid->pos.y - 1 ), pProvider ).nType > 0;
-		TVector2<int32> ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
-		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
-		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
-		{
-			TVector2<int32> pos1 = pGrid->pos;
-			if( bFall && ofs[j].y != -1 )
-				continue;
-
-			float fDist = pGrid->fDist;
-			while( 1 )
+			auto pGrid = static_cast<SGridData*>( m_q.Pop() );
+			pGrid->bClosed = true;
+			if( pGrid->pos == m_curTargetGrid )
 			{
-				pos1 = pos1 + ofs[j];
-				if( pos1.x < 0 || pos1.y < 0 || pos1.x >= mapRect.width || pos1.y >= mapRect.height )
-					break;
+				m_trigger.Trigger( 1, pGrid );
+				bReset = true;
+				break;
+			}
+			if( !m_pTarget && ( pGrid->pos - m_curSrcGrid ).Length2() > m_fMaxScanDist * m_fMaxScanDist )
+			{
+				bReset = true;
+				break;
+			}
 
-				auto& grid1 = CacheGridData( pos1, pProvider );
-				if( grid1.bClosed )
-					break;
+			m_trigger.Trigger( 0, pGrid );
 
-				if( grid1.nType == 0 )
-					break;
+			bool bFall = !m_bCanFly && pGrid->nType == 1 && pGrid->pos.y > 0
+				&& CacheGridData( TVector2<int32>( pGrid->pos.x, pGrid->pos.y - 1 ), pProvider ).nType > 0;
+			TVector2<int32> ofs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+			SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+			for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
+			{
+				TVector2<int32> pos1 = pGrid->pos;
+				if( bFall && ofs[j].y != -1 )
+					continue;
 
-				if( !m_bCanFly )
+				float fDist = pGrid->fDist;
+				while( 1 )
 				{
-					if( grid1.nType == 1 )
+					pos1 = pos1 + ofs[j];
+					if( pos1.x < 0 || pos1.y < 0 || pos1.x >= mapRect.width || pos1.y >= mapRect.height )
+						break;
+
+					auto& grid1 = CacheGridData( pos1, pProvider );
+					if( grid1.bClosed )
+						break;
+
+					if( grid1.nType == 0 )
+						break;
+
+					if( !m_bCanFly )
 					{
-						if( ofs[j].y == 1 )
-							break;
-						fDist += 1;
+						if( grid1.nType == 1 )
+						{
+							if( ofs[j].y == 1 )
+								break;
+							fDist += 1;
+						}
+						else
+							fDist += 1;
 					}
 					else
 						fDist += 1;
-				}
-				else
-					fDist += 1;
 
-				if( grid1.fDist <= fDist )
-					break;
-
-				grid1.fDist = fDist;
-				grid1.par = pGrid->pos;
-				grid1.nParType = 0;
-				if( !grid1.bInserted )
-				{
-					m_q.Insert( &grid1 );
-					grid1.bInserted = true;
-				}
-				else
-					m_q.Modify( &grid1 );
-
-				if( grid1.nType != pGrid->nType )
-					break;
-			}
-		}
-
-		if( !m_bCanFly && m_nMaxJumpHeight && pGrid->pos.y < mapRect.height - 1 )
-		{
-			bool bJump = false;
-			if( pGrid->nType == 1 && !bFall )
-				bJump = true;
-			else if( pGrid->nType == 2 && CacheGridData( TVector2<int32>( pGrid->pos.x, pGrid->pos.y + 1 ), pProvider ).nType == 1 )
-				bJump = true;
-			if( bJump )
-			{
-				int32 w = 2;
-				int32 x = pGrid->pos.x;
-				int32 yMax = Min<int32>( mapRect.height - 1, pGrid->pos.y + m_nMaxJumpHeight );
-				int8 b = SRand::Inst().Rand( 0, 2 );
-				for( int y = pGrid->pos.y + 1; y <= yMax; y++, w += 2 )
-				{
-					auto& grid1 = CacheGridData( TVector2<int32>( x, y ), pProvider );
-					if( grid1.bClosed )
+					if( grid1.fDist <= fDist )
 						break;
-					if( grid1.nType == 0 )
-						break;
-					float fDist = pGrid->fDist + w;
-					if( grid1.fDist > fDist )
+
+					grid1.fDist = fDist;
+					grid1.par = pGrid->pos;
+					grid1.nParType = 0;
+					if( !grid1.bInserted )
 					{
-						grid1.fDist = fDist;
-						grid1.par = pGrid->pos;
-						grid1.nParType = 1;
-						if( !grid1.bInserted )
-						{
-							m_q.Insert( &grid1 );
-							grid1.bInserted = true;
-						}
-						else
-							m_q.Modify( &grid1 );
+						m_q.Insert( &grid1 );
+						grid1.bInserted = true;
 					}
+					else
+						m_q.Modify( &grid1 );
 
-					if( grid1.nType == 2 )
+					if( grid1.nType != pGrid->nType )
 						break;
-					fDist = fDist + 1;
-					for( int k = 0; k < 2; k++ )
-					{
-						int32 x1 = x + ( ( k ^ b ) ? 1 : -1 );
-						if( x1 < 0 || x1 >= mapRect.width )
-							continue;
-						auto& grid2 = CacheGridData( TVector2<int32>( x1, y ), pProvider );
-						if( grid2.bClosed || grid2.nType == 0 || grid2.fDist <= fDist )
-							continue;
+				}
+			}
 
-						grid2.fDist = fDist;
-						grid2.par = pGrid->pos;
-						grid2.nParType = 1;
-						if( !grid2.bInserted )
+			if( !m_bCanFly && m_nMaxJumpHeight && pGrid->pos.y < mapRect.height - 1 )
+			{
+				bool bJump = false;
+				if( pGrid->nType == 1 && !bFall )
+					bJump = true;
+				else if( pGrid->nType == 2 && CacheGridData( TVector2<int32>( pGrid->pos.x, pGrid->pos.y + 1 ), pProvider ).nType == 1 )
+					bJump = true;
+				if( bJump )
+				{
+					int32 w = 2;
+					int32 x = pGrid->pos.x;
+					int32 yMax = Min<int32>( mapRect.height - 1, pGrid->pos.y + m_nMaxJumpHeight );
+					int8 b = SRand::Inst().Rand( 0, 2 );
+					for( int y = pGrid->pos.y + 1; y <= yMax; y++, w += 2 )
+					{
+						auto& grid1 = CacheGridData( TVector2<int32>( x, y ), pProvider );
+						if( grid1.bClosed )
+							break;
+						if( grid1.nType == 0 )
+							break;
+						float fDist = pGrid->fDist + w;
+						if( grid1.fDist > fDist )
 						{
-							m_q.Insert( &grid2 );
-							grid2.bInserted = true;
+							grid1.fDist = fDist;
+							grid1.par = pGrid->pos;
+							grid1.nParType = 1;
+							if( !grid1.bInserted )
+							{
+								m_q.Insert( &grid1 );
+								grid1.bInserted = true;
+							}
+							else
+								m_q.Modify( &grid1 );
 						}
-						else
-							m_q.Modify( &grid2 );
+
+						if( grid1.nType == 2 )
+							break;
+						fDist = fDist + 1;
+						for( int k = 0; k < 2; k++ )
+						{
+							int32 x1 = x + ( ( k ^ b ) ? 1 : -1 );
+							if( x1 < 0 || x1 >= mapRect.width )
+								continue;
+							auto& grid2 = CacheGridData( TVector2<int32>( x1, y ), pProvider );
+							if( grid2.bClosed || grid2.nType == 0 || grid2.fDist <= fDist )
+								continue;
+
+							grid2.fDist = fDist;
+							grid2.par = pGrid->pos;
+							grid2.nParType = 1;
+							if( !grid2.bInserted )
+							{
+								m_q.Insert( &grid2 );
+								grid2.bInserted = true;
+							}
+							else
+								m_q.Modify( &grid2 );
+						}
 					}
 				}
 			}

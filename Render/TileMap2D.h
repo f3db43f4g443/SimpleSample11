@@ -46,6 +46,7 @@ public:
 	void SetTileSize( const CVector2& tileSize ) { Set( tileSize, m_baseOffset, m_nWidth, m_nHeight ); }
 	void SetBaseOffset( const CVector2& baseOffset ) { Set( m_tileSize, baseOffset, m_nWidth, m_nHeight ); }
 	void SetSize( uint32 nWidth, uint32 nHeight ) { Set( m_tileSize, m_baseOffset, nWidth, nHeight ); }
+	void Resize( const TRectangle<int32>& rect );
 	void Set( const CVector2& tileSize, const CVector2& baseOffset, uint32 nWidth, uint32 nHeight );
 
 	void CopyData( CTileMap2D* pCopyFrom );

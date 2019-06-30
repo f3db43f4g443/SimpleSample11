@@ -210,6 +210,33 @@ private:
 	CRectangle m_chunkRect;
 };
 
+class COperateableSpawner : public CEntity, public IOperateable
+{
+	friend void RegisterGameClasses();
+public:
+	COperateableSpawner( const SClassCreateContext& context ) : CEntity( context )
+		, m_onTick( this, &COperateableSpawner::OnTick )
+	{
+		SET_BASEOBJECT_ID( COperateableSpawner );
+	}
+	virtual void OnRemovedFromStage() override;
+	virtual int8 IsOperateable( const CVector2& pos ) override;
+	virtual void Operate( const CVector2& pos ) override;
+	virtual void UpdateRendered( double dTime ) override;
+private:
+	void OnTick();
+	TResourceRef<CPrefab> m_pPrefab;
+	CReference<CEntity> m_pBloodConsumer;
+	int32 m_nSpawnInterval;
+	int32 m_nSpawnCount;
+
+	bool m_bColorInited;
+	CVector4 m_params[3];
+	int32 m_nSpawnSeed;
+	int32 m_nSpawnLeft;
+	TClassTrigger<COperateableSpawner> m_onTick;
+};
+
 class COperateableAssembler : public CEntity, public IOperateable, public IAttachableSlot
 {
 	friend void RegisterGameClasses();
@@ -272,12 +299,18 @@ class CBloodConsumer : public CEntity
 {
 	friend void RegisterGameClasses();
 public:
+	CBloodConsumer( int8 nType, int32 nMaxCount, const CRectangle& hitRect ) : m_nType( nType ), m_nBloodMaxCount( nMaxCount ), m_hitRect( hitRect ), m_nBlood( 0 )
+	{ SET_BASEOBJECT_ID( CBloodConsumer ); }
 	CBloodConsumer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CBloodConsumer ); }
+	int8 GetType() { return m_nType; }
 	int32 GetBloodCount() { return m_nBlood; }
 	int32 GetMaxCount() { return m_nBloodMaxCount; }
+	const CRectangle& GetHitRect() { return m_hitRect; }
 	void SetBloodCount( int32 nCount ) { m_nBlood = nCount; }
 private:
+	int8 m_nType;
 	int32 m_nBloodMaxCount;
+	CRectangle m_hitRect;
 
 	int32 m_nBlood;
 };

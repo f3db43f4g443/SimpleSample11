@@ -7,80 +7,6 @@
   </includes>
   <level_gen>
     <nodes>
-      <node type="lv2type2_2" name="lv2f6">
-        <chunk>
-          <ref name="block1" />
-        </chunk>
-        <bar>
-          <ref name="bar1" />
-        </bar>
-        <support_a>
-          <ref name="pillar_a" />
-        </support_a>
-        <support_b>
-          <ref name="pillar_b" />
-        </support_b>
-        <road>
-          <ref name="road_small" />
-        </road>
-        <cargo>
-          <ref name="cargo" />
-        </cargo>
-        <big_chunk_1>
-          <ref name="billboard" />
-        </big_chunk_1>
-        <big_chunk_2>
-          <node type="trucknode">
-            <base0>
-              <ref name="bar_truck_a" />
-            </base0>
-            <base1>
-              <ref name="bar_truck_b" />
-            </base1>
-            <room0>
-              <ref name="control_room_2" />
-            </room0>
-            <room1>
-              <ref name="control_room_3" />
-            </room1>
-            <cargo>
-              <ref name="cargo" />
-            </cargo>
-            <cargo2>
-              <ref name="cargo2_a" />
-            </cargo2>
-          </node>
-        </big_chunk_2>
-        <room>
-          <ref name="room_1" />
-        </room>
-        <thruster>
-          <ref name="cargo1s_thruster" />
-        </thruster>
-        
-        <fill1>
-          <node type="randomfill" check_gen_data_name="mask">
-            <node type="subregion" sizeminx="4" sizeminy="4" sizemaxx="8" sizemaxy="6" p="25" >
-              <ref name="cargo" x="1" y="1" w="-1" h="-1" />
-              <node type="tile" x="0" y="0" w="0" h="0">
-                <ref name="block0" />
-              </node>
-            </node>
-            <ref name="block1" sizeminx="2" sizeminy="2" sizemaxx="3" sizemaxy="3" p="1" />
-            <ref name="block0" sizeminx="1" sizeminy="1" sizemaxx="1" sizemaxy="1" p="4" />
-          </node>
-        </fill1>
-        
-        <fill2>
-          <node type="randomfill" check_gen_data_name="mask">
-            <ref name="cargo" sizeminx="3" sizeminy="2" sizemaxx="8" sizemaxy="5" p="40" />
-            <ref name="block1" sizeminx="2" sizeminy="2" sizemaxx="4" sizemaxy="4" p="4" />
-            <ref name="block1" sizeminx="2" sizeminy="1" sizemaxx="4" sizemaxy="1" p="4" />
-            <ref name="block1" sizeminx="1" sizeminy="2" sizemaxx="1" sizemaxy="4" p="4" />
-            <ref name="block1" sizeminx="1" sizeminy="1" sizemaxx="1" sizemaxy="1" p="1" />
-          </node>
-        </fill2>
-      </node>
     
       <node type="subregion" name="lv2_1">
         <node type="lv2type1_0" x="0" y="0" w="32" h="60">
@@ -423,14 +349,153 @@
         <ref name="lv2_scroll_2" />
         <ref name="lv2_scroll_2" />
       </node>
+      
+      <node type="subregion" name="lv2_7">
+        <node type="lv2type3_0" x="0" y="0" w="32" h="60">
+          <wall>
+            <ref name="block0a" />
+          </wall>
+          <wall1>
+            <node type="lv2wall" mask="1" >
+              <wall>
+                <ref name="block2" />
+              </wall>
+              <wall0>
+                <ref name="block0a" />
+              </wall0>
+              <bar0>
+                <node type="subregion">
+                  <ref name="block2_bar" x="0" y="0" w="0" h="0" />
+                  <ref name="sawblade_slider_h" x="0" y="-1" w="0" h="1" />
+                </node>
+                <ref name="block2_bar" />
+              </bar0>
+            </node>
+          </wall1>
+
+          <block_0>
+            <ref name="slope_a0" />
+          </block_0>
+          <block_1>
+            <ref name="slope_a1" />
+          </block_1>
+          <block_2>
+            <ref name="slope_a2" />
+          </block_2>
+          <block_3>
+            <ref name="slope_a3" />
+          </block_3>
+          <chunk_1_a>
+            <ref name="steps_a1" />
+          </chunk_1_a>
+          <chunk_1_b>
+            <ref name="steps_b1" />
+          </chunk_1_b>
+          <chunk_2_a>
+            <ref name="steps_a" />
+          </chunk_2_a>
+          <chunk_2_b>
+            <ref name="steps_b" />
+          </chunk_2_b>
+          <chunk_3_a>
+            <ref name="pillar_a1" />
+          </chunk_3_a>
+          <chunk_3_b>
+            <ref name="pillar_b1" />
+          </chunk_3_b>
+          <chunk_4_a>
+            <ref name="pillar_a" />
+          </chunk_4_a>
+          <chunk_4_b>
+            <ref name="pillar_b" />
+          </chunk_4_b>
+          <building>
+            <ref name="building" />
+          </building>
+          
+          <room>
+            <ref name="room1" />
+          </room>
+          <billboard>
+            <ref name="billboard1" />
+          </billboard>
+          <cargo>
+            <ref name="cargo_pack" />
+          </cargo>
+          <cargo1>
+            <ref name="cargo1" />
+          </cargo1>
+          <cargo2>
+            <ref name="cargo2" />
+          </cargo2>
+          <broken>
+            <ref name="metal_broken" />
+          </broken>
+          <box>
+            <ref name="box1" />
+          </box>
+          <bar0>
+            <ref name="bar0" />
+          </bar0>
+          <bar0_r>
+            <ref name="bar0_r" />
+          </bar0_r>
+          <bar0_l>
+            <ref name="bar0_l" />
+          </bar0_l>
+          
+          <bar_h>
+            <ref name="bar1" />
+          </bar_h>
+          <bar_v>
+            <ref name="bar2" />
+          </bar_v>
+          <bar_h_a>
+            <ref name="bar1_a" />
+          </bar_h_a>
+          <bar_v_a>
+            <ref name="bar2_a" />
+          </bar_v_a>
+          <control_room>
+            <ref name="control_room" />
+          </control_room>
+
+          <sawblade_0>
+            <ref name="sawblade_slider_0" />
+          </sawblade_0>
+          <sawblade_1>
+            <ref name="sawblade_slider_1" />
+          </sawblade_1>
+          <sawblade_2>
+            <ref name="sawblade_slider_2" />
+          </sawblade_2>
+          <sawblade_3>
+            <ref name="sawblade_slider_3" />
+          </sawblade_3>
+        </node>
+        <ref name="lv2floor_7" x="0" y="60" w="32" h="4" />
+
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_0" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_1" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+        <ref name="lv2_scroll_2" />
+      </node>
 
       <node type="subregion" name="test_lv">
-        <metadata seed="561813131" />
-        <ref name="lv2_5" x="0" y="8" w="32" h="64" />
+        <!--metadata seed="913541333" /-->
+        <ref name="lv2_7" x="0" y="8" w="32" h="64" />
         <node type="tile" x="0" y="0" w="32" h="4">
-          <ref name="block0" />
+          <ref name="block0a" />
         </node>
-        <ref name="lv2floor_4" x="0" y="4" w="32" h="4" />
+        <ref name="lv2floor_7" x="0" y="4" w="32" h="4" />
       </node>
       
     </nodes>

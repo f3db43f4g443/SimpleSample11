@@ -137,23 +137,57 @@ class CCargo1 : public CChunkObject
 {
 	friend void RegisterGameClasses();
 public:
-	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CCargo1::OnTick ) { SET_BASEOBJECT_ID( CCargo1 ); }
+	CCargo1( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CCargo1 ); }
+	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+private:
+	void GenLayer1();
+	uint32 m_nHpPerSize;
+	TResourceRef<CDrawableGroup> m_pDeco;
+	TResourceRef<CDrawableGroup> m_pDeco1;
+	TResourceRef<CPrefab> m_pPrefab[11];
+};
+
+class CCargo2 : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CCargo2( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CCargo2::OnTick ) { SET_BASEOBJECT_ID( CCargo2 ); }
+	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( CMyLevel* pLevel ) override;
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
+	void GetSplit( int32 i, int32& xBegin, int32& xEnd );
+private:
+	void OnTick();
+	TResourceRef<CPrefab> m_pPrefab[2];
+	TResourceRef<CDrawableGroup> m_pDeco;
+	uint32 m_nHpPerSize;
+	CRectangle m_detectRect;
+
+	vector<pair<TVector2<int32>, CReference<CEntity> > > m_vecEntities;
+	CReference<CRenderObject2D> m_pTemp;
+	TClassTrigger<CCargo2> m_onTick;
+};
+
+class CBuildingChunk : public CChunkObject
+{
+	friend void RegisterGameClasses();
+public:
+	CBuildingChunk( const SClassCreateContext& context ) : CChunkObject( context ), m_onTick( this, &CBuildingChunk::OnTick )
+	{ SET_BASEOBJECT_ID( CBuildingChunk ); }
 	virtual void OnSetChunk( SChunk* pChunk, CMyLevel* pLevel ) override;
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void AddBloodPowerTime( int32 n ) { m_nBloodPowerTime += n; }
 protected:
 	virtual void OnKilled() override;
 private:
-	void GenLayer1();
-	void GenLayer2();
-	void GenObj( const TRectangle<int32>& rect, uint8 nType );
+	void FindTarget();
+	void ManBlobOverflow();
 	void OnTick();
+	void SpawnLimbs( const TVector2<int32>& p );
+	TResourceRef<CPrefab> m_pPrefab[4];
 	uint32 m_nHpPerSize;
-	bool m_bType;
-	CRectangle m_texRect1;
-	TResourceRef<CDrawableGroup> m_pDeco;
-	TResourceRef<CDrawableGroup> m_pDeco1;
-	TResourceRef<CPrefab> m_pPrefab[10];
 
 	struct SMapItem
 	{
@@ -167,8 +201,28 @@ private:
 	uint8 GetMapItemValue( int32 x, int32 y );
 	vector<TVector2<int32> > m_q;
 	int32 m_nMaxIndex;
-	TClassTrigger<CCargo1> m_onTick;
 	CReference<CEntity> m_pBlob;
+	int32 m_nBloodPowerTime;
+	int32 m_nFindTargetCD;
+	vector<CReference<CEntity> > m_vecBloodConsumer;
+	CReference<CEntity> m_pTarget;
+	int32 m_nTargetFailTime;
+	int32 m_nSpawnCD;
+	vector<CReference<CEntity> > m_vecLimbs;
+	vector<TVector2<int32> > m_vec1;
+	struct SSpawnPoint
+	{
+		CVector2 p;
+		CRectangle rect;
+		int8 nDir;
+		int32 nSeed;
+	};
+	vector<SSpawnPoint> m_vecSpawnPoints;
+	int32 m_nCurSpawn;
+	int32 m_nSpawnCD1;
+	int32 m_nSpawnCount;
+	bool m_bInit;
+	TClassTrigger<CBuildingChunk> m_onTick;
 };
 
 class CCargoAutoColor : public CDecorator
@@ -260,7 +314,6 @@ public:
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
 private:
 	uint32 m_nHpPerSize;
-	TResourceRef<CDrawableGroup> m_pDeco;
 };
 
 class CHouse2 : public CChunkObject

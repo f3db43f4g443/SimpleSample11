@@ -27,7 +27,9 @@ public:
 
 	struct SDamageContext
 	{
+		SDamageContext() : bHit( true ) {}
 		int32 nDamage;
+		uint8 bHit;
 		uint8 nType;
 		uint8 nSourceType;
 		uint8 nHitType;

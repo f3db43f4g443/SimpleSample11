@@ -171,6 +171,7 @@
             <item name="3" />
             <item name="4" />
             <item name="5" />
+            <item name="6" />
           </types>
         </metadata>
         <types>4</types>
@@ -181,6 +182,7 @@
             <node type="filltag" gen_data_name="3" tag="3" x="0" y="0" w="0" h="0" />
             <node type="filltag" gen_data_name="4" tag="4" x="0" y="0" w="0" h="0" />
             <node type="filltag" gen_data_name="5" tag="5" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="6" tag="6" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         <next_level>
@@ -196,22 +198,19 @@
         <metadata minx="2" miny="2" maxx="16" maxy="16" chain_type1="1" chain_type2="1">
           <types>
             <item name="1" />
-            <item name="2" />
-            <item name="3" />
           </types>
         </metadata>
         <types>4</types>
         <subitem copy_blueprint="2">
           <node type="subregion">
             <node type="filltag" gen_data_name="1" tag="1" x="0" y="0" w="0" h="0" />
-            <node type="filltag" gen_data_name="2" tag="2" x="0" y="0" w="0" h="0" />
-            <node type="filltag" gen_data_name="3" tag="3" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         <next_level>
           <node type="subregion">
-            <ref name="cargo_label" x="0" y="0" w="0" h="-1" />
+            <ref name="cargo_label" x="0" y="0" w="0" h="0" />
             <ref name="cargo_auto_color1" x="0" y="0" w="0" h="0" />
+            <ref name="cargo2_deco_0" x="0" y="0" w="0" h="0" />
           </node>
         </next_level>
       </node>
@@ -595,7 +594,7 @@
         </next_level>
       </node>
 
-      <node name="billboard" show_layer_type="0" width="4" height="4" weight="2" weightperwidth="1" destroyweight="33" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20"
+      <node name="billboard" show_layer_type="0" width="4" height="4" weight="1" weightperwidth="1" destroyweight="12" destroyweightperwidth="3" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20"
             shakedmg="20" shakedmgperwidth="5" prefab="data/blocks/lv2/billboard.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="16" chain_type1="1" chain_type2="0">
           <types>
@@ -626,11 +625,11 @@
         </next_level>
       </node>
 
-      <node name="billboard1" show_layer_type="0" width="4" height="4" weight="2" weightperwidth="1" destroyweight="33" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20"
+      <node name="billboard1" ispack="1" show_layer_type="0" width="4" height="4" weight="1" weightperwidth="1" destroyweight="12" destroyweightperwidth="3" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20"
             shakedmg="20" shakedmgperwidth="5" prefab="data/blocks/lv2/billboard1.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="16" chain_type1="1" chain_type2="0">
           <types>
-            <item name="1" chain_type2="1" />
+            <item name="1" />
             <item name="2" />
           </types>
         </metadata>
@@ -642,21 +641,16 @@
         </types>
         <subitem copy_blueprint="2">
           <node type="subregion">
-            <node type="switch_tile" x="0" y="0" w="0" h="0">
-              <ref name="platform" case="1" />
-            </node>
-            <node type="tile" x="0" y="0" w="0" h="0">
-              <ref name="metal_wall_broken" />
-            </node>
-            <node type="filltag" gen_data_name="2" tag="1" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="1" tag="1" x="0" y="0" w="0" h="0" />
+            <node type="filltag" gen_data_name="2" tag="2" x="0" y="0" w="0" h="0" />
           </node>
         </subitem>
         <next_level>
           <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
             <node type="autofill" check_gen_data_name="2" x="0" y="0" w="0" h="0">
               <ref name="billboard_man_spawn" sizeminx="3" sizeminy="3" />
             </node>
-            <ref name="billboard_frame" x="0" y="0" w="0" h="0" />
           </node>
         </next_level>
       </node>

@@ -64,7 +64,7 @@ public:
 	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTex )
 	{
 		m_tex.Set( pRenderSystem, pTex );
-		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterLLL>() );
+		m_paramLinearSampler.Set( pRenderSystem, ISamplerState::Get<ESamplerFilterPPP>() );
 	}
 	void SetParams( IRenderSystem* pRenderSystem, IShaderResource* pTex, ISamplerState* pSampler )
 	{

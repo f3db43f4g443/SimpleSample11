@@ -33,6 +33,7 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 		dPos = CVector2( 0, 1 );
 	SetRotation( atan2( dPos.y, dPos.x ) );
 
+	int32 nShakeDuration = m_nShakeDuration ? m_nShakeDuration : m_nFireRate;
 	if( m_bIsFiring && !m_nFireCD )
 	{
 		ForceUpdateTransform();
@@ -86,14 +87,20 @@ void CPlayerWeaponShoot0::Update( CPlayer* pPlayer )
 			}
 		}
 
-		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerFire );
 		if( m_strFireSound )
 			m_strFireSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 
 		m_nFireCD = m_nFireRate;
+		m_nShakeTime = nShakeDuration;
 	}
 	if( m_nFireCD )
 		m_nFireCD--;
+	if( m_nShakeTime )
+	{
+		float fShake = ( m_nShakeTime - 0.5f ) * m_fShakePerFire / nShakeDuration;
+		CMyLevel::GetInst()->AddShakeStrengthCurFrame( fShake );
+		m_nShakeTime--;
+	}
 }
 
 CPlayerWeaponLaser0::CPlayerWeaponLaser0( const SClassCreateContext & context )
@@ -165,7 +172,7 @@ void CPlayerWeaponLaser0::Update( CPlayer * pPlayer )
 
 		m_pLaser->Set( NULL, NULL, m_fireOfs, m_fireOfs + ofs, -1, -1 );
 
-		CMyLevel::GetInst()->AddShakeStrength( m_fShakePerSec * GetStage()->GetElapsedTimePerTick() );
+		CMyLevel::GetInst()->AddShakeStrengthCurFrame( m_fShakePerSec );
 	}
 	else if( m_nFireCD )
 		m_nFireCD--;

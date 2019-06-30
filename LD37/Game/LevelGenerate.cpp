@@ -2144,11 +2144,13 @@ CLevelGenerateFactory::CLevelGenerateFactory()
 	REGISTER_GENERATE_NODE( "lv1bonus1", CLevelBonusGenNode1_1 );
 	REGISTER_GENERATE_NODE( "lv1bonus2", CLevelBonusGenNode1_2 );
 
+	REGISTER_GENERATE_NODE( "lv2wall", CLv2WallNode );
 	REGISTER_GENERATE_NODE( "lv2type1_0", CLevelGenNode2_1_0 );
 	REGISTER_GENERATE_NODE( "lv2type1_1", CLevelGenNode2_1_1 );
 	REGISTER_GENERATE_NODE( "lv2type2_0", CLevelGenNode2_2_0 );
 	REGISTER_GENERATE_NODE( "lv2type2_1", CLevelGenNode2_2_1 );
-	REGISTER_GENERATE_NODE( "lv2type2_2", CLevelGenNode2_2_2 );
+	REGISTER_GENERATE_NODE( "lv2type3_0", CLevelGenNode2_3_0 );
+	REGISTER_GENERATE_NODE( "lv2type3_1", CLevelGenNode2_3_1 );
 	REGISTER_GENERATE_NODE( "lv2bonus0", CLevelBonusGenNode2_0 );
 	REGISTER_GENERATE_NODE( "lv2bonus1", CLevelBonusGenNode2_1 );
 }

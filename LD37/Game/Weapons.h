@@ -27,6 +27,7 @@ private:
 	uint32 m_nFireRate;
 	uint32 m_nBulletLife;
 	float m_fShakePerFire;
+	int32 m_nShakeDuration;
 
 	CVector2 m_fireOfs;
 	float m_fAngularSpeed;
@@ -34,6 +35,7 @@ private:
 
 	bool m_bIsFiring;
 	uint32 m_nFireCD;
+	uint32 m_nShakeTime;
 };
 
 class CPlayerWeaponLaser0 : public CPlayerWeapon

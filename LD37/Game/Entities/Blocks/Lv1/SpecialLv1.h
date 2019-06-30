@@ -202,6 +202,7 @@ class CScrap : public CChunkObject
 public:
 	CScrap( const SClassCreateContext& context ) : CChunkObject( context ) { SET_BASEOBJECT_ID( CScrap ); }
 	virtual void OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel ) override;
+	virtual void OnCreateComplete( class CMyLevel* pLevel ) override;
 private:
 	TResourceRef<CDrawableGroup> m_pDrawable1;
 	uint32 m_nHpPerSize;

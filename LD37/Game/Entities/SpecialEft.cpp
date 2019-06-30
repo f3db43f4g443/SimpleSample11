@@ -168,7 +168,10 @@ void CLimbsEft::OnTick()
 
 void CLimbsAttackEft::OnAddedToStage()
 {
-	SetRenderObject( NULL );
+	if( GetRenderObject() )
+		SetRenderObject( NULL );
+	else
+		GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
 }
 
 void CLimbsAttackEft::OnRemovedFromStage()
@@ -219,7 +222,10 @@ void CLimbsAttackEft::CreateAttackEft( CRenderObject2D* pRenderParent1, CRenderO
 	m_nTick = 0;
 	m_fEftLen = 0;
 
-	GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
+	if( GetStage() )
+		GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
+	else
+		SetRenderObject( NULL );
 }
 
 void CLimbsAttackEft::SetAttackEftLen( float fLen )

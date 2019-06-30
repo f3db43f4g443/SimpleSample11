@@ -30,8 +30,9 @@ public:
 
 	FORCE_INLINE static uint32 GetBlockSize() { return 32; }
 	FORCE_INLINE float GetFallDistPerSpeedFrame() { return m_fFallDistPerSpeedFrame; }
-	FORCE_INLINE float GetShakeStrength() { return m_basements[0].fShakeStrength; }
-	void AddShakeStrength( float fShakeStrength );
+	FORCE_INLINE float GetShakeStrength() { return m_fShakeStrength + m_fShakeStrengthCurFrame; }
+	FORCE_INLINE void AddShakeStrength( float fShakeStrength ) { m_fShakeStrength += fShakeStrength; }
+	FORCE_INLINE void AddShakeStrengthCurFrame( float fShakeStrength ) { m_fShakeStrengthCurFrame += fShakeStrength; }
 
 	FORCE_INLINE float GetLastScrollPos() { return m_fLastScrollPos; }
 	FORCE_INLINE float GetCurScrollPos() { return m_fCurScrollPos; }
@@ -121,6 +122,8 @@ protected:
 	float m_fCurScrollPos;
 	vector<int32> m_vecBarrierHeightTags;
 	uint32 m_nCurBarrierHeightTag;
+	float m_fShakeStrength;
+	float m_fShakeStrengthCurFrame;
 
 	struct SBasement
 	{
@@ -138,7 +141,6 @@ protected:
 			LINK_LIST_HEAD( pBlock, SBlockLayer, BlockLayer )
 		};
 
-		float fShakeStrength;
 		SBasementLayer layers[2];
 	};
 	vector<SBasement> m_basements;

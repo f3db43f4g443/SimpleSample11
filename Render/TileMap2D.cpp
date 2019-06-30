@@ -50,6 +50,70 @@ CTileMap2D::CTileMap2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable,
 	m_localBound = CRectangle( baseOffset.x, baseOffset.y, tileSize.x * nWidth, tileSize.y * nHeight );
 }
 
+void CTileMap2D::Resize( const TRectangle<int32>& rect )
+{
+	vector<uint32> editData( m_editData );
+	vector<STile> tiles( m_tiles );
+	uint32 nPreWidth = m_nWidth;
+	uint32 nPreHeight = m_nHeight;
+	TRectangle<int32> rect0( -rect.x, -rect.y, nPreWidth, nPreHeight );
+
+	m_nWidth = rect.width;
+	m_nHeight = rect.height;
+	m_editData.resize( ( m_nWidth + 1 ) * ( m_nHeight + 1 ) );
+	uint32 nSize = m_nWidth * m_nHeight;
+	m_tiles.resize( nSize );
+	CDrawable2D* pDrawables[3] = { m_pColorDrawable, m_pOcclusionDrawable, m_pGUIDrawable };
+
+	for( int32 i = 0; i <= m_nWidth; i++ )
+	{
+		for( int32 j = 0; j <= m_nHeight; j++ )
+		{
+			if( i >= rect0.x && j >= rect0.y && i <= rect0.GetRight() && j <= rect0.GetBottom() )
+				m_editData[i + j * ( m_nWidth + 1 )] = editData[i - rect0.x + ( j - rect0.y ) * ( nPreWidth + 1 )];
+			else
+				m_editData[i + j * ( m_nWidth + 1 )] = 0;
+		}
+	}
+
+	for( int32 i = 0; i < m_nWidth; i++ )
+	{
+		for( int32 j = 0; j < m_nHeight; j++ )
+		{
+			for( int32 k = 0; k < ELEM_COUNT( pDrawables ); k++ )
+			{
+				if( !pDrawables[k] )
+					continue;
+				for( int iLayer = 0; iLayer < 4; iLayer++ )
+				{
+					auto& elem = m_tiles[i + j * m_nWidth].elems[k][iLayer];
+					elem.SetDrawable( pDrawables[k] );
+					elem.rect = CRectangle( m_baseOffset.x + i * m_tileSize.x, m_baseOffset.y + j * m_tileSize.y, m_tileSize.x, m_tileSize.y );
+
+					uint16 nParamCount;
+					if( k == 0 )
+						nParamCount = m_nColorParamCount;
+					else if( k == 1 )
+						nParamCount = m_nOcclusionParamCount;
+					else
+						nParamCount = m_nGUIParamCount;
+					elem.nInstDataSize = nParamCount * sizeof( CVector4 );
+				}
+			}
+			if( i >= rect0.x && j >= rect0.y && i < rect0.GetRight() && j < rect0.GetBottom() )
+			{
+				auto& tile = tiles[i - rect0.x + ( j - rect0.y ) * nPreWidth];
+				SetTile( i, j, tile.nLayers, tile.nTiles );
+			}
+			else
+				RefreshTile( i, j );
+		}
+	}
+
+	m_localBound = CRectangle( m_baseOffset.x, m_baseOffset.y, m_tileSize.x * m_nWidth, m_tileSize.y * m_nHeight );
+	SetBoundDirty();
+}
+
 void CTileMap2D::Set( const CVector2& tileSize, const CVector2& baseOffset, uint32 nWidth, uint32 nHeight )
 {
 	m_tileSize = tileSize;
@@ -108,7 +172,7 @@ void CTileMap2D::Set( const CVector2& tileSize, const CVector2& baseOffset, uint
 		}
 	}
 	
-	m_localBound = CRectangle( m_baseOffset.x, m_baseOffset.y, m_tileSize.x * m_nWidth, m_tileSize.y * m_nWidth );
+	m_localBound = CRectangle( m_baseOffset.x, m_baseOffset.y, m_tileSize.x * m_nWidth, m_tileSize.y * m_nHeight );
 	SetBoundDirty();
 }
 

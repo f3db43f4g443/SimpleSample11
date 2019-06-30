@@ -1323,7 +1323,6 @@ void CScrap::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 	auto pRenderObject = new CRenderObject2D;
 	SetRenderObject( pRenderObject );
-	pRenderObject->SetZOrder( 1 );
 	int32 w = pChunk->nWidth;
 	int32 h = pChunk->nHeight;
 	bool bFlip = false;
@@ -1472,4 +1471,11 @@ void CScrap::OnSetChunk( SChunk * pChunk, CMyLevel * pLevel )
 
 	m_nMaxHp += m_nHpPerSize * pChunk->nWidth * pChunk->nHeight;
 	m_fHp = m_nMaxHp;
+}
+
+void CScrap::OnCreateComplete( CMyLevel* pLevel )
+{
+	GetRenderObject()->SetZOrder( 1 );
+	if( pLevel )
+		GetRenderObject()->SetRenderParent( m_pChunk->nShowLevelType ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
 }

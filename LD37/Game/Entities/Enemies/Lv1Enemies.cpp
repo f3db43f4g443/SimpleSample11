@@ -13,6 +13,7 @@
 
 void CManHead1::AIFunc()
 {
+	DEFINE_TEMP_REF_THIS();
 	//Launch
 	m_moveTarget = GetPosition() + CVector2( 0, 200 );
 	m_flyData.fStablity = 0.4f;

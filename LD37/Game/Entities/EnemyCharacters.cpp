@@ -14,7 +14,7 @@
 void CEnemyCharacter::OnAddedToStage()
 {
 	CEnemy::OnAddedToStage();
-	m_flyData.bHitChannel[eEntityHitType_System] = false;
+	m_walkData.bHitChannel[eEntityHitType_System] = m_flyData.bHitChannel[eEntityHitType_System] = false;
 	m_nState = 0;
 	float angle = SRand::Inst().Rand( -PI, PI );
 	m_curMoveDir = CVector2( cos( angle ), sin( angle ) );
@@ -29,6 +29,11 @@ void CEnemyCharacter::OnTickAfterHitTest()
 	CCharacter::OnTickAfterHitTest();
 	CReference<CEntity> pTemp = this;
 
+	if( y < CMyLevel::GetInst()->GetBound().y )
+	{
+		Crush();
+		return;
+	}
 	UpdateMove();
 	if( !GetStage() )
 		return;
@@ -257,7 +262,6 @@ void CEnemyCharacter::UpdateMove()
 
 		if( !m_flyData.pLandedEntity )
 		{
-			m_flyData.bHitChannel[eEntityHitType_System] = true;
 			m_walkData.Reset();
 			m_walkData.fKnockbackTime = m_flyData.fKnockbackTime;
 			m_walkData.vecKnockback = m_flyData.vecKnockback;
@@ -969,11 +973,11 @@ void CWorker::OnTickAfterHitTest()
 			if( IsFlee() && !m_pTarget->CanOperate( this ) )
 			{
 				m_pTarget = NULL;
-				m_pNav->Reset();
+				m_pNav->ForceReset();
 			}
 			else if( m_pTarget->Operate( this, true ) )
 			{
-				m_pNav->Reset();
+				m_pNav->ForceReset();
 				m_nStateTime = m_nOperateTime;
 			}
 		}
