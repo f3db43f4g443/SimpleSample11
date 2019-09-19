@@ -1251,7 +1251,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 
 CRenderObject2D* CPrefabNode::CreateInstance()
 {
-	static vector<CRenderObject2D*> vecInst;
+	vector<CRenderObject2D*> vecInst;
 	auto p = CreateInstance( vecInst );
 	vecInst.resize( 0 );
 	return p;
