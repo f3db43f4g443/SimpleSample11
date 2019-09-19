@@ -270,25 +270,26 @@ void CLighted2DRenderer::RenderGUI( CRenderContext2D& context )
 		pSceneMgr->Flush( context );
 }
 
-void IRenderer::DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color )
+void IRenderer::DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color, float z,
+	class IBlendState* pBlend, class IDepthStencilState* pDepthStencil, class IRasterizerState* pRasterizer )
 {
 	pSystem->SetPrimitiveType( EPrimitiveType::LineList );
-	
-	pSystem->SetBlendState( IBlendState::Get<>() );
-	pSystem->SetDepthStencilState( IDepthStencilState::Get<>() );
-	pSystem->SetRasterizerState( IRasterizerState::Get<>() );
 
-	CVector2* pVertexData;
+	pSystem->SetBlendState( pBlend ? pBlend : IBlendState::Get<>() );
+	pSystem->SetDepthStencilState( pDepthStencil ? pDepthStencil : IDepthStencilState::Get<>() );
+	pSystem->SetRasterizerState( pRasterizer ? pRasterizer : IRasterizerState::Get<>() );
+
+	CVector3* pVertexData;
 	pSystem->Lock( CGlobalRenderResources::Inst()->GetVBDebug(), (void**)&pVertexData );
-	pVertexData[0] = pt1;
-	pVertexData[1] = pt2;
+	pVertexData[0] = CVector3( pt1.x, pt1.y, z );
+	pVertexData[1] = CVector3( pt2.x, pt2.y, z );
 	pSystem->Unlock( CGlobalRenderResources::Inst()->GetVBDebug() );
 	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBDebug() );
 	
 	auto pVertexShader = CDebugDrawShader::Inst();
 	auto pPixelShader = COneColorPixelShader::Inst();
 	static IShaderBoundState* g_pShaderBoundState = NULL;
-	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBDebug()->GetDesc();
 	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
 	pPixelShader->SetParams( pSystem, color );
 
@@ -297,24 +298,25 @@ void IRenderer::DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, cons
 	pSystem->SetPrimitiveType( EPrimitiveType::TriangleList );
 }
 
-void IRenderer::DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color )
+void IRenderer::DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color, float z,
+	class IBlendState* pBlend, class IDepthStencilState* pDepthStencil, class IRasterizerState* pRasterizer )
 {
-	pSystem->SetBlendState( IBlendState::Get<>() );
-	pSystem->SetDepthStencilState( IDepthStencilState::Get<>() );
-	pSystem->SetRasterizerState( IRasterizerState::Get<>() );
+	pSystem->SetBlendState( pBlend ? pBlend : IBlendState::Get<>() );
+	pSystem->SetDepthStencilState( pDepthStencil ? pDepthStencil : IDepthStencilState::Get<>() );
+	pSystem->SetRasterizerState( pRasterizer ? pRasterizer : IRasterizerState::Get<>() );
 
-	CVector2* pVertexData;
+	CVector3* pVertexData;
 	pSystem->Lock( CGlobalRenderResources::Inst()->GetVBDebug(), (void**)&pVertexData );
-	pVertexData[0] = pt1;
-	pVertexData[1] = pt2;
-	pVertexData[2] = pt3;
+	pVertexData[0] = CVector3( pt1.x, pt1.y, z );
+	pVertexData[1] = CVector3( pt2.x, pt2.y, z );
+	pVertexData[2] = CVector3( pt3.x, pt3.y, z );
 	pSystem->Unlock( CGlobalRenderResources::Inst()->GetVBDebug() );
 	pSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBDebug() );
 	
 	auto pVertexShader = CDebugDrawShader::Inst();
 	auto pPixelShader = COneColorPixelShader::Inst();
 	static IShaderBoundState* g_pShaderBoundState = NULL;
-	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBQuad()->GetDesc();
+	const CVertexBufferDesc* pDesc = &CGlobalRenderResources::Inst()->GetVBDebug()->GetDesc();
 	pSystem->SetShaderBoundState( g_pShaderBoundState, pVertexShader->GetShader(), pPixelShader->GetShader(), &pDesc, 1 );
 	pPixelShader->SetParams( pSystem, color );
 

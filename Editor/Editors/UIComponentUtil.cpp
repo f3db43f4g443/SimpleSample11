@@ -63,6 +63,8 @@ CVectorEdit* CVectorEdit::Create( const char* szName, uint32 nCount )
 	g_pRes->GetElement()->Clone( pElem );
 	pElem->GetChildByName<CUILabel>( "label" )->SetText( szName );
 	pElem->m_nCount = Min( 4u, nCount );
+	for( int i = nCount; i < 4; i++ )
+		pElem->m_textBox[i]->SetVisible( false );
 	return pElem;
 }
 

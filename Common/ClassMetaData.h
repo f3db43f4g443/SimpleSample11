@@ -6,6 +6,7 @@
 #include "BufFile.h"
 #include "Math3D.h"
 #include "Reference.h"
+#include "Array.h"
 #include "BitArray.h"
 #include "ResourceManager.h"
 using namespace std;
@@ -24,6 +25,8 @@ struct SEnumMetaData
 
 	void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 	void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData );
+	bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
+	void PatchData( uint8* pObj1, IBufReader& buf );
 };
 
 struct SClassMetaData
@@ -69,6 +72,8 @@ struct SClassMetaData
 		uint32 GetDataSize();
 		void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 		void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData );
+		bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
+		void PatchData( uint8* pObj1, IBufReader& buf );
 	};
 	vector<SMemberData> vecMemberData;
 	map<string, uint32> mapMemberDataIndex;
@@ -78,41 +83,41 @@ struct SClassMetaData
 	SMemberData& AddMemberDataTaggedPtr( const char* szName, const char* szTypeName, const char* szTag, uint32 nOffset );
 
 	template <typename T>
-	struct AddMemberData_Impl{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, typeid( T ).name(), nOffset ); } };
+	struct AddMemberData_Impl{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, typeid( T ).name(), nOffset ); } };
 
 	template <typename T>
-	struct AddMemberData_Impl<T*>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberDataPtr( szName, typeid( T ).name(), nOffset ); } };
+	struct AddMemberData_Impl<T*>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberDataPtr( szName, typeid( T ).name(), nOffset ); } };
 	template <typename T>
-	struct AddMemberData_Impl<CReference<T> >{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberDataPtr( szName, typeid( T ).name(), nOffset ); } };
+	struct AddMemberData_Impl<CReference<T> >{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberDataPtr( szName, typeid( T ).name(), nOffset ); } };
 	
 	template <>
-	struct AddMemberData_Impl<bool>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_bool, nOffset ); } };
+	struct AddMemberData_Impl<bool>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_bool, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<uint8>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_uint8, nOffset ); } };
+	struct AddMemberData_Impl<uint8>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_uint8, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<uint16>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_uint16, nOffset ); } };
+	struct AddMemberData_Impl<uint16>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_uint16, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<uint32>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_uint32, nOffset ); } };
+	struct AddMemberData_Impl<uint32>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_uint32, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<uint64>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_uint64, nOffset ); } };
+	struct AddMemberData_Impl<uint64>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_uint64, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<int8>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_int8, nOffset ); } };
+	struct AddMemberData_Impl<int8>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_int8, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<int16>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_int16, nOffset ); } };
+	struct AddMemberData_Impl<int16>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_int16, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<int32>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_int32, nOffset ); } };
+	struct AddMemberData_Impl<int32>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_int32, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<int64>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_int64, nOffset ); } };
+	struct AddMemberData_Impl<int64>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_int64, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<float>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_float, nOffset ); } };
+	struct AddMemberData_Impl<float>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_float, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<CVector2>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_float2, nOffset ); } };
+	struct AddMemberData_Impl<CVector2>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_float2, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<CVector3>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_float3, nOffset ); } };
+	struct AddMemberData_Impl<CVector3>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_float3, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<CVector4>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_float4, nOffset ); } };
+	struct AddMemberData_Impl<CVector4>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_float4, nOffset ); } };
 	template <>
-	struct AddMemberData_Impl<CRectangle>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { pThis->AddMemberData( szName, SMemberData::eType_float4, nOffset ); } };
+	struct AddMemberData_Impl<CRectangle>{ static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset ) { return pThis->AddMemberData( szName, SMemberData::eType_float4, nOffset ); } };
 
 	template <typename T, int a>
 	struct AddMemberData_Impl<T[a]>{ static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset )
@@ -125,9 +130,17 @@ struct SClassMetaData
 		}
 	} };
 	template <typename T>
-	struct AddMemberData_Impl<TResourceRef<T> > { static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset )
+	struct AddMemberData_Impl<TResourceRef<T> > { static SMemberData& call( SClassMetaData* pThis, const char* szName, uint32 nOffset )
 	{
-		pThis->AddMemberData( szName, typeid( CString ).name(), nOffset ).nFlag = 1 | ( T::eResType << 16 );
+		auto& data = pThis->AddMemberData( szName, typeid( CString ).name(), nOffset );
+		data.nFlag = 1 | ( T::eResType << 16 );
+		return data;
+	} };
+	template <typename T>
+	struct AddMemberData_Impl<TArray<T> > { static void call( SClassMetaData* pThis, const char* szName, uint32 nOffset )
+	{
+		auto& s = AddMemberData_Impl<T>::call( pThis, szName, nOffset );
+		s.nFlag |= 2;
 	} };
 
 	template<typename T>
@@ -151,6 +164,8 @@ struct SClassMetaData
 		
 		void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 		void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData );
+		bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
+		void PatchData( uint8* pObj1, IBufReader& buf );
 	};
 	vector<SBaseClassData> vecBaseClassData;
 	map<string, uint32> mapBaseClassDataIndex;
@@ -165,9 +180,12 @@ struct SClassMetaData
 	
 	function<uint8*()> AllocFunc;
 	function<void(void*)> CreateFunc;
+	function<void(void*, uint32)> ResizeFunc;
 	function<void(void*)> DestroyFunc;
 	function<void( uint8*, CBufFile&, bool )> PackFunc;
 	function<void( uint8*, IBufReader&, bool )> UnpackFunc;
+	function<bool( uint8*, uint8*, CBufFile& )> DiffFunc;
+	function<void( uint8*, IBufReader& )> PatchFunc;
 
 	void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 	void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData );
@@ -183,10 +201,28 @@ struct SClassMetaData
 		CreateFunc( pObj );
 		return pObj;
 	}
+	bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
+	void PatchData( uint8* pObj1, IBufReader& buf );
+	uint8* NewObjFromPatch( uint8* pObj0, IBufReader& buf )
+	{
+		if( !this )
+		{
+			PatchData( NULL, buf );
+			return NULL;
+		}
+		uint8* pObj = AllocFunc();
+		static CBufFile g_buf;
+		PackData( pObj0, g_buf, false );
+		UnpackData( pObj, g_buf, false );
+		PatchData( pObj, buf );
+		CreateFunc( pObj );
+		g_buf.Clear();
+		return pObj;
+	}
 
 	void FindAllDerivedClasses( function<void( SClassMetaData* pData )>& func );
 	void FindAllTaggedPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass = NULL, uint32 nOfs = 0 );
-	void FindAllResPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass = NULL, uint32 nOfs = 0 );
+	void FindAllResPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, uint32 nOfs = 0 );
 };
 
 class CBaseObject
@@ -331,6 +367,7 @@ const T* SafeCastToInterface( const T1* t )
 	pData->strDisplayName = #Class; \
 	pData->AllocFunc = [] () { uint8* pData = (uint8*)malloc( sizeof( Class ) ); memset( pData, 0, sizeof( Class ) ); return pData; }; \
 	pData->CreateFunc = [] ( void* pObj ) { new (pObj)Class( SClassCreateContext() ); }; \
+	pData->ResizeFunc = [] ( void* pObj, uint32 n ) { ( (TArray<Class>*)pObj )->Resize( n ); }; \
 	pData->DestroyFunc = [] ( void* pObj ) { delete (Class*)pObj; }; \
 	pData->nObjSize = sizeof( Class );
 
@@ -359,6 +396,12 @@ const T* SafeCastToInterface( const T1* t )
 #define REGISTER_UNPACK_FUNC( Name ) \
 	pData->UnpackFunc = [] ( uint8* pObj, IBufReader& buf, bool bWithMetaData ) { ( (__cur_class*)pObj )->Name( buf, bWithMetaData ); };
 
+#define REGISTER_DIFF_FUNC( Name ) \
+	pData->DiffFunc = [] ( uint8* pObj0, uint8* pObj1, CBufFile& buf ) -> bool { return ( (__cur_class*)pObj1 )->Name( *(__cur_class*)pObj0, buf ); };
+
+#define REGISTER_PATCH_FUNC( Name ) \
+	pData->PatchFunc = [] ( uint8* pObj1, IBufReader& buf ) { ( (__cur_class*)pObj1 )->Name( buf ); };
+
 #define REGISTER_CLASS_END() \
 }
 
@@ -384,12 +427,16 @@ public:
 
 	SClassMetaData* GetClassData() { return m_pClassMetaData; }
 	uint8* GetObjData() { return m_pObj; }
+	uint8* GetObjDataBase() { return m_pObj + m_nCastOffset; }
 	uint32 GetCastOffset() { return m_nCastOffset; }
 	bool SetClassName( const char* szName );
 	void CopyData( CObjectPrototype& copyTo );
+	bool DiffData( CObjectPrototype& obj1, CBufFile& buf );
+	void PatchData( CObjectPrototype& copyTo, IBufReader& patch );
 	void SetDirty() { m_bObjDataDirty = true; }
 
 	uint8* CreateObject();
+	uint8* CreateObjectPatched( IBufReader& patch );
 	void Load( IBufReader& buf, bool bWithMetaData );
 	void Save( CBufFile& buf, bool bWithMetaData );
 private:
@@ -407,6 +454,7 @@ class TObjectPrototype : public CObjectPrototype
 public:
 	TObjectPrototype() : CObjectPrototype( GetBaseClass() ) {}
 	T* CreateObject() { return (T*)CObjectPrototype::CreateObject(); }
+	T* GetObject() { return (T*)GetObjDataBase(); }
 
 	static SClassMetaData* GetBaseClass()
 	{

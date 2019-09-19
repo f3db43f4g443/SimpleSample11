@@ -19,6 +19,7 @@ public:
 	
 	CVector4* GetParam();
 	CVector4* GetParam( uint16& nTotalCount );
+	uint16 GetParamCount() { return m_params.size(); }
 	void SetParam( uint16 nTotalCount, const CVector4* pData,
 		uint16 nColorParamBeginIndex, uint16 nColorParamCount,
 		uint16 nOcclusionParamBeginIndex, uint16 nOcclusionParamCount,

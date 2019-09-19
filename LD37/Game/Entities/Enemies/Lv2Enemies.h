@@ -300,6 +300,36 @@ protected:
 	TClassTrigger<CArmRotator> m_onChunkKilled;
 };
 
+class CArmPuncher : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CArmPuncher( const SClassCreateContext& context ) : CEnemy( context ), m_flyData( context ) { SET_BASEOBJECT_ID( CArmRotator ); }
+	virtual void OnAddedToStage() override;
+	virtual void Kill() override;
+protected:
+	virtual void OnTickBeforeHitTest() override;
+	void Update( bool bInit );
+	void Detach();
+	void Hit();
+	CReference<CEntity> m_pEft;
+	CReference<CEntity> m_pEnd;
+	CReference<CEntity> m_pBulletEmitter;
+	CReference<CEntity> m_pBulletEmitter1;
+	SCharacterPhysicsFlyData m_flyData;
+	float m_fWidth;
+	float m_fKillEftDist;
+	float m_fMaxLen;
+	float m_fMinLen;
+	float m_fRange1;
+	int32 m_nDmgCD;
+
+	bool m_bAttached;
+	int8 m_nState;
+	int32 m_nDmgCDLeft;
+	CVector2 m_vel0;
+};
+
 class CManChunkEgg : public CEnemy
 {
 	friend void RegisterGameClasses();
@@ -398,6 +428,39 @@ private:
 	int32 m_nState;
 	int32 m_nActionDir;
 	float m_fEftLen;
+};
+
+class CRailSlider : public CEnemy
+{
+	friend void RegisterGameClasses();
+public:
+	CRailSlider( const SClassCreateContext& context ) : CEnemy( context ) { SET_BASEOBJECT_ID( CRailSlider ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+protected:
+	virtual void OnTickAfterHitTest() override;
+	void FindBlock( CVector2& ofs, float ll );
+	void UpdateChain();
+	void DropObj();
+
+	float m_fSpeed;
+	float m_fGravity;
+	int32 m_nTime, m_nTime1;
+	float m_fMaxChainLen;
+	float m_fChainSpeed;
+	CReference<CRenderObject2D> m_pChain;
+	TResourceRef<CPrefab> m_pObjPrefab;
+	TResourceRef<CPrefab> m_pBulletPrefab;
+
+	CReference<CEntity> m_pBlock;
+	int8 m_nBegin, m_nEnd;
+	int32 m_nFrame;
+	int32 m_nFrame1, m_nFrame2;
+	int32 m_nObjTime;
+	float m_fTexPerLen;
+	int8 m_nChainState;
+	CReference<CEntity> m_pObj;
 };
 
 class CMechHand : public CEnemyTemplate

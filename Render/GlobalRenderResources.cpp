@@ -45,6 +45,17 @@ IShader* CGlobalShader::GetShaderByName( const char* szName )
 
 void CGlobalRenderResources::Init( IRenderSystem* pRenderSystem )
 {
+	SVertexBufferElement elemDebug[] =
+	{
+		{
+			"Position",
+			0,
+			EFormat::EFormatR32G32B32Float,
+			0
+		}
+	};
+	m_pVBDebug = pRenderSystem->CreateVertexBuffer( ELEM_COUNT( elemDebug ), elemDebug, 3, NULL, true );
+
 	SVertexBufferElement elem[] = 
 	{
 		{
@@ -54,7 +65,6 @@ void CGlobalRenderResources::Init( IRenderSystem* pRenderSystem )
 			0
 		}
 	};
-	m_pVBDebug = pRenderSystem->CreateVertexBuffer( ELEM_COUNT( elem ), elem, 3, NULL, true );
 
 	float fVertexData[] =
 	{ 0, 1, 0, 0, 1, 0, 1, 1 };

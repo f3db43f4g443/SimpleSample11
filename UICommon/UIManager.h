@@ -12,6 +12,7 @@ public:
 	CUIElement* HandleMouseDown( const CVector2& mousePos );
 	CUIElement* HandleMouseUp( const CVector2& mousePos );
 	CUIElement* HandleMouseMove( const CVector2& mousePos );
+	void HandleKey( uint32 nChar, bool bKeyDown, bool bAltDown );
 	void HandleChar( uint32 nChar );
 
 	CUIElement* GetDragged() { return m_pDragged; }

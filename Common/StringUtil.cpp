@@ -133,7 +133,7 @@ int CString::length() const
 	return ptr->_Myval.first.length();
 }
 
-void CString::PackData( CBufFile& buf, bool bWithMetaData )
+void CString::PackData( CBufFile& buf, bool bWithMetaData ) const
 {
 	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
 	buf.Write( ptr->_Myval.first );
@@ -144,4 +144,17 @@ void CString::UnpackData( IBufReader& buf, bool bWithMetaData )
 	string str;
 	buf.Read( str );
 	*this = str.c_str();
+}
+
+bool CString::DiffData( const CString& obj0, CBufFile& buf ) const
+{
+	if( *this == obj0 )
+		return false;
+	PackData( buf, true );
+	return true;
+}
+
+void CString::PatchData( IBufReader& buf )
+{
+	UnpackData( buf, true );
 }

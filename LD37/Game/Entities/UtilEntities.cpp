@@ -355,13 +355,39 @@ void CEnemyHp::OnHpChanged()
 
 void CBulletEmitter::OnAddedToStage()
 {
-	GetStage()->RegisterAfterHitTest( m_nFireCD, &m_onTick );
+	if( !m_bBeginShutdown )
+		GetStage()->RegisterAfterHitTest( m_nFireCD, &m_onTick );
 }
 
 void CBulletEmitter::OnRemovedFromStage()
 {
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
+}
+
+void CBulletEmitter::Reset()
+{
+	m_nMagUsed = 0;
+	m_nAmmoLeft = 0;
+	OnTick();
+	for( auto pEntity = Get_ChildEntity(); pEntity; pEntity = pEntity->NextChildEntity() )
+	{
+		auto p = SafeCast<CBulletEmitter>( pEntity );
+		if( p )
+			p->Reset();
+	}
+}
+
+void CBulletEmitter::Shutdown()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+	for( auto pEntity = Get_ChildEntity(); pEntity; pEntity = pEntity->NextChildEntity() )
+	{
+		auto p = SafeCast<CBulletEmitter>( pEntity );
+		if( p )
+			p->Shutdown();
+	}
 }
 
 void CBulletEmitter::OnTick()
@@ -378,7 +404,13 @@ void CBulletEmitter::OnTick()
 			}
 		}
 
+		if( m_nMagCount )
+		{
+			if( m_nMagUsed >= m_nMagCount )
+				return;
+		}
 		m_nAmmoLeft = m_nAmmoCount;
+		m_nMagUsed++;
 	}
 
 	if( m_nAmmoLeft > 0 )
@@ -402,14 +434,21 @@ void CBulletEmitter::OnTick()
 void CBulletEmitter::Fire()
 {
 	CVector2 dir;
+	int32 nBullet = m_nAmmoCount - m_nAmmoLeft;
 	switch( m_nTargetType )
 	{
 	case 0:
-		dir = CVector2( cos( m_fTargetParam1 * PI / 180 ), sin( m_fTargetParam1 * PI / 180 ) );
+	{
+		float f = m_fTargetParam1 + nBullet * m_fTargetParam2 + ( m_nMagUsed - 1 ) * m_fTargetParam3;
+		dir = CVector2( cos( f * PI / 180 ), sin( f * PI / 180 ) );
 		break;
+	}
 	case 1:
-		dir = GetGlobalTransform().MulVector2Dir( CVector2( cos( m_fTargetParam1 * PI / 180 ), sin( m_fTargetParam1 * PI / 180 ) ) );
+	{
+		float f = m_fTargetParam1 + nBullet * m_fTargetParam2 + ( m_nMagUsed - 1 ) * m_fTargetParam3;
+		dir = GetGlobalTransform().MulVector2Dir( CVector2( cos( f * PI / 180 ), sin( f * PI / 180 ) ) );
 		break;
+	}
 	case 2 :
 	{
 		CPlayer* pPlayer = GetStage()->GetPlayer();
@@ -444,12 +483,13 @@ void CBulletEmitter::Fire()
 		pBullet->SetVelocity( velocity );
 		pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
 		pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
-		pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
+		pBullet->SetAngularVelocity( m_fAngularSpeed * ( SRand::Inst().Rand( 0, 2 ) ? 1 : -1 ) );
 		pBullet->SetLife( m_nBulletLife );
 		pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 	}
 	else
 	{
+		float rnd = SRand::Inst().Rand( 0, 2 ) ? 1 : -1;
 		for( int i = 0; i < m_nBulletCount; i++ )
 		{
 			CBullet* pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
@@ -475,7 +515,7 @@ void CBulletEmitter::Fire()
 			pBullet->SetVelocity( velocity );
 			pBullet->SetAcceleration( CVector2( 0, -m_fGravity ) );
 			pBullet->SetRotation( atan2( velocity.y, velocity.x ) );
-			pBullet->SetAngularVelocity( m_fAngularSpeed * ( m_fAngularSpeed ? 1 : -1 ) );
+			pBullet->SetAngularVelocity( m_fAngularSpeed * rnd );
 			pBullet->SetLife( m_nBulletLife );
 			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
 		}

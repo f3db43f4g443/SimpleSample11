@@ -44,6 +44,8 @@ protected:
 		m_pViewport->Register( eEvent_StopDrag, &m_onViewportStopDrag );
 		m_onDebugDraw.Set( this, &TResourceEditor::OnDebugDraw );
 		m_pViewport->Register( eEvent_Action, &m_onDebugDraw );
+		m_onViewportKey.Set( this, &TResourceEditor::OnViewportKey );
+		m_pViewport->Register( eEvent_Key, &m_onViewportKey );
 		m_onViewportChar.Set( this, &TResourceEditor::OnViewportChar );
 		m_pViewport->Register( eEvent_Char, &m_onViewportChar );
 		
@@ -68,9 +70,16 @@ protected:
 				pDrawable1 = new CDefaultDrawable2D;
 				pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "occlusion_pass" ) );
 			}
-			CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -512, -512, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
-			m_pViewport->GetRoot()->AddChild( pImage );
-			m_pBackground = pImage;
+			m_pBackground = new CRenderObject2D;
+			m_pViewport->GetRoot()->AddChild( m_pBackground );
+			for( int i = 0; i < 4; i++ )
+			{
+				for( int j = 0; j < 4; j++ )
+				{
+					CImage2D* pImage = new CImage2D( pDrawable, pDrawable1, CRectangle( -2048 + i * 1024, -2048 + j * 1024, 1024, 1024 ), CRectangle( 0, 0, 1, 1 ) );
+					m_pBackground->AddChild( pImage );
+				}
+			}
 		}
 	}
 
@@ -94,10 +103,10 @@ protected:
 		if( m_pLight )
 			m_pLight->SetPosition( ofs );
 
-		float fGrid = 64;
+		float fGrid = 1024;
 		if( m_pBackground )
 		{
-			CVector2 backgroundPos( floor( ofs.x / fGrid ) * fGrid, floor( ofs.y / fGrid ) * fGrid );
+			CVector2 backgroundPos( floor( ofs.x / fGrid + 0.5f ) * fGrid, floor( ofs.y / fGrid + 0.5f ) * fGrid );
 			m_pBackground->SetPosition( backgroundPos );
 		}
 		m_camOfs = ofs;
@@ -133,7 +142,7 @@ protected:
 	}
 
 	virtual void OnViewportStopDrag( SUIMouseEvent* pEvent ) {}
-
+	virtual void OnViewportKey( SUIKeyEvent* pEvent ) {}
 	virtual void OnViewportChar( uint32 nChar ) {}
 	
 	CVector2 m_startDragPos;
@@ -145,5 +154,6 @@ private:
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportDragged;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStopDrag;
 	TClassTrigger1<TResourceEditor, IRenderSystem*> m_onDebugDraw;
+	TClassTrigger1<TResourceEditor, SUIKeyEvent*> m_onViewportKey;
 	TClassTrigger1<TResourceEditor, uint32> m_onViewportChar;
 };

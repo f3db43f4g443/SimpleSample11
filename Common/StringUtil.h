@@ -33,8 +33,10 @@ public:
 	const char* c_str_safe() const;
 	int length() const;
 
-	void PackData( class CBufFile& buf, bool bWithMetaData );
+	void PackData( class CBufFile& buf, bool bWithMetaData ) const;
 	void UnpackData( class IBufReader& buf, bool bWithMetaData );
+	bool DiffData( const CString& obj0, class CBufFile& buf ) const;
+	void PatchData( class IBufReader& buf );
 
 	static const CString& empty()
 	{

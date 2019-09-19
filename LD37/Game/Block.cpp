@@ -327,6 +327,7 @@ SChunk::SChunk( const SChunkBaseInfo& baseInfo, const TVector2<int32>& pos, cons
 			block.eBlockType = blockInfo.eBlockType;
 			block.nTag = blockInfo.nTag;
 			block.fDmgPercent = blockInfo.fDmgPercent;
+			block.nRail = blockInfo.nRail;
 			block.bImmuneToBlockBuff = blockInfo.bImmuneToBlockBuff;
 		}
 	}
@@ -547,61 +548,91 @@ void CChunkObject::SetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		SetParentEntity( pChunk->nLayerType > 1 ? pLevel->GetChunkRoot1() : pLevel->GetChunkRoot() );
 	}
 
-	if( pChunk->nSubChunkType == 1 && pChunk->pParentChunk )
-		return;
-
-	for( auto& block : pChunk->blocks )
+	bool b = pChunk->nSubChunkType == 1 && pChunk->pParentChunk;
+	if( b )
 	{
-		block.pEntity = new CBlockObject( &block, this, pLevel );
-
-		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
+		if( !m_pTempBlock )
 		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 1 ) )
-				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
-			else
-				pEntity->SetParentEntity( this );
+			m_pTempBlock = new CEntity();
+			m_pTempBlock->SetParentEntity( this );
 		}
-
-		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right] )
+	}
+	if( !GetChunk()->blocks[0].pEntity )
+	{
+		for( auto& block : pChunk->blocks )
 		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + 1, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 2 ) )
-				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
-			else
-				pEntity->SetParentEntity( this );
+			if( !b )
+			{
+				if( m_pTempBlock )
+				{
+					block.pEntity = new CBlockObject( &block, NULL, pLevel );
+					block.pEntity->SetParentBeforeEntity( m_pTempBlock );
+					continue;
+				}
+				block.pEntity = new CBlockObject( &block, this, pLevel );
+			}
+			if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] )
+			{
+				auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Center]->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( CVector2( block.nX + block.attachedPrefabSize.x * 0.5f, block.nY + block.attachedPrefabSize.y * 0.5f ) * CMyLevel::GetBlockSize() );
+				if( !!( block.nAttachType & 1 ) )
+					pEntity->SetParentAfterEntity( b ? m_pTempBlock : GetChunk()->blocks[0].pEntity );
+				else
+					pEntity->SetParentEntity( this );
+				block.pAttachedPrefab[SBlock::eAttachedPrefab_Center] = NULL;
+			}
+
+			if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right] )
+			{
+				auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Right]->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( CVector2( block.nX + 1, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
+				if( !!( block.nAttachType & 2 ) )
+					pEntity->SetParentAfterEntity( b ? m_pTempBlock : GetChunk()->blocks[0].pEntity );
+				else
+					pEntity->SetParentEntity( this );
+				block.pAttachedPrefab[SBlock::eAttachedPrefab_Right] = NULL;
+			}
+
+			if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
+			{
+				auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * CMyLevel::GetBlockSize() );
+				if( !!( block.nAttachType & 4 ) )
+					pEntity->SetParentAfterEntity( b ? m_pTempBlock : GetChunk()->blocks[0].pEntity );
+				else
+					pEntity->SetParentEntity( this );
+				block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] = NULL;
+			}
+
+			if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left] )
+			{
+				auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left]->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( CVector2( block.nX, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
+				if( !!( block.nAttachType & 8 ) )
+					pEntity->SetParentAfterEntity( b ? m_pTempBlock : GetChunk()->blocks[0].pEntity );
+				else
+					pEntity->SetParentEntity( this );
+				block.pAttachedPrefab[SBlock::eAttachedPrefab_Left] = NULL;
+			}
+
+			if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
+			{
+				auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
+				pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * CMyLevel::GetBlockSize() );
+				if( !!( block.nAttachType & 16 ) )
+					pEntity->SetParentAfterEntity( b ? m_pTempBlock : GetChunk()->blocks[0].pEntity );
+				else
+					pEntity->SetParentEntity( this );
+				block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] = NULL;
+			}
 		}
-
-		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper] )
+	}
+	if( !b )
+	{
+		if( m_pTempBlock )
 		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Upper]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY + 1 ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 4 ) )
-				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
-			else
-				pEntity->SetParentEntity( this );
-		}
-
-		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left] )
-		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Left]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX, block.nY + 0.5f ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 8 ) )
-				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
-			else
-				pEntity->SetParentEntity( this );
-		}
-
-		if( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower] )
-		{
-			auto pEntity = SafeCast<CEntity>( block.pAttachedPrefab[SBlock::eAttachedPrefab_Lower]->GetRoot()->CreateInstance() );
-			pEntity->SetPosition( CVector2( block.nX + 0.5f, block.nY ) * CMyLevel::GetBlockSize() );
-			if( !!( block.nAttachType & 16 ) )
-				pEntity->SetParentAfterEntity( GetChunk()->blocks[0].pEntity );
-			else
-				pEntity->SetParentEntity( this );
+			m_pTempBlock->SetParentEntity( NULL );
+			m_pTempBlock = NULL;
 		}
 	}
 }

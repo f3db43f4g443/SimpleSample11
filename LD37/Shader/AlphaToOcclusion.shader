@@ -10,7 +10,7 @@ void PSColor( in float4 inPos : SV_Position,
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
 	float fAlpha = texColor.w;
 	fAlpha = fAlpha - fHeightClip;
-
+	texColor.w = 1;
 	outColor[0] = texColor;
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 	clip( fAlpha - 0.001 );
@@ -41,7 +41,7 @@ void PSColorMulInstData( in float4 inPos : SV_Position,
 	float4 texColor = Texture0.Sample( LinearSampler, tex ) * instData1;
 	float fAlpha = texColor.w;
 	fAlpha = fAlpha - fHeightClip;
-
+	texColor.w = 1;
 	outColor[0] = texColor;
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 	clip( fAlpha - 0.001 );
@@ -56,7 +56,7 @@ void PSColorConstData( in float4 inPos : SV_Position,
 	float4 texColor = Texture0.Sample( LinearSampler, tex );
 	float fAlpha = texColor.w;
 	fAlpha = fAlpha - fHeightClip;
-
+	texColor.w = 1;
 	outColor[0] = texColor;
 	outColor[1] = float4( 0, 0, 0, outColor[0].w );
 	clip( fAlpha - 0.001 );

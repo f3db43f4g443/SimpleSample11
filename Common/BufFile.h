@@ -111,8 +111,22 @@ public:
 		if( nCount )
 			Write( &t[0], sizeof(T)* nCount );
 	}
+
+	bool operator == ( const CBufFile& a )
+	{
+		if( m_nBufferLen != a.m_nBufferLen )
+			return false;
+		if( !m_nBufferLen )
+			return true;
+		return !memcmp( &m_tempBuffer[0], &a.m_tempBuffer[0], m_nBufferLen );
+	}
+	bool operator != ( const CBufFile& a )
+	{
+		return !( *this == a );
+	}
 	
 	const void* GetBuffer() const { return m_tempBuffer.size()? &m_tempBuffer[0]: NULL; }
+	void SetBufLen( uint32 n ) { m_nBufferLen = n; }
 private:
 	vector<uint8> m_tempBuffer;
 };
@@ -122,7 +136,8 @@ inline uint32 IBufReader::Read( CBufFile& t )
 {
 	vector<uint8> vec;
 	uint32 nLen = Read( vec );
-	t.Write( &vec[0], vec.size() );
+	if( vec.size() )
+		t.Write( &vec[0], vec.size() );
 	return nLen;
 }
 

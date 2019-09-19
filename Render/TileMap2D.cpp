@@ -69,10 +69,9 @@ void CTileMap2D::Resize( const TRectangle<int32>& rect )
 	{
 		for( int32 j = 0; j <= m_nHeight; j++ )
 		{
-			if( i >= rect0.x && j >= rect0.y && i <= rect0.GetRight() && j <= rect0.GetBottom() )
-				m_editData[i + j * ( m_nWidth + 1 )] = editData[i - rect0.x + ( j - rect0.y ) * ( nPreWidth + 1 )];
-			else
-				m_editData[i + j * ( m_nWidth + 1 )] = 0;
+			int32 x = Max( 0, Min( rect0.width, i - rect0.x ) );
+			int32 y = Max( 0, Min( rect0.height, j - rect0.y ) );
+			m_editData[i + j * ( m_nWidth + 1 )] = editData[x + y * ( nPreWidth + 1 )];
 		}
 	}
 
@@ -109,9 +108,7 @@ void CTileMap2D::Resize( const TRectangle<int32>& rect )
 				RefreshTile( i, j );
 		}
 	}
-
-	m_localBound = CRectangle( m_baseOffset.x, m_baseOffset.y, m_tileSize.x * m_nWidth, m_tileSize.y * m_nHeight );
-	SetBoundDirty();
+	SetBaseOffset( m_baseOffset + CVector2( rect.x, rect.y ) * m_tileSize );
 }
 
 void CTileMap2D::Set( const CVector2& tileSize, const CVector2& baseOffset, uint32 nWidth, uint32 nHeight )

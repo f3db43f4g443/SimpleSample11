@@ -131,7 +131,7 @@ void CUIViewport::DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& b
 	const CRectangle& rect = GetCamera().GetViewArea();
 	CVector2 pt1 = ( begin - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 	CVector2 pt2 = ( end - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-	m_pRenderer->DebugDrawLine( pRenderSystem, pt1, pt2, color );
+	IRenderer::DebugDrawLine( pRenderSystem, pt1, pt2, color );
 }
 
 void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color )
@@ -142,7 +142,7 @@ void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert
 		CVector2 pt1 = ( pVert[i] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt2 = ( pVert[i + 1] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt3 = ( pVert[i + 2] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-		m_pRenderer->DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color );
+		IRenderer::DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color );
 	}
 }
 

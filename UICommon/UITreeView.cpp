@@ -4,7 +4,7 @@
 #include "Common/ResourceManager.h"
 #include "Common/xml.h"
 
-CUIScrollView::CContent* CUITreeView::AddContentChild( CUIElement* pElement, CContent* pInContent )
+CUIScrollView::CContent* CUITreeView::AddContentChild( CUIElement* pElement, CContent* pInContent, bool bHead )
 {
 	CTreeViewContent* pTreeContent = dynamic_cast<CTreeViewContent*>( pInContent );
 	if( pTreeContent->nType == 1 )
@@ -14,7 +14,7 @@ CUIScrollView::CContent* CUITreeView::AddContentChild( CUIElement* pElement, CCo
 		pTreeContent->pTail = dynamic_cast<CTreeViewContent*>( AddContentAfter( NULL, pInContent ) );
 		pTreeContent->pTail->nType = 1;
 	}
-	CTreeViewContent* pChild = dynamic_cast<CTreeViewContent*>( AddContentBefore( pElement, pTreeContent->pTail ) );
+	CTreeViewContent* pChild = dynamic_cast<CTreeViewContent*>( bHead ? AddContentAfter( pElement, pTreeContent ) : AddContentBefore( pElement, pTreeContent->pTail ) );
 	pChild->pParent = pTreeContent;
 	pChild->bHidden = pTreeContent->bHidden || pTreeContent->bFolded;
 	if( pElement )

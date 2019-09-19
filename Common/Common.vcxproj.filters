@@ -63,6 +63,7 @@
     <ClInclude Include="TabFile.h" />
     <ClInclude Include="SystemUtil.h" />
     <ClInclude Include="Algorithm.h" />
+    <ClInclude Include="Array.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BoundBox.inl" />

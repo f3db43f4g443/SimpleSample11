@@ -611,6 +611,7 @@ void CCop::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 			{
 				float r = SRand::Inst().Rand( -PI, PI );
 				m_curMoveDir = CVector2( cos( r ), sin( r ) );
+				m_pNav->ClearPath();
 			}
 		}
 		m_fNearestDist = FLT_MAX;
@@ -868,6 +869,7 @@ void CThug::OnVisitGrid( CNavigationUnit::SGridData * pGrid )
 			{
 				float r = SRand::Inst().Rand( -PI, PI );
 				m_curMoveDir = CVector2( cos( r ), sin( r ) );
+				m_pNav->ClearPath();
 			}
 		}
 		m_fNearestDist = FLT_MAX;
@@ -1009,6 +1011,7 @@ void CWorker::OnVisitGrid( CNavigationUnit::SGridData* pGrid )
 			SetTarget( NULL );
 			float r = SRand::Inst().Rand( -PI, PI );
 			m_curMoveDir = CVector2( cos( r ), sin( r ) );
+			m_pNav->ClearPath();
 		}
 		m_fNearestDist = FLT_MAX;
 		return;

@@ -36,6 +36,7 @@ public:
 	void SetEditor( CResourceEditor* pElem );
 	CResourceEditor* SetEditor( const char* szTag );
 	map<string, SRegisteredEditor>& GetRegisteredEditors() { return m_mapRegisteredEditors; }
+	void OpenFile( const char* szFile );
 
 	void BeforeRender() { m_pUIMgr->UpdateLayout(); }
 	

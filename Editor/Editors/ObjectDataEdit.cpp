@@ -3,12 +3,12 @@
 #include "Common/StringUtil.h"
 #include "Common/Utf8Util.h"
 
-CObjectDataCommonEdit::CObjectDataCommonEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData )
+CObjectDataCommonEdit::CObjectDataCommonEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataCommonEdit::OnEdit )
 {
 	m_nDataType = pMetaData->nType;
-	CCommonEdit* pCommonEdit = CCommonEdit::Create( pMetaData->strName.c_str() );
+	CCommonEdit* pCommonEdit = CCommonEdit::Create( szName ? szName : pMetaData->strName.c_str() );
 	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pCommonEdit, pParent ) );
 	Register( &m_onEdit );
 	m_pEdit = pCommonEdit;
@@ -87,11 +87,11 @@ void CObjectDataCommonEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
-CObjectDataBoolEdit::CObjectDataBoolEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData )
+CObjectDataBoolEdit::CObjectDataBoolEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataBoolEdit::OnEdit )
 {
-	CBoolEdit* pBoolEdit = CBoolEdit::Create( pMetaData->strName.c_str() );
+	CBoolEdit* pBoolEdit = CBoolEdit::Create( szName ? szName : pMetaData->strName.c_str() );
 	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pBoolEdit, pParent ) );
 	m_pEdit = pBoolEdit;
 	RefreshData();
@@ -111,12 +111,12 @@ void CObjectDataBoolEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
-CObjectDataVectorEdit::CObjectDataVectorEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData )
+CObjectDataVectorEdit::CObjectDataVectorEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataVectorEdit::OnEdit )
 {
 	m_nDataType = pMetaData->nType;
-	CVectorEdit* pVectorEdit = CVectorEdit::Create( pMetaData->strName.c_str(), pMetaData->nType - SClassMetaData::SMemberData::eType_float + 1 );
+	CVectorEdit* pVectorEdit = CVectorEdit::Create( szName ? szName : pMetaData->strName.c_str(), pMetaData->nType - SClassMetaData::SMemberData::eType_float + 1 );
 	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pVectorEdit, pParent ) );
 	Register( &m_onEdit );
 	m_pEdit = pVectorEdit;
@@ -147,11 +147,11 @@ void CObjectDataVectorEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
-CObjectDataStringEdit::CObjectDataStringEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData )
+CObjectDataStringEdit::CObjectDataStringEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataStringEdit::OnEdit )
 {
-	CCommonEdit* pCommonEdit = CCommonEdit::Create( pMetaData->strName.c_str() );
+	CCommonEdit* pCommonEdit = CCommonEdit::Create( szName ? szName : pMetaData->strName.c_str() );
 	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pCommonEdit, pParent ) );
 	Register( &m_onEdit );
 	m_pEdit = pCommonEdit;
@@ -174,7 +174,7 @@ void CObjectDataStringEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
-CObjectDataEnumEdit::CObjectDataEnumEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData )
+CObjectDataEnumEdit::CObjectDataEnumEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataEnumEdit::OnEdit )
 {
@@ -188,7 +188,7 @@ CObjectDataEnumEdit::CObjectDataEnumEdit( CUITreeView* pTreeView, CUITreeView::C
 		item.name = enumItem.second;
 		item.pData = (void*)enumItem.first;
 	}
-	CDropDownBox* pDropDownBox = CDropDownBox::Create( pMetaData->strName.c_str(), &items[0], items.size() );
+	CDropDownBox* pDropDownBox = CDropDownBox::Create( szName ? szName : pMetaData->strName.c_str(), &items[0], items.size() );
 	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pDropDownBox, pParent ) );
 	Register( &m_onEdit );
 	m_pEdit = pDropDownBox;
@@ -219,6 +219,114 @@ void CObjectDataEnumEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
+#define MAX_ARRAY_SIZE 128
+
+CObjectArrayEdit::CObjectArrayEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
+	: CObjectDataEditItem( pTreeView, pData )
+	, m_onEdit( this, &CObjectArrayEdit::OnEdit )
+	, m_onResize( this, &CObjectArrayEdit::OnResize )
+	, m_pEditSize( NULL )
+	, m_pChildren( NULL )
+	, m_pMemberData( pMetaData )
+{
+	m_pContent = CTreeFolder::Create( pTreeView, pParent, szName ? szName : pMetaData->strName.c_str() );
+	Register( &m_onEdit );
+	m_pEditSize = CCommonEdit::Create( "Size" );
+	pTreeView->AddContentChild( m_pEditSize, m_pContent );
+	m_pEditSize->Register( CUIElement::eEvent_Action, &m_onResize );
+	RefreshData();
+}
+
+CObjectArrayEdit::~CObjectArrayEdit()
+{
+	while( m_pChildren )
+	{
+		auto pChildren = m_pChildren;
+		pChildren->RemoveFrom_Item();
+	}
+}
+
+void CObjectArrayEdit::RefreshData()
+{
+	m_pEditSize->SetValue<uint32>( Min<uint32>( MAX_ARRAY_SIZE, ( (CRawArray*)m_pData )->Size() ) );
+	CreateItemEdit();
+}
+
+void CObjectArrayEdit::OnDebugDraw( CUIViewport * pViewport, IRenderSystem * pRenderSystem, const CMatrix2D & transform )
+{
+	for( auto item = m_pChildren; item; item = item->NextItem() )
+	{
+		item->OnDebugDraw( pViewport, pRenderSystem, transform );
+	}
+}
+
+CObjectDataEditItem * CObjectArrayEdit::OnViewportStartDrag( CUIViewport * pViewport, const CVector2 & mousePos, const CMatrix2D & transform )
+{
+	for( auto item = m_pChildren; item; item = item->NextItem() )
+	{
+		CObjectDataEditItem* pRet = item->OnViewportStartDrag( pViewport, mousePos, transform );
+		if( pRet )
+			return pRet;
+	}
+	return NULL;
+}
+
+void CObjectArrayEdit::OnResize()
+{
+	uint32 nSize = m_pEditSize->GetValue<uint32>();
+	if( nSize > MAX_ARRAY_SIZE )
+	{
+		nSize = MAX_ARRAY_SIZE;
+		m_pEditSize->SetValue( nSize );
+	}
+
+	uint32 nSize0 = ( (CRawArray*)m_pData )->Size();
+	if( nSize == nSize0 )
+		return;
+
+	if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeClass )
+		m_pMemberData->pTypeData->ResizeFunc( m_pData, nSize );
+	else
+		( (CRawArray*)m_pData )->Resize( nSize, m_pMemberData->GetDataSize() );
+
+	CreateItemEdit();
+}
+
+void CObjectArrayEdit::CreateItemEdit()
+{
+	while( m_pChildren )
+	{
+		auto pChildren = m_pChildren;
+		pChildren->RemoveFrom_Item();
+	}
+
+	uint32 nSize = ( (CRawArray*)m_pData )->Size();
+	auto pData = ( (CRawArray*)m_pData )->GetData();
+	char szName[32];
+	for( int i = 0; i < nSize; i++, pData += m_pMemberData->GetDataSize() )
+	{
+		itoa( i, szName, 10 );
+		CObjectDataEditItem* pChild = NULL;
+		if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeClass )
+		{
+			if( m_pMemberData->pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() )
+				pChild = new CObjectDataStringEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+			else
+				pChild = CObjectDataEditMgr::Inst().Create( m_pTreeView, m_pContent, pData, m_pMemberData->pTypeData, szName );
+		}
+		else if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeEnum )
+			pChild = new CObjectDataEnumEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		else if( m_pMemberData->nType > SClassMetaData::SMemberData::eType_float && m_pMemberData->nType <= SClassMetaData::SMemberData::eType_float4 )
+			pChild = new CObjectDataVectorEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		else if( m_pMemberData->nType == SClassMetaData::SMemberData::eType_bool )
+			pChild = new CObjectDataBoolEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		else if( m_pMemberData->nType != SClassMetaData::SMemberData::eTypeTaggedPtr )
+			pChild = new CObjectDataCommonEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		if( pChild )
+			Insert_Item( pChild );
+	}
+}
+
 CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataEdit::OnEdit )
@@ -230,7 +338,9 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 	for( auto& memberData : pMetaData->vecMemberData )
 	{
 		CObjectDataEditItem* pChild = NULL;
-		if( memberData.nType == SClassMetaData::SMemberData::eTypeClass )
+		if( !!( memberData.nFlag & 2 ) )
+			pChild = new CObjectArrayEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
+		else if( memberData.nType == SClassMetaData::SMemberData::eTypeClass )
 		{
 			if( memberData.pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() )
 				pChild = new CObjectDataStringEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
@@ -239,7 +349,7 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 		}
 		else if( memberData.nType == SClassMetaData::SMemberData::eTypeEnum )
 			pChild = new CObjectDataEnumEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
-		else if( memberData.nType > SClassMetaData::SMemberData::eType_float )
+		else if( memberData.nType > SClassMetaData::SMemberData::eType_float && memberData.nType <= SClassMetaData::SMemberData::eType_float4 )
 			pChild = new CObjectDataVectorEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
 		else if( memberData.nType == SClassMetaData::SMemberData::eType_bool )
 			pChild = new CObjectDataBoolEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );

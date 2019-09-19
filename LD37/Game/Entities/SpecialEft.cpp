@@ -19,9 +19,9 @@ void CEnemyPileEft::OnAddedToStage()
 	for( int i = 0; i < m_nEft; i++ )
 	{
 		auto pImg = static_cast<CMultiFrameImage2D*>( pDrawable->CreateInstance() );
-		int32 nBegin = m_nEftBegin[i] + SRand::Inst().Rand( 0u, m_nEftCount[i] );
+		int32 nBegin = m_nEftBegin[i] + SRand::Inst<eRand_Render>().Rand( 0u, m_nEftCount[i] );
 		pImg->SetFrames( nBegin * m_nFrames, ( nBegin + 1 ) * m_nFrames, fFramesPerSec );
-		pImg->SetPlayPercent( SRand::Inst().Rand( 0.0f, 1.0f ) );
+		pImg->SetPlayPercent( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) );
 		pImg->SetAutoUpdateAnim( true );
 		m_pImg[i] = pImg;
 		pRenderObject->AddChild( pImg );
@@ -69,19 +69,19 @@ void CLimbsEft::OnAddedToStage()
 	m_pImg[1] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
-	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * 0.5f + SRand::Inst().Rand( -2, 3 ) * ( 1.0f / 16 ), m_fSize, m_fSize ) );
+	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * 0.5f + SRand::Inst<eRand_Render>().Rand( -2, 3 ) * ( 1.0f / 16 ), m_fSize, m_fSize ) );
 	m_texRect[3] = CRectangle( 0, SRand::Inst<eRand_Render>().Rand( 0, 4 ) * 0.25f, 0.25f, 0.25f );
 	AddChild( pImg );
 	m_pImg[3] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
-	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y + m_fSize * ( SRand::Inst().Rand( 0, 4 ) * ( 1.0f / 16 )  - 0.5f ), m_fSize * 0.5f, m_fSize * 0.5f ) );
+	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y + m_fSize * ( SRand::Inst<eRand_Render>().Rand( 0, 4 ) * ( 1.0f / 16 )  - 0.5f ), m_fSize * 0.5f, m_fSize * 0.5f ) );
 	m_texRect[0] = CRectangle( 0.75f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f );
 	AddChild( pImg );
 	m_pImg[0] = pImg;
 
 	pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
-	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * SRand::Inst().Rand( 0, 4 ) * ( 1.0f / 16 ), m_fSize * 0.5f, m_fSize * 0.5f ) );
+	pImg->SetRect( CRectangle( m_ofs.x, m_ofs.y - m_fSize * SRand::Inst<eRand_Render>().Rand( 0, 4 ) * ( 1.0f / 16 ), m_fSize * 0.5f, m_fSize * 0.5f ) );
 	m_texRect[2] = CRectangle( 0.875f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) * 0.125f, 0.125f, 0.125f );
 	AddChild( pImg );
 	m_pImg[2] = pImg;
@@ -93,7 +93,7 @@ void CLimbsEft::OnAddedToStage()
 		m_pImg[i]->bVisible = !( m_nMask & ( 1 << i ) );
 	}
 
-	m_nTick = SRand::Inst().Rand( 0, 8 );
+	m_nTick = SRand::Inst<eRand_Render>().Rand( 0, 8 );
 	GetStage()->RegisterAfterHitTest( m_nFrames, &m_onTick );
 }
 
@@ -143,7 +143,7 @@ void CLimbsEft::OnTick()
 		case 1:
 		{
 			uint32 nY = texRect.y * 8;
-			nY = nY + SRand::Inst().Rand( 2, 6 );
+			nY = nY + SRand::Inst<eRand_Render>().Rand( 2, 6 );
 			if( nY >= 8 )
 				nY -= 8;
 			texRect.y = nY * 0.125f;
@@ -214,6 +214,7 @@ void CLimbsAttackEft::CreateAttackEft( CRenderObject2D* pRenderParent1, CRenderO
 			texRect.x += 0.5f;
 		if( SRand::Inst<eRand_Render>().Rand( 0, 2 ) )
 			texRect.y += 0.5f;
+		texRect = ( texRect * 0.5f ).Offset( CVector2( SRand::Inst<eRand_Render>().Rand( 0, 2 ), SRand::Inst<eRand_Render>().Rand( 0, 2 ) ) * 0.5f );
 		pImg->SetTexRect( texRect );
 		m_pAttackEft[i]->AddChild( pImg );
 	}
@@ -227,6 +228,11 @@ void CLimbsAttackEft::CreateAttackEft( CRenderObject2D* pRenderParent1, CRenderO
 	else
 		SetRenderObject( NULL );
 }
+
+#define UNPACK_TEX_RECT( name, t ) CRectangle name = ( t ); \
+int32 nImg = ( name.x >= 0.5f ? 1 : 0 ) * 2 + ( name.y >= 0.5f ? 1 : 0 ); \
+name = ( name * 2 ).Offset( CVector2( -( nImg >> 1 ), -( nImg & 1 ) ) );
+#define PACK_TEX_RECT( name ) ( ( name * 0.5f ).Offset( CVector2( nImg >> 1, nImg & 1 ) * 0.5f ) )
 
 void CLimbsAttackEft::SetAttackEftLen( float fLen )
 {
@@ -249,10 +255,10 @@ void CLimbsAttackEft::SetAttackEftLen( float fLen )
 			rect.width = m_fSize * 0.5f;
 			pImg->SetRect( rect );
 			pImg->SetBoundDirty();
-			CRectangle texRect = pImg->GetElem().texRect;
+			UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
 			texRect.x = texRect.x > 0.5f ? 1.0f - ( 1.0f / 16 ) : 0.5f - ( 1.0f / 16 );
 			texRect.width = 1.0f / 16;
-			pImg->SetTexRect( texRect );
+			pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
 		}
 		else if( nLastSeg < nCurSeg )
 		{
@@ -260,9 +266,9 @@ void CLimbsAttackEft::SetAttackEftLen( float fLen )
 			rect.SetLeft( rect.GetRight() - m_fSize );
 			pImg->SetRect( rect );
 			pImg->SetBoundDirty();
-			CRectangle texRect = pImg->GetElem().texRect;
+			UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
 			texRect.SetLeft( texRect.GetRight() - rect.width / ( m_fSize * 8 ) );
-			pImg->SetTexRect( texRect );
+			pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
 		}
 
 		for( int n = nLastSeg; n > nCurSeg; n-- )
@@ -278,16 +284,18 @@ void CLimbsAttackEft::SetAttackEftLen( float fLen )
 			auto pNxt = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 			CRectangle rect( -m_fSize * ( n + 1 ), -m_fSize * 0.25f, m_fSize, m_fSize * 0.5f );
 			pNxt->SetRect( rect );
+			UNPACK_TEX_RECT( texRect0, pImg->GetElem().texRect )
 			CRectangle texRect( 0.5f, SRand::Inst<eRand_Render>().Rand( 0, 8 ) / 8.0f, 1.0f / 4, 1.0f / 8 );
 			if( dY > 0 )
 				texRect.x = 0;
 			else if( dY < 0 )
 				texRect.x = 0.25f;
 			texRect = texRect * 0.5f;
-			if( pImg->GetElem().texRect.x >= 0.5f )
+			if( texRect0.x >= 0.5f )
 				texRect.x += 0.5f;
-			if( pImg->GetElem().texRect.y >= 0.5f )
+			if( texRect0.y >= 0.5f )
 				texRect.y += 0.5f;
+			texRect = ( texRect * 0.5f ).Offset( CVector2( SRand::Inst<eRand_Render>().Rand( 0, 2 ), SRand::Inst<eRand_Render>().Rand( 0, 2 ) ) * 0.5f );
 			pNxt->SetTexRect( texRect );
 			m_pAttackEft[i]->AddChild( pNxt );
 			pImg = pNxt;
@@ -299,9 +307,9 @@ void CLimbsAttackEft::SetAttackEftLen( float fLen )
 			rect.SetLeft( Max( rect.GetRight() - m_fSize, -fLen ) );
 			pImg->SetRect( rect );
 			pImg->SetBoundDirty();
-			CRectangle texRect = pImg->GetElem().texRect;
+			UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
 			texRect.SetLeft( texRect.GetRight() - rect.width / ( m_fSize * 8 ) );
-			pImg->SetTexRect( texRect );
+			pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
 		}
 	}
 
@@ -339,19 +347,19 @@ void CLimbsAttackEft::OnTick()
 					continue;
 				auto pImg = static_cast<CImage2D*>( m_pAttackEft[i]->Get_TransformChild() );
 				auto rect = pImg->GetElem().rect;
-				auto texRect = pImg->GetElem().texRect;
+				UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
 				if( texRect.width < 1.0f / 16 )
 				{
 					rect.width = m_fSize * 0.5f;
 					texRect.SetLeft( texRect.GetRight() - 1.0f / 16 );
 					pImg->SetRect( rect );
-					pImg->SetTexRect( texRect );
+					pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
 					pImg->SetBoundDirty();
 				}
 				else if( texRect.GetRight() == 0.5f || texRect.GetRight() == 1 )
 				{
 					texRect.x -= 1.0f / 16;
-					pImg->SetTexRect( texRect );
+					pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
 				}
 			}
 
@@ -360,66 +368,90 @@ void CLimbsAttackEft::OnTick()
 		return;
 	}
 
-	if( m_pAttackEft[m_nTick] )
+	for( int i = 0; i < ELEM_COUNT( m_pAttackEft ); i++ )
 	{
-		auto pImg = static_cast<CImage2D*>( m_pAttackEft[m_nTick]->Get_TransformChild() );
-		float fCurY = 0;
-		float dY = m_fSize / 16;
-
-		while( pImg )
+		if( !m_pAttackEft[i] )
+			continue;
+		if( m_nTick == i )
 		{
-			pImg->SetPosition( CVector2( pImg->x, fCurY ) );
-			auto pNxt = pImg->NextTransformChild();
-			if( !pNxt )
-				break;
+			auto pImg = static_cast<CImage2D*>( m_pAttackEft[i]->Get_TransformChild() );
+			float fCurY = 0;
+			float dY = m_fSize / 16;
 
-			float fNxtY = pNxt->y;
-			auto pNxt1 = pNxt->NextTransformChild();
-			if( !pNxt1 )
+			while( pImg )
 			{
-				if( fNxtY == 0 )
-					fNxtY = SRand::Inst<eRand_Render>().Rand( 0, 2 ) ? -dY : dY;
-				else
-					fNxtY = 0;
-			}
-			else
-			{
-				float fNxt1Y = pNxt1->y;
-				if( fNxt1Y - fCurY == dY || fCurY - fNxt1Y == dY )
+				pImg->SetPosition( CVector2( pImg->x, fCurY ) );
+				auto pNxt = pImg->NextTransformChild();
+				if( pNxt )
 				{
-					if( fNxtY == fCurY )
-						fNxtY = fNxt1Y;
-					else
-						fNxt1Y = fCurY;
-				}
-				else if( fNxt1Y == fCurY )
-				{
-					if( fNxtY == 0 )
+					float fNxtY = pNxt->y;
+					auto pNxt1 = pNxt->NextTransformChild();
+					if( !pNxt1 )
 					{
-						if( fCurY == 0 )
+						if( fNxtY == 0 )
 							fNxtY = SRand::Inst<eRand_Render>().Rand( 0, 2 ) ? -dY : dY;
 						else
-							fNxtY = fCurY;
+							fNxtY = 0;
 					}
 					else
-						fNxtY = 0;
+					{
+						float fNxt1Y = pNxt1->y;
+						if( fNxt1Y - fCurY == dY || fCurY - fNxt1Y == dY )
+						{
+							if( fNxtY == fCurY )
+								fNxtY = fNxt1Y;
+							else
+								fNxt1Y = fCurY;
+						}
+						else if( fNxt1Y == fCurY )
+						{
+							if( fNxtY == 0 )
+							{
+								if( fCurY == 0 )
+									fNxtY = SRand::Inst<eRand_Render>().Rand( 0, 2 ) ? -dY : dY;
+								else
+									fNxtY = fCurY;
+							}
+							else
+								fNxtY = 0;
+						}
+						else
+							fNxtY = 0;
+					}
+
+					UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
+					float fBaseX = texRect.x >= 0.5f ? 0.5f : 0;
+					if( fNxtY > fCurY )
+						texRect.x = fBaseX + 0.125f - texRect.width;
+					else if( fNxtY < fCurY )
+						texRect.x = fBaseX + 0.25f - texRect.width;
+					else
+						texRect.x = fBaseX + 0.375f - texRect.width;
+					nImg = ( nImg + 1 ) & 3;
+					pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
+
+					fCurY = fNxtY;
 				}
 				else
-					fNxtY = 0;
+				{
+					UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
+					nImg = ( nImg + 1 ) & 3;
+					pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
+				}
+
+				pImg = static_cast<CImage2D*>( pNxt );
 			}
-
-			auto texRect = pImg->GetElem().texRect;
-			float fBaseX = texRect.x >= 0.5f ? 0.5f : 0;
-			if( fNxtY > fCurY )
-				texRect.x = fBaseX + 0.125f - texRect.width;
-			else if( fNxtY < fCurY )
-				texRect.x = fBaseX + 0.25f - texRect.width;
-			else
-				texRect.x = fBaseX + 0.375f - texRect.width;
-			pImg->SetTexRect( texRect );
-
-			fCurY = fNxtY;
-			pImg = static_cast<CImage2D*>( pNxt );
+		}
+		else
+		{
+			auto pImg = static_cast<CImage2D*>( m_pAttackEft[i]->Get_TransformChild() );
+			while( pImg )
+			{
+				UNPACK_TEX_RECT( texRect, pImg->GetElem().texRect )
+				nImg = ( nImg + 1 ) & 3;
+				pImg->SetTexRect( PACK_TEX_RECT( texRect ) );
+				pImg = static_cast<CImage2D*>( pImg->NextTransformChild() );
+			}
 		}
 	}
 
@@ -451,6 +483,13 @@ void CArmEft::UpdateRendered( double dTime )
 		if( elem.bMask )
 			continue;
 		elem.nTick++;
+		for( int i = elem.m_element2D.size() - 1; i >= 0; i-- )
+		{
+			auto& elem1 = elem.m_element2D[i];
+			UNPACK_TEX_RECT( texRect, elem1.texRect )
+			nImg = ( nImg + 1 ) & 3;
+			elem1.texRect = PACK_TEX_RECT( texRect );
+		}
 		if( elem.nTick < 8 )
 			continue;
 		elem.nTick = 0;
@@ -495,7 +534,7 @@ void CArmEft::UpdateRendered( double dTime )
 					fNxtY = 0;
 			}
 
-			auto& texRect = elem1.texRect;
+			UNPACK_TEX_RECT( texRect, elem1.texRect )
 			float fBaseX = texRect.x >= 0.5f ? 0.5f : 0;
 			if( fNxtY > fCurY )
 				texRect.x = fBaseX + 0.125f - texRect.width;
@@ -503,6 +542,8 @@ void CArmEft::UpdateRendered( double dTime )
 				texRect.x = fBaseX + 0.25f - texRect.width;
 			else
 				texRect.x = fBaseX + 0.375f - texRect.width;
+			nImg = ( nImg + 1 ) & 3;
+			elem1.texRect = PACK_TEX_RECT( texRect );
 			fCurY = fNxtY;
 		}
 	}
@@ -661,8 +702,9 @@ void CArmEft::SetLen( SElem& elem, float fLen )
 		auto& elem1 = elems.back();
 		CRectangle& rect = elem1.rect;
 		rect.SetLeft( rect.GetRight() - m_fSize );
-		CRectangle& texRect = elem1.texRect;
+		UNPACK_TEX_RECT( texRect, elem1.texRect )
 		texRect.SetLeft( texRect.GetRight() - rect.width / ( m_fSize * 8 ) );
+		elem1.texRect = PACK_TEX_RECT( texRect );
 		dY = rect.y + rect.height / 2;
 	}
 	
@@ -681,6 +723,7 @@ void CArmEft::SetLen( SElem& elem, float fLen )
 		dY = 0;
 		if( elem.nTex )
 			texRect.y += 0.5f;
+		texRect = ( texRect * 0.5f ).Offset( CVector2( SRand::Inst<eRand_Render>().Rand( 0, 2 ), SRand::Inst<eRand_Render>().Rand( 0, 2 ) ) * 0.5f );
 		elem1.texRect = texRect;
 	}
 
@@ -689,10 +732,13 @@ void CArmEft::SetLen( SElem& elem, float fLen )
 		auto& elem1 = elems.back();
 		CRectangle& rect = elem1.rect;
 		rect.SetLeft( Max( rect.GetRight() - m_fSize, -fLen ) );
-		CRectangle texRect = elem1.texRect;
+		UNPACK_TEX_RECT( texRect, elem1.texRect )
 		texRect.SetLeft( texRect.GetRight() - rect.width / ( m_fSize * 8 ) );
+		elem1.texRect = PACK_TEX_RECT( texRect );
 	}
 }
+#undef UNPACK_TEX_RECT
+#undef PACK_TEX_RECT
 
 void CManChunkEft::OnAddedToStage()
 {
@@ -973,7 +1019,7 @@ void CManChunkEft::OnTick()
 		{
 			float r = m_fKillRadius - ( m_nKillEft + 0.5f ) * m_fKillEftSize;
 			int32 n = ceil( r * PI * 2 / m_fKillEftSize );
-			float fAngle0 = SRand::Inst().Rand( -PI, PI );
+			float fAngle0 = SRand::Inst<eRand_Render>().Rand( -PI, PI );
 			for( int i = 0; i < n; i++ )
 			{
 				float fAngle = fAngle0 + i * PI * 2 / n;
@@ -1094,8 +1140,8 @@ void CManChunkFangEft::Set( float fHalfLen )
 			{
 				m_elems.resize( nElem + 1 );
 				auto& elem = m_elems[nElem];
-				elem.nAnim[0] = SRand::Inst().Rand( 0, 16 );
-				elem.nAnim[1] = SRand::Inst().Rand( 0, 8 );
+				elem.nAnim[0] = SRand::Inst<eRand_Render>().Rand( 0, 16 );
+				elem.nAnim[1] = SRand::Inst<eRand_Render>().Rand( 0, 8 );
 			}
 			auto& elem = m_elems[nElem];
 			float y = Max( 0.0f, floor( ( f - ( 1 - t ) * fElemLen ) * 0.5f + 0.5f ) * 2 ) * ( k == 0 ? 1 : -1 );
@@ -1508,10 +1554,10 @@ void CAuraEft::OnAddedToStage()
 		auto& item = m_items[i];
 		item.elem.rect = pImage->GetElem().rect.Offset( CVector2( m_ofs.x + m_ofs.width * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ),
 			m_ofs.y + m_ofs.height * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) ) );
-		item.elem.texRect = pImage->GetElem().texRect.Offset( CVector2( SRand::Inst().Rand( 0u, m_nCols ) * m_fWidth,
-			SRand::Inst().Rand( 0u, m_nRows ) * m_fHeight ) );
-		item.fAngularSpeed = SRand::Inst().Rand( -m_fAngularSpeed , m_fAngularSpeed );
-		item.r0 = SRand::Inst().Rand( -PI, PI );
+		item.elem.texRect = pImage->GetElem().texRect.Offset( CVector2( SRand::Inst<eRand_Render>().Rand( 0u, m_nCols ) * m_fWidth,
+			SRand::Inst<eRand_Render>().Rand( 0u, m_nRows ) * m_fHeight ) );
+		item.fAngularSpeed = SRand::Inst<eRand_Render>().Rand( -m_fAngularSpeed , m_fAngularSpeed );
+		item.r0 = SRand::Inst<eRand_Render>().Rand( -PI, PI );
 	}
 	m_nTime0 = CGame::Inst().GetTimeStamp();
 	m_pImg = pImage;

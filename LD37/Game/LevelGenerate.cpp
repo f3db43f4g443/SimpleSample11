@@ -346,6 +346,7 @@ void SLevelBuildContext::Build()
 						{
 							pParentChunk->GetBlock( i, j )->eBlockType = pBlock->pParent->eBlockType;
 							pParentChunk->GetBlock( i, j )->fDmgPercent = pBlock->pParent->fDmgPercent;
+							pParentChunk->GetBlock( i, j )->nRail = pBlock->pParent->nRail;
 							pParentChunk->GetBlock( i, j )->bImmuneToBlockBuff = pBlock->pParent->bImmuneToBlockBuff;
 						}
 						if( pBlock->pParent->nX == 0 && pBlock->pParent->nY == 0 && iLayer == pBlock->pParent->pOwner->GetMinLayer() && pBlock->pParent->pOwner->pPrefab )
@@ -787,6 +788,36 @@ void CLevelGenerateSimpleNode::Load( TiXmlElement* pXml, SLevelGenerateNodeLoadC
 			blockInfo.nTag = 0;
 	}
 
+	const char* szRail = XmlGetValue( pXml, "rail", "" );
+	if( szRail[0] )
+	{
+		c = szRail;
+		i = 0;
+		while( *c && i < chunk.nWidth * chunk.nHeight )
+		{
+			if( *c >= '0' && *c <= '9' )
+			{
+				int y = i / chunk.nWidth;
+				int x = i % chunk.nWidth;
+				auto& blockInfo = chunk.blockInfos[x + ( chunk.nHeight - y - 1 ) * chunk.nWidth];
+				blockInfo.nRail = 0;
+				while( *c >= '0' && *c <= '9' )
+				{
+					blockInfo.nRail *= 10;
+					blockInfo.nRail += *c - '0';
+					c++;
+				}
+				i++;
+			}
+			c++;
+		}
+	}
+	else
+	{
+		for( auto& blockInfo : chunk.blockInfos )
+			blockInfo.nRail = 0;
+	}
+
 	const char* szImmuneToBlockBuff = XmlGetValue( pXml, "immune_to_block_buff", "" );
 	if( szImmuneToBlockBuff[0] )
 	{
@@ -950,6 +981,7 @@ public:
 		m_strGenData = XmlGetAttr( pXml, "gen_data_name", "" );
 		m_nBlockType = XmlGetAttr( pXml, "block_type", -1 );
 		m_nTag = XmlGetAttr( pXml, "tag", -1 );
+		m_nRail = XmlGetAttr( pXml, "rail", -1 );
 		m_nImmuneToBlockBuff = XmlGetAttr( pXml, "immune_to_block_buff", -1 );
 	}
 	virtual void Generate( SLevelBuildContext& context, const TRectangle<int32>& region ) override
@@ -968,6 +1000,8 @@ public:
 						context.pParentChunk->blocks[i + j * context.nWidth].eBlockType = m_nBlockType;
 					if( m_nTag!= INVALID_8BITID )
 						context.pParentChunk->blocks[i + j * context.nWidth].nTag = m_nTag;
+					if( m_nRail != INVALID_8BITID )
+						context.pParentChunk->blocks[i + j * context.nWidth].nRail = m_nRail;
 					if( m_nImmuneToBlockBuff != INVALID_8BITID )
 						context.pParentChunk->blocks[i + j * context.nWidth].bImmuneToBlockBuff = m_nImmuneToBlockBuff;
 				}
@@ -978,6 +1012,7 @@ protected:
 	string m_strGenData;
 	uint8 m_nBlockType;
 	uint8 m_nTag;
+	uint8 m_nRail;
 	uint8 m_nImmuneToBlockBuff;
 };
 

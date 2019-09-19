@@ -476,7 +476,7 @@ void CPulse::OnTickAfterHitTest()
 				if( !pEntity->GetStage() )
 					continue;
 
-				if( pEntity == m_pCreator )
+				if( m_pCreator && pEntity->IsCreator( m_pCreator ) )
 					continue;
 
 				if( m_nType == 1 )
@@ -886,7 +886,7 @@ void CWaterSplash::OnTickAfterHitTest()
 		if( m_nDamage1 || m_fKnockback > 0 )
 		{
 			CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
-			if( pPlayer && pPlayer->CanBeHit() )
+			if( pPlayer && ( pPlayer->CanBeHit() || pPlayer->CanKnockback() ) )
 			{
 				if( m_fKnockback > 0 )
 				{
@@ -922,7 +922,7 @@ void CSawBlade::OnTickAfterHitTest()
 	{
 		auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 		auto pPlayer = SafeCast<CPlayer>( pEntity );
-		if( pPlayer && pPlayer->CanBeHit() )
+		if( pPlayer && ( pPlayer->CanBeHit() || pPlayer->CanKnockback() ) )
 		{
 			CVector2 knockback = pManifold->normal;
 			knockback.Normalize();
@@ -940,16 +940,7 @@ void CSawBlade::OnTickAfterHitTest()
 		auto pEnemy = SafeCast<CEnemyCharacter>( pEntity );
 		if( pEnemy )
 		{
-			float fAngle0 = SRand::Inst().Rand( -PI, PI );
-			for( int i = 0; i < m_nBulletCount; i++ )
-			{
-				float fAngle = fAngle0 + i * PI * 2 / m_nBulletCount;
-				auto pBullet = SafeCast<CBullet>( m_pBulletPrefab->GetRoot()->CreateInstance() );
-				pBullet->SetPosition( pEnemy->GetPosition() );
-				pBullet->SetVelocity( CVector2( cos( fAngle ), sin( fAngle ) ) * m_fBulletSpeed );
-				pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-			}
-			pEnemy->Kill();
+			pEnemy->Crush();
 			continue;
 		}
 	}

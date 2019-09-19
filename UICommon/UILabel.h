@@ -53,6 +53,7 @@ public:
 	const wchar_t* GetText() { return m_pTextObject->GetText(); }
 	void SetText( const wchar_t* szText ) { m_pTextObject->SetText( szText ); }
 	void SetText( const char* szText );
+	void SetTextColor( const CVector4& color ) { m_pTextObject->SetColor( color ); }
 
 	template<typename T>
 	T GetValue()

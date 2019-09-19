@@ -11,6 +11,51 @@
 using namespace std;
 
 vector<TVector4<uint8> > tmpData;
+
+void Test()
+{
+	int32 nWidth = 256;
+	int32 nHeight = 256;
+	tmpData.resize( nWidth * nHeight );
+	memset( &tmpData[0], 0, 4 * tmpData.size() );
+	for( int j = 0; j < 8; j++ )
+	{
+		for( int k = 0; k < 16; k++ )
+		{
+			float r = SRand::Inst().Rand( 0.0f, 8.0f );
+			float fAngle = SRand::Inst().Rand( -PI, PI );
+			auto p0 = CVector2( cos( fAngle ), sin( fAngle ) ) * r;
+			float r1 = SRand::Inst().Rand( 0.25f, 1.0f ) * ( 16 - r - 1.5f );
+			float fAngle1 = SRand::Inst().Rand( -PI, PI );
+			auto v = CVector2( cos( fAngle1 ), sin( fAngle1 ) ) * r1;
+
+			for( int i = 0; i < 8; i++ )
+			{
+				float r0 = 1.5f + ( 1 - i * i * 1.0f / 49 ) * 1.0f;
+				auto p = p0 + v * i / 7.0f + CVector2( 16, 16 );
+				CRectangle rect( p.x - r0, p.y - r0, r0 * 2, r0 * 2 );
+				int32 x1 = Max( 0, (int32)floor( rect.x ) );
+				int32 x2 = Min( 32, (int32)ceil( rect.GetRight() ) );
+				int32 y1 = Max( 0, (int32)floor( rect.y ) );
+				int32 y2 = Min( 32, (int32)ceil( rect.GetBottom() ) );
+				for( int x = x1; x < x2; x++ )
+				{
+					for( int y = y1; y < y2; y++ )
+					{
+						float f = Max( 0.0f, Min( 1.0f, 1.0f - CVector2( x - p.x, y - p.y ).Length() / r0 ) ) * 0.5f;
+						float f0 = tmpData[i * 32 + x + ( j * 32 + y ) * nWidth].x / 255.0f;
+						int32 n = Max( 0, Min( 255, (int32)floor( ( f + f0 - f * f0 ) * 255 + 0.5f ) ) );
+						tmpData[i * 32 + x + ( j * 32 + y ) * nWidth] = TVector4<uint8>( n, n, n, n );
+					}
+				}
+			}
+		}
+	}
+
+	ilTexImage( nWidth, nHeight, 1, 4, IL_RGBA, IL_UNSIGNED_BYTE, &tmpData[0] );
+	ilSaveImage( L"Test.tga" );
+}
+
 void main()
 {
 	ilInit();
@@ -40,6 +85,11 @@ void main()
 			}
 		}
 
+		if( vecCmd[0] == "Test" )
+		{
+			Test();
+			continue;
+		}
 		if( vecCmd[0] == "DownSampleSplit" )
 		{
 			wstring fileName;

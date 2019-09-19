@@ -409,6 +409,9 @@
           <chunk_4_b>
             <ref name="pillar_b" />
           </chunk_4_b>
+          <chunk_5>
+            <ref name="billboard2" />
+          </chunk_5>
           <building>
             <ref name="building" />
           </building>
@@ -443,6 +446,9 @@
           <bar0_l>
             <ref name="bar0_l" />
           </bar0_l>
+          <bar0_2>
+            <ref name="bar0_2" />
+          </bar0_2>
           
           <bar_h>
             <ref name="bar1" />
@@ -490,7 +496,7 @@
       </node>
 
       <node type="subregion" name="test_lv">
-        <!--metadata seed="913541333" /-->
+        <!--metadata seed="763343222" /-->
         <ref name="lv2_7" x="0" y="8" w="32" h="64" />
         <node type="tile" x="0" y="0" w="32" h="4">
           <ref name="block0a" />

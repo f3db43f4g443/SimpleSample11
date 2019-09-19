@@ -142,6 +142,7 @@ void CCarSpawner::OnAddedToStage()
 
 void CCarSpawner::Trigger()
 {
+	CDetectTrigger::Trigger();
 	uint8 nCar;
 	for( nCar = 0; nCar < 4; nCar++ )
 	{
@@ -1139,27 +1140,79 @@ void COperateableSawBlade::Step( const CVector2& pos )
 	m_pAI->Yield( 0, false );
 }
 
+void COperateableSpawner::OnAddedToStage()
+{
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	pImage->SetTexRect( CRectangle( 0.5f, 0.5f, 0.25f, 0.25f ) );
+	CRectangle rects[8] = { { -32, -8, 32, 16 }, { -8, -32, 16, 32 }, { 0, -8, 32, 16 }, { -8, 0, 16, 32 },
+	{ -32, -32, 32, 32 }, { 0, -32, 32, 32 }, { -32, 0, 32, 32 }, { 0, 0, 32, 32 } };
+	CRectangle texrects[8] = { { 0.25f, 0.59375f, 0.125f, 0.0625f }, { 0.34375f, 0.625f, 0.0625f, 0.125f },
+	{ 0.375f, 0.59375f, 0.125f, 0.0625f }, { 0.34375f, 0.5f, 0.0625f, 0.125f },
+	{ 0, 0.625f, 0.125f, 0.125f }, { 0.125f, 0.625f, 0.125f, 0.125f }, { 0, 0.5f, 0.125f, 0.125f }, { 0.125f, 0.5f, 0.125f, 0.125f } };
+	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+	for( int i = 0; i < 8; i++ )
+	{
+		pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+		AddChild( pImage );
+		pImage->SetRect( rects[i] );
+		pImage->SetTexRect( texrects[i] );
+		m_imgs[i] = pImage;
+	}
+	if( CMyLevel::GetInst() )
+		SetRenderParentBefore( CMyLevel::GetInst()->GetChunkEffectRoot() );
+	pImage = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+	AddChild( pImage );
+	pImage->SetRect( CRectangle( -32, -32, 64, 64 ) );
+	pImage->SetTexRect( CRectangle( 0.75f, 0.5f, 0.25f, 0.25f ) );
+	pImage->SetRenderParent( GetParentEntity() );
+	m_pImg1 = pImage;
+	auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
+	if( pChunkObject )
+		pChunkObject->RegisterKilledEvent( &m_onRemoved );
+}
+
 void COperateableSpawner::OnRemovedFromStage()
 {
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
+	if( m_onRemoved.IsRegistered() )
+		m_onRemoved.Unregister();
 }
 
 int8 COperateableSpawner::IsOperateable( const CVector2 & pos )
 {
-	if( m_onTick.IsRegistered() )
-		return 3;
-	auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
-	if( pBloodConsumer->GetBloodCount() < pBloodConsumer->GetMaxCount() )
-		return 3;
+	if( m_nState )
+	{
+		if( m_onTick.IsRegistered() )
+			return 3;
+	}
+	else
+	{
+		if( m_nCDLeft )
+			return 3;
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( !pPlayer || ( pPlayer->GetPosition() - globalTransform.GetPosition() ).Length2() > m_fRange * m_fRange )
+			return 1;
+	}
 	return 0;
 }
 
 void COperateableSpawner::Operate( const CVector2 & pos )
 {
-	m_nSpawnLeft = m_nSpawnCount;
-	m_nSpawnSeed = SRand::Inst().Rand( 1, 10000 );
-	GetStage()->RegisterBeforeHitTest( 1, &m_onTick );
+	if( m_nState )
+	{
+		if( m_nState == -1 )
+		{
+			GetRenderObject()->bVisible = false;
+			m_nState = 8;
+			auto pImage = static_cast<CImage2D*>( m_pImg1.GetPtr() );
+			pImage->bVisible = true;
+			pImage->SetTexRect( CRectangle( 0, 0, 0.25f, 0.25f ) );
+		}
+		GetStage()->RegisterAfterHitTest( m_nRepairCD, &m_onTick );
+	}
+	else
+		Spawn();
 }
 
 void COperateableSpawner::UpdateRendered( double dTime )
@@ -1170,7 +1223,6 @@ void COperateableSpawner::UpdateRendered( double dTime )
 		auto pChunkObject = SafeCast<CChunkObject>( GetParentEntity() );
 		if( pChunkObject )
 		{
-			auto pImage = static_cast<CImage2D*>( GetRenderObject() );
 			CCargoAutoColor* p = NULL;
 			auto pRoot = pChunkObject->GetDecoratorRoot();
 			if( !pRoot )
@@ -1183,34 +1235,152 @@ void COperateableSpawner::UpdateRendered( double dTime )
 			}
 			if( p )
 			{
-				auto pParam = pImage->GetParam();
 				auto pColor = p->GetColors();
+				auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+				auto pParam = pImage->GetParam();
+				pParam[0].w = pColor[0].z;
+				pParam[1] = CVector4( pColor[0].x, pColor[1].x, pColor[2].x, pColor[1].z );
+				pParam[2] = CVector4( pColor[0].y, pColor[1].y, pColor[2].y, pColor[2].z );
+				for( int i = 0; i < 8; i++ )
+				{
+					pImage = static_cast<CImage2D*>( m_imgs[i].GetPtr() );
+					auto pParam = pImage->GetParam();
+					pParam[0].w = pColor[0].z;
+					pParam[1] = CVector4( pColor[0].x, pColor[1].x, pColor[2].x, pColor[1].z );
+					pParam[2] = CVector4( pColor[0].y, pColor[1].y, pColor[2].y, pColor[2].z );
+				}
+				pImage = static_cast<CImage2D*>( m_pImg1.GetPtr() );
+				pParam = pImage->GetParam();
 				pParam[0].w = pColor[0].z;
 				pParam[1] = CVector4( pColor[0].x, pColor[1].x, pColor[2].x, pColor[1].z );
 				pParam[2] = CVector4( pColor[0].y, pColor[1].y, pColor[2].y, pColor[2].z );
 			}
 		}
 	}
+}
 
-	auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
-	int32 nFrame = Min( 3, Max( 0, pBloodConsumer->GetBloodCount() * 4 / pBloodConsumer->GetMaxCount() - 1 ) );
-	SafeCast<CImage2D>( GetRenderObject() )->SetTexRect( CRectangle( nFrame % 2, nFrame / 2, 1, 1 ) * 0.5f );
+void COperateableSpawner::BeforeRemoved()
+{
+	for( int i = 0; i < 8; i++ )
+	{
+		if( m_pEnemies[i] )
+		{
+			if( m_pEnemies[i]->GetParentEntity() == GetParentEntity() )
+				m_pEnemies[i]->Kill();
+			m_pEnemies[i] = NULL;
+		}
+	}
 }
 
 void COperateableSpawner::OnTick()
 {
-	auto p = SafeCast<CCharacter>( m_pPrefab->GetRoot()->CreateInstance() );
-	p->SetPosition( globalTransform.GetPosition() );
-	p->SetVelocity( CVector2( 0, m_nSpawnCount - m_nSpawnLeft + m_nSpawnSeed * 8 ) );
-	p->SetParentAfterEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-	m_nSpawnLeft--;
-	if( !m_nSpawnLeft )
+	if( m_nState )
 	{
-		auto pBloodConsumer = SafeCast<CBloodConsumer>( m_pBloodConsumer.GetPtr() );
-		pBloodConsumer->SetBloodCount( 0 );
-		return;
+		m_nState--;
+		auto pImage = static_cast<CImage2D*>( m_pImg1.GetPtr() );
+		pImage->SetTexRect( CRectangle( ( 7 - m_nState ) % 4 * 0.25f, ( 7 - m_nState ) / 4 * 0.25f, 0.25f, 0.25f ) );
+		if( !!( m_nState & 1 ) )
+			GetStage()->RegisterAfterHitTest( m_nRepairCD, &m_onTick );
+		if( !m_nState )
+		{
+			pImage->SetTexRect( CRectangle( 0.75f, 0.5f, 0.25f, 0.25f ) );
+			GetRenderObject()->bVisible = true;
+			m_nCDLeft = 0;
+			static_cast<CImage2D*>( GetRenderObject() )->SetTexRect( CRectangle( 0.5f, 0.5f, 0.25f, 0.25f ) );
+			for( int i = 0; i < 8; i++ )
+				m_imgs[i]->bVisible = true;
+		}
 	}
-	GetStage()->RegisterBeforeHitTest( m_nSpawnInterval, &m_onTick );
+	else
+	{
+		bool b = true;
+		for( int i = 0; i < 8; i++ )
+		{
+			if( m_pEnemies[i] && m_pEnemies[i]->GetParentEntity() != GetParentEntity() )
+				m_pEnemies[i] = NULL;
+			if( m_imgs[i]->bVisible || m_pEnemies[i] )
+				b = false;
+		}
+		if( b )
+		{
+			Kill();
+			return;
+		}
+
+		if( m_nCDLeft )
+			m_nCDLeft--;
+		GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+	}
+}
+
+void COperateableSpawner::Spawn()
+{
+	CVector2 dirs[8] = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 },
+	{ -0.707f, -0.707f }, { 0.707f, -0.707f }, { -0.707f, 0.707f }, { 0.707f, 0.707f } };
+	float fDir[8] = { PI, -PI * 0.5f, 0, PI * 0.5f, -PI * 0.75f, -PI * 0.25f, PI * 0.75f, PI * 0.25f };
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	int8 n = -1;
+	if( pPlayer )
+	{
+		CVector2 d = pPlayer->GetPosition() - globalTransform.GetPosition();
+		float lMax = 0;
+		for( int i = 0; i < 8; i++ )
+		{
+			if( !m_imgs[i]->bVisible )
+				continue;
+			float l = dirs[i].Dot( d );
+			if( l > lMax )
+			{
+				lMax = l;
+				n = i;
+			}
+		}
+	}
+	int8 nType = SRand::Inst().Rand( 0, 2 );
+	bool bAttach = n >= 0;
+	if( !bAttach )
+	{
+		int8 ns[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+		SRand::Inst().Shuffle( ns, 8 );
+		for( int i = 0; i < 8; i++ )
+		{
+			if( m_imgs[ns[i]]->bVisible )
+			{
+				n = ns[i];
+				break;
+			}
+		}
+		if( n == -1 )
+		{
+			Kill();
+			return;
+		}
+	}
+	auto p = SafeCast<CEnemy>( m_pPrefab[nType]->GetRoot()->CreateInstance() );
+	p->SetVelocity( dirs[n] * 200 );
+	if( bAttach )
+	{
+		p->SetPosition( GetPosition() );
+		p->SetParentAfterEntity( this );
+	}
+	else
+	{
+		p->SetPosition( globalTransform.GetPosition() );
+		p->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+	}
+	m_pEnemies[n] = p;
+	m_imgs[n]->bVisible = false;
+
+	m_nCDLeft = m_nSpawnCD;
+	GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+}
+
+void COperateableSpawner::Kill()
+{
+	m_nState = -1;
+	GetRenderObject()->bVisible = false;
+	for( int i = 0; i < 8; i++ )
+		m_imgs[i]->bVisible = false;
 }
 
 void COperateableAssembler::OnAddedToStage()

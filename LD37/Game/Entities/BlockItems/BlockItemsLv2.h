@@ -216,25 +216,33 @@ class COperateableSpawner : public CEntity, public IOperateable
 public:
 	COperateableSpawner( const SClassCreateContext& context ) : CEntity( context )
 		, m_onTick( this, &COperateableSpawner::OnTick )
+		, m_onRemoved( this, &COperateableSpawner::BeforeRemoved )
 	{
 		SET_BASEOBJECT_ID( COperateableSpawner );
 	}
+	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	virtual int8 IsOperateable( const CVector2& pos ) override;
 	virtual void Operate( const CVector2& pos ) override;
 	virtual void UpdateRendered( double dTime ) override;
 private:
+	void BeforeRemoved();
 	void OnTick();
-	TResourceRef<CPrefab> m_pPrefab;
-	CReference<CEntity> m_pBloodConsumer;
-	int32 m_nSpawnInterval;
-	int32 m_nSpawnCount;
+	void Spawn();
+	void Kill();
+	TResourceRef<CPrefab> m_pPrefab[2];
+	int32 m_nSpawnCD;
+	int32 m_nRepairCD;
+	float m_fRange;
 
+	int8 m_nState;
+	int32 m_nCDLeft;
+	CReference<CRenderObject2D> m_pImg1;
+	CReference<CRenderObject2D> m_imgs[8];
+	CReference<CEnemy> m_pEnemies[8];
 	bool m_bColorInited;
-	CVector4 m_params[3];
-	int32 m_nSpawnSeed;
-	int32 m_nSpawnLeft;
 	TClassTrigger<COperateableSpawner> m_onTick;
+	TClassTrigger<COperateableSpawner> m_onRemoved;
 };
 
 class COperateableAssembler : public CEntity, public IOperateable, public IAttachableSlot

@@ -68,7 +68,7 @@ CDepthStencilState::CDepthStencilState( bool DepthWrite, uint32 DepthFunc,
 	uint8 ReadMask, uint8 WriteMask )
 {
 	D3D11_DEPTH_STENCIL_DESC desc;
-	desc.DepthEnable = DepthFunc != (uint32)EComparisonAlways;
+	desc.DepthEnable = DepthWrite || DepthFunc != (uint32)EComparisonAlways;
 	desc.DepthWriteMask = DepthWrite? D3D11_DEPTH_WRITE_MASK_ALL: D3D11_DEPTH_WRITE_MASK_ZERO;
 	desc.DepthFunc = (D3D11_COMPARISON_FUNC)DepthFunc;
 	desc.StencilEnable = StencilFailFront != (uint32)EStencilOpKeep || DepthFailFront != (uint32)EStencilOpKeep || PassFront != (uint32)EStencilOpKeep || FuncFront != (uint32)EComparisonAlways

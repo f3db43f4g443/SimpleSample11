@@ -1,7 +1,7 @@
-void VSDebugDraw( in float2 pos : Position,
+void VSDebugDraw( in float3 pos : Position,
 	out float4 outPos : SV_Position )
 {
-	outPos = float4( pos, 0, 1 );
+	outPos = float4( pos, 1 );
 }
 
 float4 DstRect;

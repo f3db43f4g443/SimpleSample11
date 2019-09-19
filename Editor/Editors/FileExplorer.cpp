@@ -36,20 +36,7 @@ void CFileExplorer::OnInited()
 
 void CFileExplorer::OnOpen()
 {
-	if( !m_strFile.length() )
-		return;
-	if( !IsFileExist( m_strFile.c_str() ) )
-		return;
-
-	const char* szExt = GetFileExtension( m_strFile.c_str() );
-	auto pEditor = CEditor::Inst().SetEditor( szExt );
-	if( pEditor )
-		pEditor->SetFileName( m_strFile.c_str() );
-	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) )
-	{
-		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( m_strFile.c_str() )->CreateSoundTrack();
-		pSoundTrack->Play( ESoundPlay_KeepRef );
-	}
+	CEditor::Inst().OpenFile( m_strFile.c_str() );
 }
 
 void CFileExplorer::OnNew()

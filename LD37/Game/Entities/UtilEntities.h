@@ -151,16 +151,20 @@ public:
 	CBulletEmitter( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CBulletEmitter::OnTick ) { SET_BASEOBJECT_ID( CBulletEmitter ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
+	void Reset();
+	void Shutdown();
 private:
 	void OnTick();
-
 	void Fire();
-
+	bool m_bBeginShutdown;
 	TResourceRef<CPrefab> m_pBullet;
 	uint8 m_nTargetType;
 	float m_fTargetParam;
 	float m_fTargetParam1;
+	float m_fTargetParam2;
+	float m_fTargetParam3;
 
+	uint32 m_nMagCount;
 	uint32 m_nFireCD;
 	uint32 m_nFireInterval;
 	uint32 m_nAmmoCount;
@@ -177,6 +181,7 @@ private:
 	CVector2 m_fireOfs;
 	float m_fAngularSpeed;
 
+	uint32 m_nMagUsed;
 	uint32 m_nAmmoLeft;
 	TClassTrigger<CBulletEmitter> m_onTick;
 };

@@ -96,6 +96,7 @@ void CEditor::OnMouseMove( const CVector2& pos )
 
 void CEditor::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 {
+	m_pUIMgr->HandleKey( nChar, bKeyDown, bAltDown );
 	if( nChar == VK_DELETE && bKeyDown )
 		m_pUIMgr->HandleChar( 127 );
 }
@@ -125,4 +126,22 @@ CResourceEditor* CEditor::SetEditor( const char* szTag )
 		return itr->second.pEditor;
 	}
 	return NULL;
+}
+
+void CEditor::OpenFile( const char* szFile )
+{
+	if( !szFile[0] )
+		return;
+	if( !IsFileExist( szFile ) )
+		return;
+
+	const char* szExt = GetFileExtension( szFile );
+	auto pEditor = SetEditor( szExt );
+	if( pEditor )
+		pEditor->SetFileName( szFile );
+	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) )
+	{
+		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( szFile )->CreateSoundTrack();
+		pSoundTrack->Play( ESoundPlay_KeepRef );
+	}
 }

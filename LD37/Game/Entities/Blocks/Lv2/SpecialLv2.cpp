@@ -1052,11 +1052,17 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 					else
 					{
 						if( abs( l[0] - rect.width / 2 ) + rnd.Rand( 0, 2 ) > abs( l[1] - rect.width / 2 ) )
+						{
+							if( l[1] < 2 || rect.width - l[1] < 3 )
+								continue;
 							w = rect.width - l[1];
+						}
 						else
+						{
+							if( l[0] < 2 || rect.width - l[0] < 3 )
+								continue;
 							w = l[0];
-						if( w < 3 || rect.width - w < 3 )
-							continue;
+						}
 					}
 				}
 				if( !t )
@@ -1115,11 +1121,17 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 					else
 					{
 						if( abs( l[0] - rect.height / 2 ) + rnd.Rand( 0, 2 ) > abs( l[1] - rect.height / 2 ) )
+						{
+							if( l[1] < 2 || rect.height - l[1] < 3 )
+								continue;
 							h = rect.height - l[1];
+						}
 						else
+						{
+							if( l[0] < 2 || rect.height - l[0] < 3 )
+								continue;
 							h = l[0];
-						if( h < 3 || rect.height - h < 3 )
-							continue;
+						}
 					}
 				}
 				if( !t )
@@ -1174,7 +1186,18 @@ void CCargo1::OnSetChunk( SChunk* pChunk, CMyLevel* pLevel )
 		}
 
 		if( t )
-			return;
+		{
+			for( int iY = rect.y; iY < rect.GetBottom(); iY++ )
+			{
+				for( int iX = rect.x; iX < rect.GetRight(); iX++ )
+				{
+					auto& n = GetBlock( iX, iY )->nTag;
+					if( !n )
+						n = 1;
+				}
+			}
+			//return;
+		}
 		int32 nType = nEdge == 5 || nEdge == 10 ? nType2 : nType1;
 		if( nType < 0 )
 			return;
@@ -1231,8 +1254,11 @@ void CCargo1::GenLayer1()
 
 	int32 nWidth = m_pChunk->nWidth;
 	int32 nHeight = m_pChunk->nHeight;
-	vector<int8> vecTemp;
+	static vector<int8> vecTemp;
+	static vector<int8> vecTemp0;
+	static vector<TVector3<int32> > vec1;
 	vecTemp.resize( ( nWidth + 1 ) * ( nHeight + 1 ) );
+	vecTemp0.resize( nWidth * nHeight );
 	for( int i = 0; i <= nWidth; i++ )
 	{
 		for( int j = 0; j <= nHeight; j++ )
@@ -1271,6 +1297,11 @@ void CCargo1::GenLayer1()
 			{
 				vecTemp[i + 1 + ( j == 0 ? 0 : nHeight ) * ( nWidth + 1 )] = eConn;
 				vecTemp[i + 1 + ( j == 0 ? 1 : nHeight - 1 ) * ( nWidth + 1 )] = eConn;
+				if( a > eButton )
+				{
+					vec1.push_back( TVector3<int32>( i, j, j == 0 ? 2 : 0 ) );
+					vec1.push_back( TVector3<int32>( i + 1, j, j == 0 ? 3 : 1 ) );
+				}
 				i++;
 			}
 		}
@@ -1285,6 +1316,11 @@ void CCargo1::GenLayer1()
 			{
 				vecTemp[( i == 0 ? 0 : nWidth ) + ( j + 1 ) * ( nWidth + 1 )] = eConn;
 				vecTemp[( i == 0 ? 1 : nWidth - 1 ) + ( j + 1 ) * ( nWidth + 1 )] = eConn;
+				if( a > eButton )
+				{
+					vec1.push_back( TVector3<int32>( i, j, i == 0 ? 1 : 0 ) );
+					vec1.push_back( TVector3<int32>( i, j + 1, i == 0 ? 3 : 2 ) );
+				}
 				j++;
 			}
 		}
@@ -1303,6 +1339,10 @@ void CCargo1::GenLayer1()
 						= vecTemp[i + 1 + j * ( nWidth + 1 )] = vecTemp[i + 1 + ( j + 2 ) * ( nWidth + 1 )] = 0;
 					vecTemp[i + 1 + ( j + 1 ) * ( nWidth + 1 )] = eConn;
 					m_pChunk->GetBlock( i + 1, j )->nTag = m_pChunk->GetBlock( i, j + 1 )->nTag = m_pChunk->GetBlock( i + 1, j + 1 )->nTag = -1;
+					vec1.push_back( TVector3<int32>( i, j, 0 ) );
+					vec1.push_back( TVector3<int32>( i + 1, j, 1 ) );
+					vec1.push_back( TVector3<int32>( i, j + 1, 2 ) );
+					vec1.push_back( TVector3<int32>( i + 1, j + 1, 3 ) );
 				}
 				else
 					m_pChunk->GetBlock( i, j )->nTag = -1;
@@ -1323,6 +1363,128 @@ void CCargo1::GenLayer1()
 				n |= ( vecTemp[v[k].x + v[k].y * ( nWidth + 1 )] == 1 ) << k;
 			if( !n )
 				continue;
+			int32 a[4][5] = { { 3, 5, 11, 13, 14 }, { 3, 7, 10, 13, 14 }, { 5, 7, 11, 12, 14 }, { 7, 10, 11, 12, 13 } };
+			for( int k = 0; k < 4; k++ )
+			{
+				for( int l = 0; l < ELEM_COUNT( a[k] ); l++ )
+				{
+					if( a[k][l] == n )
+					{
+						vec1.push_back( TVector3<int32>( i, j, k ) );
+						break;
+					}
+				}
+			}
+		}
+	}
+	for( int k = 0; k < 2; k++ )
+	{
+		for( auto& item : vec1 )
+		{
+			TVector2<int32> p0( item.x, item.y );
+			int8 n0 = item.z;
+			vecTemp0[p0.x + p0.y * nWidth] |= 1 << n0;
+			TVector2<int32> ofs[2][4] = { { { -1, 0 }, { 1, 0 }, { 0, 1 }, { 0, 1 } }, { { 0, -1 }, { 0, -1 }, { -1, 0 }, { 1, 0 } } };
+			for( int k = 0; k < 2; k++ )
+			{
+				auto ofs0 = ofs[k][n0];
+				auto p = p0 + ofs0;
+				auto n = 3 - n0;
+				for( ; p.x >= 0 && p.y >= 0 && p.x < nWidth && p.y < nHeight; ofs0 = ofs[k][n], p = p + ofs0, n = 3 - n )
+				{
+					if( ofs0 == TVector2<int32>( 1, 0 ) )
+					{
+						if( vecTemp[p.x + p.y * ( nWidth + 1 )] == eConn && vecTemp[p.x + ( p.y + 1 ) * ( nWidth + 1 )] == eConn )
+							break;
+					}
+					else if( ofs0 == TVector2<int32>( -1, 0 ) )
+					{
+						if( vecTemp[p.x + 1 + p.y * ( nWidth + 1 )] == eConn && vecTemp[p.x + 1 + ( p.y + 1 ) * ( nWidth + 1 )] == eConn )
+							break;
+					}
+					else if( ofs0 == TVector2<int32>( 0, 1 ) )
+					{
+						if( vecTemp[p.x + p.y * ( nWidth + 1 )] == eConn && vecTemp[p.x + 1 + p.y * ( nWidth + 1 )] == eConn )
+							break;
+					}
+					else
+					{
+						if( vecTemp[p.x + ( p.y + 1 ) * ( nWidth + 1 )] == eConn && vecTemp[p.x + 1 + ( p.y + 1 ) * ( nWidth + 1 )] == eConn )
+							break;
+					}
+					vecTemp0[p.x + p.y * nWidth] |= 1 << n;
+				}
+			}
+		}
+		vec1.resize( 0 );
+		if( k == 0 )
+		{
+			if( nWidth >= nHeight )
+			{
+				for( int j = 0; j < nHeight; j += nHeight - 1 )
+				{
+					int32 i0 = 0;
+					for( int i = 0; i <= nWidth; i++ )
+					{
+						if( i == nWidth || vecTemp0[i + j * nWidth] || GetBlock( i, j )->nTag != eConn )
+						{
+							if( i > i0 )
+							{
+								vec1.push_back( TVector3<int32>( i0, j, j == 0 ? 1 : 3 ) );
+								vec1.push_back( TVector3<int32>( i - 1, j, j == 0 ? 0 : 2 ) );
+							}
+							i0 = i + 1;
+						}
+					}
+				}
+			}
+			else
+			{
+				for( int i = 0; i < nWidth; i += nWidth - 1 )
+				{
+					int32 j0 = 0;
+					for( int j = 0; j <= nHeight; j++ )
+					{
+						if( j == nHeight || vecTemp0[i + j * nWidth] || GetBlock( i, j )->nTag != eConn )
+						{
+							if( j > j0 )
+							{
+								vec1.push_back( TVector3<int32>( i, j0, i == 0 ? 2 : 3 ) );
+								vec1.push_back( TVector3<int32>( i, j - 1, i == 0 ? 0 : 1 ) );
+							}
+							j0 = j + 1;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( m_pChunk->GetBlock( i, j )->nTag )
+			{
+				int8 n = vecTemp0[i + j * nWidth];
+				auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
+				pImage->SetRect( CRectangle( i, j, 1, 1 ) * nBlockSize );
+				pImage->SetTexRect( CRectangle( n % 4 + 4, n / 4 + 4, 1, 1 ) * 0.125f );
+				GetRenderObject()->AddChild( pImage );
+			}
+
+			if( m_pChunk->GetBlock( i, j )->nTag >= eOperateable_Begin )
+				continue;
+			TVector2<int32> v[4] = { { i, j }, { i + 1, j }, { i, j + 1 }, { i + 1, j + 1 } };
+			int8 n = 0;
+			for( int k = 0; k < 4; k++ )
+				n |= ( vecTemp[v[k].x + v[k].y * ( nWidth + 1 )] == 1 ) << k;
+			if( !n )
+			{
+				if( m_pChunk->GetBlock( i, j )->nTag == eConn )
+					m_pChunk->GetBlock( i, j )->nTag  = 0;
+				continue;
+			}
 			auto pImage = static_cast<CImage2D*>( m_pDeco1->CreateInstance() );
 			pImage->SetRect( CRectangle( i, j, 1, 1 ) * nBlockSize );
 			pImage->SetTexRect( CRectangle( n % 4, n / 4, 1, 1 ) * 0.125f );
@@ -1330,7 +1492,7 @@ void CCargo1::GenLayer1()
 		}
 	}
 
-	vector<CReference<CEntity> > vecTemp1;
+	static vector<CReference<CEntity> > vecTemp1;
 	vecTemp1.resize( vecTemp.size() );
 	CVector2 operateableTex[] = { { 0, 0.5f }, { 0.5f, 0 } };
 	CVector2 operateable1Tex[] = { { 0.75f, 0.25f }, { 0.5f, 0.25f } };
@@ -1457,6 +1619,10 @@ void CCargo1::GenLayer1()
 			}
 		}
 	}
+	vecTemp.resize( 0 );
+	vecTemp0.resize( 0 );
+	vecTemp1.resize( 0 );
+	vec1.resize( 0 );
 }
 
 
@@ -2702,7 +2868,11 @@ void CCargoAutoColor::Init( const CVector2 & size, SChunk* pPreParent )
 
 	if( !p )
 	{
-		uint8 nType = SafeCast<CControlRoom>( pChunkObject ) != NULL;
+		uint8 nType = 0;
+		if( SafeCast<CControlRoom>( pChunkObject ) != NULL )
+			nType = 1;
+		else if( SafeCast<CBillboard1>( pChunkObject ) != NULL )
+			nType = 2;
 		auto& rnd = SRand::Inst<eRand_Render>();
 		float fHue = rnd.Rand( 0.0f, 1.0f );
 		fHue = rnd.Rand( 0, 2 ) ? 1 - fHue * fHue * 0.5f : fHue * fHue * 0.5f;
@@ -2725,7 +2895,7 @@ void CCargoAutoColor::Init( const CVector2 & size, SChunk* pPreParent )
 		{
 			m_colors[1] = CVector3( 1, rnd.Rand( 0.8f, 1.0f ) * Min( 1.0f, abs( 1.0f - f ) ), 0 )
 				* ( rnd.Rand( 0.13f, 0.15f ) + Min( 0.5f, Max( 0.0f, f - 0.7f ) ) * 0.15f );
-			if( rnd.Rand( 0, 2 ) )
+			if( nType != 2 && rnd.Rand( 0, 2 ) )
 			{
 				m_colors[0] = m_colors[0] + ( CVector3( 0.54f, 0.54f, 0.54f ) - CVector3( 0.07f, 0.07f, 0.07f ) * l1 - m_colors[0] ) * rnd.Rand( 0.5f, 0.65f );
 				float k = rnd.Rand( 0.8f, 1.0f );
@@ -3860,9 +4030,9 @@ void CBillboard1::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 				int32 x = nType1 ? i + rect.x : rect.GetRight() - 1 - i;
 				CVector2 ofs;
 				if( nType )
-					ofs = CVector2( b == nType1 ? 2.5f : 0.5f, 0.5f );
+					ofs = CVector2( b == nType1 ? 2.375f : 0.625f, 0.625f );
 				else
-					ofs = CVector2( b == nType1 ? 2.5f : 0.5f, 2.5f );
+					ofs = CVector2( b == nType1 ? 2.375f : 0.625f, 2.375f );
 				GetBlock( x, rect.y )->rtTexRect = texRect.Offset( CVector2( ofs.x, 3 - ofs.y ) * texRect.GetSize() );
 				if( i == rect.width - 2 && ( nType1 ? !b2 : !b1 ) )
 					b = 1;
@@ -3892,9 +4062,9 @@ void CBillboard1::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 				int32 y = nType1 ? j + rect.y : rect.GetBottom() - 1 - j;
 				CVector2 ofs;
 				if( nType )
-					ofs = CVector2( 0.5f, b == nType1 ? 2.5f : 0.5f );
+					ofs = CVector2( 0.625f, b == nType1 ? 2.375f : 0.625f );
 				else
-					ofs = CVector2( 2.5f, b == nType1 ? 2.5f : 0.5f );
+					ofs = CVector2( 2.375f, b == nType1 ? 2.375f : 0.625f );
 				GetBlock( rect.x, y )->rtTexRect = texRect.Offset( CVector2( ofs.x, 3 - ofs.y ) * texRect.GetSize() );
 				if( j == rect.height - 2 && ( nType1 ? !b2 : !b1 ) )
 					b = 1;
@@ -3906,9 +4076,10 @@ void CBillboard1::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 		for( int k = 0; k < 2; k++ )
 		{
 			int32 nSize = k == 0 ? 4 : 2;
-			if( Max( rect.width, rect.height ) > nSize )
+			if( Min( rect.width, rect.height ) >= nSize && Max( rect.width, rect.height ) > nSize )
 			{
-				if( rect.width > rect.height )
+				bool b = Min( rect.width, rect.height ) == nSize ? rect.width > rect.height : rect.width < rect.height;
+				if( b )
 				{
 					if( SRand::Inst().Rand( 0, 2 ) )
 					{
@@ -3955,7 +4126,7 @@ void CBillboard1::OnSetChunk( SChunk* pChunk, class CMyLevel* pLevel )
 					{
 						for( int j = 0; j < rect.height; j++ )
 						{
-							GetBlock( i + rect.x, j + rect.y )->rtTexRect = texRect.Offset( CVector2( 0.5f + i * 2, 2.5f - j * 2 ) * texRect.GetSize() );
+							GetBlock( i + rect.x, j + rect.y )->rtTexRect = texRect.Offset( CVector2( 0.625f + i * 1.75f, 2.375f - j * 1.75f ) * texRect.GetSize() );
 						}
 					}
 				}

@@ -17,6 +17,7 @@ enum
 
 class TiXmlElement;
 struct SUIMouseEvent;
+struct SUIKeyEvent;
 class CUIElement : public CRenderObject2D
 {
 	friend class CUIManager;
@@ -40,6 +41,7 @@ public:
 		eEvent_SetActive,
 		eEvent_SetFocused,
 
+		eEvent_Key,
 		eEvent_Char,
 
 
@@ -120,6 +122,7 @@ protected:
 	virtual void OnSetActive( bool bActive );
 	virtual void OnSetFocused( bool bFocused );
 
+	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown );
 	virtual void OnChar( uint32 nChar );
 
 	virtual void DoLayout() {}
@@ -149,4 +152,11 @@ struct SUIMouseEvent
 	uint32 nEvent;
 	CReference<CUIElement> pTarget;
 	CVector2 mousePos;
+};
+
+struct SUIKeyEvent
+{
+	uint32 nChar;
+	bool bKeyDown;
+	bool bAltDown;
 };

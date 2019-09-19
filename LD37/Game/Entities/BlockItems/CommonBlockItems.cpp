@@ -52,7 +52,7 @@ void CDetectTrigger::OnAddedToStage()
 			GetStage()->RegisterAfterHitTest( m_nCD, &m_onTick );
 		}
 		else
-			GetStage()->RegisterAfterHitTest( 15, &m_onTick );
+			GetStage()->RegisterAfterHitTest( 1, &m_onTick );
 	}
 }
 
@@ -84,12 +84,6 @@ void CDetectTrigger::OnTick()
 	if( m_nFireCountLeft )
 	{
 		m_nFireCountLeft--;
-		GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
-		if( !m_nFireCountLeft && m_nFrames1 && m_nFrames2 )
-		{
-			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( 0, m_nFrames1, m_nFrames1 / ( m_nCD * GetStage()->GetElapsedTimePerTick() ) );
-			static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetPlaySpeed( 1, false );
-		}
 		Trigger();
 		return;
 	}
@@ -102,30 +96,36 @@ void CDetectTrigger::OnTick()
 		}
 	}
 
-	if( CheckTrigger() )
+	CPlayer* pPlayer = GetStage()->GetPlayer();
+	if( pPlayer )
 	{
-		CPlayer* pPlayer = GetStage()->GetPlayer();
-		if( pPlayer )
+		CVector2 pos = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
+		if( m_detectRect1.Contains( pos ) )
 		{
-			CVector2 pos = globalTransform.MulTVector2PosNoScale( pPlayer->GetPosition() );
-			if( m_detectRect1.Contains( pos ) )
-			{
-				m_nFireCountLeft = m_nFireCount;
-				if( m_nFireCountLeft )
-					m_nFireCountLeft--;
-				GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
-				Trigger();
-				return;
-			}
+			m_nFireCountLeft = m_nFireCount;
+			if( m_nFireCountLeft )
+				m_nFireCountLeft--;
+			Trigger();
+			return;
+		}
 
-			if( m_detectRect.Contains( pos ) )
-			{
-				GetStage()->RegisterAfterHitTest( 1, &m_onTick );
-				return;
-			}
+		if( m_detectRect.Contains( pos ) )
+		{
+			GetStage()->RegisterAfterHitTest( 1, &m_onTick );
+			return;
 		}
 	}
 	GetStage()->RegisterAfterHitTest( 15, &m_onTick );
+}
+
+void CDetectTrigger::Trigger()
+{
+	GetStage()->RegisterAfterHitTest( m_nFireCountLeft ? m_nFireCD : m_nCD, &m_onTick );
+	if( !m_nFireCountLeft && m_nFrames1 && m_nFrames2 )
+	{
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( 0, m_nFrames1, m_nFrames1 / ( m_nCD * GetStage()->GetElapsedTimePerTick() ) );
+		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetPlaySpeed( 1, false );
+	}
 }
 
 void CKillTrigger::OnAddedToStage()
@@ -303,85 +303,110 @@ void CSpawner::Trigger()
 		nSpawnCount = Min( nSpawnCount, m_nMaxCount - m_nCurCount );
 	if( m_nTotalCount >= 0 )
 		nSpawnCount = Min( nSpawnCount, (uint32)m_nTotalCount );
-	if( !nSpawnCount )
-		return;
-	if( m_bCheckHit )
+	if( nSpawnCount && m_bCheckHit )
 	{
 		for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 		{
 			auto hitType = static_cast<CEntity*>( pManifold->pOtherHitProxy )->GetHitType();
 			if( hitType <= eEntityHitType_Platform || hitType == eEntityHitType_System )
-				return;
-		}
-	}
-
-	for( int i = 0; i < nSpawnCount; i++ )
-	{
-		auto pEntity = Spawn();
-		pEntity->SetPosition( globalTransform.MulVector2Pos(
-			CVector2( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) ) ) );
-		if( m_bRandomRotate )
-			pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
-
-		switch( m_nVelocityType )
-		{
-		case 0:
-			break;
-		case 1:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
-				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
-			break;
-		}
-		case 2:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
-				pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
-			break;
-		}
-		case 3:
-		{
-			CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-			if( pCharacter )
 			{
-				float r = sqrt( SRand::Inst().Rand( m_vel1.x / m_vel2.x, 1.0f ) ) * m_vel2.x;
-				float angle = SRand::Inst().Rand( m_vel1.y, m_vel2.y ) * PI / 180;
-				pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( cos( angle ) * r, sin( angle ) * r ) ) );
+				nSpawnCount = 0;
+				break;
 			}
-			break;
 		}
-		}
-
-		auto pBullet = SafeCast<CBullet>( pEntity );
-		if( pBullet )
-		{
-			if( pBullet->GetBulletType() == 0 )
-				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
-			else
-				pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-		}
-		else if( SafeCast<CExplosion>( pEntity ) )
-			pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
-		else
-			pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
-		if( m_nMaxCount )
-		{
-			SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
-			Insert_SpawnedEntity( pSpawnedEntity );
-		}
-
-		m_onSpawn.Trigger( 0, pEntity );
 	}
+	if( nSpawnCount )
+	{
+		for( int i = 0; i < nSpawnCount; i++ )
+		{
+			auto pEntity = Spawn();
+			CVector2 pos( m_rectSpawn.x + SRand::Inst().Rand( 0.0f, m_rectSpawn.width ), m_rectSpawn.y + SRand::Inst().Rand( 0.0f, m_rectSpawn.height ) );
+			if( !m_nSpawnType )
+				pos = globalTransform.MulVector2Pos( pos );
+			pEntity->SetPosition( pos );
+			if( m_bRandomRotate )
+				pEntity->SetRotation( SRand::Inst().Rand( -PI, PI ) );
+
+			switch( m_nVelocityType )
+			{
+			case 0:
+				break;
+			case 1:
+			{
+				CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+				if( pCharacter )
+					pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( SRand::Inst().Rand( m_vel1.x, m_vel2.x ), SRand::Inst().Rand( m_vel1.y, m_vel2.y ) ) ) );
+				break;
+			}
+			case 2:
+			{
+				CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+				if( pCharacter )
+					pCharacter->SetVelocity( globalTransform.MulVector2Dir( m_vel1 + ( m_vel2 - m_vel1 ) * SRand::Inst().Rand( 0.0f, 1.0f ) ) );
+				break;
+			}
+			case 3:
+			{
+				CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+				if( pCharacter )
+				{
+					float r = sqrt( SRand::Inst().Rand( m_vel1.x / m_vel2.x, 1.0f ) ) * m_vel2.x;
+					float angle = SRand::Inst().Rand( m_vel1.y, m_vel2.y ) * PI / 180;
+					pCharacter->SetVelocity( globalTransform.MulVector2Dir( CVector2( cos( angle ) * r, sin( angle ) * r ) ) );
+				}
+				break;
+			}
+			}
+			if( m_nSpawnType )
+				pEntity->SetParentEntity( this );
+			else
+			{
+				auto pBullet = SafeCast<CBullet>( pEntity );
+				if( pBullet )
+				{
+					if( pBullet->GetBulletType() == 0 )
+						pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+					else
+						pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+				}
+				else if( SafeCast<CExplosion>( pEntity ) )
+					pEntity->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+				else
+					pEntity->SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+			}
+			if( m_nMaxCount )
+			{
+				SSpawnedEntity* pSpawnedEntity = new SSpawnedEntity( this, pEntity );
+				Insert_SpawnedEntity( pSpawnedEntity );
+			}
+
+			m_onSpawn.Trigger( 0, pEntity );
+		}
+	}
+
 	if( m_nMaxCount )
 		m_nCurCount += nSpawnCount;
 	if( m_nTotalCount >= 0 )
 		m_nTotalCount -= nSpawnCount;
+	if( m_nSpawnType )
+	{
+		bool b = true;
+		if( m_nMaxCount && m_nMaxCount <= m_nCurCount )
+			b = false;
+		else if( m_nTotalCount == 0 )
+			b = false;
+		if( !b )
+			return;
+		CDetectTrigger::Trigger();
+	}
+	else
+		CDetectTrigger::Trigger();
 }
 
 void CSpawner::OnSpawnedEntityDeath( SSpawnedEntity * pSpawnedEntity )
 {
+	if( m_nSpawnType && m_nMaxCount == m_nCurCount && m_nTotalCount != 0 )
+		CDetectTrigger::Trigger();
 	m_nCurCount--;
 	pSpawnedEntity->RemoveFrom_SpawnedEntity();
 	delete pSpawnedEntity;

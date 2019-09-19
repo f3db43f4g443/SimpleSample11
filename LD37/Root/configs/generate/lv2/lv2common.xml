@@ -45,9 +45,12 @@
       <node name="thruster_b" prefab="data/blockitems/thruster_b.pf" sizex="2" sizey="1" attach_type="0" />
       <node name="thruster_c" prefab="data/blockitems/thruster_c.pf" sizex="2" sizey="1" attach_type="0" />
       <node name="thruster_d" prefab="data/blockitems/thruster_d.pf" sizex="2" sizey="1" attach_type="0" />
+      <node name="rail_slider_spawner" prefab="data/blockitems/rail_slider_spawner.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="billboard_man_spawn" prefab="data/blockitems/billboard_man_spawn.pf" sizex="3" sizey="3" attach_type="0" />
       <node name="arm_rotator" prefab="data/blockitems/cargos/arm_rotator.pf" sizex="1" sizey="1" attach_type="0" />
       <node name="arm_advanced" prefab="data/blockitems/cargos/arm_advanced.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="grinder_0" prefab="data/blockitems/cargos/grinder_spawner_0.pf" sizex="1" sizey="1" attach_type="0" />
+      <node name="grinder_1" prefab="data/blockitems/cargos/grinder_spawner_1.pf" sizex="1" sizey="1" attach_type="0" />1
 
       <node name="lv2_misc_spawner" prefab="data/blockitems/cargos/lv2_misc_spawner.pf" sizex="1" sizey="1" attach_type="0" />
     </attachs>
@@ -161,6 +164,13 @@
            weightperwidth="0.5" destroyweightperwidth="3" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/block2_bar.pf">
         <metadata minx="4" maxx="32" />
         <types>0</types>
+        <!--next_level>
+          <node type="subregion">
+            <node type="tile" x="0" y="0" w="0" h="0">
+              <ref name="grinder_0" />
+            </node>
+          </node>
+        </next_level-->
       </node>
 
       <node name="metal_broken" width="1" height="1" weight="1" destroyweight="1.2" layer_type="2" prefab="data/blocks/lv2/metal_broken.pf">
@@ -197,17 +207,37 @@
         <metadata isdesignvalid="0" />
         <types>2</types>
       </node>
-      <node name="pillar_a" width="2" height="1" weight="1" destroyweight="8" layer_type="1" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_a.pf">
-        <types>0,0</types>
+      <node name="pillar_a" subchunk_type="1" width="1" height="1" weight="1" destroyweight="4" destroyshake="1" shakedmg="1" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_a.pf">
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
-      <node name="pillar_b" width="2" height="1" weight="1" destroyweight="8" layer_type="1" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_b.pf">
-        <types>0,0</types>
+      <node name="pillar_b" subchunk_type="1" width="1" height="1" weight="1" destroyweight="4" destroyshake="1" shakedmg="1" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_b.pf">
+        <types>4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
-      <node name="pillar_a1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_a1.pf">
-        <types>2,2</types>
+      <node name="pillar_a1" subchunk_type="1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_a1.pf">
+        <types>4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
-      <node name="pillar_b1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_b1.pf">
-        <types>2,2</types>
+      <node name="pillar_b1" subchunk_type="1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/pillar_b1.pf">
+        <types>4,4</types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
+          </node>
+        </next_level>
       </node>
       <node name="steps_a" width="2" height="1" weight="1" destroyweight="8" layer_type="1" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/steps_a.pf">
         <types>0,0</types>
@@ -217,9 +247,11 @@
       </node>
       <node name="steps_a1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/steps_a1.pf">
         <types>2,2</types>
+        <rail>3,12</rail>
       </node>
       <node name="steps_b1" width="2" height="1" weight="1" destroyweight="8" destroyshake="2" shakedmg="2" absorbshakestrength="10000" prefab="data/blocks/lv2/steps_b1.pf">
         <types>2,2</types>
+        <rail>9,6</rail>
       </node>
       <node name="slope_a0" width="1" height="1" weight="1" destroyweight="2" show_layer_type="0" destroyshake="1" shakedmg="1" absorbshakestrength="10000" prefab="data/blocks/lv2/slope_a0.pf">
         <types>0</types>
@@ -283,6 +315,7 @@
            weightperwidth="1" destroyweightperwidth="5" shakedmg="80" shakedmgperwidth="10" prefab="data/blocks/lv2/bar0.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1"/>
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -294,6 +327,7 @@
            weightperwidth="1" destroyweightperwidth="5" shakedmg="80" shakedmgperwidth="10" prefab="data/blocks/lv2/bar0.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1"/>
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -310,6 +344,7 @@
            weightperwidth="1" destroyweightperwidth="5" shakedmg="80" shakedmgperwidth="10" prefab="data/blocks/lv2/bar0_r.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1"/>
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -326,6 +361,7 @@
            weightperwidth="1" destroyweightperwidth="5" shakedmg="80" shakedmgperwidth="10" prefab="data/blocks/lv2/bar0_l.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1"/>
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -338,21 +374,23 @@
         </next_level>
       </node>
 
-      <node name="bar0_2" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="10000"
+      <node name="bar0_2" subchunk_type="1" width="1" height="1" weight="1" destroyweight="5" absorbshakestrength="10000"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="1" shakedmgperwidth="1" prefab="data/blocks/lv2/bar0_2.pf">
         <metadata minx="3" maxx="32" chain_type1="0" chain_type2="1"/>
-        <types>2</types>
-        <subitem>
-          <node type="tile">
-            <ref name="metal_broken" />
+        <types>4</types>
+        <rail>5</rail>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
           </node>
-        </subitem>
+        </next_level>
       </node>
       
       <node name="bar1" layer_type="2" width="8" height="1" weight="8" destroyweight="40" absorbshakestrength="24" absorbshakestrengthperheight="3"
            weightperwidth="1" destroyweightperwidth="5" shakedmg="8" shakedmgperwidth="1" prefab="data/blocks/lv2/bar1.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1" />
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -368,6 +406,7 @@
            absorbshakestrengthperheight="0.25" shakedmg="4" shakedmgperwidth="1" prefab="data/blocks/lv2/bar2.pf">
         <metadata miny="4" maxy="32" chain_type1="0" chain_type2="1" />
         <types>4,4,4,4</types>
+        <rail>5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -411,6 +450,7 @@
            weightperwidth="1" destroyweightperwidth="5" shakedmg="5" prefab="data/blocks/lv2/bar1.pf">
         <metadata minx="4" maxx="32" chain_type1="0" chain_type2="1" />
         <types>4,4,4,4,4,4,4,4</types>
+        <rail>5,5,5,5,5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />
@@ -426,6 +466,7 @@
            absorbshakestrengthperheight="0.25" shakedmg="5" prefab="data/blocks/lv2/bar2.pf">
         <metadata miny="4" maxy="32" chain_type1="0" chain_type2="1" />
         <types>4,4,4,4</types>
+        <rail>5,5,5,5</rail>
         <subitem>
           <node type="tile">
             <ref name="metal_broken" />

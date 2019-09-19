@@ -23,6 +23,8 @@ public:
 
 	virtual class CRenderTargetPool* GetRenderTargetPool() { return NULL; }
 
-	void DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color );
-	void DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color );
+	static void DebugDrawLine( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector4& color, float z = 0,
+		class IBlendState* pBlend = NULL, class IDepthStencilState* pDepthStencil = NULL, class IRasterizerState* pRasterizer = NULL );
+	static void DebugDrawTriangle( IRenderSystem* pSystem, const CVector2& pt1, const CVector2& pt2, const CVector2& pt3, const CVector4& color, float z = 0,
+		class IBlendState* pBlend = NULL, class IDepthStencilState* pDepthStencil = NULL, class IRasterizerState* pRasterizer = NULL );
 };

@@ -320,7 +320,9 @@ public:
 private:
 	void GenBase();
 	void GenArea( const TRectangle<int32>& rect );
-	void AddRooms( const TRectangle<int32>& r, TVector4<int8> doors, const TVector2<int32>& ofs, int32 nCount, bool bFlip, bool bRoomType );
+	void AddRooms( const TRectangle<int32>& r, TVector4<int8> doors, const TVector2<int32>& ofs, int32 nCount, bool bFlip );
+	void AddConn1( const TRectangle<int32>& r );
+	void AddConn2( const TRectangle<int32>& r );
 	void AddChunk( const TRectangle<int32>& rect, int8 nType, vector<TRectangle<int32> >* pVec, bool b = false );
 	void GenArea1( const TRectangle<int32>& rect1, const TRectangle<int32>& rect2, const TVector2<int32>& ofs, int32 nCount );
 	void AddWall1( const TRectangle<int32>& rect );
@@ -342,6 +344,8 @@ private:
 		eType_Control_Room_5,
 
 		eType_Billboard,
+		eType_Billboard_0_0,
+		eType_Billboard_0_1,
 		eType_Billboard_1,
 		eType_Billboard_2,
 
@@ -381,6 +385,7 @@ private:
 	vector<TRectangle<int32> > m_vecChunk2[2];
 	vector<TRectangle<int32> > m_vecChunk3[2];
 	vector<TRectangle<int32> > m_vecChunk4[2];
+	vector<TRectangle<int32> > m_vecChunk5;
 
 	vector<TRectangle<int32> > m_vecBuildings;
 	vector<TRectangle<int32> > m_vecRooms;
@@ -396,7 +401,7 @@ private:
 	vector<SControlRoom> m_vecControlRooms;
 	vector<TVector2<int32> > m_vecBroken;
 	vector<TVector2<int32> > m_vecBox;
-	vector<TRectangle<int32> > m_vecBar0[3];
+	vector<TRectangle<int32> > m_vecBar0[4];
 	vector<TRectangle<int32> > m_vecBar[2];
 	vector<TRectangle<int32> > m_vecBar_a[2];
 	vector<TRectangle<int32> > m_vecSawBlade[4];
@@ -408,6 +413,7 @@ private:
 	CReference<CLevelGenerateNode> m_pChunkNode2[2];
 	CReference<CLevelGenerateNode> m_pChunkNode3[2];
 	CReference<CLevelGenerateNode> m_pChunkNode4[2];
+	CReference<CLevelGenerateNode> m_pChunkNode5;
 	CReference<CLevelGenerateNode> m_pBuildingNode;
 
 	CReference<CLevelGenerateNode> m_pRoomNode;
@@ -417,7 +423,7 @@ private:
 	CReference<CLevelGenerateNode> m_pCargo2Node;
 	CReference<CLevelGenerateNode> m_pBrokenNode;
 	CReference<CLevelGenerateNode> m_pBoxNode;
-	CReference<CLevelGenerateNode> m_pBar0Node[3];
+	CReference<CLevelGenerateNode> m_pBar0Node[4];
 	CReference<CLevelGenerateNode> m_pBarNode[2];
 	CReference<CLevelGenerateNode> m_pBarNode_a[2];
 	CReference<CLevelGenerateNode> m_pControlRoomNode;

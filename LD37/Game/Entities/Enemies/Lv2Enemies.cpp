@@ -12,6 +12,8 @@
 #include "Entities/SpecialEft.h"
 #include "Common/Algorithm.h"
 #include "Entities/Blocks/Lv2/SpecialLv2.h"
+#include "Render/Rope2D.h"
+#include "Entities/UtilEntities.h"
 
 void CLimbs::OnAddedToStage()
 {
@@ -1942,6 +1944,185 @@ void CArmRotator::OnTickBeforeHitTest()
 	GetStage()->GetHitTestMgr().ReAdd( this );
 }
 
+void CArmPuncher::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	SafeCast<CArmEft>( m_pEft.GetPtr() )->Init( CVector2( -32, 0 ), CVector2( 0, 0 ), CVector2( 8, 8 ), CVector2( -4, -4 ), TVector2<int32>( 2, 2 ), NULL );
+	m_vel0 = GetVelocity();
+	m_bAttached = GetParentEntity() != CMyLevel::GetInst();
+	CVector2 verts[4] = { { -28, -m_fWidth }, { 0, -m_fWidth }, { 0, m_fWidth }, { -28, m_fWidth } };
+	AddPolygon( 4, verts );
+	if( m_bAttached )
+	{
+		m_pEnd->SetRotation( atan2( m_vel0.y, m_vel0.x ) );
+		Update( true );
+		CEnemy::OnTickBeforeHitTest();
+	}
+	else
+	{
+		Detach();
+		CEnemy::OnAddedToStage();
+	}
+}
+
+void CArmPuncher::Kill()
+{
+	if( m_bAttached )
+	{
+		Detach();
+		return;
+	}
+	SafeCast<CBulletEmitter>( m_pBulletEmitter1.GetPtr() )->Reset();
+	CEnemy::Kill();
+}
+
+void CArmPuncher::OnTickBeforeHitTest()
+{
+	CEnemy::OnTickBeforeHitTest();
+	Update( false );
+}
+
+void CArmPuncher::Update( bool bInit )
+{
+	if( m_bAttached )
+	{
+		auto target = m_pEnd->GetPosition();
+		if( m_nState == 0 )
+		{
+			target = target + m_vel0 * GetStage()->GetElapsedTimePerTick();
+			if( target.Length2() >= m_fMaxLen * m_fMaxLen )
+			{
+				CPlayer* pPlayer = GetStage()->GetPlayer();
+				if( pPlayer )
+				{
+					CVector2 d = globalTransform.GetPosition() + target - pPlayer->GetPosition();
+					if( d.Length2() > m_fRange1 * m_fRange1 )
+					{
+						Detach();
+						return;
+					}
+				}
+				SafeCast<CBulletEmitter>( m_pBulletEmitter.GetPtr() )->Reset();
+				m_nState = 1;
+			}
+		}
+		else
+		{
+			target = target + m_vel0 * -0.2f * GetStage()->GetElapsedTimePerTick();
+			if( target.Length2() <= m_fMinLen * m_fMinLen )
+			{
+				SafeCast<CBulletEmitter>( m_pBulletEmitter.GetPtr() )->Shutdown();
+				m_nState = 0;
+			}
+		}
+		m_pEnd->SetPosition( target );
+		SafeCast<CArmEft>( m_pEft.GetPtr() )->Set( target, CVector2( 0, 0 ) );
+		if( !bInit )
+		{
+			auto bound = CMyLevel::GetInst()->GetBound();
+			bound = CRectangle( bound.x + 16, bound.y + 16, bound.width - 32, bound.height - 32 );
+			if( !bound.Contains( target + globalTransform.GetPosition() ) )
+			{
+				Hit();
+				return;
+			}
+		}
+
+		CVector2 vec1( sin( m_pEnd->r ) * m_fWidth, -cos( m_pEnd->r ) * m_fWidth );
+		auto pRect = static_cast<SHitProxyPolygon*>( Get_HitProxy() );
+		pRect->vertices[0] = vec1 * -1;
+		pRect->vertices[1] = vec1 * 1;
+		pRect->vertices[2] = vec1 * 1 + target;
+		pRect->vertices[3] = vec1 * -1 + target;
+		pRect->CalcNormals();
+		GetStage()->GetHitTestMgr().ReAdd( this );
+	}
+	else
+	{
+		CPlayer* pPlayer = GetStage()->GetPlayer();
+		if( !pPlayer )
+		{
+			Hit();
+			return;
+		}
+		m_flyData.UpdateMove( this, pPlayer->GetPosition() );
+
+		auto bound = CMyLevel::GetInst()->GetBound();
+		bound = CRectangle( bound.x + 16, bound.y + 16, bound.width - 32, bound.height - 32 );
+		auto vel = GetVelocity();
+		if( GetPosition().x < bound.x && vel.x < 0 || GetPosition().x > bound.GetRight() && vel.x > 0 )
+			vel.x = -vel.x;
+		if( GetPosition().y < bound.y && vel.y < 0 || GetPosition().y > bound.GetBottom() && vel.y > 0 )
+			vel.y = -vel.y;
+		SetVelocity( vel );
+		SetRotation( atan2( GetVelocity().y, GetVelocity().x ) );
+		if( ( GetPosition() - pPlayer->GetPosition() ).Length2() < 64 * 64 )
+		{
+			Hit();
+			return;
+		}
+		m_nDmgCDLeft--;
+		if( !m_nDmgCDLeft )
+		{
+			m_nDmgCDLeft = m_nDmgCD;
+			SDamageContext context;
+			context.nDamage = 1;
+			context.nType = 0;
+			context.nSourceType = 0;
+			context.hitPos = context.hitDir = CVector2( 0, 0 );
+			context.nHitType = -1;
+			Damage( context );
+		}
+	}
+}
+
+void CArmPuncher::Detach()
+{
+	if( m_bAttached )
+	{
+		if( m_pKillEffect )
+		{
+			CVector2 d = m_pEnd->GetPosition();
+			float l = d.Normalize();
+			for( float i = m_fKillEftDist * 0.5f; i < l; i += m_fKillEftDist )
+			{
+				auto pKillEffect = SafeCast<CEffectObject>( m_pKillEffect->GetRoot()->CreateInstance() );
+				pKillEffect->SetState( 2 );
+				pKillEffect->SetPosition( globalTransform.GetPosition() + d * i );
+				pKillEffect->SetParentBeforeEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Player ) );
+			}
+		}
+		SafeCast<CBulletEmitter>( m_pBulletEmitter.GetPtr() )->Shutdown();
+		m_bAttached = false;
+		m_nHp = m_nMaxHp;
+		SetPosition( m_pEnd->globalTransform.GetPosition() );
+		SetRotation( m_pEnd->r );
+		SetParentBeforeEntity( CMyLevel::GetInst()->GetChunkEffectRoot() );
+		m_pEnd->SetPosition( CVector2( 0, 0 ) );
+		m_pEnd->SetRotation( 0 );
+	}
+	else
+	{
+		SetRotation( atan2( m_vel0.y, m_vel0.x ) );
+	}
+	m_nDmgCDLeft = m_nDmgCD;
+	SafeCast<CArmEft>( m_pEft.GetPtr() )->Set( CVector2( -32, 0 ), CVector2( 0, 0 ) );
+	auto pRect = static_cast<SHitProxyPolygon*>( Get_HitProxy() );
+	pRect->vertices[0] = CVector2( -28, -m_fWidth );
+	pRect->vertices[1] = CVector2( 0, -m_fWidth );
+	pRect->vertices[2] = CVector2( 0, m_fWidth );
+	pRect->vertices[3] = CVector2( -28, m_fWidth );
+	pRect->CalcNormals();
+	GetStage()->GetHitTestMgr().ReAdd( this );
+}
+
+void CArmPuncher::Hit()
+{
+	if( m_bAttached )
+		Detach();
+	Kill();
+}
+
 void CManChunkEgg::OnAddedToStage()
 {
 	CEnemy::OnAddedToStage();
@@ -2520,6 +2701,309 @@ void CGolem::OnKnockback()
 	m_nLifeLeft = m_nLife;
 	m_nKnockBackTimeLeft = m_nKnockbackTime;
 	m_nAIStepTimeLeft = 0;
+}
+
+void CRailSlider::OnAddedToStage()
+{
+	CEnemy::OnAddedToStage();
+	CVector2 ofs( 0, 0 );
+	FindBlock( ofs, 0 );
+	m_nFrame = 0;
+	auto pImg = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	int32 nFrames = 60 * ( pImg->GetFrameEnd() - pImg->GetFrameBegin() ) / pImg->GetFramesPerSec();
+	m_nFrame1 = nFrames * 3 / 5;
+	m_nFrame2 = nFrames;
+	auto p = static_cast<CRopeObject2D*>( m_pChain.GetPtr() );
+	p->SetRenderParentBefore( CMyLevel::GetInst()->GetChunkRoot() );
+	auto& begin = p->GetData().data[0];
+	auto& end = p->GetData().data[1];
+	m_fTexPerLen = end.tex0.y / -begin.center.y;
+	begin.center.y = 0;
+	end.tex0.y = end.tex1.y = 0;
+}
+
+void CRailSlider::OnRemovedFromStage()
+{
+	CEnemy::OnRemovedFromStage();
+	if( m_pObj )
+		DropObj();
+	m_pBlock = NULL;
+}
+
+void CRailSlider::OnTickAfterHitTest()
+{
+	CEnemy::OnTickAfterHitTest();
+
+	if( m_pBlock && !m_pBlock->GetStage() )
+		m_pBlock = NULL;
+	CVector2 ofs = GetVelocity() * GetStage()->GetElapsedTimePerTick();
+	float ll;
+	bool b = true;
+	CVector2 p[4] = { { 1, 0.5f }, { 0.5f, 1 }, { 0, 0.5f }, { 0.5f, 0 } };
+	if( m_pBlock )
+	{
+		ofs = CVector2( 0, 0 );
+		SetPosition( GetPosition() + m_pBlock->globalTransform.GetPosition() - m_pBlock->GetLastPos() );
+		if( m_nFrame >= m_nFrame1 )
+		{
+			auto begin = m_pBlock->globalTransform.GetPosition() + p[m_nBegin] * CMyLevel::GetBlockSize();
+			auto end = m_pBlock->globalTransform.GetPosition() + p[m_nEnd] * CMyLevel::GetBlockSize();
+			CVector2 d = end - begin;
+			float l = d.Normalize();
+			float l1 = ( GetPosition() - begin ).Dot( d ) + m_fSpeed * GetStage()->GetElapsedTimePerTick();
+			SetVelocity( d * m_fSpeed );
+			if( l1 < l )
+			{
+				SetPosition( begin + d * l1 );
+				b = false;
+			}
+			else
+			{
+				SetPosition( end );
+				ofs = d * ( l1 - l );
+				ll = l1 - l;
+			}
+		}
+		else
+			b = false;
+	}
+
+	if( b )
+	{
+		FindBlock( ofs, ll );
+	}
+	if( !m_pBlock )
+	{
+		SetPosition( GetPosition() + ofs );
+		SetVelocity( GetVelocity() + CVector2( 0, -m_fGravity * GetStage()->GetElapsedTimePerTick() ) );
+
+		auto bound = CMyLevel::GetInst()->GetBound();
+		if( y < bound.y || x < bound.x || x > bound.GetRight() )
+		{
+			Kill();
+			return;
+		}
+	}
+	m_nFrame++;
+	if( m_nFrame >= m_nFrame2 )
+		m_nFrame = 0;
+	UpdateChain();
+}
+
+void CRailSlider::FindBlock( CVector2& ofs, float ll )
+{
+	bool bInit = !m_pBlock && ll == 0;
+	CVector2 p[4] = { { 1, 0.5f }, { 0.5f, 1 }, { 0, 0.5f }, { 0.5f, 0 } };
+	CVector2 dir = GetVelocity();
+	dir.Normalize();
+	SHitProxyCircle circle;
+	circle.fRadius = CMyLevel::GetBlockSize() * 0.5f;
+	circle.center = GetPosition();
+
+	static vector<CReference<CEntity> > hitEntities;
+	GetStage()->MultiHitTest( &circle, CMatrix2D::GetIdentity(), hitEntities );
+	SRand::Inst().Shuffle( hitEntities );
+	float fMin = 100000;
+	CEntity* pMin = NULL;
+	int8 nBeginMin = -1, nEndMin = -1;
+	TVector2<int32> indices[12] = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 3 },
+	{ 1, 0 }, { 2, 0 }, { 3, 0 }, { 2, 1 }, { 3, 1 }, { 3, 2 } };
+	SRand::Inst().Shuffle( indices, ELEM_COUNT( indices ) );
+	for( CEntity* pEntity : hitEntities )
+	{
+		auto pBlockObject = SafeCast<CBlockObject>( pEntity );
+		if( pBlockObject )
+		{
+			auto nRail = pBlockObject->GetBlock()->nRail;
+			for( int i = 0; i < ELEM_COUNT( indices ); i++ )
+			{
+				auto nBegin = indices[i].x;
+				auto nEnd = indices[i].y;
+				if( !( nRail & 1 << nBegin ) || !( nRail & 1 << nEnd ) )
+					continue;
+				auto begin = pBlockObject->globalTransform.GetPosition() + p[nBegin] * CMyLevel::GetBlockSize();
+				auto end = pBlockObject->globalTransform.GetPosition() + p[nEnd] * CMyLevel::GetBlockSize();
+
+				float l = fMin;
+				if( m_pBlock )
+				{
+					if( begin == GetPosition() )
+					{
+						auto d = end - begin;
+						d.Normalize();
+						l = -d.Dot( dir );
+					}
+					else
+						continue;
+				}
+				else
+				{
+					if( !bInit )
+					{
+						auto p1 = GetPosition();
+						auto p2 = begin;
+						auto d1 = ofs;
+						auto d2 = end - begin;
+						float k = ( d1.x * d2.y - d1.y * d2.x );
+						if( k == 0 )
+							continue;
+						float k1 = ( ( p2.x - p1.x ) * d2.y - ( p2.y - p1.y ) * d2.x ) / k;
+						float k2 = ( ( p1.x - p2.x ) * d1.y - ( p1.y - p2.y ) * d1.x ) / k;
+						if( k1 < 0 || k1 > 1 || k2 < 0 || k2 > 1 )
+							continue;
+						l = k1;
+					}
+					else
+					{
+						float l0 = ( end - begin ).Length2();
+						auto d1 = begin - GetPosition();
+						auto d2 = end - GetPosition();
+						float l1 = d1.Length2();
+						float l2 = d2.Length2();
+						if( l1 > l2 )
+							continue;
+						if( l0 + l1 < l2 )
+							l = Min( l1, l2 );
+						else
+						{
+							float s = d1.x * d2.y - d1.y * d2.x;
+							s = s * s;
+							l = s / l0;
+						}
+						if( l > 8 * 8 )
+							continue;
+					}
+				}
+				if( l < fMin )
+				{
+					fMin = l;
+					pMin = pBlockObject;
+					nBeginMin = nBegin;
+					nEndMin = nEnd;
+				}
+			}
+		}
+	}
+	hitEntities.resize( 0 );
+	if( pMin )
+	{
+		if( m_pBlock )
+		{
+			auto begin = m_pBlock->globalTransform.GetPosition() + p[m_nBegin] * CMyLevel::GetBlockSize();
+			auto end = m_pBlock->globalTransform.GetPosition() + p[m_nEnd] * CMyLevel::GetBlockSize();
+			CVector2 d = end - begin;
+			d.Normalize();
+			SetPosition( GetPosition() + d * ll );
+			SetVelocity( d * m_fSpeed );
+		}
+		else if( !bInit )
+		{
+			ofs.Normalize();
+			SetPosition( GetPosition() + ofs * fMin );
+		}
+		else
+		{
+			auto begin = pMin->globalTransform.GetPosition() + p[nBeginMin] * CMyLevel::GetBlockSize();
+			auto end = pMin->globalTransform.GetPosition() + p[nEndMin] * CMyLevel::GetBlockSize();
+			float l0 = ( end - begin ).Length2();
+			auto d1 = begin - GetPosition();
+			auto d2 = end - GetPosition();
+			float l1 = d1.Length2();
+			float l2 = d2.Length2();
+			if( l0 + l1 < l2 )
+				SetPosition( begin );
+			else
+			{
+				auto d = end - begin;
+				float k = -d.Dot( d1 ) / l0;
+				SetPosition( begin + d * k );
+			}
+		}
+		m_pBlock = pMin;
+		m_nBegin = nBeginMin;
+		m_nEnd = nEndMin;
+	}
+}
+
+void CRailSlider::UpdateChain()
+{
+	if( m_pObj && !m_pObj->GetStage() )
+		m_pObj = NULL;
+	if( m_nChainState == 1 && !m_pObj )
+		m_nChainState = 0;
+	if( m_pBlock && m_nObjTime == 0 )
+	{
+		if( !m_pObj )
+		{
+			m_nChainState = 1;
+			CReference<CPrefab> pBullet1 = m_pBulletPrefab;
+			auto pBullet = SafeCast<CBullet>( m_pObjPrefab->GetRoot()->CreateInstance() );
+			pBullet->SetPosition( GetPosition() );
+			pBullet->SetAngularVelocity( SRand::Inst().Rand( 1.0f, 2.0f ) * ( SRand::Inst().Rand( 0, 2 ) * 2 - 1 ) );
+			pBullet->SetCreator( m_pBlock->GetParentEntity() );
+			pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+			pBullet->SetOnHit( [pBullet1] ( CBullet* pThis, CEntity* pEntity )
+			{
+				CVector2 pos = pThis->globalTransform.GetPosition();
+				CVector2 vel[] = { { 1, 1 }, { 1, 0.8f }, { 0.8f, 1 }, { -1, 1 }, { -1, 0.8f }, { -0.8f, 1 },
+				{ 1, -1 }, { 1, -0.8f }, { 0.8f, -1 }, { -1, -1 }, { -1, -0.8f }, { -0.8f, -1 } };
+				for( int i = 0; i < ELEM_COUNT( vel ); i++ )
+				{
+					auto pBullet = SafeCast<CBullet>( pBullet1->GetRoot()->CreateInstance() );
+					pBullet->SetPosition( pos );
+					pBullet->SetVelocity( vel[i] * 300 );
+					pBullet->SetRotation( atan2( vel[i].y, vel[i].x ) );
+					pBullet->SetParentEntity( CMyLevel::GetInst()->GetBulletRoot( CMyLevel::eBulletLevel_Enemy ) );
+				}
+			} );
+			m_pObj = pBullet;
+		}
+	}
+	if( m_nChainState && ( !m_pBlock || m_nObjTime == m_nTime ) )
+	{
+		m_nChainState = 0;
+		if( m_pObj )
+			DropObj();
+	}
+	auto p = static_cast<CRopeObject2D*>( m_pChain.GetPtr() );
+	auto& begin = p->GetData().data[0];
+	auto& end = p->GetData().data[1];
+	if( m_nChainState == 1 )
+	{
+		float l = -begin.center.y;
+		if( l < m_fMaxChainLen )
+		{
+			l = Min( m_fMaxChainLen, l + m_fChainSpeed * GetStage()->GetElapsedTimePerTick() );
+			begin.center.y = -l;
+			end.tex0.y = end.tex1.y = l * m_fTexPerLen;
+			p->SetTransformDirty();
+		}
+	}
+	else
+	{
+		float l = -begin.center.y;
+		if( l > 0 )
+		{
+			l = Max( 0.0f, l - m_fChainSpeed * GetStage()->GetElapsedTimePerTick() );
+			begin.center.y = -l;
+			end.tex0.y = end.tex1.y = l * m_fTexPerLen;
+			p->SetTransformDirty();
+		}
+	}
+	if( m_pObj )
+		m_pObj->SetPosition( GetPosition() - CVector2( 0, -begin.center.y ) );
+
+	m_nObjTime++;
+	if( m_nObjTime >= m_nTime1 )
+		m_nObjTime = 0;
+}
+
+void CRailSlider::DropObj()
+{
+	auto pBullet = SafeCast<CBullet>( m_pObj.GetPtr() );
+	pBullet->SetVelocity( CVector2( 0, -100 ) );
+	pBullet->SetAcceleration( CVector2( 0, -200 ) );
+	m_pObj = NULL;
 }
 
 void CMechHand::AIFunc()

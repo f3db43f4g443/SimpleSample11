@@ -230,9 +230,6 @@ protected:
 
 	uint32 m_nDamage;
 	float m_fKnockback;
-	TResourceRef<CPrefab> m_pBulletPrefab;
-	int32 m_nBulletCount;
-	float m_fBulletSpeed;
 };
 
 class CFlood : public CEntity

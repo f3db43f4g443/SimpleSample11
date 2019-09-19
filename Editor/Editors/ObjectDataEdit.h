@@ -28,7 +28,7 @@ protected:
 class CObjectDataBoolEdit : public CObjectDataEditItem
 {
 public:
-	CObjectDataBoolEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData );
+	CObjectDataBoolEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectDataBoolEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
 	virtual void RefreshData() override;
 private:
@@ -40,7 +40,7 @@ private:
 class CObjectDataCommonEdit : public CObjectDataEditItem
 {
 public:
-	CObjectDataCommonEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData );
+	CObjectDataCommonEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectDataCommonEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
 	virtual void RefreshData() override;
 private:
@@ -53,7 +53,7 @@ private:
 class CObjectDataVectorEdit : public CObjectDataEditItem
 {
 public:
-	CObjectDataVectorEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData );
+	CObjectDataVectorEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectDataVectorEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
 	virtual void RefreshData() override;
 private:
@@ -66,7 +66,7 @@ private:
 class CObjectDataStringEdit : public CObjectDataEditItem
 {
 public:
-	CObjectDataStringEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData );
+	CObjectDataStringEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectDataStringEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
 	virtual void RefreshData() override;
 private:
@@ -78,13 +78,39 @@ private:
 class CObjectDataEnumEdit : public CObjectDataEditItem
 {
 public:
-	CObjectDataEnumEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData );
+	CObjectDataEnumEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectDataEnumEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
 	virtual void RefreshData() override;
 private:
 	void OnEdit();
 	CReference<CDropDownBox> m_pEdit;
 	TClassTrigger<CObjectDataEnumEdit> m_onEdit;
+};
+
+class CObjectArrayEdit : public CObjectDataEditItem
+{
+public:
+	CObjectArrayEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
+	~CObjectArrayEdit();
+	virtual void RefreshData() override;
+
+	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform ) override;
+	virtual CObjectDataEditItem* OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override;
+private:
+	void OnEdit( uint32 nParam )
+	{
+		if( nParam != 1 )
+			return;
+		if( m_pContent->pParent )
+			m_pContent->pParent->pElement->Action( (void*)1 );
+	}
+	void OnResize();
+	void CreateItemEdit();
+	CReference<CCommonEdit> m_pEditSize;
+	TClassTrigger1<CObjectArrayEdit, uint32> m_onEdit;
+	TClassTrigger<CObjectArrayEdit> m_onResize;
+	SClassMetaData::SMemberData* m_pMemberData;
+	LINK_LIST_REF_HEAD( m_pChildren, CObjectDataEditItem, Item );
 };
 
 class CObjectDataEdit : public CObjectDataEditItem

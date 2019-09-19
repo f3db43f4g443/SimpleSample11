@@ -629,6 +629,8 @@
             shakedmg="20" shakedmgperwidth="5" prefab="data/blocks/lv2/billboard1.pf">
         <metadata minx="4" miny="4" maxx="32" maxy="16" chain_type1="1" chain_type2="0">
           <types>
+            <item name="0_0" />
+            <item name="0_1" />
             <item name="1" />
             <item name="2" />
           </types>
@@ -651,6 +653,27 @@
             <node type="autofill" check_gen_data_name="2" x="0" y="0" w="0" h="0">
               <ref name="billboard_man_spawn" sizeminx="3" sizeminy="3" />
             </node>
+            <node type="switch_tile" x="0" y="0" w="0" h="0">
+              <ref name="grinder_0" case="0_0" />
+              <ref name="grinder_1" case="0_1" />
+            </node>
+          </node>
+        </next_level>
+      </node>
+
+      <node name="billboard2" subchunk_type="1" show_layer_type="0" width="4" height="4" weight="1" weightperwidth="1" destroyweight="12" destroyweightperwidth="3" shakeweightcoef="1" absorbshakestrength="10000" destroyshake="20"
+            shakedmg="20" shakedmgperwidth="5" prefab="data/blocks/lv2/billboard2.pf">
+        <metadata minx="2" miny="2" maxx="32" maxy="16" chain_type1="1" chain_type2="0">
+        </metadata>
+        <types>
+          2,2,2,2,
+          2,2,2,2,
+          2,2,2,2,
+          2,2,2,2,
+        </types>
+        <next_level>
+          <node type="subregion">
+            <ref name="cargo_auto_color" x="0" y="0" w="0" h="0" />
           </node>
         </next_level>
       </node>

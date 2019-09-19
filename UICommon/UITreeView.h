@@ -17,7 +17,7 @@ public:
 	};
 	virtual CUIElement* CreateObject() override { return new CUITreeView; }
 
-	CContent* AddContentChild( CUIElement* pElement, CContent* pInContent );
+	CContent* AddContentChild( CUIElement* pElement, CContent* pInContent, bool bHead = false );
 	CContent* AddContentSibling( CUIElement* pElement, CContent* pInContent );
 
 	void RemoveContentTree( CContent* pContent );

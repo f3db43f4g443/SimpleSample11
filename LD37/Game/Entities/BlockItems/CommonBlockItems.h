@@ -14,7 +14,7 @@ public:
 	void SetEnabled( bool bEnabled );
 protected:
 	void OnTick();
-	virtual void Trigger() {}
+	virtual void Trigger();
 	virtual bool CheckTrigger() { return true; }
 
 	CRectangle m_detectRect;
@@ -96,7 +96,7 @@ private:
 	CRectangle m_rectSpawn;
 	bool m_bRandomRotate;
 	bool m_bCheckHit;
-
+	uint8 m_nSpawnType;
 	uint8 m_nVelocityType;
 	CVector2 m_vel1;
 	CVector2 m_vel2;

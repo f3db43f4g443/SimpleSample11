@@ -8,26 +8,45 @@
 #include "UICommon/UIManager.h"
 #include "Render/Scene2DManager.h"
 #include "Common/Rand.h"
+#include "Editor.h"
 
 class CPrefabNodeTreeFolder : public CTreeFolder
 {
 	friend class CPrefabEditor;
 public:
-	static CUITreeView::CTreeViewContent* Create( CPrefabEditor* pView, CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, CPrefabNode* pNode )
+	static CUITreeView::CTreeViewContent* Create( CPrefabEditor* pView, CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, CPrefabNode* pNode, int8 nInsertType = 0 )
 	{
 		static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/prefabnode_treefolder.xml" );
 		auto pTreeFolder = new CPrefabNodeTreeFolder;
 		g_pRes->GetElement()->Clone( pTreeFolder );
 		CUITreeView::CTreeViewContent* pContent;
 		if( pParent )
-			pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pTreeFolder, pParent ) );
+		{
+			if( nInsertType == 0 )
+				pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pTreeFolder, pParent ) );
+			else if( nInsertType == 1 )
+				pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pTreeFolder, pParent, true ) );
+			else
+				pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentSibling( pTreeFolder, pParent ) );
+		}
 		else
 			pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContent( pTreeFolder ) );
+		pTreeFolder->m_nType = pNode->IsInstance() ? 1 : 0;
 		pTreeFolder->m_pTreeView = pTreeView;
 		pTreeFolder->m_pContent = pContent;
-		pTreeFolder->GetChildByName<CUIButton>( "label" )->SetText( pNode->GetName() );
+		auto pLabel = pTreeFolder->GetChildByName<CUIButton>( "label" );
+		if( pTreeFolder->m_nType )
+		{
+			string str = "# ";
+			str += pNode->GetName().c_str();
+			pLabel->SetText( str.c_str() );
+			pLabel->SetTextColor( CVector4( 0.5f, 0.7f, 1, 1 ) );
+		}
+		else
+			pLabel->SetText( pNode->GetName() );
 		pTreeFolder->m_pView = pView;
 		pTreeFolder->m_pNode = pNode;
+		pNode->OnEditorActive( false );
 		pContent->fChildrenIndent = 4;
 		return pContent;
 	}
@@ -46,6 +65,8 @@ protected:
 
 	virtual void OnChar( uint32 nChar ) override
 	{
+		if( m_nType )
+			return;
 		switch( nChar )
 		{
 		case 'W':
@@ -71,6 +92,7 @@ protected:
 
 	CPrefabEditor* m_pView;
 	CPrefabNode* m_pNode;
+	int8 m_nType;
 	TClassTrigger<CPrefabNodeTreeFolder> m_onSelect;
 };
 
@@ -110,17 +132,25 @@ void CPrefabEditor::Refresh()
 	}
 }
 
-void CPrefabEditor::RefreshSceneView( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pParNodeItem )
+void CPrefabEditor::RefreshSceneView( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pParNodeItem, int8 nInsertType )
 {
-	auto pContent = CPrefabNodeTreeFolder::Create( this, m_pSceneView, pParNodeItem, pNode );
+	auto pContent = CPrefabNodeTreeFolder::Create( this, m_pSceneView, pParNodeItem, pNode, nInsertType );
+	auto pPatchedNode = pNode->GetPatchedNode();
 	vector<CPrefabNode*> vecChildren;
-	for( CRenderObject2D* pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+	for( CRenderObject2D* pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 	{
 		if( pChild == pNode->m_pRenderObject )
-			continue;
-		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
-		if( pNode )
-			vecChildren.push_back( pNode );
+		{
+			if( !pPatchedNode )
+				continue;
+			vecChildren.push_back( pPatchedNode );
+		}
+		else
+		{
+			CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+			if( pNode )
+				vecChildren.push_back( pNode );
+		}
 	}
 	for( int i = vecChildren.size() - 1; i >= 0; i-- )
 	{
@@ -131,6 +161,7 @@ void CPrefabEditor::RefreshSceneView( CPrefabNode* pNode, CUITreeView::CTreeView
 void CPrefabEditor::OnInited()
 {
 	Super::OnInited();
+	m_nNodeDebugDrawType = 1;
 	m_pSceneView = GetChildByName<CUITreeView>( "scene_view" );
 	m_pNodeView = GetChildByName<CUITreeView>( "node_view" );
 
@@ -151,6 +182,7 @@ void CPrefabEditor::OnInited()
 	m_pResFileName->Register( eEvent_Action, &m_onNodeResourceChanged );
 	m_onNodeClassChanged.Set( this, &CPrefabEditor::OnCurNodeClassChanged );
 	m_pNodeClass->Register( eEvent_Action, &m_onNodeClassChanged );
+	m_onNodeObjDataChanged.Set( this, &CPrefabEditor::OnCurNodeObjDataChanged );
 	m_onTransformChanged.Set( this, &CPrefabEditor::OnTransformChanged );
 	m_pTransform->Register( eEvent_Action, &m_onTransformChanged );
 	m_onZOrderChanged.Set( this, &CPrefabEditor::OnZOrderChanged );
@@ -197,12 +229,24 @@ void CPrefabEditor::RefreshPreview()
 	if( !m_pRes )
 		return;
 	m_pRes->RefreshBegin();
-	m_pRes->m_pRoot = m_pClonedPrefab->Clone( true );
+	m_pRes->SetNode( m_pClonedPrefab->Clone( true ) );
 	m_pRes->RefreshEnd();
 }
 
 void CPrefabEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 {
+	if( m_pClonedPrefab )
+		m_pClonedPrefab->UpdatePreview();
+	if( m_nNodeDebugDrawType == 1 )
+	{
+		if( m_pCurNode )
+			m_pCurNode->DebugDrawPreview( m_pViewport, pRenderSystem );
+	}
+	else if( m_nNodeDebugDrawType == 2 )
+	{
+		if( m_pClonedPrefab )
+			m_pClonedPrefab->DebugDraw( m_pViewport, pRenderSystem );
+	}
 	if( m_pCurNode )
 	{
 		if( m_pNodeData )
@@ -293,7 +337,7 @@ void CPrefabEditor::OnZOrderChanged()
 
 		bool bFind = false;
 		uint32 nIndex = 0;
-		for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		for( auto pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 		{
 			if( pChild == pNode->m_pRenderObject )
 				continue;
@@ -313,7 +357,7 @@ void CPrefabEditor::OnZOrderChanged()
 
 		bFind = false;
 		uint32 nIndex1 = 0;
-		for( auto pChild = pNode->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
+		for( auto pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
 		{
 			if( pChild == pNode->m_pRenderObject )
 				continue;
@@ -670,18 +714,26 @@ public:
 		pView->AddContentChild( m_pEnableEdit, m_pResRoot );
 		m_pCurEditType = CCommonEdit::Create( "Edit Type" );
 		pView->AddContentChild( m_pCurEditType, m_pResRoot );
+		m_pBrushSize = CCommonEdit::Create( "Brush Size" );
+		pView->AddContentChild( m_pBrushSize, m_pResRoot );
+		m_pBrushShape = CCommonEdit::Create( "Brush Shape" );
+		pView->AddContentChild( m_pBrushShape, m_pResRoot );
 		m_pFill = static_cast<CUIButton*>( CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/button.xml" )->GetElement()->Clone() );
 		pView->AddContentChild( m_pFill, m_pResRoot );
-		for( int i = 0; i < 2; i++ )
+		for( int i = 0; i < ELEM_COUNT( m_onEditTypeChanged ); i++ )
 			m_onEditTypeChanged[i].Set( this, &CTileMapNodeData::OnEditTypeChanged );
 		m_onFill.Set( this, &CTileMapNodeData::OnFill );
 		m_pEnableEdit->Register( CUIElement::eEvent_Action, &m_onEditTypeChanged[0] );
 		m_pCurEditType->Register( CUIElement::eEvent_Action, &m_onEditTypeChanged[1] );
+		m_pBrushSize->Register( CUIElement::eEvent_Action, &m_onEditTypeChanged[2] );
+		m_pBrushShape->Register( CUIElement::eEvent_Action, &m_onEditTypeChanged[3] );
 		m_pFill->Register( CUIElement::eEvent_Action, &m_onFill );
 		m_pFill->SetText( "Fill" );
 		m_bEnableEdit = false;
 		m_bDragging = false;
 		m_nCurEditType = 0;
+		m_nCurBrushSize = 1;
+		m_nCurBrushShape = 0;
 
 		RefreshData();
 	}
@@ -709,15 +761,79 @@ public:
 		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
 		
 		uint32 nEditTypeCount = pTileMap->GetInfo()->editInfos.size();
-		if( nChar == 'Q' || nChar == 'q' )
+
+		switch( nChar )
+		{
+		case '`':
+			m_bEnableEdit = !m_bEnableEdit;
+			m_pEnableEdit->SetChecked( m_bEnableEdit );
+			break;
+		case 'Q':
+		case 'q':
 			m_nCurEditType = m_nCurEditType > 0 ? m_nCurEditType - 1 : nEditTypeCount - 1;
-		else if( nChar == 'W' || nChar == 'w' )
+			m_pCurEditType->SetValue( m_nCurEditType );
+			break;
+		case 'W':
+		case 'w':
 			m_nCurEditType = m_nCurEditType < nEditTypeCount - 1 ? m_nCurEditType + 1 : 0;
-		else if( nChar >= '0' && nChar <= '9' )
+			m_pCurEditType->SetValue( m_nCurEditType );
+			break;
+		case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 			m_nCurEditType = Min( nChar - '0', nEditTypeCount - 1 );
-		else
-			return;
-		m_pCurEditType->SetValue( m_nCurEditType );
+			m_pCurEditType->SetValue( m_nCurEditType );
+			break;
+		case '=':
+			m_nCurBrushSize = Min<int8>( m_nCurBrushSize + 1, 9 );
+			m_pBrushSize->SetValue( (int32)m_nCurBrushSize );
+			break;
+		case '-':
+			m_nCurBrushSize = Max<int8>( m_nCurBrushSize - 1, 1 );
+			m_pBrushSize->SetValue( (int32)m_nCurBrushSize );
+			break;
+		case ']':
+			m_nCurBrushShape = m_nCurBrushShape < 2 ? m_nCurBrushShape + 1 : 0;
+			m_pBrushShape->SetValue( (int32)m_nCurBrushShape );
+			break;
+		case '[':
+			m_nCurBrushShape = m_nCurBrushShape > 0 ? m_nCurBrushShape - 1 : 2;
+			m_pBrushShape->SetValue( (int32)m_nCurBrushShape );
+			break;
+		default:
+			break;
+		}
+	}
+	bool OnEditMap( const CVector2& localPos )
+	{
+		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
+		CVector2 grid = ( localPos - pTileMap->GetBaseOffset() ) * CVector2( 1.0f / pTileMap->GetTileSize().x, 1.0f / pTileMap->GetTileSize().y );
+		TRectangle<int32> rect( floor( grid.x + 1 - m_nCurBrushSize * 0.5f ), floor( grid.y + 1 - m_nCurBrushSize * 0.5f ),
+			m_nCurBrushSize, m_nCurBrushSize );
+		TVector2<int32> p0( rect.x + rect.GetRight(), rect.y + rect.GetBottom() );
+		rect = rect * TRectangle<int32>( 0, 0, pTileMap->GetWidth() + 1, pTileMap->GetHeight() + 1 );
+		if( rect.width > 0 && rect.height > 0 )
+		{
+			for( int x = rect.x; x < rect.GetRight(); x++ )
+			{
+				for( int y = rect.y; y < rect.GetBottom(); y++ )
+				{
+					if( m_nCurBrushShape == 1 )
+					{
+						int32 dx = x * 2 + 1 - p0.x;
+						int32 dy = y * 2 + 1 - p0.y;
+						if( dx * dx + dy * dy > ( m_nCurBrushSize - 1 ) * ( m_nCurBrushSize - 1 ) + 1 )
+							continue;
+					}
+					else if( m_nCurBrushShape == 2 )
+					{
+						if( abs( x * 2 + 1 - p0.x ) + abs( y * 2 + 1 - p0.y ) > m_nCurBrushSize )
+							continue;
+					}
+					pTileMap->EditTile( x, y, m_nCurEditType );
+				}
+			}
+			return true;
+		}
+		return false;
 	}
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override
 	{
@@ -725,13 +841,8 @@ public:
 			return false;
 		auto matInv = transform.Inverse();
 		auto localPos = matInv.MulVector2Pos( mousePos );
-		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
-		CVector2 grid = ( localPos - pTileMap->GetBaseOffset() ) * CVector2( 1.0f / pTileMap->GetTileSize().x, 1.0f / pTileMap->GetTileSize().y );
-		uint32 x = floor( grid.x + 0.5f );
-		uint32 y = floor( grid.y + 0.5f );
-		if( x >= 0 && x <= pTileMap->GetWidth() && y >= 0 && y <= pTileMap->GetHeight() )
+		if( OnEditMap( localPos ) )
 		{
-			pTileMap->EditTile( x, y, m_nCurEditType );
 			m_bDragging = true;
 			return true;
 		}
@@ -743,12 +854,7 @@ public:
 			return false;
 		auto matInv = transform.Inverse();
 		auto localPos = matInv.MulVector2Pos( mousePos );
-		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
-		CVector2 grid = ( localPos - pTileMap->GetBaseOffset() ) * CVector2( 1.0f / pTileMap->GetTileSize().x, 1.0f / pTileMap->GetTileSize().y );
-		uint32 x = floor( grid.x + 0.5f );
-		uint32 y = floor( grid.y + 0.5f );
-		if( x >= 0 && x <= pTileMap->GetWidth() && y >= 0 && y <= pTileMap->GetHeight() )
-			pTileMap->EditTile( x, y, m_nCurEditType );
+		OnEditMap( localPos );
 		return true;
 	}
 	virtual bool OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override
@@ -771,12 +877,33 @@ protected:
 		m_pBaseOffset->SetFloat2( pTileMap->GetBaseOffset() );
 		m_pWidth->SetValue( pTileMap->GetWidth() );
 		m_pHeight->SetValue( pTileMap->GetHeight() );
+		m_pCurEditType->SetValue( m_nCurEditType );
+		m_pBrushSize->SetValue( (int32)m_nCurBrushSize );
+		m_pBrushShape->SetValue( m_nCurBrushShape );
 	}
 
 	void OnEditTypeChanged()
 	{
 		m_bEnableEdit = m_pEnableEdit->IsChecked();
 		m_nCurEditType = m_pCurEditType->GetValue<uint32>();
+		m_nCurBrushSize = m_pBrushSize->GetValue<uint32>();
+		m_nCurBrushShape = m_pBrushShape->GetValue<uint32>();
+		CTileMap2D* pTileMap = static_cast<CTileMap2D*>( m_pNode->GetRenderObject() );
+		if( m_nCurEditType >= pTileMap->GetInfo()->editInfos.size() )
+		{
+			m_nCurEditType = pTileMap->GetInfo()->editInfos.size() - 1;
+			m_pCurEditType->SetValue( m_nCurEditType );
+		}
+		if( m_nCurBrushSize > 9 )
+		{
+			m_nCurBrushSize = 9;
+			m_pBrushSize->SetValue( (int32)m_nCurBrushSize );
+		}
+		if( m_nCurBrushShape >= 3 )
+		{
+			m_nCurBrushShape = 2;
+			m_pBrushShape->SetValue( m_nCurBrushShape );
+		}
 	}
 
 	void OnFill()
@@ -811,17 +938,21 @@ private:
 
 	CReference<CBoolEdit> m_pEnableEdit;
 	CReference<CCommonEdit> m_pCurEditType;
+	CReference<CCommonEdit> m_pBrushSize;
+	CReference<CCommonEdit> m_pBrushShape;
 	CReference<CUIButton> m_pFill;
 	CReference<CUIButton> m_pExt;
 
 	bool m_bDragging;
 	bool m_bEnableEdit;
 	uint32 m_nCurEditType;
+	uint8 m_nCurBrushSize;
+	uint8 m_nCurBrushShape;
 	
 	TClassTrigger<CTileMapNodeData> m_onFill;
 	TClassTrigger<CTileMapNodeData> m_onExt;
 	TClassTrigger<CTileMapNodeData> m_onRefresh[4];
-	TClassTrigger<CTileMapNodeData> m_onEditTypeChanged[2];
+	TClassTrigger<CTileMapNodeData> m_onEditTypeChanged[4];
 };
 
 class CParticleNodeData : public CPrefabEditor::CNodeData
@@ -1065,8 +1196,11 @@ void CPrefabEditor::SelectNode( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 		SetCamOfs( pNode->globalTransform.GetPosition() );
 		return;
 	}
+	auto pItem0 = m_pCurNodeItem;
 
 	m_pNodeData = NULL;
+	if( m_onNodeObjDataChanged.IsRegistered() )
+		m_onNodeObjDataChanged.Unregister();
 	m_pObjectData = NULL;
 	m_pCurNode = pNode;
 	m_pCurNodeItem = pCurNodeItem;
@@ -1125,13 +1259,35 @@ void CPrefabEditor::SelectNode( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 		m_pNodeData = pNodeData;
 
 		if( m_pCurNode->GetClassData() )
+		{
 			m_pObjectData = CObjectDataEditMgr::Inst().Create( m_pNodeView, NULL, m_pCurNode->GetObjData(), m_pCurNode->GetClassData() );
+			if( m_pObjectData )
+				m_pObjectData->Register( &m_onNodeObjDataChanged );
+		}
+
+		bool bInst = pNode->IsInstance();
+		m_pZOrder->SetEnabled( !bInst );
+		m_pNodeName->SetEnabled( !bInst );
 	}
+
+	if( pItem0 )
+	{
+		for( auto p = pItem0->pParent; p; p = p->pParent )
+			static_cast<CPrefabNodeTreeFolder*>( p->pElement.GetPtr() )->m_pNode->OnEditorActive( false );
+	}
+	if( pCurNodeItem )
+	{
+		for( auto p = pCurNodeItem->pParent; p; p = p->pParent )
+			static_cast<CPrefabNodeTreeFolder*>( p->pElement.GetPtr() )->m_pNode->OnEditorActive( true );
+	}
+
 	RefreshGizmo();
 }
 
 void CPrefabEditor::MoveNodeUp( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
+	if( m_pCurNode->IsInstance() )
+		return;
 	auto pPrevItem = m_pSceneView->MoveUp( pCurNodeItem );
 	if( !pPrevItem )
 		return;
@@ -1142,6 +1298,8 @@ void CPrefabEditor::MoveNodeUp( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 
 void CPrefabEditor::MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
+	if( m_pCurNode->IsInstance() )
+		return;
 	auto pNextItem = m_pSceneView->MoveDown( pCurNodeItem );
 	if( !pNextItem )
 		return;
@@ -1152,6 +1310,8 @@ void CPrefabEditor::MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewCont
 
 void CPrefabEditor::MoveNodeLeft( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
+	if( m_pCurNode->IsInstance() )
+		return;
 	if( !pCurNodeItem->pParent || !pCurNodeItem->pParent->pParent )
 		return;
 	auto pParent = m_pSceneView->MoveLeft( pCurNodeItem );
@@ -1166,6 +1326,8 @@ void CPrefabEditor::MoveNodeLeft( CPrefabNode* pNode, CUITreeView::CTreeViewCont
 
 void CPrefabEditor::MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
+	if( m_pCurNode->IsInstance() )
+		return;
 	auto pParent = m_pSceneView->MoveRight( pCurNodeItem );
 	if( !pParent )
 		return;
@@ -1177,6 +1339,8 @@ void CPrefabEditor::MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewCon
 
 void CPrefabEditor::OnCurNodeNameChanged()
 {
+	if( m_pCurNode->IsInstance() )
+		return;
 	m_pCurNode->m_strName = UnicodeToUtf8( m_pNodeName->GetText() ).c_str();
 	m_pCurNodeItem->pElement->GetChildByName<CUIButton>( "label" )->SetText( m_pCurNode->m_strName.c_str() );
 }
@@ -1203,10 +1367,17 @@ void CPrefabEditor::OnCurNodeResourceChanged()
 	}
 
 	m_pNodeData = NULL;
+	if( m_pCurNode->GetResource() == pResource )
+		return;
+	if( m_pCurNode->GetPatchedNode() )
+		DestroyPatchNode( m_pCurNode, m_pCurNodeItem );
+
 	if( !m_pCurNode->SetResource( pResource ) )
 	{
 		CResource* pResource = m_pCurNode->GetResource();
 		m_pResFileName->SetText( pResource ? pResource->GetName() : "" );
+		if( m_pCurNode->GetPatchedNode() )
+			CreatePatchNode( m_pCurNode, m_pCurNodeItem );
 		return;
 	}
 
@@ -1233,15 +1404,31 @@ void CPrefabEditor::OnCurNodeResourceChanged()
 		}
 	}
 	m_pNodeData = pNodeData;
+	if( m_pCurNode->GetPatchedNode() )
+		CreatePatchNode( m_pCurNode, m_pCurNodeItem );
 }
 
 void CPrefabEditor::OnCurNodeClassChanged()
 {
 	m_pObjectData = NULL;
+	if( m_onNodeObjDataChanged.IsRegistered() )
+		m_onNodeObjDataChanged.Unregister();
 	auto pData = (SClassMetaData*)m_pNodeClass->GetSelectedItem()->pData;
 	m_pCurNode->SetClassName( pData ? pData->strClassName.c_str() : NULL );
 	if( m_pCurNode->GetClassData() )
+	{
 		m_pObjectData = CObjectDataEditMgr::Inst().Create( m_pNodeView, NULL, m_pCurNode->GetObjData(), m_pCurNode->GetClassData() );
+		if( m_pObjectData )
+			m_pObjectData->Register( &m_onNodeObjDataChanged );
+	}
+}
+
+void CPrefabEditor::OnCurNodeObjDataChanged( int32 nAction )
+{
+	if( nAction != 1 )
+		return;
+	if( m_pCurNode->GetClassData() )
+		m_pCurNode->OnEdit();
 }
 
 void CPrefabEditor::RefreshGizmo()
@@ -1382,6 +1569,19 @@ void CPrefabEditor::OnViewportStopDrag( SUIMouseEvent* pEvent )
 		RefreshGizmo();
 }
 
+void CPrefabEditor::OnViewportKey( SUIKeyEvent* pEvent )
+{
+	if( pEvent->bKeyDown )
+	{
+		if( pEvent->nChar == VK_F1 )
+			m_nNodeDebugDrawType = 0;
+		else if( pEvent->nChar == VK_F2 )
+			m_nNodeDebugDrawType = 1;
+		else if( pEvent->nChar == VK_F3 )
+			m_nNodeDebugDrawType = 2;
+	}
+}
+
 void CPrefabEditor::OnViewportChar( uint32 nChar )
 {
 	if( m_pNodeData )
@@ -1408,4 +1608,39 @@ void CPrefabEditor::RefreshCurNodeTransformByGizmo()
 	
 	CVector4 vec = CVector4( m_pCurNode->x, m_pCurNode->y, m_pCurNode->r / PI * 180, m_pCurNode->s );
 	m_pTransform->SetFloats( &vec.x );
+}
+
+void CPrefabEditor::CreatePatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
+{
+	auto pPatchedNode = pNode->GetPatchedNode();
+	auto pNode1 = pNode->GetRenderObject()->NextRenderChild();
+	if( !pNode1 )
+	{
+		RefreshSceneView( pPatchedNode, pCurNodeItem, 1 );
+		return;
+	}
+	for( auto pChild = pCurNodeItem->NextContent(); pChild != pCurNodeItem->pTail; pChild = pChild->NextContent() )
+	{
+		auto pChildNode = static_cast<CPrefabNodeTreeFolder*>( pChild->pElement.GetPtr() )->m_pNode;
+		if( pChildNode == pNode1 )
+		{
+			RefreshSceneView( pPatchedNode, static_cast<CUITreeView::CTreeViewContent*>( pChild ), 2 );
+			return;
+		}
+	}
+}
+
+void CPrefabEditor::DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
+{
+	if( !pCurNodeItem->pTail )
+		return;
+	auto pPatchedNode = pNode->GetPatchedNode();
+	for( auto pChild = pCurNodeItem->NextContent(); pChild != pCurNodeItem->pTail; pChild = pChild->NextContent() )
+	{
+		if( static_cast<CPrefabNodeTreeFolder*>( pChild->pElement.GetPtr() )->m_pNode == pPatchedNode )
+		{
+			m_pSceneView->RemoveContentTree( pChild );
+			break;
+		}
+	}
 }

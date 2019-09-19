@@ -19,6 +19,7 @@ struct SBlockBaseInfo
 	EBlockType eBlockType;
 	uint8 nTag;
 	uint8 bImmuneToBlockBuff;
+	uint8 nRail;
 	float fDmgPercent;
 };
 
@@ -33,7 +34,7 @@ struct SBlockLayer
 
 struct SBlock
 {
-	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 ), bImmuneToBlockBuff( 0 )
+	SBlock() : eBlockType( eBlockType_Wall ), nTag( 0 ), fDmgPercent( 1 ), pOwner( NULL ), nX( 0 ), nY( 0 ), nUpperMargin( 0 ), nLowerMargin( 0 ), rtTexRect( 0, 0, 0, 0 ), nRail( 0 ), bImmuneToBlockBuff( 0 )
 	{ layers[0].pParent = layers[1].pParent = this; layers[0].fAppliedWeight = layers[1].fAppliedWeight = 0; }
 	struct SChunk* pOwner;
 	float fDmgPercent;
@@ -43,6 +44,7 @@ struct SBlock
 	uint8 nUpperMargin, nLowerMargin;
 	uint8 nAttachType;
 
+	uint8 nRail : 4;
 	uint8 bImmuneToBlockBuff : 1;
 
 	CReference<CEntity> pEntity;
@@ -358,6 +360,7 @@ protected:
 	int32 m_nMaxHp;
 	float m_nCrushCost;
 	CVector2 m_surfaceVel;
+	CReference<CEntity> m_pTempBlock;
 
 	CVector2 m_hitShakeVector;
 	int32 m_nHitShakeFrame;

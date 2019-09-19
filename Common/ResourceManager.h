@@ -79,6 +79,11 @@ public:
 		m_pRef = rhs.m_pRef;
 		return *this;
 	}
+	TResourceRef<T>& operator = ( T* rhs )
+	{
+		m_pRef = rhs;
+		return *this;
+	}
 
 	T& operator * () const {
 		return *m_pRef.GetPtr();

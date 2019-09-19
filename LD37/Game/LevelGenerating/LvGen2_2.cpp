@@ -2653,7 +2653,7 @@ void CLevelGenNode2_2_1::GenChunks()
 			r = PutRect( m_gendata, nWidth, nHeight, r, r.GetSize(), TVector2<int32>( nWidth, 3 ), TRectangle<int32>( 0, 0, nWidth, nHeight ), -1, eType_Billboard, 0 );
 			vecTempBillboard.push_back( r );
 		}
-		AddChunk( TRectangle<int32>( rect.x, rect.y + 3, rect.width, 6 ), eType_Temp1, NULL );
+		AddChunk( TRectangle<int32>( rect.x, rect.y + 3, rect.width, rect.height - 6 ), eType_Temp1, NULL );
 	}
 	for( auto& i : m_gendata )
 	{

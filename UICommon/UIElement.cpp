@@ -393,6 +393,15 @@ void CUIElement::OnSetFocused( bool bFocused )
 	m_events.Trigger( eEvent_SetFocused, (void*)bFocused );
 }
 
+void CUIElement::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
+{
+	SUIKeyEvent keyEvent = { nChar, bKeyDown, bAltDown };
+	m_events.Trigger( eEvent_Key, (void*)&keyEvent );
+	CUIElement* pParent = dynamic_cast<CUIElement*>( GetParent() );
+	if( pParent && pParent != m_pMgr )
+		pParent->OnKey( nChar, bKeyDown, bAltDown );
+}
+
 void CUIElement::OnChar( uint32 nChar )
 {
 	m_events.Trigger( eEvent_Char, (void*)nChar );

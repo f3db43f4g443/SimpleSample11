@@ -93,7 +93,7 @@ enum EStencilOp
 class IDepthStencilState
 {
 public:
-	template<bool DepthWrite = true, uint32 DepthFunc = EComparisonAlways,
+	template<bool DepthWrite = false, uint32 DepthFunc = EComparisonAlways,
 		uint32 StencilFailFront = EStencilOpKeep, uint32 DepthFailFront = EStencilOpKeep, uint32 PassFront = EStencilOpKeep, uint32 FuncFront = EComparisonAlways,
 		uint32 StencilFailBack = EStencilOpKeep, uint32 DepthFailBack = EStencilOpKeep, uint32 PassBack = EStencilOpKeep, uint32 FuncBack = EComparisonAlways,
 		uint8 ReadMask = 0xff, uint8 WriteMask = 0xff>

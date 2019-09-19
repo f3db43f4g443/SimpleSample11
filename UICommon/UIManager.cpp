@@ -76,6 +76,12 @@ CUIElement* CUIManager::HandleMouseMove( const CVector2& mousePos )
 	return pElement;
 }
 
+void CUIManager::HandleKey( uint32 nChar, bool bKeyDown, bool bAltDown )
+{
+	if( m_pFocus )
+		m_pFocus->OnKey( nChar, bKeyDown, bAltDown );
+}
+
 void CUIManager::HandleChar( uint32 nChar )
 {
 	if( m_pFocus )

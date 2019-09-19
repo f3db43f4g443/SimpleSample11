@@ -73,16 +73,21 @@ protected:
 	virtual void OnViewportStartDrag( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportDragged( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportStopDrag( SUIMouseEvent* pEvent ) override;
+	virtual void OnViewportKey( SUIKeyEvent* pEvent ) override;
 	virtual void OnViewportChar( uint32 nChar ) override;
 private:
 	void OnCurNodeNameChanged();
 	void OnCurNodeResourceChanged();
 	void OnCurNodeClassChanged();
+	void OnCurNodeObjDataChanged( int32 nAction );
 	void OnTransformChanged();
 	void OnZOrderChanged();
-	void RefreshSceneView( CPrefabNode* pParNode, CUITreeView::CTreeViewContent* pParNodeItem );
+	void RefreshSceneView( CPrefabNode* pParNode, CUITreeView::CTreeViewContent* pParNodeItem, int8 nInsertType = 0 );
 	void RefreshGizmo();
 	void RefreshCurNodeTransformByGizmo();
+
+	void CreatePatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
+	void DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 
 	CReference<CUITreeView> m_pSceneView;
 	CReference<CUITreeView> m_pNodeView;
@@ -104,6 +109,7 @@ private:
 
 	CReference<CPrefabNode> m_pClipBoard;
 
+	uint8 m_nNodeDebugDrawType;
 	uint8 m_nDragType;
 	CVector2 m_gizmoOrigPos;
 	CTransform2D m_origTransform;
@@ -111,6 +117,7 @@ private:
 	TClassTrigger<CPrefabEditor> m_onNodeNameChanged;
 	TClassTrigger<CPrefabEditor> m_onNodeResourceChanged;
 	TClassTrigger<CPrefabEditor> m_onNodeClassChanged;
+	TClassTrigger1<CPrefabEditor, int32> m_onNodeObjDataChanged;
 	TClassTrigger<CPrefabEditor> m_onTransformChanged;
 	TClassTrigger<CPrefabEditor> m_onZOrderChanged;
 	TClassTrigger<CPrefabEditor> m_onNew;
