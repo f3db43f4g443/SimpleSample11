@@ -1,0 +1,34 @@
+#include "stdafx.h"
+#include "Material.h"
+
+void Game_ShaderImplement_Dummy_PostEffects();
+void Game_ShaderImplement_Dummy()
+{
+	Engine_ShaderImplement_Dummy();
+	Game_ShaderImplement_Dummy_PostEffects();
+}
+
+IMPLEMENT_MATERIAL_SHADER( PSActionEffect, "Shader/Effect.shader", "PSActionEffect", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSTextureInstDataClip, "Shader/Effect.shader", "PSTextureInstDataClip", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveColor, "Shader/Effect.shader", "PSParticleDissolveColor", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveOcc, "Shader/Effect.shader", "PSParticleDissolveOcc", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticle1, "Shader/Particle1.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticle1, "Shader/Particle1.shader", "PSParticle", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleSpark, "Shader/ParticleSpark.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleSplash, "Shader/ParticleSplash.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleSplashColor, "Shader/ParticleSplash.shader", "PSColor", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSParticleSplashOcclusion, "Shader/ParticleSplash.shader", "PSOcclusion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook, "Shader/ParticleFlipbook.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1, "Shader/ParticleFlipbook1.shader", "VSParticle", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1InstData, "Shader/ParticleFlipbook1.shader", "VSParticleInstData", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel, "Shader/ParticleFlipbook1.shader", "VSParticle1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook1TanVel1, "Shader/ParticleFlipbook1.shader", "VSParticle1_1", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2T, "Shader/ParticleFlipbook1.shader", "VSParticle2", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( VSParticleFlipbook2TL, "Shader/ParticleFlipbook1.shader", "VSParticle2L", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER( GSWrapTex, "Shader/GSWrapTex.shader", "GSMain", "gs_5_0" );
+
+IMPLEMENT_MATERIAL_SHADER( PSWater, "Shader/Water.shader", "PSWater", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSWaterOneColor, "Shader/Water.shader", "PSWaterOneColor", "ps_5_0" );

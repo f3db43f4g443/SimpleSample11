@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="MyGame.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Physics\HitProxy.cpp">
+      <Filter>Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage.cpp" />
+    <ClCompile Include="PostEffects.cpp" />
+    <ClCompile Include="MaterialShadersImplement.cpp" />
+    <ClCompile Include="Entities\EffectObject.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\HitProxyData.cpp">
+      <Filter>Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="World.cpp" />
+    <ClCompile Include="MyLevel.cpp" />
+    <ClCompile Include="GameUtil.cpp" />
+    <ClCompile Include="GlobalCfg.cpp" />
+    <ClCompile Include="GameState.cpp" />
+    <ClCompile Include="GUI\StageDirector.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicElems.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Entity.h" />
+    <ClInclude Include="MyGame.h" />
+    <ClInclude Include="Stage.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Physics\HitProxy.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute.h" />
+    <ClInclude Include="PostEffects.h" />
+    <ClInclude Include="Entities\EffectObject.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\HitProxyData.h">
+      <Filter>Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h" />
+    <ClInclude Include="MyLevel.h" />
+    <ClInclude Include="GameUtil.h" />
+    <ClInclude Include="GlobalCfg.h" />
+    <ClInclude Include="GameState.h" />
+    <ClInclude Include="GUI\StageDirector.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="BasicElems.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shader\PostProcessInvertColor.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\PostProcessDizzyEffect.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Particle.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\ParticleSplash.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\GSWrapTex.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Particle1.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\ParticleCommon.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Water.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Effect.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\ParticleSpark.shader">
+      <Filter>Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Physics">
+      <UniqueIdentifier>{948dc633-ac2e-4afe-9364-defef03b8aab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entities">
+      <UniqueIdentifier>{0a20b1f4-c145-4f04-b042-df06e5790045}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{9381e806-c5a7-4fb0-ba65-4d67eb151b83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{54c7e55b-91d6-4d04-bbab-0c93ceb2318d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{473e2210-87f4-49ee-b6e3-21bc91dfa7f5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
