@@ -95,6 +95,33 @@ void CRenderObject2D::AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* p
 	pNode->SetTransformDirty();
 }
 
+void CRenderObject2D::SortChildrenRenderOrder( function<bool( CRenderObject2D*, CRenderObject2D* )> Func )
+{
+	static vector<CRenderObject2D*> vec;
+	while( Get_RenderChild() )
+	{
+		auto p = Get_RenderChild();
+		p->AddRef();
+		p->m_nZOrder = 0;
+		p->RemoveFrom_RenderChild();
+		vec.push_back( p );
+	}
+
+	for( int i = 1; i < vec.size(); i++ )
+	{
+		for( int j = i - 1; j >= 0; j-- )
+		{
+			if( !Func( vec[j + 1], vec[j] ) )
+				break;
+			swap( vec[j + 1], vec[j] );
+		}
+	}
+
+	for( int i = vec.size() - 1; i >= 0; i-- )
+		Insert_RenderChild( vec[i] );
+	vec.resize( 0 );
+}
+
 void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
 {
 	pNode->m_pTransformParent = this;

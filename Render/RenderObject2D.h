@@ -7,7 +7,7 @@
 
 class CAnimationSet;
 class CAnimationController;
-class CRenderObject2D : public CBaseObject, public CReferenceObject
+class CRenderObject2D : public CBaseObject
 {
 	friend class CScene2DManager;
 	friend class CRenderContext2D;
@@ -25,6 +25,8 @@ public:
 	void AddChild( CRenderObject2D* pNode );
 	void AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter );
 	void AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore );
+
+	void SortChildrenRenderOrder( function<bool( CRenderObject2D*, CRenderObject2D* )> Func );
 private:
 	void AddTransformChild( CRenderObject2D* pNode );
 	void AddRenderChild( CRenderObject2D* pNode );

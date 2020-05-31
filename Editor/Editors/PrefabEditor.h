@@ -5,13 +5,27 @@
 #include "UIComponentUtil.h"
 #include "ObjectDataEdit.h"
 
+
+class CDragDropObjRef : public CUILabel
+{
+public:
+	static CDragDropObjRef* Create( class CPrefabNode* pNode );
+	CPrefabNode* GetNode() { return m_pNode; }
+private:
+	CReference<CPrefabNode> m_pNode;
+};
+
 class CPrefabEditor : public TResourceEditor<CPrefab>
 {
 	typedef TResourceEditor<CPrefab> Super;
+	friend class CPrefabListItem;
 	friend class CPrefabNodeTreeFolder;
 public:
+	CPrefabEditor() : m_strSelectedPrefab( "" ) {}
 	virtual void NewFile( const char* szFileName ) override;
 	virtual void Refresh() override;
+	CPrefabNode* GetPrefabNode() { return m_pSelectedPrefab; }
+	CPrefabNode* GetRootNode( const char* szName = "" );
 
 	class CNodeData : public CReferenceObject
 	{
@@ -61,9 +75,15 @@ protected:
 	void NewNode();
 	void DeleteNode();
 	void SelectNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
+	void SelectItem( const char* szItem );
 
 	void Copy();
 	void Paste();
+
+	void NewItem();
+	void CloneItem();
+	void RenameItem();
+	void DeleteItem();
 
 	void MoveNodeUp( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 	void MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
@@ -73,6 +93,7 @@ protected:
 	virtual void OnViewportStartDrag( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportDragged( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportStopDrag( SUIMouseEvent* pEvent ) override;
+	virtual void OnViewportDrop( const CVector2& mousePos, CUIElement* pParam ) override;
 	virtual void OnViewportKey( SUIKeyEvent* pEvent ) override;
 	virtual void OnViewportChar( uint32 nChar ) override;
 private:
@@ -82,6 +103,7 @@ private:
 	void OnCurNodeObjDataChanged( int32 nAction );
 	void OnTransformChanged();
 	void OnZOrderChanged();
+	void RefreshItemView();
 	void RefreshSceneView( CPrefabNode* pParNode, CUITreeView::CTreeViewContent* pParNodeItem, int8 nInsertType = 0 );
 	void RefreshGizmo();
 	void RefreshCurNodeTransformByGizmo();
@@ -90,8 +112,13 @@ private:
 	void DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 
 	CReference<CUITreeView> m_pSceneView;
+	CReference<CUIScrollView> m_pItemView;
 	CReference<CUITreeView> m_pNodeView;
-	CReference<CPrefabNode> m_pClonedPrefab;
+	CString m_strSelectedPrefab;
+	CReference<CPrefabNode> m_pSelectedPrefab;
+	map<CString, CReference<CPrefabNode> > m_mapClonedPrefabs;
+	CReference<CUITextBox> m_pItemName;
+
 	CReference<CPrefabNode> m_pCurNode;
 	CReference<CUITreeView::CTreeViewContent> m_pCurNodeItem;
 	CReference<CRenderObject2D> m_pGizmo;
@@ -125,4 +152,8 @@ private:
 	TClassTrigger<CPrefabEditor> m_onCopy;
 	TClassTrigger<CPrefabEditor> m_onPaste;
 	TClassTrigger<CPrefabEditor> m_onSave;
+	TClassTrigger<CPrefabEditor> m_onNewItem;
+	TClassTrigger<CPrefabEditor> m_onCloneItem;
+	TClassTrigger<CPrefabEditor> m_onRenameItem;
+	TClassTrigger<CPrefabEditor> m_onDeleteItem;
 };

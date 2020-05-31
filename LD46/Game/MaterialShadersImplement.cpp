@@ -12,6 +12,8 @@ IMPLEMENT_MATERIAL_SHADER( PSActionEffect, "Shader/Effect.shader", "PSActionEffe
 IMPLEMENT_MATERIAL_SHADER( PSTextureInstDataClip, "Shader/Effect.shader", "PSTextureInstDataClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveColor, "Shader/Effect.shader", "PSParticleDissolveColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSParticleDissolveOcc, "Shader/Effect.shader", "PSParticleDissolveOcc", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDistortion, "Shader/Distortion.shader", "PSDistortion", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDistortionMasked, "Shader/Distortion.shader", "PSDistortionMasked", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );

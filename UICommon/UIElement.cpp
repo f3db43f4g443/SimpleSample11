@@ -5,6 +5,8 @@
 
 CUIElement* CUIElement::MouseDown( const CVector2& mousePos )
 {
+	if( this == GetMgr()->GetDragDropObject() )
+		return NULL;
 	CUIElement* pElement = NULL;
 	if( globalClip.Contains( mousePos ) )
 	{
@@ -33,6 +35,8 @@ CUIElement* CUIElement::MouseDown( const CVector2& mousePos )
 
 CUIElement* CUIElement::MouseUp( const CVector2& mousePos )
 {
+	if( this == GetMgr()->GetDragDropObject() )
+		return NULL;
 	CUIElement* pElement = NULL;
 	if( globalClip.Contains( mousePos ) )
 	{
@@ -61,6 +65,8 @@ CUIElement* CUIElement::MouseUp( const CVector2& mousePos )
 
 CUIElement* CUIElement::MouseMove( const CVector2& mousePos )
 {
+	if( this == GetMgr()->GetDragDropObject() )
+		return NULL;
 	CUIElement* pElement = NULL;
 	if( globalClip.Contains( mousePos ) )
 	{

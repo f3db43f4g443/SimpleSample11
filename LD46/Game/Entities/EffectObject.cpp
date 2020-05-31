@@ -14,7 +14,7 @@ CEffectObject::CEffectObject( const SClassCreateContext& context )
 
 void CEffectObject::OnAddedToStage()
 {
-	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
+	GetStage()->RegisterTick( 1, &m_tickBeforeHitTest );
 	/*m_pStates[0] = GetChildByName<CEntity>( "birth" );
 	m_pStates[1] = GetChildByName<CEntity>( "stand" );
 	m_pStates[2] = GetChildByName<CEntity>( "death" );*/
@@ -53,7 +53,7 @@ void CEffectObject::OnTickBeforeHitTest()
 	UpdateAnim( fElapsedTime );
 	if( m_pStates[m_nState] )
 		m_pStates[m_nState]->UpdateAnim( fElapsedTime );
-	GetStage()->RegisterBeforeHitTest( 1, &m_tickBeforeHitTest );
+	GetStage()->RegisterTick( 1, &m_tickBeforeHitTest );
 }
 
 void CEffectObject::SetState( uint8 nState )

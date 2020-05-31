@@ -12,7 +12,7 @@ CUIMgrGameState::CUIMgrGameState()
 {
 	CUIManager* pUIManager = new CUIManager;
 	m_pUIMgr = pUIManager;
-	pUIManager->Resize( CRectangle( 0, 0, 1280, 720 ) );
+	pUIManager->Resize( CRectangle( 0, 0, 1152, 720 ) );
 	CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( pUIManager );
 }
 

@@ -97,8 +97,8 @@ void CAIObject::OnResumeRet( uint32 nRet )
 		OnRemovedFromStage();
 		return;
 	}
-
-	if( nRet == 0 )
+	ASSERT( m_pCoroutine && m_pCoroutine->GetState() != ICoroutine::eState_Running );
+	if( m_pCoroutine->GetState() == ICoroutine::eState_Pending && nRet == 0 )
 	{
 		if( m_bAfterHitTest )
 			GetStage()->RegisterAfterHitTest( 1, &m_onTick );

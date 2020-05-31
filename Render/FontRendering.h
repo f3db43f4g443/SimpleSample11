@@ -38,13 +38,14 @@ public:
 	void SetRect( const CRectangle& rect );
 	void SetMultiLine( bool bMultiLine ) { m_bMultiLine = bMultiLine; }
 	void SetAlignment( uint8 nAlignment );
+	void SetAutoLine( bool bAutoLine );
 	const CRectangle& GetGlobalClip() { return m_globalClip; }
 	void SetGlobalClip( bool bClip, const CRectangle& rect ) { m_bGlobalClipValid = bClip; m_globalClip = rect; }
 
-	TVector2<uint32> GetCursorPosByLocalPos( const CVector2& localPos );
+	TVector2<int32> GetCursorPosByLocalPos( const CVector2& localPos );
 	CRectangle GetCursorShowRect();
-	uint32 GetSelectRectCount();
-	CRectangle GetSelectRect( uint32 nIndex );
+	int32 GetSelectRectCount();
+	CRectangle GetSelectRect( int32 nIndex );
 
 	void SetText( const wchar_t* szText, int32 nCursorIndex = 0 );
 	void BeginEdit( const CVector2& localPos );
@@ -60,23 +61,24 @@ public:
 	void SetColor( const CVector4& color ) { m_color = color; }
 	void SetSelectionColor( const CVector4& color ) { m_selectionColor = color; }
 
-	uint32 GetLineBeginIndex( uint32 nLine ) { return nLine ? m_vecLineBeginIndex[nLine - 1] : 0; }
-	uint32 GetLineCount() { return m_vecLineBeginIndex.size() - 1; }
+	int32 GetLineBeginIndex( int32 nLine ) { return nLine ? m_vecLineBeginIndex[nLine - 1] : 0; }
+	int32 GetLineCount() { return m_vecLineBeginIndex.size() - 1; }
 
 	CFontObject* Clone();
 
 	virtual void Render( CRenderContext2D& context ) override;
 private:
-	void SetCursor( uint32 nIndex );
+	void SetCursor( int32 nIndex );
 
 	wstring m_strText;
 	uint8 m_nAlignment;
 	bool m_bInvertY;
 	bool m_bEditMode;
 	bool m_bMultiLine;
+	bool m_bAutoLine;
 	CVector2 m_editOfs;
-	TVector2<uint32> m_cursorPos;
-	TVector2<uint32> m_selectPos;
+	TVector2<int32> m_cursorPos;
+	TVector2<int32> m_selectPos;
 
 	CVector4 m_color;
 	CVector4 m_selectionColor;
@@ -86,7 +88,7 @@ private:
 
 	CElement2D m_element2D;
 	vector<SCharacterRenderInfo> m_characters;
-	vector<uint32> m_vecLineBeginIndex;
+	vector<int32> m_vecLineBeginIndex;
 
 	CReference<CFontFile> m_pFontFile;
 	CFont* m_pFont;

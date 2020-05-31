@@ -18,13 +18,23 @@
     </ClCompile>
     <ClCompile Include="World.cpp" />
     <ClCompile Include="MyLevel.cpp" />
-    <ClCompile Include="GameUtil.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
     <ClCompile Include="BasicElems.cpp" />
+    <ClCompile Include="Entities\MiscElem.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="Entities\UtilEntities.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="ScriptUtil.cpp" />
+    <ClCompile Include="Entities\PawnAI.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -44,13 +54,22 @@
     </ClInclude>
     <ClInclude Include="World.h" />
     <ClInclude Include="MyLevel.h" />
-    <ClInclude Include="GameUtil.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GameState.h" />
     <ClInclude Include="GUI\StageDirector.h">
       <Filter>GUI</Filter>
     </ClInclude>
     <ClInclude Include="BasicElems.h" />
+    <ClInclude Include="Entities\MiscElem.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\UtilEntities.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\PawnAI.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\PostProcessInvertColor.shader">
@@ -83,6 +102,9 @@
     <None Include="..\Shader\ParticleSpark.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="..\Shader\Distortion.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Physics">
@@ -96,9 +118,6 @@
     </Filter>
     <Filter Include="Shader">
       <UniqueIdentifier>{54c7e55b-91d6-4d04-bbab-0c93ceb2318d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Utils">
-      <UniqueIdentifier>{473e2210-87f4-49ee-b6e3-21bc91dfa7f5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

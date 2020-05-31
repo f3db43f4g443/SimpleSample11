@@ -6,10 +6,10 @@
 #include "Image2D.h"
 #include "Rope2D.h"
 
-CRenderObject2D* CDrawableGroup::CreateInstance()
+CRenderObject2D* CDrawableGroup::CreateInstance( bool bForceCreateStatic )
 {
 	bool bGUI = m_guiDrawable.pDrawable != NULL;
-	if( m_nType == eType_Default )
+	if( bForceCreateStatic || m_nType == eType_Default )
 	{
 		CImage2D* pImage2D = new CImage2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
 			bGUI ? NULL : m_occlusionDrawable.pDrawable, m_defaultRect, m_defaultTexRect, bGUI );

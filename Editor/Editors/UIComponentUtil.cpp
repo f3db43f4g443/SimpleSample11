@@ -153,6 +153,57 @@ void CVectorEdit::OnEdit()
 	m_events.Trigger( eEvent_Action, NULL );
 }
 
+CTextEdit* CTextEdit::Create( const char* szName )
+{
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/textedit.xml" );
+	auto pElem = new CTextEdit;
+	g_pRes->GetElement()->Clone( pElem );
+	pElem->GetChildByName<CUILabel>( "label" )->SetText( szName );
+	return pElem;
+}
+
+void CTextEdit::OnInited()
+{
+	m_onEditOK.Set( this, &CTextEdit::OnEditOK );
+}
+
+void CTextEdit::OnClick( const CVector2& mousePos )
+{
+	CTextEditDialog::Inst()->Show( GetText(), &m_onEditOK );
+}
+
+void CTextEdit::OnEditOK( const wchar_t* sz )
+{
+	if( sz )
+		SetText( sz );
+	m_events.Trigger( CUIElement::eEvent_Action, NULL );
+}
+
+CDropTargetEdit* CDropTargetEdit::Create( const char* szName )
+{
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/droptargetedit.xml" );
+	auto pElem = new CDropTargetEdit;
+	g_pRes->GetElement()->Clone( pElem );
+	pElem->GetChildByName<CUILabel>( "label" )->SetText( szName );
+	return pElem;
+}
+
+void CDropTargetEdit::OnMouseUp( const CVector2& mousePos )
+{
+	CUILabel::OnMouseUp( mousePos );
+	auto pDragDropObj = GetMgr()->GetDragDropObject();
+	if( pDragDropObj )
+		m_events.Trigger( eEvent_Action, pDragDropObj );
+}
+
+void CDropTargetEdit::OnInited()
+{
+	m_onClear.Set( this, &CDropTargetEdit::OnClear );
+	auto pBtn = GetChildByName<CUIButton>( "clear" );
+	if( pBtn )
+		pBtn->Register( eEvent_Action, &m_onClear );
+}
+
 CFileNameEdit* CFileNameEdit::Create( const char* szName, const char* szExt )
 {
 	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/filenameedit.xml" );
@@ -374,6 +425,51 @@ CDropDownBox* CDropDownBox::CreateShaderSelectBox( const char* szName, uint8 nTy
 
 	return Create( szName, &items[nType][0], items[nType].size() );
 }
+
+void CTextEditDialog::Show( const wchar_t* sz, CTrigger* pOnOK )
+{
+	m_pOnOK = pOnOK;
+	SetText( sz );
+	GetMgr()->DoModal( this );
+}
+
+CTextEditDialog* CTextEditDialog::Inst()
+{
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/texteditdialog.xml" );
+	static CTextEditDialog* g_pInst = NULL;
+	if( !g_pInst )
+	{
+		g_pInst = new CTextEditDialog;
+		g_pRes->GetElement()->Clone( g_pInst );
+		g_pInst->SetZOrder( 1 );
+		CEditor::Inst().GetUIMgr()->AddChild( g_pInst );
+	}
+	return g_pInst;
+}
+
+void CTextEditDialog::OnInited()
+{
+	CUITextBox::OnInited();
+	SetVisible( false );
+	m_pOnOK = NULL;
+	m_onOk.Set( this, &CTextEditDialog::OnOk );
+	m_onCancel.Set( this, &CTextEditDialog::OnCancel );
+	GetChildByName( "btn_ok" )->Register( eEvent_Action, &m_onOk );
+	GetChildByName( "btn_cancel" )->Register( eEvent_Action, &m_onCancel );
+}
+
+void CTextEditDialog::OnOk()
+{
+	GetMgr()->EndModal();
+	m_pOnOK->Run( (void*)GetText() );
+}
+
+void CTextEditDialog::OnCancel()
+{
+	GetMgr()->EndModal();
+	m_pOnOK->Run( NULL );
+}
+
 CFileSelectDialog* CFileSelectDialog::Inst()
 {
 	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/fileselectdialog.xml" );

@@ -12,12 +12,13 @@ CFixedSizeAllocator::CFixedSizeAllocator( uint32 nSize, uint32 nChunkSize ) : m_
 
 void* CFixedSizeAllocator::Alloc()
 {
+	void* p = NULL;
 	if( m_pFreedBlocks )
 	{
 		SBlock* pBlock = m_pFreedBlocks;
 		m_pFreedBlocks = m_pFreedBlocks->pNext;
 		void* pData = pBlock + 1;
-		return pData;
+		p = pData;
 	}
 	else
 	{
@@ -37,12 +38,17 @@ void* CFixedSizeAllocator::Alloc()
 		}
 		pBlock->pNext = m_pFreedBlocks;
 		m_pFreedBlocks = chunk.pBlock->pNext;
-		return chunk.pBlock + 1;
+		p = chunk.pBlock + 1;
 	}
+	if( m_pAllocFunc )
+		( *m_pAllocFunc )( p );
+	return p;
 }
 
 void CFixedSizeAllocator::Free( void* pData )
 {
+	if( m_pFreeFunc )
+		( *m_pFreeFunc )( pData );
 	SBlock* pBlock = (SBlock*)pData - 1;
 	pBlock->pNext = m_pFreedBlocks;
 	m_pFreedBlocks = pBlock;

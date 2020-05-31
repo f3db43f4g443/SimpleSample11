@@ -21,7 +21,7 @@ void SEnumMetaData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
 	}
 }
 
-void SEnumMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData )
+void SEnumMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	if( !bWithMetaData )
 		buf.Read( pObj, sizeof( uint32 ) );
@@ -49,9 +49,9 @@ bool SEnumMetaData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile & buf )
 	return true;
 }
 
-void SEnumMetaData::PatchData( uint8* pObj1, IBufReader & buf )
+void SEnumMetaData::PatchData( uint8* pObj1, IBufReader &buf, void* pContext )
 {
-	UnpackData( pObj1, buf, true );
+	UnpackData( pObj1, buf, true, pContext );
 }
 
 SClassMetaData::SMemberData& SClassMetaData::AddMemberData( const char* szName, uint32 nType, uint32 nOffset )
@@ -85,14 +85,14 @@ SClassMetaData::SMemberData& SClassMetaData::AddMemberData( const char* szName, 
 	return data;
 }
 
-SClassMetaData::SMemberData& SClassMetaData::AddMemberDataPtr( const char* szName, const char* szTypeName, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberDataObjRef( const char* szName, const char* szTypeName, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
 	SMemberData& data = vecMemberData[nIndex];
 	mapMemberDataIndex[szName] = nIndex;
 	data.strName = szName;
-	data.nType = SMemberData::eTypeClassPtr;
+	data.nType = SMemberData::eTypeObjRef;
 	data.nFlag = 0;
 	data.strTypeName = szTypeName;
 	data.pTypeData = NULL;
@@ -101,7 +101,7 @@ SClassMetaData::SMemberData& SClassMetaData::AddMemberDataPtr( const char* szNam
 	return data;
 }
 
-SClassMetaData::SMemberData& SClassMetaData::AddMemberDataTaggedPtr( const char * szName, const char * szTypeName, const char * szTag, uint32 nOffset )
+SClassMetaData::SMemberData& SClassMetaData::AddMemberDataTaggedPtr( const char* szName, const char* szTypeName, const char* szTag, uint32 nOffset )
 {
 	uint32 nIndex = vecMemberData.size();
 	vecMemberData.resize( nIndex + 1 );
@@ -109,6 +109,22 @@ SClassMetaData::SMemberData& SClassMetaData::AddMemberDataTaggedPtr( const char 
 	mapMemberDataIndex[szTag] = nIndex;
 	data.strName = szTag;
 	data.nType = SMemberData::eTypeTaggedPtr;
+	data.nFlag = 0;
+	data.strTypeName = szTypeName;
+	data.pTypeData = NULL;
+	data.pEnumData = NULL;
+	data.nOffset = nOffset;
+	return data;
+}
+
+SClassMetaData::SMemberData& SClassMetaData::AddMemberDataCustomTaggedPtr( const char* szName, const char* szTypeName, uint32 nOffset )
+{
+	uint32 nIndex = vecMemberData.size();
+	vecMemberData.resize( nIndex + 1 );
+	SMemberData& data = vecMemberData[nIndex];
+	mapMemberDataIndex[szName] = nIndex;
+	data.strName = szName;
+	data.nType = SMemberData::eTypeCustomTaggedPtr;
 	data.nFlag = 0;
 	data.strTypeName = szTypeName;
 	data.pTypeData = NULL;
@@ -158,10 +174,16 @@ uint32 SClassMetaData::SMemberData::GetDataSize()
 {
 	if( nType == eTypeTaggedPtr )
 		return 0;
-	else if( nType == eTypeClassPtr )
-		return sizeof( void* );
+	else if( nType == eTypeObjRef )
+		return sizeof( TObjRef<CReferenceObject> );
+	else if( nType == eTypeCustomTaggedPtr )
+		return sizeof( TCustomTaggedRef<CReferenceObject> );
 	else if( nType == eTypeClass )
+	{
+		if( pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() && ( nFlag & 1 ) )
+			return sizeof( TResourceRef<CResource> );
 		return pTypeData ? pTypeData->nObjSize : 0;
+	}
 	else if( nType == eTypeEnum )
 		return sizeof( int32 );
 	else
@@ -185,6 +207,14 @@ uint32 SClassMetaData::SMemberData::GetDataSize()
 	}
 }
 
+int32 SClassMetaData::SMemberData::GetArg( const char* szKey )
+{
+	auto itr = mapArgs.find( szKey );
+	if( itr == mapArgs.end() )
+		return 0;
+	return itr->second;
+}
+
 void SClassMetaData::SMemberData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
 {
 	pObj += nOffset;
@@ -203,12 +233,17 @@ void SClassMetaData::SMemberData::PackData( uint8* pObj, CBufFile& buf, bool bWi
 		if( nType == eTypeTaggedPtr )
 		{
 		}
-		else if( nType == eTypeClassPtr )
+		else if( nType == eTypeObjRef )
 		{
-			auto& pObj1 = *(uint8**)pObj;
-			buf.Write<uint8>( pObj1 ? 1 : 0 );
-			if( pTypeData && pObj1 )
-				pTypeData->PackData( pObj1, buf, bWithMetaData );
+			auto pObj1 = (TObjRef<CReferenceObject>*)pObj;
+			buf.Write( pObj1->_n );
+			if( !bWithMetaData )
+				buf.Write( pObj1->_pt );
+		}
+		else if( nType == eTypeCustomTaggedPtr )
+		{
+			auto pObj1 = ( TCustomTaggedRef<CReferenceObject>*)pObj;
+			CClassMetaDataMgr::Inst().GetClassData<CString>()->PackData( (uint8*)(CString*)pObj1, buf, bWithMetaData );
 		}
 		else if( nType == eTypeClass )
 		{
@@ -225,7 +260,7 @@ void SClassMetaData::SMemberData::PackData( uint8* pObj, CBufFile& buf, bool bWi
 	}
 }
 
-void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData )
+void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	pObj += nOffset;
 	int32 nCount = 1;
@@ -246,24 +281,29 @@ void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool
 		if( nType == eTypeTaggedPtr )
 		{
 		}
-		else if( nType == eTypeClassPtr )
+		else if( nType == eTypeObjRef )
 		{
-			auto& pObj1 = *(uint8**)pObj;
-			bool bObj = buf.Read<uint8>();
-			if( pTypeData && bObj )
-				pObj1 = pTypeData->NewObjFromData( buf, bWithMetaData );
-			else
-				pObj1 = 0;
+			auto pObj1 = ( TObjRef<CReferenceObject>* )pObj;
+			buf.Read( pObj1->_n );
+			if( !bWithMetaData )
+				buf.Read( pObj1->_pt );
+			else if( pObj1->_n )
+				pObj1->_pt = pContext;
+		}
+		else if( nType == eTypeCustomTaggedPtr )
+		{
+			auto pObj1 = ( TCustomTaggedRef<CReferenceObject>* )pObj;
+			CClassMetaDataMgr::Inst().GetClassData<CString>()->UnpackData( ( uint8* )(CString*)pObj1, buf, bWithMetaData, pContext );
 		}
 		else if( nType == eTypeClass )
 		{
 			if( pTypeData )
-				pTypeData->UnpackData( pObj, buf, bWithMetaData );
+				pTypeData->UnpackData( pObj, buf, bWithMetaData, pContext );
 		}
 		else if( nType == eTypeEnum )
 		{
 			if( pEnumData )
-				pEnumData->UnpackData( pObj, buf, bWithMetaData );
+				pEnumData->UnpackData( pObj, buf, bWithMetaData, pContext );
 		}
 		else
 			buf.Read( pObj, nDataSize );
@@ -307,12 +347,20 @@ bool SClassMetaData::SMemberData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile
 			{
 				continue;
 			}
-			else if( nType == eTypeClassPtr )
+			else if( nType == eTypeObjRef )
 			{
-				/*auto& pObj1 = *(uint8**)pObj;
-				buf.Write<uint8>( pObj1 ? 1 : 0 );
-				if( pTypeData && pObj1 )
-					pTypeData->PackData( pObj1, tempBuf, bWithMetaData );*/
+				auto p0 = ( TObjRef<CReferenceObject>* )pObj0;
+				auto p1 = ( TObjRef<CReferenceObject>* )pObj1;
+				if( p0->_pt == p1->_pt && p0->_n == p1->_n )
+					continue;
+				tempBuf.Write( p1->_n );
+			}
+			else if( nType == eTypeCustomTaggedPtr )
+			{
+				auto p0 = ( TCustomTaggedRef<CReferenceObject>* )pObj0;
+				auto p1 = ( TCustomTaggedRef<CReferenceObject>* )pObj1;
+				if( !CClassMetaDataMgr::Inst().GetClassData<CString>()->DiffData( (uint8*)(CString*)p0, ( uint8* )&(CString&)p1, tempBuf ) )
+					continue;
 			}
 			else if( nType == eTypeClass )
 			{
@@ -343,10 +391,8 @@ bool SClassMetaData::SMemberData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile
 	return bNewArray;
 }
 
-void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
+void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf, void* pContext )
 {
-	auto p1 = pObj1;
-
 	auto nDataSize = GetDataSize();
 	if( !!( nFlag & 2 ) )
 	{
@@ -356,16 +402,9 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
 		{
 			pObj1 += nOffset;
 			int32 nCount = *(uint32*)pObj1;
-			*(uint32*)pObj1 = nCount;
-			if( nCount )
-			{
-				auto pData = (uint8*)malloc( nDataSize * nCount );
-				memset( pData, 0, nDataSize * nCount );
-				*(uint8**)( pObj1 + sizeof( uint32 ) ) = pData;
-				pObj1 = pData;
-			}
+			pObj1 = *(uint8**)( pObj1 + sizeof( uint32 ) );
 
-			for( int i = 0;; i++, pObj1 += nDataSize )
+			for( int i = 0;; i++ )
 			{
 				uint32 i1 = buf.Read<uint32>();
 				if( i1 >= nCount )
@@ -374,8 +413,11 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
 				if( nType == eTypeTaggedPtr )
 				{
 				}
-				else if( nType == eTypeClassPtr )
+				else if( nType == eTypeObjRef )
 				{
+					auto p1 = ( TObjRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
+					buf.Read( p1->_n );
+					p1->_pt = pContext;
 					/*auto& pObj1 = *(uint8**)pObj;
 					bool bObj = buf.Read<uint8>();
 					if( pTypeData && bObj )
@@ -383,15 +425,20 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
 					else
 						pObj1 = 0;*/
 				}
+				else if( nType == eTypeCustomTaggedPtr )
+				{
+					auto p1 = ( TCustomTaggedRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
+					CClassMetaDataMgr::Inst().GetClassData<CString>()->PatchData( (uint8*)(CString*)p1, buf, pContext );
+				}
 				else if( nType == eTypeClass )
 				{
 					if( pTypeData )
-						pTypeData->PatchData( pObj1 + nDataSize * i1, buf );
+						pTypeData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
 				}
 				else if( nType == eTypeEnum )
 				{
 					if( pEnumData )
-						pEnumData->PatchData( pObj1 + nDataSize * i1, buf );
+						pEnumData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
 				}
 				else
 					buf.Read( pObj1 + nDataSize * i1, nDataSize );
@@ -401,11 +448,8 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
 		else
 		{
 			auto pArray = pObj1 + nOffset;
-			if( nType == SClassMetaData::SMemberData::eTypeClass )
-				pTypeData->ResizeFunc( pArray, 0 );
-			else
-				( (CRawArray*)pArray )->Resize( 0, nDataSize );
-
+			int32 nCount = *(uint32*)pArray;
+			nCount = 0;
 			auto& pObj0 = *(uint8**)( pArray + sizeof( uint32 ) );
 			if( pObj0 )
 			{
@@ -415,7 +459,7 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf )
 		}
 	}
 
-	UnpackData( pObj1, buf, true );
+	UnpackData( pObj1, buf, true, pContext );
 }
 
 void SClassMetaData::SBaseClassData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
@@ -424,10 +468,10 @@ void SClassMetaData::SBaseClassData::PackData( uint8* pObj, CBufFile& buf, bool 
 	pBaseClass->PackData( pObj, buf, bWithMetaData );
 }
 
-void SClassMetaData::SBaseClassData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData )
+void SClassMetaData::SBaseClassData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	pObj += nOffset;
-	pBaseClass->UnpackData( pObj, buf, bWithMetaData );
+	pBaseClass->UnpackData( pObj, buf, bWithMetaData, pContext );
 }
 
 bool SClassMetaData::SBaseClassData::DiffData( uint8 * pObj0, uint8 * pObj1, CBufFile & buf )
@@ -437,10 +481,10 @@ bool SClassMetaData::SBaseClassData::DiffData( uint8 * pObj0, uint8 * pObj1, CBu
 	return pBaseClass->DiffData( pObj0, pObj1, buf );
 }
 
-void SClassMetaData::SBaseClassData::PatchData( uint8* pObj1, IBufReader & buf )
+void SClassMetaData::SBaseClassData::PatchData( uint8* pObj1, IBufReader& buf, void* pContext )
 {
 	pObj1 += nOffset;
-	pBaseClass->PatchData( pObj1, buf );
+	pBaseClass->PatchData( pObj1, buf, pContext );
 }
 
 void SClassMetaData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
@@ -498,24 +542,24 @@ void SClassMetaData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
 	}
 }
 
-void SClassMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData )
+void SClassMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	if( !bWithMetaData )
 	{
 		if( !this )
 			return;
 		if( UnpackFunc )
-			UnpackFunc( pObj, buf, bWithMetaData );
+			UnpackFunc( pObj, buf, bWithMetaData, pContext );
 		for( auto& item : vecMemberData )
-			item.UnpackData( pObj, buf, bWithMetaData );
+			item.UnpackData( pObj, buf, bWithMetaData, pContext );
 		for( auto& item : vecBaseClassData )
-			item.UnpackData( pObj, buf, bWithMetaData );
+			item.UnpackData( pObj, buf, bWithMetaData, pContext );
 	}
 	else
 	{
 		CBufReader extraData( buf );
 		if( this && UnpackFunc )
-			UnpackFunc( pObj, extraData, bWithMetaData );
+			UnpackFunc( pObj, extraData, bWithMetaData, pContext );
 
 		uint32 nMemberData = buf.Read<uint32>();
 		for( int i = 0; i < nMemberData; i++ )
@@ -549,7 +593,7 @@ void SClassMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaDat
 					if( strTypeName != item.strTypeName )
 						continue;
 				}
-				item.UnpackData( pObj, tempBuf, bWithMetaData );
+				item.UnpackData( pObj, tempBuf, bWithMetaData, pContext );
 			}
 		}
 
@@ -566,7 +610,7 @@ void SClassMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaDat
 				if( itr == mapBaseClassDataIndex.end() )
 					continue;
 				auto& item = vecBaseClassData[itr->second];
-				item.UnpackData( pObj, tempBuf, bWithMetaData );
+				item.UnpackData( pObj, tempBuf, bWithMetaData, pContext );
 			}
 		}
 	}
@@ -627,11 +671,11 @@ bool SClassMetaData::DiffData( uint8 * pObj0, uint8 * pObj1, CBufFile & buf )
 	return bDiff;
 }
 
-void SClassMetaData::PatchData( uint8 * pObj1, IBufReader & buf )
+void SClassMetaData::PatchData( uint8 * pObj1, IBufReader & buf, void* pContext )
 {
 	CBufReader extraData( buf );
 	if( this && PatchFunc )
-		PatchFunc( pObj1, extraData );
+		PatchFunc( pObj1, extraData, pContext );
 
 	uint32 nMemberData = buf.Read<uint32>();
 	for( int i = 0; i < nMemberData; i++ )
@@ -665,7 +709,7 @@ void SClassMetaData::PatchData( uint8 * pObj1, IBufReader & buf )
 				if( strTypeName != item.strTypeName )
 					continue;
 			}
-			item.PatchData( pObj1, tempBuf );
+			item.PatchData( pObj1, tempBuf, pContext );
 		}
 	}
 
@@ -682,9 +726,78 @@ void SClassMetaData::PatchData( uint8 * pObj1, IBufReader & buf )
 			if( itr == mapBaseClassDataIndex.end() )
 				continue;
 			auto& item = vecBaseClassData[itr->second];
-			item.PatchData( pObj1, tempBuf );
+			item.PatchData( pObj1, tempBuf, pContext );
 		}
 	}
+}
+
+bool SClassMetaData::ConvertDataUpFrom( SClassMetaData* pFrom, uint8* pObj, CBufFile& buf )
+{
+	if( this == pFrom )
+	{
+		PackData( pObj, buf, true );
+		return true;
+	}
+
+	for( auto& item : vecBaseClassData )
+	{
+		CBufFile tempBuf;
+		if( item.pBaseClass->ConvertDataUpFrom( pFrom, pObj, tempBuf ) )
+		{
+			buf.Write( 0 );
+			buf.Write( 0 );
+			buf.Write( 1 );
+			buf.Write( item.strBaseClassName );
+			buf.Write( tempBuf );
+			return true;
+		}
+	}
+	return false;
+}
+
+bool SClassMetaData::ConvertDataDownTo( SClassMetaData* pTo, uint8* pObj, CBufFile& buf )
+{
+	if( this == pTo )
+	{
+		PackData( pObj, buf, true );
+		return true;
+	}
+	for( auto& item : vecBaseClassData )
+	{
+		if( item.pBaseClass->ConvertDataDownTo( pTo, pObj + item.nOffset, buf ) )
+			return true;
+	}
+	return false;
+}
+
+SClassMetaData* SClassMetaData::FindCommonBaseClass( SClassMetaData* pClassA, SClassMetaData* pClassB )
+{
+	function<bool( SClassMetaData* pData )> FuncMark = [] ( SClassMetaData* pData ) { pData->nTempFlag = 1; return true; };
+	pClassA->FindAllBaseClasses( FuncMark );
+	SClassMetaData* pBaseClass = NULL;
+	function<bool( SClassMetaData* pData )> FuncFind = [&pBaseClass] ( SClassMetaData* pData ) {
+		if( pData->nTempFlag == 1 )
+		{
+			pBaseClass = pData;
+			return false;
+		}
+	};
+	pClassB->FindAllBaseClasses( FuncFind );
+	function<bool( SClassMetaData* pData )> FuncCleanUp = [] ( SClassMetaData* pData ) { pData->nTempFlag = 0; return true; };
+	pClassA->FindAllBaseClasses( FuncCleanUp );
+	return pBaseClass;
+}
+
+bool SClassMetaData::FindAllBaseClasses( function<bool( SClassMetaData* pData )>& func )
+{
+	if( !func( this ) )
+		return false;
+	for( auto& item : vecBaseClassData )
+	{
+		if( !item.pBaseClass->FindAllBaseClasses( func ) )
+			return false;
+	}
+	return true;
 }
 
 void SClassMetaData::FindAllDerivedClasses( function<void( SClassMetaData* pData )>& func )
@@ -700,9 +813,9 @@ void SClassMetaData::FindAllTaggedPtr( function<void( SMemberData* pData, uint32
 {
 	for( auto& item : vecMemberData )
 	{
-		if( item.nType == SMemberData::eTypeTaggedPtr && item.pTypeData )
+		if( item.nType == SMemberData::eTypeTaggedPtr )
 		{
-			if( !pBaseClass || item.pTypeData->GetBaseClassOfs( pBaseClass ) >= 0 )
+			if( !pBaseClass || item.pTypeData && item.pTypeData->Is( pBaseClass ) )
 			{
 				func( &item, nOfs + item.nOffset );
 			}
@@ -716,7 +829,69 @@ void SClassMetaData::FindAllTaggedPtr( function<void( SMemberData* pData, uint32
 	}
 }
 
-void SClassMetaData::FindAllResPtr( function<void( SMemberData*pData, uint32 nOfs )>& func, uint32 nOfs )
+void SClassMetaData::FindAllObjRef( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData* pBaseClass, uint32 nOfs )
+{
+	for( auto& item : vecMemberData )
+	{
+		if( item.nType == SMemberData::eTypeObjRef && item.pTypeData )
+		{
+			if( !pBaseClass || item.pTypeData->Is( pBaseClass ) )
+			{
+				func( &item, nOfs + item.nOffset );
+			}
+		}
+		else if( item.nType == SMemberData::eTypeClass )
+		{
+			if( !!( item.nFlag & 2 ) )
+			{
+				func( &item, nOfs + item.nOffset );
+				item.pTypeData->FindAllObjRef( func, 0 );
+				func( NULL, nOfs + item.nOffset );
+			}
+			else
+				item.pTypeData->FindAllObjRef( func, pBaseClass, nOfs + item.nOffset );
+		}
+	}
+
+	for( auto& item : vecBaseClassData )
+	{
+		if( item.pBaseClass )
+			item.pBaseClass->FindAllObjRef( func, pBaseClass, nOfs + item.nOffset );
+	}
+}
+
+void SClassMetaData::FindAllCustomTaggedPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, SClassMetaData * pBaseClass, uint32 nOfs )
+{
+	for( auto& item : vecMemberData )
+	{
+		if( item.nType == SMemberData::eTypeCustomTaggedPtr )
+		{
+			if( !pBaseClass || item.pTypeData && item.pTypeData->Is( pBaseClass ) )
+			{
+				func( &item, nOfs + item.nOffset );
+			}
+		}
+		else if( item.nType == SMemberData::eTypeClass )
+		{
+			if( !!( item.nFlag & 2 ) )
+			{
+				func( &item, nOfs + item.nOffset );
+				item.pTypeData->FindAllCustomTaggedPtr( func, 0 );
+				func( NULL, nOfs + item.nOffset );
+			}
+			else
+				item.pTypeData->FindAllCustomTaggedPtr( func, pBaseClass, nOfs + item.nOffset );
+		}
+	}
+
+	for( auto& item : vecBaseClassData )
+	{
+		if( item.pBaseClass )
+			item.pBaseClass->FindAllCustomTaggedPtr( func, pBaseClass, nOfs + item.nOffset );
+	}
+}
+
+void SClassMetaData::FindAllResPtr( function<void( SMemberData* pData, uint32 nOfs )>& func, uint32 nOfs )
 {
 	for( auto& item : vecMemberData )
 	{
@@ -765,11 +940,7 @@ SEnumMetaData* CClassMetaDataMgr::RegisterEnum( const char* strEnumName )
 
 SClassMetaData* CClassMetaDataMgr::GetClassData( uint32 nID )
 {
-	if( !m_bInited )
-	{
-		Init();
-		m_bInited = true;
-	}
+	Init();
 	if( nID >= m_vecClasses.size() )
 		return NULL;
 	return m_vecClasses[nID];
@@ -777,11 +948,7 @@ SClassMetaData* CClassMetaDataMgr::GetClassData( uint32 nID )
 
 SClassMetaData* CClassMetaDataMgr::GetClassData( const char* strClassName )
 {
-	if( !m_bInited )
-	{
-		Init();
-		m_bInited = true;
-	}
+	Init();
 	auto itr = m_mapClasses.find( strClassName );
 	if( itr == m_mapClasses.end() )
 		return NULL;
@@ -792,6 +959,12 @@ SClassMetaData* CClassMetaDataMgr::GetClassData( const char* strClassName )
 
 void CClassMetaDataMgr::Init()
 {
+	if( m_bInited )
+		return;
+
+	REGISTER_CLASS_BEGIN( CBaseObject )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CString )
 		REGISTER_PACK_FUNC( PackData )
 		REGISTER_UNPACK_FUNC( UnpackData )
@@ -806,8 +979,8 @@ void CClassMetaDataMgr::Init()
 		auto& classData = item.second;
 		for( auto& memberData : classData.vecMemberData )
 		{
-			if( memberData.nType == SClassMetaData::SMemberData::eTypeClass || memberData.nType == SClassMetaData::SMemberData::eTypeClassPtr
-				|| memberData.nType == SClassMetaData::SMemberData::eTypeTaggedPtr )
+			if( memberData.nType == SClassMetaData::SMemberData::eTypeClass || memberData.nType == SClassMetaData::SMemberData::eTypeObjRef
+				|| memberData.nType == SClassMetaData::SMemberData::eTypeTaggedPtr || memberData.nType == SClassMetaData::SMemberData::eTypeCustomTaggedPtr )
 			{
 				auto itr = m_mapClasses.find( memberData.strTypeName );
 				if( itr != m_mapClasses.end() )
@@ -843,6 +1016,7 @@ void CClassMetaDataMgr::Init()
 		};
 		item.second.FindAllDerivedClasses( func );
 	}
+	m_bInited = true;
 }
 
 bool CObjectPrototype::SetClassName( const char* szName )
@@ -867,17 +1041,34 @@ bool CObjectPrototype::SetClassName( const char* szName )
 	if( nOfs < 0 )
 		return false;
 
+	auto pCommonBase = pData && m_pClassMetaData ? SClassMetaData::FindCommonBaseClass( m_pClassMetaData, pData ) : NULL;
+
 	CBufFile buf;
-	m_pClassMetaData->PackData( m_pObj, buf, true );
+	uint8* pObj = NULL;
+	if( !pCommonBase )
+		m_pClassMetaData->PackData( m_pObj, buf, true );
+	else if( pCommonBase == m_pClassMetaData )
+		pData->ConvertDataUpFrom( pCommonBase, m_pObj, buf );
+	else if( pCommonBase == pData )
+		m_pClassMetaData->ConvertDataDownTo( pCommonBase, m_pObj, buf );
+	else
+	{
+		m_pClassMetaData->ConvertDataDownTo( pCommonBase, m_pObj, buf );
+		pObj = pCommonBase->NewObjFromData( buf, true, NULL );
+		buf.Clear();
+		pData->ConvertDataUpFrom( pCommonBase, pObj, buf );
+		pCommonBase->DestroyFunc( pObj );
+		pObj = NULL;
+	}
+
+	if( pData )
+		pObj = pData->NewObjFromData( buf, true, NULL );
 	if( m_pClassMetaData )
 		m_pClassMetaData->DestroyFunc( m_pObj );
-	m_pObj = NULL;
-
 	m_pClassMetaData = pData;
 	m_nCastOffset = nOfs;
-	if( m_pClassMetaData )
-		m_pObj = m_pClassMetaData->NewObjFromData( buf, true );
 	m_bObjDataDirty = true;
+	m_pObj = pObj;
 	return true;
 }
 
@@ -890,7 +1081,7 @@ void CObjectPrototype::CopyData( CObjectPrototype& copyTo )
 	{
 		static CBufFile g_buf;
 		m_pClassMetaData->PackData( m_pObj, g_buf, false );
-		copyTo.m_pObj = m_pClassMetaData->NewObjFromData( g_buf, false );
+		copyTo.m_pObj = m_pClassMetaData->NewObjFromData( g_buf, false, NULL );
 		g_buf.Clear();
 	}
 	copyTo.m_bObjDataDirty = true;
@@ -901,13 +1092,13 @@ bool CObjectPrototype::DiffData( CObjectPrototype& obj1, CBufFile& buf )
 	return m_pClassMetaData->DiffData( m_pObj, obj1.m_pObj, buf );
 }
 
-void CObjectPrototype::PatchData( CObjectPrototype & copyTo, IBufReader & patch )
+void CObjectPrototype::PatchData( CObjectPrototype& copyTo, IBufReader& patch, void* pContext )
 {
 	copyTo.m_pBaseClass = m_pBaseClass;
 	copyTo.m_pClassMetaData = m_pClassMetaData;
 	copyTo.m_nCastOffset = m_nCastOffset;
 	if( m_pClassMetaData )
-		copyTo.m_pObj = m_pClassMetaData->NewObjFromPatch( m_pObj, patch );
+		copyTo.m_pObj = m_pClassMetaData->NewObjFromPatch( m_pObj, patch, pContext );
 	copyTo.m_bObjDataDirty = true;
 }
 
@@ -922,24 +1113,24 @@ uint8* CObjectPrototype::CreateObject()
 		m_bObjDataDirty = false;
 	}
 	m_objData.ResetCurPos();
-	uint8* pData = m_pClassMetaData->NewObjFromData( m_objData, false );
+	uint8* pData = m_pClassMetaData->NewObjFromData( m_objData, false, NULL );
 	return pData + m_nCastOffset;
 }
 
-uint8 * CObjectPrototype::CreateObjectPatched( IBufReader & patch )
+uint8 * CObjectPrototype::CreateObjectPatched( IBufReader& patch, void* pContext )
 {
 	if( !m_pClassMetaData )
 		return NULL;
-	uint8* pData = m_pClassMetaData->NewObjFromPatch( m_pObj, patch );
+	uint8* pData = m_pClassMetaData->NewObjFromPatch( m_pObj, patch, pContext );
 	return pData + m_nCastOffset;
 }
 
-void CObjectPrototype::Load( IBufReader& buf, bool bWithMetaData )
+void CObjectPrototype::Load( IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	string strClassName;
 	buf.Read( strClassName );
 	SetClassName( strClassName.c_str() );
-	m_pObj = m_pClassMetaData->NewObjFromData( buf, bWithMetaData );
+	m_pObj = m_pClassMetaData->NewObjFromData( buf, bWithMetaData, pContext );
 	m_bObjDataDirty = true;
 }
 

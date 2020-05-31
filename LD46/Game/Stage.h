@@ -50,7 +50,7 @@ enum
 };
 
 class CWorld;
-class CMyLevel;
+class CMasterLevel;
 class CPlayer;
 class CStage
 {
@@ -81,15 +81,14 @@ public:
 	void MultiSweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
 
 	void RegisterStageEvent( uint32 nEvent, CTrigger* pTrigger ) { m_events.Register( nEvent, pTrigger ); }
-	void RegisterBeforeHitTest( uint32 nTime, CTrigger* pTrigger ) { m_tickBeforeHitTest.Register( nTime, pTrigger ); }
-	void RegisterAfterHitTest( uint32 nTime, CTrigger* pTrigger ) { m_tickAfterHitTest.Register( nTime, pTrigger ); }
+	void RegisterTick( uint32 nTime, CTrigger* pTrigger ) { m_tick.Register( nTime, pTrigger ); }
 	void TriggerEvent( uint32 nEvent ) { m_events.Trigger( nEvent, NULL ); }
 	void Update();
 	void OnPostProcess( class CPostProcessPass* pPass );
 
 	uint8 GetUpdatePhase() { return m_nUpdatePhase; }
 	CEntity* GetRoot() { return m_pEntityRoot; }
-	CMyLevel* GetLevel() { return m_pLevel; }
+	CMasterLevel* GetMasterLevel() { return m_pMasterLevel; }
 	CCamera2D& GetCamera() { return m_camera; }
 
 	void AddStartPoint( CEntity* pEntity ) { m_mapStartPoints[pEntity->GetName().c_str()] = pEntity; }
@@ -111,13 +110,12 @@ private:
 	bool m_bLight;
 	CHitTestMgr m_hitTestMgr;
 	CReference<CEntity> m_pEntityRoot;
-	CMyLevel* m_pLevel;
+	CMasterLevel* m_pMasterLevel;
 	CCamera2D m_camera;
 	map<string, CReference<CEntity> > m_mapStartPoints;
 	SStageEnterContext m_enterContext;
 
 	TClassTrigger1<CStage, CPostProcessPass*> m_onPostProcess;
 	CEventTrigger<eStageEvent_Count> m_events;
-	CTimedTrigger<4096> m_tickBeforeHitTest;
-	CTimedTrigger<4096> m_tickAfterHitTest;
+	CTimedTrigger<4096> m_tick;
 };

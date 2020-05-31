@@ -40,7 +40,7 @@ void CGame::Start()
 	m_screenRes = IRenderSystem::Inst()->GetScreenRes();
 	CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
-	//CGlobalCfg::Inst().Load();
+	CGlobalCfg::Inst().Load();
 	m_bStarted = true;
 	if( m_pCurGameState )
 		m_pCurGameState->EnterState();
@@ -202,8 +202,13 @@ void CGame::OnChar( uint32 nChar )
 
 void Game_ShaderImplement_Dummy();
 
+void RegisterGameClasses_World();
 void RegisterGameClasses_BasicElems();
-
+void RegisterGameClasses_Level();
+void RegisterGameClasses_MiscElem();
+void RegisterGameClasses_UtilEntities();
+void RegisterGameClasses_PawnAI();
+void RegisterGlobalLuaCFunc();
 void RegisterGameClasses()
 {
 	REGISTER_CLASS_BEGIN( SHitProxyCircle )
@@ -237,32 +242,9 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_eHitType )
 		REGISTER_BASE_CLASS( CPrefabBaseNode )
 		REGISTER_BASE_CLASS( CHitProxy )
-	REGISTER_CLASS_END()
-
-	REGISTER_CLASS_BEGIN( SLevelGridData )
-		REGISTER_MEMBER( bBlocked )
-		REGISTER_MEMBER( nNextStage )
-		REGISTER_MEMBER( nSpawn )
-	REGISTER_CLASS_END()
-
-	REGISTER_CLASS_BEGIN( SLevelNextStageData )
-		REGISTER_MEMBER( pNxtStage )
-		REGISTER_MEMBER( nOfsX )
-		REGISTER_MEMBER( nOfsY )
-	REGISTER_CLASS_END()
-	
-	REGISTER_CLASS_BEGIN( CMyLevel )
-		REGISTER_BASE_CLASS( CEntity )
-		REGISTER_MEMBER( m_nWidth )
-		REGISTER_MEMBER( m_nHeight )
-		REGISTER_MEMBER( m_camPos )
-		REGISTER_MEMBER_BEGIN( m_arrGridData )
-			MEMBER_ARG( editor_hide, 1 )
-		REGISTER_MEMBER_END()
-		REGISTER_MEMBER( m_arrNextStage )
-		REGISTER_MEMBER( m_arrSpawnPrefab )
-		REGISTER_MEMBER( m_pTileDrawable )
-		REGISTER_MEMBER_TAGGED_PTR( m_pPawnRoot, 1 )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( SetVisible )
+		REGISTER_LUA_CFUNCTION( FindChildEntity )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEffectObject )
@@ -274,7 +256,13 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fDeathTime )
 	REGISTER_CLASS_END()
 
+	RegisterGameClasses_World();
 	RegisterGameClasses_BasicElems();
+	RegisterGameClasses_Level();
+	RegisterGameClasses_MiscElem();
+	RegisterGameClasses_UtilEntities();
+	RegisterGameClasses_PawnAI();
+	RegisterGlobalLuaCFunc();
 }
 
 void InitGame()
@@ -282,5 +270,6 @@ void InitGame()
 	Game_ShaderImplement_Dummy();
 	RegisterGameClasses();
 
+	CResourceManager::Inst()->Register( new TResourceFactory<CWorldCfgFile>() );
 	CResourceManager::Inst()->Register( new TResourceFactory<CUIResource>() );
 }

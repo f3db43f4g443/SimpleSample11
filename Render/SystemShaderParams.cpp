@@ -212,12 +212,12 @@ CSystemShaderParams::CSystemShaderParams()
 	Register( new CSystemShaderResourceTarget( 6 ), "g_texTarget6" );
 	Register( new CSystemShaderResourceTarget( 7 ), "g_texTarget7" );
 
-	m_mapSamplers["g_samplerPointClamp"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCPPP, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp>();
-	m_mapSamplers["g_samplerPointWrap"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCPPP, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap>();
-	m_mapSamplers["g_samplerPointMirror"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCPPP, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror>();
-	m_mapSamplers["g_samplerLinearClamp"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCLLL, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp>();
-	m_mapSamplers["g_samplerLinearWrap"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCLLL, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap>();
-	m_mapSamplers["g_samplerLinearMirror"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterCLLL, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror>();
+	m_mapSamplers["g_samplerPointClamp"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterPPP, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp>();
+	m_mapSamplers["g_samplerPointWrap"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterPPP, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap>();
+	m_mapSamplers["g_samplerPointMirror"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterPPP, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror>();
+	m_mapSamplers["g_samplerLinearClamp"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterLLL, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp, ETextureAddressMode::ETextureAddressModeClamp>();
+	m_mapSamplers["g_samplerLinearWrap"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterLLL, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap, ETextureAddressMode::ETextureAddressModeWrap>();
+	m_mapSamplers["g_samplerLinearMirror"] = ISamplerState::Get<ESamplerFilter::ESamplerFilterLLL, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror, ETextureAddressMode::ETextureAddressModeMirror>();
 }
 
 void CSystemShaderParams::Register( CSystemShaderParam* pParam, const char* szName )

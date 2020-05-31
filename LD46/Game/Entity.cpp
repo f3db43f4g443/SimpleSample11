@@ -10,6 +10,27 @@ CEntity::~CEntity()
 		m_pChildrenEntity->SetParentEntity( NULL );
 }
 
+CEntity* CEntity::FindChildEntity( const char* szName )
+{
+	if( !szName )
+		return NULL;
+	auto p = this;
+	char* sz1 = (char*)alloca( strlen( szName ) + 1 );
+	strcpy( sz1, szName );
+	while( sz1[0] )
+	{
+		auto c = strchr( sz1, '/' );
+		if( !c )
+			break;
+		*c = 0;
+		p = p->GetChildByName_Fast<CEntity>( sz1 );
+		if( !p )
+			return NULL;
+		sz1 = c + 1;
+	}
+	return p->GetChildByName_Fast<CEntity>( sz1 );
+}
+
 void CEntity::OnAdded()
 {
 	CEntity* pEntity = SafeCast<CEntity>( GetParent() );

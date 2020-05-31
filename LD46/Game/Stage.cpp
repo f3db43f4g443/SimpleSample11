@@ -8,6 +8,7 @@
 #include "UICommon/UIViewport.h"
 #include "MyLevel.h"
 #include "MyGame.h"
+#include "GlobalCfg.h"
 
 CStage::CStage( CWorld* pWorld ) : m_pWorld( pWorld ), m_pContext( NULL ), m_bStarted( false ), m_bLight( false ), m_onPostProcess( this, &CStage::OnPostProcess )
 {
@@ -45,9 +46,9 @@ void CStage::Create( SStageContext* pContext )
 			CEntity* pEntity = static_cast<CEntity*>( pRenderObject.GetPtr() );
 			if( pEntity )
 				pEntity->SetParentEntity( m_pEntityRoot );
-			auto pLevel = SafeCast<CMyLevel>( pEntity );
+			auto pLevel = SafeCast<CMasterLevel>( pEntity );
 			if( pLevel )
-				m_pLevel = pLevel;
+				m_pMasterLevel = pLevel;
 		}
 	}
 }
@@ -69,10 +70,11 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 
 	if( pPlayer )
 	{
-		if( m_pLevel )
+		if( m_pMasterLevel )
 		{
-			m_pLevel->Init();
-			m_pLevel->AddPawn( pPlayer, context.enterPos, context.nEnterDir );
+			m_pMasterLevel->Init( pPlayer );
+			CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().strEntry.c_str() );
+			m_pMasterLevel->Begin( pPrefab, CGlobalCfg::Inst().playerEnterPos, CGlobalCfg::Inst().nPlayerEnterDir );
 		}
 	}
 
@@ -93,8 +95,7 @@ void CStage::Stop()
 	if( m_enterContext.pViewport )
 		m_enterContext.pViewport->Set( NULL, NULL, false );
 	RemoveEntity( m_pEntityRoot );
-	m_tickBeforeHitTest.Clear();
-	m_tickAfterHitTest.Clear();
+	m_tick.Clear();
 
 	if( m_pContext )
 	{
@@ -147,8 +148,8 @@ void CStage::RemoveEntity( CEntity* pEntity )
 		RemoveEntity( pChild );
 	}
 
-	if( m_pLevel == pEntity )
-		m_pLevel = NULL;
+	if( m_pMasterLevel == pEntity )
+		m_pMasterLevel = NULL;
 	
 	pEntity->m_bIsChangingStage = true;
 	pEntity->OnRemovedFromStage();
@@ -330,15 +331,6 @@ void CStage::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, con
 #include "Common/Profile.h"
 void CStage::Update()
 {
-	PROFILE_BEGIN( Update )
-	PROFILE_BEGIN( Tick1 )
-	m_nUpdatePhase = eStageUpdatePhase_BeforeHitTest;
-	m_tickBeforeHitTest.UpdateTime();
-	PROFILE_END( Tick1 )
-
-	PROFILE_BEGIN( UpdateDirty1 )
-	CScene2DManager::GetGlobalInst()->UpdateDirty();
-	PROFILE_END( UpdateDirty1 )
 		
 	/*PROFILE_BEGIN( HitTest )
 	m_nUpdatePhase = eStageUpdatePhase_HitTest;
@@ -350,21 +342,20 @@ void CStage::Update()
 	PROFILE_BEGIN( Tick2 )
 	m_events.Trigger( eStageEvent_PostHitTest, NULL );
 	m_nUpdatePhase = eStageUpdatePhase_AfterHitTest;
-	m_tickAfterHitTest.UpdateTime();
 	PROFILE_END( Tick2 )*/
 
-	CMyLevel* pLevel = GetLevel();
-	if( pLevel )
+	if( m_pMasterLevel )
 	{
-		pLevel->Update();
-		m_camera.SetPosition( pLevel->GetCamPos().x, pLevel->GetCamPos().y );
+		m_pMasterLevel->Update();
+		auto camPos = m_pMasterLevel->GetCamPos();
+		m_camera.SetPosition( camPos.x, camPos.y );
 	}
 	
 	PROFILE_BEGIN( UpdateDirty2 )
 	CScene2DManager::GetGlobalInst()->UpdateDirty();
 	PROFILE_END( UpdateDirty2 )
 	m_events.Trigger( eStageEvent_PostUpdate, NULL );
-	PROFILE_END( Update )
+	m_tick.UpdateTime();
 
 	CProfileMgr::Inst()->OnFrameMove();
 }

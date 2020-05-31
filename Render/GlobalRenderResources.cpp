@@ -102,6 +102,7 @@ void CGlobalRenderResources::Init( IRenderSystem* pRenderSystem )
 void RegisterEngineClasses()
 {
 	REGISTER_CLASS_BEGIN_ABSTRACT( CRenderObject2D )
+		REGISTER_BASE_CLASS( CBaseObject )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPrefabBaseNode )
@@ -109,6 +110,10 @@ void RegisterEngineClasses()
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN_ABSTRACT( CImage2D )
+		REGISTER_BASE_CLASS( CRenderObject2D )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN_ABSTRACT( CMultiFrameImage2D )
 		REGISTER_BASE_CLASS( CRenderObject2D )
 	REGISTER_CLASS_END()
 

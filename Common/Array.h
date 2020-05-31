@@ -35,11 +35,20 @@ template<typename T>
 class TArray
 {
 public:
-	TArray() {}
+	TArray() { for( int i = 0; i < m_nSize; i++ ) Constructor( m_p + i ); }
+	TArray( const struct SClassCreateContext& context ) { for( int i = 0; i < m_nSize; i++ ) Constructor( m_p + i ); }
+	TArray( const TArray<T>& arr )
+	{
+		m_nSize = arr.m_nSize;
+		m_p = (T*)malloc( sizeof( T ) * m_nSize );
+		for( int i = 0; i < m_nSize; i++ )
+			new( m_p + i ) T( arr.m_p[i] );
+	}
 	~TArray() { Clear(); }
 	T& operator[]( uint32 n );
+	const T& operator[]( uint32 n ) const;
 
-	uint32 Size() { return m_nSize; }
+	uint32 Size() const { return m_nSize; }
 	void Resize( uint32 n );
 
 	static int32 GetPtrOfs() { return MEMBER_OFFSET( TArray<T>, m_p ); }
@@ -82,6 +91,13 @@ void TArray<CRectangle>::Constructor( CRectangle* p ) {}
 
 template<typename T>
 T& TArray<T>::operator[]( uint32 n )
+{
+	ASSERT( n < m_nSize );
+	return m_p[n];
+}
+
+template<typename T>
+const T& TArray<T>::operator[]( uint32 n ) const
 {
 	ASSERT( n < m_nSize );
 	return m_p[n];

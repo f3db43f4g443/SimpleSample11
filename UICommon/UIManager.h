@@ -15,9 +15,11 @@ public:
 	void HandleKey( uint32 nChar, bool bKeyDown, bool bAltDown );
 	void HandleChar( uint32 nChar );
 
-	CUIElement* GetDragged() { return m_pDragged; }
-	CUIElement* GetFocus() { return m_pFocus; }
+	CUIElement* GetDragged() { if( m_pDragged && m_pDragged->m_pMgr != this ) m_pDragged = NULL; return m_pDragged; }
+	CUIElement* GetFocus() { if( m_pFocus && m_pFocus->m_pMgr != this ) m_pFocus = NULL; return m_pFocus; }
 	void SetFocus( CUIElement* pFocus );
+	void DragDrop( CUIElement* pObj );
+	CUIElement* GetDragDropObject() { return m_pDragDropObj; }
 
 	void DoModal( CUIElement* pElement );
 	void EndModal();
@@ -29,10 +31,11 @@ public:
 protected:
 	virtual void OnTransformUpdated() override { globalClip = m_localBound.Offset( globalTransform.GetPosition() ); }
 private:
-	CUIElement* m_pDragged;
-	CUIElement* m_pFocus;
+	CReference<CUIElement> m_pDragged;
+	CReference<CUIElement> m_pFocus;
 	CVector2 m_mousePos;
 	bool m_bMouseDown;
+	CReference<CUIElement> m_pDragDropObj;
 
 	vector<CReference<CUIElement> > m_modalElements;
 	vector<CReference<CUIElement> > m_dirtyLayouts;

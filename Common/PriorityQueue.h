@@ -1,5 +1,7 @@
 #pragma once
 #include "Common.h"
+#include <vector>
+using namespace std;
 
 template<typename T, typename TValue = uint32>
 class TPriorityQueue;

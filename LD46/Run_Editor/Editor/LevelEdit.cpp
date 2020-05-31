@@ -33,7 +33,7 @@ void CLevelEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSyst
 		{
 			auto pt1 = b * ofs[j];
 			auto pt2 = b * ofs[( j + 1 ) % 4];
-			pViewport->DebugDrawLine( pRenderSystem, pt1 * LEVEL_GRID_SIZE, pt2 * LEVEL_GRID_SIZE, CVector4( 1, 1, 1, 1 ) );
+			pViewport->DebugDrawLine( pRenderSystem, transform.MulVector2Pos( pt1 * LEVEL_GRID_SIZE ), transform.MulVector2Pos( pt2 * LEVEL_GRID_SIZE ), CVector4( 1, 1, 1, 1 ) );
 		}
 	}
 
@@ -53,7 +53,7 @@ void CLevelEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSyst
 			else
 			{
 				color = CVector4( 0.5f, 0.5f, 0.5f, 0.5f );
-				auto n = Max( 0, Min( nValueCount - 1, m_nCurSelectedOpr == 1 ? grid.nNextStage : grid.nSpawn ) );
+				auto n = Max( 0, Min( nValueCount - 1, grid.nNextStage ) );
 				if( n > 0 )
 				{
 					color = colors[( n - 1 ) % ELEM_COUNT( colors )];
@@ -64,12 +64,12 @@ void CLevelEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSyst
 			{
 				auto pt1 = CVector2( x + 0.5f, y + 0.5f ) + ofs1[j] * 0.35f;
 				auto pt2 = CVector2( x + 0.5f, y + 0.5f ) + ofs1[( j + 2 ) % 4] * 0.35f;
-				pViewport->DebugDrawLine( pRenderSystem, pt1 * LEVEL_GRID_SIZE, pt2 * LEVEL_GRID_SIZE, color );
+				pViewport->DebugDrawLine( pRenderSystem, transform.MulVector2Pos( pt1 * LEVEL_GRID_SIZE ), transform.MulVector2Pos( pt2 * LEVEL_GRID_SIZE ), color );
 			}
 		}
 	}
 
-	for( int i = 0; i < 3; i++ )
+	for( int i = 0; i < 2; i++ )
 	{
 		auto color = colors[i];
 		for( int j = 0; j < 4; j++ )
@@ -77,7 +77,7 @@ void CLevelEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSyst
 			auto pt1 = CVector2( m_nWidth - 1 - i, m_nHeight ) + ( m_nCurSelectedOpr == i ? ofs[j] : ofs[j] * 0.5f + CVector2( 0.25f, 0.25f ) );
 			auto pt2 = CVector2( m_nWidth - 1 - i, m_nHeight ) + ( m_nCurSelectedOpr == i ? ofs[( j + 1 ) % 4]
 				: ofs[( j + 1 ) % 4] * 0.5f + CVector2( 0.25f, 0.25f ) );
-			pViewport->DebugDrawLine( pRenderSystem, pt1 * LEVEL_GRID_SIZE, pt2 * LEVEL_GRID_SIZE, color );
+			pViewport->DebugDrawLine( pRenderSystem, transform.MulVector2Pos( pt1 * LEVEL_GRID_SIZE ), transform.MulVector2Pos( pt2 * LEVEL_GRID_SIZE ), color );
 		}
 	}
 	for( int i = 0; i < nValueCount; i++ )
@@ -93,7 +93,7 @@ void CLevelEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSyst
 			auto pt1 = CVector2( m_nWidth - 1 - i, -1 ) + ( m_nCurSelectedValue == i ? ofs[j] : ofs[j] * 0.5f + CVector2( 0.25f, 0.25f ) );
 			auto pt2 = CVector2( m_nWidth - 1 - i, -1 ) + ( m_nCurSelectedValue == i ? ofs[( j + 1 ) % 4]
 				: ofs[( j + 1 ) % 4] * 0.5f + CVector2( 0.25f, 0.25f ) );
-			pViewport->DebugDrawLine( pRenderSystem, pt1 * LEVEL_GRID_SIZE, pt2 * LEVEL_GRID_SIZE, color );
+			pViewport->DebugDrawLine( pRenderSystem, transform.MulVector2Pos( pt1 * LEVEL_GRID_SIZE ), transform.MulVector2Pos( pt2 * LEVEL_GRID_SIZE ), color );
 		}
 	}
 	CObjectDataEdit::OnDebugDraw( pViewport, pRenderSystem, transform );
@@ -164,10 +164,7 @@ int32 CLevelEdit::GetCurOprValueCount()
 	auto pObj = (CMyLevel*)m_pData;
 	if( m_nCurSelectedOpr == 0 )
 		return 2;
-	if( m_nCurSelectedOpr == 1 )
-		return pObj->m_arrNextStage.Size() + 1;
-	if( m_nCurSelectedOpr == 2 )
-		return pObj->m_arrSpawnPrefab.Size() + 1;
+	return pObj->m_arrNextStage.Size() + 1;
 }
 
 void CLevelEdit::UpdateDrag( CUIViewport* pViewport, const TVector2<int32>& p, const CMatrix2D& transform )
@@ -179,11 +176,19 @@ void CLevelEdit::UpdateDrag( CUIViewport* pViewport, const TVector2<int32>& p, c
 	auto& grids = pObj->m_arrGridData;
 	auto& grid = grids[p.x + p.y * m_nWidth];
 	if( m_nCurSelectedOpr == 0 )
+	{
+		if( grid.bBlocked == m_nCurSelectedValue )
+			return;
 		grid.bBlocked = m_nCurSelectedValue;
+	}
 	else if( m_nCurSelectedOpr == 1 )
+	{
+		if( grid.nNextStage == m_nCurSelectedValue )
+			return;
 		grid.nNextStage = m_nCurSelectedValue;
-	else
-		grid.nSpawn = m_nCurSelectedValue;
+	}
+	if( m_pContent->pParent )
+		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
 void CLevelEdit::OnEdit( uint32 nParam )
@@ -209,4 +214,5 @@ void CLevelEdit::OnEdit( uint32 nParam )
 		m_nWidth = pObj->m_nWidth;
 		m_nHeight = pObj->m_nHeight;
 	}
+	CObjectDataEdit::OnEdit( nParam );
 }

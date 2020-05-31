@@ -12,8 +12,8 @@ public:
 
 	virtual void Run( void* pContext ) {}
 	virtual void OnRemoved() { if( bAutoDelete ) delete this; }
-	bool IsRegistered() { return __pPrevTrigger != NULL; }
-	void OnTimer();
+	bool IsRegistered() const { return __pPrevTrigger != NULL; }
+	void OnTimer( void* pContext = NULL );
 
 	void Unregister();
 	bool m_bValidFlag;
@@ -99,8 +99,13 @@ public:
 	{
 		for( int i = 0; i < iCount; i++ )
 		{
-			while( m_triggers[i] != &m_tail[i] )
-				m_triggers[i]->Unregister();
+			for( auto p = m_triggers[i]; p != &m_tail[i]; )
+			{
+				auto p1 = p->NextTrigger();
+				if( p->m_bValidFlag )
+					p->Unregister();
+				p = p1;
+			}
 		}
 	}
 	void Register( uint32 iEvent, CTrigger* pTrigger )
@@ -121,13 +126,27 @@ public:
 		void Trigger_##name( void* pContext ) { m_trigger_##name.Trigger( 0, pContext ); } \
 
 
-template <int iCount>
+template <int iCount, int iPr = 1>
 class CTimedTrigger
 {
 public:
 	CTimedTrigger() { m_nTime = 0; memset( m_entries, 0, sizeof( m_entries ) ); }
+	~CTimedTrigger()
+	{
+		Clear();
+		for( int i = 0; i < iCount; i++ )
+		{
+			CTimedTriggerEntry* pEntry = m_entries[i];
+			while( pEntry )
+			{
+				pEntry->RemoveFrom_Entry();
+				delete pEntry;
+				pEntry = m_entries[i];
+			}
+		}
+	}
 
-	int Register( uint32 nTime, CTrigger* pTrigger )
+	int Register( uint32 nTime, CTrigger* pTrigger, uint32 nPr = 0 )
 	{
 		if( nTime <= 0 ) return 0;
 		unsigned int triggerTime = nTime + m_nTime;
@@ -147,7 +166,7 @@ public:
 			pEntry = new CTimedTriggerEntry( triggerTime );
 			pEntry->InsertTo_Entry( *ppEntry );
 		}
-		pEntry->Register( 0, pTrigger );
+		pEntry->Register( nPr, pTrigger );
 		return triggerTime;
 	}
 	void Clear()
@@ -158,25 +177,30 @@ public:
 			while( pEntry )
 			{
 				pEntry->Clear();
-				pEntry->RemoveFrom_Entry();
-				delete pEntry;
-				pEntry = m_entries[i];
+				pEntry = pEntry->NextEntry();
 			}
 		}
 	}
 	int GetTimeStamp() { return m_nTime; }
-	void UpdateTime()
+	bool UpdateTime( void* pContext = NULL )
 	{
 		m_nTime++;
 		CTimedTriggerEntry* pEntry = m_entries[((unsigned int)m_nTime) % iCount];
+		bool bAnyEvent = false;
 		while( pEntry )
 		{
 			int dTime = pEntry->nTime - m_nTime;
 			if( !dTime )
 			{
-				for( CTrigger* pTrigger = pEntry->m_triggers[0]; pTrigger != &pEntry->m_tail[0]; pTrigger = pEntry->m_triggers[0] )
+				for( int i = 0; i < iPr; i++ )
 				{
-					pTrigger->OnTimer();
+					LINK_LIST_FOR_EACH_BEGIN( pTrigger, pEntry->m_triggers[i], CTrigger, Trigger )
+						if( pTrigger->m_bValidFlag )
+						{
+							pTrigger->OnTimer( pContext );
+							bAnyEvent = true;
+						}
+					LINK_LIST_FOR_EACH_END( pTrigger, pEntry->m_triggers[i], CTrigger, Trigger )
 				}
 				pEntry->RemoveFrom_Entry();
 				delete pEntry;
@@ -186,11 +210,12 @@ public:
 				break;
 			pEntry = pEntry->NextEntry();
 		}
+		return bAnyEvent;
 	}
 private:
-	class CTimedTriggerEntry : public CEventTrigger<1>
+	class CTimedTriggerEntry : public CEventTrigger<iPr>
 	{
-		friend class CTimedTrigger<iCount>;
+		friend class CTimedTrigger<iCount, iPr>;
 	public:
 		CTimedTriggerEntry( int nTime ) : nTime( nTime ) {}
 		int nTime;

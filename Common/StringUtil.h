@@ -19,11 +19,16 @@ public:
 	bool operator == ( const CString& rhs ) const;
 	bool operator != ( const CString& rhs ) const;
 	bool operator == ( const char* rhs ) const;
+	bool operator != ( const char* rhs ) const;
 	friend bool operator == ( const char* lhs, const CString& rhs );
 	
 	CString& operator = ( const char* rhs );
 	CString& operator = ( const CString& rhs );
 
+	operator bool() const
+	{
+		return !!c_str()[0];
+	}
 	operator const char* () const
 	{
 		return c_str();
@@ -34,9 +39,9 @@ public:
 	int length() const;
 
 	void PackData( class CBufFile& buf, bool bWithMetaData ) const;
-	void UnpackData( class IBufReader& buf, bool bWithMetaData );
+	void UnpackData( class IBufReader& buf, bool bWithMetaData, void* pContext );
 	bool DiffData( const CString& obj0, class CBufFile& buf ) const;
-	void PatchData( class IBufReader& buf );
+	void PatchData( class IBufReader& buf, void* pContext );
 
 	static const CString& empty()
 	{

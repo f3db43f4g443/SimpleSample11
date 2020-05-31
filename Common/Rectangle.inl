@@ -117,6 +117,12 @@ FORCE_INLINE TRectangle<T> TRectangle<T>::operator* (const TMatrix2D<T>& mat) co
 }
 
 template <typename T>
+FORCE_INLINE TRectangle<T> TRectangle<T>::operator/ ( const T& t ) const
+{
+	return TRectangle<T>( x / t, y / t, width / t, height / t );
+}
+
+template <typename T>
 FORCE_INLINE T TRectangle<T>::GetLeft() const { return x; }
 template <typename T>
 FORCE_INLINE T TRectangle<T>::GetTop() const { return y; }

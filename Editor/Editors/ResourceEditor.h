@@ -1,5 +1,6 @@
 #pragma once
 #include "UICommon/UIViewport.h"
+#include "UICommon/UIManager.h"
 #include "Common/ResourceManager.h"
 #include "Common/FileUtil.h"
 #include "Render/Image2D.h"
@@ -42,6 +43,8 @@ protected:
 		m_pViewport->Register( eEvent_Dragged, &m_onViewportDragged );
 		m_onViewportStopDrag.Set( this, &TResourceEditor::OnViewportStopDrag );
 		m_pViewport->Register( eEvent_StopDrag, &m_onViewportStopDrag );
+		m_onViewportMouseUp.Set( this, &TResourceEditor::OnViewportMouseUp );
+		m_pViewport->Register( eEvent_MouseUp, &m_onViewportMouseUp );
 		m_onDebugDraw.Set( this, &TResourceEditor::OnDebugDraw );
 		m_pViewport->Register( eEvent_Action, &m_onDebugDraw );
 		m_onViewportKey.Set( this, &TResourceEditor::OnViewportKey );
@@ -112,7 +115,7 @@ protected:
 		m_camOfs = ofs;
 	}
 
-	void Save()
+	virtual void Save()
 	{
 		RefreshPreview();
 		CBufFile buf;
@@ -142,6 +145,13 @@ protected:
 	}
 
 	virtual void OnViewportStopDrag( SUIMouseEvent* pEvent ) {}
+	void OnViewportMouseUp( SUIMouseEvent* pEvent )
+	{
+		auto pDragDropObj = GetMgr()->GetDragDropObject();
+		if( pDragDropObj )
+			OnViewportDrop( pEvent->mousePos, pDragDropObj );
+	}
+	virtual void OnViewportDrop( const CVector2& mousePos, CUIElement* pParam ) {}
 	virtual void OnViewportKey( SUIKeyEvent* pEvent ) {}
 	virtual void OnViewportChar( uint32 nChar ) {}
 	
@@ -153,6 +163,7 @@ private:
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStartDrag;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportDragged;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStopDrag;
+	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportMouseUp;
 	TClassTrigger1<TResourceEditor, IRenderSystem*> m_onDebugDraw;
 	TClassTrigger1<TResourceEditor, SUIKeyEvent*> m_onViewportKey;
 	TClassTrigger1<TResourceEditor, uint32> m_onViewportChar;

@@ -68,7 +68,7 @@ public:
 	CDrawable2D* GetOcclusionDrawable() { return m_occlusionDrawable.pDrawable; }
 	CDrawable2D* GetGUIDrawable() { return m_guiDrawable.pDrawable; }
 
-	CRenderObject2D* CreateInstance();
+	CRenderObject2D* CreateInstance( bool bForceCreateStatic = false );
 
 	void UpdateDependencies();
 private:

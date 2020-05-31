@@ -7,6 +7,8 @@
 #include "ResourceManager.h"
 #include "LightRendering.h"
 #include "Image2D.h"
+#include <sstream>
+#include <set>
 
 CRenderObject2D* CPrefabBaseNode::CreateRenderObjectByResource( CResource* pResource, CRenderObject2D* pNode )
 {
@@ -85,6 +87,16 @@ void CPrefabBaseNode::DebugDraw( class CUIViewport* pViewport, IRenderSystem* pR
 	}
 }
 
+void CPrefabNode::AddRef1()
+{
+	m_pPrefab->AddRef();
+}
+
+void CPrefabNode::Release1()
+{
+	m_pPrefab->Release();
+}
+
 bool CPrefabNode::SetResource( CResource* pResource )
 {
 	if( m_nType )
@@ -99,7 +111,17 @@ bool CPrefabNode::SetResource( CResource* pResource )
 
 	if( m_pPatchedNode )
 	{
+		for( CRenderObject2D* p = this; p; p = p->GetParent() )
+		{
+			auto pPrefabBaseNode = SafeCast<CPrefabBaseNode>( p );
+			if( !pPrefabBaseNode )
+				break;
+			if( static_cast<CPrefabNode*>( pPrefabBaseNode )->GetNameSpace().pNameSpaceKey )
+				static_cast<CPrefabNode*>( pPrefabBaseNode )->NameSpaceClearNode( m_pPatchedNode );
+		}
 		m_pPatchedNode = NULL;
+		if( m_pPreviewNode )
+			m_pPreviewNode = NULL;
 		SetRenderObject( NULL );
 	}
 	CRenderObject2D* pRenderObject = NULL;
@@ -107,7 +129,7 @@ bool CPrefabNode::SetResource( CResource* pResource )
 	{
 		auto p = static_cast<CPrefab*>( pResource )->GetRoot();
 		SPatchContext context( p );
-		m_pPatchedNode = p->Clone( NULL, &context );
+		m_pPatchedNode = p->Clone( m_pPrefab, NULL, &context );
 		//SetRenderObject( m_pPatchedNode->CreateInstance() );
 		pRenderObject = m_pPatchedNode;
 	}
@@ -167,7 +189,7 @@ bool CPrefabNode::SetResource( CResource* pResource )
 	return true;
 }
 
-SClassMetaData * CPrefabNode::GetFinalClassData()
+SClassMetaData* CPrefabNode::GetFinalClassData()
 {
 	auto pClassData = m_obj.GetClassData();
 	if( pClassData )
@@ -175,6 +197,22 @@ SClassMetaData * CPrefabNode::GetFinalClassData()
 
 	if( m_pResource && m_pResource->GetResourceType() == eEngineResType_Prefab )
 		return static_cast<CPrefab*>( m_pResource.GetPtr() )->GetRoot()->GetFinalClassData();
+
+	return NULL;
+}
+
+CPrefabBaseNode* CPrefabNode::GetFinalObjData()
+{
+	auto pClassData = m_obj.GetClassData();
+	if( pClassData )
+		return m_obj.GetObject();
+
+	if( m_pResource && m_pResource->GetResourceType() == eEngineResType_Prefab )
+	{
+		if( m_pPatchedNode )
+			return m_pPatchedNode->GetFinalObjData();
+		return static_cast<CPrefab*>( m_pResource.GetPtr() )->GetRoot()->GetFinalObjData();
+	}
 
 	return NULL;
 }
@@ -246,7 +284,7 @@ void CPrefabNode::OnResourceRefreshEnd()
 	}
 }
 
-void CPrefabNode::LoadResourceExtraData( CResource* pResource, IBufReader& extraData )
+void CPrefabNode::LoadResourceExtraData( CResource* pResource, IBufReader& extraData, CPrefabNodeNameSpace* pNameSpace )
 {
 	if( pResource->GetResourceType() == eEngineResType_Prefab )
 	{
@@ -267,7 +305,7 @@ void CPrefabNode::LoadResourceExtraData( CResource* pResource, IBufReader& extra
 		if( m_pPrefab->CanAddDependency( pResource ) )
 		{
 			m_pResource = pResource;
-			m_pPatchedNode = p->Clone( m_pPrefab, &context );
+			m_pPatchedNode = p->Clone( m_pPrefab, pNameSpace, &context );
 			//SetRenderObject( m_pPatchedNode->CreateInstance() );
 			SetRenderObject( m_pPatchedNode );
 			m_pPrefab->AddDependency( pResource );
@@ -358,7 +396,7 @@ void CPrefabNode::LoadOtherExtraData( IBufReader & extraData )
 	}
 }
 
-void CPrefabNode::SaveResourceExtraData( CResource * pResource, CBufFile & extraData )
+void CPrefabNode::SaveResourceExtraData( CResource* pResource, CBufFile& extraData, CPrefabNodeNameSpace* pNameSpace )
 {
 	if( pResource->GetResourceType() == eEngineResType_Prefab )
 	{
@@ -367,7 +405,7 @@ void CPrefabNode::SaveResourceExtraData( CResource * pResource, CBufFile & extra
 			auto pPrefab = static_cast<CPrefab*>( pResource );
 			auto p = pPrefab->GetRoot();
 			SPatchContext context( p );
-			p->Diff( m_pPatchedNode, context );
+			p->Diff( m_pPatchedNode, context, pNameSpace );
 			if( context.mapPatches.size() )
 			{
 				for( auto& item : context.mapPatches )
@@ -451,7 +489,7 @@ void CPrefabNode::SaveOtherExtraData( CBufFile & extraData )
 	}
 }
 
-void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
+void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeNameSpace* pNameSpace )
 {
 	bool bPatch = false;
 	CBufFile buf;
@@ -494,7 +532,7 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 		if( !p )
 			p = static_cast<CPrefab*>( GetResource() )->GetRoot();
 		SPatchContext context1( p );
-		p->Diff( pNode->m_pPatchedNode, context1 );
+		p->Diff( pNode->m_pPatchedNode, context1, pNameSpace );
 		if( context1.mapPatches.size() )
 		{
 			for( auto& item : context1.mapPatches )
@@ -509,7 +547,7 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 	}
 	else
 	{
-		for( int i = 0; i < 2; i++ )
+		for( int i = ( pNode->GetResource() && pNode->GetResource()->GetResourceType() == eEngineResType_Prefab ? 1 : 0 ); i < 2; i++ )
 		{
 			auto& b = i == 0 ? tmpBuf0 : tmpBuf;
 			auto p = i == 0 ? this : pNode;
@@ -520,7 +558,7 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 				string s = pRes ? pRes->GetName() : "";
 				b.Write( s );
 				if( pRes )
-					p->SaveResourceExtraData( pRes, b );
+					p->SaveResourceExtraData( pRes, b, pNameSpace );
 			}
 			else
 				p->SaveOtherExtraData( b );
@@ -530,6 +568,12 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 			nPatchFlag |= 16;
 			buf.Write( tmpBuf );
 		}
+	}
+	int32 nNamespaceID = pNameSpace->FindIDByNode( pNode );
+	if( nNamespaceID )
+	{
+		nPatchFlag |= 64;
+		buf.Write( nNamespaceID );
 	}
 
 	*( nPatchFlagOfs + (int8*)buf.GetBuffer() ) = nPatchFlag;
@@ -570,7 +614,7 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 	{
 		vecExtraNodes[i].first = vecChildren.size() - vecExtraNodes[i].first;
 		buf.Write( vecExtraNodes[i].first );
-		vecExtraNodes[i].second->Save( buf );
+		vecExtraNodes[i].second->Save( buf, pNameSpace );
 	}
 
 	if( bPatch )
@@ -581,7 +625,315 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context )
 	}
 
 	for( int i = vecChildren.size() - 1; i >= 0; i-- )
-		vecChildren[i].first->Diff( vecChildren[i].second, context );
+		vecChildren[i].first->Diff( vecChildren[i].second, context, pNameSpace );
+}
+
+void CPrefabNode::UpdateNameSpace( SNameSpaceUpdateContext* pContext )
+{
+	m_bNamespaceDirty = false;
+	SNameSpaceUpdateContext curContext;
+	if( m_nameSpace.pNameSpaceKey )
+	{
+		m_nameSpace.ClearInfo();
+		curContext.pNameSpace = &m_nameSpace;
+		curContext.pNext = pContext;
+		pContext = &curContext;
+	}
+	m_vecNameSpaceInfo.clear();
+	m_vecObjPtrTemp.clear();
+
+	auto pClassData = GetClassData();
+	if( pClassData )
+	{
+		function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
+		{
+			int8 nType;
+			if( !pData )
+				nType = 2;
+			else if( pData->nType == SClassMetaData::SMemberData::eTypeObjRef )
+				nType = 0;
+			else
+				nType = 1;
+			if( nType == 2 && m_vecObjPtrTemp.back().nType == 1 )
+				m_vecObjPtrTemp.pop_back();
+			else
+				m_vecObjPtrTemp.push_back( SResPtrInfo( pData, nOfs, nType ) );
+		};
+		pClassData->FindAllObjRef( func );
+		auto pData = m_obj.GetObjData();
+		CreateObjPtrInfo( pContext, pData, 0 );
+	}
+
+	for( auto p = pContext; p; p = p->pNext )
+	{
+		auto pNameSpaceInfo = p->pNameSpace->AddNamespaceInfo( this );
+		if( pNameSpaceInfo )
+			m_vecNameSpaceInfo.push_back( pNameSpaceInfo );
+	}
+	for( auto& info : m_vecObjPtrInfo )
+	{
+		info.pNameSpace->AddObjPtrInfo( &info );
+	}
+
+	if( m_pPatchedNode )
+		m_pPatchedNode->UpdateNameSpace( pContext );
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		if( pNode )
+			pNode->UpdateNameSpace( pContext );
+	}
+
+	if( m_nameSpace.pNameSpaceKey )
+		m_nameSpace.CheckInfos();
+}
+
+int32 CPrefabNode::CreateObjPtrInfo( SNameSpaceUpdateContext* pContext, uint8* pObjData, int32 n )
+{
+	for( ; n < m_vecObjPtrTemp.size(); n++ )
+	{
+		auto& info = m_vecObjPtrTemp[n];
+		if( info.nType == 0 )
+		{
+			if( !!( info.pMemberData->nFlag & 2 ) )
+			{
+				auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+				if( nArraySize )
+				{
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+						AddObjPtrInfo( pContext, p, info.pMemberData );
+				}
+			}
+			else
+				AddObjPtrInfo( pContext, pObjData + info.nOfs, info.pMemberData );
+		}
+		else if( info.nType == 1 )
+		{
+			auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+			if( nArraySize )
+			{
+				auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+				int32 n1;
+				for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+					n1 = CreateObjPtrInfo( pContext, p, n + 1 );
+				n = n1;
+			}
+			else
+			{
+				n++;
+				for( int32 k = 1; n < m_vecObjPtrTemp.size(); n++ )
+				{
+					if( m_vecObjPtrTemp[n].nType == 1 )
+						k++;
+					else if( m_vecObjPtrTemp[n].nType == 2 )
+					{
+						k--;
+						if( !k )
+							break;
+					}
+				}
+			}
+		}
+		else
+			return n;
+	}
+	return m_vecObjPtrTemp.size();
+}
+
+void CPrefabNode::AddObjPtrInfo( SNameSpaceUpdateContext* pContext, uint8* p, SClassMetaData::SMemberData* pMemberData )
+{
+	auto& objptr = *( TObjRef<CRenderObject2D>* )( p );
+	void* key = objptr._pt;
+	CPrefabNodeNameSpace* pNameSpace = NULL;
+	for( auto pCtx = pContext; pCtx; pCtx = pCtx->pNext )
+	{
+		if( pCtx->pNameSpace->pNameSpaceKey == key )
+		{
+			pNameSpace = pCtx->pNameSpace;
+			break;
+		}
+	}
+	if( pNameSpace )
+	{
+		m_vecObjPtrInfo.push_back( CPrefabNodeNameSpace::SObjPtrInfo( pNameSpace, pMemberData, objptr._n ) );
+		objptr._user = m_vecObjPtrInfo.size();
+	}
+	else
+		objptr._user = 0;
+}
+
+int32 CPrefabNode::CopyObjPtrInfo( uint8* pDest, uint8* pObjData, int32 n )
+{
+	for( ; n < m_vecObjPtrTemp.size(); n++ )
+	{
+		auto& info = m_vecObjPtrTemp[n];
+		if( info.nType == 0 )
+		{
+			if( !!( info.pMemberData->nFlag & 2 ) )
+			{
+				auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+				if( nArraySize )
+				{
+					auto p1 = *(uint8**)( pDest + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+					for( int i = 0; i < nArraySize; i++, p1 += info.pMemberData->GetDataSize(), p += info.pMemberData->GetDataSize() )
+						CopyObjPtrInfo1( p1, p, info.pMemberData );
+				}
+			}
+			else
+				CopyObjPtrInfo1( pDest + info.nOfs, pObjData + info.nOfs, info.pMemberData );
+		}
+		else if( info.nType == 1 )
+		{
+			auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+			if( nArraySize )
+			{
+				auto p1 = *(uint8**)( pDest + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+				auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+				int32 n1;
+				for( int i = 0; i < nArraySize; i++, p1 += info.pMemberData->GetDataSize(), p += info.pMemberData->GetDataSize() )
+					n1 = CopyObjPtrInfo( p1, p, n + 1 );
+				n = n1;
+			}
+			else
+			{
+				n++;
+				for( int32 k = 1; n < m_vecObjPtrTemp.size(); n++ )
+				{
+					if( m_vecObjPtrTemp[n].nType == 1 )
+						k++;
+					else if( m_vecObjPtrTemp[n].nType == 2 )
+					{
+						k--;
+						if( !k )
+							break;
+					}
+				}
+			}
+		}
+		else
+			return n;
+	}
+	return m_vecObjPtrTemp.size();
+}
+
+void CPrefabNode::CopyObjPtrInfo1( uint8* pDest, uint8* pObjData, SClassMetaData::SMemberData* pMemberData )
+{
+	auto& objptr = *( TObjRef<CRenderObject2D>* )( pObjData );
+	auto& dstptr = *( TObjRef<CRenderObject2D>* )( pDest );
+	if( objptr._user )
+	{
+		auto& info = m_vecObjPtrInfo[objptr._user - 1];
+		info.pCreatedNodeData = pDest + dstptr.GetPtrOfs();
+	}
+}
+
+void CPrefabNode::FixObjRef( map<int32, int32>& mapID, void* pNameSpaceKey, int8 nPass )
+{
+	auto pClassData = GetClassData();
+	if( pClassData )
+	{
+		vector<SResPtrInfo> vecTmp;
+		function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this, &vecTmp] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
+		{
+			int8 nType;
+			if( !pData )
+				nType = 2;
+			else if( pData->nType == SClassMetaData::SMemberData::eTypeObjRef )
+				nType = 0;
+			else
+				nType = 1;
+			if( nType == 2 && vecTmp.back().nType == 1 )
+				vecTmp.pop_back();
+			else
+				vecTmp.push_back( SResPtrInfo( pData, nOfs, nType ) );
+		};
+		pClassData->FindAllObjRef( func );
+		auto pData = m_obj.GetObjData();
+		FixObjRefNode( mapID, pData, 0, vecTmp, pNameSpaceKey, nPass );
+	}
+	if( m_pPatchedNode )
+		m_pPatchedNode->FixObjRef( mapID, pNameSpaceKey, nPass );
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		if( pNode )
+			pNode->FixObjRef( mapID, pNameSpaceKey, nPass );
+	}
+}
+
+int32 CPrefabNode::FixObjRefNode( map<int32, int32>& mapID, uint8* pObjData, int32 n, vector<SResPtrInfo>& vec, void* pNameSpaceKey, int8 nPass )
+{
+	for( ; n < vec.size(); n++ )
+	{
+		auto& info = vec[n];
+		if( info.nType == 0 )
+		{
+			if( !!( info.pMemberData->nFlag & 2 ) )
+			{
+				auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+				if( nArraySize )
+				{
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+						FixObjRefNode1( mapID, p, info.pMemberData, pNameSpaceKey, nPass );
+				}
+			}
+			else
+				FixObjRefNode1( mapID, pObjData + info.nOfs, info.pMemberData, pNameSpaceKey, nPass );
+		}
+		else if( info.nType == 1 )
+		{
+			auto nArraySize = ( ( TArray<TObjRef<CRenderObject2D> >* )( pObjData + info.nOfs ) )->Size();
+			if( nArraySize )
+			{
+				auto p = *(uint8**)( pObjData + info.nOfs + TArray<TObjRef<CRenderObject2D> >::GetPtrOfs() );
+				int32 n1;
+				for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+					n1 = FixObjRefNode( mapID, p, n + 1, vec, pNameSpaceKey, nPass );
+				n = n1;
+			}
+			else
+			{
+				n++;
+				for( int32 k = 1; n < vec.size(); n++ )
+				{
+					if( vec[n].nType == 1 )
+						k++;
+					else if( vec[n].nType == 2 )
+					{
+						k--;
+						if( !k )
+							break;
+					}
+				}
+			}
+		}
+		else
+			return n;
+	}
+	return vec.size();
+}
+
+void CPrefabNode::FixObjRefNode1( map<int32, int32>& mapID, uint8* pObjData, SClassMetaData::SMemberData* pMemberData, void* pNameSpaceKey, int8 nPass )
+{
+	auto& ptr = *( TObjRef<CRenderObject2D>* )( pObjData );
+	if( ptr._pt == pNameSpaceKey )
+	{
+		if( nPass )
+		{
+			auto itr = mapID.find( ptr._n );
+			if( itr != mapID.end() )
+				ptr._n = itr->second;
+		}
+		else if( ptr._n )
+			mapID[ptr._n] = ptr._n;
+	}
 }
 
 void CPrefabNode::UpdateTaggedNodePtrInfo()
@@ -592,7 +944,14 @@ void CPrefabNode::UpdateTaggedNodePtrInfo()
 	map<string, STaggedNodePtrInfo*> mapInfo;
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
 	{
-		m_vecTaggedNodePtrInfo.push_back( STaggedNodePtrInfo( pData, nOfs, 0 ) );
+		if( pData->strTypeName == typeid( CPrefabNode ).name() )
+		{
+			auto pNode = m_pPrefab->GetNode( pData->strName.c_str() );
+			if( pNode )
+				m_vecTaggedPrefabNodePtrInfo.push_back( STaggedPrefabNodePtrInfo( pData, nOfs, pNode ) );
+		}
+		else
+			m_vecTaggedNodePtrInfo.push_back( STaggedNodePtrInfo( pData, nOfs, 0 ) );
 	};
 	pClassData->FindAllTaggedPtr( func );
 	for( auto& item : m_vecTaggedNodePtrInfo )
@@ -665,12 +1024,12 @@ int32 CPrefabNode::CreateResPtr( uint8* pObjData, int32 n )
 				auto nArraySize = ( ( TArray<TResourceRef<CPrefab> >* )( pObjData + info.nOfs ) )->Size();
 				if( nArraySize )
 				{
-					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TResourceRef<CPrefab> >::GetPtrOfs() ) + TResourceRef<CPrefab>::GetPtrOfs();
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TResourceRef<CPrefab> >::GetPtrOfs() );
 					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
 					{
 						auto& name = *(CString*)( p );
 						auto pResource = CResourceManager::Inst()->CreateResource( info.pMemberData->nFlag >> 16, name.c_str_safe() );
-						*( CReference<CResource>* )p = pResource;
+						*( CReference<CResource>* )( p + TResourceRef<CPrefab>::GetPtrOfs() ) = pResource;
 					}
 				}
 			}
@@ -714,7 +1073,7 @@ int32 CPrefabNode::CreateResPtr( uint8* pObjData, int32 n )
 	return m_vecResPtrInfo.size();
 }
 
-int32 CPrefabNode::CopyResPtr( uint8 * pDst, uint8 * pObjData, int32 n )
+int32 CPrefabNode::CopyResPtr( uint8* pDst, uint8* pObjData, int32 n )
 {
 	for( ; n < m_vecResPtrInfo.size(); n++ )
 	{
@@ -728,7 +1087,7 @@ int32 CPrefabNode::CopyResPtr( uint8 * pDst, uint8 * pObjData, int32 n )
 				{
 					auto p = *(uint8**)( pObjData + info.nOfs + TArray<TResourceRef<CPrefab> >::GetPtrOfs() ) + TResourceRef<CPrefab>::GetPtrOfs();
 					auto p1 = *(uint8**)( pDst + info.nOfs + TArray<TResourceRef<CPrefab> >::GetPtrOfs() ) + TResourceRef<CPrefab>::GetPtrOfs();
-					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize(), p1 += info.pMemberData->GetDataSize() )
 						*( CReference<CResource>* )p1 = *( CReference<CResource>* )p;
 				}
 			}
@@ -772,6 +1131,149 @@ int32 CPrefabNode::CopyResPtr( uint8 * pDst, uint8 * pObjData, int32 n )
 	return m_vecResPtrInfo.size();
 }
 
+void CPrefabNode::UpdatePrefabNodeRefInfo()
+{
+	auto pClassData = GetClassData();
+	if( !pClassData )
+		return;
+	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
+	{
+		int8 nType;
+		if( !pData )
+			nType = 2;
+		else if( pData->nType == SClassMetaData::SMemberData::eTypeCustomTaggedPtr && pData->strTypeName == typeid( CPrefabNode ).name() )
+			nType = 0;
+		else
+			nType = 1;
+		if( nType == 2 && m_vecPrefabNodeRefInfo.back().nType == 1 )
+			m_vecPrefabNodeRefInfo.pop_back();
+		else
+			m_vecPrefabNodeRefInfo.push_back( SPrefabNodeRefInfo( pData, nOfs, nType, NULL ) );
+	};
+	pClassData->FindAllCustomTaggedPtr( func );
+	auto pData = m_obj.GetObjData();
+	CreatePrefabNodeRef( pData, 0 );
+}
+
+int32 CPrefabNode::CreatePrefabNodeRef( uint8* pObjData, int32 n )
+{
+	for( ; n < m_vecPrefabNodeRefInfo.size(); n++ )
+	{
+		auto& info = m_vecPrefabNodeRefInfo[n];
+		if( info.nType == 0 )
+		{
+			if( !!( info.pMemberData->nFlag & 2 ) )
+			{
+				auto nArraySize = ( ( TArray<CPrefabNodeRef>* )( pObjData + info.nOfs ) )->Size();
+				if( nArraySize )
+				{
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() );
+					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+					{
+						auto& name = *(CString*)( p );
+						auto pNode = name.length() ? m_pPrefab->GetNode( name.c_str_safe() ) : NULL;
+						*( CSubReference<CPrefabNode>* )( p + CPrefabNodeRef::GetPtrOfs() ) = pNode;
+					}
+				}
+			}
+			else
+			{
+				auto& name = *(CString*)( pObjData + info.nOfs );
+				auto pNode = name.length() ? m_pPrefab->GetNode( name.c_str_safe() ) : NULL;
+				*( CSubReference<CPrefabNode>* )( pObjData + info.nOfs + CPrefabNodeRef::GetPtrOfs() ) = pNode;
+			}
+		}
+		else if( info.nType == 1 )
+		{
+			auto nArraySize = ( ( TArray<CPrefabNodeRef>* )( pObjData + info.nOfs ) )->Size();
+			if( nArraySize )
+			{
+				auto p = *(uint8**)( pObjData + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() );
+				int32 n1;
+				for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize() )
+					n1 = CreatePrefabNodeRef( p, n + 1 );
+				n = n1;
+			}
+			else
+			{
+				n++;
+				for( int32 k = 1; n < m_vecPrefabNodeRefInfo.size(); n++ )
+				{
+					if( m_vecPrefabNodeRefInfo[n].nType == 1 )
+						k++;
+					else if( m_vecPrefabNodeRefInfo[n].nType == 2 )
+					{
+						k--;
+						if( !k )
+							break;
+					}
+				}
+			}
+		}
+		else
+			return n;
+	}
+	return m_vecPrefabNodeRefInfo.size();
+}
+
+int32 CPrefabNode::CopyPrefabNodeRef( uint8* pDst, uint8* pObjData, int32 n )
+{
+	for( ; n < m_vecPrefabNodeRefInfo.size(); n++ )
+	{
+		auto& info = m_vecPrefabNodeRefInfo[n];
+		if( info.nType == 0 )
+		{
+			if( !!( info.pMemberData->nFlag & 2 ) )
+			{
+				auto nArraySize = ( ( TArray<CPrefabNodeRef>* )( pObjData + info.nOfs ) )->Size();
+				if( nArraySize )
+				{
+					auto p = *(uint8**)( pObjData + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() ) + CPrefabNodeRef::GetPtrOfs();
+					auto p1 = *(uint8**)( pDst + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() ) + CPrefabNodeRef::GetPtrOfs();
+					for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize(), p1 += info.pMemberData->GetDataSize() )
+						*( CSubReference<CPrefabNode>* )p1 = *( CSubReference<CPrefabNode>* )p;
+				}
+			}
+			else
+			{
+				*( CSubReference<CPrefabNode>* )( pDst + info.nOfs + CPrefabNodeRef::GetPtrOfs() )
+					= *( CSubReference<CPrefabNode>* )( pObjData + info.nOfs + CPrefabNodeRef::GetPtrOfs() );
+			}
+		}
+		else if( info.nType == 1 )
+		{
+			auto nArraySize = ( ( TArray<CPrefabNodeRef>* )( pObjData + info.nOfs ) )->Size();
+			if( nArraySize )
+			{
+				auto p = *(uint8**)( pObjData + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() );
+				auto p1 = *(uint8**)( pDst + info.nOfs + TArray<CPrefabNodeRef>::GetPtrOfs() );
+				int32 n1;
+				for( int i = 0; i < nArraySize; i++, p += info.pMemberData->GetDataSize(), p1 += info.pMemberData->GetDataSize() )
+					n1 = CopyPrefabNodeRef( p1, p, n + 1 );
+				n = n1;
+			}
+			else
+			{
+				n++;
+				for( int32 k = 1; n < m_vecPrefabNodeRefInfo.size(); n++ )
+				{
+					if( m_vecPrefabNodeRefInfo[n].nType == 1 )
+						k++;
+					else if( m_vecPrefabNodeRefInfo[n].nType == 2 )
+					{
+						k--;
+						if( !k )
+							break;
+					}
+				}
+			}
+		}
+		else
+			return n;
+	}
+	return m_vecPrefabNodeRefInfo.size();
+}
+
 void CPrefabNode::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
 {
 	auto pNode = m_obj.GetObject();
@@ -787,23 +1289,18 @@ void CPrefabNode::GetPathString( CPrefabNode* pRoot, string& str )
 	{
 		if( p == pRoot )
 		{
-			str += p->GetName();
 			str += ":";
 			break;
 		}
 		str += ":";
+		str += p->GetName();
 		p = static_cast<CPrefabNode*>( p->GetParent() );
 	}
 }
 
-CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst )
+CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst, bool bNameSpace )
 {
-	if( m_bTaggedNodePtrInfoDirty )
-	{
-		UpdateTaggedNodePtrInfo();
-		UpdateResPtrInfo();
-		m_bTaggedNodePtrInfoDirty = false;
-	}
+	UpdateDirty();
 
 	CPrefabBaseNode* pPrefabNode = m_obj.CreateObject();
 	if( pPrefabNode )
@@ -815,14 +1312,17 @@ CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst 
 
 		uint8* pRawData = (uint8*)pPrefabNode;
 		pRawData -= m_obj.GetCastOffset();
-		CopyResPtr( pRawData, m_obj.GetObjData(), NULL );
+		CopyResPtr( pRawData, m_obj.GetObjData(), 0 );
+		CopyPrefabNodeRef( pRawData, m_obj.GetObjData(), 0 );
+		if( bNameSpace )
+			CopyObjPtrInfo( pRawData, m_obj.GetObjData(), 0 );
 	}
 
 	CRenderObject2D* pRenderObject = NULL;
 	if( m_pResource )
 	{
 		if( m_pResource->GetResourceType() == eEngineResType_Prefab && m_pPatchedNode )
-			pRenderObject = m_pPatchedNode->CreateInstance();
+			pRenderObject = m_pPatchedNode->CreateInstance( bNameSpace );
 		else
 		{
 			pRenderObject = CPrefabBaseNode::CreateRenderObjectByResource( m_pResource, pPrefabNode );
@@ -921,7 +1421,7 @@ CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst 
 	}
 	for( int i = 0; i < vecChildren.size(); i++ )
 	{
-		vecChildren[i] = static_cast<CPrefabNode*>( vecChildren[i] )->CreateInstance( vecInst );
+		vecChildren[i] = static_cast<CPrefabNode*>( vecChildren[i] )->CreateInstance( vecInst, bNameSpace );
 	}
 	for( int i = vecChildren.size() - 1; i >= 0; i-- )
 	{
@@ -937,7 +1437,24 @@ CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst 
 		pRenderObject->AddRef();
 		*ppObject = pRenderObject;
 	}
+	for( auto& item : m_vecTaggedPrefabNodePtrInfo )
+	{
+		CPrefabNode** ppObject = (CPrefabNode**)( ( (uint8*)pPrefabNode ) - m_obj.GetCastOffset() + item.nOfs );
+		auto pRenderObject = item.pPrefabNode;
+		pRenderObject->AddRef();
+		*ppObject = pRenderObject;
+	}
 
+	if( bNameSpace )
+	{
+		for( auto* pInfo : m_vecNameSpaceInfo )
+		{
+			pInfo->pCreatedInst = pRenderObject;
+		}
+
+		if( m_nameSpace.pNameSpaceKey )
+			m_nameSpace.FillData();
+	}
 	return pRenderObject;
 }
 
@@ -978,7 +1495,7 @@ void CPrefabNode::OnEditorActive( bool bActive )
 			return;
 		if( m_pPreviewNode )
 			return;
-		auto p = SafeCast<CPrefabBaseNode>( m_pPatchedNode->CreateInstance() );
+		auto p = SafeCast<CPrefabBaseNode>( m_pPatchedNode->CreateInstance( false ) );
 		m_pPreviewNode = p;
 		SetRenderObject( m_pPreviewNode );
 		p->OnPreview();
@@ -1023,12 +1540,12 @@ void CPrefabNode::BindShaderResource( EShaderType eShaderType, const char* szNam
 	}
 }
 
-CPrefabNode* CPrefabNode::Clone( bool bForEditor )
-{
-	return Clone( bForEditor ? m_pPrefab : NULL );
-}
+//CPrefabNode* CPrefabNode::Clone( bool bForEditor )
+//{
+//	return Clone( bForEditor ? m_pPrefab : NULL );
+//}
 
-CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
+CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, CPrefabNodeNameSpace* pNameSpace, SPatchContext* pContext, SNameSpaceCopyContext* pNameSpaceCopyContext, bool bForRootElem )
 {
 	CBufFile* pPatch = NULL;
 	if( pContext )
@@ -1043,7 +1560,29 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 				pPatch = NULL;
 		}
 	}
+
 	CPrefabNode* pPrefabNode = new CPrefabNode( pPrefab );
+	SNameSpaceCopyContext curNameSpaceCopyContext;
+	if( bForRootElem )
+	{
+		pPrefabNode->m_nameSpace.pNameSpaceKey = pPrefab->GetNameSpaceKey();
+		pNameSpace = &pPrefabNode->m_nameSpace;
+	}
+	else if( m_nameSpace.pNameSpaceKey )
+	{
+		curNameSpaceCopyContext.pSrc = &m_nameSpace;
+		curNameSpaceCopyContext.pDst = &pPrefabNode->m_nameSpace;
+		pPrefabNode->m_nameSpace.pNameSpaceKey = m_nameSpace.pNameSpaceKey;
+		curNameSpaceCopyContext.pNext = pNameSpaceCopyContext;
+		pNameSpaceCopyContext = &curNameSpaceCopyContext;
+	}
+	for( auto p = pNameSpaceCopyContext; p; p = p->pNext )
+	{
+		auto n = p->pSrc->FindIDByNode( this );
+		if( n )
+			p->pDst->Add( pPrefabNode, n );
+	}
+
 	pPrefabNode->m_nType = m_nType;
 	if( pContext )
 		pPrefabNode->m_bIsInstance = true;
@@ -1054,7 +1593,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 		CBufFile tmpBuf;
 		pPatch->Read( tmpBuf );
 		if( tmpBuf.GetBufLen() )
-			m_obj.PatchData( pPrefabNode->m_obj, tmpBuf );
+			m_obj.PatchData( pPrefabNode->m_obj, tmpBuf, pNameSpace->pNameSpaceKey );
 		else
 			m_obj.CopyData( pPrefabNode->m_obj );
 	}
@@ -1094,7 +1633,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 				CResource* pResource = LoadResource( strResName.c_str() );
 				if( pResource )
 				{
-					pPrefabNode->LoadResourceExtraData( pResource, tmpBuf );
+					pPrefabNode->LoadResourceExtraData( pResource, tmpBuf, pNameSpace );
 					bLoadedRes = true;
 				}
 			}
@@ -1130,13 +1669,19 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 			if( !pPrefab || pPrefab->CanAddDependency( pRes ) )
 			{
 				pPrefabNode->m_pResource = pRes;
-				pPrefabNode->m_pPatchedNode = p->Clone( pPrefab, &context1 );
+				pPrefabNode->m_pPatchedNode = p->Clone( pPrefab, pNameSpace, &context1, pNameSpaceCopyContext );
 				//SetRenderObject( m_pPatchedNode->CreateInstance() );
 				pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode );
 				pPrefab->AddDependency( pRes );
 			}
 			bLoadedRes = true;
 		}
+	}
+	if( nPatchFlag & 64 )
+	{
+		auto nID = pPatch->Read<int32>();
+		if( nID )
+			pNameSpace->Add( pPrefabNode, nID );
 	}
 
 	if( !bLoadedRes )
@@ -1146,7 +1691,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 			if( m_pResource->GetResourceType() == eEngineResType_Prefab && m_pPatchedNode )
 			{
 				pPrefabNode->m_pResource = m_pResource;
-				pPrefabNode->m_pPatchedNode = m_pPatchedNode->Clone( NULL, NULL );
+				pPrefabNode->m_pPatchedNode = m_pPatchedNode->Clone( pPrefab, pNameSpace, NULL, pNameSpaceCopyContext );
 				//pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode->CreateInstance() );
 				pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode );
 			}
@@ -1232,7 +1777,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 		{
 			int32 n = pPatch->Read<int32>();
 			CPrefabNode* pChild = new CPrefabNode( pPrefab );
-			pChild->Load( *pPatch );
+			pChild->Load( *pPatch, pNameSpace );
 			vecExtraNodes.push_back( pair<int32, CPrefabNode*>( n, pChild ) );
 		}
 	}
@@ -1241,7 +1786,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 	{
 		for( ; i1 < vecExtraNodes.size() && vecExtraNodes[i1].first == i; i1++ )
 			pPrefabNode->AddChild( vecExtraNodes[i1].second );
-		pPrefabNode->AddChild( vecChildren[vecChildren.size() - 1 - i]->Clone( pPrefab, pContext ) );
+		pPrefabNode->AddChild( vecChildren[vecChildren.size() - 1 - i]->Clone( pPrefab, pNameSpace, pContext, pNameSpaceCopyContext ) );
 	}
 	for( ; i1 < vecExtraNodes.size(); i1++ )
 		pPrefabNode->AddChild( vecExtraNodes[i1].second );
@@ -1249,18 +1794,58 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, SPatchContext* pContext )
 	return pPrefabNode;
 }
 
-CRenderObject2D* CPrefabNode::CreateInstance()
+CRenderObject2D* CPrefabNode::CreateInstance( bool bNameSpace )
 {
+	if( bNameSpace )
+	{
+		if( m_bNamespaceDirty )
+			UpdateNameSpace();
+	}
 	vector<CRenderObject2D*> vecInst;
-	auto p = CreateInstance( vecInst );
+	auto p = CreateInstance( vecInst, bNameSpace );
 	vecInst.resize( 0 );
 	return p;
 }
 
-void CPrefabNode::Load( IBufReader& buf )
+void CPrefabNode::NameSpaceClearNode( CPrefabNode* pNode )
+{
+	m_nameSpace.Remove( pNode );
+
+	if( pNode->m_pPatchedNode )
+		NameSpaceClearNode( pNode->m_pPatchedNode );
+	for( CRenderObject2D* pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == pNode->m_pRenderObject )
+			continue;
+		CPrefabNode* pNode1 = SafeCast<CPrefabNode>( pChild );
+		if( pNode1 )
+			NameSpaceClearNode( pNode1 );
+	}
+}
+
+void CPrefabNode::FixNameSpace()
+{
+	map<int32, int32> mapID;
+	FixObjRef( mapID, m_nameSpace.pNameSpaceKey, 0 );
+	m_nameSpace.Fix( mapID );
+	FixObjRef( mapID, m_nameSpace.pNameSpaceKey, 1 );
+}
+
+void CPrefabNode::Load( IBufReader& buf, CPrefabNodeNameSpace* pNameSpace )
 {
 	buf.Read( m_nType );
-	buf.Read( m_strName );
+	string strName;
+	buf.Read( strName );
+	int nPos = strName.find( '\x01' );
+	if( nPos != string::npos )
+	{
+		auto str1 = strName.substr( nPos + 1 );
+		int32 nNamespaceID = atoi( str1.c_str() );
+		strName = strName.substr( 0, nPos );
+		if( nNamespaceID )
+			pNameSpace->Add( this, nNamespaceID );
+	}
+	m_strName = strName.c_str();
 	buf.Read( x );
 	buf.Read( y );
 	buf.Read( r );
@@ -1275,28 +1860,35 @@ void CPrefabNode::Load( IBufReader& buf )
 	{
 		CResource* pResource = LoadResource( strResourceName.c_str() );
 		if( pResource )
-			LoadResourceExtraData( pResource, extraData );
+			LoadResourceExtraData( pResource, extraData, pNameSpace );
 	}
 	else
 	{
 		LoadOtherExtraData( extraData );
 	}
-
-	m_obj.Load( buf, true );
+	m_obj.Load( buf, true, pNameSpace->pNameSpaceKey );
 
 	uint32 nChildren = buf.Read<uint32>();
 	for( int i = 0; i < nChildren; i++ )
 	{
 		CPrefabNode* pChild = new CPrefabNode( m_pPrefab );
-		pChild->Load( buf );
+		pChild->Load( buf, pNameSpace );
 		AddChild( pChild );
 	}
 }
 
-void CPrefabNode::Save( CBufFile& buf )
+void CPrefabNode::Save( CBufFile& buf, CPrefabNodeNameSpace* pNameSpace )
 {
 	buf.Write( m_nType );
-	buf.Write( m_strName );
+	string strName = m_strName;
+	int32 nNamespaceID = pNameSpace->FindIDByNode( this );
+	if( nNamespaceID )
+	{
+		char buf[32];
+		itoa( nNamespaceID, buf, 10 );
+		strName = strName + "\x01" + buf;
+	}
+	buf.Write( strName );
 	buf.Write( x );
 	buf.Write( y );
 	buf.Write( r );
@@ -1312,7 +1904,7 @@ void CPrefabNode::Save( CBufFile& buf )
 	if( !m_nType )
 	{
 		if( m_pResource )
-			SaveResourceExtraData( m_pResource, extraData );
+			SaveResourceExtraData( m_pResource, extraData, pNameSpace );
 	}
 	else
 		SaveOtherExtraData( extraData );
@@ -1333,8 +1925,65 @@ void CPrefabNode::Save( CBufFile& buf )
 	buf.Write( nChildren );
 	for( int i = nChildren - 1; i >= 0; i-- )
 	{
-		vecChildren[i]->Save( buf );
+		vecChildren[i]->Save( buf, pNameSpace );
 	}
+}
+
+
+class CPrefabNameSpaceKeyMgr
+{
+public:
+	typedef string KeyType;
+	KeyType* Get( const char* sz )
+	{
+		auto itr = m_items.find( sz );
+		if( itr == m_items.end() )
+		{
+			m_items.insert( sz );
+			itr = m_items.find( sz );
+		}
+		return (KeyType*)&( *m_items.find( sz ) );
+	}
+	const char* GetString( KeyType* p )
+	{
+		return p->c_str();
+	}
+
+	DECLARE_GLOBAL_INST_REFERENCE( CPrefabNameSpaceKeyMgr );
+private:
+	set<KeyType> m_items;
+};
+
+
+void CPrefabNode::FormatNamespaceString( void* pt, int32 n, string& result )
+{
+	stringstream ss;
+	ss << CPrefabNameSpaceKeyMgr::Inst().GetString( (CPrefabNameSpaceKeyMgr::KeyType*)pt );
+	ss << "#" << n;
+	result = ss.str();
+}
+
+CPrefabNode* CPrefab::GetNode( const char* szName )
+{
+	if( !szName || !szName[0] )
+		return m_pRoot;
+	auto itr = m_mapNodes.find( szName );
+	if( itr != m_mapNodes.end() )
+		return itr->second;
+	return NULL;
+}
+
+void* CPrefab::GetNameSpaceKey()
+{
+	return CPrefabNameSpaceKeyMgr::Inst().Get( GetName() );
+}
+
+void CPrefab::SetNode( CPrefabNode* pNode, const char* szName )
+{
+	if( szName && szName[0] )
+		m_mapNodes[szName] = pNode;
+	else
+		m_pRoot = pNode;
 }
 
 void CPrefab::Create()
@@ -1352,10 +2001,126 @@ void CPrefab::Create()
 void CPrefab::Load( IBufReader& buf )
 {
 	m_pRoot = new CPrefabNode( this );
-	m_pRoot->Load( buf );
+	m_pRoot->GetNameSpace().pNameSpaceKey = GetNameSpaceKey();
+	m_pRoot->Load( buf, &m_pRoot->GetNameSpace() );
+
+	int32 nExtraNodes;
+	if( buf.CheckedRead( nExtraNodes ) )
+	{
+		for( int i = 0; i < nExtraNodes; i++ )
+		{
+			CString key( "" );
+			buf.Read( key );
+			auto pNode = new CPrefabNode( this );
+			pNode->GetNameSpace().pNameSpaceKey = GetNameSpaceKey();
+			pNode->Load( buf, &pNode->GetNameSpace() );
+			m_mapNodes[key] = pNode;
+		}
+	}
 }
 
 void CPrefab::Save( CBufFile& buf )
 {
-	m_pRoot->Save( buf );
+	m_pRoot->Save( buf, &m_pRoot->GetNameSpace() );
+	int32 nExtraNodes = m_mapNodes.size();
+	buf.Write( nExtraNodes );
+	for( auto& item : m_mapNodes )
+	{
+		buf.Write( item.first );
+		item.second->Save( buf, &item.second->GetNameSpace() );
+	}
+}
+
+int32 CPrefabNodeNameSpace::FindIDByNode( CPrefabNode * pNode )
+{
+	auto itr = mapNodeToID.find( pNode );
+	return itr != mapNodeToID.end() ? itr->second : 0;
+}
+
+int32 CPrefabNodeNameSpace::FindOrGenIDByNode( CPrefabNode * pNode )
+{
+	auto itr = mapNodeToID.find( pNode );
+	if( itr != mapNodeToID.end() )
+		return itr->second;
+	auto newID = nLastID + 1;
+	Add( pNode, newID );
+	return newID;
+}
+
+CPrefabNode* CPrefabNodeNameSpace::FindNodeByID( int32 nID )
+{
+	auto itr = mapIDToNode.find( nID );
+	return itr != mapIDToNode.end() ? itr->second.GetPtr() : NULL;
+}
+
+void CPrefabNodeNameSpace::Add( CPrefabNode * pNode, int32 nID )
+{
+	mapIDToNode[nID] = pNode;
+	mapNodeToID[pNode] = nID;
+	nLastID = Max( nID, nLastID );
+}
+
+void CPrefabNodeNameSpace::Remove( CPrefabNode * pNode )
+{
+	int32 nID = FindIDByNode( pNode );
+	if( !nID )
+		return;
+	mapIDToNode.erase( nID );
+	mapNodeToID.erase( pNode );
+}
+
+void CPrefabNodeNameSpace::Fix( map<int32, int32>& result )
+{
+	vector<pair<int32, CReference<CPrefabNode> > > vec;
+	for( auto itr = mapIDToNode.begin(); itr != mapIDToNode.end(); itr++ )
+	{
+		if( result.find( itr->first ) != result.end() )
+			vec.push_back( *itr );
+	}
+
+	ClearInfo();
+	mapIDToNode.clear();
+	mapNodeToID.clear();
+	nLastID = 0;
+	for( auto& item : vec )
+	{
+		nLastID++;
+		mapIDToNode[nLastID] = item.second;
+		mapNodeToID[item.second] = nLastID;
+		result[item.first] = nLastID;
+	}
+}
+
+CPrefabNodeNameSpace::SNameSpaceInfo* CPrefabNodeNameSpace::AddNamespaceInfo( CPrefabNode * pNode )
+{
+	auto itr = mapNodeToID.find( pNode );
+	if( itr == mapNodeToID.end() )
+		return NULL;
+	auto info = &mapNameSpaceInfos[itr->second];
+	info->pClassData = pNode->GetFinalClassData();
+	return info;
+}
+
+void CPrefabNodeNameSpace::CheckInfos()
+{
+	for( auto& item : vecInfos )
+	{
+		auto itr = mapNameSpaceInfos.find( item.second->nID );
+		if( itr == mapNameSpaceInfos.end() )
+			continue;
+		if( !itr->second.pClassData->Is( item.second->pMemberData->pTypeData ) )
+			continue;
+		item.first = &itr->second;
+	}
+}
+
+void CPrefabNodeNameSpace::FillData()
+{
+	for( auto& item : vecInfos )
+	{
+		if( !item.first || !item.first->pCreatedInst || !item.second->pCreatedNodeData )
+			continue;
+		item.first->pCreatedInst->AddRef();
+		*(void**)item.second->pCreatedNodeData = item.first->pCreatedInst - item.second->nCastOffset;
+	}
 }

@@ -101,6 +101,20 @@ void CUITreeView::SetContentFolded( CContent* pContent, bool bFolded )
 	SetLayoutDirty();
 }
 
+void CUITreeView::FocusContent( CUITreeView::CTreeViewContent* pContent )
+{
+	auto p = pContent;
+	while( p )
+	{
+		SetContentFolded( p, false );
+		p = p->pParent;
+	}
+	DoLayout();
+	CVector2 pos = pContent->pElement->globalTransform.GetPosition();
+	CRectangle contentSize = pContent->pElement->globalAABB.Offset( pos * -1 );
+	FocusPoint( pContent->pElement->GetPosition() + CVector2( contentSize.x, contentSize.y ) );
+}
+
 CUITreeView::CTreeViewContent* CUITreeView::GetPrevSibling( CTreeViewContent* pContent )
 {
 	if( !pContent->pParent )

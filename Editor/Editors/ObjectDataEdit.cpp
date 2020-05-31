@@ -2,6 +2,20 @@
 #include "ObjectDataEdit.h"
 #include "Common/StringUtil.h"
 #include "Common/Utf8Util.h"
+#include "PrefabEditor.h"
+
+void CObjectDataEditItem::TreeViewFocus()
+{
+	m_pTreeView->FocusContent( m_pContent );
+	auto p = m_pContent;
+	while( p )
+	{
+		auto pTreeFolder = dynamic_cast<CTreeFolder*>( p->pElement.GetPtr() );
+		if( pTreeFolder )
+			pTreeFolder->SetChecked( false );
+		p = p->pParent;
+	}
+}
 
 CObjectDataCommonEdit::CObjectDataCommonEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
@@ -151,10 +165,18 @@ CObjectDataStringEdit::CObjectDataStringEdit( CUITreeView* pTreeView, CUITreeVie
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectDataStringEdit::OnEdit )
 {
-	CCommonEdit* pCommonEdit = CCommonEdit::Create( szName ? szName : pMetaData->strName.c_str() );
-	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pCommonEdit, pParent ) );
+	if( pMetaData->GetArg( "text" ) )
+	{
+		CTextEdit* pTextEdit = CTextEdit::Create( szName ? szName : pMetaData->strName.c_str() );
+		m_pEdit = pTextEdit;
+	}
+	else
+	{
+		CCommonEdit* pCommonEdit = CCommonEdit::Create( szName ? szName : pMetaData->strName.c_str() );
+		m_pEdit = pCommonEdit;
+	}
+	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( m_pEdit, pParent ) );
 	Register( &m_onEdit );
-	m_pEdit = pCommonEdit;
 	
 	RefreshData();
 }
@@ -219,6 +241,64 @@ void CObjectDataEnumEdit::OnEdit()
 		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
+CObjectDataObjRefEdit::CObjectDataObjRefEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
+	: CObjectDataEditItem( pTreeView, pData )
+	, m_onEdit( this, &CObjectDataObjRefEdit::OnEdit )
+{
+	CDropTargetEdit* pDropTargetEdit = CDropTargetEdit::Create( szName ? szName : pMetaData->strName.c_str() );
+	m_pContent = dynamic_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pDropTargetEdit, pParent ) );
+	Register( &m_onEdit );
+	m_pEdit = pDropTargetEdit;
+
+	RefreshData();
+}
+
+void CObjectDataObjRefEdit::RefreshData()
+{
+	auto pPrefabEditor = CPrefabEditor::Inst();
+	if( !pPrefabEditor || !pPrefabEditor->bVisible )
+	{
+		m_pEdit->SetText( "" );
+		return;
+	}
+	auto& data = *( TObjRef<CRenderObject2D>* )m_pData;
+	if( !data._pt || !data._n )
+	{
+		m_pEdit->SetText( "" );
+		return;
+	}
+	string str;
+	CPrefabNode::FormatNamespaceString( data._pt, data._n, str );
+	m_pEdit->SetText( str.c_str() );
+}
+
+void CObjectDataObjRefEdit::OnEdit( CUIElement* pParam )
+{
+	auto& data = *( TObjRef<CRenderObject2D>* )m_pData;
+	auto pPrefabEditor = CPrefabEditor::Inst();
+	if( !pPrefabEditor || !pPrefabEditor->bVisible )
+		return;
+	if( !pParam )
+	{
+		data._pt = NULL;
+		data._n = 0;
+	}
+	else
+	{
+		auto pDragDrop = dynamic_cast<CDragDropObjRef*>( pParam );
+		if( !pDragDrop )
+			return;
+		auto pPrefabNode = pDragDrop->GetNode();
+		auto pNode = pPrefabEditor->GetPrefabNode();
+		data._n = pNode->GetNameSpace().FindOrGenIDByNode( pPrefabNode );
+		data._pt = pNode->GetNameSpace().pNameSpaceKey;
+	}
+	RefreshData();
+
+	if( m_pContent->pParent )
+		m_pContent->pParent->pElement->Action( (void*)1 );
+}
+
 #define MAX_ARRAY_SIZE 128
 
 CObjectArrayEdit::CObjectArrayEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
@@ -260,13 +340,24 @@ void CObjectArrayEdit::OnDebugDraw( CUIViewport * pViewport, IRenderSystem * pRe
 	}
 }
 
-CObjectDataEditItem * CObjectArrayEdit::OnViewportStartDrag( CUIViewport * pViewport, const CVector2 & mousePos, const CMatrix2D & transform )
+CObjectDataEditItem* CObjectArrayEdit::OnViewportStartDrag( CUIViewport * pViewport, const CVector2 & mousePos, const CMatrix2D & transform )
 {
 	for( auto item = m_pChildren; item; item = item->NextItem() )
 	{
 		CObjectDataEditItem* pRet = item->OnViewportStartDrag( pViewport, mousePos, transform );
 		if( pRet )
 			return pRet;
+	}
+	return NULL;
+}
+
+CObjectDataEditItem* CObjectArrayEdit::GetChildItem( uint8* pData )
+{
+	for( auto p = m_pChildren; p; p = p->NextItem() )
+	{
+		auto pItem = p->GetChildItem( pData );
+		if( pItem )
+			return pItem;
 	}
 	return NULL;
 }
@@ -285,11 +376,18 @@ void CObjectArrayEdit::OnResize()
 		return;
 
 	if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeClass )
-		m_pMemberData->pTypeData->ResizeFunc( m_pData, nSize );
+	{
+		if( m_pMemberData->pTypeData == CClassMetaDataMgr::Inst().GetClassData<CString>() && ( m_pMemberData->nFlag & 1 ) )
+			( (TArray<TResourceRef<CResource> >*)m_pData )->Resize( nSize );
+		else
+			m_pMemberData->pTypeData->ResizeFunc( m_pData, nSize );
+	}
 	else
 		( (CRawArray*)m_pData )->Resize( nSize, m_pMemberData->GetDataSize() );
 
 	CreateItemEdit();
+	if( m_pContent->pParent )
+		m_pContent->pParent->pElement->Action( (void*)1 );
 }
 
 void CObjectArrayEdit::CreateItemEdit()
@@ -320,6 +418,10 @@ void CObjectArrayEdit::CreateItemEdit()
 			pChild = new CObjectDataVectorEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
 		else if( m_pMemberData->nType == SClassMetaData::SMemberData::eType_bool )
 			pChild = new CObjectDataBoolEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		else if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeObjRef )
+			pChild = new CObjectDataObjRefEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
+		else if( m_pMemberData->nType == SClassMetaData::SMemberData::eTypeCustomTaggedPtr )
+			pChild = new CObjectDataStringEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
 		else if( m_pMemberData->nType != SClassMetaData::SMemberData::eTypeTaggedPtr )
 			pChild = new CObjectDataCommonEdit( m_pTreeView, m_pContent, pData, m_pMemberData, szName );
 		if( pChild )
@@ -337,6 +439,8 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 
 	for( auto& memberData : pMetaData->vecMemberData )
 	{
+		if( memberData.GetArg( "editor_hide" ) )
+			continue;
 		CObjectDataEditItem* pChild = NULL;
 		if( !!( memberData.nFlag & 2 ) )
 			pChild = new CObjectArrayEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
@@ -353,6 +457,10 @@ CObjectDataEdit::CObjectDataEdit( CUITreeView* pTreeView, CUITreeView::CTreeView
 			pChild = new CObjectDataVectorEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
 		else if( memberData.nType == SClassMetaData::SMemberData::eType_bool )
 			pChild = new CObjectDataBoolEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
+		else if( memberData.nType == SClassMetaData::SMemberData::eTypeObjRef )
+			pChild = new CObjectDataObjRefEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
+		else if( memberData.nType == SClassMetaData::SMemberData::eTypeCustomTaggedPtr )
+			pChild = new CObjectDataStringEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
 		else if( memberData.nType != SClassMetaData::SMemberData::eTypeTaggedPtr )
 			pChild = new CObjectDataCommonEdit( pTreeView, m_pContent, pData + memberData.nOffset, &memberData );
 		if( pChild )
@@ -383,7 +491,7 @@ void CObjectDataEdit::RefreshData()
 	}
 }
 
-void CObjectDataEdit::OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform )
+void CObjectDataEdit::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform )
 {
 	for( auto item = m_pChildren; item; item = item->NextItem() )
 	{
@@ -391,13 +499,35 @@ void CObjectDataEdit::OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* 
 	}
 }
 
-CObjectDataEditItem* CObjectDataEdit::OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform )
+CObjectDataEditItem* CObjectDataEdit::OnViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform )
 {
 	for( auto item = m_pChildren; item; item = item->NextItem() )
 	{
 		CObjectDataEditItem* pRet = item->OnViewportStartDrag( pViewport, mousePos, transform );
 		if( pRet )
 			return pRet;
+	}
+	return NULL;
+}
+
+CObjectDataEditItem* CObjectDataEdit::OnViewportDrop( CUIViewport* pViewport, const CVector2& mousePos, CUIElement* pParam, const CMatrix2D& transform )
+{
+	for( auto item = m_pChildren; item; item = item->NextItem() )
+	{
+		CObjectDataEditItem* pRet = item->OnViewportDrop( pViewport, mousePos, pParam, transform );
+		if( pRet )
+			return pRet;
+	}
+	return NULL;
+}
+
+CObjectDataEditItem* CObjectDataEdit::GetChildItem( uint8* pData )
+{
+	for( auto p = m_pChildren; p; p = p->NextItem() )
+	{
+		auto pItem = p->GetChildItem( pData );
+		if( pItem )
+			return pItem;
 	}
 	return NULL;
 }

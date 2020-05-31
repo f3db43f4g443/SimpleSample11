@@ -22,6 +22,7 @@ public:
 
 	void RemoveContentTree( CContent* pContent );
 	void SetContentFolded( CContent* pContent, bool bFolded );
+	void FocusContent( CUITreeView::CTreeViewContent* pContent );
 
 	CTreeViewContent* GetPrevSibling( CTreeViewContent* pContent );
 	CTreeViewContent* GetNextSibling( CTreeViewContent* pContent );

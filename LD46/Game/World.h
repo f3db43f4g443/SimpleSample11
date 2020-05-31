@@ -11,6 +11,44 @@ struct SSubStage
 	bool bPaused;
 };
 
+struct SLevelData
+{
+	SLevelData( const SClassCreateContext& context ) {}
+	TResourceRef<CPrefab> pLevel;
+	CVector2 displayOfs;
+	int32 nDisplayLevel;
+};
+
+struct SWorldCfg
+{
+	SWorldCfg( const SClassCreateContext& context ) {}
+	TArray<SLevelData> arrLevelData;
+};
+
+enum EWorldCfgFileVersion
+{
+	EWorldCfgFileVersion_Cur = 0,
+};
+
+class CWorldCfgFile : public CResource
+{
+	friend class CWorldCfgEditor;
+public:
+	enum EType
+	{
+		eResType = eGameResType_WorldCfgFile,
+	};
+
+	CWorldCfgFile( const char* name, int32 type ) : CResource( name, type ), m_pWorldCfg( NULL ) {}
+	~CWorldCfgFile() { if( m_pWorldCfg ) delete m_pWorldCfg; }
+	void Create();
+	void Save( CBufFile& buf );
+
+	SWorldCfg& GetData() { return *m_pWorldCfg; }
+private:
+	SWorldCfg* m_pWorldCfg;
+};
+
 class CWorld
 {
 public:
@@ -22,16 +60,19 @@ public:
 	void CreatePlayer();
 	void Start();
 
+	SWorldCfg& GetWorldCfg() { return m_pWorldCfgFile->GetData(); }
 	void EnterStage( SStageEnterContext& enterContext );
 	void EnterStage( CPrefab* pStage, const TVector2<int32>& pos, int8 nDir );
 	void RestartStage();
 	void Update();
 	void Stop();
+	CStage* GetCurStage() { return m_pCurStage; }
 	
 	SSubStage* GetSubStage( uint32 nSlot ) { return nSlot < m_subStages.size()? &m_subStages[nSlot] : NULL; }
 	uint32 PlaySubStage( const char* szSubStageName, CUIViewport* pViewport );
 	void StopSubStage( uint32 nSlot );
 private:
+	CReference<CWorldCfgFile> m_pWorldCfgFile;
 	CStage* m_pCurStage;
 	CReference<CPlayer> m_pCurPlayer;
 	map<string, SStageContext> m_mapStageContexts;

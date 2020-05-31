@@ -102,6 +102,11 @@ public:
 
 	virtual void OnAddedToStage() {}
 	virtual void OnRemovedFromStage() {}
+
+	/*<-------------------For Script----------------------*/
+	void SetVisible( bool b ) { bVisible = b; }
+	CEntity* FindChildEntity( const char* szName );
+	/*--------------------For Script--------------------->*/
 protected:
 	virtual void OnAdded() override;
 	virtual void OnRemoved() override;

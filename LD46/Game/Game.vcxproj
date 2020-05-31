@@ -387,6 +387,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="..\Shader\Distortion.shader" />
     <None Include="..\Shader\Effect.shader" />
     <None Include="..\Shader\GSWrapTex.shader" />
     <None Include="..\Shader\Particle.shader" />
@@ -400,10 +401,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BasicElems.cpp" />
+    <ClCompile Include="CommonUtils.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
+    <ClCompile Include="Entities\MiscElem.cpp" />
+    <ClCompile Include="Entities\PawnAI.cpp" />
+    <ClCompile Include="Entities\UtilEntities.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="GameState.cpp" />
-    <ClCompile Include="GameUtil.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="MyGame.cpp" />
@@ -412,20 +416,25 @@
     <ClCompile Include="Physics\HitProxyData.cpp" />
     <ClCompile Include="PostEffects.cpp" />
     <ClCompile Include="MaterialShadersImplement.cpp" />
+    <ClCompile Include="ScriptUtil.cpp" />
     <ClCompile Include="Stage.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Attribute.h" />
     <ClInclude Include="BasicElems.h" />
+    <ClInclude Include="CommonUtils.h" />
     <ClInclude Include="Entities\EffectObject.h" />
+    <ClInclude Include="Entities\MiscElem.h" />
+    <ClInclude Include="Entities\PawnAI.h" />
+    <ClInclude Include="Entities\UtilEntities.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="GameState.h" />
-    <ClInclude Include="GameUtil.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GUI\StageDirector.h" />
     <ClInclude Include="MyGame.h" />
@@ -443,6 +452,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\Render\Render.vcxproj">
       <Project>{6cd527ef-a036-428c-9eb3-741c9acef674}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ScriptLua\ScriptLua.vcxproj">
+      <Project>{77459148-3089-4696-991c-37a7cdc90c3f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\UICommon\UICommon.vcxproj">
       <Project>{4a6e68f9-9d21-414b-8adb-b33c8c5639b5}</Project>

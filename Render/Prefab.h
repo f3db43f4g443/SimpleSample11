@@ -15,6 +15,7 @@ public:
 	CResource* GetResource() { return m_pResource; }
 	void SetResource( CResource* pResource ) { m_pResource = pResource; }
 	CRenderObject2D* GetRenderObject() { return m_pRenderObject; }
+	void ClearRenderObject() { m_pRenderObject = NULL; }
 	virtual void SetRenderObject( CRenderObject2D* pRenderObject );
 	virtual bool IsPreview() { return false; }
 	virtual void OnPreview() {}
@@ -58,20 +59,72 @@ protected:
 	CReference<CResource> m_pResource;
 };
 
+struct CPrefabNodeNameSpace
+{
+	CPrefabNodeNameSpace() : pNameSpaceKey( NULL ), nLastID( 0 ) {}
+	int32 FindIDByNode( CPrefabNode* pNode );
+	int32 FindOrGenIDByNode( CPrefabNode* pNode );
+	CPrefabNode* FindNodeByID( int32 nID );
+	void Add( CPrefabNode* pNode, int32 nID );
+	void Remove( CPrefabNode* pNode );
+	void Fix( map<int32, int32>& result );
+
+	void* pNameSpaceKey;
+	map<int32, CReference<CPrefabNode> > mapIDToNode;
+	map<CPrefabNode*, int32> mapNodeToID;
+	int32 nLastID;
+
+	struct SNameSpaceInfo
+	{
+		SNameSpaceInfo() : pCreatedInst( NULL ), pClassData( NULL ) {}
+		SClassMetaData* pClassData;
+		CRenderObject2D* pCreatedInst;
+	};
+	struct SObjPtrInfo
+	{
+		SObjPtrInfo( CPrefabNodeNameSpace* pNameSpace, SClassMetaData::SMemberData* pMemberData, int32 nID )
+			: pNameSpace( pNameSpace ), pMemberData( pMemberData ), nID( nID ), pCreatedNodeData( NULL )
+			, nCastOffset( pMemberData->pTypeData->GetBaseClassOfs( CClassMetaDataMgr::Inst().GetClassData<CRenderObject2D>() ) ) { }
+		CPrefabNodeNameSpace* pNameSpace;
+		SClassMetaData::SMemberData* pMemberData;
+		int32 nID;
+		int32 nCastOffset;
+		uint8* pCreatedNodeData;
+	};
+	SNameSpaceInfo* AddNamespaceInfo( class CPrefabNode* pNode );
+	void AddObjPtrInfo( SObjPtrInfo* pInfo )
+	{
+		vecInfos.push_back( pair<SNameSpaceInfo*, SObjPtrInfo*>( NULL, pInfo ) );
+	}
+	void CheckInfos();
+	void FillData();
+	void ClearInfo()
+	{
+		mapNameSpaceInfos.clear();
+		vecInfos.clear();
+	}
+	map<int32, SNameSpaceInfo> mapNameSpaceInfos;
+	vector<pair<SNameSpaceInfo*, SObjPtrInfo*> > vecInfos;
+};
+
 class CPrefabNode : public CPrefabBaseNode
 {
 	friend class CPrefabEditor;
 public:
-	CPrefabNode( class CPrefab* pPrefab ) : m_pPrefab( pPrefab ), m_nType( 0 ), m_bIsInstance( false ), m_bTaggedNodePtrInfoDirty( true ),
+	CPrefabNode( class CPrefab* pPrefab ) : m_pPrefab( pPrefab ), m_nType( 0 ), m_bIsInstance( false ), m_bTaggedNodePtrInfoDirty( true ), m_bNamespaceDirty( true ),
 		m_onResourceRefreshBegin( this, &CPrefabNode::OnResourceRefreshBegin ), m_onResourceRefreshEnd( this, &CPrefabNode::OnResourceRefreshEnd )
 	{
 		SetAutoUpdateAnim( true );
 	}
 	~CPrefabNode() { SetResource( NULL ); }
+	CPrefab* GetPrefab() { return m_pPrefab; }
+	void AddRef1();
+	void Release1();
 	CResource* GetResource() { return m_pResource; }
 	bool SetResource( CResource* pResource );
 	SClassMetaData* GetClassData() { return m_obj.GetClassData(); }
 	SClassMetaData* GetFinalClassData();
+	CPrefabBaseNode* GetFinalObjData();
 	bool SetClassName( const char* szName ) { return m_obj.SetClassName( szName ); }
 	uint8* GetObjData() { return m_obj.GetObjData(); }
 	bool IsInstance() { return m_bIsInstance; }
@@ -90,58 +143,71 @@ public:
 		CPrefabNode* pRoot;
 		map<string, CBufFile> mapPatches;
 	};
-	CPrefabNode* Clone( bool bForEditor = false );
-	CPrefabNode* Clone( CPrefab* pPrefab, SPatchContext* pContext = NULL );
-	CRenderObject2D* CreateInstance();
+	struct SNameSpaceCopyContext
+	{
+		SNameSpaceCopyContext() : pSrc( NULL ), pDst( NULL ), pNext( NULL ) {}
+		CPrefabNodeNameSpace* pSrc;
+		CPrefabNodeNameSpace* pDst;
+		SNameSpaceCopyContext* pNext;
+	};
+	CPrefabNode* Clone( CPrefab* pPrefab, CPrefabNodeNameSpace* pNameSpace = NULL, SPatchContext* pContext = NULL, SNameSpaceCopyContext* pNameSpaceCopyContext = NULL, bool bForRootElem = false );
+	CRenderObject2D* CreateInstance( bool bNameSpace = true );
+	CPrefabNodeNameSpace& GetNameSpace() { return m_nameSpace; }
+	void NameSpaceClearNode( CPrefabNode* pNode );
+	void FixNameSpace();
 
 	template<class T>
 	const T* GetStaticData()
 	{
-		if( m_bTaggedNodePtrInfoDirty )
-		{
-			UpdateTaggedNodePtrInfo();
-			UpdateResPtrInfo();
-			m_bTaggedNodePtrInfoDirty = false;
-		}
+		UpdateDirty();
 		return (const T*)m_obj.GetObjData();
 	}
 
 	template<class T>
 	const T* GetStaticDataSafe()
 	{
+		UpdateDirty();
+		return SafeCast<T>( GetFinalObjData() );
+	}
+	
+	void Load( IBufReader& buf, CPrefabNodeNameSpace* pNameSpace );
+	void Save( CBufFile& buf, CPrefabNodeNameSpace* pNameSpace );
+	static void FormatNamespaceString( void* pt, int32 n, string& result );
+protected:
+	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
+	void GetPathString( CPrefabNode* pRoot, string& str );
+	CRenderObject2D* CreateInstance( vector<CRenderObject2D*>& vecInst, bool bNameSpace );
+	void OnResourceRefreshBegin();
+	void OnResourceRefreshEnd();
+	void LoadResourceExtraData( CResource* pResource, IBufReader& extraData, CPrefabNodeNameSpace* pNameSpace );
+	void LoadOtherExtraData( IBufReader& extraData );
+	void SaveResourceExtraData( CResource* pResource, CBufFile& extraData, CPrefabNodeNameSpace* pNameSpace );
+	void SaveOtherExtraData( CBufFile& extraData );
+	void Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeNameSpace* pNameSpace );
+
+	void UpdateDirty()
+	{
 		if( m_bTaggedNodePtrInfoDirty )
 		{
 			UpdateTaggedNodePtrInfo();
 			UpdateResPtrInfo();
+			UpdatePrefabNodeRefInfo();
 			m_bTaggedNodePtrInfoDirty = false;
 		}
-		return SafeCast<T>( m_obj.GetObject() );
 	}
-	
-	void Load( IBufReader& buf );
-	void Save( CBufFile& buf );
-protected:
-	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
-	void GetPathString( CPrefabNode* pRoot, string& str );
-	CRenderObject2D* CreateInstance( vector<CRenderObject2D*>& vecInst );
-	void OnResourceRefreshBegin();
-	void OnResourceRefreshEnd();
-	void LoadResourceExtraData( CResource* pResource, IBufReader& extraData );
-	void LoadOtherExtraData( IBufReader& extraData );
-	void SaveResourceExtraData( CResource* pResource, CBufFile& extraData );
-	void SaveOtherExtraData( CBufFile& extraData );
-
-	void Diff( CPrefabNode* pNode, SPatchContext& context );
 
 	CPrefab* m_pPrefab;
 	uint8 m_nType;
 	bool m_bIsInstance;
+	bool m_bTaggedNodePtrInfoDirty;
+	bool m_bNamespaceDirty;
 	TObjectPrototype<CPrefabBaseNode> m_obj;
 	TClassTrigger<CPrefabNode> m_onResourceRefreshBegin;
 	TClassTrigger<CPrefabNode> m_onResourceRefreshEnd;
 
 	CReference<CPrefabNode> m_pPatchedNode;
 	CReference<CPrefabBaseNode> m_pPreviewNode;
+	CPrefabNodeNameSpace m_nameSpace;
 
 	struct STaggedNodePtrInfo
 	{
@@ -150,11 +216,14 @@ protected:
 		uint32 nOfs;
 		uint32 nChild;
 	};
-	bool m_bTaggedNodePtrInfoDirty;
-	vector<STaggedNodePtrInfo> m_vecTaggedNodePtrInfo;
-	void UpdateTaggedNodePtrInfo();
-	void UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo );
-
+	struct STaggedPrefabNodePtrInfo
+	{
+		STaggedPrefabNodePtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, CPrefabNode* pPrefabNode )
+			: pMemberData( pMemberData ), nOfs( nOfs ), pPrefabNode( pPrefabNode ) {}
+		SClassMetaData::SMemberData* pMemberData;
+		uint32 nOfs;
+		CPrefabNode* pPrefabNode;
+	};
 	struct SResPtrInfo
 	{
 		SResPtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, int8 nType ) : pMemberData( pMemberData ), nOfs( nOfs ), nType( nType ) {}
@@ -162,11 +231,50 @@ protected:
 		uint32 nOfs;
 		int8 nType;
 	};
+	struct SPrefabNodeRefInfo
+	{
+		SPrefabNodeRefInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, int8 nType, CPrefabNode* pPrefabNode )
+			: pMemberData( pMemberData ), nOfs( nOfs ), nType( nType ), pPrefabNode( pPrefabNode ) {}
+		SClassMetaData::SMemberData* pMemberData;
+		uint32 nOfs;
+		int8 nType;
+		CPrefabNode* pPrefabNode;
+	};
+
+	vector<CPrefabNodeNameSpace::SNameSpaceInfo*> m_vecNameSpaceInfo;
+	vector<CPrefabNodeNameSpace::SObjPtrInfo> m_vecObjPtrInfo;
+	vector<SResPtrInfo> m_vecObjPtrTemp;
+	struct SNameSpaceUpdateContext
+	{
+		SNameSpaceUpdateContext() : pNameSpace( NULL ), pNext( NULL ) {}
+		CPrefabNodeNameSpace* pNameSpace;
+		SNameSpaceUpdateContext* pNext;
+	};
+	void UpdateNameSpace( SNameSpaceUpdateContext* pContext = NULL );
+	int32 CreateObjPtrInfo( SNameSpaceUpdateContext* pContext, uint8* pObjData, int32 n );
+	void AddObjPtrInfo( SNameSpaceUpdateContext* pContext, uint8* p, SClassMetaData::SMemberData* pMemberData );
+	int32 CopyObjPtrInfo( uint8* pDest, uint8* pObjData, int32 n );
+	void CopyObjPtrInfo1( uint8* pDest, uint8* pObjData, SClassMetaData::SMemberData* pMemberData );
+	void FixObjRef( map<int32, int32>& mapID, void* pNameSpaceKey, int8 nPass );
+	int32 FixObjRefNode( map<int32, int32>& mapID, uint8* pObjData, int32 n, vector<SResPtrInfo>& vec, void* pNameSpaceKey, int8 nPass );
+	void FixObjRefNode1( map<int32, int32>& mapID, uint8* pObjData, SClassMetaData::SMemberData* pMemberData, void* pNameSpaceKey, int8 nPass );
+
+	vector<STaggedNodePtrInfo> m_vecTaggedNodePtrInfo;
+	vector<STaggedPrefabNodePtrInfo> m_vecTaggedPrefabNodePtrInfo;
+	void UpdateTaggedNodePtrInfo();
+	void UpdateTaggedNodePtrInfo( uint32& nIndex, string curName, map<string, STaggedNodePtrInfo*>& mapInfo );
+
 	vector<SResPtrInfo> m_vecResPtrInfo;
 	void UpdateResPtrInfo();
 	int32 CreateResPtr( uint8* pObjData, int32 n );
 	int32 CopyResPtr( uint8* pDst, uint8* pObjData, int32 n );
+
+	vector<SPrefabNodeRefInfo> m_vecPrefabNodeRefInfo;
+	void UpdatePrefabNodeRefInfo();
+	int32 CreatePrefabNodeRef( uint8* pObjData, int32 n );
+	int32 CopyPrefabNodeRef( uint8* pDst, uint8* pObjData, int32 n );
 };
+typedef TCustomTaggedRef<CPrefabNode> CPrefabNodeRef;
 
 class CPrefab : public CResource
 {
@@ -180,8 +288,13 @@ public:
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );
 	CPrefabNode* GetRoot() { return m_pRoot; }
+	CPrefabNode* GetNode( const char* szName );
+	void* GetNameSpaceKey();
 
-	void SetNode( CPrefabNode* pNode ) { m_pRoot = pNode; }
+	void SetNode( CPrefabNode* pNode, const char* szName = NULL );
+	map<CString, CReference<CPrefabNode> >& GetAllExtraNodes() { return m_mapNodes; }
+	void ClearExtraNode() { m_mapNodes.clear(); }
 private:
 	CReference<CPrefabNode> m_pRoot;
+	map<CString, CReference<CPrefabNode> > m_mapNodes;
 };

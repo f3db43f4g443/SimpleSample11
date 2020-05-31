@@ -1,11 +1,11 @@
 #include "Common.h"
 #include "Trigger.h"
 
-void CTrigger::OnTimer()
+void CTrigger::OnTimer( void* pContext )
 {
 	RemoveFrom_Trigger();
 	__pPrevTrigger = NULL;
-	Run( NULL );
+	Run( pContext );
 }
 
 void CTrigger::Unregister()

@@ -57,6 +57,32 @@ private:
 	TClassTrigger<CVectorEdit> m_onEdit[4];
 };
 
+class CTextEdit : public CUILabel
+{
+public:
+	static CTextEdit* Create( const char* szName );
+
+	CUILabel* GetLabel() { return GetChildByName<CUILabel>( "label" ); }
+protected:
+	virtual void OnInited() override;
+	void OnClick( const CVector2& mousePos ) override;
+	void OnEditOK( const wchar_t* sz );
+	string m_str;
+	TClassTrigger1<CTextEdit, const wchar_t*> m_onEditOK;
+};
+
+class CDropTargetEdit : public CUILabel
+{
+public:
+	static CDropTargetEdit* Create( const char* szName );
+	virtual void OnMouseUp( const CVector2& mousePos ) override;
+	CUILabel* GetLabel() { return GetChildByName<CUILabel>( "label" ); }
+protected:
+	virtual void OnInited() override;
+	void OnClear() { m_events.Trigger( eEvent_Action, NULL ); }
+	TClassTrigger<CDropTargetEdit> m_onClear;
+};
+
 class CFileNameEdit : public CUILabel
 {
 public:
@@ -141,6 +167,20 @@ private:
 	uint32 m_nSelectedItem;
 	vector<SItem> m_items;
 	map<string, uint32> m_itemIndex;
+};
+
+class CTextEditDialog : public CUITextBox
+{
+public:
+	void Show( const wchar_t* sz, CTrigger* pOnOK );
+	static CTextEditDialog* Inst();
+protected:
+	virtual void OnInited() override;
+	void OnOk();
+	void OnCancel();
+	CTrigger* m_pOnOK;
+	TClassTrigger<CTextEditDialog> m_onOk;
+	TClassTrigger<CTextEditDialog> m_onCancel;
 };
 
 class CFileSelectDialog : public CFileView

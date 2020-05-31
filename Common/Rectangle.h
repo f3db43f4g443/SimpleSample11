@@ -18,6 +18,7 @@ public:
 	TRectangle operator* (const T& t) const;
 	TRectangle operator* (const TVector2<T>& vec) const;
 	TRectangle operator* (const TMatrix2D<T>& mat) const;
+	TRectangle operator/ ( const T& t ) const;
 
 	T GetLeft() const;
 	T GetTop() const;

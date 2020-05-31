@@ -75,3 +75,4 @@ static className* Inst() \
 #else
 #define ASSERT( a )
 #endif
+#define VERIFY( a ) { if( !( a ) ) *(int32*)NULL = 0; }

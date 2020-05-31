@@ -36,6 +36,7 @@ protected:
 
 	void SetPercentX( float fPercent ) { if( m_pBarX ) m_pBarX->SetPercent( fPercent ); }
 	void SetPercentY( float fPercent ) { if( m_pBarY ) m_pBarY->SetPercent( fPercent ); }
+	void FocusPoint( const CVector2& p );
 
 	virtual void OnInited() override;
 	virtual void DoLayout() override;

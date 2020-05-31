@@ -8,6 +8,7 @@ CFontObject::CFontObject( CFontFile* pFontFile, uint16 nSize, CDrawable2D* pDraw
 	, m_bInvertY( bInvertY )
 	, m_bEditMode( false )
 	, m_bMultiLine( false )
+	, m_bAutoLine( false )
 	, m_editOfs( 0, 0 )
 	, m_cursorPos( 0, 0 )
 	, m_selectPos( 0, 0 )
@@ -46,12 +47,19 @@ void CFontObject::SetAlignment( uint8 nAlignment )
 	SetText( m_strText.c_str() );
 }
 
+void CFontObject::SetAutoLine( bool bAutoLine )
+{
+	m_bAutoLine = bAutoLine;
+	SetText( m_strText.c_str() );
+}
+
 CFontObject* CFontObject::Clone()
 {
 	bool bGUI = m_pGUIDrawable ? true : false;
 	CFontObject* pFontObject = new CFontObject( m_pFontFile, m_pFont->GetSize(),
 		!bGUI ? m_pColorDrawable : m_pGUIDrawable, !bGUI ? m_pOcclusionDrawable : NULL, m_localBound, m_nAlignment, bGUI, m_bInvertY );
 	pFontObject->SetMultiLine( m_bMultiLine );
+	pFontObject->SetAutoLine( m_bAutoLine );
 	pFontObject->SetText( m_strText.c_str() );
 	pFontObject->SetColor( m_color );
 	pFontObject->SetSelectionColor( m_selectionColor );
@@ -95,15 +103,27 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 	}
 
 	CVector2 pen( 0, 0 );
-	uint32 nColumn = 0;
-	uint32 nLines = 0;
-	uint32 nMaxLineWidth = 0;
+	int32 nColumn = 0;
+	int32 nLines = 0;
+	int32 nMaxLineWidth = 0;
 	int i;
 	for( int i = 0; i < m_strText.length(); i++ )
 	{
 		auto& character = m_characters[i];
 		if( m_strText[i] == L'\n' || m_strText[i] == L'\r' )
 		{
+			if( m_bAutoLine )
+			{
+				float fLineLen = pen.x + 4;
+				if( fLineLen > m_localBound.width )
+				{
+					m_vecLineBeginIndex.push_back( i );
+					nColumn = 0;
+					nLines++;
+					pen.x = 0;
+					pen.y += m_pFont->GetSize();
+				}
+			}
 			character.rect = CRectangle( 0, 0, 0, 0 );
 			character.hitRect = CRectangle( pen.x, pen.y - m_pFont->GetBaseLine() - m_pFont->GetSize(), 4, m_pFont->GetSize() );
 			character.nColumn = nColumn;
@@ -115,20 +135,31 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 				nMaxLineWidth = pen.x;
 			pen.x = 0;
 			nColumn = 0;
-			continue;
 		}
-
-		auto& characterInfo = m_pFont->Cache( m_strText[i] );
-		character.rect = characterInfo.rect.Offset( pen );
-		character.texRect = characterInfo.texRect;
-		character.nTextureIndex = characterInfo.textureIndex;
-
-		character.hitRect = CRectangle( pen.x, pen.y - m_pFont->GetBaseLine() - m_pFont->GetSize(), characterInfo.xAdvance, m_pFont->GetSize() );
-		character.nColumn = nColumn;
-		character.nRow = nLines;
-
-		pen.x += characterInfo.xAdvance;
-		nColumn++;
+		else
+		{
+			auto& characterInfo = m_pFont->Cache( m_strText[i] );
+			if( m_bAutoLine )
+			{
+				float fLineLen = pen.x + characterInfo.xAdvance;
+				if( fLineLen > m_localBound.width )
+				{
+					m_vecLineBeginIndex.push_back( i );
+					nColumn = 0;
+					nLines++;
+					pen.x = 0;
+					pen.y += m_pFont->GetSize();
+				}
+			}
+			character.rect = characterInfo.rect.Offset( pen );
+			character.texRect = characterInfo.texRect;
+			character.nTextureIndex = characterInfo.textureIndex;
+			character.hitRect = CRectangle( pen.x, pen.y - m_pFont->GetBaseLine() - m_pFont->GetSize(), characterInfo.xAdvance, m_pFont->GetSize() );
+			character.nColumn = nColumn;
+			character.nRow = nLines;
+			pen.x += characterInfo.xAdvance;
+			nColumn++;
+		}
 	}
 	if( pen.x > nMaxLineWidth )
 		nMaxLineWidth = pen.x;
@@ -164,7 +195,7 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 	else
 	{
 		ofs = m_editOfs;
-		uint32 nCharacterBeginIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
+		int32 nCharacterBeginIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
 		float cursorX1 = m_cursorPos.x ? m_characters[nCharacterBeginIndex + m_cursorPos.x - 1].hitRect.GetRight() : 0;
 		float cursorX0 = m_cursorPos.x > 1 ? m_characters[nCharacterBeginIndex + m_cursorPos.x - 2].hitRect.GetRight() : 0;
 		float cursorY1 = m_cursorPos.y * m_pFont->GetSize() - m_pFont->GetBaseLine();
@@ -208,7 +239,7 @@ void CFontObject::SetText( const wchar_t* szText, int32 nCursorIndex )
 	}
 }
 
-void CFontObject::SetCursor( uint32 nIndex )
+void CFontObject::SetCursor( int32 nIndex )
 {
 	if( !m_bEditMode )
 		return;
@@ -226,9 +257,9 @@ void CFontObject::SetCursor( uint32 nIndex )
 	}
 }
 
-TVector2<uint32> CFontObject::GetCursorPosByLocalPos( const CVector2& localPos )
+TVector2<int32> CFontObject::GetCursorPosByLocalPos( const CVector2& localPos )
 {
-	TVector2<uint32> cursorPos;
+	TVector2<int32> cursorPos;
 	cursorPos.y = floor( ( ( m_bInvertY ? localPos.y : -localPos.y ) - m_editOfs.y + m_pFont->GetBaseLine() + m_pFont->GetSize() ) / m_pFont->GetSize() );
 	if( cursorPos.y > m_vecLineBeginIndex.size() )
 	{
@@ -237,14 +268,16 @@ TVector2<uint32> CFontObject::GetCursorPosByLocalPos( const CVector2& localPos )
 	}
 	else
 	{
-		uint32 iIndex = cursorPos.y ? m_vecLineBeginIndex[cursorPos.y - 1] : 0;
-		uint32 iIndex1;
+		int32 iIndex = cursorPos.y ? m_vecLineBeginIndex[cursorPos.y - 1] : 0;
+		int32 iIndex1;
 		float cursorX = localPos.x;
 		for( iIndex1 = iIndex; iIndex1 < m_characters.size(); iIndex1++ )
 		{
 			auto& character = m_characters[iIndex1];
 			wchar_t ch = m_strText[iIndex1];
 			if( ch == L'\n' || ch == L'\r' )
+				break;
+			if( character.nRow != cursorPos.y )
 				break;
 			if( character.hitRect.GetRight() > cursorX )
 				break;
@@ -265,17 +298,17 @@ CRectangle CFontObject::GetCursorShowRect()
 		yMax = -yMin;
 		yMin = -fTemp;
 	}
-	uint32 iIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
+	int32 iIndex = m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0;
 	float xMin = m_cursorPos.x ? m_characters[iIndex + m_cursorPos.x - 1].hitRect.GetRight() : 0;
 	return CRectangle( xMin, yMin, 1, yMax - yMin ) * m_localBound;
 }
 
-uint32 CFontObject::GetSelectRectCount()
+int32 CFontObject::GetSelectRectCount()
 {
 	if( m_selectPos == m_cursorPos )
 		return 0;
 
-	TVector2<uint32> a, b;
+	TVector2<int32> a, b;
 	if( m_selectPos.y > m_cursorPos.y || m_selectPos.y == m_cursorPos.y && m_selectPos.x > m_cursorPos.x )
 	{
 		a = m_cursorPos;
@@ -290,9 +323,9 @@ uint32 CFontObject::GetSelectRectCount()
 	return b.y - a.y + ( b.x ? 1 : 0 );
 }
 
-CRectangle CFontObject::GetSelectRect( uint32 nIndex )
+CRectangle CFontObject::GetSelectRect( int32 nIndex )
 {
-	TVector2<uint32> a, b;
+	TVector2<int32> a, b;
 	if( m_selectPos.y > m_cursorPos.y || m_selectPos.y == m_cursorPos.y && m_selectPos.x > m_cursorPos.x )
 	{
 		a = m_cursorPos;
@@ -304,16 +337,16 @@ CRectangle CFontObject::GetSelectRect( uint32 nIndex )
 		b = m_cursorPos;
 	}
 
-	uint32 nRow = a.y + nIndex;
+	int32 nRow = a.y + nIndex;
 
-	uint32 nBeginIndex;
+	int32 nBeginIndex;
 	if( nRow > a.y )
 		nBeginIndex = GetLineBeginIndex( nRow );
 	else
 		nBeginIndex = GetLineBeginIndex( a.y ) + a.x;
 	auto rect = m_characters[nBeginIndex].hitRect;
 
-	uint32 nEndIndex;
+	int32 nEndIndex;
 	if( nRow < b.y )
 		nEndIndex = nRow - 1 < GetLineCount() ? GetLineBeginIndex( nRow + 1 ) : m_characters.size();
 	else
@@ -342,18 +375,18 @@ void CFontObject::EndEdit()
 {
 	m_bEditMode = false;
 	SetText( m_strText.c_str() );
-	m_cursorPos = m_selectPos = TVector2<uint32>( 0, 0 );
+	m_cursorPos = m_selectPos = TVector2<int32>( 0, 0 );
 }
 
 void CFontObject::Insert( const wchar_t* szText )
 {
 	if( !m_bEditMode )
 		return;
-	uint32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
-	uint32 nIndex1 = ( m_selectPos.y ? m_vecLineBeginIndex[m_selectPos.y - 1] : 0 ) + m_selectPos.x;
+	int32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
+	int32 nIndex1 = ( m_selectPos.y ? m_vecLineBeginIndex[m_selectPos.y - 1] : 0 ) + m_selectPos.x;
 	if( nIndex > nIndex1 )
 	{
-		uint32 temp = nIndex;
+		int32 temp = nIndex;
 		nIndex = nIndex1;
 		nIndex1 = temp;
 	}
@@ -363,7 +396,7 @@ void CFontObject::Insert( const wchar_t* szText )
 		str.erase( nIndex, nIndex1 - nIndex );
 	str.insert( nIndex, szText );
 
-	uint32 nNewIndex = nIndex + wcslen( szText );
+	int32 nNewIndex = nIndex + wcslen( szText );
 	SetText( str.c_str(), nNewIndex );
 	m_selectPos = m_cursorPos;
 }
@@ -378,7 +411,7 @@ void CFontObject::Delete()
 		return;
 	}
 
-	uint32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
+	int32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
 	if( nIndex >= m_strText.length() )
 		return;
 	wstring str = m_strText;
@@ -397,7 +430,7 @@ void CFontObject::Backspace()
 		return;
 	}
 
-	uint32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
+	int32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
 	if( !nIndex )
 		return;
 	wstring str = m_strText;
@@ -410,11 +443,11 @@ wstring CFontObject::GetSelectedText()
 {
 	if( !m_bEditMode )
 		return L"";
-	uint32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
-	uint32 nIndex1 = ( m_selectPos.y ? m_vecLineBeginIndex[m_selectPos.y - 1] : 0 ) + m_selectPos.x;
+	int32 nIndex = ( m_cursorPos.y ? m_vecLineBeginIndex[m_cursorPos.y - 1] : 0 ) + m_cursorPos.x;
+	int32 nIndex1 = ( m_selectPos.y ? m_vecLineBeginIndex[m_selectPos.y - 1] : 0 ) + m_selectPos.x;
 	if( nIndex > nIndex1 )
 	{
-		uint32 temp = nIndex;
+		int32 temp = nIndex;
 		nIndex = nIndex1;
 		nIndex1 = temp;
 	}
@@ -473,17 +506,17 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 	pRenderSystem->SetVertexBuffer( 0, CGlobalRenderResources::Inst()->GetVBQuad() );
 	pRenderSystem->SetIndexBuffer( CGlobalRenderResources::Inst()->GetIBQuad() );
 	
-	uint32 nMaxInst = m_material.GetMaxInst();
-	uint32 nExtraInstData = m_material.GetExtraInstData();
-	uint32 nInstStride = ( 2 + nExtraInstData ) * sizeof( CVector4 );
+	int32 nMaxInst = m_material.GetMaxInst();
+	int32 nExtraInstData = m_material.GetExtraInstData();
+	int32 nInstStride = ( 2 + nExtraInstData ) * sizeof( CVector4 );
 	float* fInstData = (float*)alloca( nMaxInst * nInstStride );
 	
-	uint32 nLastElemRenderedCount = 0;
+	int32 nLastElemRenderedCount = 0;
 	bool bShowCursor = (int)( floor( context.pRenderSystem->GetTotalTime() / 0.25 ) ) & 1;
 	while( m_pElement )
 	{
-		uint32 i1 = 0;
-		uint32 nOfs = 0;
+		int32 i1 = 0;
+		int32 nOfs = 0;
 		ITexture* pTexture = NULL;
 		while( m_pElement && i1 < nMaxInst )
 		{
@@ -495,12 +528,12 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 			tempCharacter.texRect = pFontObject->m_pFont->GetFirstBlockRect();
 			tempCharacter.nTextureIndex = -1;
 			auto& characters = pFontObject->m_characters;
-			uint32 nSelectRectCount = pFontObject->GetSelectRectCount();
+			int32 nSelectRectCount = pFontObject->GetSelectRectCount();
 			bool bCursor = pFontObject->IsEdit() && bShowCursor;
-			uint32 nElemCount = characters.size() + nSelectRectCount + ( bCursor ? 1 : 0 );
+			int32 nElemCount = characters.size() + nSelectRectCount + ( bCursor ? 1 : 0 );
 
-			uint32 iBegin = nLastElemRenderedCount;
-			uint32 iEnd = nElemCount;
+			int32 iBegin = nLastElemRenderedCount;
+			int32 iEnd = nElemCount;
 			if( iEnd - iBegin + i1 > nMaxInst )
 			{
 				iEnd = nMaxInst + iBegin - i1;
@@ -564,9 +597,9 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 					*pData++ = clippedRect.GetSizeX() / 2;
 					*pData++ = 0;
 					
-					uint32 texX = clippedTexRect.x * 2048;
+					int32 texX = clippedTexRect.x * 2048;
 					float dTexX = 1.0 - clippedTexRect.width;
-					uint32 texY = clippedTexRect.y * 2048;
+					int32 texY = clippedTexRect.y * 2048;
 					float dTexY = 1.0 - clippedTexRect.height;
 					*pData++ = texX + dTexX;
 					*pData++ = texY + dTexY;
@@ -587,9 +620,9 @@ void CFontDrawable::Flush( CRenderContext2D& context )
 					*pData++ = mat.m00;
 					*pData++ = mat.m10;
 
-					uint32 texX = character.texRect.x * 2048;
+					int32 texX = character.texRect.x * 2048;
 					float dTexX = 1.0 - character.texRect.width;
-					uint32 texY = character.texRect.y * 2048;
+					int32 texY = character.texRect.y * 2048;
 					float dTexY = 1.0 - character.texRect.height;
 					*pData++ = texX + dTexX;
 					*pData++ = texY + dTexY;

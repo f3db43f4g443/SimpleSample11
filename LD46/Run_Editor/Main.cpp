@@ -5,6 +5,7 @@
 #include "Render/SimpleRenderer.h"
 #include "Editor/HitProxyEdit.h"
 #include "Editor/LevelEdit.h"
+#include "Editor/WorldCfgEditor.h"
 #include "UICommon/UIFactory.h"
 
 #include "GlobalCfg.h"
@@ -30,6 +31,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 	InitGame();
 	InitEditor();
+	CEditor::Inst().RegisterEditor( CWorldCfgEditor::Inst(), "EditorRes/UI/world_editor.xml", "World Config(.w)", "w" );
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	pRenderSystem->SetRenderer( new CSimpleRenderer );

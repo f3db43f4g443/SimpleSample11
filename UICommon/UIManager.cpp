@@ -23,7 +23,7 @@ void CUIManager::RemoveElement( CUIElement* pElem )
 			pElem->OnStopDrag( CVector2( 0, 0 ) );
 			m_pDragged = NULL;
 		}
-		if( pElem == m_pFocus )
+		if( pElem == GetFocus() )
 			SetFocus( NULL );
 		RemoveElement( pElem );
 		return true;
@@ -37,8 +37,10 @@ CUIElement* CUIManager::HandleMouseDown( const CVector2& mousePos )
 	if( m_bMouseDown )
 		return NULL;
 	m_bMouseDown = true;
-	CUIElement* pElement = m_modalElements.size() ? m_modalElements.back()->MouseDown( mousePos ) : MouseDown( mousePos );
+	CReference<CUIElement> pElement = m_modalElements.size() ? m_modalElements.back()->MouseDown( mousePos ) : MouseDown( mousePos );
 	SetFocus( pElement );
+	if( pElement && pElement->GetMgr() != this )
+		pElement = NULL;
 	m_pDragged = pElement;
 	if( m_pDragged )
 		m_pDragged->OnStartDrag( mousePos );
@@ -61,6 +63,11 @@ CUIElement* CUIManager::HandleMouseUp( const CVector2& mousePos )
 	{
 		pClicked->OnClick( mousePos );
 	}
+	if( m_pDragDropObj )
+	{
+		m_pDragDropObj->RemoveThis();
+		m_pDragDropObj = NULL;
+	}
 	return pElement;
 }
 
@@ -72,25 +79,30 @@ CUIElement* CUIManager::HandleMouseMove( const CVector2& mousePos )
 	{
 		if( m_pDragged )
 			m_pDragged->OnDragged( mousePos );
+		if( m_pDragDropObj )
+			m_pDragDropObj->SetPosition( m_mousePos );
 	}
 	return pElement;
 }
 
 void CUIManager::HandleKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 {
-	if( m_pFocus )
-		m_pFocus->OnKey( nChar, bKeyDown, bAltDown );
+	auto pFocus = GetFocus();
+	if( pFocus )
+		pFocus->OnKey( nChar, bKeyDown, bAltDown );
 }
 
 void CUIManager::HandleChar( uint32 nChar )
 {
-	if( m_pFocus )
-		m_pFocus->OnChar( nChar );
+	auto pFocus = GetFocus();
+	if( pFocus )
+		pFocus->OnChar( nChar );
 }
 
 void CUIManager::SetFocus( CUIElement* pFocus )
 {
-	if( pFocus == m_pFocus )
+	DEFINE_TEMP_REF( pFocus );
+	if( pFocus == GetFocus() )
 		return;
 
 	CUIElement* pParent;
@@ -122,6 +134,13 @@ void CUIManager::SetFocus( CUIElement* pFocus )
 	if( pFocus )
 	{
 		pElement = pFocus;
+		while( pElement && pElement != pParent )
+		{
+			pElement = dynamic_cast<CUIElement*>( pElement->GetParent() );
+		}
+		if( !pElement )
+			return;
+		pElement = pFocus;
 		while( pElement != pParent )
 		{
 			pElement->SetActive( true );
@@ -129,6 +148,22 @@ void CUIManager::SetFocus( CUIElement* pFocus )
 		}
 		pFocus->OnSetFocused( true );
 	}
+}
+
+void CUIManager::DragDrop( CUIElement* pObj )
+{
+	if( !m_pDragged )
+		return;
+	if( m_pDragDropObj )
+	{
+		m_pDragDropObj->RemoveThis();
+		m_pDragDropObj = NULL;
+	}
+	m_pDragged = NULL;
+	m_pDragDropObj = pObj;
+	AddChild( m_pDragDropObj );
+	m_pDragDropObj->MoveToTopmost();
+	m_pDragDropObj->SetPosition( m_mousePos );
 }
 
 void CUIManager::DoModal( CUIElement* pElement )

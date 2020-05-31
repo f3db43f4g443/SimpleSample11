@@ -252,13 +252,14 @@ void CUILabel::LoadXml( TiXmlElement* pRoot )
 	m_textRect.SetTop( m_localBound.GetTop() + XmlGetAttr( pRoot, "textTop", m_textRect.GetTop() - m_localBound.GetTop() ) );
 	m_textRect.SetRight( m_localBound.GetRight() - XmlGetAttr( pRoot, "textRight", m_localBound.GetRight() - m_textRect.GetRight() ) );
 	m_textRect.SetBottom( m_localBound.GetBottom() - XmlGetAttr( pRoot, "textBottom", m_localBound.GetBottom() - m_textRect.GetBottom() ) );
+	m_pTextObject->SetRect( m_textRect );
 	m_nTextRectAlignment = XmlGetAttr( pRoot, "textRectAlignX", m_nTextRectAlignment & 3 )
 		| ( XmlGetAttr( pRoot, "textRectAlignY", ( m_nTextRectAlignment >> 2 ) & 3 ) << 2 );
 	uint8 nAlignment = XmlGetAttr( pRoot, "textAlignX", (uint32)m_pTextObject->GetAlignX() )
 		| ( XmlGetAttr( pRoot, "textAlignY", (uint32)m_pTextObject->GetAlignY() ) << 2 );
 	m_pTextObject->SetAlignment( nAlignment );
-
 	m_pTextObject->SetMultiLine( XmlGetAttr( pRoot, "multiline", 0 ) );
+	m_pTextObject->SetAutoLine( XmlGetAttr( pRoot, "autoline", 0 ) );
 	wstring strText;
 	const char* szText = XmlGetAttr( pRoot, "text", "" );
 	Utf8ToUnicode( szText, strText );

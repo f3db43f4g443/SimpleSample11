@@ -1131,7 +1131,7 @@ void CParticleSystemObject::CopyData( CParticleSystemObject* pObj )
 		auto pClassData = CClassMetaDataMgr::Inst().GetClassData( pEmitter );
 		CBufFile buf;
 		pClassData->PackData( (uint8*)pEmitter, buf, false );
-		auto pEmitter1 = (IParticleEmitter*)pClassData->NewObjFromData( buf, false );
+		auto pEmitter1 = (IParticleEmitter*)pClassData->NewObjFromData( buf, false, NULL );
 		pObj->GetInstanceData()->SetEmitter( pEmitter1 );
 	}
 }
@@ -1144,7 +1144,7 @@ void CParticleSystemObject::LoadExtraData( IBufReader& buf )
 	string className;
 	buf.Read( className );
 	auto pClassData = CClassMetaDataMgr::Inst().GetClassData( className.c_str() );
-	auto pEmitter = (IParticleEmitter*)pClassData->NewObjFromData( buf, true );
+	auto pEmitter = (IParticleEmitter*)pClassData->NewObjFromData( buf, true, NULL );
 	pInstanceData->SetEmitter( pEmitter );
 }
 

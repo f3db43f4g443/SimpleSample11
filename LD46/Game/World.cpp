@@ -5,6 +5,23 @@
 #include "GlobalCfg.h"
 #include "FileUtil.h"
 
+
+void CWorldCfgFile::Create()
+{
+	vector<char> fileContent;
+	GetFileContent( fileContent, GetName(), false );
+	if( !fileContent.size() )
+		return;
+	CBufReader bufReader( &fileContent[0], fileContent.size() );
+	m_pWorldCfg = (SWorldCfg*)CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>()->NewObjFromData( bufReader, true, NULL );
+	m_bCreated = true;
+}
+
+void CWorldCfgFile::Save( CBufFile& buf )
+{
+	CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>()->PackData( (uint8*)m_pWorldCfg, buf, true );
+}
+
 CWorld::CWorld()
 	: m_pCurStage( NULL )
 	, m_bUpdating( false )
@@ -39,7 +56,7 @@ void CWorld::Start()
 	context.enterPos = TVector2<int32>( 0, 0 );
 	context.nEnterDir = 0;
 
-	const char* szSubStageName = "test.pf";
+	const char* szSubStageName = "main.pf";
 	auto itr = m_mapStageContexts.find( szSubStageName );
 	if( itr == m_mapStageContexts.end() )
 	{
@@ -124,15 +141,6 @@ void CWorld::Update()
 			m_subStages[i].pStage->Update();
 	}
 	m_bUpdating = false;
-	if( m_pCurStage && !m_pCurStage->GetLevel()->GetPlayer() )
-	{
-		m_pCurPlayer = NULL;
-		m_nRestartTime++;
-		if( m_nRestartTime == 90 )
-			m_bChangeStage = true;
-	}
-	else
-		m_nRestartTime = 0;
 }
 
 void CWorld::Stop()
@@ -201,4 +209,17 @@ void CWorld::StopSubStage( uint32 nSlot )
 	subStage.pStage = NULL;
 	subStage.pViewport->SetGUICamera( NULL, NULL );
 	subStage.pViewport = NULL;
+}
+
+void RegisterGameClasses_World()
+{
+	REGISTER_CLASS_BEGIN( SLevelData )
+		REGISTER_MEMBER( pLevel )
+		REGISTER_MEMBER( displayOfs )
+		REGISTER_MEMBER( nDisplayLevel )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SWorldCfg )
+		REGISTER_MEMBER( arrLevelData )
+	REGISTER_CLASS_END()
 }

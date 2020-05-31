@@ -10,6 +10,49 @@
 #include "Common/Rand.h"
 #include "Editor.h"
 
+CDragDropObjRef* CDragDropObjRef::Create( CPrefabNode* pNode )
+{
+	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/dragdropobjref.xml" );
+	auto pElem = new CDragDropObjRef;
+	g_pRes->GetElement()->Clone( pElem );
+	pElem->SetText( pNode->GetName() );
+	pElem->m_pNode = pNode;
+	return pElem;
+}
+
+
+class CPrefabListItem : public CUIButton
+{
+	friend class CPrefabEditor;
+public:
+	static void Create( CPrefabEditor* pPrefabView, CUIScrollView* pView, const char* szName )
+	{
+		static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/fileselect_item.xml" );
+		auto pItem = new CPrefabListItem;
+		g_pRes->GetElement()->Clone( pItem );
+		pView->AddContent( pItem );
+		pItem->m_pPrefabView = pPrefabView;
+		pItem->m_name = szName;
+		pItem->SetText( szName && szName[0] ? szName : "---ROOT---" );
+	}
+
+protected:
+	virtual void OnInited() override
+	{
+		m_onSelect.Set( this, &CPrefabListItem::OnSelect );
+		Register( eEvent_Action, &m_onSelect );
+	}
+	void OnSelect()
+	{
+		m_pPrefabView->SelectItem( m_name.c_str() );
+	}
+private:
+	CPrefabEditor* m_pPrefabView;
+	string m_name;
+	TClassTrigger<CPrefabListItem> m_onSelect;
+};
+
+
 class CPrefabNodeTreeFolder : public CTreeFolder
 {
 	friend class CPrefabEditor;
@@ -55,14 +98,32 @@ protected:
 	{
 		CTreeFolder::OnInited();
 		m_onSelect.Set( this, &CPrefabNodeTreeFolder::OnSelect );
-		GetChildByName<CUIButton>( "label" )->Register( eEvent_Action, &m_onSelect );
+		m_onStartDrag.Set( this, &CPrefabNodeTreeFolder::OnLabelStartDrag );
+		m_onDragged.Set( this, &CPrefabNodeTreeFolder::OnLabelDragged );
+		auto p = GetChildByName<CUIButton>( "label" );
+		p->Register( eEvent_Action, &m_onSelect );
+		p->Register( eEvent_StartDrag, &m_onStartDrag );
+		p->Register( eEvent_Dragged, &m_onDragged );
 	}
 	void OnSelect()
 	{
 		m_pView->SelectNode( m_pNode, m_pContent );
 		GetMgr()->SetFocus( this );
 	}
-
+	void OnLabelStartDrag( SUIMouseEvent* mouseEvent )
+	{
+		CVector2& mousePos = mouseEvent->mousePos;
+		m_dragBegin = mousePos;
+	}
+	void OnLabelDragged( SUIMouseEvent* mouseEvent )
+	{
+		CVector2& mousePos = mouseEvent->mousePos;
+		if( ( mousePos - m_dragBegin ).Length2() >= 16 * 16 )
+		{
+			auto p = CDragDropObjRef::Create( m_pNode );
+			GetMgr()->DragDrop( p );
+		}
+	}
 	virtual void OnChar( uint32 nChar ) override
 	{
 		if( m_nType )
@@ -94,41 +155,71 @@ protected:
 	CPrefabNode* m_pNode;
 	int8 m_nType;
 	TClassTrigger<CPrefabNodeTreeFolder> m_onSelect;
+	TClassTrigger1<CPrefabNodeTreeFolder, SUIMouseEvent*> m_onStartDrag;
+	TClassTrigger1<CPrefabNodeTreeFolder, SUIMouseEvent*> m_onDragged;
+	CVector2 m_dragBegin;
 };
 
 void CPrefabEditor::NewFile( const char* szFileName )
 {
 	SelectNode( NULL, NULL );
 	m_pSceneView->ClearContent();
-	if( m_pClonedPrefab )
+	m_pItemView->ClearContent();
+	if( m_pSelectedPrefab )
 	{
-		m_pClonedPrefab->RemoveThis();
-		m_pClonedPrefab = NULL;
+		m_pSelectedPrefab->RemoveThis();
+		m_pSelectedPrefab = NULL;
 	}
-	m_pClonedPrefab = new CPrefabNode( NULL );
-	m_pViewport->GetRoot()->AddChild( m_pClonedPrefab );
-	SelectNode( m_pClonedPrefab, CPrefabNodeTreeFolder::Create( this, m_pSceneView, NULL, m_pClonedPrefab ) );
+	m_mapClonedPrefabs.clear();
 
-	Super::NewFile( szFileName );
+	m_pRes = CResourceManager::Inst()->CreateResource<CPrefab>( szFileName, true );
+	auto pNode = new CPrefabNode( m_pRes );
+	pNode->GetNameSpace().pNameSpaceKey = m_pRes->GetNameSpaceKey();
+	m_mapClonedPrefabs[""] = pNode;
+	RefreshItemView();
+	SelectItem( "" );
+	Save();
 }
 
 void CPrefabEditor::Refresh()
 {
 	SelectNode( NULL, NULL );
 	m_pSceneView->ClearContent();
-	if( m_pClonedPrefab )
+	m_pItemView->ClearContent();
+	if( m_pSelectedPrefab )
 	{
-		m_pClonedPrefab->RemoveThis();
-		m_pClonedPrefab = NULL;
+		m_pSelectedPrefab->RemoveThis();
+		m_pSelectedPrefab = NULL;
 	}
+	m_mapClonedPrefabs.clear();
 
 	if( m_pRes )
 	{
-		CPrefabNode* pNode = m_pRes->GetRoot()->Clone( true );
-		m_pClonedPrefab = pNode;
-		m_pViewport->GetRoot()->AddChild( m_pClonedPrefab );
-		RefreshSceneView( pNode, NULL );
-		SelectNode( pNode, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
+		CPrefabNode* pNode = m_pRes->GetRoot()->Clone( m_pRes );
+		m_mapClonedPrefabs[""] = pNode;
+		auto& extraNodes = m_pRes->GetAllExtraNodes();
+		for( auto& item : extraNodes )
+			m_mapClonedPrefabs[item.first] = item.second->Clone( m_pRes );
+		RefreshItemView();
+		SelectItem( "" );
+	}
+}
+
+CPrefabNode* CPrefabEditor::GetRootNode( const char* szName )
+{
+	auto itr = m_mapClonedPrefabs.find( szName );
+	ASSERT( itr != m_mapClonedPrefabs.end() );
+	return itr->second;
+}
+
+void CPrefabEditor::RefreshItemView()
+{
+	m_pItemView->ClearContent();
+	CPrefabListItem::Create( this, m_pItemView, "" );
+	for( auto& item : m_mapClonedPrefabs )
+	{
+		if( item.first != "" )
+			CPrefabListItem::Create( this, m_pItemView, item.first );
 	}
 }
 
@@ -163,7 +254,9 @@ void CPrefabEditor::OnInited()
 	Super::OnInited();
 	m_nNodeDebugDrawType = 1;
 	m_pSceneView = GetChildByName<CUITreeView>( "scene_view" );
+	m_pItemView = m_pSceneView->GetChildByName<CUITreeView>( "item_view" );
 	m_pNodeView = GetChildByName<CUITreeView>( "node_view" );
+	m_pItemName = m_pItemView->GetChildByName<CUITextBox>( "new_itemname" );
 
 	m_pNodeName = CCommonEdit::Create( "Name" );
 	m_pNodeView->AddContent( m_pNodeName );
@@ -198,6 +291,15 @@ void CPrefabEditor::OnInited()
 	m_pSceneView->GetChildByName( "copy" )->Register( eEvent_Action, &m_onCopy );
 	m_onPaste.Set( this, &CPrefabEditor::Paste );
 	m_pSceneView->GetChildByName( "paste" )->Register( eEvent_Action, &m_onPaste );
+
+	m_onNewItem.Set( this, &CPrefabEditor::NewItem );
+	m_pItemView->GetChildByName( "new" )->Register( eEvent_Action, &m_onNewItem );
+	m_onCloneItem.Set( this, &CPrefabEditor::CloneItem );
+	m_pItemView->GetChildByName( "clone" )->Register( eEvent_Action, &m_onCloneItem );
+	m_onRenameItem.Set( this, &CPrefabEditor::RenameItem );
+	m_pItemView->GetChildByName( "rename" )->Register( eEvent_Action, &m_onRenameItem );
+	m_onDeleteItem.Set( this, &CPrefabEditor::DeleteItem );
+	m_pItemView->GetChildByName( "delete" )->Register( eEvent_Action, &m_onDeleteItem );
 	
 	static CDropDownBox::SItem g_fileTypeItems[] = 
 	{
@@ -228,15 +330,19 @@ void CPrefabEditor::RefreshPreview()
 {
 	if( !m_pRes )
 		return;
+	for( auto& item : m_mapClonedPrefabs )
+		item.second->FixNameSpace();
 	m_pRes->RefreshBegin();
-	m_pRes->SetNode( m_pClonedPrefab->Clone( true ) );
+	m_pRes->ClearExtraNode();
+	for( auto& item : m_mapClonedPrefabs )
+		m_pRes->SetNode( item.second->Clone( m_pRes ), item.first.c_str() );
 	m_pRes->RefreshEnd();
 }
 
 void CPrefabEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 {
-	if( m_pClonedPrefab )
-		m_pClonedPrefab->UpdatePreview();
+	if( m_pSelectedPrefab )
+		m_pSelectedPrefab->UpdatePreview();
 	if( m_nNodeDebugDrawType == 1 )
 	{
 		if( m_pCurNode )
@@ -244,8 +350,8 @@ void CPrefabEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 	}
 	else if( m_nNodeDebugDrawType == 2 )
 	{
-		if( m_pClonedPrefab )
-			m_pClonedPrefab->DebugDraw( m_pViewport, pRenderSystem );
+		if( m_pSelectedPrefab )
+			m_pSelectedPrefab->DebugDraw( m_pViewport, pRenderSystem );
 	}
 	if( m_pCurNode )
 	{
@@ -281,7 +387,7 @@ void CPrefabEditor::NewNode()
 void CPrefabEditor::DeleteNode()
 {
 	CPrefabNode* pDeletedNode = m_pCurNode;
-	if( !pDeletedNode || pDeletedNode == m_pClonedPrefab )
+	if( !pDeletedNode || pDeletedNode->IsInstance() || pDeletedNode == m_pSelectedPrefab )
 		return;
 	CUITreeView::CTreeViewContent* pDeletedNodeItem = m_pCurNodeItem;
 	CPrefabNode* pSelectedNode = static_cast<CPrefabNode*>( pDeletedNode->GetParent() );
@@ -289,6 +395,7 @@ void CPrefabEditor::DeleteNode()
 
 	SelectNode( pSelectedNode, pSelectedNodeItem );
 	m_pSceneView->RemoveContentTree( pDeletedNodeItem );
+	m_pSelectedPrefab->NameSpaceClearNode( pDeletedNode );
 	pDeletedNode->RemoveThis();
 }
 
@@ -304,13 +411,70 @@ void CPrefabEditor::Paste()
 {
 	if( !m_pCurNode || !m_pClipBoard )
 		return;
-	CPrefabNode* pNode = m_pClipBoard->Clone( m_pRes.GetPtr() );
+	CPrefabNode* pNode = m_pClipBoard->Clone( m_pRes.GetPtr(), &m_pRes->GetRoot()->GetNameSpace() );
 	m_pCurNode->AddChild( pNode );
 
 	SelectNode( NULL, NULL );
 	m_pSceneView->ClearContent();
-	RefreshSceneView( m_pClonedPrefab, NULL );
-	SelectNode( m_pClonedPrefab, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
+	RefreshSceneView( m_pSelectedPrefab, NULL );
+	SelectNode( m_pSelectedPrefab, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
+}
+
+void CPrefabEditor::NewItem()
+{
+	auto str = UnicodeToUtf8( m_pItemName->GetText() );
+	auto itr = m_mapClonedPrefabs.find( str.c_str() );
+	if( itr != m_mapClonedPrefabs.end() )
+		return;
+
+	auto pNode = new CPrefabNode( m_pRes );
+	pNode->GetNameSpace().pNameSpaceKey = m_pRes->GetNameSpaceKey();
+	m_mapClonedPrefabs[str.c_str()] = pNode;
+	RefreshItemView();
+	SelectItem( str.c_str() );
+}
+
+void CPrefabEditor::CloneItem()
+{
+	auto str = UnicodeToUtf8( m_pItemName->GetText() );
+	auto itr = m_mapClonedPrefabs.find( str.c_str() );
+	if( itr != m_mapClonedPrefabs.end() )
+		return;
+
+	auto pNode = m_pClipBoard->Clone( m_pRes.GetPtr(), NULL, NULL, NULL, true );
+	if( !pNode )
+	{
+		pNode = new CPrefabNode( m_pRes );
+		pNode->GetNameSpace().pNameSpaceKey = m_pRes->GetNameSpaceKey();
+	}
+	m_mapClonedPrefabs[str.c_str()] = pNode;
+	RefreshItemView();
+	SelectItem( str.c_str() );
+}
+
+void CPrefabEditor::RenameItem()
+{
+	if( m_strSelectedPrefab == "" )
+		return;
+	auto str = UnicodeToUtf8( m_pItemName->GetText() );
+	auto itr = m_mapClonedPrefabs.find( str.c_str() );
+	if( itr != m_mapClonedPrefabs.end() )
+		return;
+
+	auto pNode = m_pSelectedPrefab;
+	m_mapClonedPrefabs.erase( m_strSelectedPrefab );
+	m_mapClonedPrefabs[str.c_str()] = pNode;
+	m_strSelectedPrefab = str.c_str();
+	RefreshItemView();
+}
+
+void CPrefabEditor::DeleteItem()
+{
+	if( m_strSelectedPrefab == "" )
+		return;
+	m_mapClonedPrefabs.erase( m_strSelectedPrefab );
+	RefreshItemView();
+	SelectItem( "" );
 }
 
 void CPrefabEditor::OnTransformChanged()
@@ -331,7 +495,7 @@ void CPrefabEditor::OnZOrderChanged()
 {
 	int32 nZOrder = m_pZOrder->GetValue<int32>();
 
-	if( m_pCurNode.GetPtr() != m_pClonedPrefab.GetPtr() )
+	if( m_pCurNode.GetPtr() != m_pSelectedPrefab.GetPtr() )
 	{
 		CPrefabNode* pNode = static_cast<CPrefabNode*>( m_pCurNode->GetParent() );
 
@@ -1011,7 +1175,7 @@ protected:
 		buf.Write( className );
 		pClassData->PackData( (uint8*)pEmitter, buf, false );
 		
-		m_obj.Load( buf, false );
+		m_obj.Load( buf, false, NULL );
 		if( m_obj.GetClassData() )
 		{
 			m_pEmitterData = CObjectDataEditMgr::Inst().Create( m_pView, m_pResRoot, m_obj.GetObjData(), m_obj.GetClassData() );
@@ -1284,6 +1448,21 @@ void CPrefabEditor::SelectNode( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 	RefreshGizmo();
 }
 
+void CPrefabEditor::SelectItem( const char* szItem )
+{
+	SelectNode( NULL, NULL );
+	if( m_pSelectedPrefab )
+		m_pSelectedPrefab->RemoveThis();
+	auto itr = m_mapClonedPrefabs.find( szItem );
+	ASSERT( itr != m_mapClonedPrefabs.end() );
+	m_strSelectedPrefab = szItem;
+	m_pSelectedPrefab = itr->second;
+	m_pViewport->GetRoot()->AddChild( m_pSelectedPrefab );
+	m_pSceneView->ClearContent();
+	RefreshSceneView( m_pSelectedPrefab, NULL );
+	SelectNode( m_pSelectedPrefab, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
+}
+
 void CPrefabEditor::MoveNodeUp( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
 	if( m_pCurNode->IsInstance() )
@@ -1406,6 +1585,7 @@ void CPrefabEditor::OnCurNodeResourceChanged()
 	m_pNodeData = pNodeData;
 	if( m_pCurNode->GetPatchedNode() )
 		CreatePatchNode( m_pCurNode, m_pCurNodeItem );
+	m_pCurNode->OnEditorActive( false );
 }
 
 void CPrefabEditor::OnCurNodeClassChanged()
@@ -1567,6 +1747,13 @@ void CPrefabEditor::OnViewportStopDrag( SUIMouseEvent* pEvent )
 
 	if( m_nDragType > 0 )
 		RefreshGizmo();
+}
+
+void CPrefabEditor::OnViewportDrop( const CVector2& mousePos, CUIElement* pParam )
+{
+	CVector2 fixOfs = m_pViewport->GetScenePos( mousePos );
+	if( m_pObjectData )
+		m_pObjectData->OnViewportDrop( m_pViewport, fixOfs, pParam, m_pCurNode->globalTransform );
 }
 
 void CPrefabEditor::OnViewportKey( SUIKeyEvent* pEvent )

@@ -11,10 +11,13 @@ public:
 	CUITreeView::CTreeViewContent* GetContent() { return m_pContent; }
 	virtual void RefreshData() {}
 
+	void TreeViewFocus();
+	virtual CObjectDataEditItem* GetChildItem( uint8* pData ) { if( m_pData == pData ) return this; return NULL; }
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform ) {}
 	virtual CObjectDataEditItem* OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) { return NULL; }
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) {}
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) {}
+	virtual CObjectDataEditItem* OnViewportDrop( class CUIViewport* pViewport, const CVector2& mousePos, CUIElement* pParam, const CMatrix2D& transform ) { return NULL; }
 
 	void Register( CTrigger* pTrigger ) { m_pContent->pElement->Register( CUIElement::eEvent_Action, pTrigger ); }
 protected:
@@ -71,7 +74,7 @@ public:
 	virtual void RefreshData() override;
 private:
 	void OnEdit();
-	CReference<CCommonEdit> m_pEdit;
+	CReference<CUILabel> m_pEdit;
 	TClassTrigger<CObjectDataStringEdit> m_onEdit;
 };
 
@@ -87,6 +90,18 @@ private:
 	TClassTrigger<CObjectDataEnumEdit> m_onEdit;
 };
 
+class CObjectDataObjRefEdit : public CObjectDataEditItem
+{
+public:
+	CObjectDataObjRefEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
+	~CObjectDataObjRefEdit() { if( m_onEdit.IsRegistered() ) m_onEdit.Unregister(); }
+	virtual void RefreshData() override;
+private:
+	void OnEdit( CUIElement* pParam );
+	CReference<CDropTargetEdit> m_pEdit;
+	TClassTrigger1<CObjectDataObjRefEdit, CUIElement*> m_onEdit;
+};
+
 class CObjectArrayEdit : public CObjectDataEditItem
 {
 public:
@@ -96,6 +111,7 @@ public:
 
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform ) override;
 	virtual CObjectDataEditItem* OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override;
+	virtual CObjectDataEditItem* GetChildItem( uint8* pData ) override;;
 private:
 	void OnEdit( uint32 nParam )
 	{
@@ -122,8 +138,10 @@ public:
 
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CMatrix2D& transform ) override;
 	virtual CObjectDataEditItem* OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override;
-private:
-	void OnEdit( uint32 nParam )
+	virtual CObjectDataEditItem* OnViewportDrop( class CUIViewport* pViewport, const CVector2& mousePos, CUIElement* pParam, const CMatrix2D& transform ) override;
+	virtual CObjectDataEditItem* GetChildItem( uint8* pData ) override;
+protected:
+	virtual void OnEdit( uint32 nParam )
 	{ 
 		if( nParam != 1 )
 			return;

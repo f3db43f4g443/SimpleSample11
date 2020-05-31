@@ -44,7 +44,7 @@ void CUIViewport::ReleaseTexture()
 		m_pRenderer->ReleaseSubRendererTexture();
 }
 
-void CUIViewport::ReserveTexSize( const CVector2 & size )
+void CUIViewport::ReserveTexSize( const CVector2& size )
 {
 	CVector2 newSize = CVector2( Max( size.x, m_texSize.x ), Max( size.y, m_texSize.y ) );
 	if( newSize == m_texSize )
@@ -112,7 +112,7 @@ void CUIViewport::Flush( CRenderContext2D& context )
 	if( m_bCustomRender )
 	{
 		CopyToRenderTarget( context.pRenderSystem, NULL, m_pCustomTarget, dstRect, srcRect,
-			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
+			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23, m_pBlend );
 
 		auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
 		sizeDependentPool.Release( m_pCustomTarget );
@@ -120,7 +120,7 @@ void CUIViewport::Flush( CRenderContext2D& context )
 	else
 	{
 		CopyToRenderTarget( context.pRenderSystem, NULL, m_pRenderer->GetSubRendererTexture(), dstRect, srcRect,
-			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23 );
+			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23, m_pBlend );
 		m_pRenderer->ReleaseSubRendererTexture();
 	}
 	m_elem.OnFlushed();
@@ -131,7 +131,8 @@ void CUIViewport::DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& b
 	const CRectangle& rect = GetCamera().GetViewArea();
 	CVector2 pt1 = ( begin - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 	CVector2 pt2 = ( end - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-	IRenderer::DebugDrawLine( pRenderSystem, pt1, pt2, color );
+	IRenderer::DebugDrawLine( pRenderSystem, pt1, pt2, color, 0.0f,
+		IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
 }
 
 void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color )
@@ -142,7 +143,8 @@ void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert
 		CVector2 pt1 = ( pVert[i] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt2 = ( pVert[i + 1] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt3 = ( pVert[i + 2] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-		IRenderer::DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color );
+		IRenderer::DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color, 0.0f,
+			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
 	}
 }
 
@@ -156,7 +158,7 @@ CVector2 CUIViewport::GetScenePos( const CVector2& mousePos )
 	return vec;
 }
 
-void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight )
+void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight, IBlendState* pBlend )
 {
 	if( m_pRoot )
 	{
@@ -173,6 +175,8 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 	m_pExternalRoot = pRoot;
 	m_pExternalCamera = pExternalCamera;
 	m_bLight = bLight;
+	m_pBlend = pBlend;
+	m_bOpaque = m_pBlend == NULL;
 	
 	if( pRoot )
 	{

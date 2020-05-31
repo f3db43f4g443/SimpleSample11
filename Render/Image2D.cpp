@@ -126,6 +126,7 @@ CMultiFrameImage2D::CMultiFrameImage2D( CDrawable2D* pDrawable, CDrawable2D* pOc
 	, m_nFrameParamBegin( -1 )
 	, m_nFrameParamEnd( -1 )
 {
+	SET_BASEOBJECT_ID( CMultiFrameImage2D );
 	m_localBound = pData->bound;
 }
 

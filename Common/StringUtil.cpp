@@ -71,6 +71,11 @@ bool CString::operator == ( const char* rhs ) const
 	return strcmp( this->c_str(), rhs ) == 0;
 }
 
+bool CString::operator != ( const char* rhs ) const
+{
+	return strcmp( this->c_str(), rhs ) != 0;
+}
+
 bool operator == ( const char* lhs, const CString& rhs )
 {
 	return strcmp( lhs, rhs.c_str() ) == 0;
@@ -135,11 +140,16 @@ int CString::length() const
 
 void CString::PackData( CBufFile& buf, bool bWithMetaData ) const
 {
-	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
-	buf.Write( ptr->_Myval.first );
+	if( m_ptr )
+	{
+		map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
+		buf.Write( ptr->_Myval.first );
+	}
+	else
+		buf.Write<int8>( 0 );
 }
 
-void CString::UnpackData( IBufReader& buf, bool bWithMetaData )
+void CString::UnpackData( IBufReader& buf, bool bWithMetaData, void* pContext )
 {
 	string str;
 	buf.Read( str );
@@ -154,7 +164,7 @@ bool CString::DiffData( const CString& obj0, CBufFile& buf ) const
 	return true;
 }
 
-void CString::PatchData( IBufReader& buf )
+void CString::PatchData( IBufReader& buf, void* pContext )
 {
-	UnpackData( buf, true );
+	UnpackData( buf, true, pContext );
 }
