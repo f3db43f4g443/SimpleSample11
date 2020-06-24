@@ -2,12 +2,20 @@
 #include "MiscElem.h"
 #include "Stage.h"
 #include "UtilEntities.h"
-
+#include "CommonUtils.h"
+#include "Common/Rand.h"
+#include "GlobalCfg.h"
 
 void CLevelScriptCustom::OnInit( CMyLevel* pLevel )
 {
 	if( m_strInit.length() )
 		CLuaMgr::Inst().Run( m_strInit );
+}
+
+void CLevelScriptCustom::OnBegin( CMyLevel * pLevel )
+{
+	if( m_strBegin.length() )
+		CLuaMgr::Inst().Run( m_strBegin );
 }
 
 void CLevelScriptCustom::OnDestroy( CMyLevel* pLevel )
@@ -80,6 +88,11 @@ void CCommonLink::OnRemovedFromStage()
 		m_onSrcKilled.Unregister();
 	if( m_onDstKilled.IsRegistered() )
 		m_onDstKilled.Unregister();
+	if( m_pSound )
+	{
+		m_pSound->FadeOut( 0.5f );
+		m_pSound = NULL;
+	}
 }
 
 void CCommonLink::Begin()
@@ -107,6 +120,7 @@ void CCommonLink::Begin()
 	}
 	else
 		m_pDst->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onDstKilled );
+	m_pSound = PlaySoundLoop( "electric1" );
 }
 
 void CCommonLink::Update()
@@ -149,6 +163,23 @@ void CCommonLink::OnKilled()
 	SetParentEntity( NULL );
 }
 
+void CPawnUsageCommon::UseHit( class CPlayer* pPlayer )
+{
+	switch( m_nType )
+	{
+	case 0:
+		pPlayer->SetHp( pPlayer->GetMaxHp() );
+		break;
+	case 1:
+	{
+		auto pEquipment = pPlayer->GetEquipment( ePlayerEquipment_Ranged );
+		if( pEquipment )
+			pEquipment->SetAmmo( pEquipment->GetMaxAmmo() );
+		break;
+	}
+	}
+}
+
 void CPawnUsageButton::OnAddedToStage()
 {
 	if( static_cast<CImage2D*>( GetRenderObject() )->GetParamCount() )
@@ -162,6 +193,10 @@ void CPawnUsageButton::UseHit( class CPlayer* pPlayer )
 		bOK = SafeCastToInterface<ISignalObj>( m_pTarget.GetPtr() )->Signal( m_nSignal );
 	m_bEftFramesType = bOK;
 	m_nEftFramesLeft = bOK ? m_nEftFrames1 : m_nEftFrames0;
+	if( bOK )
+		PlaySoundEffect( "btn" );
+	else
+		PlaySoundEffect( "btn_error" );
 }
 
 void CPawnUsageButton::Update()
@@ -200,6 +235,146 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 			return eState_Opening;
 	}
 	return -1;
+}
+
+void CSmoke::Init()
+{
+	CPawnHit::Init();
+	InitImages();
+	UpdateImages();
+}
+
+void CSmoke::Update()
+{
+	CPawnHit::Update();
+	UpdateImages();
+	m_t += m_fAnimSpeed;
+	m_t -= floor( m_t );
+	for( int i = 0; i < 3; i++ )
+	{
+		m_items[i].tex.x += m_items[i].fTexSpeed;
+		m_items[i].tex.x -= floor( m_items[i].tex.x );
+	}
+
+	auto pPlayer = GetLevel()->GetPlayer();
+	if( pPlayer->GetMoveTo() == GetPos() || pPlayer->GetPos() == GetPos() )
+		GetLevel()->Fail( 1 );
+}
+
+void CSmoke::Render( CRenderContext2D& context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( int i = 0; i < ELEM_COUNT( m_elems ); i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+	}
+}
+
+void CSmoke::UpdateRendered( double dTime )
+{
+	if( m_bPreview )
+	{
+		UpdateImages();
+		m_t += m_fAnimSpeed;
+		m_t -= floor( m_t );
+		for( int i = 0; i < 3; i++ )
+		{
+			m_items[i].tex.x += m_items[i].fTexSpeed;
+			m_items[i].tex.x -= floor( m_items[i].tex.x );
+		}
+	}
+}
+
+void CSmoke::OnPreview()
+{
+	m_bPreview = true;
+	InitImages();
+	UpdateImages();
+}
+
+void CSmoke::InitImages()
+{
+	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
+	auto pParam = pImg->GetParam();
+	m_origParam[0] = pParam[0];
+	m_origParam[1] = pParam[1];
+	SetRenderObject( NULL );
+	m_fSplitOfs[0] = SRand::Inst().Rand( 0.0f, 0.4f );
+	m_fSplitOfs[1] = m_fSplitOfs[0] + SRand::Inst().Rand( 0.4f, 0.6f );
+	for( int i = 0; i < 3; i++ )
+	{
+		m_items[i].tex = CVector2( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ), SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) );
+		m_items[i].fTexSpeed = SRand::Inst<eRand_Render>().Rand( 0.003f, 0.004f ) * ( SRand::Inst<eRand_Render>().Rand( 0, 2 ) ? 1 : -1 );
+		m_items[i].ofs = CVector2( SRand::Inst<eRand_Render>().Rand( 1, 5 ) * 2 * ( SRand::Inst<eRand_Render>().Rand( 0, 2 ) ? 1 : -1 ),
+			SRand::Inst<eRand_Render>().Rand( -1, 2 ) * 2 );
+		m_elems[i].nInstDataSize = sizeof( CVector4 ) * 2;
+		m_elems[i].pInstData = &m_params[i * 2];
+	}
+	m_fAnimSpeed = SRand::Inst<eRand_Render>().Rand( 0.01f, 0.015f );
+	SetLocalBound( CRectangle( 0, 0, 48, 32 ) );
+}
+
+void CSmoke::UpdateImages()
+{
+	float y[2] = { m_t + m_fSplitOfs[0], m_t + m_fSplitOfs[1] };
+	for( int i = 0; i < 2; i++ )
+		y[i] = floor( y[i] * 16 + 0.5f ) * 2;
+	if( y[1] <= 32 )
+	{
+		m_elems[0].rect = CRectangle( 0, 0, 48, y[0] );
+		m_elems[1].rect = CRectangle( 0, y[0], 48, y[1] - y[0] );
+		m_elems[2].rect = CRectangle( 0, y[1], 48, 32 - y[1] );
+	}
+	else if( y[0] < 32 )
+	{
+		m_elems[2].rect = CRectangle( 0, 0, 48, y[1] - 32 );
+		m_elems[0].rect = CRectangle( 0, y[1] - 32, 48, y[0] - y[1] + 32 );
+		m_elems[1].rect = CRectangle( 0, y[0], 48, 32 - y[0] );
+	}
+	else
+	{
+		m_elems[1].rect = CRectangle( 0, 0, 48, y[0] - 32 );
+		m_elems[2].rect = CRectangle( 0, y[0] - 32, 48, y[1] - y[0] );
+		m_elems[0].rect = CRectangle( 0, y[1] - 32, 48, 64 - y[1] );
+	}
+	const float fTexSize = 128.0f;
+	for( int i = 0; i < 3; i++ )
+	{
+		auto tex = m_items[i].tex * fTexSize;
+		tex = CVector2( floor( tex.x + 0.5f ), floor( tex.y + 0.5f ) );
+		m_elems[i].texRect = CRectangle( tex.x, tex.y, m_elems[i].rect.width * 0.5f, m_elems[i].rect.height * 0.5f ) / fTexSize;
+		m_params[i * 2] = CVector4( m_origParam[0].x, m_origParam[0].y, m_origParam[0].z, m_items[i].ofs.x );
+		m_params[i * 2 + 1] = CVector4( m_origParam[1].x, m_origParam[1].y, m_origParam[1].z, m_items[i].ofs.y );
+	}
 }
 
 void CElevator::OnAddedToStage()
@@ -309,15 +484,32 @@ void CProjector::OnUpdate1( CMyLevel* pLevel )
 
 void CProjector::SetTarget( const CVector2& target )
 {
+	bool b0 = IsActivated();
 	m_bSetTarget = true;
 	m_target = target;
 	m_nFixedTarget = -1;
+	bool b1 = IsActivated();
+	if( b1 && !b0 )
+		PlaySoundEffect( "activate" );
+	else if( !b1 && b0 )
+		PlaySoundEffect( "deactivate" );
+}
+
+bool CProjector::IsActivated()
+{
+	return m_bSetTarget || m_nFixedTarget >= 0 && m_nFixedTarget < m_arrFixedTargets.Size();
 }
 
 int32 CProjector::Signal( int32 i )
 {
+	bool b0 = IsActivated();
 	m_bSetTarget = false;
 	m_nFixedTarget = i;
+	bool b1 = IsActivated();
+	if( b1 && !b0 )
+		PlaySoundEffect( "activate" );
+	else if( !b1 && b0 )
+		PlaySoundEffect( "deactivate" );
 	return 1;
 }
 
@@ -408,8 +600,14 @@ void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 
 int32 CTutorialMoving::Signal( int32 i )
 {
+	bool b0 = m_bStarted;
 	if( i > 0 && i <= 1 )
 		m_bStarted = !!i;
+	bool b1 = m_bStarted;
+	if( b1 && !b0 )
+		PlaySoundEffect( "activate" );
+	else if( !b1 && b0 )
+		PlaySoundEffect( "deactivate" );
 	return 1;
 }
 
@@ -455,6 +653,7 @@ void CTutorialFollowing::OnUpdate1( CMyLevel* pLevel )
 				auto ofs = CVector2( m_curPos.x + 1, m_curPos.y + 0.5f ) * LEVEL_GRID_SIZE - pLightning->GetPosition();
 				auto p = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
 				pLightning->Set( p, 60 );
+				PlaySoundEffect( "electric" );
 			}
 		}
 		return;
@@ -630,7 +829,7 @@ void CTutorialFollowing::Fail( const TVector2<int32>& pos )
 	pLightning->SetPosition( m_pProjector->GetProjSrc() );
 	auto ofs = CVector2( pos.x + 1, pos.y + 0.5f ) * LEVEL_GRID_SIZE - pLightning->GetPosition();
 	auto p = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
-	pLightning->Set( p, 0 );
+	pLightning->Set( p, 0, 1.0f, 2.0f );
 	m_pFailEftObj = pLightning;
 }
 
@@ -790,6 +989,9 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_BEGIN( m_strInit )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strBegin )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strDestroy )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
@@ -822,6 +1024,11 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_pLightningPrefab )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CPawnUsageCommon )
+		REGISTER_BASE_CLASS( CPawnUsage )
+		REGISTER_MEMBER( m_nType )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CPawnUsageButton )
 		REGISTER_BASE_CLASS( CPawnUsage )
 		REGISTER_MEMBER( m_pTarget )
@@ -834,6 +1041,10 @@ void RegisterGameClasses_MiscElem()
 
 	REGISTER_CLASS_BEGIN( CPawnAIAutoDoor )
 		REGISTER_BASE_CLASS( CPawnAI )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSmoke )
+		REGISTER_BASE_CLASS( CPawnHit )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CElevator )
@@ -856,6 +1067,8 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_arrProjPos )
 		REGISTER_MEMBER_TAGGED_PTR( m_p, 1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, 2 )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetProjSrc )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTutorialMoving )

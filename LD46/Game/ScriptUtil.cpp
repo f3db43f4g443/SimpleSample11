@@ -3,6 +3,8 @@
 #include "GameState.h"
 #include "Entities/UtilEntities.h"
 #include "Common/Rand.h"
+#include "GlobalCfg.h"
+#include "CommonUtils.h"
 
 CMasterLevel* GetMasterLevel()
 {
@@ -65,6 +67,41 @@ void RunScenario()
 	GetMasterLevel()->RunScenarioScript();
 }
 
+void LevelRegisterBegin()
+{
+	auto pTrigger = CLuaTrigger::CreateAuto();
+	GetCurLevel()->RegisterBegin( pTrigger );
+}
+
+void LevelRegisterUpdate()
+{
+	auto pTrigger = CLuaTrigger::CreateAuto();
+	GetCurLevel()->RegisterUpdate( pTrigger );
+}
+
+void LevelRegisterUpdate1()
+{
+	auto pTrigger = CLuaTrigger::CreateAuto();
+	GetCurLevel()->RegisterUpdate1( pTrigger );
+}
+
+void LevelRegisterAlwaysUpdate()
+{
+	auto pTrigger = CLuaTrigger::CreateAuto();
+	GetCurLevel()->RegisterAlwaysUpdate( pTrigger );
+}
+
+CEntity* CreateLighningEft( CVector2 begin, CVector2 end )
+{
+	auto pLightning = SafeCast<CLightningEffect>( CGlobalCfg::Inst().pFailLightningEffectPrefab->GetRoot()->CreateInstance() );
+	pLightning->SetParentEntity( GetCurLevel() );
+	pLightning->SetPosition( begin );
+	auto ofs = end - begin;
+	auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
+	pLightning->Set( p1, 0, 1.0f, 2.0f );
+	return pLightning;
+}
+
 void RegisterGlobalLuaCFunc()
 {
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetMasterLevel )
@@ -77,4 +114,10 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( Signal )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetImgParam )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RunScenario )
+	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterBegin )
+	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterUpdate )
+	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterUpdate1 )
+	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterAlwaysUpdate )
+	REGISTER_LUA_CFUNCTION_GLOBAL( CreateLighningEft )
+	REGISTER_LUA_CFUNCTION_GLOBAL( PlaySoundEffect )
 }

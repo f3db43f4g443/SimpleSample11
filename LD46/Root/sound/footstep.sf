@@ -1,0 +1,7 @@
+﻿<root>
+  <sound name="sound/footstep_1.mp3" />
+  <sound name="sound/footstep_2.mp3" />
+  <sound name="sound/footstep_3.mp3" />
+  <sound name="sound/footstep_4.mp3" />
+  <sound name="sound/footstep_5.mp3" />
+</root>

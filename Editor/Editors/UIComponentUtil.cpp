@@ -204,12 +204,19 @@ void CDropTargetEdit::OnInited()
 		pBtn->Register( eEvent_Action, &m_onClear );
 }
 
-CFileNameEdit* CFileNameEdit::Create( const char* szName, const char* szExt )
+CFileNameEdit* CFileNameEdit::Create( const char* szName, const char* szExt, int32 nTextWidth )
 {
 	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/filenameedit.xml" );
 	auto pElem = new CFileNameEdit;
 	g_pRes->GetElement()->Clone( pElem );
-	pElem->GetChildByName<CUILabel>( "label" )->SetText( szName );
+	auto pText = pElem->GetChildByName<CUILabel>( "label" );
+	if( nTextWidth )
+	{
+		auto r = pText->GetSize();
+		r.SetLeft( r.GetRight() - nTextWidth );
+		pText->Resize( r );
+	}
+	pText->SetText( szName );
 	pElem->m_strExt = szExt;
 	return pElem;
 }
@@ -264,9 +271,22 @@ CDropDownBox* CDropDownBox::Create( const char* szName, SItem* pItems, uint32 nI
 	return pElem;
 }
 
+void CDropDownBox::ResetItems( SItem* pItems, uint32 nItems )
+{
+	m_items.resize( nItems );
+	m_itemIndex.clear();
+	for( int i = 0; i < nItems; i++ )
+	{
+		m_items[i] = pItems[i];
+		m_itemIndex[pItems[i].name] = i;
+	}
+	SetText( "" );
+	SetSelectedItem( 0u, false );
+}
+
 void CDropDownBox::OnInited()
 {
-	SetSelectedItem( 0u );
+	SetSelectedItem( 0u, false );
 	m_onClick.Set( this, &CDropDownBox::OnClick );
 	m_pBtn = GetChildByName<CUIButton>( "btn" );
 	m_pBtn->Register( eEvent_Action, &m_onClick );

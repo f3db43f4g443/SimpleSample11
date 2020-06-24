@@ -264,13 +264,18 @@ TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TRe
 
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType )
 {
-	int32 nBackType = vec[x + y * nWidth];
+	return FloodFill( &vec[0], nWidth, nHeight, x, y, nType );
+}
+
+int32 FloodFill( int8* pData, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType )
+{
+	int32 nBackType = pData[x + y * nWidth];
 	if( nBackType == nType )
 		return 0;
 
-	vec[x + y * nWidth] = nType;
+	pData[x + y * nWidth] = nType;
 	vector<TVector2<int32> > q;
-	q.push_back(TVector2<int32>( x, y ) );
+	q.push_back( TVector2<int32>( x, y ) );
 
 	for( int i = 0; i < q.size(); i++ )
 	{
@@ -280,9 +285,9 @@ int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 
 		{
 			TVector2<int32> p1 = p + ofs[j];
 			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight
-				&& vec[p1.x + p1.y * nWidth] == nBackType )
+				&& pData[p1.x + p1.y * nWidth] == nBackType )
 			{
-				vec[p1.x + p1.y * nWidth] = nType;
+				pData[p1.x + p1.y * nWidth] = nType;
 				q.push_back( p1 );
 			}
 		}
@@ -832,14 +837,25 @@ void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, in
 	}
 }
 
-void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge )
+void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge, bool bTypeAsSrc )
+{
+	GenDistField( &vec[0], nWidth, nHeight, nType, vecDist, q, bEdge, bTypeAsSrc );
+}
+
+void GenDistField( int8* pData, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32>>& q, bool bEdge, bool bTypeAsSrc )
+{
+	TVector2<int32> ofs[8] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
+	GenDistField( pData, nWidth, nHeight, nType, vecDist, q, ofs, ELEM_COUNT( ofs ), bEdge, bTypeAsSrc );
+}
+
+void GenDistField( int8* pData, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32>>& q, TVector2<int32>* ofs, int32 nOfs, bool bEdge, bool bTypeAsSrc )
 {
 	vector<TVector2<int32> > q1;
 	for( int i = 0; i < nWidth; i++ )
 	{
 		for( int j = 0; j < nHeight; j++ )
 		{
-			int32 nDist = vec[i + j * nWidth] == nType ? -1 : 0;
+			int32 nDist = bTypeAsSrc ? ( pData[i + j * nWidth] == nType ? 0 : -1 ) : ( pData[i + j * nWidth] == nType ? -1 : 0 );
 			if( nDist == 0 )
 			{
 				q.push_back( TVector2<int32>( i, j ) );
@@ -861,13 +877,12 @@ void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, 
 		q.push_back( p );
 	q1.clear();
 
-	TVector2<int32> ofs[8] = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 } };
 	for( int i = 0; i < q.size(); i++ )
 	{
 		TVector2<int32> p = q[i];
 		int32 nDist1 = vecDist[p.x + p.y * nWidth] + 1;
-		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
-		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
+		SRand::Inst().Shuffle( ofs, nOfs );
+		for( int j = 0; j < nOfs; j++ )
 		{
 			TVector2<int32> p1 = p + ofs[j];
 			if( p1.x >= 0 && p1.y >= 0 && p1.x < nWidth && p1.y < nHeight

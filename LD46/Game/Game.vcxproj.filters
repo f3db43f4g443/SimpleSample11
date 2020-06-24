@@ -35,6 +35,9 @@
       <Filter>Entities</Filter>
     </ClCompile>
     <ClCompile Include="CommonUtils.cpp" />
+    <ClCompile Include="Entities\Abilities.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -70,6 +73,9 @@
       <Filter>Entities</Filter>
     </ClInclude>
     <ClInclude Include="CommonUtils.h" />
+    <ClInclude Include="Entities\Abilities.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\PostProcessInvertColor.shader">

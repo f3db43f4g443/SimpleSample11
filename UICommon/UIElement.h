@@ -29,6 +29,7 @@ public:
 		eEvent_MouseDown,
 		eEvent_MouseUp,
 		eEvent_MouseMove,
+		eEvent_MouseWheel,
 		eEvent_StartDrag,
 		eEvent_Dragged,
 		eEvent_StopDrag,
@@ -54,6 +55,7 @@ public:
 	CUIElement* MouseDown( const CVector2& mousePos );
 	CUIElement* MouseUp( const CVector2& mousePos );
 	CUIElement* MouseMove( const CVector2& mousePos );
+	CUIElement* MouseWheel( const CVector2& mousePos, int32 nDelta );
 
 	void Action( void* pContext = NULL ) { m_events.Trigger( eEvent_Action, pContext ); }
 
@@ -112,6 +114,7 @@ protected:
 	virtual void OnMouseDown( const CVector2& mousePos );
 	virtual void OnMouseUp( const CVector2& mousePos );
 	virtual void OnMouseMove( const CVector2& mousePos );
+	virtual void OnMouseWheel( const CVector2& mousePos, int32 nDelta );
 	virtual void OnClick( const CVector2& mousePos ) { m_events.Trigger( eEvent_Clicked, (void*)&mousePos ); }
 	virtual void OnStartDrag( const CVector2& mousePos );
 	virtual void OnDragged( const CVector2& mousePos );
@@ -152,6 +155,7 @@ struct SUIMouseEvent
 	uint32 nEvent;
 	CReference<CUIElement> pTarget;
 	CVector2 mousePos;
+	int32 nParam;
 };
 
 struct SUIKeyEvent

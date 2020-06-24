@@ -11,6 +11,9 @@
     <ClCompile Include="Editor\WorldCfgEditor.cpp">
       <Filter>Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Editor\LevelTools.cpp">
+      <Filter>Editor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="winresource.h" />
@@ -21,6 +24,9 @@
       <Filter>Editor</Filter>
     </ClInclude>
     <ClInclude Include="Editor\WorldCfgEditor.h">
+      <Filter>Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor\LevelTools.h">
       <Filter>Editor</Filter>
     </ClInclude>
   </ItemGroup>

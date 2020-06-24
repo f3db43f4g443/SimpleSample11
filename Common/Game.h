@@ -14,6 +14,7 @@ public:
 	virtual void OnRightMouseDown( const CVector2& pos ) {}
 	virtual void OnRightMouseUp( const CVector2& pos ) {}
 	virtual void OnMouseMove( const CVector2& pos ) {}
+	virtual void OnMouseWheel( int32 nDelta ) {}
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) {}
 	virtual void OnChar( uint32 nChar ) {}
 

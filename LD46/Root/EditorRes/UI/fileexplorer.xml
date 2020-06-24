@@ -1,0 +1,19 @@
+﻿<root type="element" >
+  <template type="EditorRes/UI/treeview.xml" name="folders" x="0" y="0" rectX="0" rectY="0" rectWidth="200" rectHeight="300" >
+  </template>
+  <template type="EditorRes/UI/scrollview.xml" name="files" x="0" y="300" rectX="0" rectY="0" rectWidth="200" rectHeight="400" >
+  </template>
+  <template type="EditorRes/UI/panel.xml" name="filename" x="0" y="700" rectX="0" rectY="0" rectWidth="200" rectHeight="20"
+             textLeft="4" textRight="4" textAlignX="0" textAlignY="1">
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="new_filename" x="0" y="720" rectX="0" rectY="0" rectWidth="120" rectHeight="20" >
+  </template>
+  <element type="element" name="new_filetype" x="120" y="720" rectX="0" rectY="0" rectWidth="60" rectHeight="20">
+  </element>
+  <template type="EditorRes/UI/button.xml" name="btn_new" x="10" y="750" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="New" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_open" x="80" y="750" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Open" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_refresh" x="150" y="750" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Refresh" >
+  </template>
+</root>

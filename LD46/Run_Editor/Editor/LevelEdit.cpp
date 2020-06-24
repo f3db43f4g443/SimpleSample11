@@ -5,10 +5,21 @@
 #include "Editor/Editors/PrefabEditor.h"
 #include "Common/Utf8Util.h"
 #include "UICommon/UIFactory.h"
+#include "LevelTools.h"
 
 CLevelEdit::CLevelEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData* pMetaData, const char* szName )
 	: CObjectDataEdit( pTreeView, pParent, pData, pMetaData, szName ), m_nObjType( 0 ), m_nDragType( 0 )
 {
+	auto pNode = CPrefabEditor::Inst()->GetCurNode();
+	if( pNode->GetObjData() == m_pData )
+	{
+		auto pTools = static_cast<CUIButton*>( CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/button.xml" )->GetElement()->Clone() );
+		pTreeView->AddContentChild( pTools, m_pContent, true );
+		m_onLevelTools.Set( this, &CLevelEdit::OnLevelTools );
+		pTools->Register( CUIElement::eEvent_Action, &m_onLevelTools );
+		pTools->SetText( "Tools" );
+	}
+
 	auto pObj = (CMyLevel*)m_pData;
 	m_nWidth = pObj->m_nWidth;
 	m_nHeight = pObj->m_nHeight;
@@ -157,6 +168,16 @@ void CLevelEdit::OnViewportStopDrag( CUIViewport* pViewport, const CVector2& mou
 	int32 x = floor( dragPos.x / LEVEL_GRID_SIZE_X );
 	int32 y = floor( dragPos.y / LEVEL_GRID_SIZE_Y );
 	UpdateDrag( pViewport, TVector2<int32>( x, y ), transform );
+}
+
+void CLevelEdit::OnLevelTools()
+{
+	auto pNode = CPrefabEditor::Inst()->GetCurNode();
+	if( pNode->GetObjData() != m_pData )
+		return;
+	CLevelToolsView::Inst()->Set( pNode, [] () {
+		CPrefabEditor::Inst()->RefreshCurItem();
+	} );
 }
 
 int32 CLevelEdit::GetCurOprValueCount()

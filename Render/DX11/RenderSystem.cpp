@@ -688,6 +688,11 @@ LRESULT CALLBACK CRenderSystem::MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LP
 				pThis->m_pGame->OnMouseMove( CVector2( iMouseX, iMouseY ) );
             return TRUE;
 
+		case WM_MOUSEWHEEL:
+			if( pThis->m_pGame )
+				pThis->m_pGame->OnMouseWheel( GET_WHEEL_DELTA_WPARAM( wParam ) );
+			return TRUE;
+
 		case WM_CHAR:
 			if( pThis->m_pGame )
 				pThis->m_pGame->OnChar( wParam );

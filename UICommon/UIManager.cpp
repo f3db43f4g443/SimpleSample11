@@ -31,6 +31,12 @@ void CUIManager::RemoveElement( CUIElement* pElem )
 	pElem->m_pMgr = NULL;
 }
 
+void CUIManager::OnUpdate()
+{
+	m_keyDown.Clear();
+	m_keyUp.Clear();
+}
+
 CUIElement* CUIManager::HandleMouseDown( const CVector2& mousePos )
 {
 	m_mousePos = mousePos;
@@ -85,8 +91,24 @@ CUIElement* CUIManager::HandleMouseMove( const CVector2& mousePos )
 	return pElement;
 }
 
+CUIElement* CUIManager::HandleMouseWheel( int32 nDelta )
+{
+	CUIElement* pElement = m_modalElements.size() ? m_modalElements.back()->MouseWheel( m_mousePos, nDelta ) : MouseWheel( m_mousePos, nDelta );
+	return pElement;
+}
+
 void CUIManager::HandleKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 {
+	if( bKeyDown && !m_key.GetBit( nChar ) )
+	{
+		m_keyDown.SetBit( nChar, true );
+	}
+	if( !bKeyDown && m_key.GetBit( nChar ) )
+	{
+		m_keyUp.SetBit( nChar, true );
+	}
+	m_key.SetBit( nChar, bKeyDown );
+
 	auto pFocus = GetFocus();
 	if( pFocus )
 		pFocus->OnKey( nChar, bKeyDown, bAltDown );

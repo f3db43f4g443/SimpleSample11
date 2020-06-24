@@ -52,6 +52,20 @@ void CUIScrollView::LoadContent( TiXmlElement* pRoot )
 	}
 }
 
+void CUIScrollView::FocusPoint( const CVector2& p )
+{
+	if( m_pBarX )
+	{
+		float fMaxOfsX = Max( 0.0f, m_contentSize.width - m_pClipElement->GetLocalClip().width );
+		m_pBarX->SetPercent( Max( 0.0f, Min( 1.0f, p.x / fMaxOfsX ) ) );
+	}
+	if( m_pBarY )
+	{
+		float fMaxOfsY = Max( 0.0f, m_contentSize.height - m_pClipElement->GetLocalClip().height );
+		m_pBarY->SetPercent( Max( 0.0f, Min( 1.0f, p.y / fMaxOfsY ) ) );
+	}
+}
+
 void CUIScrollView::CopyData( CUIElement* pElement, bool bInit )
 {
 	CUILabel::CopyData( pElement, bInit );
@@ -132,20 +146,6 @@ void CUIScrollView::ClearContent()
 	while( m_pContent != &m_contentTail )
 		RemoveContent( m_pContent );
 	SetLayoutDirty();
-}
-
-void CUIScrollView::FocusPoint( const CVector2& p )
-{
-	if( m_pBarX )
-	{
-		float fMaxOfsX = Max( 0.0f, m_contentSize.width - m_pClipElement->GetLocalClip().width );
-		m_pBarX->SetPercent( Max( 0.0f, Min( 1.0f, p.x / fMaxOfsX ) ) );
-	}
-	if( m_pBarY )
-	{
-		float fMaxOfsY = Max( 0.0f, m_contentSize.height - m_pClipElement->GetLocalClip().height );
-		m_pBarY->SetPercent( Max( 0.0f, Min( 1.0f, p.y / fMaxOfsY ) ) );
-	}
 }
 
 void CUIScrollView::OnInited()

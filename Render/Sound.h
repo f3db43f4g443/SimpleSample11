@@ -54,11 +54,14 @@ public:
 	{
 		eResType = eEngineResType_Sound,
 	};
-	CSoundFile( const char* name, int32 type ) : CResource( name, type ) {}
+	CSoundFile( const char* name, int32 type ) : CResource( name, type ), m_nSoundType( 0 ) {}
 	void Create();
 	ISoundTrack* CreateSoundTrack();
 
+	static ISound* CreateSound( const char* szFileName );
 	static ISoundTrack* PlaySound( const char* szFileName, bool bLoop = false );
 private:
+	int8 m_nSoundType;
 	CReference<ISound> m_pSound;
+	vector<CReference<ISound> > m_vecSounds;
 };

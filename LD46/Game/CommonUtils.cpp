@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CommonUtils.h"
+#include "GlobalCfg.h"
 
 void CLuaTrigger::Run( void* pContext )
 {
@@ -32,4 +33,23 @@ CLuaTrigger* CLuaTrigger::CreateAuto( int8 nParamType )
 	p->m_pLuaState = pCoroutine;
 	p->m_nParamType = nParamType;
 	return p;
+}
+
+void PlaySoundEffect( const char* szName )
+{
+	auto itr = CGlobalCfg::Inst().mapSoundEffect.find( szName );
+	if( itr == CGlobalCfg::Inst().mapSoundEffect.end() )
+		return;
+	auto pSoundTrack = itr->second->CreateSoundTrack();
+	pSoundTrack->Play( ESoundPlay_KeepRef );
+}
+
+ISoundTrack* PlaySoundLoop( const char* szName )
+{
+	auto itr = CGlobalCfg::Inst().mapSoundEffect.find( szName );
+	if( itr == CGlobalCfg::Inst().mapSoundEffect.end() )
+		return NULL;
+	auto pSoundTrack = itr->second->CreateSoundTrack();
+	pSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop );
+	return pSoundTrack;
 }

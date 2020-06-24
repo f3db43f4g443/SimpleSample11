@@ -392,6 +392,7 @@
   <ItemGroup>
     <ClCompile Include="Editor\HitProxyEdit.cpp" />
     <ClCompile Include="Editor\LevelEdit.cpp" />
+    <ClCompile Include="Editor\LevelTools.cpp" />
     <ClCompile Include="Editor\WorldCfgEditor.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
@@ -404,6 +405,7 @@
   <ItemGroup>
     <ClInclude Include="Editor\HitProxyEdit.h" />
     <ClInclude Include="Editor\LevelEdit.h" />
+    <ClInclude Include="Editor\LevelTools.h" />
     <ClInclude Include="Editor\WorldCfgEditor.h" />
     <ClInclude Include="winresource.h" />
   </ItemGroup>

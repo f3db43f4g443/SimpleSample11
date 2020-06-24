@@ -170,6 +170,7 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void Set( const char* szText, int8 nAlign = 0 ) override;
 	void SetTypeInterval( int32 n ) { m_nTypeInterval = n; }
+	void SetTypeSound( const char* sz, int32 nTextInterval );
 	void ForceFinish();
 	bool IsFinished();
 	void Update();
@@ -187,6 +188,8 @@ protected:
 	CRectangle m_origRect;
 	int32 m_nTick;
 	int32 m_nForceFinishTick;
+	CReference<CSoundFile> m_pSound;
+	int32 m_nSoundTextInterval;
 	vector<CElement2D> m_elemsEft;
 };
 
@@ -198,8 +201,9 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-	void Set( const TVector2<int32>& target, int32 nDuration, float fStrength = 1.0f ) { Set( &target, 1, nDuration, fStrength ); }
-	void Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength = 1.0f );
+	void Set( const TVector2<int32>& target, int32 nDuration, float fStrength = 1.0f, float fTurbulence = 0.125f )
+	{ Set( &target, 1, nDuration, fStrength, fTurbulence ); }
+	void Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength = 1.0f, float fTurbulence = 0.125f );
 	virtual void Render( CRenderContext2D& context ) override;
 private:
 	void RefreshImg();
@@ -207,10 +211,12 @@ private:
 
 	int32 m_nDuration;
 	float m_fStrength;
+	float m_fTurbulence;
 	int32 m_nTick;
 	CVector2 m_imgOfs;
 	vector<int8> m_vec;
 	vector<CElement2D> m_elems;
 	vector<CVector4> m_vecParams;
+	CReference<ISoundTrack> m_pSound;
 	TClassTrigger<CLightningEffect> m_onTick;
 };

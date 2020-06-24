@@ -10,6 +10,7 @@ public:
 	CLevelScriptCustom( const SClassCreateContext& context ) : CLevelScript( context ) { SET_BASEOBJECT_ID( CLevelScriptCustom ); }
 
 	virtual void OnInit( CMyLevel* pLevel ) override;
+	virtual void OnBegin( CMyLevel* pLevel ) override;
 	virtual void OnDestroy( CMyLevel* pLevel ) override;
 	virtual void OnUpdate( CMyLevel* pLevel ) override;
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
@@ -18,6 +19,7 @@ public:
 	virtual int32 Signal( int32 i ) override;
 private:
 	CString m_strInit;
+	CString m_strBegin;
 	CString m_strDestroy;
 	CString m_strUpdate;
 	CString m_strUpdate1;
@@ -53,6 +55,17 @@ private:
 	TClassTrigger<CCommonLink> m_onUpdate;
 	TClassTrigger<CCommonLink> m_onSrcKilled;
 	TClassTrigger<CCommonLink> m_onDstKilled;
+	CReference<ISoundTrack> m_pSound;
+};
+
+class CPawnUsageCommon : public CPawnUsage
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CPawnUsageCommon( const SClassCreateContext& context ) : CPawnUsage( context ) { SET_BASEOBJECT_ID( CPawnUsageCommon ); }
+	virtual void UseHit( class CPlayer* pPlayer ) override;
+private:
+	int8 m_nType;
 };
 
 class CPawnUsageButton : public CPawnUsage
@@ -84,6 +97,36 @@ public:
 	CPawnAIAutoDoor( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIAutoDoor ); }
 	virtual bool CanCheckAction( bool bScenario ) override { return true; }
 	virtual int32 CheckAction( int8& nCurDir ) override;
+};
+
+class CSmoke : public CPawnHit
+{
+	friend void RegisterGameClasses_BasicElems();
+public:
+	CSmoke( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CSmoke ); }
+	virtual void Init() override;
+	virtual void Update() override;
+	virtual void Render( CRenderContext2D& context ) override;
+	virtual void UpdateRendered( double dTime ) override;
+	virtual void OnPreview() override;
+private:
+	void InitImages();
+	void UpdateImages();
+	bool m_bPreview;
+
+	CVector4 m_origParam[2];
+	float m_t;
+	float m_fAnimSpeed;
+	float m_fSplitOfs[2];
+	struct SItem
+	{
+		CVector2 tex;
+		float fTexSpeed;
+		CVector2 ofs;
+	};
+	SItem m_items[3];
+	CElement2D m_elems[3];
+	CVector4 m_params[6];
 };
 
 class CElevator : public CLevelScript, public ISignalObj
@@ -118,6 +161,7 @@ public:
 	virtual void OnAddedToStage() override { if( m_p ) m_p->bVisible = false; if( m_p1 ) m_p1->bVisible = false; }
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
 	void SetTarget( const CVector2& target );
+	bool IsActivated();
 	CVector2 GetProjSrc() { return m_p1->GetPosition(); }
 	virtual int32 Signal( int32 i ) override;
 private:

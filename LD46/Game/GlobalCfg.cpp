@@ -26,6 +26,14 @@ void CGlobalCfg::Load()
 		pFailLightningEffectPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
 	}
 
+	auto pSoundEfts = doc.RootElement()->FirstChildElement( "sound" );
+	for( auto pItem = pSoundEfts->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+	{
+		auto szName = XmlGetAttr( pItem, "name", "" );
+		auto szPath = XmlGetAttr( pItem, "path", "" );
+		mapSoundEffect[szName] = CResourceManager::Inst()->CreateResource<CSoundFile>( szPath );
+	}
+
 	auto pTransfer = doc.RootElement()->FirstChildElement( "level_transfer" );
 	lvTransferData.fTransferCamSpeed = XmlGetAttr( pTransfer, "cam_speed", 5.0f );
 	lvTransferData.nTransferFadeOutFrameCount = XmlGetAttr( pTransfer, "fadeout", 45 );
@@ -81,6 +89,11 @@ void CGlobalCfg::Load()
 		{
 			lvIndicatorData.vecHitParams.resize( lvIndicatorData.vecHitParams.size() + 1 );
 			ReadFunc( pItem, lvIndicatorData.vecHitParams.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "hit_blocked" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecHitBlockedParams.resize( lvIndicatorData.vecHitBlockedParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecHitBlockedParams.back() );
 		}
 		for( auto pItem = pIndicator->FirstChildElement( "miss" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 		{

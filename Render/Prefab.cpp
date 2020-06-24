@@ -1993,6 +1993,8 @@ void CPrefab::Create()
 	vector<char> content;
 	if( GetFileContent( content, GetName(), false ) == INVALID_32BITID )
 		return;
+	if( !content.size() )
+		return;
 	CBufReader buf( &content[0], content.size() );
 	Load( buf );
 	m_bCreated = true;

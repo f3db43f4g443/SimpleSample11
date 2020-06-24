@@ -1,0 +1,26 @@
+﻿<root type="element" x="200" y="0" >
+  <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="1000" rectHeight="800" enableMouseEvent="1">
+  </element>
+  <template name="0" type="EditorRes/UI/panel.xml" x="1000" y="100" rectX="0" rectY="0" rectWidth="400" rectHeight="600" >
+    <element type="element" name="new_template_name" x="100" y="100" rectX="0" rectY="0" rectWidth="200" rectHeight="20">
+    </element>
+    <template type="EditorRes/UI/button.xml" name="new" x="320" y="100" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="New" >
+    </template>
+    <element type="element" name="blueprint" x="100" y="150" rectX="0" rectY="0" rectWidth="200" rectHeight="20">
+    </element>
+    <element type="element" name="region" x="20" y="200" rectX="0" rectY="0" rectWidth="100" rectHeight="20">
+    </element>
+    <template type="EditorRes/UI/button.xml" name="auto_layout" x="50" y="650" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Auto Layout" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="save" x="150" y="650" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Save" >
+    </template>
+  </template>
+  <template name="1" type="EditorRes/UI/panel.xml" x="1000" y="100" rectX="0" rectY="0" rectWidth="400" rectHeight="600" >
+    <template type="EditorRes/UI/textbox.xml" name="file_name" x="20" y="100" rectX="0" rectY="0" rectWidth="150" rectHeight="20" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="ok" x="50" y="650" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="OK" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="cancel" x="150" y="650" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Cancel" >
+    </template>
+  </template>
+</root>

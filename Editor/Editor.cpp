@@ -67,6 +67,7 @@ void CEditor::Update()
 	{
 		pObj->UpdateAnim( dTotalTime - dLastTime );
 	}
+	m_pUIMgr->OnUpdate();
 }
 
 void CEditor::OnResize( const CVector2& size )
@@ -93,12 +94,18 @@ void CEditor::OnMouseMove( const CVector2& pos )
 	m_pUIMgr->HandleMouseMove( pos );
 }
 
+void CEditor::OnMouseWheel( int32 nDelta )
+{
+	m_pUIMgr->HandleMouseWheel( nDelta );
+}
 
 void CEditor::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 {
 	m_pUIMgr->HandleKey( nChar, bKeyDown, bAltDown );
 	if( nChar == VK_DELETE && bKeyDown )
 		m_pUIMgr->HandleChar( 127 );
+	if( nChar >= 128 )
+		return;
 }
 
 void CEditor::OnChar( uint32 nChar )
@@ -139,7 +146,7 @@ void CEditor::OpenFile( const char* szFile )
 	auto pEditor = SetEditor( szExt );
 	if( pEditor )
 		pEditor->SetFileName( szFile );
-	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) )
+	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) || !strcmp( szExt, "sf" ) )
 	{
 		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( szFile )->CreateSoundTrack();
 		pSoundTrack->Play( ESoundPlay_KeepRef );

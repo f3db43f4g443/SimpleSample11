@@ -46,6 +46,16 @@ void CRenderContext2D::AddElement( CElement2D* pElement, uint32 nGroup )
 	renderGroup[nGroup].m_nElemCount++;
 }
 
+void CRenderContext2D::AddElementDummy( CElement2D* pElement, uint32 nGroup )
+{
+	if( pElement->depth == -1 )
+	{
+		int a = 1;
+	}
+	nGroup = Min( nGroup, nRenderGroups - 1 );
+	pElement->InsertTo_Element( renderGroup[nGroup].m_pTransparent );
+}
+
 void CRenderContext2D::Render( CRenderObject2D* pObject, bool bTest )
 {
 	if( !pObject->bVisible )

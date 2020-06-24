@@ -49,6 +49,7 @@ void CRenderObject2D::SetBoundDirty()
 
 void CRenderObject2D::AddChild( CRenderObject2D* pNode )
 {
+	ASSERT( !pNode->m_pTransformParent && !pNode->m_pRenderParent );
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
@@ -71,6 +72,7 @@ void CRenderObject2D::AddChild( CRenderObject2D* pNode )
 
 void CRenderObject2D::AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pAfter )
 {
+	ASSERT( !pNode->m_pTransformParent && !pNode->m_pRenderParent );
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
@@ -84,6 +86,7 @@ void CRenderObject2D::AddChildAfter( CRenderObject2D* pNode, CRenderObject2D* pA
 
 void CRenderObject2D::AddChildBefore( CRenderObject2D* pNode, CRenderObject2D* pBefore )
 {
+	ASSERT( !pNode->m_pTransformParent && !pNode->m_pRenderParent );
 	pNode->m_pTransformParent = pNode->m_pRenderParent = this;
 	pNode->_setDepth( m_nDepth < 0? -1: m_nDepth + 1);
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
@@ -124,6 +127,7 @@ void CRenderObject2D::SortChildrenRenderOrder( function<bool( CRenderObject2D*, 
 
 void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
 {
+	ASSERT( !pNode->m_pTransformParent );
 	pNode->m_pTransformParent = this;
 	pNode->_setDepth( m_nDepth < 0 ? -1 : m_nDepth + 1 );
 	OnAddChild( pNode );
@@ -134,6 +138,7 @@ void CRenderObject2D::AddTransformChild( CRenderObject2D * pNode )
 
 void CRenderObject2D::AddRenderChild( CRenderObject2D * pNode )
 {
+	ASSERT( !pNode->m_pRenderParent );
 	pNode->m_pRenderParent = this;
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
@@ -151,6 +156,7 @@ void CRenderObject2D::AddRenderChild( CRenderObject2D * pNode )
 
 void CRenderObject2D::AddRenderChildAfter( CRenderObject2D * pNode, CRenderObject2D * pAfter )
 {
+	ASSERT( !pNode->m_pRenderParent );
 	pNode->m_pRenderParent = this;
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
@@ -159,8 +165,9 @@ void CRenderObject2D::AddRenderChildAfter( CRenderObject2D * pNode, CRenderObjec
 	pNode->SetBoundDirty();
 }
 
-void CRenderObject2D::AddRenderChildBefore( CRenderObject2D * pNode, CRenderObject2D * pBefore )
+void CRenderObject2D::AddRenderChildBefore( CRenderObject2D* pNode, CRenderObject2D * pBefore )
 {
+	ASSERT( !pNode->m_pRenderParent );
 	pNode->m_pRenderParent = this;
 	pNode->_setRenderDepth( m_nRenderDepth < 0 ? -1 : m_nRenderDepth + 1 );
 
@@ -374,7 +381,7 @@ bool CRenderObject2D::CalcAABB()
 
 	for( CRenderObject2D* pChild = m_pRenderChildren; pChild; pChild = pChild->NextRenderChild() )
 		globalAABB = globalAABB + pChild->globalAABB;
-	return !( orig == globalAABB );
+	return true;
 }
 
 void CRenderObject2D::CalcGlobalTransform()

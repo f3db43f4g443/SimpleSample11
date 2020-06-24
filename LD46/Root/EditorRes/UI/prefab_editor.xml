@@ -1,0 +1,32 @@
+﻿<root type="element" x="200" y="0" >
+  <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="1000" rectHeight="800" enableMouseEvent="1">
+  </element>
+  <template name="scene_view" type="EditorRes/UI/treeview.xml" x="1000" y="0" rectX="0" rectY="0" rectWidth="220" rectHeight="300" >
+    <template type="EditorRes/UI/button.xml" name="new" x="0" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="New" >
+    </template>
+    <element type="element" name="new_nodetype" x="40" y="300" rectX="0" rectY="0" rectWidth="70" rectHeight="20">
+    </element>
+    <template type="EditorRes/UI/button.xml" name="delete" x="130" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Delete" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="copy" x="170" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Copy" >
+    </template>
+    <template type="EditorRes/UI/button.xml" name="paste" x="210" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Paste" >
+    </template>
+    <template name="item_view" type="EditorRes/UI/treeview.xml" x="220" y="0" rectX="0" rectY="0" rectWidth="180" rectHeight="260" >
+      <template type="EditorRes/UI/textbox.xml" name="new_itemname" x="0" y="260" rectX="0" rectY="0" rectWidth="180" rectHeight="20" >
+      </template>
+      <template type="EditorRes/UI/button.xml" name="new" x="100" y="280" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="New" >
+      </template>
+      <template type="EditorRes/UI/button.xml" name="clone" x="140" y="280" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Clone" >
+      </template>
+      <template type="EditorRes/UI/button.xml" name="rename" x="100" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Rename" >
+      </template>
+      <template type="EditorRes/UI/button.xml" name="delete" x="140" y="300" rectX="0" rectY="0" rectWidth="40" rectHeight="20" text="Delete" >
+      </template>
+    </template>
+  </template>
+  <template name="node_view" type="EditorRes/UI/treeview.xml" x="1000" y="320" rectX="0" rectY="0" rectWidth="400" rectHeight="450" >
+    <template type="EditorRes/UI/button.xml" name="save" x="125" y="450" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Save" >
+    </template>
+  </template>
+</root>

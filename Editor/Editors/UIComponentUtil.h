@@ -86,7 +86,7 @@ protected:
 class CFileNameEdit : public CUILabel
 {
 public:
-	static CFileNameEdit* Create( const char* szName, const char* szExt );
+	static CFileNameEdit* Create( const char* szName, const char* szExt, int32 nTextWidth = 0 );
 protected:
 	virtual void OnInited() override;
 	void OnEdit();
@@ -109,8 +109,10 @@ public:
 	
 	static CDropDownBox* Create( SItem* pItems, uint32 nItems );
 	static CDropDownBox* Create( const char* szName, SItem* pItems, uint32 nItems );
+	void ResetItems( SItem* pItems, uint32 nItems );
 	uint32 GetItemCount() { return m_items.size(); }
 	SItem* GetItem( uint32 nIndex );
+	int32 GetSelectedItemIndex() { return m_nSelectedItem; }
 	SItem* GetSelectedItem();
 	void SetSelectedItem( uint32 nIndex, bool bTrigger = true );
 	void SetSelectedItem( const char* szName, bool bTrigger = true );

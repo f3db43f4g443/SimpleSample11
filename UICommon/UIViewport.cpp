@@ -209,6 +209,36 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 	}
 }
 
+void CUIViewport::SetLight( bool bLight )
+{
+	if( m_pRenderer )
+	{
+		m_pRenderer->OnDestroyDevice( IRenderSystem::Inst() );
+		delete m_pRenderer;
+		m_pRenderer = NULL;
+	}
+	m_bLight = bLight;
+	if( bLight )
+	{
+		SLighted2DSubRendererContext context;
+		context.pCamera = &GetCamera();
+		context.pRoot = GetRoot();
+		context.pGUIRoot = m_pGUIRoot;
+		context.pGUICamera = m_pExternalGUICamera;
+		m_pRenderer = new CLighted2DRenderer( context );
+	}
+	else
+	{
+		SSimpleSubRendererContext context;
+		context.pCamera = &GetCamera();
+		context.pRoot = GetRoot();
+		context.bInvertY = false;
+		m_pRenderer = new CSimpleRenderer( context );
+	}
+	m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
+	m_pRenderer->OnResize( IRenderSystem::Inst(), m_texSize );
+}
+
 void CUIViewport::SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam )
 {
 	m_pGUIRoot = pRoot;

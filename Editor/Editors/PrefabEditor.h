@@ -26,6 +26,8 @@ public:
 	virtual void Refresh() override;
 	CPrefabNode* GetPrefabNode() { return m_pSelectedPrefab; }
 	CPrefabNode* GetRootNode( const char* szName = "" );
+	CPrefabNode* GetCurNode() { return m_pCurNode; }
+	void RefreshCurItem() { SelectItem( m_strSelectedPrefab ); }
 
 	class CNodeData : public CReferenceObject
 	{

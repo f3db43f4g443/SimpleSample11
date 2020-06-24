@@ -1,0 +1,5 @@
+﻿<root>
+  <sound name="sound/door_hit_1.mp3" />
+  <sound name="sound/door_hit_2.mp3" />
+  <sound name="sound/door_hit_3.mp3" />
+</root>

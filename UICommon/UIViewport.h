@@ -20,6 +20,7 @@ public:
 	void ReserveTexSize( const CVector2& size );
 
 	void Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight, IBlendState* pBlend = NULL );
+	void SetLight( bool bLight );
 	void SetBlend( IBlendState* pBlend ) { m_pBlend = pBlend; m_bOpaque = m_pBlend == NULL; }
 	void SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam );
 	void SetCustomRender( const CVector2& customRes );

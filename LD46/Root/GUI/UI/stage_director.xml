@@ -1,0 +1,4 @@
+﻿<root type="element" alignX="3" alignY="3" >
+  <element name="main" type="viewport" rectX="0" rectY="0" rectWidth="1152" rectHeight="720" alignX="3" alignY="3" enableMouseEvent="1">
+  </element>
+</root>

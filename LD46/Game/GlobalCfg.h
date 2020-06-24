@@ -16,6 +16,8 @@ public:
 
 	CReference<CPrefab> pFailLightningEffectPrefab;
 
+	map<string, CReference<CSoundFile> > mapSoundEffect;
+
 	struct
 	{
 		float fTransferCamSpeed;
@@ -33,6 +35,7 @@ public:
 		vector<SParamItem> vecUseParams;
 		vector<SParamItem> vecMountParams;
 		vector<SParamItem> vecHitParams;
+		vector<SParamItem> vecHitBlockedParams;
 		vector<SParamItem> vecMissParams;
 		vector<SParamItem> vecBlockedParams;
 		vector<SParamItem> vecBlockedParams1;

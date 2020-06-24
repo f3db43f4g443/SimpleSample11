@@ -1,0 +1,13 @@
+﻿<root type="element" x="300" y="0" >
+  <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="600" rectHeight="600" enableMouseEvent="1">
+  </element>
+  <element name="create" type="element" x="600" y="250">
+    <element name="filename" type="element" x="150" y="25" rectX="0" rectY="-10" rectWidth="128" rectHeight="20" />
+    <template type="EditorRes/UI/button.xml" name="ok" x="125" y="50" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="OK" />
+  </element>
+  <element name="edit" type="element">
+    <template name="toolbox" type="EditorRes/UI/treeview.xml" x="600" y="0" rectX="0" rectY="0" rectWidth="300" rectHeight="550">
+     <template type="EditorRes/UI/button.xml" name="save" x="125" y="550" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Save" />
+    </template>
+  </element>
+</root>

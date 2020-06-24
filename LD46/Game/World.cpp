@@ -216,10 +216,15 @@ void RegisterGameClasses_World()
 	REGISTER_CLASS_BEGIN( SLevelData )
 		REGISTER_MEMBER( pLevel )
 		REGISTER_MEMBER( displayOfs )
-		REGISTER_MEMBER( nDisplayLevel )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SRegionData )
+		REGISTER_MEMBER( strName )
+		REGISTER_MEMBER( arrLevelData )
+		REGISTER_MEMBER( pBlueprint )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SWorldCfg )
-		REGISTER_MEMBER( arrLevelData )
+		REGISTER_MEMBER( arrRegionData )
 	REGISTER_CLASS_END()
 }

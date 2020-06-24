@@ -1,0 +1,15 @@
+﻿<root type="textbox" x="300" y="200" rectX="0" rectY="0" rectWidth="500" rectHeight="500" textLeft="4" textRight="4"
+      textTop="4" textBottom="4" textAlignX="0" textAlignY="0" multiline="1" autoline="1">
+  <imageLists>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/opaque.xml" rectX="0" rectY="0" rectWidth="500" rectHeight="500"
+              rectLeft="4" rectTop="4" rectRight="496" rectBottom="496"
+              texX="0" texY="0" texWidth="32" texHeight="32"
+              texLeft="4" texTop="4" texRight="28" texBottom="28" />
+    </imageList>
+  </imageLists>
+  <template type="EditorRes/UI/button.xml" name="btn_ok" rectX="200" rectY="500" rectWidth="50" rectHeight="20" text="OK" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_cancel" rectX="400" rectY="500" rectWidth="50" rectHeight="20" text="Cancel" >
+  </template>
+</root>

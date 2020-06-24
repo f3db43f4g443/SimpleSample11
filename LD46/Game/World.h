@@ -16,13 +16,20 @@ struct SLevelData
 	SLevelData( const SClassCreateContext& context ) {}
 	TResourceRef<CPrefab> pLevel;
 	CVector2 displayOfs;
-	int32 nDisplayLevel;
+};
+
+struct SRegionData
+{
+	SRegionData( const SClassCreateContext& context ) {}
+	CString strName;
+	TArray<SLevelData> arrLevelData;
+	TResourceRef<CPrefab> pBlueprint;
 };
 
 struct SWorldCfg
 {
 	SWorldCfg( const SClassCreateContext& context ) {}
-	TArray<SLevelData> arrLevelData;
+	TArray<SRegionData> arrRegionData;
 };
 
 enum EWorldCfgFileVersion

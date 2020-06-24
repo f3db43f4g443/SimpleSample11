@@ -40,13 +40,23 @@ public:
 	TArray( const TArray<T>& arr )
 	{
 		m_nSize = arr.m_nSize;
-		m_p = (T*)malloc( sizeof( T ) * m_nSize );
+		m_p = m_nSize ? (T*)malloc( sizeof( T ) * m_nSize ) : NULL;
 		for( int i = 0; i < m_nSize; i++ )
 			new( m_p + i ) T( arr.m_p[i] );
 	}
 	~TArray() { Clear(); }
 	T& operator[]( uint32 n );
 	const T& operator[]( uint32 n ) const;
+
+	TArray<T>& operator = ( const TArray<T>& arr )
+	{
+		Clear();
+		m_nSize = arr.m_nSize;
+		m_p = m_nSize ? (T*)malloc( sizeof( T ) * m_nSize ) : NULL;
+		for( int i = 0; i < m_nSize; i++ )
+			new( m_p + i ) T( arr.m_p[i] );
+		return *this;
+	}
 
 	uint32 Size() const { return m_nSize; }
 	void Resize( uint32 n );
@@ -132,6 +142,7 @@ void TArray<T>::Clear()
 {
 	for( int i = 0; i < m_nSize; i++ )
 		m_p[i].~T();
-	free( m_p );
+	if( m_p )
+		free( m_p );
 	m_p = NULL;
 }

@@ -6,14 +6,17 @@
 #include "Editor/HitProxyEdit.h"
 #include "Editor/LevelEdit.h"
 #include "Editor/WorldCfgEditor.h"
+#include "Editor/LevelTools.h"
 #include "UICommon/UIFactory.h"
 
 #include "GlobalCfg.h"
 
 void InitEditor()
 {
+	CResourceEditor::IsLighted() = false;
 	CObjectDataEditMgr::Inst().Register<CHitProxy, CHitProxyDataEdit>();
 	CObjectDataEditMgr::Inst().Register<CMyLevel, CLevelEdit>();
+	CEditor::Inst().RegisterEditor( CWorldCfgEditor::Inst(), "EditorRes/UI/world_editor.xml", "World Config(.w)", "w" );
 }
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
@@ -24,14 +27,15 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		virtual void Start() override
 		{
 			CEditor::Start();
-			//CGlobalCfg::Inst().Load();
+			CLevelToolsView* pToolsView = CLevelToolsView::Inst();
+			CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/level_tools/view.xml" )->GetElement()->Clone( pToolsView );
+			m_pUIMgr->AddChild( pToolsView );
 		}
 	};
 	static CMyEditor g_editor;
 
 	InitGame();
 	InitEditor();
-	CEditor::Inst().RegisterEditor( CWorldCfgEditor::Inst(), "EditorRes/UI/world_editor.xml", "World Config(.w)", "w" );
 
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	pRenderSystem->SetRenderer( new CSimpleRenderer );

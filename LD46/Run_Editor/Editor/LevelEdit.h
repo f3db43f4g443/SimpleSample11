@@ -11,6 +11,7 @@ public:
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override;
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos, const CMatrix2D& transform ) override;
 private:
+	void OnLevelTools();
 	int32 GetCurOprValueCount();
 	void UpdateDrag( class CUIViewport* pViewport, const TVector2<int32>& p, const CMatrix2D& transform );
 	virtual void OnEdit( uint32 nParam ) override;
@@ -23,4 +24,5 @@ private:
 
 	int8 m_nCurSelectedOpr;
 	int8 m_nCurSelectedValue;
+	TClassTrigger<CLevelEdit> m_onLevelTools;
 };

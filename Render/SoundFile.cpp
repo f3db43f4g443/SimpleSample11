@@ -3,6 +3,8 @@
 #include "RenderSystem.h"
 #include "FileUtil.h"
 #include "ResourceManager.h"
+#include "xml.h"
+#include "Rand.h"
 
 #include "libmad-0.15.1b/mad.h"
 
@@ -135,11 +137,51 @@ enum mad_flow mp3_decode_error( void *data,
 
 void CSoundFile::Create()
 {
-	vector<char> content;
-	if( GetFileContent( content, GetName(), false ) == INVALID_32BITID )
-		return;
+	if( !strcmp( GetFileExtension( GetName() ), "sf" ) )
+	{
+		vector<char> content;
+		if( GetFileContent( content, GetName(), true ) == INVALID_32BITID )
+			return;
 
-	if( !strcmp( GetFileExtension( GetName() ), "wav" ) )
+		TiXmlDocument doc;
+		doc.LoadFromBuffer( &content[0] );
+		for( auto pNode = doc.RootElement()->FirstChildElement(); pNode; pNode = pNode->NextSiblingElement() )
+		{
+			auto szName = XmlGetAttr( pNode, "name", "" );
+			auto pSound = CreateSound( szName );
+			if( pSound )
+				m_vecSounds.push_back( pSound );
+		}
+		m_nSoundType = 1;
+		m_bCreated = true;
+		return;
+	}
+
+	m_pSound = CreateSound( GetName() );
+	if( m_pSound )
+		m_bCreated = true;
+}
+
+ISoundTrack* CSoundFile::CreateSoundTrack()
+{
+	if( m_nSoundType == 0 )
+		return IRenderSystem::Inst()->CreateSoundTrack( m_pSound );
+	else
+	{
+		if( !m_vecSounds.size() )
+			return NULL;
+		ISound* pSound = m_vecSounds[SRand::Inst().Rand<int32>( 0, m_vecSounds.size() )];
+		return IRenderSystem::Inst()->CreateSoundTrack( pSound );
+	}
+}
+
+ISound* CSoundFile::CreateSound( const char* szFileName )
+{
+	vector<char> content;
+	if( GetFileContent( content, szFileName, false ) == INVALID_32BITID )
+		return NULL;
+	ISound* pSound;
+	if( !strcmp( GetFileExtension( szFileName ), "wav" ) )
 	{
 		struct WaveHeader
 		{
@@ -162,10 +204,10 @@ void CSoundFile::Create()
 			uint32 pData[1];
 		};
 		if( content.size() < sizeof( WaveHeader ) )
-			return;
+			return NULL;
 		WaveHeader* pWaveHead = (WaveHeader*)&content[0];
 		if( content.size() < pWaveHead->size + 8 )
-			return;
+			return NULL;
 
 		SWaveFormat format =
 		{
@@ -178,11 +220,9 @@ void CSoundFile::Create()
 			0,							//uint16 cbSize;
 		};
 		WaveData* pData = (WaveData*)( ( (uint8*)&pWaveHead->tag ) + pWaveHead->fmt_len );
-		m_pSound = IRenderSystem::Inst()->CreateSound( pData->pData, pData->length, format );
-
-		m_bCreated = true;
+		pSound = IRenderSystem::Inst()->CreateSound( pData->pData, pData->length, format );
 	}
-	else if( !strcmp( GetFileExtension( GetName() ), "mp3" ) )
+	else if( !strcmp( GetFileExtension( szFileName ), "mp3" ) )
 	{
 		SSoundDecodeBuffer buffer;
 		struct mad_decoder decoder;
@@ -203,18 +243,13 @@ void CSoundFile::Create()
 
 		result = mad_decoder_run( &decoder, MAD_DECODER_MODE_SYNC );
 
-		m_pSound = IRenderSystem::Inst()->CreateSound( buffer.buf.GetBuffer(), buffer.buf.GetBufLen(), buffer.format );
+		pSound = IRenderSystem::Inst()->CreateSound( buffer.buf.GetBuffer(), buffer.buf.GetBufLen(), buffer.format );
 
 		/* release the decoder */
 
 		mad_decoder_finish( &decoder );
-		m_bCreated = true;
 	}
-}
-
-ISoundTrack* CSoundFile::CreateSoundTrack()
-{
-	return IRenderSystem::Inst()->CreateSoundTrack( m_pSound );
+	return pSound;
 }
 
 ISoundTrack* CSoundFile::PlaySound( const char* szFileName, bool bLoop )

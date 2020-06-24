@@ -1,0 +1,8 @@
+﻿<root type="element" x="200" y="0" >
+  <element name="viewport" type="viewport" rectX="0" rectY="0" rectWidth="1000" rectHeight="800" enableMouseEvent="1">
+  </element>
+  <template name="panel" type="EditorRes/UI/panel.xml" x="1000" y="0" rectX="0" rectY="0" rectWidth="400" rectHeight="800" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="OK" x="1150" y="750" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="OK" >
+  </template>
+</root>

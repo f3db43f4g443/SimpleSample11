@@ -93,6 +93,36 @@ CUIElement* CUIElement::MouseMove( const CVector2& mousePos )
 	return pElement;
 }
 
+CUIElement* CUIElement::MouseWheel( const CVector2& mousePos, int32 nDelta )
+{
+	if( this == GetMgr()->GetDragDropObject() )
+		return NULL;
+	CUIElement* pElement = NULL;
+	if( globalClip.Contains( mousePos ) )
+	{
+		ForEachChild( [&mousePos, nDelta, &pElement] ( CUIElement* pElem ) {
+			if( !pElem->bVisible )
+				return true;
+			if( !pElem->globalAABB.Contains( mousePos ) )
+				return true;
+
+			pElement = pElem->MouseWheel( mousePos, nDelta );
+			return pElement == NULL;
+		} );
+	}
+
+	if( !pElement )
+	{
+		if( IsEnableMouseEvent() && m_localBound.Contains( mousePos - globalTransform.GetPosition() ) )
+		{
+			pElement = this;
+			OnMouseWheel( mousePos, nDelta );
+		}
+	}
+
+	return pElement;
+}
+
 void CUIElement::Resize( const CRectangle& rect )
 {
 	CRectangle oldRect = m_localBound;
@@ -358,6 +388,12 @@ void CUIElement::OnMouseUp( const CVector2& mousePos )
 void CUIElement::OnMouseMove( const CVector2& mousePos )
 {
 	SUIMouseEvent mouseEvent = { eEvent_MouseMove, this, mousePos };
+	DispatchMouseEvent( mouseEvent );
+}
+
+void CUIElement::OnMouseWheel( const CVector2& mousePos, int32 nDelta )
+{
+	SUIMouseEvent mouseEvent = { eEvent_MouseWheel, this, mousePos, nDelta };
 	DispatchMouseEvent( mouseEvent );
 }
 

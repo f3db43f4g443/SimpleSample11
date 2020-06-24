@@ -15,6 +15,7 @@ public:
 	virtual void OnMouseDown( const CVector2& pos ) override;
 	virtual void OnMouseUp( const CVector2& pos ) override;
 	virtual void OnMouseMove( const CVector2& pos ) override;
+	virtual void OnMouseWheel( int32 nDelta ) override;
 	virtual void OnKey( uint32 nChar, bool bKeyDown, bool bAltDown ) override;
 	virtual void OnChar( uint32 nChar ) override;
 
@@ -24,7 +25,7 @@ public:
 		string strPath;
 		string strDesc;
 	};
-	void RegisterEditor( CResourceEditor* pEditor, const char* szPath, const char* szDesc, const char* szTag )
+	void RegisterEditor( class CResourceEditor* pEditor, const char* szPath, const char* szDesc, const char* szTag )
 	{
 		auto& item = m_mapRegisteredEditors[szTag];
 		item.pEditor = pEditor;

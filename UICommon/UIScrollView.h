@@ -28,6 +28,7 @@ public:
 	CContent* FindContent( CUIElement* pElement );
 	void ClearContent();
 	const CRectangle& GetContentClip() { return m_pClipElement->GetLocalClip(); }
+	void FocusPoint( const CVector2& p );
 protected:
 	virtual CContent* CreateContent() { return new CContent; }
 	virtual void CopyData( CUIElement* pElement, bool bInit ) override;
@@ -36,7 +37,6 @@ protected:
 
 	void SetPercentX( float fPercent ) { if( m_pBarX ) m_pBarX->SetPercent( fPercent ); }
 	void SetPercentY( float fPercent ) { if( m_pBarY ) m_pBarY->SetPercent( fPercent ); }
-	void FocusPoint( const CVector2& p );
 
 	virtual void OnInited() override;
 	virtual void DoLayout() override;

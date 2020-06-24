@@ -6,6 +6,7 @@
 #include "Render/Scene2DManager.h"
 #include "Render/Renderer.h"
 #include "Game/MyLevel.h"
+#include "Editor/LevelTools.h"
 
 void CWorldCfgEditor::NewFile( const char* szFileName )
 {
@@ -16,44 +17,53 @@ void CWorldCfgEditor::NewFile( const char* szFileName )
 	m_pData = (SWorldCfg*)CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>()->NewObjFromData( buf, true, NULL );
 	Validate( szFileName );
 	m_nCurSelected = -1;
+	m_nCurRegion = -1;
+	SelectRegion( m_pData->arrRegionData.Size() ? 0 : -1 );
 	Super::NewFile( szFileName );
 }
 
 void CWorldCfgEditor::Refresh()
 {
-	for( auto& item : m_vecLevelData )
+	for( auto& reg : m_vecRegionData )
 	{
-		if( item.pLevelPreview )
-			item.pLevelPreview->RemoveThis();
-		if( item.pClonedLevelData )
-			item.pClonedLevelData->RemoveThis();
+		for( auto& lvl : reg.vecLevelData )
+		{
+			if( lvl.pLevelPreview )
+				lvl.pLevelPreview->RemoveThis();
+			if( lvl.pClonedLevelData )
+				lvl.pClonedLevelData->RemoveThis();
+		}
+		if( reg.pRoot )
+			reg.pRoot->RemoveThis();
 	}
-	m_vecLevelData.resize( 0 );
+	m_vecRegionData.resize( 0 );
 	if( m_pRes )
 	{
+		auto nRegion = m_nCurRegion;
 		auto nSelect = m_nCurSelected;
+		m_nCurRegion = -1;
 		m_nCurSelected = -1;
 		CBufFile buf;
 		auto pClassData = CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>();
 		pClassData->PackData( (uint8*)m_pRes->m_pWorldCfg, buf, true );
 		m_pData = (SWorldCfg*)pClassData->NewObjFromData( buf, true, NULL );
 		Validate( m_pRes->GetName() );
-		nSelect = Min<int32>( nSelect, m_pData->arrLevelData.Size() - 1 );
-		Select( nSelect );
+		nRegion = Min<int32>( Max( 0, nRegion ), m_pData->arrRegionData.Size() - 1 );
+		SelectRegion( nRegion );
+		if( nRegion >= 0 )
+		{
+			nSelect = Min<int32>( nSelect, m_pData->arrRegionData[nRegion].arrLevelData.Size() - 1 );
+			Select( nSelect );
+		}
 	}
 	else
 	{
-		m_pCurDragEdit = NULL;
-		if( m_pCurLevelEdit )
-		{
-			m_onLvDataEdit.Unregister();
-			m_pCurLevelEdit = NULL;
-		}
 		if( m_pData )
 		{
 			delete m_pData;
 			m_pData = NULL;
 		}
+		m_nCurRegion = -1;
 		m_nCurSelected = -1;
 	}
 }
@@ -61,24 +71,55 @@ void CWorldCfgEditor::Refresh()
 void CWorldCfgEditor::OnInited()
 {
 	Super::OnInited();
-	m_pTreeView = GetChildByName<CUITreeView>( "node_view" );
+	m_pPanel[0] = GetChildByName<CUIElement>( "0" );
 	m_onSave.Set( this, &CWorldCfgEditor::Save );
-	m_pTreeView->GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
+	m_pPanel[0]->GetChildByName<CUIButton>( "save" )->Register( eEvent_Action, &m_onSave );
 	m_onAutoLayout.Set( this, &CWorldCfgEditor::AutoLayout );
-	m_pTreeView->GetChildByName<CUIButton>( "auto_layout" )->Register( eEvent_Action, &m_onAutoLayout );
-	m_onLvDataEdit.Set( this, &CWorldCfgEditor::OnLevelDateEdit );
+	m_pPanel[0]->GetChildByName<CUIButton>( "auto_layout" )->Register( eEvent_Action, &m_onAutoLayout );
+	m_onNewLevel.Set( this, &CWorldCfgEditor::BeginNewLevel );
+	m_pPanel[0]->GetChildByName<CUIButton>( "new" )->Register( eEvent_Action, &m_onNewLevel );
+
+	m_pRegionSelect = CDropDownBox::Create( NULL, 0 );
+	m_pRegionSelect->Replace( m_pPanel[0]->GetChildByName( "region" ) );
+	m_onSelectRegion.Set( this, &CWorldCfgEditor::OnRegionSelectChanged );
+	m_pRegionSelect->Register( eEvent_Action, &m_onSelectRegion );
+	m_pNewTemplate = CFileNameEdit::Create( "Template", "pf", 80 );
+	m_pNewTemplate->Replace( m_pPanel[0]->GetChildByName( "new_template_name" ) );
+	m_onBeginNewLevel.Set( this, &CWorldCfgEditor::BeginNewLevel );
+	m_pNewTemplate->Register( eEvent_Action, &m_onBeginNewLevel );
+	m_pBlueprint = CFileNameEdit::Create( "Blueprint", "pf", 80 );
+	m_pBlueprint->Replace( m_pPanel[0]->GetChildByName( "blueprint" ) );
+	m_onBlueprintChange.Set( this, &CWorldCfgEditor::OnBlueprintChange );
+	m_pBlueprint->Register( eEvent_Action, &m_onBlueprintChange );
+
+	m_pPanel[1] = GetChildByName<CUIElement>( "1" );
+	m_pPanel[1]->SetVisible( false );
+	m_pNewLevelName = m_pPanel[1]->GetChildByName<CUITextBox>( "file_name" );
+	m_onNewLevelOK.Set( this, &CWorldCfgEditor::OnNewLevelOK );
+	m_pPanel[1]->GetChildByName<CUIButton>( "ok" )->Register( eEvent_Action, &m_onNewLevelOK );
+	m_onNewLevelCancel.Set( this, &CWorldCfgEditor::OnNewLevelCancel );
+	m_pPanel[1]->GetChildByName<CUIButton>( "cancel" )->Register( eEvent_Action, &m_onNewLevelCancel );
 }
 
 void CWorldCfgEditor::Save()
 {
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
-	{
-		CPrefab* pPrefab = m_pData->arrLevelData[i].pLevel;
-		CBufFile buf;
-		pPrefab->Save( buf );
-		SaveFile( pPrefab->GetName(), buf.GetBuffer(), buf.GetBufLen() );
-	}
 	Super::Save();
+
+	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
+	{
+		auto& levelData = m_pData->arrRegionData[i].arrLevelData;
+		for( int j = 0; j < levelData.Size(); j++ )
+		{
+			if( m_vecRegionData[i].vecLevelData[j].bDirty )
+			{
+				m_vecRegionData[i].vecLevelData[j].bDirty = false;
+				CPrefab* pPrefab = levelData[j].pLevel;
+				CBufFile buf;
+				pPrefab->Save( buf );
+				SaveFile( pPrefab->GetName(), buf.GetBuffer(), buf.GetBufLen() );
+			}
+		}
+	}
 }
 
 void CWorldCfgEditor::RefreshPreview()
@@ -97,32 +138,72 @@ void CWorldCfgEditor::RefreshPreview()
 	m_pRes->m_pWorldCfg = (SWorldCfg*)pClassData->NewObjFromData( buf, true, NULL );
 	m_pRes->RefreshEnd();
 
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
 	{
-		CPrefab* pPrefab = m_pData->arrLevelData[i].pLevel;
-		pPrefab->RefreshBegin();
-		auto pNode1 = m_vecLevelData[i].pClonedLevelData->Clone( pPrefab );
-		pNode1->SetPosition( CVector2( 0, 0 ) );
-		pPrefab->SetNode( pNode1 );
-		pPrefab->RefreshEnd();
+		auto& levelData = m_pData->arrRegionData[i].arrLevelData;
+		for( int j = 0; j < levelData.Size(); j++ )
+		{
+			if( m_vecRegionData[i].vecLevelData[j].bDirty )
+			{
+				CPrefab* pPrefab = levelData[j].pLevel;
+				pPrefab->RefreshBegin();
+				auto pNode1 = m_vecRegionData[i].vecLevelData[j].pClonedLevelData->Clone( pPrefab );
+				pNode1->SetPosition( CVector2( 0, 0 ) );
+				pPrefab->SetNode( pNode1 );
+				pPrefab->RefreshEnd();
+			}
+		}
 	}
 }
 
 void CWorldCfgEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 {
 	CVector2 ofs[4] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	if( m_nState == 1 )
 	{
-		auto& data = m_pData->arrLevelData[i];
-		auto pLevel = m_vecLevelData[i].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+		CVector2 p = m_pViewport->GetScenePos( GetMgr()->GetMousePos() );
+		auto d = ( p - m_newMapBase ) / LEVEL_GRID_SIZE;
+		TVector2<int32> pt( floor( d.x ), floor( d.y ) );
+		if( !!( ( pt.x + pt.y ) & 1 ) )
+			pt.x--;
+		CVector2 a = CVector2( pt.x, pt.y ) * LEVEL_GRID_SIZE + m_newMapBase;
+		CVector2 b( LEVEL_GRID_SIZE_X * 2, LEVEL_GRID_SIZE_Y );
+		for( int j = 0; j < 4; j++ )
+		{
+			auto pt1 = a + b * ofs[j];
+			auto pt2 = a + b * ofs[( j + 1 ) % 4];
+			m_pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.25f, 0.25f, 0.25f, 0.5f ) );
+		}
+
+		for( auto item : m_newMapTiles )
+		{
+			auto a1 = CVector2( item.x, item.y ) * LEVEL_GRID_SIZE + m_newMapBase;
+			for( int j = 0; j < 4; j++ )
+			{
+				auto pt1 = a1 + b * ofs[j];
+				auto pt2 = a1 + b * ofs[( j + 1 ) % 4];
+				m_pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0, 0.5f, 0.35f, 0.5f ) );
+			}
+		}
+		return;
+	}
+
+	if( m_nCurRegion < 0 )
+		return;
+	auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+	auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
+	for( int i = 0; i < arrLevelData.Size(); i++ )
+	{
+		auto& data = arrLevelData[i];
+		auto pLevel = vecLevelData[i].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
 		auto size = pLevel->GetSize();
 
 		CVector2 p0 = data.displayOfs;
 		auto b = CVector2( size.x, size.y ) * LEVEL_GRID_SIZE;
-		CVector4 color( 0.2, 0.8, 0.9, 1 );
+		CVector4 color( 0.1, 0.4, 0.45, 0.5 );
 		if( i == m_nCurSelected )
 		{
-			color = CVector4( 0.5, 1, 1, 1 );
+			color = CVector4( 0.25, 0.5, 0.5, 0.5 );
 			p0 = p0 - CVector2( 32, 32 );
 			b = b + CVector2( 64, 64 );
 		}
@@ -133,19 +214,31 @@ void CWorldCfgEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 			m_pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
 		}
 	}
-
-	if( m_nCurSelected >= 0 && m_nCurSelected < m_pData->arrLevelData.Size() )
+	for( auto& item : m_vecRegionData[m_nCurRegion].vecExtLevel )
 	{
-		auto& curSelected = m_pData->arrLevelData[m_nCurSelected];
-		CMatrix2D mat;
-		mat.Translate( curSelected.displayOfs.x, curSelected.displayOfs.y );
-		m_pCurLevelEdit->OnDebugDraw( m_pViewport, pRenderSystem, mat );
+		auto pLevelData = m_vecRegionData[item.nRegion].vecLevelData[item.nLevel].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+		auto size = pLevelData->GetSize();
+		CVector2 p0 = item.ofs;
+		auto b = CVector2( size.x, size.y ) * LEVEL_GRID_SIZE;
+		for( int j = 0; j < 4; j++ )
+		{
+			auto pt1 = p0 + b * ofs[j];
+			auto pt2 = p0 + b * ofs[( j + 1 ) % 4];
+			m_pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.4, 0.1, 0.3, 0.5 ) );
+		}
 	}
 
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	if( m_nCurSelected >= 0 && m_nCurSelected < arrLevelData.Size() )
 	{
-		auto& data = m_pData->arrLevelData[i];
-		auto& levelData = m_vecLevelData[i];
+		auto& curSelected = arrLevelData[m_nCurSelected];
+		CMatrix2D mat;
+		mat.Translate( curSelected.displayOfs.x, curSelected.displayOfs.y );
+	}
+
+	for( int i = 0; i < arrLevelData.Size(); i++ )
+	{
+		auto& data = arrLevelData[i];
+		auto& levelData = vecLevelData[i];
 		auto pLevel = levelData.pClonedLevelData->GetStaticDataSafe<CMyLevel>();
 		auto size = pLevel->GetSize();
 		for( int j = 0; j < levelData.vecLinks.size(); j++ )
@@ -154,9 +247,10 @@ void CWorldCfgEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 			if( link.nTarget < 0 )
 				continue;
 			auto& nextLevel = pLevel->m_arrNextStage[j];
-			auto pLevel1 = m_vecLevelData[link.nTarget].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+			auto pLevel1 = m_vecRegionData[link.nRegion].vecLevelData[link.nTarget].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
 			auto beginBase = data.displayOfs;
-			auto endBase = CVector2( -nextLevel.nOfsX, -nextLevel.nOfsY ) * LEVEL_GRID_SIZE + m_pData->arrLevelData[link.nTarget].displayOfs;
+			auto endBase = link.nRegion == m_nCurRegion ? CVector2( -nextLevel.nOfsX, -nextLevel.nOfsY )
+				* LEVEL_GRID_SIZE + arrLevelData[link.nTarget].displayOfs : beginBase;
 			CVector4 colors[4] = { { 0.4, 0.4, 0.8, 0.5 }, { 0.8, 0.8, 0.3, 1 }, { 0.5, 0.9, 0.3, 1 }, { 0.5, 0.5, 0.5, 0.5 } };
 			for( auto& p : link.vecBegin )
 			{
@@ -188,34 +282,39 @@ void CWorldCfgEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
 
 void CWorldCfgEditor::AutoLayout()
 {
-	if( m_nCurSelected < 0 )
+	if( m_nCurRegion < 0 || m_nCurSelected < 0 )
 		return;
+	auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+	auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
 	vector<int32> q;
 	q.push_back( m_nCurSelected );
-	m_vecLevelData[m_nCurSelected].nFlag = 1;
+	vecLevelData[m_nCurSelected].nFlag = 1;
 	for( int i = 0; i < q.size(); i++ )
 	{
 		auto n = q[i];
-		auto& data = m_pData->arrLevelData[n];
-		auto& levelData = m_vecLevelData[n];
+		auto& data = arrLevelData[n];
+		auto& levelData = vecLevelData[n];
 		auto pLevel = levelData.pClonedLevelData->GetStaticDataSafe<CMyLevel>();
 		for( int j = 0; j < levelData.vecLinks.size(); j++ )
 		{
 			auto& link = levelData.vecLinks[j];
-			auto& levelData1 = m_vecLevelData[link.nTarget];
+			if( link.nRegion != m_nCurRegion )
+				continue;
+			auto& levelData1 = vecLevelData[link.nTarget];
 			if( levelData1.nFlag )
 				continue;
 			auto& nextLevel = pLevel->m_arrNextStage[j];
 			auto ofs = data.displayOfs + CVector2( nextLevel.nOfsX, nextLevel.nOfsY ) * LEVEL_GRID_SIZE;
-			m_pData->arrLevelData[link.nTarget].displayOfs = ofs;
-			m_vecLevelData[link.nTarget].pClonedLevelData->SetPosition( ofs );
-			m_vecLevelData[link.nTarget].pLevelPreview->SetPosition( ofs );
+			arrLevelData[link.nTarget].displayOfs = ofs;
+			vecLevelData[link.nTarget].pClonedLevelData->SetPosition( ofs );
+			vecLevelData[link.nTarget].pLevelPreview->SetPosition( ofs );
 			levelData1.nFlag = 1;
 			q.push_back( link.nTarget );
 		}
 	}
-	for( auto& item : m_vecLevelData )
+	for( auto& item : vecLevelData )
 		item.nFlag = 0;
+	RefreshExtLevel( m_nCurRegion );
 }
 
 void CWorldCfgEditor::Validate( const char* szName )
@@ -224,38 +323,97 @@ void CWorldCfgEditor::Validate( const char* szName )
 	int32 n = strPath.find_last_of( '/' );
 	strPath = strPath.substr( 0, n + 1 );
 	string strFind = strPath + "*.pf";
-	map<string, CReference<CPrefab> > mapLevelPrefabs;
-	FindFiles( strFind.c_str(), [this, &strPath, &mapLevelPrefabs] ( const char* szFileName )
+	map<string, map<string, CReference<CPrefab> > > mapmapLevelPrefabs;
+	FindFiles( strFind.c_str(), [this, &strPath, &mapmapLevelPrefabs] ( const char* szFileName )
 	{
 		string strFullPath = strPath;
 		strFullPath += szFileName;
 		CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strFullPath.c_str() );
-		if( pPrefab->GetRoot()->GetStaticDataSafe<CMyLevel>() )
-			mapLevelPrefabs[strFullPath] = pPrefab;
+		auto pLevelData = pPrefab->GetRoot()->GetStaticDataSafe<CMyLevel>();
+		if( pLevelData )
+			mapmapLevelPrefabs[pLevelData->m_strRegion.c_str()][strFullPath] = pPrefab;
 		return true;
 	}, true, false );
 
-	int i1 = 0;
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	for( int iRegion = 0; iRegion < m_pData->arrRegionData.Size(); iRegion++ )
 	{
-		auto itr = mapLevelPrefabs.find( m_pData->arrLevelData[i].pLevel.c_str() );
-		if( itr != mapLevelPrefabs.end() )
+		auto itr = mapmapLevelPrefabs.find( m_pData->arrRegionData[iRegion].strName.c_str() );
+		if( itr == mapmapLevelPrefabs.end() )
 		{
-			if( i1 != i )
-				m_pData->arrLevelData[i1] = m_pData->arrLevelData[i];
-			m_pData->arrLevelData[i1].pLevel = itr->second;
-			itr->second = NULL;
-			i1++;
+			if( iRegion < m_pData->arrRegionData.Size() - 1 )
+				m_pData->arrRegionData[iRegion] = m_pData->arrRegionData[m_pData->arrRegionData.Size() - 1];
+			m_pData->arrRegionData.Resize( m_pData->arrRegionData.Size() - 1 );
+			iRegion--;
+			continue;
 		}
+		auto& mapLevelPrefabs = itr->second;
+
+		auto& arrLevelData = m_pData->arrRegionData[iRegion].arrLevelData;
+		int i1 = 0;
+		for( int i = 0; i < arrLevelData.Size(); i++ )
+		{
+			auto itr = mapLevelPrefabs.find( arrLevelData[i].pLevel.c_str() );
+			if( itr != mapLevelPrefabs.end() )
+			{
+				if( i1 != i )
+					arrLevelData[i1] = arrLevelData[i];
+				arrLevelData[i1].pLevel = itr->second;
+				itr->second = NULL;
+				i1++;
+			}
+		}
+		arrLevelData.Resize( i1 );
+
+		InitRegion( iRegion, mapLevelPrefabs );
+		mapmapLevelPrefabs.erase( itr );
 	}
-	m_pData->arrLevelData.Resize( i1 );
+
+	for( auto& item : mapmapLevelPrefabs )
+	{
+		auto& mapLevelPrefabs = item.second;
+		int32 iRegion = m_pData->arrRegionData.Size();
+		m_pData->arrRegionData.Resize( iRegion + 1 );
+		m_pData->arrRegionData[iRegion].strName = item.first.c_str();
+		InitRegion( iRegion, mapLevelPrefabs );
+	}
+
+	map<CString, TVector2<int32> > mapLevelIndex;
+	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
+	{
+		auto& levelData = m_pData->arrRegionData[i].arrLevelData;
+		for( int j = 0; j < levelData.Size(); j++ )
+			mapLevelIndex[levelData[j].pLevel] = TVector2<int32>( i, j );
+	}
+	for( int i = 0; i < m_vecRegionData.size(); i++ )
+	{
+		for( int j = 0; j < m_vecRegionData[i].vecLevelData.size(); j++ )
+			RefreshLevelDataLink( i, j, &mapLevelIndex );
+		RefreshExtLevel( i );
+	}
+
+	vector<CDropDownBox::SItem> vecItems;
+	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
+	{
+		CDropDownBox::SItem item = { m_pData->arrRegionData[i].strName, (void*)i };
+		vecItems.push_back( item );
+	}
+	std::sort( vecItems.begin(), vecItems.end(), [] ( const CDropDownBox::SItem& a, const CDropDownBox::SItem& b ) {
+		return a.name < b.name;
+	} );
+	m_pRegionSelect->ResetItems( vecItems.size() ? &vecItems[0] : NULL, vecItems.size() );
+}
+
+void CWorldCfgEditor::InitRegion( int32 nRegion, map<string, CReference<CPrefab> >& mapLevelPrefabs )
+{
+	auto& arrLevelData = m_pData->arrRegionData[nRegion].arrLevelData;
+	int32 i1 = arrLevelData.Size();
 	for( auto& item : mapLevelPrefabs )
 	{
 		if( !item.second )
 			continue;
-		int32 n = m_pData->arrLevelData.Size();
-		m_pData->arrLevelData.Resize( n + 1 );
-		auto& data = m_pData->arrLevelData[n];
+		int32 n = arrLevelData.Size();
+		arrLevelData.Resize( n + 1 );
+		auto& data = arrLevelData[n];
 		data.pLevel = item.first.c_str();
 		data.pLevel = item.second;
 	}
@@ -265,14 +423,14 @@ void CWorldCfgEditor::Validate( const char* szName )
 	CVector2 p0( yMax, xMin );
 	for( int i = 0; i < i1; i++ )
 	{
-		auto& data = m_pData->arrLevelData[i];
+		auto& data = arrLevelData[i];
 		auto pLevelData = data.pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
 		yMax = Max( yMax, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y + data.displayOfs.y );
 		xMin = Min( xMin, data.displayOfs.x );
 	}
-	for( int i = i1; i < m_pData->arrLevelData.Size(); i++ )
+	for( int i = i1; i < arrLevelData.Size(); i++ )
 	{
-		auto& data = m_pData->arrLevelData[i];
+		auto& data = arrLevelData[i];
 		auto pLevelData = data.pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
 		auto& nxtStage = pLevelData->m_arrNextStage;
 		bool b = false;
@@ -280,7 +438,7 @@ void CWorldCfgEditor::Validate( const char* szName )
 		for( int j = 0; j < i; j++ )
 		{
 			TVector2<int32> ofs;
-			auto& data1 = m_pData->arrLevelData[j];
+			auto& data1 = arrLevelData[j];
 			auto pLevelData1 = data1.pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
 			auto& nxtStage1 = pLevelData1->m_arrNextStage;
 			for( int k = 0; k < nxtStage1.Size(); k++ )
@@ -321,103 +479,157 @@ void CWorldCfgEditor::Validate( const char* szName )
 			p0 = CVector2( yMax, xMin );
 
 		data.displayOfs = p;
-		data.nDisplayLevel = 0;
 	}
 
-	m_vecLevelData.resize( m_pData->arrLevelData.Size() );
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	m_vecRegionData.resize( Max<int32>( nRegion + 1, m_vecRegionData.size() ) );
+	auto& vecLevelData = m_vecRegionData[nRegion].vecLevelData;
+	auto pRegionRoot = new CRenderObject2D;
+	m_vecRegionData[nRegion].pRoot = pRegionRoot;
+	if( m_pData->arrRegionData[nRegion].pBlueprint.length() )
 	{
-		auto& levelData = m_vecLevelData[i];
-		auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_pData->arrLevelData[i].pLevel.c_str() );
-		m_pData->arrLevelData[i].pLevel = pPrefab;
-		auto pPrefabNode = pPrefab->GetRoot()->Clone( pPrefab );
-		pPrefabNode->SetPosition( m_pData->arrLevelData[i].displayOfs );
-		levelData.pClonedLevelData = pPrefabNode;
+		auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>(
+			m_pData->arrRegionData[nRegion].pBlueprint );
+		m_vecRegionData[nRegion].pBack = pPrefab->GetRoot()->CreateInstance();
+		m_vecRegionData[nRegion].pBack->SetZOrder( -1 );
+		m_vecRegionData[nRegion].pRoot->AddChild( m_vecRegionData[nRegion].pBack );
+		m_pData->arrRegionData[nRegion].pBlueprint = pPrefab;
+	}
 
-		function<void( CPrefabNode* )> Func;
-		Func = [&Func] ( CPrefabNode* pNode ) {
-			auto pPatchedNode = pNode->GetPatchedNode();
-			for( CRenderObject2D* pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	vecLevelData.resize( arrLevelData.Size() );
+	for( int i = 0; i < arrLevelData.Size(); i++ )
+	{
+		auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( arrLevelData[i].pLevel.c_str() );
+		InitLevel( nRegion, i, pPrefab );
+	}
+}
+
+void CWorldCfgEditor::InitLevel( int32 nRegion, int32 nLevel, CPrefab* pPrefab )
+{
+	auto& levelData = m_vecRegionData[nRegion].vecLevelData[nLevel];
+	auto& lv = m_pData->arrRegionData[nRegion].arrLevelData[nLevel];
+	lv.pLevel = pPrefab;
+	auto pPrefabNode = pPrefab->GetRoot()->Clone( pPrefab );
+	CLevelToolsView::FixLevelData( pPrefabNode, pPrefab );
+	pPrefabNode->SetPosition( lv.displayOfs );
+	levelData.pClonedLevelData = pPrefabNode;
+
+	function<void( CPrefabNode* )> Func;
+	Func = [&Func] ( CPrefabNode* pNode ) {
+		auto pPatchedNode = pNode->GetPatchedNode();
+		for( CRenderObject2D* pChild = pNode->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+		{
+			if( pChild == pNode->GetRenderObject() )
 			{
-				if( pChild == pNode->GetRenderObject() )
+				if( !pPatchedNode )
+					continue;
+				pPatchedNode->OnEditorActive( false );
+				Func( pPatchedNode );
+			}
+			else
+			{
+				CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+				if( pNode )
 				{
-					if( !pPatchedNode )
-						continue;
-					pPatchedNode->OnEditorActive( false );
-					Func( pPatchedNode );
-				}
-				else
-				{
-					CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
-					if( pNode )
-					{
-						pNode->OnEditorActive( false );
-						Func( pNode );
-					}
+					pNode->OnEditorActive( false );
+					Func( pNode );
 				}
 			}
-		};
-		Func( pPrefabNode );
+		}
+	};
+	Func( pPrefabNode );
 
-		auto pPreview = SafeCast<CMyLevel>( pPrefabNode->CreateInstance( false ) );
-		pPreview->SetPosition( m_pData->arrLevelData[i].displayOfs );
-		levelData.pLevelPreview = pPreview;
-		m_pViewport->GetRoot()->AddChild( pPreview );
-		pPreview->OnPreview();
+	auto pPreview = CLevelToolsView::CreateLevelSimplePreview( pPrefabNode );
+	pPreview->SetPosition( lv.displayOfs );
+	levelData.pLevelPreview = pPreview;
+	m_vecRegionData[nRegion].pRoot->AddChild( pPreview );
+}
+
+void CWorldCfgEditor::SelectRegion( int32 n )
+{
+	if( m_nCurRegion == n )
+		return;
+	Select( -1 );
+	if( m_nCurRegion >= 0 && m_nCurRegion < m_vecRegionData.size() )
+		m_vecRegionData[m_nCurRegion].pRoot->RemoveThis();
+	m_nCurRegion = n;
+	if( m_nCurRegion >= 0 && m_nCurRegion < m_vecRegionData.size() )
+	{
+		m_pViewport->GetRoot()->AddChild( m_vecRegionData[m_nCurRegion].pRoot );
+		m_pRegionSelect->SetSelectedItem( m_pData->arrRegionData[m_nCurRegion].strName, false );
 	}
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
-		RefreshLevelDataLink( i );
+	m_pBlueprint->SetText( m_pData->arrRegionData[m_nCurRegion].pBlueprint );
 }
 
 void CWorldCfgEditor::Select( int32 n )
 {
+	if( m_nCurRegion < 0 || m_nCurRegion >= m_vecRegionData.size() )
+		return;
+	auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
 	if( m_nCurSelected == n )
 		return;
-	if( m_nCurSelected >= 0 && m_nCurSelected < m_vecLevelData.size() )
+	if( m_nCurSelected >= 0 && m_nCurSelected < vecLevelData.size() )
 	{
-		auto& item = m_vecLevelData[m_nCurSelected];
-		item.pLevelPreview = SafeCast<CMyLevel>( item.pClonedLevelData->CreateInstance( false ) );
-		m_pViewport->GetRoot()->AddChildBefore( item.pLevelPreview, item.pClonedLevelData );
+		auto& item = vecLevelData[m_nCurSelected];
+		item.pLevelPreview = CLevelToolsView::CreateLevelSimplePreview( item.pClonedLevelData );
+		item.pLevelPreview->SetPosition( item.pClonedLevelData->GetPosition() );
+		m_vecRegionData[m_nCurRegion].pRoot->AddChildBefore( item.pLevelPreview, item.pClonedLevelData );
 		item.pClonedLevelData->RemoveThis();
-		item.pLevelPreview->OnPreview();
-		m_onLvDataEdit.Unregister();
-		m_pCurLevelEdit = NULL;
 	}
 	m_nCurSelected = n;
-	if( n >= 0 && n < m_vecLevelData.size() )
+	if( n >= 0 && n < vecLevelData.size() )
 	{
-		auto& item = m_vecLevelData[m_nCurSelected];
-		m_pCurLevelEdit = new CLevelEdit( m_pTreeView, NULL, item.pClonedLevelData->GetObjData(), item.pClonedLevelData->GetClassData(), "Level Data" );
-		m_pViewport->GetRoot()->AddChild( item.pClonedLevelData );
+		auto& item = vecLevelData[m_nCurSelected];
+		m_vecRegionData[m_nCurRegion].pRoot->AddChild( item.pClonedLevelData );
 		item.pLevelPreview->RemoveThis();
 		item.pLevelPreview = NULL;
-		m_pCurLevelEdit->Register( &m_onLvDataEdit );
+
+		m_pNewTemplate->SetText( m_pData->arrRegionData[m_nCurRegion].arrLevelData[m_nCurSelected].pLevel );
 	}
 }
 
-void CWorldCfgEditor::OnLevelDateEdit()
+void CWorldCfgEditor::OnLevelDataEdit( int32 nRegion, int32 nLevel )
 {
-	RefreshLevelDataLink( m_nCurSelected );
+	m_vecRegionData[nRegion].vecLevelData[nLevel].bDirty = true;
+	m_vecRegionData[nRegion].vecLevelData[nLevel].pClonedLevelData->OnEdit();
+	RefreshLevelDataLink( nRegion, nLevel );
 }
 
-void CWorldCfgEditor::RefreshLevelDataLink( int32 n )
+void CWorldCfgEditor::RefreshLevelDataLink( int32 nRegion, int32 n, map<CString, TVector2<int32> >* pMap )
 {
-	auto pLevelData = m_vecLevelData[n].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
-	auto& links = m_vecLevelData[n].vecLinks;
+	auto& vecLevelData = m_vecRegionData[nRegion].vecLevelData;
+	auto pLevelData = vecLevelData[n].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+	auto& links = vecLevelData[n].vecLinks;
 	links.resize( 0 );
 	links.resize( pLevelData->m_arrNextStage.Size() );
 	for( int i = 0; i < pLevelData->m_arrNextStage.Size(); i++ )
 	{
 		auto& link = links[i];
-		link.nTarget = -1;
+		link.nRegion = link.nTarget = -1;
 		auto& nextStage = pLevelData->m_arrNextStage[i];
-		for( int j = 0; j < m_pData->arrLevelData.Size(); j++ )
+		if( pMap )
 		{
-			CString str = m_pData->arrLevelData[j].pLevel;
-			if( str == nextStage.pNxtStage.c_str() )
+			auto itr = pMap->find( nextStage.pNxtStage );
+			if( itr != pMap->end() )
 			{
-				link.nTarget = j;
-				break;
+				link.nRegion = itr->second.x;
+				link.nTarget = itr->second.y;
+			}
+		}
+		else
+		{
+			for( int iRegion = 0; iRegion < m_vecRegionData.size() && link.nRegion == -1; iRegion++ )
+			{
+				auto& arrLevelData = m_pData->arrRegionData[iRegion].arrLevelData;
+				for( int j = 0; j < arrLevelData.Size(); j++ )
+				{
+					CString str = arrLevelData[j].pLevel;
+					if( str == nextStage.pNxtStage.c_str() )
+					{
+						link.nRegion = iRegion;
+						link.nTarget = j;
+						break;
+					}
+				}
 			}
 		}
 
@@ -434,39 +646,286 @@ void CWorldCfgEditor::RefreshLevelDataLink( int32 n )
 	}
 }
 
+void CWorldCfgEditor::RefreshExtLevel( int32 nRegion )
+{
+	auto& vecLevelData = m_vecRegionData[nRegion].vecLevelData;
+	auto& vecExtLevel = m_vecRegionData[nRegion].vecExtLevel;
+	vecExtLevel.resize( 0 );
+	for( int i = 0; i < vecLevelData.size(); i++ )
+	{
+		auto pLevelData = vecLevelData[i].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+		for( int j = 0; j < vecLevelData[i].vecLinks.size(); j++ )
+		{
+			auto& link = vecLevelData[i].vecLinks[j];
+			if( link.nRegion != nRegion )
+			{
+				auto& data = m_vecRegionData[link.nRegion].vecLevelData[link.nTarget];
+				if( !data.nFlag )
+				{
+					data.nFlag = 1;
+					auto& nextLevel = pLevelData->m_arrNextStage[j];
+					auto ofs = m_pData->arrRegionData[nRegion].arrLevelData[i].displayOfs + CVector2( nextLevel.nOfsX, nextLevel.nOfsY ) * LEVEL_GRID_SIZE;
+					SRegionData::SExtLevelData a = { link.nRegion, link.nTarget, ofs };
+					vecExtLevel.push_back( a );
+				}
+			}
+		}
+	}
+	for( auto& item : vecExtLevel )
+		m_vecRegionData[item.nRegion].vecLevelData[item.nLevel].nFlag = 0;
+}
+
+void CWorldCfgEditor::ShowLevelTool()
+{
+	if( m_nCurRegion < 0 || m_nCurSelected < 0 )
+		return;
+	m_pViewport->bVisible = false;
+	auto& curLevelData = m_vecRegionData[m_nCurRegion].vecLevelData[m_nCurSelected];
+	auto& cur = m_pData->arrRegionData[m_nCurRegion].arrLevelData[m_nCurSelected];
+	CRenderObject2D* pBack = NULL;
+	if( m_pData->arrRegionData[m_nCurRegion].pBlueprint )
+		pBack = m_pData->arrRegionData[m_nCurRegion].pBlueprint->GetRoot()->CreateInstance();
+	CLevelToolsView::Inst()->Set( curLevelData.pClonedLevelData, [this, &curLevelData, &cur] () {
+		m_pViewport->bVisible = true;
+		curLevelData.pClonedLevelData->SetPosition( cur.displayOfs );
+		OnLevelDataEdit( m_nCurRegion, m_nCurSelected );
+		for( int i = 0; i < curLevelData.vecLinks.size(); i++ )
+		{
+			auto& link = curLevelData.vecLinks[i];
+			OnLevelDataEdit( link.nRegion, link.nTarget );
+		}
+		RefreshExtLevel( m_nCurRegion );
+	}, &cur, pBack );
+	for( int i = 0; i < curLevelData.vecLinks.size(); i++ )
+	{
+		auto& link = curLevelData.vecLinks[i];
+		auto& nxt = m_pData->arrRegionData[link.nRegion].arrLevelData[link.nTarget];
+		CVector2 ofs;
+		if( link.nRegion == m_nCurRegion )
+			ofs = nxt.displayOfs - cur.displayOfs;
+		else
+		{
+			auto& nxtStage = curLevelData.pClonedLevelData->GetStaticDataSafe<CMyLevel>()->m_arrNextStage[i];
+			ofs = CVector2( nxtStage.nOfsX, nxtStage.nOfsY ) * LEVEL_GRID_SIZE;
+		}
+
+		CLevelToolsView::Inst()->AddNeighbor( m_vecRegionData[link.nRegion].vecLevelData[link.nTarget].pClonedLevelData, ofs );
+	}
+}
+
+void CWorldCfgEditor::BeginNewLevel()
+{
+	if( m_nState != 0 || m_nCurRegion < 0 )
+		return;
+
+	auto strName = UnicodeToUtf8( m_pNewTemplate->GetText() );
+	m_pNewMapTemplate = CResourceManager::Inst()->CreateResource<CPrefab>( strName.c_str() );
+	if( !m_pNewMapTemplate )
+		return;
+	if( !m_pNewMapTemplate->GetRoot()->GetStaticDataSafe<CMyLevel>() )
+	{
+		m_pNewMapTemplate = NULL;
+		return;
+	}
+	if( m_nCurSelected >= 0 )
+		m_newMapBase = m_pData->arrRegionData[m_nCurRegion].arrLevelData[m_nCurSelected].displayOfs;
+	else
+		m_newMapBase = CVector2( 0, 0 );
+	Select( -1 );
+	m_nState = 1;
+	m_pPanel[0]->SetVisible( false );
+	m_pPanel[1]->SetVisible( true );
+}
+
+void CWorldCfgEditor::EndNewLevel( bool bOK )
+{
+	if( m_nState != 1 )
+		return;
+	if( bOK && m_newMapTiles.size() )
+	{
+		TRectangle<int32> bound( 0, 0, 0, 0 );
+		for( auto& p : m_newMapTiles )
+			bound = bound.width ? bound + TRectangle<int32>( p.x, p.y, 2, 1 ) : TRectangle<int32>( p.x, p.y, 2, 1 );
+
+		auto regionBound = bound.Offset( TVector2<int32>( floor( m_newMapBase.x / LEVEL_GRID_SIZE_X + 0.5f ), floor( m_newMapBase.y / LEVEL_GRID_SIZE_Y + 0.5f ) ) );
+		auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+		auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
+		vector<TVector2<int32> > vecLinkLevels;
+		for( int i = 0; i < vecLevelData.size(); i++ )
+		{
+			auto pLevel1 = SafeCast<CMyLevel>( vecLevelData[i].pClonedLevelData->GetFinalObjData() );
+			auto bound1 = TRectangle<int32>( arrLevelData[i].displayOfs.x / LEVEL_GRID_SIZE_X, arrLevelData[i].displayOfs.y / LEVEL_GRID_SIZE_Y,
+				pLevel1->GetSize().x, pLevel1->GetSize().y );
+			auto boundX = bound1 + regionBound;
+			if( boundX.width && boundX.height )
+				vecLinkLevels.push_back( TVector2<int32>( i, -1 ) );
+		}
+		if( !!( ( regionBound.x + regionBound.y ) & 1 ) )
+			regionBound.SetLeft( regionBound.x - 1 );
+
+		int32 nWidth = bound.width;
+		int32 nHeight = bound.height;
+		string strName = m_pRes->GetName();
+		int32 n = strName.find_last_of( '/' );
+		strName = strName.substr( 0, n + 1 );
+		strName = strName + UnicodeToUtf8( m_pNewLevelName->GetText() ) + ".pf";
+		auto pPrefab = CLevelToolsView::NewLevelFromTemplate( m_pNewMapTemplate, strName.c_str(), nWidth, nHeight );
+		if( !pPrefab )
+			goto fail;
+		auto pLevelData = SafeCast<CMyLevel>( pPrefab->GetRoot()->GetFinalObjData() );
+		pLevelData->m_strRegion = m_pData->arrRegionData[m_nCurRegion].strName;
+
+		for( auto& p : m_newMapTiles )
+		{
+			TVector2<int32> pt[2];
+			pt[0] = p - TVector2<int32>( bound.x, bound.y );
+			pt[1] = pt[0] + TVector2<int32>( 1, 0 );
+			for( int i = 0; i < 2; i++ )
+			{
+				auto& grid = pLevelData->m_arrGridData[pt[i].x + pt[i].y * nWidth];
+				grid.nTile = 1;
+				grid.bBlocked = false;
+			}
+
+			for( auto& item : vecLinkLevels )
+			{
+				auto pLevel1 = SafeCast<CMyLevel>( vecLevelData[item.x].pClonedLevelData->GetFinalObjData() );
+				auto ofs = arrLevelData[item.x].displayOfs - m_newMapBase;
+
+				auto bound1 = TRectangle<int32>( floor( ofs.x / LEVEL_GRID_SIZE_X + 0.5f ), floor( ofs.y / LEVEL_GRID_SIZE_Y + 0.5f ),
+					pLevel1->GetSize().x, pLevel1->GetSize().y );
+				TVector2<int32> p1[2];
+				p1[0] = p - TVector2<int32>( bound1.x, bound1.y );
+				p1[1] = p1[0] + TVector2<int32>( 1, 0 );
+				if( p1[0].x >= 0 && p1[0].y >= 0 && p1[1].x < bound1.width && p1[1].y < bound1.height )
+				{
+					auto& grid = pLevel1->m_arrGridData[p1[0].x + p1[0].y * bound1.width];
+					if( !grid.nNextStage && !pLevel1->m_arrTileData[grid.nTile].bBlocked )
+					{
+						if( item.y < 0 )
+						{
+							item.y = pLevelData->m_arrNextStage.Size();
+							pLevelData->m_arrNextStage.Resize( item.y + 1 );
+							auto& data = pLevelData->m_arrNextStage[item.y];
+							data.nOfsX = pt[0].x - p1[0].x;
+							data.nOfsY = pt[0].y - p1[0].y;
+							data.pNxtStage = arrLevelData[item.x].pLevel.c_str();
+
+							pLevel1->m_arrNextStage.Resize( pLevel1->m_arrNextStage.Size() + 1 );
+							auto& data1 = pLevel1->m_arrNextStage[pLevel1->m_arrNextStage.Size() - 1];
+							data1.nOfsX = -data.nOfsX;
+							data1.nOfsY = -data.nOfsY;
+							data1.pNxtStage = strName.c_str();
+						}
+
+						for( int i = 0; i < 2; i++ )
+						{
+							pLevelData->m_arrGridData[pt[i].x + pt[i].y * nWidth].nNextStage = item.y + 1;
+							pLevel1->m_arrGridData[p1[i].x + p1[i].y * bound1.width].nNextStage = pLevel1->m_arrNextStage.Size();
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		auto nNewLevel = m_pData->arrRegionData[m_nCurRegion].arrLevelData.Size();
+		m_pData->arrRegionData[m_nCurRegion].arrLevelData.Resize( nNewLevel + 1 );
+		m_vecRegionData[m_nCurRegion].vecLevelData.resize( nNewLevel + 1 );
+		auto& levelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData[nNewLevel];
+		levelData.pLevel = strName.c_str();
+		levelData.displayOfs = CVector2( bound.x, bound.y ) * LEVEL_GRID_SIZE + m_newMapBase;
+		CBufFile buf;
+		pPrefab->Save( buf );
+		SaveFile( pPrefab->GetName(), buf.GetBuffer(), buf.GetBufLen() );
+		InitLevel( m_nCurRegion, nNewLevel, pPrefab );
+		RefreshLevelDataLink( m_nCurRegion, nNewLevel );
+		for( auto& item : vecLinkLevels )
+		{
+			if( item.y >= 0 )
+				OnLevelDataEdit( m_nCurRegion, item.x );
+		}
+		RefreshExtLevel( m_nCurRegion );
+	}
+fail:
+	m_pNewMapTemplate = NULL;
+	m_nState = 0;
+	m_newMapTiles.clear();
+	m_pPanel[0]->SetVisible( true );
+	m_pPanel[1]->SetVisible( false );
+}
+
+void CWorldCfgEditor::OnBlueprintChange()
+{
+	auto strName = UnicodeToUtf8( m_pBlueprint->GetText() );
+	CRenderObject2D* p = NULL;
+	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strName.c_str() );
+	if( pPrefab )
+		p = pPrefab->GetRoot()->CreateInstance();
+	if( m_vecRegionData[m_nCurRegion].pBack )
+		m_vecRegionData[m_nCurRegion].pBack->RemoveThis();
+	m_vecRegionData[m_nCurRegion].pBack = p;
+	if( p )
+	{
+		p->SetZOrder( -1 );
+		m_vecRegionData[m_nCurRegion].pRoot->AddChild( p );
+	}
+	m_pData->arrRegionData[m_nCurRegion].pBlueprint = strName.c_str();
+	m_pData->arrRegionData[m_nCurRegion].pBlueprint = pPrefab;
+}
+
 void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 {
 	m_nDragType = 0;
 	CVector2 p = m_pViewport->GetScenePos( pEvent->mousePos );
-	m_pCurDragEdit = NULL;
-	if( m_nCurSelected >= 0 )
+	if( m_nState == 1 )
 	{
-		m_pCurDragEdit = m_pCurLevelEdit->OnViewportStartDrag( m_pViewport, p, m_vecLevelData[m_nCurSelected].pClonedLevelData->globalTransform );
-		if( m_pCurDragEdit )
-			return;
-		auto pLevelData = m_vecLevelData[m_nCurSelected].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
-		auto ofs = m_pData->arrLevelData[m_nCurSelected].displayOfs;
-		CRectangle r( ofs.x - 32, ofs.y - 32, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X + 64, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y + 64 );
-		if( r.Contains( p ) )
+		if( GetMgr()->IsKey( 'Z' ) )
 		{
-			m_nDragType = 1;
-			m_worldDragBeginPos = p;
-			m_curDisplayOfs0 = ofs;
+			Super::OnViewportStartDrag( pEvent );
 			return;
 		}
+		auto d = ( p - m_newMapBase ) / LEVEL_GRID_SIZE;
+		TVector2<int32> pt( floor( d.x ), floor( d.y ) );
+		if( !!( ( pt.x + pt.y ) & 1 ) )
+			pt.x--;
+		if( m_newMapTiles.find( pt ) == m_newMapTiles.end() )
+			m_newMapTiles.insert( pt );
+		else
+			m_newMapTiles.erase( pt );
+		m_nDragType = 1;
+		return;
 	}
-	for( int i = 0; i < m_pData->arrLevelData.Size(); i++ )
+	else if( m_nCurRegion >= 0 )
 	{
-		auto pLevelData = m_vecLevelData[i].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
-		auto ofs = m_pData->arrLevelData[i].displayOfs;
-		CRectangle r( ofs.x, ofs.y, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y );
-		if( r.Contains( p ) )
+		auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+		auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
+		for( int i = 0; i < arrLevelData.Size(); i++ )
 		{
-			m_nDragType = 1;
-			m_worldDragBeginPos = p;
-			m_curDisplayOfs0 = ofs;
-			Select( i );
-			return;
+			auto pLevelData = vecLevelData[i].pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+			auto ofs = arrLevelData[i].displayOfs;
+			CRectangle r( ofs.x, ofs.y, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y );
+			if( r.Contains( p ) )
+			{
+				m_nDragType = 1;
+				m_worldDragBeginPos = p;
+				m_curDisplayOfs0 = ofs;
+				Select( i );
+				return;
+			}
+		}
+		for( auto& item : m_vecRegionData[m_nCurRegion].vecExtLevel )
+		{
+			auto& level = m_vecRegionData[item.nRegion].vecLevelData[item.nLevel];
+			auto pLevelData = level.pClonedLevelData->GetStaticDataSafe<CMyLevel>();
+			CRectangle r( item.ofs.x, item.ofs.y, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y );
+			if( r.Contains( p ) )
+			{
+				SelectRegion( item.nRegion );
+				Select( item.nLevel );
+				SetCamOfs( m_camOfs + m_pData->arrRegionData[item.nRegion].arrLevelData[item.nLevel].displayOfs - item.ofs );
+				break;
+			}
 		}
 	}
 
@@ -476,34 +935,27 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 void CWorldCfgEditor::OnViewportDragged( SUIMouseEvent* pEvent )
 {
 	CVector2 p = m_pViewport->GetScenePos( pEvent->mousePos );
-	if( m_pCurDragEdit )
-	{
-		m_pCurDragEdit->OnViewportDragged( m_pViewport, p, m_vecLevelData[m_nCurSelected].pClonedLevelData->globalTransform );
-		return;
-	}
 	if( !m_nDragType )
 	{
 		Super::OnViewportDragged( pEvent );
 		return;
 	}
 
-	auto d = p - m_worldDragBeginPos;
-	TVector2<int32> ofs( floor( d.x / LEVEL_GRID_SIZE_X + 0.5f ), floor( d.y / LEVEL_GRID_SIZE_Y + 0.5f ) );
-	auto& data = m_pData->arrLevelData[m_nCurSelected];
-	data.displayOfs = m_curDisplayOfs0 + CVector2( ofs.x, ofs.y ) * LEVEL_GRID_SIZE;
-	m_vecLevelData[m_nCurSelected].pClonedLevelData->SetPosition( data.displayOfs );
-	m_pCurLevelEdit->RefreshData();
+	if( m_nState == 0 )
+	{
+		auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+		auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
+		auto d = p - m_worldDragBeginPos;
+		TVector2<int32> ofs( floor( d.x / LEVEL_GRID_SIZE_X + 0.5f ), floor( d.y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+		auto& data = arrLevelData[m_nCurSelected];
+		data.displayOfs = m_curDisplayOfs0 + CVector2( ofs.x, ofs.y ) * LEVEL_GRID_SIZE;
+		vecLevelData[m_nCurSelected].pClonedLevelData->SetPosition( data.displayOfs );
+	}
 }
 
 void CWorldCfgEditor::OnViewportStopDrag( SUIMouseEvent* pEvent )
 {
 	CVector2 p = m_pViewport->GetScenePos( pEvent->mousePos );
-	if( m_pCurDragEdit )
-	{
-		m_pCurDragEdit->OnViewportStopDrag( m_pViewport, p, m_vecLevelData[m_nCurSelected].pClonedLevelData->globalTransform );
-		m_pCurDragEdit = NULL;
-		return;
-	}
 	if( !m_nDragType )
 	{
 		Super::OnViewportStopDrag( pEvent );
@@ -513,70 +965,24 @@ void CWorldCfgEditor::OnViewportStopDrag( SUIMouseEvent* pEvent )
 	m_nDragType = 0;
 }
 
-void CWorldCfgEditor::OnViewportChar( uint32 nChar )
+void CWorldCfgEditor::OnViewportMouseWheel( SUIMouseEvent* pEvent )
 {
+	m_fScale -= pEvent->nParam * 1.0f / 120;
+	static float fScales[] = { 1, 1.5, 2, 3, 4, 6, 8, 12, 16 };
+	m_fScale = Max( 0.0f, Min<float>( m_fScale, ELEM_COUNT( fScales ) - 1 ) );
+	float fScale = fScales[(int32)floor( m_fScale )];
+	auto viewSize = m_pViewport->GetCamera().GetViewport().GetSize();
+	m_pViewport->GetCamera().SetSize( viewSize.x * fScale, viewSize.y * fScale );
 }
 
-//void CWorldCfgEditor::OnCreate()
-//{
-//	if( m_nCurSelected < 0 )
-//		return;
-//	TRectangle<int32> rect;
-//	if( !FindSpace( m_pCreateWidth->GetValue<uint32>(), m_pCreateHeight->GetValue<uint32>(), rect ) )
-//		return;
-//	string strFileName = m_data.vecContext[m_nCurSelected].strSceneResName;
-//	CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strFileName.c_str() );
-//	if( !pPrefab )
-//		return;
-//	int32 nLast = strFileName.find( "__", strFileName.find_last_of( '/' ) );
-//	if( nLast == string::npos )
-//		nLast = strFileName.find_last_of( '.' );
-//	strFileName = strFileName.substr( 0, nLast ) + "__";
-//	do
-//	{
-//		char buf[32];
-//		int32 i = m_data.vecContext.size();
-//		for( ;; i++ )
-//		{
-//			itoa( i, buf, 10 );
-//			auto str1 = strFileName + buf + ".pf";
-//			if( !IsFileExist( str1.c_str() ) )
-//			{
-//				strFileName = str1;
-//				break;
-//			}
-//		}
-//	} while( 0 );
-//
-//	CReference<CPrefab> pNewPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strFileName.c_str(), true );
-//	auto pNode = pPrefab->GetRoot()->Clone( pNewPrefab.GetPtr() );
-//	auto pLevel = (CMyLevel*)pNode->GetStaticDataSafe<CMyLevel>();
-//	TVector2<int32> size( ceil( pLevel->GetBound().width / 1024 ), ceil( pLevel->GetBound().height / 1024 ) );
-//	if( size != rect.GetSize() )
-//	{
-//		pLevel->SetBound( CRectangle( rect.width * -0.5f, rect.height * -0.5f, rect.width, rect.height ) * 1024 );
-//		auto pTerrainNode = (CPrefabNode*)pNode->GetChildByName( "terrain" );
-//		auto pTileMap = static_cast<CTileMap2D*>( pTerrainNode->GetRenderObject() );
-//		TVector2<int32> mapSize1( rect.width * 1024 / pTileMap->GetTileSize().x, rect.height * 1024 / pTileMap->GetTileSize().y );
-//		TRectangle<int32> newSize( ( (int32)pTileMap->GetWidth() - mapSize1.x ) / 2, ( (int32)pTileMap->GetHeight() - mapSize1.y ) / 2, mapSize1.x, mapSize1.y );
-//		pTileMap->Resize( newSize );
-//	}
-//	pNewPrefab->SetNode( pNode );
-//	CBufFile buf;
-//	pNewPrefab->Save( buf );
-//	SaveFile( pNewPrefab->GetName(), buf.GetBuffer(), buf.GetBufLen() );
-//
-//	CReference<CRenderObject2D> p = pNewPrefab->GetRoot()->CreateInstance();
-//	auto n = Add( p, rect );
-//	const char* szText = strFileName.c_str();
-//	m_data.vecContext[n].strSceneResName = szText;
-//	while( szText )
-//	{
-//		auto p = strchr( szText, '/' );
-//		if( !p )
-//			break;
-//		szText = p + 1;
-//	}
-//	m_data.vecContext[n].strName = szText;
-//	Select( n );
-//}
+void CWorldCfgEditor::OnViewportKey( SUIKeyEvent* pEvent )
+{
+	auto nChar = pEvent->nChar;
+	if( nChar == VK_F1 )
+		ShowLevelTool();
+}
+
+void CWorldCfgEditor::OnRegionSelectChanged()
+{
+	SelectRegion( (int32)m_pRegionSelect->GetSelectedItem()->pData );
+}

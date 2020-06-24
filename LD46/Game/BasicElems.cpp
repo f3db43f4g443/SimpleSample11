@@ -135,6 +135,14 @@ void CPawn::Update()
 						SafeCast<CPlayer>( this )->TryPickUp();
 					else if( evt.eType == ePawnStateEventType_Drop )
 						SafeCast<CPlayer>( this )->TryDrop();
+					else if( evt.eType == ePawnStateEventType_Cost )
+					{
+						if( !StateCost( evt.nParams[1], evt.nParams[0] ) )
+						{
+							bInterrupted = true;
+							break;
+						}
+					}
 					else if( evt.eType == ePawnStateEventType_UnMount )
 					{
 						SafeCast<CPlayer>( this )->UnMount();
@@ -143,6 +151,8 @@ void CPawn::Update()
 					}
 					else if( evt.eType == ePawnStateEventType_SetZ )
 						m_nRenderOrder = evt.nParams[0];
+					else if( evt.eType == ePawnStateEventType_Sound )
+						PlaySoundEffect( evt.strParam );
 					else if( evt.eType == ePawnStateEventType_Script )
 					{
 						CLuaMgr::Inst().Load( evt.strParam );
@@ -195,12 +205,15 @@ void CPawn::Update1()
 	m_bDamaged = false;
 }
 
-void CPawn::Damage( int32 nDamage )
+int32 CPawn::Damage( int32 nDamage, int8 nDamageType )
 {
+	if( m_nArmorType > nDamageType )
+		return 0;
 	m_nHp = Max( 0, m_nHp - nDamage );
 	m_bDamaged = true;
 	if( m_nHp <= 0 )
 		OnKilled();
+	return nDamage;
 }
 
 CMyLevel* CPawn::GetLevel()
@@ -509,8 +522,21 @@ bool CPawn::CheckStateTransits1( int32 nDefaultState, bool bFinished )
 
 void CPawn::OnKilled()
 {
-	if( m_pSpawnHelper && m_pSpawnHelper->m_strDeathKey.length() )
-		GetStage()->GetMasterLevel()->SetKeyInt( m_pSpawnHelper->m_strDeathKey, 1 );
+	if( m_pSpawnHelper )
+	{
+		if( m_pSpawnHelper->m_nDataType == 1 )
+		{
+			auto& mapDeadPawn = GetStage()->GetMasterLevel()->GetCurLevelData().mapDataDeadPawn;
+			auto& data = mapDeadPawn[m_pSpawnHelper->GetName().c_str()];
+			data.p = GetMoveTo();
+			data.nDir = m_nCurDir;
+		}
+		else
+		{
+			if( m_pSpawnHelper->m_strDeathKey.length() )
+				GetStage()->GetMasterLevel()->SetKeyInt( m_pSpawnHelper->m_strDeathKey, 1 );
+		}
+	}
 	m_trigger.Trigger( 1, this );
 	if( m_strKillScript.length() )
 		CLuaMgr::Inst().Run( m_strKillScript );
@@ -542,7 +568,7 @@ void CPlayerEquipment::Init()
 
 void CPlayerEquipment::Drop( class CPlayer* pPlayer, const TVector2<int32>& pos, int8 nDir )
 {
-	if( !m_pPickUp )
+	if( !m_pPickUp || m_nEquipType == ePlayerEquipment_Ability )
 		return;
 	SafeCast<CPickUp>( m_pPickUp.GetPtr() )->PreDrop( this );
 	pPlayer->GetLevel()->AddPawn( m_pPickUp, pos, nDir );
@@ -556,12 +582,12 @@ void CPlayerEquipment::PrePickedUp( CPawn* pPickUp )
 
 void CPlayerEquipment::LoadData( IBufReader& buf )
 {
-	buf.Read( m_nBullets );
+	buf.Read( m_nAmmo );
 }
 
 void CPlayerEquipment::SaveData( CBufFile& buf )
 {
-	buf.Write( m_nBullets );
+	buf.Write( m_nAmmo );
 }
 
 void CPlayerMount::OnPreview()
@@ -633,6 +659,14 @@ enum
 	ePlayerInput_D_Up,
 };
 
+void CPlayer::Reset()
+{
+	for( int i = 0; i < ePlayerEquipment_Count; i++ )
+		m_pCurEquipment[i] = NULL;
+	m_nHp = m_nMaxHp;
+	m_bEnableDefaultEquipment = false;
+}
+
 void CPlayer::LoadData( IBufReader& buf )
 {
 	for( int i = 0; i < ePlayerEquipment_Count; i++ )
@@ -652,9 +686,11 @@ void CPlayer::LoadData( IBufReader& buf )
 		if( !pPrefab || !pPrefab->GetRoot()->GetStaticDataSafe<CPickUp>() )
 			continue;
 		auto pPickUp = SafeCast<CPickUp>( pPrefab->GetRoot()->CreateInstance() );
+		pPickUp->strCreatedFrom = strName.c_str();
 		pPickUp->PickUp( this );
 		ASSERT( m_pCurEquipment[i] && m_pCurEquipment[i] != m_pDefaultEquipment.GetPtr() );
 		m_pCurEquipment[i]->LoadData( tempBuf );
+		m_pCurEquipment[i]->Init();
 	}
 	buf.Read( m_bEnableDefaultEquipment );
 }
@@ -709,24 +745,36 @@ void CPlayer::Update()
 	if( !GetLevel()->IsScenario() )
 	{
 		bool bInput = false;
+		bool bDown = false;
 		if( CGame::Inst().IsKeyUp( 'D' ) || CGame::Inst().IsKeyUp( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'A' ) || CGame::Inst().IsKeyUp( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'W' ) || CGame::Inst().IsKeyUp( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'S' ) || CGame::Inst().IsKeyUp( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'D' ) || CGame::Inst().IsKeyDown( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'A' ) || CGame::Inst().IsKeyDown( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'W' ) || CGame::Inst().IsKeyDown( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'S' ) || CGame::Inst().IsKeyDown( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; }
+		if( CGame::Inst().IsKeyDown( 'D' ) || CGame::Inst().IsKeyDown( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'A' ) || CGame::Inst().IsKeyDown( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'W' ) || CGame::Inst().IsKeyDown( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'S' ) || CGame::Inst().IsKeyDown( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
 		if( CGame::Inst().IsKeyUp( 'J' ) || CGame::Inst().IsKeyUp( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'K' ) || CGame::Inst().IsKeyUp( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'U' ) || CGame::Inst().IsKeyUp( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; }
 		if( CGame::Inst().IsKeyUp( 'I' ) || CGame::Inst().IsKeyUp( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Up ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'J' ) || CGame::Inst().IsKeyDown( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'K' ) || CGame::Inst().IsKeyDown( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'U' ) || CGame::Inst().IsKeyDown( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; }
-		if( CGame::Inst().IsKeyDown( 'I' ) || CGame::Inst().IsKeyDown( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; }
+		if( CGame::Inst().IsKeyDown( 'J' ) || CGame::Inst().IsKeyDown( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'K' ) || CGame::Inst().IsKeyDown( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'U' ) || CGame::Inst().IsKeyDown( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
+		if( CGame::Inst().IsKeyDown( 'I' ) || CGame::Inst().IsKeyDown( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
+		if( bDown && m_bActionStop )
+			m_nTickInputOnActionStop = 10;
 		if( bInput )
 			GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence() );
+	}
+	if( m_nTickInputOnActionStop )
+	{
+		m_nTickInputOnActionStop--;
+		if( !m_nTickInputOnActionStop )
+		{
+			m_bActionStop = false;
+			CheckAction();
+		}
 	}
 	CPawn::Update();
 
@@ -749,10 +797,10 @@ void CPlayer::Update()
 		m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = false;
 }
 
-void CPlayer::Damage( int32 nDamage )
+int32 CPlayer::Damage( int32 nDamage, int8 nDamageType )
 {
 	GetStage()->GetMasterLevel()->OnPlayerDamaged();
-	CPawn::Damage( nDamage );
+	return CPawn::Damage( nDamage, nDamageType );
 }
 
 bool CPlayer::TryPickUp()
@@ -773,12 +821,15 @@ bool CPlayer::TryPickUp()
 
 bool CPlayer::TryDrop()
 {
-	for( int i = 0; i < ePlayerEquipment_Count; i++ )
+	for( int i = 0; i <= ePlayerEquipment_Ranged; i++ )
 	{
 		if( m_pCurEquipment[i] == m_pDefaultEquipment.GetPtr() )
 			continue;
 		if( i == 0 && m_bEnableDefaultEquipment )
+		{
 			Equip( m_pDefaultEquipment );
+			return true;
+		}
 		else
 		{
 			if( m_pCurEquipment[i] )
@@ -885,6 +936,13 @@ void CPlayer::EnableDefaultEquipment()
 	m_bEnableDefaultEquipment = true;
 	if( !m_pCurEquipment[0] )
 		Equip( m_pDefaultEquipment );
+}
+
+void CPlayer::RestoreAmmo()
+{
+	auto pEquipment = GetEquipment( ePlayerEquipment_Ranged );
+	if( pEquipment )
+		pEquipment->SetAmmo( pEquipment->GetMaxAmmo() );
 }
 
 void CPlayer::SetInputSequence( const char* szInput )
@@ -1098,6 +1156,8 @@ void CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 			m_pCurUsingPawn->GetUsage()->EndUse( this );
 		m_pCurUsingPawn = NULL;
 	}
+	m_bActionStop = false;
+	m_nTickInputOnActionStop = 0;
 	m_nCurStateTick = 0;
 	auto origRect = m_origRect;
 	auto origTexRect = m_origTexRect;
@@ -1155,12 +1215,19 @@ void CPlayer::Update0()
 
 bool CPlayer::CheckAction()
 {
-	auto dir0 = m_nCurDir;
-	int32 nNewState = -1;
-	ParseInputSequence();
-	if( CPawn::CheckAction() )
-		return true;
+	if( !m_bActionStop )
+	{
+		m_bActionStop = true;
+		ParseInputSequence();
+		if( CPawn::CheckAction() )
+			return true;
+		return HandleInput();
+	}
+	return false;
+}
 
+bool CPlayer::HandleInput()
+{
 	if( m_pCurMount )
 	{
 		auto& inputTable = m_pCurMount->m_inputTable;
@@ -1343,6 +1410,29 @@ void CPlayer::FlushInput( int32 nMatchLen, int8 nType )
 	GetLevel()->OnPlayerAction( nMatchLen, nType );
 }
 
+bool CPlayer::StateCost( int8 nType, int32 nCount )
+{
+	if( nType == 0 )
+	{
+		auto pStateSource = GetStateSource( m_nCurStateSource );
+		if( !pStateSource )
+			return false;
+		auto nAmmo = pStateSource->GetAmmo() - nCount;
+		if( nAmmo < 0 )
+			return false;
+		pStateSource->SetAmmo( nAmmo );
+		return true;
+	}
+	else if( nType == 1 )
+	{
+		if( m_nHp <= nCount )
+			return false;
+		SetHp( m_nHp - nCount );
+		return true;
+	}
+	return false;
+}
+
 CPlayerEquipment* CPlayer::GetStateSource( int8 nType )
 {
 	if( nType == ePlayerStateSource_Mount )
@@ -1413,23 +1503,31 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 		auto pPawn = pGrid->pPawn;
 		if( !pPawn || pPawn.GetPtr() == m_pCreator || !pPawn->CanBeHit() )
 		{
-			pGrid->nMissEft = CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
+			if( desc.nDamageType )
+				pGrid->nMissBashEft = CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
+			else
+				pGrid->nMissEft = CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
 			continue;
 		}
 		if( desc.nDamage )
 		{
-			pPawn->Damage( desc.nDamage );
-			pGrid->nHitEft = CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
-			if( m_pDamageEft )
+			auto n = pPawn->Damage( desc.nDamage, desc.nDamageType );
+			if( !n )
+				pGrid->nHitBlockedEft = CGlobalCfg::Inst().lvIndicatorData.vecHitBlockedParams.size();
+			else if( desc.nDamageType )
+				pGrid->nHitBashEft = CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
+			else
+				pGrid->nHitEft = CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
+			if( pPawn->GetDamageEft() )
 			{
-				auto pPawn = SafeCast<CPawn>( m_pDamageEft->GetRoot()->CreateInstance() );
+				auto pEft = SafeCast<CPawn>( pPawn->GetDamageEft()->GetRoot()->CreateInstance() );
 				CPawn* pCreator = m_pCreator;
 				if( !pCreator )
 					pCreator = this;
 				auto pos = p;
 				if( m_nCurDir )
-					pos.x -= pPawn->GetWidth() - 1;
-				pLevel->AddPawn( pPawn, pos, m_nCurDir, pCreator );
+					pos.x -= pEft->GetWidth() - 1;
+				pLevel->AddPawn( pEft, pos, m_nCurDir, pCreator );
 			}
 		}
 	}
@@ -1951,8 +2049,10 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_ENUM_ITEM( ePawnStateEventType_Transform )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_PickUp )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_Drop )
+		REGISTER_ENUM_ITEM( ePawnStateEventType_Cost )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_UnMount )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_SetZ )
+		REGISTER_ENUM_ITEM( ePawnStateEventType_Sound )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_Script )
 	REGISTER_ENUM_END()
 
@@ -2032,6 +2132,7 @@ void RegisterGameClasses_BasicElems()
 
 	REGISTER_CLASS_BEGIN( CLevelSpawnHelper )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nDataType )
 		REGISTER_MEMBER_BEGIN( m_strSpawnCondition )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
@@ -2046,6 +2147,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_bIgnoreHit )
 		REGISTER_MEMBER( m_bIgnoreBlockedExit )
 		REGISTER_MEMBER( m_nInitDir )
+		REGISTER_MEMBER( m_nArmorType )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nMaxHp )
@@ -2059,6 +2161,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER_BEGIN( m_strKillScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_pDamageEft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pAI, ai )
 		REGISTER_MEMBER_TAGGED_PTR( m_pUsage, usage )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar, hpbar )
@@ -2070,6 +2173,9 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_LUA_CFUNCTION( GetToX )
 		REGISTER_LUA_CFUNCTION( GetToY )
 		REGISTER_LUA_CFUNCTION( GetCurDir )
+		REGISTER_LUA_CFUNCTION( GetHp )
+		REGISTER_LUA_CFUNCTION( GetMaxHp )
+		REGISTER_LUA_CFUNCTION( SetHp )
 		REGISTER_LUA_CFUNCTION( SetForceHide )
 		REGISTER_LUA_CFUNCTION( PlayState )
 		REGISTER_LUA_CFUNCTION( PlayStateTurnBack )
@@ -2095,8 +2201,10 @@ void RegisterGameClasses_BasicElems()
 	REGISTER_CLASS_BEGIN( CPlayerEquipment )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nEquipType )
-		REGISTER_MEMBER( m_nBullets )
-		REGISTER_MEMBER( m_nMaxBullets )
+		REGISTER_MEMBER( m_nAmmo )
+		REGISTER_MEMBER( m_nMaxAmmo )
+		REGISTER_MEMBER( m_nIcon )
+		REGISTER_MEMBER( m_nAmmoIconWidth )
 		REGISTER_MEMBER( m_arrSubStates )
 		REGISTER_MEMBER( m_arrHitSpawnDesc )
 		REGISTER_MEMBER( m_arrCommonStateTransits )
@@ -2134,7 +2242,9 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft[1], 1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pDefaultEquipment, default_weapon )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Reset )
 		REGISTER_LUA_CFUNCTION( EnableDefaultEquipment )
+		REGISTER_LUA_CFUNCTION( RestoreAmmo )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SHitGridDesc )
@@ -2142,6 +2252,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( nOfsX )
 		REGISTER_MEMBER( nOfsY )
 		REGISTER_MEMBER( nDamage )
+		REGISTER_MEMBER( nDamageType )
 		REGISTER_MEMBER( nFlag )
 	REGISTER_CLASS_END()
 		
@@ -2155,7 +2266,6 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_nBeamTotalTime )
 		REGISTER_MEMBER( m_nBeamTickPerFrame )
 		REGISTER_MEMBER( m_nBeamTexCount )
-		REGISTER_MEMBER( m_pDamageEft )
 		DEFINE_LUA_REF_OBJECT()
 	REGISTER_CLASS_END()
 		

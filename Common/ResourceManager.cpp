@@ -16,7 +16,9 @@ CResource* CResourceFactory::CreateResource( const char* name, bool bNew )
 
 	CResource* pRes = Create( name );
 	pRes->Create();
-	if( !bNew && !pRes->IsCreated() )
+	if( bNew )
+		pRes->m_bCreated = true;
+	else if( !pRes->IsCreated() )
 	{
 		pRes->AddRef();
 		pRes->Release();

@@ -1,0 +1,17 @@
+﻿<root type="element" x="300" y="200" >
+  <template type="EditorRes/UI/panel.xml" rectX="0" rectY="0" rectWidth="600" rectHeight="300" >
+  </template>
+  <template type="EditorRes/UI/treeview.xml" name="folders" rectX="0" rectY="0" rectWidth="200" rectHeight="300" >
+  </template>
+  <template type="EditorRes/UI/scrollview.xml" name="files" rectX="200" rectY="0" rectWidth="400" rectHeight="250" >
+  </template>
+  <template type="EditorRes/UI/panel.xml" name="filename" rectX="200" rectY="250" rectWidth="400" rectHeight="20"
+             textLeft="4" textRight="4" textAlignX="0" textAlignY="1">
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_ok" rectX="400" rectY="275" rectWidth="50" rectHeight="20" text="OK" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_clear" rectX="450" rectY="275" rectWidth="50" rectHeight="20" text="Clear" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="btn_cancel" rectX="500" rectY="275" rectWidth="50" rectHeight="20" text="Cancel" >
+  </template>
+</root>

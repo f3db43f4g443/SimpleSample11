@@ -207,6 +207,7 @@ void RegisterGameClasses_BasicElems();
 void RegisterGameClasses_Level();
 void RegisterGameClasses_MiscElem();
 void RegisterGameClasses_UtilEntities();
+void RegisterGameClasses_Ablilities();
 void RegisterGameClasses_PawnAI();
 void RegisterGlobalLuaCFunc();
 void RegisterGameClasses()
@@ -243,6 +244,7 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CPrefabBaseNode )
 		REGISTER_BASE_CLASS( CHitProxy )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( SetParentEntity )
 		REGISTER_LUA_CFUNCTION( SetVisible )
 		REGISTER_LUA_CFUNCTION( FindChildEntity )
 	REGISTER_CLASS_END()
@@ -261,6 +263,7 @@ void RegisterGameClasses()
 	RegisterGameClasses_Level();
 	RegisterGameClasses_MiscElem();
 	RegisterGameClasses_UtilEntities();
+	RegisterGameClasses_Ablilities();
 	RegisterGameClasses_PawnAI();
 	RegisterGlobalLuaCFunc();
 }

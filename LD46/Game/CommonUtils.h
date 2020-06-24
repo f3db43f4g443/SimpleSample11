@@ -1,4 +1,5 @@
 #pragma once
+#include "Render/Sound.h"
 
 class CLuaTrigger : public CTrigger
 {
@@ -18,3 +19,6 @@ private:
 	CReference<CLuaState> m_pLuaState;
 	int8 m_nParamType;
 };
+
+void PlaySoundEffect( const char* szName );
+ISoundTrack* PlaySoundLoop( const char* szName );

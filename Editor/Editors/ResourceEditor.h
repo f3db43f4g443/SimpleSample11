@@ -13,6 +13,7 @@ class CResourceEditor : public CUIElement
 public:
 	virtual void NewFile( const char* szFileName ) {}
 	virtual void SetFileName( const char* szFileName ) {}
+	static bool& IsLighted() { static bool b = true; return b; }
 };
 
 template <class T>
@@ -45,6 +46,8 @@ protected:
 		m_pViewport->Register( eEvent_StopDrag, &m_onViewportStopDrag );
 		m_onViewportMouseUp.Set( this, &TResourceEditor::OnViewportMouseUp );
 		m_pViewport->Register( eEvent_MouseUp, &m_onViewportMouseUp );
+		m_onViewportMouseWheel.Set( this, &TResourceEditor::OnViewportMouseWheel );
+		m_pViewport->Register( eEvent_MouseWheel, &m_onViewportMouseWheel );
 		m_onDebugDraw.Set( this, &TResourceEditor::OnDebugDraw );
 		m_pViewport->Register( eEvent_Action, &m_onDebugDraw );
 		m_onViewportKey.Set( this, &TResourceEditor::OnViewportKey );
@@ -53,10 +56,20 @@ protected:
 		m_pViewport->Register( eEvent_Char, &m_onViewportChar );
 		
 		m_camOfs = CVector2( 0, 0 );
+		OnInitViewport();
+	}
 
+	virtual void CreateViewport()
+	{
+		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
+		m_pViewport->SetLight( IsLighted() );
+	}
+
+	virtual void OnInitViewport()
+	{
 		if( m_pViewport->GetRoot() )
 		{
-			CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ),CVector3( 1, 1, 1 ), 8, 256 );
+			CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ), CVector3( 1, 1, 1 ), 8, 256 );
 			m_pViewport->GetRoot()->AddChild( pDirectionalLight );
 			m_pLight = pDirectionalLight;
 
@@ -84,11 +97,6 @@ protected:
 				}
 			}
 		}
-	}
-
-	virtual void CreateViewport()
-	{
-		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
 	}
 
 	virtual void OnSetVisible( bool bVisible ) override
@@ -131,15 +139,13 @@ protected:
 	virtual void OnViewportStartDrag( SUIMouseEvent* pEvent )
 	{
 		CVector2 fixOfs = pEvent->mousePos;
-		fixOfs.y = -fixOfs.y;
 		m_startDragPos = fixOfs;
 	}
 
 	virtual void OnViewportDragged( SUIMouseEvent* pEvent )
 	{
 		CVector2 fixOfs = pEvent->mousePos;
-		fixOfs.y = -fixOfs.y;
-		CVector2 dPos = fixOfs - m_startDragPos;
+		CVector2 dPos = m_pViewport->GetScenePos( fixOfs ) - m_pViewport->GetScenePos( m_startDragPos );
 		m_startDragPos = fixOfs;
 		SetCamOfs( m_camOfs - dPos );
 	}
@@ -151,6 +157,7 @@ protected:
 		if( pDragDropObj )
 			OnViewportDrop( pEvent->mousePos, pDragDropObj );
 	}
+	virtual void OnViewportMouseWheel( SUIMouseEvent* pEvent ) {}
 	virtual void OnViewportDrop( const CVector2& mousePos, CUIElement* pParam ) {}
 	virtual void OnViewportKey( SUIKeyEvent* pEvent ) {}
 	virtual void OnViewportChar( uint32 nChar ) {}
@@ -164,6 +171,7 @@ private:
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportDragged;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStopDrag;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportMouseUp;
+	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportMouseWheel;
 	TClassTrigger1<TResourceEditor, IRenderSystem*> m_onDebugDraw;
 	TClassTrigger1<TResourceEditor, SUIKeyEvent*> m_onViewportKey;
 	TClassTrigger1<TResourceEditor, uint32> m_onViewportChar;

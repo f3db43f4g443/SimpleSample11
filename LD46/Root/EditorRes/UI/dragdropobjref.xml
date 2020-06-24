@@ -1,0 +1,10 @@
+<root type="label" rectX="-64" rectY="-12" rectWidth="128" rectHeight="24" textAlignX="1" textAlignY="1">
+  <imageLists>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-64" rectY="-12" rectWidth="128" rectHeight="24"
+              rectLeft="-60" rectTop="-8" rectRight="60" rectBottom="8"
+              texX="192" texY="32" texWidth="32" texHeight="32"
+              texLeft="196" texTop="36" texRight="220" texBottom="60" />
+    </imageList>
+  </imageLists>
+</root>

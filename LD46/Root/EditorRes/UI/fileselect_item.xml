@@ -1,0 +1,29 @@
+﻿<root type="button" rectX="-64" rectY="-10" rectWidth="128" rectHeight="20"
+          textLeft="4" textTop="4" textRight="4" textBottom="4" textAlignX="1" textAlignY="2">
+  <imageLists>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-63" rectY="-9" rectWidth="126" rectHeight="18"
+              rectLeft="-52" rectTop="-1" rectRight="52" rectBottom="1"
+              texX="33" texY="1" texWidth="30" texHeight="30"
+              texLeft="44" texTop="12" texRight="52" texBottom="20" />
+    </imageList>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-63" rectY="-9" rectWidth="126" rectHeight="18"
+              rectLeft="-52" rectTop="-1" rectRight="52" rectBottom="1"
+              texX="65" texY="1" texWidth="30" texHeight="30"
+              texLeft="76" texTop="12" texRight="84" texBottom="20" />
+    </imageList>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-63" rectY="-9" rectWidth="126" rectHeight="18"
+              rectLeft="-52" rectTop="-1" rectRight="52" rectBottom="1"
+              texX="97" texY="1" texWidth="30" texHeight="30"
+              texLeft="108" texTop="12" texRight="116" texBottom="20" />
+    </imageList>
+    <imageList>
+      <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-63" rectY="-9" rectWidth="126" rectHeight="18"
+              rectLeft="-52" rectTop="-1" rectRight="52" rectBottom="1"
+              texX="129" texY="1" texWidth="30" texHeight="30"
+              texLeft="140" texTop="12" texRight="148" texBottom="20" />
+    </imageList>
+  </imageLists>
+</root>

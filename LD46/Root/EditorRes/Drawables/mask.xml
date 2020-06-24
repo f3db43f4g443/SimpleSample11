@@ -1,0 +1,12 @@
+﻿<root>
+  <color_pass>
+    <blend type="transparent" />
+    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneColorPixelShader">
+      <constant_buffers>
+        <item shader_type="2">
+          <param name="vColor" type="float4" data="0,0,0,0.5" />
+        </item>
+      </constant_buffers>
+    </material>
+  </color_pass>
+</root>

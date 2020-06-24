@@ -402,6 +402,7 @@
   <ItemGroup>
     <ClCompile Include="BasicElems.cpp" />
     <ClCompile Include="CommonUtils.cpp" />
+    <ClCompile Include="Entities\Abilities.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\MiscElem.cpp" />
     <ClCompile Include="Entities\PawnAI.cpp" />
@@ -429,6 +430,7 @@
     <ClInclude Include="Attribute.h" />
     <ClInclude Include="BasicElems.h" />
     <ClInclude Include="CommonUtils.h" />
+    <ClInclude Include="Entities\Abilities.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\MiscElem.h" />
     <ClInclude Include="Entities\PawnAI.h" />

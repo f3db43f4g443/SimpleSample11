@@ -323,6 +323,8 @@ void CPrefabEditor::OnInited()
 	CImage2D* pImage2D = new CImage2D( pDrawable, NULL, CRectangle( -32, -32, 256, 256 ), CRectangle( 0, 0, 1, 1 ), true );
 	m_pGizmo = pImage2D;
 	pImage2D->bVisible = false;
+	if( !IsLighted() )
+		pImage2D->SetColorDrawable( pImage2D->GetGUIDrawable() );
 	m_pViewport->GetRoot()->AddChild( pImage2D );
 }
 

@@ -60,6 +60,7 @@ TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TVe
 TRectangle<int32> PutRectEx( vector<int8>& vec, int32 nWidth, int32 nHeight, TRectangle<int32> init,
 	TVector2<int32> minSize, TVector2<int32> maxSize, TRectangle<int32> lim, uint32 nExtend, int32 nType, function<bool( TRectangle<int32>, TRectangle<int32> )> func );
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType );
+int32 FloodFill( int8* pData, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType );
 int32 FloodFill( vector<int32>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType );
 int32 FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, int32 nMaxCount, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void FloodFill( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 x, int32 y, int32 nType, vector<TVector2<int32> >& q );
@@ -79,5 +80,7 @@ TVector2<int32> FindPath( vector<int8>& vec, int32 nWidth, int32 nHeight, TVecto
 	vector<TVector2<int32> >& par, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 void ConnectAll( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, int32 nBackType, const TRectangle<int32>& bound, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
-void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge = true );
+void GenDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge = true, bool bTypeAsSrc = false );
+void GenDistField( int8* pData, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, bool bEdge = true, bool bTypeAsSrc = false );
+void GenDistField( int8* pData, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q, TVector2<int32>* ofs, int32 nOfs, bool bEdge = true, bool bTypeAsSrc = false );
 int32 SplitDistField( vector<int8>& vec, int32 nWidth, int32 nHeight, int32 nType, vector<int32>& vecDist, vector<TVector2<int32> >& q );

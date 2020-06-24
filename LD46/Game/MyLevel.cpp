@@ -7,6 +7,199 @@
 #include "Common/Rand.h"
 #include "MyGame.h"
 #include "Entities/UtilEntities.h"
+#include "Common/Algorithm.h"
+
+void SLevelEnvDesc::OverlayToGrid( SLevelEnvGridDesc& grid, int32 nDist )
+{
+	for( int i = 0; i < arrGridDesc.Size(); i++ )
+	{
+		auto& desc = arrGridDesc[i];
+		if( desc.nDist >= nDist )
+		{
+			if( i == 0 )
+				grid.Overlay( desc );
+			else
+			{
+				auto desc1 = arrGridDesc[i - 1];
+				float t = ( nDist - desc1.nDist ) * 1.0f / ( desc.nDist - desc1.nDist );
+				desc1.Interpolate( desc, t );
+				grid.Overlay( desc1 );
+			}
+			return;
+		}
+	}
+}
+
+void CLevelEnvEffect::Init()
+{
+	SetRenderObject( NULL );
+	m_elems.resize( 0 );
+	vector<SLevelEnvGridDesc> vecGridDescs;
+	vecGridDescs.resize( m_nWidth * m_nHeight );
+	vector<int32> vecDist;
+	vecDist.resize( m_nWidth * m_nHeight );
+	vector<int32> vecJamDist;
+	vecJamDist.resize( m_nWidth * m_nHeight );
+	TVector2<int32> ofs[] = { { 1, 0 }, { -1, 0 }, { 2, 0 }, { -2, 0 }, { 0, 1 }, { 0, -1 }, { -1, 1 }, { -1, -1 }, { 1, 1 }, { 1, -1 } };
+	vector<TVector2<int32> > q;
+	GenDistField( &m_arrEnvMap[0], m_nWidth, m_nHeight, -1, vecJamDist, q, ofs, ELEM_COUNT( ofs ), false, true );
+	q.resize( 0 );
+
+	for( int k = 0; k < m_arrEnvDescs.Size(); k++ )
+	{
+		auto& arrGridDescs = m_arrEnvDescs[k];
+		GenDistField( &m_arrEnvMap[0], m_nWidth, m_nHeight, k + 1, vecDist, q, ofs, ELEM_COUNT( ofs ), false, true );
+		q.resize( 0 );
+
+		for( int x = 0; x < m_nWidth; x++ )
+		{
+			for( int y = 0; y < m_nHeight; y++ )
+			{
+				auto nDist = vecDist[x + y * m_nWidth];
+				if( nDist < 0 )
+					continue;
+				if( arrGridDescs.arrJamStrength.Size() )
+				{
+					auto nJamDist = vecJamDist[x + y * m_nWidth];
+					if( nJamDist >= 0 && nJamDist < arrGridDescs.arrJamStrength.Size() )
+						nDist += arrGridDescs.arrJamStrength[nJamDist];
+				}
+				if( nDist <= arrGridDescs.GetMaxDist() )
+					arrGridDescs.OverlayToGrid( vecGridDescs[x + y * m_nWidth], nDist );
+			}
+		}
+	}
+	for( int x = 0; x < m_nWidth; x++ )
+	{
+		for( int y = 0; y < m_nHeight; y++ )
+		{
+			auto& gridDesc = vecGridDescs[x + y * m_nWidth];
+			if( gridDesc.fBlendWeight )
+			{
+				gridDesc.Normalize();
+				m_elems.resize( m_elems.size() + 1 );
+				auto& elem = m_elems.back();
+				elem.gridDesc = gridDesc;
+				elem.fPhase = gridDesc.fRandomPhaseOfs * SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) + CVector2( x, y ).Dot( gridDesc.gridPhaseOfs );
+				elem.fPhase -= floor( elem.fPhase );
+				elem.origRect = CRectangle( x * m_gridSize.x + m_gridOfs.x, y * m_gridSize.y + m_gridOfs.y, m_gridSize.x, m_gridSize.y );
+				elem.elem.texRect = CRectangle( 0, 0, 1, 1 );
+				if( x == 0 )
+					elem.origRect.SetLeft( -4096 );
+				if( y == 0 )
+					elem.origRect.SetTop( -4096 );
+				if( x == m_nWidth - 1 )
+					elem.origRect.SetRight( 4096 );
+				if( y == m_nHeight - 1 )
+					elem.origRect.SetBottom( 4096 );
+			}
+		}
+	}
+	for( auto& elem : m_elems )
+	{
+		elem.elem.nInstDataSize = sizeof( CVector4 ) * 2;
+		elem.elem.pInstData = elem.param;
+	}
+	SetLocalBound( CRectangle( -4096, -4096, 8192, 8192 ) );
+}
+
+void CLevelEnvEffect::UpdateRendered( double dTime )
+{
+	if( !GetResource() )
+		return;
+	if( m_fFade <= 0 )
+		return;
+	for( auto& elem : m_elems )
+	{
+		elem.fPhase += dTime / elem.gridDesc.fPeriod;
+		elem.fPhase -= floor( elem.fPhase );
+		float k = abs( elem.fPhase - 0.5f ) * 4 - 1;
+		CVector2 ofs = elem.gridDesc.sizeDynamic * k;
+		ofs = CVector2( floor( ofs.x * 0.5f + 0.5f ), floor( ofs.y * 0.5f + 0.5f ) ) * 2;
+		elem.elem.rect = elem.origRect + elem.origRect.Offset( ofs );
+		elem.param[0] = elem.gridDesc.param[0] + elem.gridDesc.paramDynamic[0] * k;
+		elem.param[1] = elem.gridDesc.param[1] + elem.gridDesc.paramDynamic[1] * k;
+		elem.param[0] = CVector4( 1, 1, 1, 0 ) + ( elem.param[0] - CVector4( 1, 1, 1, 0 ) ) * m_fFade;
+		elem.param[1] = CVector4( 0, 0, 0, 0 ) + ( elem.param[1] - CVector4( 0, 0, 0, 0 ) ) * m_fFade;
+		elem.param[0].w = floor( elem.param[0].w * 0.5f + 0.5f ) * 2;
+		elem.param[1].w = floor( elem.param[1].w * 0.5f + 0.5f ) * 2;
+	}
+}
+
+void CLevelEnvEffect::Render( CRenderContext2D & context )
+{
+	if( !GetResource() )
+		return;
+	if( m_fFade <= 0 )
+		return;
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_elems )
+	{
+		elem.elem.worldMat = globalTransform;
+		elem.elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem.elem, nGroup );
+	}
+	context.AddElementDummy( &m_dummyElem, nGroup );
+}
+
+void CLevelEnvEffect::Resize( const TRectangle<int32>& rect )
+{
+	vector<int8> vecOrigData;
+	vecOrigData.resize( m_nWidth * m_nHeight );
+	if( vecOrigData.size() )
+		memcpy( &vecOrigData[0], &m_arrEnvMap[0], vecOrigData.size() );
+
+	m_arrEnvMap.Resize( rect.width * rect.height );
+	for( int i = 0; i < rect.width; i++ )
+	{
+		for( int j = 0; j < rect.height; j++ )
+		{
+			auto x = Max( 0, Min( m_nWidth - 1, i + rect.x ) );
+			auto y = Max( 0, Min( m_nHeight - 1, j + rect.y ) );
+			m_arrEnvMap[i + j * rect.width] = vecOrigData[x + y * m_nWidth];
+		}
+	}
+	m_nWidth = rect.width;
+	m_nHeight = rect.height;
+	m_gridOfs = m_gridOfs + CVector2( rect.x, rect.y ) * m_gridSize;
+}
+
+void CLevelEnvEffect::Clear()
+{
+	if( m_arrEnvMap.Size() )
+		memset( &m_arrEnvMap[0], 0, m_arrEnvMap.Size() );
+}
+
+void CLevelEnvEffect::Fill( int8 n, const TVector2<int32>& p )
+{
+	FloodFill( &m_arrEnvMap[0], m_nWidth, m_nHeight, p.x, p.y, n );
+}
 
 
 void CLevelIndicatorLayer::OnAddedToStage()
@@ -62,7 +255,10 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 	};
 	static vector<SBlocked> vecBlocked;
 	static vector<SHit> vecHit;
+	static vector<SHit> vecHitBlocked;
+	static vector<SHit> vecHitBash;
 	static vector<SHit> vecMiss;
+	static vector<SHit> vecMissBash;
 	static vector<TVector2<int32> > vecNxtStage[2];
 	static vector<TVector2<int32> > vecPawn;
 	static vector<TVector2<int32> > vecUse;
@@ -102,6 +298,24 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 						vecMiss.push_back( hit );
 						pGrid->nMissEft--;
 					}
+					if( pGrid->nHitBlockedEft )
+					{
+						SHit hit = { { i, j }, pGrid->nHitBlockedEft };
+						vecHitBlocked.push_back( hit );
+						pGrid->nHitBlockedEft--;
+					}
+					if( pGrid->nHitBashEft )
+					{
+						SHit hit = { { i, j }, pGrid->nHitBashEft };
+						vecHitBash.push_back( hit );
+						pGrid->nHitBashEft--;
+					}
+					if( pGrid->nMissBashEft )
+					{
+						SHit hit = { { i, j }, pGrid->nMissBashEft };
+						vecMissBash.push_back( hit );
+						pGrid->nMissBashEft--;
+					}
 					if( pGrid->pPawn )
 					{
 						if( pGrid->pPawn->CanBeHit() )
@@ -123,36 +337,57 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 		}
 	}
 
-	for( int k = 2; k >= 0; k-- )
+	for( int l = 0; l < 2; l++ )
 	{
-		for( auto& hit : vecHit )
+		auto& hits = l == 0 ? vecHitBash : vecHit;
+		for( int k = 2; k >= 0; k-- )
 		{
-			int32 nParam = globalData.vecHitParams.size() - Max<int32>( 1, hit.n - k );
-			auto& paramData = globalData.vecHitParams[nParam];
+			for( auto& hit : hits )
+			{
+				int32 nParam = globalData.vecHitParams.size() - Max<int32>( 1, hit.n - k );
+				auto& paramData = globalData.vecHitParams[nParam];
 
-			m_elems.resize( m_elems.size() + 1 );
-			auto& elem = m_elems.back();
-			int32 nMaxOfsX = nParam * LEVEL_GRID_SIZE_X / globalData.vecHitParams.size() / 4;
-			int32 nMaxOfsY = nParam * LEVEL_GRID_SIZE_Y / globalData.vecHitParams.size() / 4;
-			float f = nParam * 1.0f / globalData.vecHitParams.size();
-			f = 1 - f * f * 0.75f;
-			int32 nSizeX = f * LEVEL_GRID_SIZE_X / 2;
-			int32 nSizeY = f * LEVEL_GRID_SIZE_Y / 2;
-			int32 nOfsX = SRand::Inst<eRand_Render>().Rand<int32>( -nMaxOfsX, nMaxOfsX + 1 + LEVEL_GRID_SIZE_X / 2 - nSizeX ) * 2;
-			int32 nOfsY = SRand::Inst<eRand_Render>().Rand<int32>( -nMaxOfsX, nMaxOfsX + 1 + LEVEL_GRID_SIZE_Y / 2 - nSizeY ) * 2;
-			nSizeX *= 2;
-			nSizeY *= 2;
-			elem.rect = CRectangle( hit.p.x * LEVEL_GRID_SIZE_X, hit.p.y * LEVEL_GRID_SIZE_Y, nSizeX, nSizeY )
-				.Offset( paramData.ofs + CVector2( nOfsX, nOfsY ) );
-			elem.texRect = CRectangle( 0, 0, 1, 1 );
-			elem.nInstDataSize = sizeof( CVector4 ) * 2;
-			elem.pInstData = paramData.params;
+				m_elems.resize( m_elems.size() + 1 );
+				auto& elem = m_elems.back();
+				int32 nMaxOfsX = nParam * LEVEL_GRID_SIZE_X / globalData.vecHitParams.size() / 4;
+				int32 nMaxOfsY = nParam * LEVEL_GRID_SIZE_Y / globalData.vecHitParams.size() / 4;
+				float f = nParam * 1.0f / globalData.vecHitParams.size();
+				f = 1 - f * f * 0.75f;
+				int32 nSizeX = f * LEVEL_GRID_SIZE_X / 2;
+				int32 nSizeY = f * LEVEL_GRID_SIZE_Y / 2;
+				int32 nOfsX = SRand::Inst<eRand_Render>().Rand<int32>( -nMaxOfsX, nMaxOfsX + 1 + LEVEL_GRID_SIZE_X / 2 - nSizeX ) * 2;
+				int32 nOfsY = SRand::Inst<eRand_Render>().Rand<int32>( -nMaxOfsX, nMaxOfsX + 1 + LEVEL_GRID_SIZE_Y / 2 - nSizeY ) * 2;
+				nSizeX *= 2;
+				nSizeY *= 2;
+				elem.rect = CRectangle( hit.p.x * LEVEL_GRID_SIZE_X, hit.p.y * LEVEL_GRID_SIZE_Y, nSizeX, nSizeY )
+					.Offset( paramData.ofs + CVector2( nOfsX, nOfsY ) );
+				if( l == 0 )
+				{
+					auto center = CVector2( hit.p.x + 0.5f, hit.p.y + 0.5f ) * LEVEL_GRID_SIZE;
+					elem.rect = ( elem.rect.Offset( center * -1 ) * 2 ).Offset( center );
+				}
+				elem.texRect = CRectangle( 0, 0, 1, 1 );
+				elem.nInstDataSize = sizeof( CVector4 ) * 2;
+				elem.pInstData = paramData.params;
+			}
 		}
+	}
+	for( auto& hit : vecHitBlocked )
+	{
+		auto& paramData = globalData.vecHitBlockedParams[globalData.vecHitBlockedParams.size() - hit.n];
+		AddElem( hit.p.x, hit.p.y, paramData.ofs, paramData.params );
 	}
 	for( auto& hit : vecMiss )
 	{
 		auto& paramData = globalData.vecMissParams[globalData.vecMissParams.size() - hit.n];
 		AddElem( hit.p.x, hit.p.y, paramData.ofs, paramData.params );
+	}
+	for( auto& hit : vecMissBash )
+	{
+		int32 n = globalData.vecMissParams.size() - hit.n;
+		auto& paramData = globalData.vecMissParams[n];
+		auto& rect = AddElem( hit.p.x, hit.p.y, paramData.ofs, paramData.params ).rect;
+		rect = CRectangle( rect.x - n * 2, rect.y - n * 2, rect.width + n * 4, rect.height + n * 4 );
 	}
 	auto pPlayer = pLevel->GetPlayer();
 	if( !pPlayer || !pPlayer->IsMounting() )
@@ -222,7 +457,10 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 
 	vecBlocked.resize( 0 );
 	vecHit.resize( 0 );
+	vecHitBlocked.resize( 0 );
+	vecHitBash.resize( 0 );
 	vecMiss.resize( 0 );
+	vecMissBash.resize( 0 );
 	for( int k = 0; k < 2; k++ )
 		vecNxtStage[k].resize( 0 );
 	vecPawn.resize( 0 );
@@ -307,39 +545,34 @@ void CMyLevel::OnRemovedFromStage()
 
 void CMyLevel::OnPreview()
 {
-	for( auto p = m_pPawnRoot->Get_TransformChild(); p; p = p->NextTransformChild() )
+	for( auto p0 = Get_TransformChild(); p0; p0 == p0->NextTransformChild() )
 	{
-		auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( p );
-		if( pSpawnHelper )
+		if( p0 == m_pPawnRoot || SafeCast<CPawnLayer>( p0 ) )
 		{
-			pSpawnHelper->OnPreview();
-			continue;
-		}
-		auto pPawn = SafeCast<CPawn>( p );
-		if( pPawn )
-		{
-			pPawn->m_pos = pPawn->m_moveTo = TVector2<int32>( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
-			pPawn->m_nCurDir = pPawn->m_nInitDir;
-			pPawn->OnPreview();
-		}
-	}
-	for( int x = 0; x < m_nWidth; x++ )
-	{
-		for( int y = 0; y < m_nHeight; y++ )
-		{
-			auto& grid = m_arrGridData[x + y * m_nWidth];
-			if( grid.bBlocked == false && !( ( x + y ) & 1 ) && m_pTileDrawable )
+			for( auto p = p0->Get_TransformChild(); p; p = p->NextTransformChild() )
 			{
-				auto pImage = m_pTileDrawable->CreateInstance();
-				pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
-				AddChildAfter( pImage, m_pPawnRoot );
+				auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( p );
+				if( pSpawnHelper )
+				{
+					pSpawnHelper->OnPreview();
+					continue;
+				}
+				auto pPawn = SafeCast<CPawn>( p );
+				if( pPawn )
+				{
+					pPawn->m_pos = pPawn->m_moveTo = TVector2<int32>( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+					pPawn->m_nCurDir = pPawn->m_nInitDir;
+					pPawn->OnPreview();
+				}
 			}
 		}
 	}
+	InitTiles();
 }
 
 void CMyLevel::Begin()
 {
+	FlushSpawn();
 	m_pIndicatorLayer = SafeCast<CLevelIndicatorLayer>( CGlobalCfg::Inst().lvIndicatorData.pIndicatorPrefab->GetRoot()->CreateInstance() );
 	m_pIndicatorLayer->SetParentBeforeEntity( m_pPawnRoot );
 	m_bBegin = true;
@@ -347,10 +580,15 @@ void CMyLevel::Begin()
 	m_beginTrigger.Clear();
 	if( m_strBeginScript.length() )
 		CLuaMgr::Inst().Run( m_strBeginScript );
+	for( CLevelScript* pScript : m_vecScripts )
+		pScript->OnBegin( this );
+	GetStage()->GetMasterLevel()->GetMainUI()->OnLevelBegin();
 }
 
 void CMyLevel::End()
 {
+	GetStage()->GetMasterLevel()->GetMainUI()->ShowFailEft( false );
+	GetStage()->GetMasterLevel()->GetMainUI()->ShowFreezeEft( 0 );
 	m_beginTrigger.Clear();
 	m_trigger.Clear();
 	if( m_pIndicatorLayer )
@@ -358,6 +596,32 @@ void CMyLevel::End()
 		m_pIndicatorLayer->SetParentEntity( NULL );
 		m_pIndicatorLayer = NULL;
 	}
+}
+
+void CMyLevel::Fail( int8 nFailType )
+{
+	if( nFailType == 1 )
+	{
+		auto p0 = TVector2<int32>( m_pPlayer->GetWidth(), m_pPlayer->GetHeight() ) + m_pPlayer->GetPos() + m_pPlayer->GetMoveTo();
+		auto p = CVector2( p0.x, p0.y ) * LEVEL_GRID_SIZE * 0.5f + CVector2( 0, 32 );
+		CVector2 ofs[] = { { 256, 256 }, { 256, -256 }, { -256, -256 }, { -256, 256 } };
+		for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+		{
+			auto pLightning = SafeCast<CLightningEffect>( CGlobalCfg::Inst().pFailLightningEffectPrefab->GetRoot()->CreateInstance() );
+			pLightning->SetParentBeforeEntity( m_pPawnRoot );
+			pLightning->SetPosition( p );
+			auto p1 = TVector2<int32>( floor( ofs[i].x / 8 + 0.5f ), floor( ofs[i].y / 8 + 0.5f ) );
+			pLightning->Set( p1, 0 );
+		}
+	}
+
+	m_bFailed = true;
+	GetStage()->GetMasterLevel()->GetMainUI()->ShowFailEft( true );
+}
+
+void CMyLevel::Freeze()
+{
+	m_bFreeze = true;
 }
 
 CPawn* CMyLevel::SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, CPawn* pCreator, int32 nForm )
@@ -576,7 +840,7 @@ void CMyLevel::PawnDeath( CPawn* pPawn )
 {
 	if( pPawn->m_bIsEnemy )
 	{
-		CVector2 p[2] = { { 0, 0 }, { 0, 48 } };
+		CVector2 p[2] = { { 0, 0 }, { 0, 64 } };
 		CEntity* pEntity[2] = { pPawn, m_pPlayer };
 		for( int i = 0; i < 2; i++ )
 		{
@@ -595,7 +859,7 @@ void CMyLevel::PawnDeath( CPawn* pPawn )
 		pLightning->SetPosition( p[0] );
 		auto ofs = p[1] - p[0];
 		auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
-		pLightning->Set( p1, 0 );
+		pLightning->Set( p1, 0, 1.0f, 2.0f );
 
 		Fail();
 	}
@@ -922,22 +1186,29 @@ void CMyLevel::GetAllUseableGrid( vector<TVector2<int32>>& result )
 void CMyLevel::Init()
 {
 	m_vecExitState.resize( m_arrNextStage.Size() );
-	for( int x = 0; x < m_nWidth; x++ )
+	InitTiles();
+	vector<CReference<CPawnLayer> > vecPawnLayers;
+	for( auto p0 = Get_ChildEntity(); p0; p0 = p0->NextChildEntity() )
 	{
-		for( int y = 0; y < m_nHeight; y++ )
-		{
-			auto& grid = m_arrGridData[x + y * m_nWidth];
-			if( grid.bBlocked == false && !( ( x + y ) & 1 ) && m_pTileDrawable )
-			{
-				auto pImage = m_pTileDrawable->CreateInstance();
-				pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
-				AddChildAfter( pImage, m_pPawnRoot );
-			}
-		}
+		auto pPawnLayer = SafeCast<CPawnLayer>( p0 );
+		if( pPawnLayer )
+			vecPawnLayers.push_back( pPawnLayer );
 	}
+	for( CPawnLayer* p : vecPawnLayers )
+	{
+		if( !p->GetCondition().length() || GetStage()->GetMasterLevel()->EvaluateKeyInt( p->GetCondition() ) )
+		{
+			while( p->Get_ChildEntity() )
+				p->Get_ChildEntity()->SetParentEntity( m_pPawnRoot );
+		}
+		p->SetParentEntity( NULL );
+	}
+
 	vector<CReference<CLevelSpawnHelper> > vecSpawnHelpers;
 	vector<CReference<CPawn> > vecPawnsToSpawn;
-	for( auto pChild = m_pPawnRoot->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
+	vector<CReference<CRenderObject2D> > vecOthers;
+
+	for( auto pChild = m_pPawnRoot->Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 	{
 		auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( pChild );
 		if( pSpawnHelper )
@@ -948,6 +1219,25 @@ void CMyLevel::Init()
 		auto pPawn = SafeCast<CPawn>( pChild );
 		if( pPawn )
 			vecPawnsToSpawn.push_back( pPawn );
+		else
+			vecOthers.push_back( pChild );
+	}
+	for( int i = vecOthers.size() - 1; i >= 0; i-- )
+	{
+		auto& p = vecOthers[i];
+		auto pEntity = SafeCast<CEntity>( p.GetPtr() );
+		if( pEntity )
+			pEntity->SetParentAfterEntity( m_pPawnRoot );
+		else
+		{
+			p->RemoveThis();
+			AddChildAfter( p, m_pPawnRoot );
+		}
+	}
+	for( auto& pPawn : vecPawnsToSpawn )
+	{
+		TVector2<int32> pos( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+		AddPawn( pPawn, pos, pPawn->m_nInitDir );
 	}
 	for( auto& pSpawnHelper : vecSpawnHelpers )
 	{
@@ -959,8 +1249,48 @@ void CMyLevel::Init()
 				continue;
 			}
 		}
-		auto pPawn = SafeCast<CPawn>( pSpawnHelper->GetRenderObject() );
-		if( pSpawnHelper->m_strDeathKey.length() && GetStage()->GetMasterLevel()->EvaluateKeyInt( pSpawnHelper->m_strDeathKey ) )
+		CReference<CPawn> pPawn = SafeCast<CPawn>( pSpawnHelper->GetRenderObject() );
+		TVector2<int32> pos( floor( pSpawnHelper->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pSpawnHelper->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+		auto nDir = pPawn->m_nInitDir;
+		auto pos0 = pos;
+		auto nDir0 = nDir;
+
+		if( pSpawnHelper->m_nDataType == 1 )
+		{
+			auto& mapDeadPawn = GetStage()->GetMasterLevel()->GetCurLevelData().mapDataDeadPawn;
+			auto itr = mapDeadPawn.find( pSpawnHelper->GetName().c_str() );
+			if( itr != mapDeadPawn.end() )
+			{
+				if( !pPawn->IsValidStateIndex( pSpawnHelper->m_nDeathState ) )
+				{
+					pSpawnHelper->SetParentEntity( NULL );
+					continue;
+				}
+				bool b = true;
+				if( !SafeCast<CPawnHit>( pPawn.GetPtr() ) )
+				{
+					for( int i = 0; i < pPawn->m_nWidth && b; i++ )
+					{
+						for( int j = 0; j < pPawn->m_nHeight; j++ )
+						{
+							auto pGrid = GetGrid( itr->second.p + TVector2<int32>( i, j ) );
+							if( !pGrid || pGrid->pPawn || !pGrid->bCanEnter || pGrid->nNextStage )
+							{
+								b = false;
+								break;
+							}
+						}
+					}
+				}
+				if( b )
+				{
+					pos = itr->second.p;
+					nDir = itr->second.nDir;
+				}
+				pSpawnHelper->m_bSpawnDeath = true;
+			}
+		}
+		else if( pSpawnHelper->m_strDeathKey.length() && GetStage()->GetMasterLevel()->EvaluateKeyInt( pSpawnHelper->m_strDeathKey ) )
 		{
 			if( !pPawn->IsValidStateIndex( pSpawnHelper->m_nDeathState ) )
 			{
@@ -970,64 +1300,51 @@ void CMyLevel::Init()
 			pSpawnHelper->m_bSpawnDeath = true;
 		}
 
-		TVector2<int32> pos( floor( pSpawnHelper->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pSpawnHelper->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
 		pPawn->SetParentEntity( m_pPawnRoot );
-		AddPawn( pPawn, pos, pPawn->m_nInitDir );
+		pPawn->SetPosition( pSpawnHelper->GetPosition() );
+		if( !AddPawn( pPawn, pos, nDir ) && ( pos0 == pos || !AddPawn( pPawn, pos0, nDir0 ) ) )
+		{
+			pPawn->SetParentEntity( NULL );
+			continue;
+		}
 		pSpawnHelper->ClearRenderObject();
+		pPawn->SetName( pSpawnHelper->GetName() );
 		pPawn->strCreatedFrom = pSpawnHelper->GetResource()->GetName();
 		pPawn->m_pSpawnHelper = pSpawnHelper;
 		pSpawnHelper->SetParentEntity( NULL );
 	}
-	for( auto& pPawn : vecPawnsToSpawn )
-	{
-		TVector2<int32> pos( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
-		AddPawn( pPawn, pos, pPawn->m_nInitDir );
-	}
+
 	FlushSpawn();
 	InitScripts();
 }
 
-void CMyLevel::RegisterBegin( CTrigger* pTrigger )
-{
-	if( m_bBegin )
-	{
-		pTrigger->Run( this );
-		return;
-	}
-	m_beginTrigger.Register( 0, pTrigger );
-}
-
 void CMyLevel::Update()
 {
-	if( m_bBegin )
+	if( m_bBegin && !m_bFreeze )
 	{
 		if( CGame::Inst().IsKeyDown( 'R' ) || CGame::Inst().IsKeyDown( 'r' ) )
 		{
-			GetStage()->GetMasterLevel()->ResetCurLevel();
+			GetStage()->GetMasterLevel()->JumpBack( 0 );
 			return;
 		}
 		if( CGame::Inst().IsKeyDown( 'T' ) || CGame::Inst().IsKeyDown( 't' ) )
 		{
-			GetStage()->GetMasterLevel()->RestoreToCheckpoint();
+			GetStage()->GetMasterLevel()->JumpBack( 1 );
+			return;
+		}
+		if( CGame::Inst().IsKeyDown( 'V' ) || CGame::Inst().IsKeyDown( 'v' ) )
+		{
+			GetStage()->GetMasterLevel()->JumpBack( 2 );
 			return;
 		}
 		if( m_bFailed )
-		{
-			if( !m_pTip )
-			{
-				static CReference<CDrawableGroup> pDrawable = CResourceManager::Inst()->CreateResource<CDrawableGroup>( "tips.mtl" );
-				m_pTip = pDrawable->CreateInstance();
-				m_pTip->SetPosition( m_camPos + CVector2( 0, 200 ) );
-				AddChild( m_pTip );
-			}
 			return;
-		}
 	}
 	FlushSpawn();
 	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
 		HandlePawnMounts( pPawn, false );
 
-	if( m_bBegin )
+	if( m_bBegin && !m_bFreeze )
 	{
 		m_pPlayer->Update();
 		LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
@@ -1105,6 +1422,8 @@ void CMyLevel::Update()
 		for( auto& pScript : m_vecScripts )
 			pScript->OnUpdate1( this );
 	}
+	if( m_bBegin )
+		m_trigger.Trigger( 2, this );
 
 	if( m_bBlocked )
 		m_bComplete = false;
@@ -1177,6 +1496,16 @@ void CMyLevel::Update()
 	}
 }
 
+void CMyLevel::RegisterBegin( CTrigger* pTrigger )
+{
+	if( m_bBegin )
+	{
+		pTrigger->Run( this );
+		return;
+	}
+	m_beginTrigger.Register( 0, pTrigger );
+}
+
 void CMyLevel::HandlePawnMounts( CPawn* pPawn, bool bRemove )
 {
 	for( auto pChild = pPawn->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
@@ -1207,6 +1536,44 @@ void CMyLevel::FlushSpawn()
 		p->SetParentEntity( m_pPawnRoot );
 		p->Init();
 		Insert_Pawn( p );
+	}
+}
+
+void CMyLevel::InitTiles()
+{
+	for( int x = 0; x < m_nWidth; x++ )
+	{
+		for( int y = 0; y < m_nHeight; y++ )
+		{
+			auto& grid = m_arrGridData[x + y * m_nWidth];
+			if( !( ( x + y ) & 1 ) )
+			{
+				if( m_arrTileData.Size() )
+				{
+					auto& tileData = m_arrTileData[Min<int32>( grid.nTile, m_arrTileData.Size() - 1 )];
+					if( tileData.pTileDrawable )
+					{
+						auto pImage = static_cast<CImage2D*>( tileData.pTileDrawable->CreateInstance() );
+						pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
+						auto rect = pImage->GetElem().rect;
+						rect.width *= tileData.texRect.width;
+						rect.height *= tileData.texRect.height;
+						pImage->SetRect( rect );
+						pImage->SetTexRect( tileData.texRect );
+						AddChildAfter( pImage, m_pPawnRoot );
+					}
+				}
+				else
+				{
+					if( grid.bBlocked == false && m_pTileDrawable )
+					{
+						auto pImage = m_pTileDrawable->CreateInstance();
+						pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
+						AddChildAfter( pImage, m_pPawnRoot );
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -1244,17 +1611,35 @@ void CMainUI::OnAddedToStage()
 	m_origRect = pRenderObject->GetElem().rect;
 	SetRenderObject( NULL );
 	m_vecInputItems.resize( CGlobalCfg::Inst().MainUIData.vecPlayerInputParams.size() );
+	for( int i = 0; i < 3; i++ )
+		m_pFailTips[i]->bVisible = false;
 }
 
-void CMainUI::Reset( const CVector2& inputOrig )
+void CMainUI::Reset( const CVector2& inputOrig, const CVector2& iconOrig, bool bClearAllEfts )
 {
 	m_playerInputOrig = inputOrig;
+	m_iconOrig = iconOrig;
+	for( int i = 0; i < ELEM_COUNT( m_pIcons ); i++ )
+		m_pIcons[i]->bVisible = false;
 	for( auto& item : m_vecInputItems )
 	{
 		item.vec.resize( 0 );
 		item.vecElems.resize( 0 );
 	}
+	if( bClearAllEfts )
+	{
+		m_nRecordEftFrames = 0;
+		EndScenario();
+		m_nHeadTextTime = 0;
+		auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
+		pText->Set( "" );
+	}
 	UpdatePos();
+}
+
+void CMainUI::OnLevelBegin()
+{
+	m_nRecordEftFrames = 120;
 }
 
 void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
@@ -1336,9 +1721,9 @@ void CMainUI::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nTyp
 
 void CMainUI::BeginScenario()
 {
+	Reset( m_playerInputOrig, m_iconOrig, false );
 	m_bScenario = true;
 	m_nLastScenarioText = -1;
-	Reset( m_playerInputOrig );
 }
 
 void CMainUI::EndScenario()
@@ -1348,7 +1733,7 @@ void CMainUI::EndScenario()
 		SafeCast<CTypeText>( m_pScenarioText[i].GetPtr() )->Set( "" );
 }
 
-void CMainUI::ScenarioText( int8 n, const char* sz, const CVector4& color, int32 nFinishDelay, int32 nSpeed )
+void CMainUI::ScenarioText( int8 n, const char* sz, const CVector4& color, int32 nFinishDelay, int32 nSpeed, const char* szSound, int32 nSoundInterval )
 {
 	if( n < 0 || n >= 2 )
 		return;
@@ -1356,6 +1741,7 @@ void CMainUI::ScenarioText( int8 n, const char* sz, const CVector4& color, int32
 	pText->SetParam( color );
 	pText->SetTypeInterval( nSpeed );
 	pText->Set( sz, n & 1 );
+	pText->SetTypeSound( szSound, nSoundInterval );
 	m_nLastScenarioText = n;
 	m_nScenarioTextFinishDelay = nFinishDelay;
 }
@@ -1370,27 +1756,76 @@ bool CMainUI::IsScenarioTextFinished()
 	return pText->IsFinished();
 }
 
-void CMainUI::HeadText( const char* sz, const CVector4& color, int32 nTime )
+void CMainUI::HeadText( const char* sz, const CVector4& color, int32 nTime, const char* szSound, int32 nSoundInterval )
 {
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
 	pText->SetParam( color );
 	pText->Set( sz, 2 );
+	pText->SetTypeSound( szSound, nSoundInterval );
 	m_nHeadTextTime = nTime;
+}
+
+void CMainUI::ShowFailEft( bool b )
+{
+	if( !b )
+	{
+		for( int i = 0; i < 3; i++ )
+			m_pFailTips[i]->bVisible = false;
+		return;
+	}
+	auto& worldData = GetStage()->GetMasterLevel()->GetWorldData();
+	bool bFailTips[3] = { worldData.nCurFrameCount > 0, worldData.nCurFrameCount > 1, worldData.pCheckPoint != NULL };
+	if( bFailTips[2] && !bFailTips[0] )
+		swap( bFailTips[2], bFailTips[0] );
+	if( bFailTips[2] && !bFailTips[1] )
+		swap( bFailTips[2], bFailTips[1] );
+	CVector2 p( -64, -16 );
+	for( int i = 0; i < 3; i++ )
+	{
+		if( !bFailTips[i] )
+		{
+			m_pFailTips[i]->bVisible = false;
+			continue;
+		}
+		m_pFailTips[i]->bVisible = true;
+		m_pFailTips[i]->SetPosition( p );
+		p.x += 160;
+	}
+}
+
+void CMainUI::ShowFreezeEft( int32 nLevel )
+{
+	m_nFreezeLevel = nLevel;
 }
 
 void CMainUI::Update()
 {
 	UpdatePos();
+	UpdateIcons();
 	m_vecPlayerActionElems.resize( 0 );
 	m_vecPlayerActionElemParams.resize( 0 );
-	if( m_bScenario )
-	{
-		if( GetStage()->GetMasterLevel()->GetCurLevel() )
-			Effect1();
-	}
-	else if( m_nPlayerActionFrame )
+	auto pCurLevel = GetStage()->GetMasterLevel()->GetCurLevel();
+	if( !m_bScenario && m_nPlayerActionFrame )
 	{
 		Effect0();
+	}
+	if( m_nRecordEftFrames )
+	{
+		RecordEffect();
+		m_nRecordEftFrames--;
+	}
+	else if( pCurLevel && pCurLevel->IsFailed() )
+	{
+		RecordEffect();
+		FailEffect();
+	}
+	else if( m_nFreezeLevel )
+		FreezeEffect( m_nFreezeLevel );
+
+	if( m_bScenario )
+	{
+		if( pCurLevel )
+			Effect1();
 	}
 	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
 	{
@@ -1520,6 +1955,49 @@ void CMainUI::UpdateInputItem( int32 nItem )
 	}
 }
 
+void CMainUI::UpdateIcons()
+{
+	if( m_bScenario || GetStage()->GetMasterLevel()->GetTransferType() )
+	{
+		for( int i = 0; i < ELEM_COUNT( m_pIcons ); i++ )
+			m_pIcons[i]->bVisible = false;
+		return;
+	}
+	auto pPlayer = GetStage()->GetWorld()->GetPlayer();
+	if( pPlayer )
+	{
+		for( int i = 0; i < ePlayerEquipment_Count; i++ )
+		{
+			auto pEquipment = pPlayer->GetEquipment( i );
+			if( pEquipment )
+			{
+				int32 nIcon = pEquipment->GetIcon();
+				auto pIcon = m_pIcons[i];
+				pIcon->bVisible = true;
+				pIcon->SetPosition( CVector2( m_iconOrig.x, pIcon->y ) );
+				auto texRect = static_cast<CImage2D*>( pIcon->GetRenderObject() )->GetElem().texRect;
+				texRect.x = nIcon % 4 * 0.25f;
+				texRect.y = nIcon / 4 * 0.125f;
+				static_cast<CImage2D*>( pIcon->GetRenderObject() )->SetTexRect( texRect );
+				if( i == ePlayerEquipment_Ranged )
+				{
+					auto w = pEquipment->GetAmmoIconWidth() * pEquipment->GetAmmo() / pEquipment->GetMaxAmmo();
+					auto rect = static_cast<CImage2D*>( m_pAmmoCount->GetRenderObject() )->GetElem().rect;
+					rect.SetLeft( rect.GetRight()- w );
+					CRectangle texRect1( nIcon % 4 * 0.25f, nIcon / 4 * 0.125f, 0.25f, 0.125f );
+					texRect1.SetLeft( texRect1.GetRight() - texRect1.width * rect.width / 64 );
+					texRect1.SetTop( texRect1.GetBottom() - texRect1.height * rect.height / 32 );
+					static_cast<CImage2D*>( m_pAmmoCount->GetRenderObject() )->SetRect( rect );
+					static_cast<CImage2D*>( m_pAmmoCount->GetRenderObject() )->SetTexRect( texRect1 );
+					m_pAmmoCount->SetBoundDirty();
+				}
+			}
+			else
+				m_pIcons[i]->bVisible = false;
+		}
+	}
+}
+
 void CMainUI::Effect0()
 {
 	auto& vecFrameCfg = CGlobalCfg::Inst().MainUIData.vecActionEftFrames;
@@ -1529,10 +2007,11 @@ void CMainUI::Effect0()
 	auto& frameData = vecFrameCfg[nFrame];
 	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
 	CRectangle rect0( -camSize.x * 0.5f, -frameData.nTotalHeight, camSize.x, frameData.nTotalHeight );
-	m_vecPlayerActionElems.resize( 1 );
+	auto nSize0 = m_vecPlayerActionElems.size();
+	m_vecPlayerActionElems.resize( nSize0 + 1 );
 	m_vecPlayerActionElems.back().rect = rect0;
 
-	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
+	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
 	{
 		auto& elem = m_vecPlayerActionElems[i];
 		if( elem.rect.height > frameData.nMaxImgHeight )
@@ -1551,7 +2030,7 @@ void CMainUI::Effect0()
 		}
 	}
 	m_vecPlayerActionElemParams.resize( m_vecPlayerActionElems.size() * 2 );
-	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
+	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
 	{
 		auto t = 1.0f - ( m_vecPlayerActionElems[i].rect.GetCenterY() - rect0.y ) / rect0.height;
 		auto v1 = frameData.params[0].v() * ( ( 1 - t ) * ( 1 - t ) ) + frameData.params[1].v() * ( 2 * t * ( 1 - t ) ) + frameData.params[2].v() * ( t * t );
@@ -1585,12 +2064,12 @@ void CMainUI::Effect0()
 		m_vecPlayerActionElemParams[i * 2 + 1] = CVector4( add.x, add.y, add.z, 0 );
 	}
 
-	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
+	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
 	{
 		auto& elem = m_vecPlayerActionElems[i];
 		elem.texRect.y = SRand::Inst<eRand_Render>().Rand<int32>( m_origRect.height / 4, floor( ( m_origRect.height - elem.rect.height ) * 0.5f ) ) * 2;
 	}
-	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
+	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
 	{
 		auto& elem = m_vecPlayerActionElems[i];
 		float w = SRand::Inst().Rand( m_origRect.width / 2, m_origRect.width );
@@ -1620,8 +2099,9 @@ void CMainUI::Effect0()
 	int32 nTexScale = nFrame * 2 + 1;
 	while( nTexScale & ( nTexScale - 1 ) )
 		nTexScale = nTexScale & ( nTexScale - 1 );
-	for( auto& elem : m_vecPlayerActionElems )
+	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
 	{
+		auto& elem = m_vecPlayerActionElems[i];
 		elem.texRect = CRectangle( SRand::Inst<eRand_Render>().Rand<int32>( 0, floor( ( m_origRect.width - elem.rect.width / nTexScale ) * 0.5f ) ) * 2,
 			elem.texRect.y, elem.rect.width / nTexScale, elem.rect.height );
 		elem.texRect = CRectangle( elem.texRect.x / m_origRect.width, elem.texRect.y / m_origRect.height,
@@ -1729,6 +2209,186 @@ void CMainUI::Effect1()
 	}
 }
 
+void CMainUI::RecordEffect()
+{
+	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+	CRectangle r0( -camSize.x * 0.5f + 64, -16, 20, 30 );
+	auto& worldData = GetStage()->GetMasterLevel()->GetWorldData();
+	if( worldData.pCheckPoint )
+	{
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = r0;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.5f, 0.5f, 0.5f, 4 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.4f, 0.1f, 0.35f, 4 ) );
+		r0.x += 40;
+	}
+	for( int i = 0; i < worldData.nCurFrameCount; i++ )
+	{
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = r0;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.5f, 0.5f, 0.5f, 4 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.4f, 0.45f, 0.17f, 4 ) );
+		r0.x += 40;
+	}
+}
+
+void CMainUI::FailEffect()
+{
+	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+	CRectangle r0( -camSize.x * 0.5f, -28, camSize.x, 28 );
+
+	static SRand rand0_1 = SRand::Inst<eRand_Render>();
+	SRand rand1 = rand0_1;
+	if( !SRand::Inst<eRand_Render>().Rand( 0, 8 ) )
+		rand0_1.Rand();
+	for( int n = rand1.Rand( -6, 4 ); n > 0; n-- )
+	{
+		CRectangle rect = r0;
+		rect.width = rand1.Rand( 20, 70 ) * 4;
+		rect.x = rand1.Rand<int32>( r0.x / 2, ( r0.GetRight() - rect.width ) / 2 + 1 ) * 2;
+		rect.y -= rand1.Rand( 0, 4 ) * 2;
+		int32 nOfs0 = rand1.Rand( 0, 4 );
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = rect;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+
+		CVector3 color( rand1.Rand( 0.0f, 1.0f ), rand1.Rand( 0.0f, 1.0f ), rand1.Rand( 0.0f, 1.0f ) );
+		float f = Min( color.x, Min( color.y, color.z ) );
+		color = ( color - CVector3( f, f, f ) ) * rand1.Rand( 1.0f, 1.3f );
+		m_vecPlayerActionElemParams.push_back( CVector4( color.x, color.y, color.z, nOfs0 * 2 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( color.x, color.y, color.z, 0 ) * rand1.Rand( 0.01f, 0.2f ) );
+	}
+
+	static SRand rand0_2 = SRand::Inst<eRand_Render>();
+	rand1 = rand0_2;
+	if( !SRand::Inst<eRand_Render>().Rand( 0, 16 ) )
+		rand0_2.Rand();
+	int8 nType = rand1.Rand( -4, 3 );
+	if( nType == 0 || nType == 1 )
+	{
+		CRectangle rect = r0;
+		rect.y -= rand1.Rand( 100, 200 ) * 2;
+		rect.SetBottom( rand1.Rand<int32>( r0.y / 2, r0.GetBottom() / 2 ) * 2 );
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = rect;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+
+		CVector3 color( rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 1, 1, 1, rand1.Rand( -3, 4 ) * 2 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( -color.x, -color.y, -color.z, rand1.Rand( -3, 4 ) * 2 ) );
+	}
+	else if( nType == 2 )
+	{
+		CRectangle rect = r0;
+		rect.y -= rand1.Rand( 100, 200 ) * 2;
+		rect.SetBottom( rand1.Rand<int32>( r0.y / 2, r0.GetBottom() / 2 ) * 2 );
+		rect.x = rand1.Rand( -16, 64 ) * 2;
+		rect.width = rand1.Rand( 18, 56 ) * 2;
+		int32 nCount = ( r0.GetRight() - rect.x ) / rect.width;
+		int8 nDir = rand1.Rand( 0, 2 );
+		if( nDir )
+			rect.x = r0.x + r0.GetRight() - rect.GetRight();
+		float fOfsY = rand1.Rand( -3, 4 ) * 2;
+		CVector3 color( rand1.Rand( 0.0f, 0.07f ), rand1.Rand( 0.0f, 0.07f ), rand1.Rand( 0.0f, 0.07f ) );
+		for( int i = 0; i < nCount; i++ )
+		{
+			m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+			auto& elem = m_vecPlayerActionElems.back();
+			elem.rect = rect;
+			elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+			m_vecPlayerActionElemParams.resize( m_vecPlayerActionElemParams.size() + 2 );
+			m_vecPlayerActionElemParams.push_back( CVector4( 1, 1, 1, ( nDir ? rect.width : -rect.width ) * ( i + 1 ) ) );
+			auto color1 = color * -i;
+			m_vecPlayerActionElemParams.push_back( CVector4( color1.x, color1.y, color1.z, -fOfsY * ( i + 1 ) ) );
+			rect.x += nDir ? -rect.width : rect.width;
+		}
+	}
+
+	CRectangle rect = r0;
+	int32 nOfs0 = SRand::Inst<eRand_Render>().Rand( 0, 4 );
+	rect.x += nOfs0 * 8;
+	m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+	auto& elem = m_vecPlayerActionElems.back();
+	elem.rect = rect;
+	elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+	m_vecPlayerActionElemParams.push_back( CVector4( 0.95f, 0.88f, 0.88f, nOfs0 * 2 ) );
+	m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, -0.05f, -0.05f, 0 ) );
+}
+
+void CMainUI::FreezeEffect( int32 nLevel )
+{
+	auto r0 = GetStage()->GetCamera().GetViewArea();
+	r0 = r0.Offset( globalTransform.GetPosition() * -1 );
+
+	static SRand rd0 = SRand::Inst<eRand_Render>();
+	SRand::Inst<eRand_Render>().Rand();
+	SRand rand0 = rd0;
+
+	if( nLevel >= 10 )
+	{
+		CRectangle rect( -160, -96, 384, 64 );
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = rect;
+		elem.texRect = CRectangle( 0.125f, 0.25f, 0.75f, 0.125f );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, 0, 0, 0 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.32f, 0.03f, 0.1f, 0 ) );
+
+
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem1 = m_vecPlayerActionElems.back();
+		elem1.rect = CRectangle( r0.x, -98, r0.width, 64 );
+		elem1.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, 0, 0, 0 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.35f, 0, 0, 0 ) );
+	}
+
+	{
+		static SRand rd1 = SRand::Inst<eRand_Render>();
+		SRand::Inst<eRand_Render>().Rand();
+		SRand rand1 = rd1;
+		if( !SRand::Inst<eRand_Render>().Rand( 0, 16 ) )
+			rd1.Rand();
+		static SRand rd2 = SRand::Inst<eRand_Render>();
+		SRand::Inst<eRand_Render>().Rand();
+		SRand rand2 = rd2;
+		if( !SRand::Inst<eRand_Render>().Rand( 0, 4 ) )
+			rd2.Rand();
+
+		for( int n = rand1.Rand( nLevel, nLevel * 2 + 1 ); n > 0; n-- )
+		{
+			CRectangle rect = r0;
+			rect.height = rand0.Rand( 14, 22 ) * 2;
+			rect.width = rand0.Rand( 50, 80 ) * 4;
+			rect.x = rand0.Rand<int32>( r0.x / 2, ( r0.GetRight() - rect.width ) / 2 + 1 ) * 2;
+			rect.y = rand0.Rand<int32>( r0.y / 2, ( r0.GetBottom() - rect.height ) / 2 + 1 ) * 2;
+
+			CVector2 ofs( rand2.Rand( 0, 4 ), rand2.Rand( 0, 4 ) );
+
+			m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+			auto& elem = m_vecPlayerActionElems.back();
+			elem.rect = rect;
+			elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+
+			CVector3 color( rand0.Rand( 0.0f, 1.0f ), rand0.Rand( 0.0f, 1.0f ), rand0.Rand( 0.0f, 1.0f ) );
+			float f = Min( color.x, Min( color.y, color.z ) );
+			color = ( color - CVector3( f, f, f ) ) * rand0.Rand( 1.0f, 1.3f );
+			auto color1 = ( CVector3( 1, 1, 1 ) - color ) * rand0.Rand( 0.9f, 1.1f );
+			color = color * CVector3( 0.4f, 0.3f, 0.2f );
+			m_vecPlayerActionElemParams.push_back( CVector4( color1.x, color1.y, color1.z, ofs.x * 2 ) );
+			m_vecPlayerActionElemParams.push_back( CVector4( color.x, color.y, color.z, ofs.y * 2 ) );
+		}
+	}
+	if( nLevel >= 8 )
+		FailEffect();
+}
+
 void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir )
 {
 	curFrame.strLastLevel = curFrame.strCurLevel;
@@ -1737,32 +2397,57 @@ void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const T
 	curFrame.nPlayerEnterDir = nPlayerDir;
 	curFrame.playerData.Clear();
 	pPlayer->SaveData( curFrame.playerData );
-	curLvlBackup = curFrame;
-	bCheckPointCurLvl = false;
+
+	SWorldDataFrame* p = NULL;
+	if( nCurFrameCount >= nMaxFrameCount )
+	{
+		p = backupFrames.front();
+		backupFrames.pop_front();
+		backupFrames.push_back( p );
+	}
+	else
+	{
+		if( nCurFrameCount >= backupFrames.size() )
+			backupFrames.push_back( new SWorldDataFrame );
+		p = backupFrames[nCurFrameCount++];
+	}
+	*p = curFrame;
 }
 
 void SWorldData::OnReset( CPlayer* pPlayer )
 {
-	curFrame = curLvlBackup;
+	auto p = nCurFrameCount ? backupFrames[nCurFrameCount - 1]: pCheckPoint;
+	ASSERT( p );
+	curFrame = *p;
 	curFrame.playerData.ResetCurPos();
 	pPlayer->LoadData( curFrame.playerData );
 }
 
+void SWorldData::OnRetreat( CPlayer* pPlayer )
+{
+	if( nCurFrameCount > 1 || pCheckPoint && nCurFrameCount )
+		nCurFrameCount--;
+	return OnReset( pPlayer );
+}
+
 void SWorldData::CheckPoint( CPlayer* pPlayer )
 {
-	checkPoint = curFrame;
-	checkPoint.playerEnterPos = pPlayer->GetPos();
-	checkPoint.nPlayerEnterDir = pPlayer->GetCurDir();
-	checkPoint.playerData.Clear();
-	pPlayer->SaveData( checkPoint.playerData );
-	bCheckPoint = bCheckPointCurLvl = true;
+	if( !pCheckPoint )
+		pCheckPoint = new SWorldDataFrame;
+	nCurFrameCount = 0;
+	*pCheckPoint = curFrame;
+	pCheckPoint->playerEnterPos = pPlayer->GetPos();
+	pCheckPoint->nPlayerEnterDir = pPlayer->GetCurDir();
+	pCheckPoint->playerData.Clear();
+	pPlayer->SaveData( pCheckPoint->playerData );
 }
 
 void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer )
 {
-	curFrame = checkPoint;
-	curLvlBackup = checkPoint;
-	bCheckPoint = bCheckPointCurLvl = true;
+	if( !pCheckPoint )
+		return OnReset( pPlayer );
+	nCurFrameCount = 0;
+	curFrame = *pCheckPoint;
 	curFrame.playerData.ResetCurPos();
 	pPlayer->LoadData( curFrame.playerData );
 }
@@ -1771,6 +2456,12 @@ void SWorldData::ClearKeys()
 {
 	curFrame.mapDataInt.clear();
 	curFrame.mapLevelData.clear();
+}
+
+void SWorldData::Respawn()
+{
+	for( auto& item : curFrame.mapLevelData )
+		item.second.mapDataDeadPawn.clear();
 }
 
 void CMasterLevel::Init( CPlayer* pPlayer )
@@ -1788,10 +2479,12 @@ void CMasterLevel::Begin( CPrefab* pLevelPrefab, const TVector2<int32>& playerPo
 		m_pCurLevelPrefab = pLevelPrefab;
 		m_worldData.OnEnterLevel( pLevelPrefab->GetName(), m_pPlayer, playerPos, nPlayerDir );
 		m_pCurLevel = pLevel;
-		ResetMainUI();
 		pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 		pLevel->Init();
 		pLevel->AddPawn( m_pPlayer, playerPos, nPlayerDir );
+		ResetMainUI();
 		pLevel->Begin();
 	}
 	else
@@ -1815,7 +2508,7 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 	{
 		if( !m_pCurCutScene )
 		{
-			m_pCurLevel->End();
+			EndCurLevel();
 		}
 		else
 		{
@@ -1829,6 +2522,8 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 		m_pLastLevel = m_pCurLevel;
 		m_pCurLevel = pLevel;
 		pLevel->SetParentAfterEntity( m_pLevelFadeMask );
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 		pLevel->Init();
 
 		if( !m_pCurCutScene )
@@ -1840,20 +2535,20 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 			auto dVisualTransfer = m_transferOfs + m_pCurLevel->GetCamPos() - m_camTransferBegin;
 			m_nTransferAnimFrames = ceil( dVisualTransfer.Length() / CGlobalCfg::Inst().lvTransferData.fTransferCamSpeed );
 			m_nTransferAnimTotalFrames = m_nTransferAnimFrames;
-			m_nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
-			auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-			pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
 			m_nTransferType = 1;
 		}
 		else
 		{
 			m_pCurCutScene = NULL;
 			m_nTransferAnimFrames = m_nTransferAnimTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
-			m_nTransferFadeOutFrames = 0;
-			auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-			pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = 0;
 			m_nTransferType = 2;
 		}
+		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+		pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetFade( 0 );
 	}
 	else
 	{
@@ -1861,10 +2556,10 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 		ASSERT( pCutScene );
 		if( !m_pCurCutScene )
 		{
-			m_pCurLevel->End();
+			EndCurLevel();
 			m_pCurLevel->SetRenderParentAfter( m_pLevelFadeMask );
 			m_nTransferAnimFrames = m_nTransferAnimTotalFrames = 0;
-			m_nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
+			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount * 4;
 			auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
 			pParams[0] = CVector4( 1, 1, 1, 0 );
 			pParams[1] = CVector4( 0, 0, 0, 0 );
@@ -1882,22 +2577,29 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 	}
 }
 
-void CMasterLevel::ResetCurLevel()
+void CMasterLevel::JumpBack( int8 nType )
 {
-	if( m_worldData.bCheckPointCurLvl )
-	{
-		RestoreToCheckpoint();
-		return;
-	}
 	ASSERT( !m_pLastLevel && !m_pCurCutScene );
+	EndCurLevel();
 	m_pCurLevel->SetParentEntity( NULL );
-	m_worldData.OnReset( m_pPlayer );
-	ResetMainUI();
+
+	if( nType == 0 )
+		m_worldData.OnReset( m_pPlayer );
+	else if( nType == 1 )
+		m_worldData.OnRetreat( m_pPlayer );
+	else
+		m_worldData.OnRestoreToCheckpoint( m_pPlayer );
+
+	if( m_worldData.curFrame.strCurLevel != m_pCurLevelPrefab->GetName() )
+		m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_worldData.curFrame.strCurLevel.c_str() );
 	auto pLevel = SafeCast<CMyLevel>( m_pCurLevelPrefab->GetRoot()->CreateInstance() );
 	m_pCurLevel = pLevel;
 	pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
+	if( pLevel->GetEnvEffect() )
+		pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 	pLevel->Init();
 	pLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+	ResetMainUI();
 	pLevel->Begin();
 }
 
@@ -1945,26 +2647,6 @@ void CMasterLevel::RunScenarioScript()
 void CMasterLevel::CheckPoint()
 {
 	m_worldData.CheckPoint( m_pPlayer );
-}
-
-void CMasterLevel::RestoreToCheckpoint()
-{
-	if( !m_worldData.bCheckPoint )
-	{
-		ResetCurLevel();
-		return;
-	}
-	ASSERT( !m_pLastLevel && !m_pCurCutScene );
-	m_pCurLevel->SetParentEntity( NULL );
-	m_worldData.OnRestoreToCheckpoint( m_pPlayer );
-	m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_worldData.curFrame.strCurLevel.c_str() );
-	auto pLevel = SafeCast<CMyLevel>( m_pCurLevelPrefab->GetRoot()->CreateInstance() );
-	m_pCurLevel = pLevel;
-	pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
-	pLevel->Init();
-	pLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	pLevel->Begin();
-	ResetMainUI();
 }
 
 int32 CMasterLevel::EvaluateKeyInt( const char* str )
@@ -2073,6 +2755,8 @@ void CMasterLevel::Update()
 				m_pCurLevel->SetPosition( p );
 				m_pLastLevel->SetPosition( p - m_transferOfs );
 			}
+			if( m_pCurLevel->GetEnvEffect() )
+				m_pCurLevel->GetEnvEffect()->SetFade( t );
 
 			if( !m_nTransferAnimFrames )
 			{
@@ -2091,8 +2775,8 @@ void CMasterLevel::Update()
 					m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
 					m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 					m_nTransferType = 0;
-					m_pCurLevel->Begin();
 					ResetMainUI();
+					m_pCurLevel->Begin();
 				}
 			}
 		}
@@ -2101,7 +2785,7 @@ void CMasterLevel::Update()
 			ASSERT( m_nTransferType == 1 || m_nTransferType == 3 );
 			int32 nFrame = maskParams.size() - m_nTransferFadeOutFrames;
 			m_nTransferFadeOutFrames--;
-			float t = m_nTransferFadeOutFrames * 1.0f / CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
+			float t = m_nTransferFadeOutFrames * 1.0f / m_nTransferFadeOutTotalFrames;
 			if( nFrame >= 0 && nFrame < maskParams.size() )
 			{
 				pParams[0] = maskParams[nFrame].first;
@@ -2114,6 +2798,9 @@ void CMasterLevel::Update()
 				pParams[0] = CVector4( a, b, b, 1 );
 				pParams[1] = CVector4( 0, 0, 0, 0 );
 			}
+			CMyLevel* pLevel = m_nTransferType == 1 ? m_pLastLevel : m_pCurLevel;
+			if( pLevel->GetEnvEffect() )
+				pLevel->GetEnvEffect()->SetFade( t );
 
 			if( !m_nTransferFadeOutFrames )
 			{
@@ -2124,8 +2811,8 @@ void CMasterLevel::Update()
 					m_pLastLevel->SetParentEntity( NULL );
 					m_pLastLevel = NULL;
 					m_nTransferType = 0;
-					m_pCurLevel->Begin();
 					ResetMainUI();
+					m_pCurLevel->Begin();
 				}
 				else
 				{
@@ -2182,14 +2869,56 @@ void CMasterLevel::ResetMainUI()
 		return;
 	CRectangle lvRect( 0, 0, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
 	lvRect = lvRect.Offset( m_pCurLevel->GetCamPos() * -1 );
-	m_pMainUI->Reset( CVector2( lvRect.GetRight() + 64, 144 ) );
+	m_pMainUI->Reset( CVector2( lvRect.GetRight() + 64, 144 ), CVector2( lvRect.x - 64, 144 ) );
+}
+
+void CMasterLevel::EndCurLevel()
+{
+	m_pScenarioScript = NULL;
+	EndScenario();
+	m_pCurLevel->End();
 }
 
 void RegisterGameClasses_Level()
 {
+	REGISTER_CLASS_BEGIN( SLevelTileData )
+		REGISTER_MEMBER( pTileDrawable )
+		REGISTER_MEMBER( texRect )
+		REGISTER_MEMBER( bBlocked )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( SLevelGridData )
 		REGISTER_MEMBER( bBlocked )
+		REGISTER_MEMBER( nTile )
 		REGISTER_MEMBER( nNextStage )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SLevelEnvGridDesc )
+		REGISTER_MEMBER( nDist )
+		REGISTER_MEMBER( param )
+		REGISTER_MEMBER( paramDynamic )
+		REGISTER_MEMBER( sizeDynamic )
+		REGISTER_MEMBER( fPeriod )
+		REGISTER_MEMBER( fRandomPhaseOfs )
+		REGISTER_MEMBER( gridPhaseOfs )
+		REGISTER_MEMBER( fBlendWeight )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SLevelEnvDesc )
+		REGISTER_MEMBER( arrGridDesc )
+		REGISTER_MEMBER( arrJamStrength )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CLevelEnvEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_arrEnvDescs )
+		REGISTER_MEMBER_BEGIN( m_arrEnvMap )
+			MEMBER_ARG( editor_hide, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_nWidth )
+		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_gridSize )
+		REGISTER_MEMBER( m_gridOfs )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SLevelNextStageData )
@@ -2209,11 +2938,18 @@ void RegisterGameClasses_Level()
 		DEFINE_LUA_REF_OBJECT()
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CPawnLayer )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_strCondition )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CMyLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_strRegion )
 		REGISTER_MEMBER( m_camPos )
+		REGISTER_MEMBER( m_arrTileData )
 		REGISTER_MEMBER_BEGIN( m_arrGridData )
 			MEMBER_ARG( editor_hide, 1 )
 		REGISTER_MEMBER_END()
@@ -2221,6 +2957,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( m_arrSpawnPrefab )
 		REGISTER_MEMBER( m_pTileDrawable )
 		REGISTER_MEMBER_TAGGED_PTR( m_pPawnRoot, 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEnvEffect, env )
 		REGISTER_MEMBER_BEGIN( m_strInitScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
@@ -2234,6 +2971,7 @@ void RegisterGameClasses_Level()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( SpawnPawn )
 		REGISTER_LUA_CFUNCTION( Fail )
+		REGISTER_LUA_CFUNCTION( Freeze )
 		REGISTER_LUA_CFUNCTION( GetPawnByName )
 		REGISTER_LUA_CFUNCTION( Redirect )
 	REGISTER_CLASS_END()
@@ -2255,10 +2993,18 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pHeadText, text )
 		REGISTER_MEMBER_TAGGED_PTR( m_pScenarioText[0], text_s0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pScenarioText[1], text_s1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[0], tips_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[1], tips_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[2], tips_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[0], icon_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[1], icon_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[2], icon_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAmmoCount, icon_1/ammo )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( ScenarioText )
 		REGISTER_LUA_CFUNCTION( IsScenarioTextFinished )
 		REGISTER_LUA_CFUNCTION( HeadText )
+		REGISTER_LUA_CFUNCTION( ShowFreezeEft )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMasterLevel )
@@ -2271,6 +3017,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( EvaluateKeyInt )
 		REGISTER_LUA_CFUNCTION( SetKeyInt )
 		REGISTER_LUA_CFUNCTION( ClearKeys )
+		REGISTER_LUA_CFUNCTION( Respawn )
 		REGISTER_LUA_CFUNCTION( ScriptTransferTo )
 	REGISTER_CLASS_END()
 }

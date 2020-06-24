@@ -33,7 +33,6 @@ void CTextureFile::Create()
 		TiXmlDocument doc;
 		doc.LoadFromBuffer( &result[0] );
 
-		doc.RootElement();
 		uint32 nWidth = XmlGetAttr( doc.RootElement(), "width", 0 );
 		uint32 nHeight = XmlGetAttr( doc.RootElement(), "height", 0 );
 		bool bGenMips = XmlGetAttr( doc.RootElement(), "genmips", 1 );

@@ -4,44 +4,66 @@
 
 int32 CPlayerHelperAIAttack::CheckAction( int8& nCurDir )
 {
+	if( m_bFinished )
+		return -1;
 	auto pPlayer = SafeCast<CPlayer>( GetParentEntity() );
 	auto pLevel = pPlayer->GetLevel();
 	if( !pLevel->IsScenario() )
 		return -1;
 	const char* szInput = NULL;
 	auto pos = pPlayer->GetPos();
-	auto nxt = pLevel->SimpleFindPath( pos, m_target, 3 );
-	if( nxt.x < 0 )
-		return -1;
-	if( nxt == m_target )
+
+	if( pos == m_target )
 	{
-		if( !nCurDir && nxt.x > pos.x || nCurDir && nxt.x < pos.x )
-			szInput = "A";
-		else
-			szInput = nCurDir == 0 ? "4A" : "6A";
+		if( m_nTargetType == 1 )
+		{
+			m_bFinished = true;
+			szInput = "D";
+		}
 	}
 	else
 	{
-		if( nxt.x > 0 )
+		auto nxt = pLevel->SimpleFindPath( pos, m_target, 3 );
+		if( nxt.x < 0 )
+			return -1;
+
+		if( m_nTargetType == 0 )
 		{
-			if( nxt.y > 0 )
-				szInput = "9A";
-			else if( nxt.y < 0 )
-				szInput = "3A";
-			else
-				szInput = "6A";
+			if( nxt == m_target )
+			{
+				if( !nCurDir && nxt.x > pos.x || nCurDir && nxt.x < pos.x )
+					szInput = "A";
+				else
+					szInput = nCurDir == 0 ? "4A" : "6A";
+			}
 		}
-		else
+
+		if( !szInput )
 		{
-			if( nxt.y > 0 )
-				szInput = "7A";
-			else if( nxt.y < 0 )
-				szInput = "1A";
+			auto d = nxt - pos;
+			if( d.x > 0 )
+			{
+				if( d.y > 0 )
+					szInput = "9";
+				else if( d.y < 0 )
+					szInput = "3";
+				else
+					szInput = "6";
+			}
 			else
-				szInput = "4A";
+			{
+				if( d.y > 0 )
+					szInput = "7";
+				else if( d.y < 0 )
+					szInput = "1";
+				else
+					szInput = "4";
+			}
 		}
 	}
-	pPlayer->SetInputSequence( szInput );
+
+	if( szInput )
+		pPlayer->SetInputSequence( szInput );
 	return -1;
 }
 
@@ -51,5 +73,6 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_BASE_CLASS( CPawnAI )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( SetTarget )
+		REGISTER_LUA_CFUNCTION( IsFinished )
 	REGISTER_CLASS_END()
 }

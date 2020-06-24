@@ -48,9 +48,15 @@ uint32 GetFileContent( vector<char>& result, const char* szFileName, bool bText 
 				nSize -= 3;
 		}
 	}
-	result.resize( nSize + 1 );
-	result[nSize] = 0;
-	fread( &result[0], 1, nSize, f );
+	if( bText )
+	{
+		result.resize( nSize + 1 );
+		result[nSize] = 0;
+	}
+	else
+		result.resize( nSize );
+	if( nSize )
+		fread( &result[0], 1, nSize, f );
 	fclose( f );
 	return nSize;
 }
@@ -84,7 +90,7 @@ const char* GetFileContent( const char* szFileName, bool bText, uint32& nLen )
 	return result;
 }
 
-void SaveFile( const char* szFileName, const void* pData, uint32 nLen )
+bool SaveFile( const char* szFileName, const void* pData, uint32 nLen )
 {
 	char* c = (char*)alloca( strlen( szFileName ) + 1 );
 	strcpy( c, szFileName );
@@ -100,11 +106,22 @@ void SaveFile( const char* szFileName, const void* pData, uint32 nLen )
 		}
 	}
 
+	if( !pData )
+	{
+		FILE* f = fopen( szFileName, "rb" );
+		if( f )
+		{
+			fclose( f );
+			return false;
+		}
+	}
 	FILE* f = fopen( szFileName, "wb" );
 	if( !f )
-		return;
-	fwrite( pData, nLen, 1, f );
+		return false;
+	if( pData )
+		fwrite( pData, nLen, 1, f );
 	fclose( f );
+	return true;
 }
 
 bool CheckFileName( const char* szFileName, bool bWithExtension )

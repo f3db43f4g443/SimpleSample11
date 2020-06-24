@@ -92,6 +92,7 @@ public:
 	void SetSystemShaderResourceParam( CShaderParamShaderResource& shaderParam, uint32 nType );
 
 	void AddElement( CElement2D* pElement, uint32 nGroup = 0 );
+	void AddElementDummy( CElement2D* pElement, uint32 nGroup = 0 );
 	void AddDirectionalLight( SDirectionalLight2D* pLight ) { Insert_DirectionalLight( pLight ); }
 	void AddPointLight( SPointLight2D* pLight ) { Insert_PointLight( pLight ); }
 	void Render( CRenderObject2D* pObject, bool bTest = true );

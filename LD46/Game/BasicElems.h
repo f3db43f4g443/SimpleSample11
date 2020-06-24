@@ -11,8 +11,10 @@ enum EPawnStateEventType
 	ePawnStateEventType_Transform,
 	ePawnStateEventType_PickUp,
 	ePawnStateEventType_Drop,
+	ePawnStateEventType_Cost,
 	ePawnStateEventType_UnMount,
 	ePawnStateEventType_SetZ,
+	ePawnStateEventType_Sound,
 	ePawnStateEventType_Script,
 };
 
@@ -127,6 +129,7 @@ public:
 	virtual bool IsPreview() override { return true; }
 	virtual void OnPreview() override;
 private:
+	int8 m_nDataType;
 	CString m_strSpawnCondition;
 	CString m_strDeathKey;
 	int32 m_nDeathState;
@@ -138,6 +141,8 @@ class CPawn : public CEntity, public ISignalObj
 {
 	friend class CMyLevel;
 	friend class CLevelSpawnHelper;
+	friend class CPawnTool;
+	friend class CLevelToolsView;
 	friend void RegisterGameClasses_BasicElems();
 public:
 	CPawn( const SClassCreateContext& context ) : CEntity( context ), m_nHp( m_nMaxHp ) { SET_BASEOBJECT_ID( CPawn ); }
@@ -147,9 +152,9 @@ public:
 	virtual void Init();
 	virtual void Update();
 	virtual void Update1();
-	virtual void Damage( int32 nDamage );
-	int32 GetWidth() { return m_nWidth; }
-	int32 GetHeight() { return m_nHeight; }
+	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0 );
+	int32 GetWidth() const { return m_nWidth; }
+	int32 GetHeight() const { return m_nHeight; }
 	class CMyLevel* GetLevel();
 	const TVector2<int32>& GetPos() { return m_pos; }
 	const TVector2<int32>& GetMoveTo() { return m_moveTo; }
@@ -165,7 +170,10 @@ public:
 	int32 GetStateIndexByName( const char* szName );
 	bool IsIgnoreBlockedExit() { return m_bIgnoreBlockedExit; }
 	bool IsValidStateIndex( int32 i ) { return i >= 0 && i < m_arrSubStates.Size(); }
+	int8 GetArmorType() { return m_nArmorType; }
 	int32 GetHp() { return m_nHp; }
+	int32 GetMaxHp() { return m_nMaxHp; }
+	void SetHp( int32 nHp ) { m_nHp = nHp; }
 	virtual SPawnHitSpawnDesc* GetHitSpawn( int32 nHit ) { return nHit >= 0 && nHit < m_arrHitSpawnDesc.Size() ? &m_arrHitSpawnDesc[nHit] : NULL; }
 	const SPawnForm& GetForm( int32 n ) { return m_arrForms[n]; }
 	CPawnUsage* GetUsage() { return m_pUsage; }
@@ -176,6 +184,7 @@ public:
 	bool CanBeHit();
 	void SetMounted( bool b, bool bMountHide ) { m_bMounted = b; m_bMountHide = b ? bMountHide : false; }
 	void SetForceHide( bool bForceHide ) { m_bForceHide = bForceHide; }
+	CPrefab* GetDamageEft() { return m_pDamageEft; }
 
 	/*<-------------------For Script----------------------*/
 	bool PlayState( const char* sz );
@@ -200,12 +209,14 @@ protected:
 	virtual bool CheckAction();
 	bool CheckStateTransits( int32 nDefaultState );
 	bool CheckStateTransits1( int32 nDefaultState, bool bFinished );
+	virtual bool StateCost( int8 nType, int32 nCount ) { return false; }
 	void OnKilled();
 
 	bool m_bIsEnemy;
 	bool m_bIgnoreHit;
 	bool m_bIgnoreBlockedExit;
 	int8 m_nInitDir;
+	int8 m_nArmorType;
 	int32 m_nWidth, m_nHeight;
 	int32 m_nMaxHp;
 	TArray<SPawnForm> m_arrForms;
@@ -218,6 +229,7 @@ protected:
 	int32 m_nRenderOrder;
 	CReference<CRenderObject2D> m_pHpBar;
 	CString m_strKillScript;
+	TResourceRef<CPrefab> m_pDamageEft;
 
 	CReference<CLevelSpawnHelper> m_pSpawnHelper;
 	CReference<CPawn> m_pCreator;
@@ -261,6 +273,7 @@ enum
 {
 	ePlayerEquipment_Melee,
 	ePlayerEquipment_Ranged,
+	ePlayerEquipment_Ability,
 
 	ePlayerEquipment_Count,
 
@@ -281,11 +294,19 @@ public:
 	void Drop( class CPlayer* pPlayer, const TVector2<int32>& pos, int8 nDir );
 	void PrePickedUp( CPawn* pPickUp );
 
+	int32 GetAmmo() { return m_nAmmo; }
+	int32 GetMaxAmmo() { return m_nMaxAmmo; }
+	void SetAmmo( int32 n ) { m_nAmmo = n; }
+	int32 GetIcon() { return m_nIcon; }
+	int32 GetAmmoIconWidth() { return m_nAmmoIconWidth; }
+
 	void LoadData( IBufReader& buf );
 	void SaveData( CBufFile& buf );
 private:
 	int8 m_nEquipType;
-	int8 m_nBullets, m_nMaxBullets;
+	int32 m_nAmmo, m_nMaxAmmo;
+	int32 m_nIcon;
+	int32 m_nAmmoIconWidth;
 	TArray<SPawnState> m_arrSubStates;
 	TArray<SPawnHitSpawnDesc> m_arrHitSpawnDesc;
 	TArray<SPawnStateTransit1> m_arrCommonStateTransits;
@@ -335,16 +356,18 @@ class CPlayer : public CPawn
 public:
 	CPlayer( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CPlayer ); }
 
+	void Reset();
 	void LoadData( IBufReader& buf );
 	void SaveData( CBufFile& buf );
 	virtual void Init() override;
 	virtual void Update() override;
 
-	virtual void Damage( int32 nDamage ) override;
+	virtual int32 Damage( int32 nDamage, int8 nDamageType ) override;
 	bool TryPickUp();
 	bool TryDrop();
 	void Equip( CPlayerEquipment* pEquipment );
 	void UnEquip( CPlayerEquipment* pEquipment );
+	CPlayerEquipment* GetEquipment( int8 n ) { return m_pCurEquipment[n]; }
 	void Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide );
 	void UnMount();
 	bool IsMounting() { return m_pCurMount != NULL; }
@@ -352,6 +375,7 @@ public:
 	virtual SPawnHitSpawnDesc* GetHitSpawn( int32 nHit ) override;
 	SInputTableItem* GetCurInputResult();
 	void EnableDefaultEquipment();
+	void RestoreAmmo();
 
 	void SetInputSequence( const char* szInput );
 	vector<int8>& ParseInputSequence();
@@ -361,9 +385,11 @@ protected:
 	virtual void ChangeState( SPawnState& state, int32 nStateSource, bool bInit ) override;
 	virtual void Update0() override;
 	virtual bool CheckAction() override;
+	bool HandleInput();
 	bool CheckInputTableItem( SInputTableItem& item );
 	bool ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource );
 	void FlushInput( int32 nMatchLen, int8 nType );
+	virtual bool StateCost( int8 nType, int32 nCount ) override;
 	CPlayerEquipment* GetStateSource( int8 nType );
 	TArray<SInputTableItem> m_inputTable;
 	TArray<SStateInputTableItem> m_stateInputTable;
@@ -372,7 +398,9 @@ protected:
 	CReference<CRenderObject2D> m_pEft[2];
 	CReference<CPlayerEquipment> m_pDefaultEquipment;
 
+	bool m_bActionStop;
 	bool m_bEnableDefaultEquipment;
+	int32 m_nTickInputOnActionStop;
 	CReference<CPlayerEquipment> m_pCurEquipment[ePlayerEquipment_Count];
 	CReference<CRenderObject2D> m_pOrigRenderObject;
 	CReference<CRenderObject2D> m_pCurEft[2];
@@ -398,6 +426,7 @@ struct SHitGridDesc
 	int32 nHitIndex;
 	int32 nOfsX, nOfsY;
 	int32 nDamage;
+	int8 nDamageType;
 	int32 nFlag;
 };
 
@@ -417,7 +446,6 @@ protected:
 	int32 m_nBeamTotalTime;
 	int32 m_nBeamTickPerFrame;
 	int32 m_nBeamTexCount;
-	TResourceRef<CPrefab> m_pDamageEft;
 
 	bool m_bBeamStarted;
 	int32 m_nBeamTick;

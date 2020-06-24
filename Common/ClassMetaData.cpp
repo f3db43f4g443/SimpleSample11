@@ -781,6 +781,7 @@ SClassMetaData* SClassMetaData::FindCommonBaseClass( SClassMetaData* pClassA, SC
 			pBaseClass = pData;
 			return false;
 		}
+		return true;
 	};
 	pClassB->FindAllBaseClasses( FuncFind );
 	function<bool( SClassMetaData* pData )> FuncCleanUp = [] ( SClassMetaData* pData ) { pData->nTempFlag = 0; return true; };

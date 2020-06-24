@@ -5,6 +5,9 @@
 #include "Render/DrawableGroup.h"
 #include "MyGame.h"
 #include "MyLevel.h"
+#include "Render/DefaultDrawable2D.h"
+#include "GlobalCfg.h"
+#include "CommonUtils.h"
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -709,6 +712,18 @@ void CTypeText::Set( const char* szText, int8 nAlign )
 	m_elemsEft.resize( 0 );
 }
 
+void CTypeText::SetTypeSound( const char* sz, int32 nTextInterval )
+{
+	m_pSound = NULL;
+	if( sz && sz[0] )
+	{
+		auto itr = CGlobalCfg::Inst().mapSoundEffect.find( sz );
+		if( itr != CGlobalCfg::Inst().mapSoundEffect.end() )
+			m_pSound = itr->second;
+	}
+	m_nSoundTextInterval = nTextInterval;
+}
+
 void CTypeText::ForceFinish()
 {
 	if( m_nForceFinishTick >= 0 )
@@ -759,6 +774,13 @@ void CTypeText::Update()
 		float t = ( m_nEftFadeTime - m_nTick + m_nForceFinishTick ) * 1.0f / m_nEftFadeTime;
 		for( int i = nCur + 1; i < m_elems.size(); i++ )
 			AddElem( i, t );
+	}
+
+	if( m_pSound )
+	{
+		int32 nSoundCD = Max( 1, m_nSoundTextInterval ) * m_nTypeInterval;
+		if( m_nTick % nSoundCD == 0 )
+			m_pSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	}
 	m_nTick++;
 }
@@ -834,12 +856,18 @@ void CLightningEffect::OnRemovedFromStage()
 {
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
+	if( m_pSound )
+	{
+		m_pSound->FadeOut( 0.5f );
+		m_pSound = NULL;
+	}
 }
 
-void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength )
+void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength, float fTurbulence )
 {
 	m_nDuration = nDuration;
 	m_fStrength = fStrength;
+	m_fTurbulence = fTurbulence;
 	m_nTick = 0;
 	GetStage()->RegisterTick( 1, &m_onTick );
 	TVector2<int32> p( 0, 0 );
@@ -854,7 +882,7 @@ void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int
 		for( int i = abs( d.y ); i > 0; i-- )
 			m_vec.push_back( d.y > 0 ? 1 : 3 );
 		int32 l = abs( d.x ) + abs( d.y );
-		for( int i = l / 8; i > 0; i-- )
+		for( int i = l * m_fTurbulence; i > 0; i-- )
 		{
 			for( int j = 0; j < 4; j++ )
 				m_vec.push_back( j );
@@ -863,6 +891,8 @@ void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int
 	}
 	m_imgOfs = CVector2( 2, p.x * p.y > 0 ? -2 : 2 );
 	RefreshImg();
+	if( !nDuration )
+		m_pSound = PlaySoundLoop( "electric1" );
 }
 
 void CLightningEffect::Render( CRenderContext2D& context )
@@ -1009,7 +1039,6 @@ void CLightningEffect::OnTick()
 	m_nTick++;
 	GetStage()->RegisterTick( 1, &m_onTick );
 }
-
 
 void RegisterGameClasses_UtilEntities()
 {
