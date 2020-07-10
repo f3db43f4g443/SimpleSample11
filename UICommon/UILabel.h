@@ -35,7 +35,7 @@ private:
 class CUILabel : public CUIElement
 {
 public:
-	CUILabel() : m_nCurShownImageList( -1 ), m_nTextRectAlignment( 0 ), m_textRect( 0, 0, 0, 0 ) {}
+	CUILabel() : m_nCurShownImageList( -1 ), m_nTextSize( 14 ), m_nTextRectAlignment( 0 ), m_textRect( 0, 0, 0, 0 ) {}
 
 	enum
 	{
@@ -82,6 +82,7 @@ protected:
 	virtual void CopyData( CUIElement* pElement, bool bInit ) override;
 	virtual void OnTransformUpdated() override;
 
+	uint16 m_nTextSize;
 	uint32 m_nTextRectAlignment;
 	CRectangle m_textRect;
 	CReference<CFontObject> m_pTextObject;

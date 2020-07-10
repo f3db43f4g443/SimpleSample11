@@ -240,7 +240,7 @@ bool CLuaState::Resume( int32 nParams, int32* pRet )
 {
 	g_vecRunningCoroutines.push_back( this );
 	ASSERT( m_nState <= 1 );
-	auto nStack0 = lua_gettop( (lua_State*)m_pLuaState ) - nParams - ( m_nState == 0 ? 0 : 1 );
+	auto nStack0 = lua_gettop( (lua_State*)m_pLuaState ) - nParams - ( m_nState == 0 ? 1 : 0 );
 	m_nState = 2;
 	auto nResult = lua_resume( (lua_State*)m_pLuaState, NULL, nParams );
 	CheckError( 1, nResult );

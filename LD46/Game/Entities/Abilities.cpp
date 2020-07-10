@@ -50,6 +50,59 @@ TVector2<int32> CNeuralPulse::OnHit( SPawnStateEvent& evt )
 	return TVector2<int32>( 0, 0 );
 }
 
+void CSummoning::OnRemovedFromStage()
+{
+	if( m_onCastEnd.IsRegistered() )
+		m_onCastEnd.Unregister();
+}
+
+int32 CSummoning::Signal( int32 i )
+{
+	m_pCreator->RegisterChangeState( &m_onCastEnd );
+	auto pPlayer = SafeCast<CPlayer>( m_pCreator.GetPtr() );
+	if( pPlayer )
+		pPlayer->BeginControl( this );
+	return 1;
+}
+
+bool CSummoning::TransitTo( const char* szToName, int32 nTo, int32 nReason )
+{
+	if( strcmp( szToName, "kill" ) == 0 )
+	{
+		OnCastEnd();
+		return true;
+	}
+	return CPawnHit::TransitTo( szToName, nTo, nReason );
+}
+
+void CSummoning::OnCastEnd()
+{
+	auto pPlayer = SafeCast<CPlayer>( m_pCreator.GetPtr() );
+	if( pPlayer )
+		pPlayer->EndControl();
+	if( m_onCastEnd.IsRegistered() )
+		m_onCastEnd.Unregister();
+	auto pHitDesc = GetHitSpawn( 0 );
+	if( pHitDesc )
+	{
+		CReference<CPawn> pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
+		TVector2<int32> ofs( pHitDesc->nOfsX, pHitDesc->nOfsY );
+		if( m_nCurDir )
+		{
+			ofs.x = m_nWidth - ( ofs.x + pHit->GetWidth() );
+		}
+		auto pPawnHit = SafeCast<CPawnHit>( pHit.GetPtr() );
+		if( pPawnHit )
+			pPawnHit->SetHitOfs( ofs );
+		auto pos = m_moveTo + ofs;
+		auto dir = pHitDesc->nDir ? 1 - m_nCurDir : m_nCurDir;
+		if( GetLevel()->AddPawn( pHit, pos, dir, this ) )
+			PlayState( "death_succeed" );
+		else
+			PlayState( "death_fail" );
+	}
+}
+
 bool CNeuralPulseSecret::Discover( CNeuralPulse* p )
 {
 	if( m_pDiscoverer && !m_pDiscoverer->GetStage() )
@@ -71,6 +124,13 @@ void RegisterGameClasses_Ablilities()
 		REGISTER_BASE_CLASS( CPawnHit )
 		REGISTER_MEMBER( m_pLightning )
 		REGISTER_MEMBER( m_lightningOfs )
+		DEFINE_LUA_REF_OBJECT()
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSummoning )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_inputTable )
+		REGISTER_MEMBER( m_stateInputTable )
 		DEFINE_LUA_REF_OBJECT()
 	REGISTER_CLASS_END()
 

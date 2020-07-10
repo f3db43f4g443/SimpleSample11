@@ -179,9 +179,10 @@ private:
 class CPawnLayer : public CEntity
 {
 	friend void RegisterGameClasses_Level();
+	friend class CPawnTool;
 public:
 	CPawnLayer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CPawnLayer ); }
-	const CString& GetCondition() { return m_strCondition; }
+	const CString& GetCondition() const { return m_strCondition; }
 private:
 	CString m_strCondition;
 };
@@ -235,10 +236,11 @@ public:
 	void End();
 	void Fail( int8 nFailType = 0 );
 	void Freeze();
-	CPawn* SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
+	CPawn* SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* szRemaining = NULL, CPawn* pCreator = NULL, int32 nForm = 0 );
 	bool AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	void RemovePawn( CPawn* pPawn );
-	bool PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs );
+	bool IsGridMoveable( const TVector2<int32>& p, CPawn* pPawn, int8 nForceCheckType = 0 );
+	bool PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType = 0 );
 	void PawnMoveEnd( CPawn* pPawn );
 	void PawnMoveBreak( CPawn* pPawn );
 	void PawnDeath( CPawn* pPawn );
@@ -255,6 +257,7 @@ public:
 	void BlockExit( int32 n );
 	bool IsExitBlocked( int32 n );
 	bool IsGridBlockedExit( SGrid* pGrid, bool bIgnoreComplete = false );
+	SLevelNextStageData& GetNextLevelData( int32 n ) { return m_arrNextStage[n]; }
 	int32 GetNextLevelCount() { return m_arrNextStage.Size(); }
 	int32 FindNextLevelIndex( const char* szLevelName );
 	void Redirect( int32 n, int32 n1 );
@@ -343,9 +346,9 @@ public:
 	void OnAddedToStage() override;
 	void Reset( const CVector2& inputOrig, const CVector2& iconOrig, bool bClearAllEfts = true );
 	void OnLevelBegin();
-	void RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen = -1, int8 nType = 0 );
+	void RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 nChargeKey, int8 nType );
 	void InsertDefaultFinishAction();
-	void OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType );
+	void OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nChargeKey, int8 nType );
 
 	void BeginScenario();
 	void EndScenario();
@@ -400,6 +403,7 @@ struct SWorldDataFrame
 	{
 		TVector2<int32> p;
 		int8 nDir;
+		int8 nSpawnIndex;
 	};
 	struct SLevelData
 	{
@@ -444,9 +448,10 @@ public:
 
 	void Init( CPlayer* pPlayer );
 	void Begin( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir );
-	void TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir );
+	void TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0 );
 	void JumpBack( int8 nType );
-	int8 GetTransferType() { return m_nTransferType; }
+	void Fall( const char* szTargetRegion );
+	bool IsTransfer() { return m_pTransferCoroutine != NULL; }
 	CMainUI* GetMainUI() { return m_pMainUI; }
 	CMyLevel* GetCurLevel() { return m_pCurLevel; }
 	CCutScene* GetCurCutScene() { return m_pCurCutScene; }
@@ -460,12 +465,13 @@ public:
 	void RunScenarioScriptText( const char* sz );
 	void RunScenarioScript();
 
-	void CheckPoint();
+	void CheckPoint( bool bRefresh = false );
 	int32 EvaluateKeyInt( const char* str );
 	void SetKeyInt( const char* str, int32 n );
 	void ClearKeys() { m_worldData.ClearKeys(); }
 	void Respawn() { m_worldData.Respawn(); }
-	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir );
+	void TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0 );
+	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType = 0 );
 
 	CVector2 GetCamPos();
 	void OnPlayerDamaged();
@@ -473,6 +479,13 @@ public:
 private:
 	void ResetMainUI();
 	void EndCurLevel();
+	void TransferFunc();
+	void TransferFuncLevel2Level();
+	void TransferFuncLevel2Level1();
+	void TransferFuncLevel2Level2();
+	void TransferFuncCut2Level();
+	void TransferFuncLevel2Cut();
+
 	CReference<CMainUI> m_pMainUI;
 	CReference<CRenderObject2D> m_pLevelFadeMask;
 
@@ -485,16 +498,24 @@ private:
 	CReference<CPrefab> m_pLastLevelPrefab;
 	int32 m_nPlayerDamageFrame;
 
+	class ICoroutine* m_pTransferCoroutine;
+	CReference<CPrefab> m_pTransferTo;
+	TVector2<int32> m_transferPos;
+	int8 m_nTransferDir;
 	int8 m_nTransferType;
-	CVector2 m_transferOfs;
+	CVector2 m_transferCurCamPos;
+	CReference<CEntity> m_pTransferEft;
+	/*CVector2 m_transferOfs;
 	CVector2 m_camTransferBegin;
 	int32 m_nTransferAnimTotalFrames;
 	int32 m_nTransferAnimFrames;
 	int32 m_nTransferFadeOutTotalFrames;
-	int32 m_nTransferFadeOutFrames;
+	int32 m_nTransferFadeOutFrames;*/
+
 	CReference<CLuaState> m_pScenarioScript;
-	string m_strScriptTransferTo;
+	CReference<CPrefab> m_pScriptTransferTo;
 	int32 m_nScriptTransferPlayerX;
 	int32 m_nScriptTransferPlayerY;
 	int32 m_nScriptTransferPlayerDir;
+	int8 m_nScriptTransferType;
 };

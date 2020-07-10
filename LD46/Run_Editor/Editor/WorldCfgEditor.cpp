@@ -756,12 +756,15 @@ void CWorldCfgEditor::EndNewLevel( bool bOK )
 			auto pLevel1 = SafeCast<CMyLevel>( vecLevelData[i].pClonedLevelData->GetFinalObjData() );
 			auto bound1 = TRectangle<int32>( arrLevelData[i].displayOfs.x / LEVEL_GRID_SIZE_X, arrLevelData[i].displayOfs.y / LEVEL_GRID_SIZE_Y,
 				pLevel1->GetSize().x, pLevel1->GetSize().y );
-			auto boundX = bound1 + regionBound;
+			auto boundX = bound1 * regionBound;
 			if( boundX.width && boundX.height )
 				vecLinkLevels.push_back( TVector2<int32>( i, -1 ) );
 		}
 		if( !!( ( regionBound.x + regionBound.y ) & 1 ) )
+		{
 			regionBound.SetLeft( regionBound.x - 1 );
+			bound.SetLeft( bound.x - 1 );
+		}
 
 		int32 nWidth = bound.width;
 		int32 nHeight = bound.height;
@@ -907,11 +910,16 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 			CRectangle r( ofs.x, ofs.y, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y );
 			if( r.Contains( p ) )
 			{
-				m_nDragType = 1;
-				m_worldDragBeginPos = p;
-				m_curDisplayOfs0 = ofs;
-				Select( i );
-				return;
+				auto d = ( p - ofs ) / LEVEL_GRID_SIZE;
+				auto pGridData = pLevelData->GetGridData( TVector2<int32>( floor( d.x ), floor( d.y ) ) );
+				if( pGridData && pGridData->nTile )
+				{
+					m_nDragType = 1;
+					m_worldDragBeginPos = p;
+					m_curDisplayOfs0 = ofs;
+					Select( i );
+					return;
+				}
 			}
 		}
 		for( auto& item : m_vecRegionData[m_nCurRegion].vecExtLevel )
@@ -921,10 +929,15 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 			CRectangle r( item.ofs.x, item.ofs.y, pLevelData->m_nWidth * LEVEL_GRID_SIZE_X, pLevelData->m_nHeight * LEVEL_GRID_SIZE_Y );
 			if( r.Contains( p ) )
 			{
-				SelectRegion( item.nRegion );
-				Select( item.nLevel );
-				SetCamOfs( m_camOfs + m_pData->arrRegionData[item.nRegion].arrLevelData[item.nLevel].displayOfs - item.ofs );
-				break;
+				auto d = ( p - item.ofs ) / LEVEL_GRID_SIZE;
+				auto pGridData = pLevelData->GetGridData( TVector2<int32>( floor( d.x ), floor( d.y ) ) );
+				if( pGridData && pGridData->nTile )
+				{
+					SelectRegion( item.nRegion );
+					Select( item.nLevel );
+					SetCamOfs( m_camOfs + m_pData->arrRegionData[item.nRegion].arrLevelData[item.nLevel].displayOfs - item.ofs );
+					break;
+				}
 			}
 		}
 	}

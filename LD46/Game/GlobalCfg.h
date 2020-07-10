@@ -15,6 +15,7 @@ public:
 	string strWorldInitScript;
 
 	CReference<CPrefab> pFailLightningEffectPrefab;
+	CReference<CDrawableGroup> pFallEftDrawable;
 
 	map<string, CReference<CSoundFile> > mapSoundEffect;
 

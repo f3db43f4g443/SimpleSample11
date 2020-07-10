@@ -1,8 +1,9 @@
 ﻿<root>
-  <world cfg_path="stages/world.w" entry="stages/4f_el.pf" entry_x="8" entry_y="2" entry_dir="0"
+  <world cfg_path="stages/world.w" entry="test.pf" entry_x="4" entry_y="2" entry_dir="0"
          lua_start="scripts/0.lua" lua_world_init="scripts/world.lua"  />
   <prefabs>
     <fail_lightning_eft>data/misc/lightning.pf</fail_lightning_eft>
+    <fall_eft>data/misc/misc_elem.mtl</fall_eft>
   </prefabs>
 
   <sound>
@@ -21,6 +22,8 @@
     <item name="footstep_a" path="sound/footstep_a.sf" />
     <item name="hit_blood" path="sound/hit_blood.mp3" />
     <item name="hit_wooden" path="sound/hit_wooden.mp3" />
+    <item name="drag_wooden" path="sound/drag_wooden.sf" />
+    <item name="drop_wooden" path="sound/drop_wooden.mp3" />
     <item name="wooden_destroy" path="sound/wooden_destroy.mp3" />
     <item name="pistol" path="sound/pistol.mp3" />
     <item name="pistol_noammo" path="sound/pistol_noammo.mp3" />

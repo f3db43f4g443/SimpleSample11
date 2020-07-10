@@ -111,7 +111,7 @@ void CUIScrollBar::OnStartDrag( const CVector2& mousePos )
 {
 	CUILabel::OnStartDrag( mousePos );
 	CVector2 localPos = mousePos - globalTransform.GetPosition();
-	CRectangle thumbRect = m_pThumb->GetLocalBound();
+	CRectangle thumbRect = m_thumbRect;
 	if( !thumbRect.Contains( localPos ) )
 		SetPercentByMousePos( mousePos );
 

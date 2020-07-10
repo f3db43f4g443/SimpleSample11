@@ -104,6 +104,7 @@ private:
 
 class CObjectArrayEdit : public CObjectDataEditItem
 {
+	friend class CTreeFolderArrayEdit;
 public:
 	CObjectArrayEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName = NULL );
 	~CObjectArrayEdit();
@@ -120,11 +121,9 @@ private:
 		if( m_pContent->pParent )
 			m_pContent->pParent->pElement->Action( (void*)1 );
 	}
-	void OnResize();
+	void OnResize( int32 nSize );
 	void CreateItemEdit();
-	CReference<CCommonEdit> m_pEditSize;
 	TClassTrigger1<CObjectArrayEdit, uint32> m_onEdit;
-	TClassTrigger<CObjectArrayEdit> m_onResize;
 	SClassMetaData::SMemberData* m_pMemberData;
 	LINK_LIST_REF_HEAD( m_pChildren, CObjectDataEditItem, Item );
 };

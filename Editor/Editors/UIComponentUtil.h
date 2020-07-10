@@ -11,6 +11,7 @@ class CTreeFolder : public CUICheckBox
 public:
 	static CUITreeView::CTreeViewContent* Create( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, const char* szName );
 protected:
+	CUITreeView::CTreeViewContent* CreateFromTemplate( CUIElement* pTemplate, CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, const char* szName );
 	virtual void OnInited() override;
 	void OnSwitch();
 

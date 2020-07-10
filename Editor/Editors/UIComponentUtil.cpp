@@ -10,15 +10,20 @@ CUITreeView::CTreeViewContent* CTreeFolder::Create( CUITreeView* pTreeView, CUIT
 {
 	static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/treefolder.xml" );
 	auto pTreeFolder = new CTreeFolder;
-	g_pRes->GetElement()->Clone( pTreeFolder );
+	return pTreeFolder->CreateFromTemplate( g_pRes->GetElement(), pTreeView, pParent, szName );
+}
+
+CUITreeView::CTreeViewContent* CTreeFolder::CreateFromTemplate( CUIElement* pTemplate, CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, const char* szName )
+{
+	pTemplate->Clone( this );
 	CUITreeView::CTreeViewContent* pContent;
 	if( pParent )
-		pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( pTreeFolder, pParent ) );
+		pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContentChild( this, pParent ) );
 	else
-		pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContent( pTreeFolder ) );
-	pTreeFolder->m_pTreeView = pTreeView;
-	pTreeFolder->m_pContent = pContent;
-	pTreeFolder->GetChildByName<CUILabel>( "label" )->SetText( szName );
+		pContent = static_cast<CUITreeView::CTreeViewContent*>( pTreeView->AddContent( this ) );
+	m_pTreeView = pTreeView;
+	m_pContent = pContent;
+	GetChildByName<CUILabel>( "label" )->SetText( szName );
 	pContent->fChildrenIndent = 4;
 	return pContent;
 }

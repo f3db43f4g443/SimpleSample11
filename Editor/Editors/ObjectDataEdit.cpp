@@ -3,6 +3,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Utf8Util.h"
 #include "PrefabEditor.h"
+#include "UICommon/UIFactory.h"
 
 void CObjectDataEditItem::TreeViewFocus()
 {
@@ -301,19 +302,60 @@ void CObjectDataObjRefEdit::OnEdit( CUIElement* pParam )
 
 #define MAX_ARRAY_SIZE 128
 
+class CTreeFolderArrayEdit : public CTreeFolder
+{
+public:
+	static CUITreeView::CTreeViewContent* Create( CObjectArrayEdit* pOwner, CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, const char* szName )
+	{
+		static CReference<CUIResource> g_pRes = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/treefolder_arrayedit.xml" );
+		auto pTreeFolder = new CTreeFolderArrayEdit;
+		pTreeFolder->m_pOwner = pOwner;
+		return pTreeFolder->CreateFromTemplate( g_pRes->GetElement(), pTreeView, pParent, szName );
+	}
+	virtual void OnInited() override
+	{
+		CTreeFolder::OnInited();
+		m_nState = 0;
+		m_onResize.Set( this, &CTreeFolderArrayEdit::OnResize );
+		m_onCurChanged.Set( this, &CTreeFolderArrayEdit::OnCurChanged );
+		m_onSwitchEdit.Set( this, &CTreeFolderArrayEdit::OnSwitchEdit );
+		auto pSwitchEdit = GetChildByName<CUIButton>( "switch_edit" );
+		pSwitchEdit->Register( eEvent_Action, &m_onSwitchEdit );
+		m_pSize = GetChildByName<CUITextBox>( "size" );
+		m_pSize->Register( eEvent_Action, &m_onResize );
+		m_pCur = GetChildByName<CUITextBox>( "cur" );
+		m_pCur->Register( eEvent_Action, &m_onCurChanged );
+	}
+
+	void OnResize() { m_pOwner->OnResize( m_pSize->GetValue<uint32>() ); }
+	void OnCurChanged() { m_pOwner->CreateItemEdit(); }
+	void RefreshSize( int32 nSize ) { m_pSize->SetValue( nSize ); }
+	void RefreshCur( int32 nCur ) { m_pCur->SetValue( nCur ); }
+	void OnSwitchEdit()
+	{
+		m_nState = !m_nState;
+		m_pCur->bVisible = !m_nState;
+		m_pOwner->CreateItemEdit();
+	}
+
+	int8 m_nState;
+	CObjectArrayEdit* m_pOwner;
+	CReference<CUITextBox> m_pSize;
+	CReference<CUITextBox> m_pCur;
+	TClassTrigger<CTreeFolderArrayEdit> m_onResize;
+	TClassTrigger<CTreeFolderArrayEdit> m_onCurChanged;
+	TClassTrigger<CTreeFolderArrayEdit> m_onSwitchEdit;
+};
+
 CObjectArrayEdit::CObjectArrayEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData::SMemberData* pMetaData, const char* szName )
 	: CObjectDataEditItem( pTreeView, pData )
 	, m_onEdit( this, &CObjectArrayEdit::OnEdit )
-	, m_onResize( this, &CObjectArrayEdit::OnResize )
-	, m_pEditSize( NULL )
 	, m_pChildren( NULL )
 	, m_pMemberData( pMetaData )
 {
-	m_pContent = CTreeFolder::Create( pTreeView, pParent, szName ? szName : pMetaData->strName.c_str() );
+	m_pContent = CTreeFolderArrayEdit::Create( this, pTreeView, pParent, szName ? szName : pMetaData->strName.c_str() );
+	auto p = static_cast<CTreeFolderArrayEdit*>( m_pContent->pElement.GetPtr() );
 	Register( &m_onEdit );
-	m_pEditSize = CCommonEdit::Create( "Size" );
-	pTreeView->AddContentChild( m_pEditSize, m_pContent );
-	m_pEditSize->Register( CUIElement::eEvent_Action, &m_onResize );
 	RefreshData();
 }
 
@@ -328,7 +370,7 @@ CObjectArrayEdit::~CObjectArrayEdit()
 
 void CObjectArrayEdit::RefreshData()
 {
-	m_pEditSize->SetValue<uint32>( Min<uint32>( MAX_ARRAY_SIZE, ( (CRawArray*)m_pData )->Size() ) );
+	static_cast<CTreeFolderArrayEdit*>( m_pContent->pElement.GetPtr() )->RefreshSize( Min<uint32>( MAX_ARRAY_SIZE, ( (CRawArray*)m_pData )->Size() ) );
 	CreateItemEdit();
 }
 
@@ -362,13 +404,12 @@ CObjectDataEditItem* CObjectArrayEdit::GetChildItem( uint8* pData )
 	return NULL;
 }
 
-void CObjectArrayEdit::OnResize()
+void CObjectArrayEdit::OnResize( int32 nSize )
 {
-	uint32 nSize = m_pEditSize->GetValue<uint32>();
 	if( nSize > MAX_ARRAY_SIZE )
 	{
 		nSize = MAX_ARRAY_SIZE;
-		m_pEditSize->SetValue( nSize );
+		static_cast<CTreeFolderArrayEdit*>( m_pContent->pElement.GetPtr() )->RefreshSize( Min<uint32>( MAX_ARRAY_SIZE, ( (CRawArray*)m_pData )->Size() ) );
 	}
 
 	uint32 nSize0 = ( (CRawArray*)m_pData )->Size();
@@ -398,10 +439,31 @@ void CObjectArrayEdit::CreateItemEdit()
 		pChildren->RemoveFrom_Item();
 	}
 
+	auto p = static_cast<CTreeFolderArrayEdit*>( m_pContent->pElement.GetPtr() );
 	uint32 nSize = ( (CRawArray*)m_pData )->Size();
+	if( !nSize )
+	{
+		p->RefreshCur( 0 );
+		return;
+	}
+
 	auto pData = ( (CRawArray*)m_pData )->GetData();
 	char szName[32];
-	for( int i = 0; i < nSize; i++, pData += m_pMemberData->GetDataSize() )
+	int32 iBegin = 0, iEnd = nSize;
+	if( !p->m_nState )
+	{
+		uint32 nCur = p->m_pCur->GetValue<int32>();
+		if( nCur >= nSize - 1 )
+		{
+			nCur = nSize - 1;
+			p->RefreshCur( nCur );
+		}
+		iBegin = nCur;
+		iEnd = iBegin + 1;
+		pData += iBegin * m_pMemberData->GetDataSize();
+	}
+
+	for( int i = iBegin; i < iEnd; i++, pData += m_pMemberData->GetDataSize() )
 	{
 		itoa( i, szName, 10 );
 		CObjectDataEditItem* pChild = NULL;

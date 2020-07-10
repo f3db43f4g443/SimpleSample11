@@ -8,6 +8,9 @@ dtx_color_4 = { { 0.75, 0.8, 0.4, 1 }, "typing_system_warning", 4 }
 dtx_color_5 = { { 0.7, 0.7, 0.7, 1 }, "typing", 2 }
 dtx_color_6 = { { 0.35, 0.35, 0.35, 1 }, "typing", 2 }
 
+LEVEL_GRID_SIZE_X = 24
+LEVEL_GRID_SIZE_Y = 32
+
 function Delay( n )
 	for i = 1, n, 1 do
 		coroutine.yield()
@@ -29,6 +32,13 @@ function PlayStateAndWait( pawn, szName )
 	pawn:PlayState( szName )
 	return function()
 		return pawn:GetCurStateName() ~= szName
+	end
+end
+
+function RunScenarioAndWait( ... )
+	RunScenario( ... )
+	return function()
+		return not GetMasterLevel():IsScenario()
 	end
 end
 
@@ -60,6 +70,14 @@ end
 
 function ClearKeys()
 	GetMasterLevel():ClearKeys()
+end
+
+function FEVT( key )
+	if EvaluateKeyInt( key ) == 0 then
+		SetKeyInt( key, 1 )
+		return true
+	end
+	return false
 end
 
 function CurDay()

@@ -8,6 +8,7 @@
 #include "MyGame.h"
 #include "Entities/UtilEntities.h"
 #include "Common/Algorithm.h"
+#include "Common/Coroutine.h"
 
 void SLevelEnvDesc::OverlayToGrid( SLevelEnvGridDesc& grid, int32 nDist )
 {
@@ -264,6 +265,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 	static vector<TVector2<int32> > vecUse;
 	static vector<SMount> vecMount;
 
+	auto pPlayer = pLevel->GetPlayer();
 	for( int i = 0; i < levelSize.x; i++ )
 	{
 		for( int j = 0; j < levelSize.y; j++ )
@@ -321,16 +323,19 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 						if( pGrid->pPawn->CanBeHit() )
 							vecPawn.push_back( TVector2<int32>( i, j ) );
 					}
-					for( auto pMount = pGrid->Get_Mount(); pMount; pMount = pMount->NextMount() )
+					if( pPlayer )
 					{
-						if( !pMount->IsEnabled() )
-							continue;
-						auto pPawn = pMount->GetPawn();
-						auto nDir = pMount->GetEnterDir();
-						if( nDir <= 1 && pPawn->GetCurDir() )
-							nDir = 1 - nDir;
-						SMount mount = { TVector2<int32>( i, j ), nDir };
-						vecMount.push_back( mount );
+						for( auto pMount = pGrid->Get_Mount(); pMount; pMount = pMount->NextMount() )
+						{
+							if( !pMount->IsEnabled() || !pPlayer->IsReadyForMount( pMount ) )
+								continue;
+							auto pPawn = pMount->GetPawn();
+							auto nDir = pMount->GetEnterDir();
+							if( nDir <= 1 && pPawn->GetCurDir() )
+								nDir = 1 - nDir;
+							SMount mount = { TVector2<int32>( i, j ), nDir };
+							vecMount.push_back( mount );
+						}
 					}
 				}
 			}
@@ -389,8 +394,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 		auto& rect = AddElem( hit.p.x, hit.p.y, paramData.ofs, paramData.params ).rect;
 		rect = CRectangle( rect.x - n * 2, rect.y - n * 2, rect.width + n * 4, rect.height + n * 4 );
 	}
-	auto pPlayer = pLevel->GetPlayer();
-	if( !pPlayer || !pPlayer->IsMounting() )
+	if( pPlayer )
 	{
 		CVector2 dirs[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
 		for( auto& mount : vecMount )
@@ -408,19 +412,24 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 			elem.nInstDataSize = sizeof( CVector4 ) * 2;
 			elem.pInstData = &mountParamData.params;
 		}
-		pLevel->GetAllUseableGrid( vecUse );
+
+		if( pPlayer->IsReadyToUse() )
+		{
+			pLevel->GetAllUseableGrid( vecUse );
+			for( auto& p : vecUse )
+			{
+				auto ofs = useParamData.ofs;
+				CRectangle useRect( ( LEVEL_GRID_SIZE_X - ofs.x ) / 2, ( LEVEL_GRID_SIZE_Y - ofs.y ) / 2, ofs.x, ofs.y );
+				m_elems.resize( m_elems.size() + 1 );
+				auto& elem = m_elems.back();
+				elem.rect = useRect.Offset( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
+				elem.texRect = CRectangle( 0, 0, 1, 1 );
+				elem.nInstDataSize = sizeof( CVector4 ) * 2;
+				elem.pInstData = &useParamData.params;
+			}
+		}
 	}
-	for( auto& p : vecUse )
-	{
-		auto ofs = useParamData.ofs;
-		CRectangle useRect( ( LEVEL_GRID_SIZE_X - ofs.x ) / 2, ( LEVEL_GRID_SIZE_Y - ofs.y ) / 2, ofs.x, ofs.y );
-		m_elems.resize( m_elems.size() + 1 );
-		auto& elem = m_elems.back();
-		elem.rect = useRect.Offset( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
-		elem.texRect = CRectangle( 0, 0, 1, 1 );
-		elem.nInstDataSize = sizeof( CVector4 ) * 2;
-		elem.pInstData = &useParamData.params;
-	}
+
 	m_vecBlockedParams.resize( vecBlocked.size() * 2 );
 	for( int i = 0; i < vecBlocked.size(); i++ )
 	{
@@ -624,11 +633,17 @@ void CMyLevel::Freeze()
 	m_bFreeze = true;
 }
 
-CPawn* CMyLevel::SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, CPawn* pCreator, int32 nForm )
+CPawn* CMyLevel::SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* szRemaining, CPawn* pCreator, int32 nForm )
 {
 	if( n < 0 || n >= m_arrSpawnPrefab.Size() )
 		return NULL;
 	CReference<CPawn> pPawn = SafeCast<CPawn>( m_arrSpawnPrefab[n]->GetRoot()->CreateInstance() );
+	if( szRemaining && szRemaining[0] )
+	{
+		auto pSpawnHelper = new CLevelSpawnHelper( n, szRemaining, pPawn->GetStateIndexByName( "death" ) );
+		pPawn->SetName( szRemaining );
+		pPawn->m_pSpawnHelper = pSpawnHelper;
+	}
 	if( !AddPawn( pPawn, TVector2<int32>( x, y ), nDir, pCreator, nForm ) )
 		return NULL;
 	pPawn->strCreatedFrom = m_arrSpawnPrefab[n]->GetName();
@@ -731,26 +746,40 @@ void CMyLevel::RemovePawn( CPawn* pPawn )
 		pPawn->RemoveFrom_Pawn();
 }
 
-bool CMyLevel::PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs )
+bool CMyLevel::IsGridMoveable( const TVector2<int32>& p, CPawn* pPawn, int8 nForceCheckType )
+{
+	auto pGrid = GetGrid( p);
+	if( !pGrid || !pGrid->bCanEnter )
+		return false;
+	if( pGrid->pPawn && pGrid->pPawn != pPawn )
+	{
+		if( nForceCheckType == 1 )
+		{
+			if( pGrid->pPawn.GetPtr() != pPawn->m_pCreator )
+				return false;
+		}
+		else
+			return false;
+	}
+	if( !pPawn->IsIgnoreBlockedExit() && IsGridBlockedExit( pGrid ) )
+		return false;
+	return true;
+}
+
+bool CMyLevel::PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType )
 {
 	ASSERT( pPawn->m_moveTo == pPawn->m_pos && ( ofs.x || ofs.y ) );
 	auto moveTo = pPawn->m_pos + ofs;
 
 	bool bOK = true;
 	auto pPawnHit = SafeCast<CPawnHit>( pPawn );
-	if( !pPawnHit )
+	if( !pPawnHit || nForceCheckType )
 	{
 		for( int i = 0; i < pPawn->m_nWidth; i++ )
 		{
 			for( int j = 0; j < pPawn->m_nHeight; j++ )
 			{
-				bool bBlocked = false;
-				auto pGrid = GetGrid( moveTo + TVector2<int32>( i, j ) );
-				if( !pGrid || pGrid->pPawn && pGrid->pPawn != pPawn || !pGrid->bCanEnter )
-					bBlocked = true;
-				else if( pPawn == m_pPlayer && IsGridBlockedExit( pGrid ) )
-					bBlocked = true;
-				if( bBlocked )
+				if( !IsGridMoveable( moveTo + TVector2<int32>( i, j ), pPawn, nForceCheckType ) )
 				{
 					bOK = false;
 					auto pGrid1 = GetGrid( pPawn->m_pos + TVector2<int32>( i, j ) );
@@ -888,14 +917,9 @@ bool CMyLevel::PawnTransform( CPawn* pPawn, int32 nForm, const TVector2<int32>& 
 		{
 			for( int j = r1.y; j < r1.GetBottom(); j++ )
 			{
-				bool bBlocked = false;
-				auto pGrid = GetGrid( TVector2<int32>( i, j ) );
-				if( !pGrid || pGrid->pPawn && pGrid->pPawn != pPawn || !pGrid->bCanEnter )
-					bBlocked = true;
-				else if( !pPawn->IsIgnoreBlockedExit() && IsGridBlockedExit( pGrid ) )
-					bBlocked = true;
-				if( bBlocked )
+				if( !IsGridMoveable( TVector2<int32>( i, j ), pPawn ) )
 				{
+					auto pGrid = GetGrid( TVector2<int32>( i, j ) );
 					pGrid->nBlockEft = CGlobalCfg::Inst().lvIndicatorData.vecBlockedParams.size();
 					pGrid->blockOfs = d;
 					bOK = false;
@@ -1302,16 +1326,34 @@ void CMyLevel::Init()
 
 		pPawn->SetParentEntity( m_pPawnRoot );
 		pPawn->SetPosition( pSpawnHelper->GetPosition() );
+		pSpawnHelper->ClearRenderObject();
+		pPawn->SetName( pSpawnHelper->GetName() );
+		pPawn->m_pSpawnHelper = pSpawnHelper;
+		pSpawnHelper->SetParentEntity( NULL );
 		if( !AddPawn( pPawn, pos, nDir ) && ( pos0 == pos || !AddPawn( pPawn, pos0, nDir0 ) ) )
 		{
 			pPawn->SetParentEntity( NULL );
 			continue;
 		}
-		pSpawnHelper->ClearRenderObject();
-		pPawn->SetName( pSpawnHelper->GetName() );
 		pPawn->strCreatedFrom = pSpawnHelper->GetResource()->GetName();
-		pPawn->m_pSpawnHelper = pSpawnHelper;
-		pSpawnHelper->SetParentEntity( NULL );
+	}
+	for( auto& item : GetStage()->GetMasterLevel()->GetWorldData().GetCurLevelData().mapDataDeadPawn )
+	{
+		auto n = item.second.nSpawnIndex;
+		if( n >= 0 && n < m_arrSpawnPrefab.Size() )
+		{
+			CReference<CPawn> pPawn = SafeCast<CPawn>( m_arrSpawnPrefab[n]->GetRoot()->CreateInstance() );
+			auto nDeath = pPawn->GetStateIndexByName( "death" );
+			if( nDeath < 0 )
+				continue;
+			auto pSpawnHelper = new CLevelSpawnHelper( n, item.first.c_str(), nDeath );
+			pSpawnHelper->m_bSpawnDeath = true;
+			pPawn->SetName( item.first.c_str() );
+			pPawn->m_pSpawnHelper = pSpawnHelper;
+			if( !AddPawn( pPawn, item.second.p, item.second.nDir ) )
+				continue;
+			pPawn->strCreatedFrom = m_arrSpawnPrefab[n]->GetName();
+		}
 	}
 
 	FlushSpawn();
@@ -1342,6 +1384,8 @@ void CMyLevel::Update()
 	}
 	FlushSpawn();
 	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
+		HandlePawnMounts( pPawn, false );
+	for( auto& pPawn : m_vecPawnHits )
 		HandlePawnMounts( pPawn, false );
 
 	if( m_bBegin && !m_bFreeze )
@@ -1620,7 +1664,10 @@ void CMainUI::Reset( const CVector2& inputOrig, const CVector2& iconOrig, bool b
 	m_playerInputOrig = inputOrig;
 	m_iconOrig = iconOrig;
 	for( int i = 0; i < ELEM_COUNT( m_pIcons ); i++ )
-		m_pIcons[i]->bVisible = false;
+	{
+		if( m_pIcons[i] )
+			m_pIcons[i]->bVisible = false;
+	}
 	for( auto& item : m_vecInputItems )
 	{
 		item.vec.resize( 0 );
@@ -1642,7 +1689,7 @@ void CMainUI::OnLevelBegin()
 	m_nRecordEftFrames = 120;
 }
 
-void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
+void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 nChargeKey, int8 nType )
 {
 	auto& item = m_vecInputItems[0];
 	if( nMatchLen >= 0 && !vecInput.size() )
@@ -1652,13 +1699,7 @@ void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 
 	}
 	else
 	{
-		item.vec.resize( vecInput.size() + ( nType == 1 ? 1 : 0 ) );
-		if( nType == 1 )
-		{
-			item.vec.back() = 13;
-			if( nMatchLen > 0 )
-				nMatchLen++;
-		}
+		item.vec.resize( vecInput.size() );
 		for( int i = 0; i < vecInput.size(); i++ )
 		{
 			auto n = vecInput[i];
@@ -1681,6 +1722,47 @@ void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 
 			else if( n < 0 )
 				item.vec[i] = 7 - n;
 		}
+		if( nChargeKey )
+		{
+			int8 n1 = -1;
+			if( ( nChargeKey & ( 1 | 2 ) ) == ( 1 | 2 ) )
+				n1 = 1;
+			else if( ( nChargeKey & ( 2 | 4 ) ) == ( 2 | 4 ) )
+				n1 = 3;
+			else if( ( nChargeKey & ( 4 | 8 ) ) == ( 4 | 8 ) )
+				n1 = 5;
+			else if( ( nChargeKey & ( 8 | 1 ) ) == ( 8 | 1 ) )
+				n1 = 7;
+			else if( ( nChargeKey & 1 ) == 1 )
+				n1 = 0;
+			else if( ( nChargeKey & 2 ) == 2 )
+				n1 = 2;
+			else if( ( nChargeKey & 4 ) == 4 )
+				n1 = 4;
+			else if( ( nChargeKey & 8 ) == 8 )
+				n1 = 6;
+			if( n1 >= 0 )
+			{
+				item.vec.push_back( n1 + 16 );
+				if( nMatchLen >= 0 )
+					nMatchLen++;
+			}
+			for( int k = 0; k < 4; k++ )
+			{
+				if( !!( nChargeKey & ( 16 << k ) ) )
+				{
+					item.vec.push_back( 24 + k );
+					if( nMatchLen >= 0 )
+						nMatchLen++;
+				}
+			}
+		}
+		if( nType == 1 )
+		{
+			item.vec.push_back( 13 );
+			if( nMatchLen > 0 )
+				nMatchLen++;
+		}
 	}
 
 	item.nMatchLen = nMatchLen;
@@ -1702,13 +1784,13 @@ void CMainUI::InsertDefaultFinishAction()
 		UpdateInputItem( i );
 }
 
-void CMainUI::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
+void CMainUI::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nChargeKey, int8 nType )
 {
 	if( IsScenario() )
 		return;
 	if( nType != 2 )
 		m_nPlayerActionFrame = CGlobalCfg::Inst().MainUIData.vecActionEftFrames.size();
-	RefreshPlayerInput( vecInput, nMatchLen, nType );
+	RefreshPlayerInput( vecInput, nMatchLen, nChargeKey, nType );
 
 	for( int i = m_vecInputItems.size() - 1; i >= 1; i-- )
 		m_vecInputItems[i] = m_vecInputItems[i - 1];
@@ -1914,7 +1996,7 @@ void CMainUI::UpdatePos()
 {
 	auto p = GetStage()->GetMasterLevel()->GetCamPos();
 	auto pPlayer = GetStage()->GetWorld()->GetPlayer();
-	if( !m_bScenario && pPlayer && pPlayer->GetStage() )
+	if( !m_bScenario && pPlayer && pPlayer->GetLevel() )
 		p.y = pPlayer->GetMoveTo().y * LEVEL_GRID_SIZE_Y + pPlayer->GetLevel()->y;
 	p.y += m_playerInputOrig.y;
 	SetPosition( p );
@@ -1949,7 +2031,7 @@ void CMainUI::UpdateInputItem( int32 nItem )
 	{
 		auto& elem = item.vecElems[i];
 		elem.rect = CRectangle( p0.x - ( item.vec.size() - i ) * 16, p0.y - nItem * 16, 16, 16 ).Offset( param.ofs );
-		elem.texRect = CRectangle( 0.0625f * item.vec[i], 0, 0.0625f, 0.0625f );
+		elem.texRect = CRectangle( item.vec[i] % 16 * 0.0625f, item.vec[i] / 16 * 0.0625f, 0.0625f, 0.0625f );
 		elem.nInstDataSize = sizeof( CVector4 ) * 2;
 		elem.pInstData = param.params + ( item.nMatchLen >= 0 && item.vec.size() - i > item.nMatchLen ? 2 : 0 );
 	}
@@ -1957,10 +2039,13 @@ void CMainUI::UpdateInputItem( int32 nItem )
 
 void CMainUI::UpdateIcons()
 {
-	if( m_bScenario || GetStage()->GetMasterLevel()->GetTransferType() )
+	if( m_bScenario || GetStage()->GetMasterLevel()->IsTransfer() )
 	{
 		for( int i = 0; i < ELEM_COUNT( m_pIcons ); i++ )
-			m_pIcons[i]->bVisible = false;
+		{
+			if( m_pIcons[i] )
+				m_pIcons[i]->bVisible = false;
+		}
 		return;
 	}
 	auto pPlayer = GetStage()->GetWorld()->GetPlayer();
@@ -1968,6 +2053,8 @@ void CMainUI::UpdateIcons()
 	{
 		for( int i = 0; i < ePlayerEquipment_Count; i++ )
 		{
+			if( !m_pIcons[i] )
+				continue;
 			auto pEquipment = pPlayer->GetEquipment( i );
 			if( pEquipment )
 			{
@@ -2340,7 +2427,6 @@ void CMainUI::FreezeEffect( int32 nLevel )
 		m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, 0, 0, 0 ) );
 		m_vecPlayerActionElemParams.push_back( CVector4( 0.32f, 0.03f, 0.1f, 0 ) );
 
-
 		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
 		auto& elem1 = m_vecPlayerActionElems.back();
 		elem1.rect = CRectangle( r0.x, -98, r0.width, 64 );
@@ -2498,82 +2584,30 @@ void CMasterLevel::Begin( CPrefab* pLevelPrefab, const TVector2<int32>& playerPo
 	}
 }
 
-void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir )
+void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType )
 {
 	ResetMainUI();
 	m_nPlayerDamageFrame = 0;
-	auto p = pLevelPrefab->GetRoot()->CreateInstance();
-	auto pLevel = SafeCast<CMyLevel>( p );
-	if( pLevel )
-	{
-		if( !m_pCurCutScene )
-		{
-			EndCurLevel();
-		}
-		else
-		{
-			m_pCurCutScene->End();
-			m_pCurCutScene->SetParentEntity( NULL );
-		}
-		m_pLastLevelPrefab = m_pCurLevelPrefab;
-		m_pCurLevelPrefab = pLevelPrefab;
+	m_transferPos = playerPos;
+	m_nTransferDir = nPlayerDir;
+	m_nTransferType = nTransferType;
+	m_pTransferTo = pLevelPrefab;
 
-		m_worldData.OnEnterLevel( pLevelPrefab->GetName(), m_pPlayer, playerPos, nPlayerDir );
-		m_pLastLevel = m_pCurLevel;
-		m_pCurLevel = pLevel;
-		pLevel->SetParentAfterEntity( m_pLevelFadeMask );
-		if( pLevel->GetEnvEffect() )
-			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
-		pLevel->Init();
-
-		if( !m_pCurCutScene )
-		{
-			auto d = m_pPlayer->GetPos() - playerPos;
-			m_transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE;
-			pLevel->SetPosition( m_transferOfs );
-			m_camTransferBegin = m_pLastLevel->GetCamPos();
-			auto dVisualTransfer = m_transferOfs + m_pCurLevel->GetCamPos() - m_camTransferBegin;
-			m_nTransferAnimFrames = ceil( dVisualTransfer.Length() / CGlobalCfg::Inst().lvTransferData.fTransferCamSpeed );
-			m_nTransferAnimTotalFrames = m_nTransferAnimFrames;
-			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
-			m_nTransferType = 1;
-		}
-		else
-		{
-			m_pCurCutScene = NULL;
-			m_nTransferAnimFrames = m_nTransferAnimTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
-			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = 0;
-			m_nTransferType = 2;
-		}
-		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-		pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
-		if( pLevel->GetEnvEffect() )
-			pLevel->GetEnvEffect()->SetFade( 0 );
-	}
-	else
+	struct _STemp
 	{
-		auto pCutScene = SafeCast<CCutScene>( p );
-		ASSERT( pCutScene );
-		if( !m_pCurCutScene )
+		static uint32 Func( void* pThis )
 		{
-			EndCurLevel();
-			m_pCurLevel->SetRenderParentAfter( m_pLevelFadeMask );
-			m_nTransferAnimFrames = m_nTransferAnimTotalFrames = 0;
-			m_nTransferFadeOutFrames = m_nTransferFadeOutTotalFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount * 4;
-			auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-			pParams[0] = CVector4( 1, 1, 1, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
-			m_pCurCutScene = pCutScene;
-			m_nTransferType = 3;
+			( ( CMasterLevel* )pThis )->TransferFunc();
+			return 1;
 		}
-		else
-		{
-			m_pCurCutScene->End();
-			m_pCurCutScene->SetParentEntity( NULL );
-			m_pCurCutScene = pCutScene;
-			pCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
-			pCutScene->Begin();
-		}
+	};
+	m_pTransferCoroutine = TCoroutinePool<0x10000>::Inst().Alloc();
+	m_pTransferCoroutine->Create( &_STemp::Func, this );
+	m_pTransferCoroutine->Resume();
+	if( m_pTransferCoroutine->GetState() == ICoroutine::eState_Stopped )
+	{
+		TCoroutinePool<0x10000>::Inst().Free( m_pTransferCoroutine );
+		m_pTransferCoroutine = NULL;
 	}
 }
 
@@ -2601,6 +2635,48 @@ void CMasterLevel::JumpBack( int8 nType )
 	pLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	ResetMainUI();
 	pLevel->Begin();
+}
+
+void CMasterLevel::Fall( const char* szTargetRegion )
+{
+	auto& worldCfg = GetStage()->GetWorld()->GetWorldCfg();
+	TVector2<int32> regionOfs = m_pPlayer->GetMoveTo();
+	bool b = false;
+	for( int i = 0; i < worldCfg.arrRegionData.Size(); i++ )
+	{
+		if( worldCfg.arrRegionData[i].strName == m_pCurLevel->m_strRegion )
+		{
+			auto arrLevelData = worldCfg.arrRegionData[i].arrLevelData;
+			for( int iLevel = 0; iLevel < arrLevelData.Size(); i++ )
+			{
+				if( arrLevelData[iLevel].pLevel == m_pCurLevelPrefab->GetName() )
+				{
+					auto displayOfs = arrLevelData[iLevel].displayOfs / LEVEL_GRID_SIZE;
+					regionOfs = regionOfs + TVector2<int32>( floor( displayOfs.x + 0.5f ), floor( displayOfs.y + 0.5f ) );
+					b = true;
+					break;
+				}
+			}
+			break;
+		}
+	}
+	if( !b )
+		return;
+
+	for( int i = 0; i < worldCfg.arrRegionData.Size(); i++ )
+	{
+		if( worldCfg.arrRegionData[i].strName == szTargetRegion )
+		{
+			auto arrLevelData = worldCfg.arrRegionData[i].arrLevelData;
+			for( int iLevel = 0; iLevel < arrLevelData.Size(); i++ )
+			{
+				auto displayOfs = arrLevelData[iLevel].displayOfs / LEVEL_GRID_SIZE;
+				auto d = regionOfs - TVector2<int32>( floor( displayOfs.x + 0.5f ), floor( displayOfs.y + 0.5f ) );
+
+			}
+			return;
+		}
+	}
 }
 
 SWorldDataFrame::SLevelData& CMasterLevel::GetCurLevelData()
@@ -2644,9 +2720,14 @@ void CMasterLevel::RunScenarioScript()
 	BeginScenario();
 }
 
-void CMasterLevel::CheckPoint()
+void CMasterLevel::CheckPoint( bool bRefresh )
 {
 	m_worldData.CheckPoint( m_pPlayer );
+	if( bRefresh )
+	{
+		m_pScriptTransferTo = NULL;
+		m_nScriptTransferType = -1;
+	}
 }
 
 int32 CMasterLevel::EvaluateKeyInt( const char* str )
@@ -2694,28 +2775,28 @@ void CMasterLevel::SetKeyInt( const char* str, int32 n )
 		m_worldData.curFrame.mapDataInt[str] = n;
 }
 
-void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir )
+void CMasterLevel::TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType )
 {
-	m_strScriptTransferTo = szName;
+	m_pScriptTransferTo = pLevelPrefab;
+	m_nScriptTransferPlayerX = playerPos.x;
+	m_nScriptTransferPlayerY = playerPos.y;
+	m_nScriptTransferPlayerDir = nPlayerDir;
+	m_nScriptTransferType = nTransferType;
+}
+
+void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType )
+{
+	m_pScriptTransferTo = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
 	m_nScriptTransferPlayerX = nPlayerX;
 	m_nScriptTransferPlayerY = nPlayerY;
 	m_nScriptTransferPlayerDir = nPlayerDir;
+	m_nScriptTransferType = nTransferType;
 }
 
 CVector2 CMasterLevel::GetCamPos()
 {
-	if( m_nTransferType == 1 )
-	{
-		if( m_nTransferAnimFrames )
-		{
-			float t = 1 - m_nTransferAnimFrames * 1.0f / m_nTransferAnimTotalFrames;
-			auto p = m_camTransferBegin + ( m_pCurLevel->GetCamPos() - m_camTransferBegin ) * t;
-			p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
-			return p;
-		}
-	}
-	else if( m_pCurCutScene && m_pCurCutScene->GetParentEntity() )
-		return CVector2( 0, 0 );
+	if( m_pTransferCoroutine )
+		return m_transferCurCamPos;
 	return m_pCurLevel->GetCamPos();
 }
 
@@ -2727,102 +2808,13 @@ void CMasterLevel::OnPlayerDamaged()
 void CMasterLevel::Update()
 {
 	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	if( m_nTransferType )
+	if( m_pTransferCoroutine )
 	{
-		auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
-		if( m_nTransferAnimFrames )
+		m_pTransferCoroutine->Resume();
+		if( m_pTransferCoroutine->GetState() == ICoroutine::eState_Stopped )
 		{
-			ASSERT( m_nTransferType == 1 || m_nTransferType == 2 );
-			int32 nFrame = m_nTransferAnimTotalFrames - m_nTransferAnimFrames;
-			m_nTransferAnimFrames--;
-			float t = 1 - m_nTransferAnimFrames * 1.0f / m_nTransferAnimTotalFrames;
-			if( nFrame < maskParams.size() )
-			{
-				pParams[0] = maskParams[nFrame].first;
-				pParams[1] = maskParams[nFrame].second;
-			}
-			else
-			{
-				float a = Min( 1.0f, t * 1.05f );
-				float b = Max( 0.0f, t * 1.05f - 0.05f );
-				pParams[0] = CVector4( b, a, a, 0 );
-				pParams[1] = CVector4( 0, 0, 0, 0 );
-			}
-			if( m_nTransferType == 1 )
-			{
-				auto p = m_transferOfs * ( 1 - t );
-				p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
-				m_pCurLevel->SetPosition( p );
-				m_pLastLevel->SetPosition( p - m_transferOfs );
-			}
-			if( m_pCurLevel->GetEnvEffect() )
-				m_pCurLevel->GetEnvEffect()->SetFade( t );
-
-			if( !m_nTransferAnimFrames )
-			{
-				pParams[0] = CVector4( 1, 1, 1, 0 );
-				pParams[1] = CVector4( 0, 0, 0, 0 );
-				if( m_nTransferType == 1 )
-				{
-					m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
-					m_pLastLevel->RemovePawn( m_pPlayer );
-					m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
-					m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-				}
-				else
-				{
-					ASSERT( !m_pLastLevel );
-					m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
-					m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-					m_nTransferType = 0;
-					ResetMainUI();
-					m_pCurLevel->Begin();
-				}
-			}
-		}
-		else
-		{
-			ASSERT( m_nTransferType == 1 || m_nTransferType == 3 );
-			int32 nFrame = maskParams.size() - m_nTransferFadeOutFrames;
-			m_nTransferFadeOutFrames--;
-			float t = m_nTransferFadeOutFrames * 1.0f / m_nTransferFadeOutTotalFrames;
-			if( nFrame >= 0 && nFrame < maskParams.size() )
-			{
-				pParams[0] = maskParams[nFrame].first;
-				pParams[1] = maskParams[nFrame].second;
-			}
-			else
-			{
-				float a = t * 1.5f;
-				float b = Max( 0.0f, t * 1.5f - 0.5f );
-				pParams[0] = CVector4( a, b, b, 1 );
-				pParams[1] = CVector4( 0, 0, 0, 0 );
-			}
-			CMyLevel* pLevel = m_nTransferType == 1 ? m_pLastLevel : m_pCurLevel;
-			if( pLevel->GetEnvEffect() )
-				pLevel->GetEnvEffect()->SetFade( t );
-
-			if( !m_nTransferFadeOutFrames )
-			{
-				pParams[0] = CVector4( 0, 0, 0, 0 );
-				pParams[1] = CVector4( 0, 0, 0, 0 );
-				if( m_nTransferType == 1 )
-				{
-					m_pLastLevel->SetParentEntity( NULL );
-					m_pLastLevel = NULL;
-					m_nTransferType = 0;
-					ResetMainUI();
-					m_pCurLevel->Begin();
-				}
-				else
-				{
-					m_pCurLevel->SetParentEntity( NULL );
-					m_pCurLevel = NULL;
-					m_nTransferType = 0;
-					m_pCurCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
-					m_pCurCutScene->Begin();
-				}
-			}
+			TCoroutinePool<0x10000>::Inst().Free( m_pTransferCoroutine );
+			m_pTransferCoroutine = NULL;
 		}
 	}
 	else if( m_nPlayerDamageFrame )
@@ -2850,13 +2842,19 @@ void CMasterLevel::Update()
 			EndScenario();
 		}
 	}
-	if( m_strScriptTransferTo.length() )
+	
+	if( m_pScriptTransferTo )
 	{
-		auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strScriptTransferTo.c_str() );
-		TransferTo( pPrefab, TVector2<int32>( m_nScriptTransferPlayerX, m_nScriptTransferPlayerY ), m_nScriptTransferPlayerDir );
-		m_strScriptTransferTo = "";
+		TransferTo( m_pScriptTransferTo, TVector2<int32>( m_nScriptTransferPlayerX, m_nScriptTransferPlayerY ), m_nScriptTransferPlayerDir, m_nScriptTransferType );
+		m_pScriptTransferTo = NULL;
+		m_nScriptTransferType = 0;
 	}
-	else if( m_nTransferType == 0 && !m_pScenarioScript && m_pCurCutScene )
+	else if( m_nScriptTransferType == -1 )
+	{
+		m_nScriptTransferType = 0;
+		JumpBack( 2 );
+	}
+	else if( !m_pTransferCoroutine && !m_pScenarioScript && m_pCurCutScene )
 	{
 		TransferTo( m_pCurCutScene->m_pNextLevelPrefab, TVector2<int32>( m_pCurCutScene->m_nPlayerEnterX, m_pCurCutScene->m_nPlayerEnterY ),
 			m_pCurCutScene->m_nPlayerEnterDir );
@@ -2877,6 +2875,481 @@ void CMasterLevel::EndCurLevel()
 	m_pScenarioScript = NULL;
 	EndScenario();
 	m_pCurLevel->End();
+}
+
+void CMasterLevel::TransferFunc()
+{
+	auto pTransferTo = m_pTransferTo;
+	m_pTransferTo = NULL;
+	auto p = pTransferTo->GetRoot()->CreateInstance();
+	auto pLevel = SafeCast<CMyLevel>( p );
+	if( pLevel )
+	{
+		if( !m_pCurCutScene )
+		{
+			EndCurLevel();
+		}
+		else
+		{
+			m_pCurCutScene->End();
+			m_pCurCutScene->SetParentEntity( NULL );
+		}
+		m_pLastLevelPrefab = m_pCurLevelPrefab;
+		m_pCurLevelPrefab = pTransferTo;
+
+		m_worldData.OnEnterLevel( pTransferTo->GetName(), m_pPlayer, m_transferPos, m_nTransferDir );
+		m_pLastLevel = m_pCurLevel;
+		m_pCurLevel = pLevel;
+
+		if( !m_pCurCutScene )
+		{
+			if( m_nTransferType == 1 )
+				TransferFuncLevel2Level1();
+			else if( m_nTransferType == 2 )
+				TransferFuncLevel2Level2();
+			else
+				TransferFuncLevel2Level();
+		}
+		else
+		{
+			m_pCurCutScene = NULL;
+			TransferFuncCut2Level();
+		}
+	}
+	else
+	{
+		auto pCutScene = SafeCast<CCutScene>( p );
+		ASSERT( pCutScene );
+		if( !m_pCurCutScene )
+		{
+			EndCurLevel();
+			m_pCurLevel->SetRenderParentAfter( m_pLevelFadeMask );
+			m_pCurCutScene = pCutScene;
+			TransferFuncLevel2Cut();
+		}
+		else
+		{
+			m_pCurCutScene->End();
+			m_pCurCutScene->SetParentEntity( NULL );
+			m_pCurCutScene = pCutScene;
+			pCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
+			pCutScene->Begin();
+		}
+	}
+}
+
+void CMasterLevel::TransferFuncLevel2Level()
+{
+	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	m_pCurLevel->Init();
+	auto d = m_pPlayer->GetPos() - m_transferPos;
+	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE;
+	m_pCurLevel->SetPosition( transferOfs );
+	auto camTransferBegin = m_pLastLevel->GetCamPos();
+	auto dVisualTransfer = transferOfs + m_pCurLevel->GetCamPos() - camTransferBegin;
+	int32 nTransferAnimFrames = ceil( dVisualTransfer.Length() / CGlobalCfg::Inst().lvTransferData.fTransferCamSpeed );
+	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
+	int32 nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
+	int32 nTransferFadeOutTotalFrames = nTransferFadeOutFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
+	{
+		if( nTransferAnimFrames )
+		{
+			float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+			auto p = camTransferBegin + ( m_pCurLevel->GetCamPos() - camTransferBegin ) * t;
+			m_transferCurCamPos = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
+		}
+
+		m_pTransferCoroutine->Yield( 0 );
+		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
+		if( nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = Min( 1.0f, t * 1.05f );
+			float b = Max( 0.0f, t * 1.05f - 0.05f );
+			pParams[0] = CVector4( b, a, a, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		auto p = transferOfs * ( 1 - t );
+		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
+		m_pCurLevel->SetPosition( p );
+		m_pLastLevel->SetPosition( p - transferOfs );
+		if( m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->SetFade( t );
+	}
+	m_transferCurCamPos = m_pCurLevel->GetCamPos();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
+	m_pLastLevel->RemovePawn( m_pPlayer );
+	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+
+	for( ; nTransferFadeOutFrames; nTransferFadeOutFrames-- )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		int32 nFrame = maskParams.size() - nTransferFadeOutFrames;
+		float t = ( nTransferFadeOutFrames - 1 ) * 1.0f / nTransferFadeOutTotalFrames;
+		if( nFrame >= 0 && nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = t * 1.5f;
+			float b = Max( 0.0f, t * 1.5f - 0.5f );
+			pParams[0] = CVector4( a, b, b, 1 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		CMyLevel* pLevel = m_pLastLevel;
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetFade( t );
+	}
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pLastLevel->SetParentEntity( NULL );
+	m_pLastLevel = NULL;
+	ResetMainUI();
+	m_pCurLevel->Begin();
+}
+
+void CMasterLevel::TransferFuncLevel2Level1()
+{
+	auto pCurLevel = m_pCurLevel;
+	m_pCurLevel = NULL;
+
+	auto d = m_pPlayer->GetPos() - m_transferPos;
+	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE - CVector2( 0, 64 );
+	pCurLevel->SetPosition( transferOfs );
+	auto camTransferBegin = m_pLastLevel->GetCamPos();
+	int32 nTransferAnimFrames = 80;
+	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
+
+	m_transferCurCamPos = camTransferBegin;
+	m_pTransferEft = new CEntity;
+	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pTransferEft->SetRenderObject( CGlobalCfg::Inst().pFallEftDrawable->CreateInstance() );
+	auto pImg = static_cast<CImage2D*>( m_pTransferEft->GetRenderObject() );
+	pImg->SetPosition( m_pLastLevel->GetPosition() + CVector2( m_pPlayer->GetPosX(), m_pPlayer->GetPosY() ) * LEVEL_GRID_SIZE );
+	m_pLastLevel->RemovePawn( m_pPlayer );
+
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	CRectangle rects[] = { { 0, 0, 2, 3 }, { 0, -1, 2, 3 }, { 0, -1, 2, 3 }, { -1, -2, 3, 3 }, { -1, -2, 3, 2 }, { -1, -2, 3, 1 }, { 0, -2, 2, 3 } };
+	CRectangle texRects[] = { { 18, 15, 2, 3 }, { 18, 18, 2, 3 }, { 18, 21, 2, 3 }, { 20, 21, 3, 3 }, { 20, 24, 3, 2 }, { 20, 26, 3, 1 }, { 21, 27, 2, 3 } };
+	int32 nFrames[] = { 12, 12, 12, 40, 12, 60, 60 };
+	int32 nFadeOutTotalFrames = 20;
+	int32 nFadeOutFrame = nFadeOutTotalFrames;
+	for( int i = 0; i < ELEM_COUNT( rects ); i++ )
+	{
+		auto rect = rects[i] * 32;
+		auto texRect = texRects[i] / 32;
+		if( m_worldData.curFrame.nPlayerEnterDir )
+		{
+			rect = CRectangle( LEVEL_GRID_SIZE_X * m_pPlayer->GetWidth() - rect.GetRight(), rect.y, rect.width, rect.height );
+			texRect = CRectangle( 2 - texRect.GetRight(), texRect.y, texRect.width, texRect.height );
+		}
+		pImg->SetRect( rect );
+		pImg->SetTexRect( texRect );
+		if( i == 5 )
+		{
+			m_pLastLevel->SetParentEntity( NULL );
+			m_pLastLevel = NULL;
+			m_pCurLevel = pCurLevel;
+			m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
+			if( m_pCurLevel->GetEnvEffect() )
+				m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+			m_pCurLevel->Init();
+
+			if( m_pCurLevel->GetEnvEffect() )
+				m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+		}
+
+		for( int k = 0; k < nFrames[i]; k++ )
+		{
+			m_pTransferCoroutine->Yield( 0 );
+			if( i >= 2 && i < 5 )
+			{
+				if( nFadeOutFrame )
+				{
+					int32 nFrame = maskParams.size() - nFadeOutFrame;
+					nFadeOutFrame--;
+					float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
+					if( nFrame >= 0 && nFrame < maskParams.size() )
+					{
+						pParams[0] = maskParams[nFrame].first;
+						pParams[1] = maskParams[nFrame].second;
+					}
+					else
+					{
+						float a = t * 1.5f;
+						float b = Max( 0.0f, t * 1.5f - 0.5f );
+						pParams[0] = CVector4( a, b, b, 0 );
+						pParams[1] = CVector4( 0, 0, 0, 0 );
+					}
+					CMyLevel* pLevel = m_pLastLevel;
+					if( pLevel->GetEnvEffect() )
+						pLevel->GetEnvEffect()->SetFade( t );
+					pLevel->SetPosition( pLevel->GetPosition() + CVector2( 0, 12 ) );
+				}
+				else
+				{
+					pParams[0] = CVector4( 0, 0, 0, 0 );
+					pParams[1] = CVector4( 0, 0, 0, 0 );
+					camTransferBegin.y += 6;
+					m_transferCurCamPos = camTransferBegin;
+				}
+			}
+			if( i >= 5 && nTransferAnimFrames )
+			{
+				int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+				nTransferAnimFrames--;
+				float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+				if( nFrame < maskParams.size() )
+				{
+					pParams[0] = maskParams[nFrame].first;
+					pParams[1] = maskParams[nFrame].second;
+				}
+				else
+				{
+					float a = Min( 1.0f, t * 1.05f );
+					float b = Max( 0.0f, t * 1.05f - 0.05f );
+					pParams[0] = CVector4( b, a, a, 0 );
+					pParams[1] = CVector4( 0, 0, 0, 0 );
+				}
+				auto p = transferOfs * ( 1 - t );
+				p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
+				m_pCurLevel->SetPosition( p );
+				m_pTransferEft->SetPosition( p - transferOfs );
+				if( m_pCurLevel->GetEnvEffect() )
+					m_pCurLevel->GetEnvEffect()->SetFade( t );
+				auto cam = camTransferBegin + ( m_pCurLevel->GetCamPos() - camTransferBegin ) * t;
+				m_transferCurCamPos = CVector2( floor( cam.x * 0.5f + 0.5f ), floor( cam.y * 0.5f + 0.5f ) ) * 2;
+			}
+		}
+	}
+
+	m_pTransferEft->SetParentEntity( NULL );
+	m_pTransferEft = NULL;
+	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	ResetMainUI();
+	m_pCurLevel->Begin();
+}
+
+void CMasterLevel::TransferFuncLevel2Level2()
+{
+	auto pCurLevel = m_pCurLevel;
+	m_pCurLevel = NULL;
+
+	auto d = m_pPlayer->GetPos() - m_transferPos;
+	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE + CVector2( m_nTransferDir ? -48 : 48, 64 );
+	pCurLevel->SetPosition( transferOfs );
+	auto camTransferBegin = m_pLastLevel->GetCamPos();
+	int32 nTransferAnimFrames = 80;
+	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
+
+	m_transferCurCamPos = camTransferBegin;
+	m_pTransferEft = new CEntity;
+	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pLastLevel->RemovePawn( m_pPlayer );
+	m_pPlayer->SetParentEntity( m_pTransferEft );
+	m_pPlayer->SetPosition( m_pLastLevel->GetPosition() + m_pPlayer->GetPosition() );
+
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	int32 nFadeOutTotalFrames = 60;
+	int32 nFadeOutFrame = nFadeOutTotalFrames;
+	while( nFadeOutFrame )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		m_pPlayer->UpdateAnimOnly();
+		int32 nFrame = maskParams.size() - nFadeOutFrame;
+		nFadeOutFrame--;
+		float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
+		if( nFrame >= 0 && nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = t * 1.5f;
+			float b = Max( 0.0f, t * 1.5f - 0.5f );
+			pParams[0] = CVector4( a, b, b, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		CMyLevel* pLevel = m_pLastLevel;
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetFade( t );
+		if( !( nFadeOutFrame & 1 ) )
+			pLevel->SetPosition( pLevel->GetPosition() + CVector2( 0, -2 ) );
+	}
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	for( int i = 0; i < 30; i++ )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		m_pPlayer->UpdateAnimOnly();
+		camTransferBegin.y += 2;
+		m_transferCurCamPos = camTransferBegin;
+	}
+
+	m_pLastLevel->SetParentEntity( NULL );
+	m_pLastLevel = NULL;
+	m_pCurLevel = pCurLevel;
+	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	m_pCurLevel->Init();
+
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+	while( nTransferAnimFrames )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		m_pPlayer->UpdateAnimOnly();
+		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+		nTransferAnimFrames--;
+		float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+		if( nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = Min( 1.0f, t * 1.05f );
+			float b = Max( 0.0f, t * 1.05f - 0.05f );
+			pParams[0] = CVector4( b, a, a, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		auto p = transferOfs * ( 1 - t );
+		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
+		m_pCurLevel->SetPosition( p );
+		m_pTransferEft->SetPosition( p - transferOfs );
+		if( m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->SetFade( t );
+		auto cam = camTransferBegin + ( m_pCurLevel->GetCamPos() - camTransferBegin ) * t;
+		m_transferCurCamPos = CVector2( floor( cam.x * 0.5f + 0.5f ), floor( cam.y * 0.5f + 0.5f ) ) * 2;
+	}
+
+	m_pPlayer->SetParentEntity( NULL );
+	m_pTransferEft->SetParentEntity( NULL );
+	m_pTransferEft = NULL;
+	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	ResetMainUI();
+	m_pCurLevel->Begin();
+}
+
+void CMasterLevel::TransferFuncCut2Level()
+{
+	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	m_pCurLevel->Init();
+	int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
+	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+
+	m_transferCurCamPos = CVector2( 0, 0 );
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
+		if( nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = Min( 1.0f, t * 1.05f );
+			float b = Max( 0.0f, t * 1.05f - 0.05f );
+			pParams[0] = CVector4( b, a, a, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		if( m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->SetFade( t );
+	}
+	m_transferCurCamPos = m_pCurLevel->GetCamPos();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	ASSERT( !m_pLastLevel );
+	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+	ResetMainUI();
+	m_pCurLevel->Begin();
+}
+
+void CMasterLevel::TransferFuncLevel2Cut()
+{
+	int32 nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount * 4;
+	int32 nTransferFadeOutTotalFrames = nTransferFadeOutFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+
+	m_transferCurCamPos = m_pCurLevel->GetCamPos();
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	for( ; nTransferFadeOutFrames; nTransferFadeOutFrames-- )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		int32 nFrame = maskParams.size() - nTransferFadeOutFrames;
+		float t = ( nTransferFadeOutFrames - 1 ) * 1.0f / nTransferFadeOutTotalFrames;
+		if( nFrame >= 0 && nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = t * 1.5f;
+			float b = Max( 0.0f, t * 1.5f - 0.5f );
+			pParams[0] = CVector4( a, b, b, 1 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		CMyLevel* pLevel = m_pCurLevel;
+		if( pLevel->GetEnvEffect() )
+			pLevel->GetEnvEffect()->SetFade( t );
+	}
+	m_transferCurCamPos = CVector2( 0, 0 );
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pCurLevel->SetParentEntity( NULL );
+	m_pCurLevel = NULL;
+	m_pCurCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pCurCutScene->Begin();
 }
 
 void RegisterGameClasses_Level()
@@ -3013,6 +3486,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pLevelFadeMask, mask )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetMainUI )
+		REGISTER_LUA_CFUNCTION( IsScenario )
 		REGISTER_LUA_CFUNCTION( CheckPoint )
 		REGISTER_LUA_CFUNCTION( EvaluateKeyInt )
 		REGISTER_LUA_CFUNCTION( SetKeyInt )

@@ -237,6 +237,133 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 	return -1;
 }
 
+void CConsole::Update()
+{
+	CPawn::Update();
+	if( m_pExtra )
+	{
+		bool bRunning = m_pExtra->Resume( 0, 1 );
+		bool bResult = m_pExtra->PopLuaValue<bool>();
+		if( !bRunning )
+		{
+			m_pExtra = NULL;
+			if( bResult )
+				RunDefault();
+		}
+	}
+	else if( m_pDefault )
+	{
+		if( !m_pDefault->Resume( 0, 0 ) )
+			m_pDefault = NULL;
+	}
+}
+
+int32 CConsole::Signal( int32 i )
+{
+	if( m_pDefault || m_pExtra )
+		return 0;
+	if( m_strExtraScript.length() )
+	{
+		m_pExtra = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strExtraScript );
+		m_pExtra->PushLua( i );
+		bool bRunning = m_pExtra->Resume( 1, 1 );
+		bool bResult = m_pExtra->PopLuaValue<bool>();
+		if( !bRunning )
+		{
+			m_pExtra = NULL;
+			if( bResult )
+				RunDefault();
+			else
+				GetLevel()->GetPlayer()->ForceUnMount();
+		}
+	}
+	else
+		RunDefault();
+	return 1;
+}
+
+void CConsole::RunDefault()
+{
+	if( m_strDefaultScript.length() )
+	{
+		m_pDefault = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strDefaultScript );
+		if( !m_pDefault->Resume( 0, 0 ) )
+			m_pDefault = NULL;
+	}
+}
+
+void CFallPoint::Init()
+{
+	if( m_strKey.length() )
+	{
+		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
+		{
+			auto p = static_cast<CImage2D*>( GetRenderObject() );
+			auto texRect = p->GetElem().texRect;
+			texRect.x += texRect.width;
+			p->SetTexRect( texRect );
+			m_bVisited = true;
+		}
+	}
+	CPawnHit::Init();
+}
+
+void CFallPoint::Update()
+{
+	auto pPlayer = GetLevel()->GetPlayer();
+	if( pPlayer->GetMoveTo() == GetPos() && pPlayer->GetMoveTo() == pPlayer->GetPos() )
+	{
+		if( !m_bVisited )
+		{
+			if( m_strKey.length() )
+				GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, 1 );
+			auto p = static_cast<CImage2D*>( GetRenderObject() );
+			auto texRect = p->GetElem().texRect;
+			texRect.x += texRect.width;
+			p->SetTexRect( texRect );
+			m_bVisited = true;
+			AddChild( m_pEft->GetRoot()->CreateInstance() );
+			PlaySoundEffect( m_strSound );
+		}
+		auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
+		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, pPlayer->GetMoveTo() -
+			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ), pPlayer->GetCurDir(), 1 );
+	}
+}
+
+void CClimbPoint::Init()
+{
+	if( m_strKey.length() )
+	{
+		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
+			m_bReady = true;
+	}
+	CPawnHit::Init();
+}
+
+int32 CClimbPoint::Signal( int32 i )
+{
+	if( m_bReady )
+	{
+		auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
+		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, GetMoveTo() -
+			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ) + TVector2<int32>( GetCurDir() ? -2 : 2, 0 ), GetCurDir(), 2 );
+	}
+	else
+	{
+		m_bReady = true;
+		ChangeState( 1 );
+		if( m_strKey.length() )
+			GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, 1 );
+	}
+	return 1;
+}
+
+int32 CClimbPoint::GetDefaultState()
+{
+	return m_bReady ? 1 : 0;
+}
+
 void CSmoke::Init()
 {
 	CPawnHit::Init();
@@ -1041,6 +1168,32 @@ void RegisterGameClasses_MiscElem()
 
 	REGISTER_CLASS_BEGIN( CPawnAIAutoDoor )
 		REGISTER_BASE_CLASS( CPawnAI )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CConsole )
+		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER_BEGIN( m_strDefaultScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strExtraScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CFallPoint )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_nNxtStage )
+		REGISTER_MEMBER( m_strKey )
+		REGISTER_MEMBER( m_pEft )
+		REGISTER_MEMBER( m_strSound )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CClimbPoint )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_nNxtStage )
+		REGISTER_MEMBER( m_strKey )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMount[0], mount_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMount[1], mount_1 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSmoke )

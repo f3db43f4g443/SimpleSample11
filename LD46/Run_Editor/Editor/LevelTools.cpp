@@ -7,6 +7,7 @@
 #include "World.h"
 #include "Common/FileUtil.h"
 #include "Common/xml.h"
+#include "Common/Utf8Util.h"
 
 void CLevelTool::OnSetVisible( bool b )
 {
@@ -254,9 +255,16 @@ public:
 		m_bNoAlign = false;
 		m_bDragged = false;
 		m_pFiles = GetChildByName<CUIScrollView>( "files" );
+		m_pLayerScript = GetChildByName<CUIButton>( "layer_script" );
+		m_pLayerScriptText = GetChildByName<CUITextBox>( "layer_script_text" );
 		m_pSelectedFile = GetChildByName<CUILabel>( "selected" );
 		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
 		m_pViewport->SetLight( false );
+		m_onLayerScript.Set( this, &CPawnTool::OnLayerScript );
+		m_pLayerScript->Register( eEvent_Action, &m_onLayerScript );
+		m_onLayerScriptEditOK.Set( this, &CPawnTool::OnLayerScriptEditOK );
+		m_onLayerScriptText.Set( this, &CPawnTool::OnLayerScriptText );
+		m_pLayerScriptText->Register( eEvent_Action, &m_onLayerScriptText );
 	}
 
 	virtual void OnSetVisible( bool bVisible ) override
@@ -274,7 +282,10 @@ public:
 					string strFullPath = szPath;
 					strFullPath += szFileName;
 					auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strFullPath.c_str() );
-					if( !pPrefab || !pPrefab->GetRoot()->GetStaticDataSafe<CPawn>() )
+					if( !pPrefab )
+						return true;
+					auto pPawnData = pPrefab->GetRoot()->GetStaticDataSafe<CPawn>();
+					if( !pPawnData || pPawnData->IsHideInEditor() )
 						return true;
 					mapPrefab[strFullPath] = pPrefab;
 					return true;
@@ -295,7 +306,6 @@ public:
 			for( auto& item : mapPrefab )
 				m_mapItems[item.first] = CItem::Create( this, m_pFiles, item.second );
 
-			m_vecAllPawnRoots.push_back( m_pLevelNode->GetChildByName<CPrefabNode>( "1" ) );
 			for( auto p = m_pLevelNode->Get_RenderChild(); p; p = p->NextRenderChild() )
 			{
 				if( p == m_pLevelNode->GetRenderObject() )
@@ -304,6 +314,9 @@ public:
 				if( pPrefabNode && pPrefabNode->GetStaticDataSafe<CPawnLayer>() )
 					m_vecAllPawnRoots.push_back( pPrefabNode );
 			}
+			m_vecAllPawnRoots.push_back( m_pLevelNode->GetChildByName<CPrefabNode>( "1" ) );
+			for( int i = 0; i < m_vecAllPawnRoots.size() / 2; i++ )
+				swap( m_vecAllPawnRoots[i], m_vecAllPawnRoots[m_vecAllPawnRoots.size() - 1 - i] );
 			for( CPrefabNode* p : m_vecAllPawnRoots )
 				p->bVisible = false;
 			m_nPawnRoot = -1;
@@ -368,6 +381,9 @@ private:
 		CReference<CPrefab> m_pPrefab;
 		TClassTrigger<CItem> m_onSelect;
 	};
+	void OnLayerScript();
+	void OnLayerScriptEditOK( const wchar_t* sz );
+	void OnLayerScriptText();
 	CPawn* GetPawnData( int32 n );
 	int32 Pick( const TRectangle<int32>& p );
 	void MultiPick( const TRectangle<int32>& p, vector<int32>& result );
@@ -398,6 +414,8 @@ private:
 	};
 	map<string, CReference<CItem>, _SLess > m_mapItems;
 	CReference<CUIScrollView> m_pFiles;
+	CReference<CUIButton> m_pLayerScript;
+	CReference<CUITextBox> m_pLayerScriptText;
 	CReference<CUILabel> m_pSelectedFile;
 	CReference<CUIViewport> m_pViewport;
 
@@ -409,6 +427,9 @@ private:
 	CReference<CPrefabNode> m_pPawnRoot;
 	vector<CReference<CPrefabNode> > m_vecAllPawns;
 	vector<CReference<CPrefabNode> > m_vecAllPawnRoots;
+	TClassTrigger<CPawnTool> m_onLayerScript;
+	TClassTrigger1<CPawnTool, const wchar_t*> m_onLayerScriptEditOK;
+	TClassTrigger<CPawnTool> m_onLayerScriptText;
 
 	bool m_bDragged;
 	int32 m_nDragged;
@@ -507,7 +528,6 @@ void CPawnTool::OnViewportDragged( CUIViewport* pViewport, const CVector2& mouse
 	if( m_bDragged )
 	{
 		auto pLevel = GetLevelData();
-		auto pPawn = GetPawnData( m_nDragged );
 		TVector2<int32> p0( floor( m_draggedp0.x / LEVEL_GRID_SIZE_X + 0.5f ), floor( m_draggedp0.y / LEVEL_GRID_SIZE_Y + 0.5f ) );
 		auto d = ( mousePos - m_draggedPos ) / LEVEL_GRID_SIZE;
 		TVector2<int32> ofs( floor( d.x + 0.5f ), floor( d.y + 0.5f ) );
@@ -543,7 +563,24 @@ void CPawnTool::OnViewportKey( SUIKeyEvent* pEvent )
 	auto mousePos = GetView()->GetViewportMousePos();
 	int32 x = floor( mousePos.x / LEVEL_GRID_SIZE_X );
 	int32 y = floor( mousePos.y / LEVEL_GRID_SIZE_Y );
-	if( pEvent->nChar == 'A' )
+	if( pEvent->nChar >= '0' && pEvent->nChar <= '9' )
+	{
+		auto n = pEvent->nChar - '0';
+		if( n >= m_vecAllPawnRoots.size() )
+		{
+			auto pNode = new CPrefabNode( GetRes() );
+			pNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CPawnLayer>()->strClassName.c_str() );
+			m_pLevelNode->AddChildBefore( pNode, m_vecAllPawnRoots.back() );
+			pNode->OnEditorActive( false );
+			m_vecAllPawnRoots.push_back( pNode );
+			n = Min( n, m_vecAllPawnRoots.size() - 1 );
+			char sz[32];
+			itoa( n + 1, sz, 10 );
+			pNode->SetName( sz );
+		}
+		SelectPawnRoot( n );
+	}
+	else if( pEvent->nChar == 'A' )
 		SelectPawnRoot( m_nPawnRoot < m_vecAllPawnRoots.size() - 1 ? m_nPawnRoot + 1 : 0 );
 	else if( pEvent->nChar == 'S' )
 		SelectPawnRoot( m_nPawnRoot > 0 ? m_nPawnRoot - 1 : m_vecAllPawnRoots.size() - 1 );
@@ -563,7 +600,7 @@ void CPawnTool::OnViewportKey( SUIKeyEvent* pEvent )
 				m_vecAllPawns[n]->OnEditorActive( true );
 				auto p = GetPawnData( n );
 				p->m_nInitDir = p->m_nInitDir ? 0 : 1;
-				m_vecAllPawns[n]->OnEdit();
+				m_vecAllPawns[n]->GetPatchedNode()->OnEdit();
 				m_vecAllPawns[n]->OnEditorActive( false );
 			}
 		}
@@ -589,6 +626,12 @@ void CPawnTool::SelectPawnRoot( int32 n )
 			continue;
 		m_vecAllPawns.push_back( pPrefabNode );
 	}
+	m_pLayerScript->SetText( m_pPawnRoot->GetName() );
+	auto p = m_pPawnRoot->GetStaticDataSafe<CPawnLayer>();
+	if( p )
+		m_pLayerScriptText->SetText( p->GetCondition() );
+	else
+		m_pLayerScriptText->SetText( "" );
 }
 
 void CPawnTool::SelectFile( CPrefab* pPrefab )
@@ -607,13 +650,39 @@ void CPawnTool::SelectFile( CPrefab* pPrefab )
 		m_pPreview = p;
 		m_pViewport->GetRoot()->AddChild( p );
 		p->OnPreview();
+		m_pSelectedFile->SetText( pPrefab->GetName() );
 	}
-	m_pSelectedFile->SetText( pPrefab->GetName() );
+}
+
+void CPawnTool::OnLayerScript()
+{
+	auto p = m_pPawnRoot->GetStaticDataSafe<CPawnLayer>();
+	if( !p )
+		return;
+	CTextEditDialog::Inst()->Show( Utf8ToUnicode( p->GetCondition() ).c_str(), &m_onLayerScriptEditOK );
+}
+
+void CPawnTool::OnLayerScriptEditOK( const wchar_t * sz )
+{
+	if( sz )
+	{
+		static_cast<CPawnLayer*>( m_pPawnRoot->GetFinalObjData() )->m_strCondition = UnicodeToUtf8( sz ).c_str();
+		m_pPawnRoot->OnEdit();
+	}
+}
+
+void CPawnTool::OnLayerScriptText()
+{
+	auto p = m_pPawnRoot->GetStaticDataSafe<CPawnLayer>();
+	if( !p )
+		return;
+	static_cast<CPawnLayer*>( m_pPawnRoot->GetFinalObjData() )->m_strCondition = UnicodeToUtf8( m_pLayerScriptText->GetText() ).c_str();
+	m_pPawnRoot->OnEdit();
 }
 
 CPawn* CPawnTool::GetPawnData( int32 n )
 {
-	return nullptr;
+	return SafeCast<CPawn>( m_vecAllPawns[n]->GetPatchedNode()->GetFinalObjData() );
 }
 
 int32 CPawnTool::Pick( const TRectangle<int32>& rect )
@@ -680,6 +749,7 @@ void CPawnTool::Add( const TVector2<int32>& p )
 	if( !m_pCurSelected )
 		return;
 	CPrefabNode* pNode = new CPrefabNode( GetRes() );
+	pNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelSpawnHelper>()->strClassName.c_str() );
 	pNode->SetResource( m_pCurSelected );
 	pNode->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
 	m_pPawnRoot->AddChild( pNode );
@@ -696,7 +766,7 @@ void CPawnTool::Remove( const TRectangle<int32>& p )
 	if( n < 0 )
 		return;
 	auto pNode = m_vecAllPawns[n];
-	for( int i = n; i < m_vecAllPawns.size() - 2; i++ )
+	for( int i = n; i < m_vecAllPawns.size() - 1; i++ )
 		m_vecAllPawns[i] = m_vecAllPawns[i + 1];
 	m_vecAllPawns.resize( m_vecAllPawns.size() - 1 );
 	m_pLevelNode->NameSpaceClearNode( pNode );
@@ -1325,6 +1395,27 @@ void CLevelToolsView::ResizeLevel( const TRectangle<int32>& newSize )
 	m_vecTiles.resize( pObj->m_nWidth * pObj->m_nHeight );
 	m_pViewport->GetCamera().SetPosition( pObj->m_nWidth * 0.5f * LEVEL_GRID_SIZE_X, pObj->m_nHeight * 0.5f * LEVEL_GRID_SIZE_Y );
 	RefreshAllTiles();
+
+	auto FuncMovePawn = [d] ( CPrefabNode* pPawnRoot ) {
+		for( auto pChild = pPawnRoot->Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+		{
+			if( pChild == pPawnRoot->GetRenderObject() )
+				continue;
+			auto pPrefabNode = static_cast<CPrefabNode*>( pChild );
+			if( !pPrefabNode->GetPatchedNode() || !pPrefabNode->GetPatchedNode()->GetStaticDataSafe<CPawn>() )
+				continue;
+			pPrefabNode->SetPosition( pPrefabNode->GetPosition() - d );
+		}
+	};
+	FuncMovePawn( m_pLevelNode->GetChildByName<CPrefabNode>( "1" ) );
+	for( auto p = m_pLevelNode->Get_RenderChild(); p; p = p->NextRenderChild() )
+	{
+		if( p == m_pLevelNode->GetRenderObject() )
+			continue;
+		auto pPrefabNode = dynamic_cast<CPrefabNode*>( p );
+		if( pPrefabNode && pPrefabNode->GetStaticDataSafe<CPawnLayer>() )
+			FuncMovePawn( pPrefabNode );
+	}
 }
 
 void CLevelToolsView::RefreshTile( int32 x, int32 y )
@@ -1462,12 +1553,12 @@ CRenderObject2D* CLevelToolsView::CreateLevelSimplePreview( CPrefabNode* pNode )
 				continue;
 			auto pPrefabNode = static_cast<CPrefabNode*>( pChild );
 			auto pFinalClassData = pPrefabNode->GetFinalClassData();
-			if( pFinalClassData == CClassMetaDataMgr::Inst().GetClassData<CLevelSpawnHelper>() )
+			if( pFinalClassData && pFinalClassData->Is( CClassMetaDataMgr::Inst().GetClassData<CLevelSpawnHelper>() ) )
 			{
 				vecPawns.push_back( SafeCast<CLevelSpawnHelper>( pPrefabNode->CreateInstance( false ) ) );
 				continue;
 			}
-			if( pFinalClassData == CClassMetaDataMgr::Inst().GetClassData<CPawn>() )
+			if( pFinalClassData && pFinalClassData->Is( CClassMetaDataMgr::Inst().GetClassData<CPawn>() ) )
 			{
 				auto pPawn = SafeCast<CPawn>( pPrefabNode->CreateInstance( false ) );
 				pPawn->m_pos = pPawn->m_moveTo = TVector2<int32>( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );

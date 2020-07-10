@@ -240,11 +240,17 @@ void CUILabel::LoadXml( TiXmlElement* pRoot )
 		}
 	}
 
-	if( !m_pTextObject )
+	m_nTextSize = XmlGetAttr( pRoot, "text_size", 14 );
+	if( !m_pTextObject || m_pTextObject->GetSize() != m_nTextSize )
 	{
+		if( m_pTextObject )
+		{
+			m_pTextObject->RemoveThis();
+			m_pTextObject = NULL;
+		}
 		m_textRect = GetSize();
 		m_nTextRectAlignment = (uint32)eUIAlignType_Both | (uint32)eUIAlignType_Both << 2;
-		m_pTextObject = new CFontObject( GetDefaultFont(), 14, GetDefaultFontDrawable(), NULL, m_textRect, 0, false, true );
+		m_pTextObject = new CFontObject( GetDefaultFont(), m_nTextSize, GetDefaultFontDrawable(), NULL, m_textRect, 0, false, true );
 		AddChild( m_pTextObject );
 	}
 

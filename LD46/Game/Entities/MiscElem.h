@@ -2,7 +2,6 @@
 #include "BasicElems.h"
 #include "MyLevel.h"
 
-
 class CLevelScriptCustom : public CLevelScript, public ISignalObj
 {
 	friend void RegisterGameClasses_MiscElem();
@@ -92,16 +91,64 @@ private:
 
 class CPawnAIAutoDoor : public CPawnAI
 {
-	friend void RegisterGameClasses_BasicElems();
+	friend void RegisterGameClasses_MiscElem();
 public:
 	CPawnAIAutoDoor( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIAutoDoor ); }
 	virtual bool CanCheckAction( bool bScenario ) override { return true; }
 	virtual int32 CheckAction( int8& nCurDir ) override;
 };
 
+class CConsole : public CPawn
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CConsole( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CConsole ); }
+	virtual void Update() override;
+	virtual int32 Signal( int32 i ) override;
+private:
+	void RunDefault();
+	CString m_strDefaultScript;
+	CString m_strExtraScript;
+
+	CReference<CLuaState> m_pDefault;
+	CReference<CLuaState> m_pExtra;
+};
+
+class CFallPoint : public CPawnHit
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CFallPoint( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CFallPoint ); }
+	virtual void Init() override;
+	virtual void Update() override;
+private:
+	int32 m_nNxtStage;
+	CString m_strKey;
+	TResourceRef<CPrefab> m_pEft;
+	CString m_strSound;
+
+	bool m_bVisited;
+};
+
+class CClimbPoint : public CPawnHit
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CClimbPoint( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CClimbPoint ); }
+	virtual void Init() override;
+	virtual int32 Signal( int32 i ) override;
+private:
+	virtual int32 GetDefaultState() override;
+	int32 m_nNxtStage;
+	CString m_strKey;
+	CReference<CPlayerMount> m_pMount[2];
+
+	bool m_bReady;
+};
+
 class CSmoke : public CPawnHit
 {
-	friend void RegisterGameClasses_BasicElems();
+	friend void RegisterGameClasses_MiscElem();
 public:
 	CSmoke( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CSmoke ); }
 	virtual void Init() override;

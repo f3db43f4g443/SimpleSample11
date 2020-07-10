@@ -1,7 +1,13 @@
 ﻿<root type="element" x="1000" y="0" >
   <template type="EditorRes/UI/scrollview.xml" name="files" rectX="0" rectY="100" rectWidth="400" rectHeight="350" >
   </template>
-  <template type="EditorRes/UI/panel.xml" name="selected" rectX="0" rectY="50" rectWidth="400" rectHeight="20"
+
+  <template type="EditorRes/UI/button.xml" name="layer_script" rectX="0" rectY="20" rectWidth="40" rectHeight="20" text="" >
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="layer_script_text" rectX="40" rectY="20" rectWidth="360" rectHeight="20" text="" >
+  </template>
+  
+  <template type="EditorRes/UI/panel.xml" name="selected" rectX="0" rectY="80" rectWidth="400" rectHeight="20"
              textLeft="4" textRight="4" textAlignX="0" textAlignY="1">
   </template>
   <element name="viewport" type="viewport" rectX="0" rectY="450" rectWidth="400" rectHeight="300" enableMouseEvent="1">

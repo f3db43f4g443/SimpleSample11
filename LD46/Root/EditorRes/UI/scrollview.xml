@@ -8,10 +8,10 @@
               texLeft="4" texTop="4" texRight="28" texBottom="28" />
     </imageList>
   </imageLists>
-  <template name="barX" type="EditorRes/UI/scrollbar.xml" vertical="0" x="0" y="90" rectX="-64" rectY="-8" rectWidth="128" rectHeight="16" thumb_percent="0.1"
+  <template name="barX" type="EditorRes/UI/scrollbar.xml" vertical="0" x="0" y="95" rectX="-64" rectY="-8" rectWidth="128" rectHeight="16" thumb_percent="0.1"
             alignX="3" alignY="2">
   </template>
-  <template name="barY" type="EditorRes/UI/scrollbar.xml" x="90" y="0" rectX="-8" rectY="-64" rectWidth="16" rectHeight="128" thumb_percent="0.1"
+  <template name="barY" type="EditorRes/UI/scrollbar.xml" x="95" y="0" rectX="-8" rectY="-64" rectWidth="16" rectHeight="128" thumb_percent="0.1"
             alignX="2" alignY="3">
   </template>
 </root>

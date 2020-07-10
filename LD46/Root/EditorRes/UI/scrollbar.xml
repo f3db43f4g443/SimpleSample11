@@ -1,5 +1,5 @@
 ﻿<root type="scrollbar" vertical="1" x="0" y="0" rectX="-8" rectY="-8" rectWidth="16" rectHeight="16"
-      dragRectLeft="8" dragRectTop="8" dragRectRight="8" dragRectBottom="8">
+      dragRectLeft="3" dragRectTop="3" dragRectRight="3" dragRectBottom="3">
   <imageLists>
     <imageList>
       <image9 drawable="EditorRes/Drawables/transparent.xml" rectX="-7" rectY="-7" rectWidth="14" rectHeight="14"

@@ -24,6 +24,8 @@ void CGlobalCfg::Load()
 	{
 		const char* szPrefab = XmlGetValue( pPrefabs, "fail_lightning_eft", "" );
 		pFailLightningEffectPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		szPrefab = XmlGetValue( pPrefabs, "fall_eft", "" );
+		pFallEftDrawable = CResourceManager::Inst()->CreateResource<CDrawableGroup>( szPrefab );
 	}
 
 	auto pSoundEfts = doc.RootElement()->FirstChildElement( "sound" );
