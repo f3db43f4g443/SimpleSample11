@@ -8,7 +8,9 @@
     </template>
     <element type="element" name="blueprint" x="100" y="150" rectX="0" rectY="0" rectWidth="200" rectHeight="20">
     </element>
-    <element type="element" name="region" x="20" y="200" rectX="0" rectY="0" rectWidth="100" rectHeight="20">
+    <element type="element" name="map" x="100" y="200" rectX="0" rectY="0" rectWidth="200" rectHeight="20">
+    </element>
+    <element type="element" name="region" x="20" y="250" rectX="0" rectY="0" rectWidth="100" rectHeight="20">
     </element>
     <template type="EditorRes/UI/button.xml" name="auto_layout" x="50" y="650" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Auto Layout" >
     </template>

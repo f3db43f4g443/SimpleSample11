@@ -604,6 +604,46 @@ void CPawnTool::OnViewportKey( SUIKeyEvent* pEvent )
 				m_vecAllPawns[n]->OnEditorActive( false );
 			}
 		}
+		else if( pEvent->nChar == 'V' || pEvent->nChar == 'B' )
+		{
+			auto n = Pick( TRectangle<int32>( x, y, 1, 1 ) );
+			if( n >= 0 )
+			{
+				auto p = GetPawnData( n );
+				auto nStates = p->m_arrSubStates.Size();
+				if( nStates > 0 )
+				{
+					m_vecAllPawns[n]->OnEditorActive( true );
+					if( !p->m_bUseInitState )
+					{
+						p->m_bUseInitState = true;
+						p->m_nInitState = pEvent->nChar == 'V' ? nStates - 1 : 0;
+					}
+					else
+					{
+						if( pEvent->nChar == 'V' )
+						{
+							if( p->m_nInitState == 0 )
+								p->m_bUseInitState = false;
+							else
+								p->m_nInitState--;
+						}
+						else
+						{
+							if( p->m_nInitState == nStates - 1 )
+							{
+								p->m_bUseInitState = false;
+								p->m_nInitState = 0;
+							}
+							else
+								p->m_nInitState++;
+						}
+					}
+					m_vecAllPawns[n]->GetPatchedNode()->OnEdit();
+					m_vecAllPawns[n]->OnEditorActive( false );
+				}
+			}
+		}
 	}
 }
 
@@ -752,6 +792,15 @@ void CPawnTool::Add( const TVector2<int32>& p )
 	pNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelSpawnHelper>()->strClassName.c_str() );
 	pNode->SetResource( m_pCurSelected );
 	pNode->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
+
+	auto pPawnData = m_pCurSelected->GetRoot()->GetStaticDataSafe<CPawn>();
+	if( pPawnData->m_bIsEnemy )
+	{
+		auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( pNode->GetFinalObjData() );
+		pSpawnHelper->m_nDataType = 1;
+		pSpawnHelper->m_nDeathState = pPawnData->GetStateIndexByName( "death" );
+	}
+
 	m_pPawnRoot->AddChild( pNode );
 	pNode->OnEditorActive( false );
 	m_vecAllPawns.resize( m_vecAllPawns.size() + 1 );

@@ -849,7 +849,6 @@ void CTypeText::AddElem( int32 i, float t )
 
 void CLightningEffect::OnAddedToStage()
 {
-	SetRenderObject( NULL );
 }
 
 void CLightningEffect::OnRemovedFromStage()
@@ -865,11 +864,13 @@ void CLightningEffect::OnRemovedFromStage()
 
 void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength, float fTurbulence )
 {
+	SetRenderObject( NULL );
 	m_nDuration = nDuration;
 	m_fStrength = fStrength;
 	m_fTurbulence = fTurbulence;
 	m_nTick = 0;
-	GetStage()->RegisterTick( 1, &m_onTick );
+	if( GetStage() )
+		GetStage()->RegisterTick( 1, &m_onTick );
 	TVector2<int32> p( 0, 0 );
 	m_vec.resize( 0 );
 	for( int i = 0; i < nTargets; i++ )
@@ -891,7 +892,7 @@ void CLightningEffect::Set( const TVector2<int32>* pTargets, int32 nTargets, int
 	}
 	m_imgOfs = CVector2( 2, p.x * p.y > 0 ? -2 : 2 );
 	RefreshImg();
-	if( !nDuration )
+	if( GetStage() && !nDuration )
 		m_pSound = PlaySoundLoop( "electric1" );
 }
 
@@ -930,6 +931,28 @@ void CLightningEffect::Render( CRenderContext2D& context )
 		elem.SetDrawable( pDrawables[nPass] );
 		context.AddElement( &elem, nGroup );
 	}
+}
+
+void CLightningEffect::Update()
+{
+	if( !m_nDuration )
+	{
+		if( m_nTick >= 4 )
+		{
+			m_nTick = 0;
+			RefreshImg();
+		}
+	}
+	CVector4 colors[3] = { { 1, 0, 0, 0 }, { 1, 1, 1, 0 }, { 0, 1, 1, 0 } };
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		if( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) >= m_fStrength || ( m_nDuration ?
+			SRand::Inst<eRand_Render>().Rand( 0, m_nDuration ) < m_nTick : !SRand::Inst<eRand_Render>().Rand( 0, m_nTick + 2 ) ) )
+			m_vecParams[i] = CVector4( 0, 0, 0, 0 );
+		else
+			m_vecParams[i] = colors[i % 3];
+	}
+	m_nTick++;
 }
 
 void CLightningEffect::RefreshImg()
@@ -1019,24 +1042,7 @@ void CLightningEffect::OnTick()
 		SetParentEntity( NULL );
 		return;
 	}
-	if( !m_nDuration )
-	{
-		if( m_nTick >= 4 )
-		{
-			m_nTick = 0;
-			RefreshImg();
-		}
-	}
-	CVector4 colors[3] = { { 1, 0, 0, 0 }, { 1, 1, 1, 0 }, { 0, 1, 1, 0 } };
-	for( int i = 0; i < m_elems.size(); i++ )
-	{
-		if( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) >= m_fStrength || ( m_nDuration ?
-			SRand::Inst<eRand_Render>().Rand( 0, m_nDuration ) < m_nTick : !SRand::Inst<eRand_Render>().Rand( 0, m_nTick + 2 ) ) )
-			m_vecParams[i] = CVector4( 0, 0, 0, 0 );
-		else
-			m_vecParams[i] = colors[i % 3];
-	}
-	m_nTick++;
+	Update();
 	GetStage()->RegisterTick( 1, &m_onTick );
 }
 

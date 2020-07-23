@@ -33,13 +33,15 @@ class CCommonLink : public CEntity
 public:
 	CCommonLink( const SClassCreateContext& context ) : CEntity( context )
 		, m_onBegin( this, &CCommonLink::Begin ), m_onUpdate( this, &CCommonLink::Update )
-		, m_onSrcKilled( this, &CCommonLink::OnKilled ), m_onDstKilled( this, &CCommonLink::OnKilled ) { SET_BASEOBJECT_ID( CCommonLink ); }
+		, m_onSrcKilled( this, &CCommonLink::OnSrcKilled ), m_onDstKilled( this, &CCommonLink::OnDstKilled ) { SET_BASEOBJECT_ID( CCommonLink ); }
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 private:
 	void Begin();
 	void Update();
-	void OnKilled();
+	void OnSrcKilled();
+	void OnDstKilled();
+	int8 m_nKillType;
 	TObjRef<CEntity> m_pSrc;
 	TObjRef<CEntity> m_pDst;
 	CVector2 m_srcOfs;
@@ -50,6 +52,8 @@ private:
 	TResourceRef<CPrefab> m_pLightningPrefab;
 
 	int32 m_nTick;
+	bool m_bSrcKilled;
+	bool m_bDstKilled;
 	TClassTrigger<CCommonLink> m_onBegin;
 	TClassTrigger<CCommonLink> m_onUpdate;
 	TClassTrigger<CCommonLink> m_onSrcKilled;
@@ -96,6 +100,25 @@ public:
 	CPawnAIAutoDoor( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIAutoDoor ); }
 	virtual bool CanCheckAction( bool bScenario ) override { return true; }
 	virtual int32 CheckAction( int8& nCurDir ) override;
+private:
+	int32 m_nType;
+	CString m_strOpenCondition;
+};
+
+class CHitButton : public CPawn
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CHitButton( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CHitButton ); }
+	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ) ) override;
+protected:
+	virtual void InitState() override;
+	TArray<int32> m_arrStates;
+	TArray<int32> m_arrTransferStates;
+	CString m_strStateKey;
+	CString m_strStateChangeScript;
+
+	int32 m_nCur;
 };
 
 class CConsole : public CPawn
@@ -112,6 +135,22 @@ private:
 
 	CReference<CLuaState> m_pDefault;
 	CReference<CLuaState> m_pExtra;
+};
+
+class CAlarm : public CPawnHit
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CAlarm( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CAlarm ); }
+	virtual void OnAddedToStage() override { m_p[1]->bVisible = false; }
+	virtual void Update() override;
+	virtual void OnPreview() override { m_p[1]->bVisible = false; }
+private:
+	CString m_strTriggerScript;
+	CString m_strSound;
+	CReference<CEntity> m_p[2];
+
+	bool m_bTriggered;
 };
 
 class CFallPoint : public CPawnHit
@@ -151,6 +190,7 @@ class CSmoke : public CPawnHit
 	friend void RegisterGameClasses_MiscElem();
 public:
 	CSmoke( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CSmoke ); }
+	virtual void OnRemovedFromStage() override;
 	virtual void Init() override;
 	virtual void Update() override;
 	virtual void Render( CRenderContext2D& context ) override;
@@ -159,8 +199,11 @@ public:
 private:
 	void InitImages();
 	void UpdateImages();
-	bool m_bPreview;
+	CReference<CEntity> m_pLightningEft;
+	int32 m_nEftInterval;
 
+	bool m_bImg;
+	bool m_bPreview;
 	CVector4 m_origParam[2];
 	float m_t;
 	float m_fAnimSpeed;
@@ -174,6 +217,7 @@ private:
 	SItem m_items[3];
 	CElement2D m_elems[3];
 	CVector4 m_params[6];
+	CReference<ISoundTrack> m_pSound;
 };
 
 class CElevator : public CLevelScript, public ISignalObj

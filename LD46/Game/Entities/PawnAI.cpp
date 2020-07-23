@@ -184,6 +184,7 @@ class CPawnAI2 : public CPawnAI
 public:
 	CPawnAI2( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI2 ); }
 	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished );
 };
 
 int32 CPawnAI2::CheckAction( int8& nCurDir )
@@ -207,6 +208,30 @@ int32 CPawnAI2::CheckAction( int8& nCurDir )
 	{
 		nCurDir = moveX;
 		return 0;
+	}
+	return -1;
+}
+
+int32 CPawnAI2::CheckStateTransits1( int8& nCurDir, bool bFinished )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetCurStateIndex() >= 4 )
+	{
+		if( !pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy ) )
+			return 3;
+		if( pPawn->GetCurStateIndex() == 5 && pPawn->IsDamaged() && pPawn->GetDamageType() >= 1 )
+		{
+			auto nDamageDir = pPawn->GetDamageOfsDir();
+			auto n0 = nDamageDir & 1;
+			if( n0 != nCurDir )
+				nCurDir = 1 - nCurDir;
+			return 7;
+		}
+	}
+	else
+	{
+		if( pPawn->IsKilled() && pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy ) )
+			return 4;
 	}
 	return -1;
 }
@@ -368,8 +393,7 @@ int32 CPawnAI_Hound::FindPathToPlayer( int8& nCurDir )
 				bool b = true;
 				for( int x = 0; x < w; x++ )
 				{
-					auto pGrid = pLevel->GetGrid( TVector2<int32>( x + i, j ) );
-					if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn && pGrid->pPawn != pPawn )
+					if( !pLevel->IsGridMoveable( TVector2<int32>( x + i, j ), pPawn ) )
 					{
 						b = false;
 						break;
@@ -496,7 +520,25 @@ int32 CPawnAI_Hound::FindPathToPlayer( int8& nCurDir )
 	}
 	if( nOpr == -1 )
 	{
-		auto& s1 = q.back();
+		if( !q.size() )
+			return -1;
+		int32 l = -1;
+		int32 n;
+		for( int i = q.size() - 1; i >= 0; i-- )
+		{
+			auto& s1 = q[i];
+			if( s1.nState )
+				continue;
+			auto d = s1.p - playerPos;
+			int32 l1 = abs( d.x ) + abs( d.y ) + Max( 0, abs( d.y ) - abs( d.x ) )
+				+ d.Dot( pawnPos + TVector2<int32>( curState.nState ? 1 : 0, 0 ) - playerPos );
+			if( l1 > l )
+			{
+				n = i;
+				l = l1;
+			}
+		}
+		auto& s1 = q[n];
 		nOpr = vecState[( s1.p.x + s1.p.y * lvSize.x ) * 3 + s1.nState];
 	}
 
@@ -570,24 +612,24 @@ int32 CPawnAI_Pig::CheckAction( int8& nCurDir )
 	if( d.x || d.y )
 	{
 		int32 x1 = abs( d.x );
-		int8 n1 = 0;
-		if( d.y >= x1 )
+		int8 n1;
+		if( d.y == 0 )
+			n1 = 0;
+		else if( d.y == x1 )
 			n1 = 1;
-		else if( d.y <= -x1 )
+		else if( d.y == -x1 )
 			n1 = 2;
+		else
+			return -1;
 		int8 n0 = nCurDir;
 		if( d.x > 0 )
 			n0 = 0;
 		else if( d.x < 0 )
 			n0 = 1;
 
-		if( n0 == nCurDir )
-			return eState_Move_Ready + n1;
-		else
-		{
-			n1 = n1 == 0 ? 0 : 3 - n1;
-			return eState_Move_Ready + n1;
-		}
+		if( n0 != nCurDir )
+			nCurDir = 1 - nCurDir;
+		return eState_Move_Ready + n1;
 	}
 	return -1;
 }

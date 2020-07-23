@@ -133,20 +133,24 @@ class CLevelSpawnHelper : public CEntity
 	friend void RegisterGameClasses_BasicElems();
 	friend class CMyLevel;
 	friend class CPawn;
+	friend class CPawnTool;
 public:
-	CLevelSpawnHelper( int8 nSpawnIndex, const char* szDeathKey, int32 nDeathState ) : CEntity(), m_nSpawnIndex( nSpawnIndex ), m_nDataType( 1 ),
+	CLevelSpawnHelper( int8 nSpawnIndex, const char* szDeathKey, int32 nDeathState ) : CEntity(), m_nSpawnType( 0 ), m_nSpawnIndex( nSpawnIndex ), m_nDataType( 1 ),
 		m_strSpawnCondition( "" ), m_strDeathKey( szDeathKey ), m_nDeathState( nDeathState ), m_bSpawnDeath( false ) {}
 	CLevelSpawnHelper( const SClassCreateContext& context ) : CEntity( context ), m_nSpawnIndex( -1 ) { SET_BASEOBJECT_ID( CLevelSpawnHelper ); }
 	virtual bool IsPreview() override { return true; }
 	virtual void OnPreview() override;
 private:
+	int8 m_nSpawnType;
 	int8 m_nDataType;
+	bool m_bSpawnDeath;
+	int32 m_nSpawnParam[2];
 	CString m_strSpawnCondition;
 	CString m_strDeathKey;
 	int32 m_nDeathState;
 
 	int8 m_nSpawnIndex;
-	bool m_bSpawnDeath;
+	int32 m_nStateParam[2];
 };
 
 struct SInputTableItem
@@ -169,6 +173,7 @@ struct SStateInputTableItem
 class CPawn : public CEntity, public ISignalObj
 {
 	friend class CMyLevel;
+	friend class CMasterLevel;
 	friend class CLevelSpawnHelper;
 	friend class CPawnTool;
 	friend class CLevelToolsView;
@@ -197,7 +202,9 @@ public:
 	virtual SPawnState& GetCurState() { return m_arrSubStates[m_nCurState]; }
 	int32 GetCurStateIndex() { return m_nCurState; }
 	int32 GetCurStateTick() { return m_nCurStateTick; }
-	int32 GetStateIndexByName( const char* szName );
+	int32 GetStateIndexByName( const char* szName ) const;
+	void SetInitState( int32 nState ) { m_bUseInitState = true; m_nInitState = nState; }
+	void SetDefaultState( int32 nState ) { m_bUseDefaultState = true; m_nDefaultState = nState; }
 	bool IsIgnoreBlockedExit() { return m_bIgnoreBlockedExit; }
 	bool IsValidStateIndex( int32 i ) { return i >= 0 && i < m_arrSubStates.Size(); }
 	int8 GetArmorType() { return m_nArmorType; }
@@ -213,6 +220,7 @@ public:
 	void RegisterChangeState( CTrigger* pTrigger ) { m_trigger.Register( 2, pTrigger ); }
 	bool IsKilled() { return m_nMaxHp > 0 && m_nHp <= 0; }
 	bool CanBeHit();
+	bool IsIgnoreBullet() { return m_bIgnoreBullet; }
 	void SetMounted( bool b, bool bMountHide ) { m_bMounted = b; m_bMountHide = b ? bMountHide : false; }
 	void SetForceHide( bool bForceHide ) { m_bForceHide = bForceHide; }
 	CPrefab* GetDamageEft() { return m_pDamageEft; }
@@ -222,6 +230,15 @@ public:
 	virtual TArray<SInputTableItem>* GetControllingInputTable() { return NULL; }
 	virtual TArray<SStateInputTableItem>* GetControllingStateInputTable() { return NULL; }
 	void StateTransit( const char* szToName, int32 nTo, int8 nDir ) { m_nCurDir = nDir; TransitTo( szToName, nTo, -1 ); }
+	enum
+	{
+		eSpecialState_Frenzy,
+
+		eSpecialState_Count,
+	};
+	void IncSpecialState( int32 n ) { m_nSpecialState[n]++; }
+	void DecSpecialState( int32 n ) { m_nSpecialState[n]--; }
+	bool IsSpecialState( int32 n ) { return m_nSpecialState[n] > 0; }
 
 	/*<-------------------For Script----------------------*/
 	bool PlayState( const char* sz );
@@ -255,11 +272,16 @@ protected:
 	void OnKilled();
 
 	bool m_bIsEnemy;
-	bool m_bIgnoreHit;
+	bool m_bIgnoreBullet;
+	bool m_bForceHit;
 	bool m_bIgnoreBlockedExit;
 	bool m_bHideInEditor;
 	int8 m_nInitDir;
 	int8 m_nArmorType;
+	bool m_bUseInitState;
+	bool m_bUseDefaultState;
+	int32 m_nInitState;
+	int32 m_nDefaultState;
 	int32 m_nWidth, m_nHeight;
 	int32 m_nMaxHp;
 	TArray<SPawnForm> m_arrForms;
@@ -294,6 +316,7 @@ protected:
 	CRectangle m_curStateRect;
 	CRectangle m_curStateOrigTexRect;
 	CRectangle m_hpBarOrigRect;
+	int32 m_nSpecialState[eSpecialState_Count];
 	CEventTrigger<3> m_trigger;
 	LINK_LIST_REF( CPawn, Pawn );
 };
@@ -502,6 +525,7 @@ public:
 	CPickUp( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CPickUp ); }
 	virtual void OnPreview() override;
 	virtual void Init() override;
+	CPlayerEquipment* GetEquipment() { return m_pEquipment; }
 	bool IsPickUpReady();
 	void PickUp( CPlayer* pPlayer );
 	void PreDrop( CPlayerEquipment* pEquipment, int32 nDropState ) { m_pEquipment = pEquipment; m_bDropped = true; m_nDropState = nDropState; }

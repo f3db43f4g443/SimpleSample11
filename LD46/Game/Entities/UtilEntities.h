@@ -205,6 +205,7 @@ public:
 	{ Set( &target, 1, nDuration, fStrength, fTurbulence ); }
 	void Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength = 1.0f, float fTurbulence = 0.125f );
 	virtual void Render( CRenderContext2D& context ) override;
+	void Update();
 private:
 	void RefreshImg();
 	void OnTick();

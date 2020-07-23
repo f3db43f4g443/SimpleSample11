@@ -21,7 +21,16 @@ void CPawn::OnPreview()
 	if( m_arrSubStates.Size() )
 	{
 		m_nCurDir = m_nInitDir;
-		ChangeState( GetDefaultState(), true );
+		int32 nInitState;
+		if( m_bUseInitState )
+		{
+			nInitState = m_nInitState;
+			if( nInitState < 0 || nInitState >= m_arrSubStates.Size() || m_arrSubStates[nInitState].nForm != m_nCurForm )
+				nInitState = GetDefaultState();
+		}
+		else
+			nInitState = GetDefaultState();
+		ChangeState( nInitState, true );
 		Update0();
 	}
 	for( auto pChild = Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
@@ -260,7 +269,7 @@ CMyLevel* CPawn::GetLevel()
 	return SafeCast<CMyLevel>( GetParentEntity()->GetParentEntity() );
 }
 
-int32 CPawn::GetStateIndexByName( const char* szName )
+int32 CPawn::GetStateIndexByName( const char* szName ) const
 {
 	for( int i = 0; i < m_arrSubStates.Size(); i++ )
 	{
@@ -272,8 +281,8 @@ int32 CPawn::GetStateIndexByName( const char* szName )
 
 bool CPawn::CanBeHit()
 {
-	if( m_bIgnoreHit )
-		return false;
+	if( m_bForceHit )
+		return true;
 	if( m_nHp <= 0 && !m_bIsEnemy )
 		return false;
 	return true;
@@ -374,6 +383,12 @@ void CPawn::InitState()
 		nInitState = m_pSpawnHelper->m_nDeathState;
 		m_nHp = 0;
 	}
+	else if( m_bUseInitState )
+	{
+		nInitState = m_nInitState;
+		if( nInitState < 0 || nInitState >= m_arrSubStates.Size() || m_arrSubStates[nInitState].nForm != m_nCurForm )
+			nInitState = GetDefaultState();
+	}
 	else
 		nInitState = GetDefaultState();
 	if( m_arrSubStates.Size() )
@@ -451,6 +466,11 @@ bool CPawn::FilterCommonTransit( SPawnStateTransit1& transit, int32 nSource )
 
 int32 CPawn::GetDefaultState()
 {
+	if( m_bUseDefaultState )
+	{
+		if( m_nDefaultState >= 0 && m_nDefaultState < m_arrSubStates.Size() && ( !m_arrForms.Size() || m_arrSubStates[m_nDefaultState].nForm == m_nCurForm ) )
+			return m_nDefaultState;
+	}
 	if( !m_arrForms.Size() )
 		return 0;
 	return m_arrForms[m_nCurForm].nDefaultState;
@@ -1867,7 +1887,7 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 			if( !pGrid || !pGrid->bCanEnter )
 				break;
 			CPawn* pPawn = pGrid->pPawn;
-			if( pPawn && pPawn != m_pCreator )
+			if( pPawn && pPawn != m_pCreator && !pPawn->IsIgnoreBullet() )
 				break;
 		}
 		hitOfs = ofs[m_nHitParam[0]] * l;
@@ -2086,7 +2106,10 @@ void RegisterGameClasses_BasicElems()
 
 	REGISTER_CLASS_BEGIN( CLevelSpawnHelper )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nSpawnType )
 		REGISTER_MEMBER( m_nDataType )
+		REGISTER_MEMBER( m_bSpawnDeath )
+		REGISTER_MEMBER( m_nSpawnParam )
 		REGISTER_MEMBER_BEGIN( m_strSpawnCondition )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
@@ -2111,11 +2134,16 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_BASE_CLASS( ISignalObj )
 		REGISTER_MEMBER( m_bIsEnemy )
-		REGISTER_MEMBER( m_bIgnoreHit )
+		REGISTER_MEMBER( m_bIgnoreBullet )
+		REGISTER_MEMBER( m_bForceHit )
 		REGISTER_MEMBER( m_bIgnoreBlockedExit )
 		REGISTER_MEMBER( m_bHideInEditor )
 		REGISTER_MEMBER( m_nInitDir )
 		REGISTER_MEMBER( m_nArmorType )
+		REGISTER_MEMBER( m_bUseInitState )
+		REGISTER_MEMBER( m_bUseDefaultState )
+		REGISTER_MEMBER( m_nInitState )
+		REGISTER_MEMBER( m_nDefaultState )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nMaxHp )

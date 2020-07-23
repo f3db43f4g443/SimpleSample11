@@ -31,6 +31,19 @@ const char* GetPlayerName()
 	return "sir";
 }
 
+void PlayerPickUp( const char* szName )
+{
+	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
+	if( !pPrefab || !pPrefab->GetRoot()->GetStaticDataSafe<CPickUp>() )
+		return;
+	auto pPickUp = SafeCast<CPickUp>( pPrefab->GetRoot()->CreateInstance() );
+	pPickUp->strCreatedFrom = szName;
+	auto pEquipment = pPickUp->GetEquipment();
+	if( pEquipment )
+		pEquipment->Init();
+	pPickUp->PickUp( GetPlayer() );
+}
+
 int32 RandInt( int32 nMin, int32 nMax )
 {
 	return SRand::Inst().Rand( nMin, nMax );
@@ -102,6 +115,14 @@ CEntity* CreateLighningEft( CVector2 begin, CVector2 end )
 	return pLightning;
 }
 
+
+void ForceAllVisible()
+{
+	auto& worldData = GetMasterLevel()->GetWorldData();
+	worldData.curFrame.bForceAllVisible = true;
+}
+
+
 void RegisterGlobalLuaCFunc()
 {
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetMasterLevel )
@@ -109,6 +130,7 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetCurCutScene )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetPlayer )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetPlayerName )
+	REGISTER_LUA_CFUNCTION_GLOBAL( PlayerPickUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandInt )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandFloat )
 	REGISTER_LUA_CFUNCTION_GLOBAL( Signal )
@@ -120,4 +142,5 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterAlwaysUpdate )
 	REGISTER_LUA_CFUNCTION_GLOBAL( CreateLighningEft )
 	REGISTER_LUA_CFUNCTION_GLOBAL( PlaySoundEffect )
+	REGISTER_LUA_CFUNCTION_GLOBAL( ForceAllVisible )
 }

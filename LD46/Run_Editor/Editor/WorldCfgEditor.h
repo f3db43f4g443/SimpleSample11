@@ -31,6 +31,7 @@ protected:
 	void SelectRegion( int32 n );
 	void Select( int32 n );
 	void OnLevelDataEdit( int32 nRegion, int32 nLevel );
+	void RefreshLevelData( int32 nRegion, int32 nLevel );
 	void RefreshLevelDataLink( int32 nRegion, int32 n, map<CString, TVector2<int32> >* pMap = NULL );
 	void RefreshExtLevel( int32 nRegion );
 	void ShowLevelTool();
@@ -39,6 +40,7 @@ protected:
 	void OnNewLevelOK() { EndNewLevel( true ); }
 	void OnNewLevelCancel() { EndNewLevel( false ); }
 	void OnBlueprintChange();
+	void OnMapChange();
 
 	virtual void OnViewportStartDrag( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportDragged( SUIMouseEvent* pEvent ) override;
@@ -82,6 +84,7 @@ protected:
 	CReference<CDropDownBox> m_pRegionSelect;
 	CReference<CFileNameEdit> m_pNewTemplate;
 	CReference<CFileNameEdit> m_pBlueprint;
+	CReference<CFileNameEdit> m_pMap;
 	CReference<CUITextBox> m_pNewLevelName;
 	float m_fScale;
 
@@ -112,6 +115,7 @@ protected:
 	TClassTrigger<CWorldCfgEditor> m_onNewLevelOK;
 	TClassTrigger<CWorldCfgEditor> m_onNewLevelCancel;
 	TClassTrigger<CWorldCfgEditor> m_onBlueprintChange;
+	TClassTrigger<CWorldCfgEditor> m_onMapChange;
 
 	TClassTrigger1<CWorldCfgEditor, const char*> m_onAddOK;
 };

@@ -411,6 +411,7 @@
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
+    <ClCompile Include="GUI\WorldMap.cpp" />
     <ClCompile Include="MyGame.cpp" />
     <ClCompile Include="MyLevel.cpp" />
     <ClCompile Include="Physics\HitProxy.cpp" />
@@ -439,6 +440,7 @@
     <ClInclude Include="GameState.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GUI\StageDirector.h" />
+    <ClInclude Include="GUI\WorldMap.h" />
     <ClInclude Include="MyGame.h" />
     <ClInclude Include="MyLevel.h" />
     <ClInclude Include="Physics\HitProxy.h" />

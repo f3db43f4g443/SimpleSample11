@@ -30,6 +30,10 @@ CWorld::CWorld()
 	, m_fPercent( 0 )
 	, m_nRestartTime( 0 )
 {
+	m_pWorldCfgFile = CResourceManager::Inst()->CreateResource<CWorldCfgFile>( "stages/world.w" );
+	auto& arrReg = GetWorldCfg().arrRegionData;
+	for( int i = 0; i < arrReg.Size(); i++ )
+		arrReg[i].pMap = CResourceManager::Inst()->CreateResource<CPrefab>( arrReg[i].pMap );
 	CStageDirector::Inst()->OnWorldCreated( this );
 }
 
@@ -216,12 +220,18 @@ void RegisterGameClasses_World()
 	REGISTER_CLASS_BEGIN( SLevelData )
 		REGISTER_MEMBER( pLevel )
 		REGISTER_MEMBER( displayOfs )
+		REGISTER_MEMBER( arrGrids )
+		REGISTER_MEMBER( arrNxtStages )
+		REGISTER_MEMBER( arrConsoles )
+		REGISTER_MEMBER( arrFall )
+		REGISTER_MEMBER( arrClimb )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SRegionData )
 		REGISTER_MEMBER( strName )
 		REGISTER_MEMBER( arrLevelData )
 		REGISTER_MEMBER( pBlueprint )
+		REGISTER_MEMBER( pMap )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SWorldCfg )

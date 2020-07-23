@@ -4,6 +4,7 @@
 #include "Render/DrawableGroup.h"
 #include "BasicElems.h"
 #include <deque>
+#include <set>
 
 #define LEVEL_GRID_SIZE_X 24.0f
 #define LEVEL_GRID_SIZE_Y 32.0f
@@ -224,6 +225,7 @@ public:
 		&m_vecGrid[p.x + p.y * m_nWidth] : NULL; }
 	const SLevelGridData* GetGridData( const TVector2<int32>& p ) const { return p.x >= 0 && p.y >= 0 && p.x < m_nWidth && p.y < m_nHeight ?
 		&m_arrGridData[p.x + p.y * m_nWidth] : NULL; }
+	const char* GetRegionName() { return m_strRegion; }
 	const CVector2& GetCamPos() { return m_camPos; }
 	CPlayer* GetPlayer() { return m_pPlayer; }
 	bool IsBegin() { return m_bBegin; }
@@ -236,6 +238,7 @@ public:
 	void End();
 	void Fail( int8 nFailType = 0 );
 	void Freeze();
+	void UnFreeze();
 	CPawn* SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* szRemaining = NULL, CPawn* pCreator = NULL, int32 nForm = 0 );
 	bool AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	void RemovePawn( CPawn* pPawn );
@@ -275,6 +278,7 @@ public:
 	void RegisterUpdate1( CTrigger* pTrigger ) { m_trigger.Register( 1, pTrigger ); }
 	void RegisterAlwaysUpdate( CTrigger* pTrigger ) { m_trigger.Register( 2, pTrigger ); }
 private:
+	void HandleSpawn( CLevelSpawnHelper* pSpawnHelper );
 	void HandlePawnMounts( CPawn* pPawn, bool bRemove );
 	void FlushSpawn();
 	void InitTiles();
@@ -312,6 +316,7 @@ private:
 		bool bBlocked;
 	};
 	vector<SExitState> m_vecExitState;
+	vector<CReference<CLevelSpawnHelper> > m_vecSpawner;
 
 	CEventTrigger<1> m_beginTrigger;
 	CEventTrigger<3> m_trigger;
@@ -399,6 +404,7 @@ private:
 
 struct SWorldDataFrame
 {
+	SWorldDataFrame() : bForceAllVisible( false ) {}
 	struct SPawnData
 	{
 		TVector2<int32> p;
@@ -407,6 +413,8 @@ struct SWorldDataFrame
 	};
 	struct SLevelData
 	{
+		SLevelData() : bVisited( false ) {}
+		bool bVisited;
 		map<string, int32> mapDataInt;
 		map<string, SPawnData> mapDataDeadPawn;
 	};
@@ -417,7 +425,9 @@ struct SWorldDataFrame
 	map<string, int32> mapDataInt;
 	TVector2<int32> playerEnterPos;
 	int8 nPlayerEnterDir;
+	bool bForceAllVisible;
 	CBufFile playerData;
+	set<string> unlockedRegionMaps;
 };
 
 struct SWorldData
@@ -430,6 +440,8 @@ struct SWorldData
 	int32 nCurFrameCount;
 	static constexpr int32 nMaxFrameCount = 10;
 
+	const char* GetCurLevel() { return curFrame.strCurLevel.c_str(); }
+	SWorldDataFrame::SLevelData& GetLevelData( const char* szLevel ) { return curFrame.mapLevelData[szLevel]; }
 	SWorldDataFrame::SLevelData& GetCurLevelData() { return curFrame.mapLevelData[curFrame.strCurLevel]; }
 	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir );
 	void OnReset( CPlayer* pPlayer );
@@ -438,6 +450,7 @@ struct SWorldData
 	void OnRestoreToCheckpoint( CPlayer* pPlayer );
 	void ClearKeys();
 	void Respawn();
+	void UnlockRegionMap( const char* szRegion );
 };
 
 class CMasterLevel : public CEntity
@@ -472,6 +485,8 @@ public:
 	void Respawn() { m_worldData.Respawn(); }
 	void TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0 );
 	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType = 0 );
+	void UnlockRegionMap( const char* szRegion ) { m_worldData.UnlockRegionMap( szRegion ); }
+	void ShowWorldMap( bool bShow, int8 nType = 0 );
 
 	CVector2 GetCamPos();
 	void OnPlayerDamaged();
@@ -488,6 +503,7 @@ private:
 
 	CReference<CMainUI> m_pMainUI;
 	CReference<CRenderObject2D> m_pLevelFadeMask;
+	CReference<CEntity> m_pWorldMap;
 
 	SWorldData m_worldData;
 	CReference<CPlayer> m_pPlayer;

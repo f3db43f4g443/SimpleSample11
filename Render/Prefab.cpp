@@ -10,6 +10,16 @@
 #include <sstream>
 #include <set>
 
+CPrefab* CPrefabBaseNode::GetInstanceOwner()
+{
+	return (CPrefab*)m_pInstanceOwner.GetPtr();
+}
+
+CPrefabNode* CPrefabBaseNode::GetInstanceOwnerNode()
+{
+	return (CPrefabNode*)m_pInstanceOwnerNode.GetPtr();
+}
+
 CRenderObject2D* CPrefabBaseNode::CreateRenderObjectByResource( CResource* pResource, CRenderObject2D* pNode )
 {
 	CRenderObject2D* pRenderObject = NULL;
@@ -1454,6 +1464,11 @@ CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst,
 
 		if( m_nameSpace.pNameSpaceKey )
 			m_nameSpace.FillData();
+		if( pPrefabNode )
+		{
+			pPrefabNode->m_pInstanceOwner = m_pPrefab;
+			pPrefabNode->m_pInstanceOwnerNode = this;
+		}
 	}
 	return pRenderObject;
 }

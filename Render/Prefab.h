@@ -50,6 +50,8 @@ public:
 		return NULL;
 	}
 
+	class CPrefab* GetInstanceOwner();
+	class CPrefabNode* GetInstanceOwnerNode();
 	static CRenderObject2D* CreateRenderObjectByResource( CResource* pResource, CRenderObject2D* pNode );
 protected:
 	virtual void OnUpdatePreview() {}
@@ -57,6 +59,9 @@ protected:
 	CString m_strName;
 	CReference<CRenderObject2D> m_pRenderObject;
 	CReference<CResource> m_pResource;
+private:
+	CReference<CResource> m_pInstanceOwner;
+	CReference<CRenderObject2D> m_pInstanceOwnerNode;
 };
 
 struct CPrefabNodeNameSpace

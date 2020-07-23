@@ -7,6 +7,7 @@
 #include "Render/Renderer.h"
 #include "Game/MyLevel.h"
 #include "Editor/LevelTools.h"
+#include "Game/Entities/MiscElem.h"
 
 void CWorldCfgEditor::NewFile( const char* szFileName )
 {
@@ -91,6 +92,10 @@ void CWorldCfgEditor::OnInited()
 	m_pBlueprint->Replace( m_pPanel[0]->GetChildByName( "blueprint" ) );
 	m_onBlueprintChange.Set( this, &CWorldCfgEditor::OnBlueprintChange );
 	m_pBlueprint->Register( eEvent_Action, &m_onBlueprintChange );
+	m_pMap = CFileNameEdit::Create( "Map", "pf", 80 );
+	m_pMap->Replace( m_pPanel[0]->GetChildByName( "map" ) );
+	m_onMapChange.Set( this, &CWorldCfgEditor::OnMapChange );
+	m_pMap->Register( eEvent_Action, &m_onMapChange );
 
 	m_pPanel[1] = GetChildByName<CUIElement>( "1" );
 	m_pPanel[1]->SetVisible( false );
@@ -145,6 +150,7 @@ void CWorldCfgEditor::RefreshPreview()
 		{
 			if( m_vecRegionData[i].vecLevelData[j].bDirty )
 			{
+				RefreshLevelData( i, j );
 				CPrefab* pPrefab = levelData[j].pLevel;
 				pPrefab->RefreshBegin();
 				auto pNode1 = m_vecRegionData[i].vecLevelData[j].pClonedLevelData->Clone( pPrefab );
@@ -387,7 +393,10 @@ void CWorldCfgEditor::Validate( const char* szName )
 	for( int i = 0; i < m_vecRegionData.size(); i++ )
 	{
 		for( int j = 0; j < m_vecRegionData[i].vecLevelData.size(); j++ )
+		{
+			RefreshLevelData( i, j );
 			RefreshLevelDataLink( i, j, &mapLevelIndex );
+		}
 		RefreshExtLevel( i );
 	}
 
@@ -558,6 +567,7 @@ void CWorldCfgEditor::SelectRegion( int32 n )
 		m_pRegionSelect->SetSelectedItem( m_pData->arrRegionData[m_nCurRegion].strName, false );
 	}
 	m_pBlueprint->SetText( m_pData->arrRegionData[m_nCurRegion].pBlueprint );
+	m_pMap->SetText( m_pData->arrRegionData[m_nCurRegion].pMap );
 }
 
 void CWorldCfgEditor::Select( int32 n )
@@ -592,6 +602,78 @@ void CWorldCfgEditor::OnLevelDataEdit( int32 nRegion, int32 nLevel )
 	m_vecRegionData[nRegion].vecLevelData[nLevel].bDirty = true;
 	m_vecRegionData[nRegion].vecLevelData[nLevel].pClonedLevelData->OnEdit();
 	RefreshLevelDataLink( nRegion, nLevel );
+}
+
+void CWorldCfgEditor::RefreshLevelData( int32 nRegion, int32 nLevel )
+{
+	auto& levelData = m_pData->arrRegionData[nRegion].arrLevelData[nLevel];
+	levelData.arrGrids.Resize( 0 );
+	levelData.arrNxtStages.Resize( 0 );
+	levelData.arrConsoles.Resize( 0 );
+	levelData.arrFall.Resize( 0 );
+	levelData.arrClimb.Resize( 0 );
+	auto pLevelNode = m_vecRegionData[nRegion].vecLevelData[nLevel].pClonedLevelData;
+	auto pLevel = pLevelNode->GetStaticDataSafe<CMyLevel>();
+	auto levelSize = pLevel->GetSize();
+	for( int i = 0; i < levelSize.x; i++ )
+	{
+		for( int j = 0; j < levelSize.y; j++ )
+		{
+			if( !!( ( i + j ) & 1 ) )
+				continue;
+			auto& grid = pLevel->m_arrGridData[i + j * levelSize.x];
+			if( grid.nNextStage > 0 )
+			{
+				levelData.arrNxtStages.Resize( levelData.arrNxtStages.Size() + 1 );
+				levelData.arrNxtStages[levelData.arrNxtStages.Size() - 1] = CVector2( i, j );
+			}
+			else
+			{
+				auto nTile = grid.nTile;
+				if( !pLevel->m_arrTileData[nTile].bBlocked )
+				{
+					levelData.arrGrids.Resize( levelData.arrGrids.Size() + 1 );
+					levelData.arrGrids[levelData.arrGrids.Size() - 1] = CVector2( i, j );
+				}
+			}
+		}
+	}
+	for( auto p = pLevelNode->Get_RenderChild(); p; p = p->NextRenderChild() )
+	{
+		if( p == pLevelNode->GetRenderObject() || p == pLevelNode->GetPatchedNode() )
+			continue;
+		auto pPrefabNode = static_cast<CPrefabNode*>( p );
+		if( pPrefabNode->GetName() == "1" || pPrefabNode->GetClassData() && pPrefabNode->GetClassData()->Is( CClassMetaDataMgr::Inst().GetClassData<CPawnLayer>() ) )
+		{
+			for( auto p1 = pPrefabNode->Get_RenderChild(); p1; p1 = p1->NextRenderChild() )
+			{
+				if( p1 == pPrefabNode->GetRenderObject() || p1 == pPrefabNode->GetPatchedNode() )
+					continue;
+				auto pPawnNode = static_cast<CPrefabNode*>( p1 );
+				if( !pPawnNode->GetPatchedNode() )
+					continue;
+				auto pData = pPawnNode->GetPatchedNode()->GetClassData();
+				if( pData )
+				{
+					if( pData->Is( CClassMetaDataMgr::Inst().GetClassData<CConsole>() ) )
+					{
+						levelData.arrConsoles.Resize( levelData.arrConsoles.Size() + 1 );
+						levelData.arrConsoles[levelData.arrConsoles.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+					}
+					else if( pData->Is( CClassMetaDataMgr::Inst().GetClassData<CFallPoint>() ) )
+					{
+						levelData.arrFall.Resize( levelData.arrFall.Size() + 1 );
+						levelData.arrFall[levelData.arrFall.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+					}
+					else if( pData->Is( CClassMetaDataMgr::Inst().GetClassData<CClimbPoint>() ) )
+					{
+						levelData.arrClimb.Resize( levelData.arrClimb.Size() + 1 );
+						levelData.arrClimb[levelData.arrClimb.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+					}
+				}
+			}
+		}
+	}
 }
 
 void CWorldCfgEditor::RefreshLevelDataLink( int32 nRegion, int32 n, map<CString, TVector2<int32> >* pMap )
@@ -875,6 +957,12 @@ void CWorldCfgEditor::OnBlueprintChange()
 	}
 	m_pData->arrRegionData[m_nCurRegion].pBlueprint = strName.c_str();
 	m_pData->arrRegionData[m_nCurRegion].pBlueprint = pPrefab;
+}
+
+void CWorldCfgEditor::OnMapChange()
+{
+	auto strName = UnicodeToUtf8( m_pMap->GetText() );
+	m_pData->arrRegionData[m_nCurRegion].pMap = strName.c_str();
 }
 
 void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )

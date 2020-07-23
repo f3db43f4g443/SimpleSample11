@@ -80,6 +80,18 @@ void CCommonLink::OnAddedToStage()
 
 void CCommonLink::OnRemovedFromStage()
 {
+	if( m_bSrcKilled )
+	{
+		auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
+		if( pPawn )
+			pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
+	}
+	if( m_bDstKilled )
+	{
+		auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+		if( pPawn )
+			pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
+	}
 	if( m_onBegin.IsRegistered() )
 		m_onBegin.Unregister();
 	if( m_onUpdate.IsRegistered() )
@@ -104,7 +116,12 @@ void CCommonLink::Begin()
 	if( pPawn )
 	{
 		if( pPawn->IsKilled() )
-			m_pSrc = NULL;
+		{
+			if( m_nKillType <= 1 )
+				m_pSrc = NULL;
+			else
+				m_bSrcKilled = true;
+		}
 		else
 			pPawn->RegisterKilled( &m_onSrcKilled );
 	}
@@ -114,13 +131,37 @@ void CCommonLink::Begin()
 	if( pPawn )
 	{
 		if( pPawn->IsKilled() )
-			m_pDst = NULL;
+		{
+			if( m_nKillType == 0 )
+				m_pDst = NULL;
+			else
+				m_bDstKilled = true;
+		}
 		else
 			pPawn->RegisterKilled( &m_onDstKilled );
 	}
 	else
 		m_pDst->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onDstKilled );
 	m_pSound = PlaySoundLoop( "electric1" );
+	if( m_bSrcKilled && m_bDstKilled )
+		m_pSrc = m_pDst = NULL;
+	if( m_pSrc && m_pDst )
+	{
+		if( m_bSrcKilled )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+		if( m_bDstKilled )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+	}
+	else
+		m_bSrcKilled = m_bDstKilled = false;
 }
 
 void CCommonLink::Update()
@@ -158,9 +199,38 @@ void CCommonLink::Update()
 	m_nTick--;
 }
 
-void CCommonLink::OnKilled()
+void CCommonLink::OnSrcKilled()
 {
-	SetParentEntity( NULL );
+	if( m_nKillType <= 1 )
+		SetParentEntity( NULL );
+	else
+	{
+		if( m_bSrcKilled )
+			return;
+		m_bSrcKilled = true;
+		auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
+		if( pPawn )
+			pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		if( m_bDstKilled )
+			SetParentEntity( NULL );
+	}
+}
+
+void CCommonLink::OnDstKilled()
+{
+	if( m_nKillType == 0 )
+		SetParentEntity( NULL );
+	else
+	{
+		if( m_bDstKilled )
+			return;
+		m_bDstKilled = true;
+		auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+		if( pPawn )
+			pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		if( m_bSrcKilled )
+			SetParentEntity( NULL );
+	}
 }
 
 void CPawnUsageCommon::UseHit( class CPlayer* pPlayer )
@@ -223,18 +293,56 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pLevel = pPawn->GetLevel();
+	auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
+	bool bOpen;
+	if( m_nType )
+		bOpen = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strOpenCondition );
+	else
+		bOpen = !pLevel->IsGridBlockedExit( pGrid, true );
 	if( pPawn->GetCurStateIndex() == eState_Open )
 	{
-		auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
-		if( !pGrid->pPawn && pLevel->IsGridBlockedExit( pGrid, true ) )
+		if( !pGrid->pPawn && !bOpen )
 			return eState_Closing;
 	}
 	else
 	{
-		if( !pLevel->IsGridBlockedExit( pLevel->GetGrid( pPawn->GetPos() ), true ) )
+		if( bOpen )
 			return eState_Opening;
 	}
 	return -1;
+}
+
+int32 CHitButton::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOfs )
+{
+	auto nMaxState = m_arrStates.Size();
+	if( hitOfs.x >= 0 )
+		m_nCur = m_nCur == 0 ? nMaxState - 1 : m_nCur - 1;
+	else
+		m_nCur = m_nCur == nMaxState - 1 ? 0 : m_nCur + 1;
+	ChangeState( m_arrTransferStates[m_nCur], false );
+	if( m_strStateKey.c_str() )
+		GetStage()->GetMasterLevel()->SetKeyInt( m_strStateKey, m_nCur );
+	if( m_strStateChangeScript.c_str() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( m_strStateChangeScript );
+		pLuaState->PushLua( m_nCur );
+		pLuaState->Call( 1, 0 );
+	}
+	return nDamage;
+}
+
+void CHitButton::InitState()
+{
+	if( m_strStateKey.c_str() )
+	{
+		m_bUseInitState = true;
+		m_nCur = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+	}
+	else
+		m_nCur = 0;
+	m_nInitState = m_arrStates[m_nCur];
+	CPawn::InitState();
 }
 
 void CConsole::Update()
@@ -289,6 +397,25 @@ void CConsole::RunDefault()
 		m_pDefault = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strDefaultScript );
 		if( !m_pDefault->Resume( 0, 0 ) )
 			m_pDefault = NULL;
+	}
+}
+
+void CAlarm::Update()
+{
+	CPawnHit::Update();
+	if( !m_bTriggered )
+	{
+		auto pPlayer = GetLevel()->GetPlayer();
+		if( pPlayer && pPlayer->GetPos() == GetPos() )
+		{
+			m_bTriggered = true;
+			m_p[0]->bVisible = false;
+			m_p[1]->bVisible = true;
+			if( m_strTriggerScript.length() )
+				CLuaMgr::Inst().Run( m_strTriggerScript );
+			if( m_strSound.length() )
+				PlaySoundEffect( m_strSound );
+		}
 	}
 }
 
@@ -364,23 +491,47 @@ int32 CClimbPoint::GetDefaultState()
 	return m_bReady ? 1 : 0;
 }
 
+void CSmoke::OnRemovedFromStage()
+{
+	if( m_pSound )
+	{
+		m_pSound->FadeOut( 0.5f );
+		m_pSound = NULL;
+	}
+	CPawnHit::OnRemovedFromStage();
+}
+
 void CSmoke::Init()
 {
 	CPawnHit::Init();
 	InitImages();
-	UpdateImages();
+	if( m_bImg )
+		UpdateImages();
+	if( m_pLightningEft )
+	{
+		SafeCast<CLightningEffect>( m_pLightningEft.GetPtr() )->Set( TVector2<int32>( 0, 40 ), m_nEftInterval, 2, 0.05f );
+		m_pSound = PlaySoundLoop( "electric1" );
+	}
 }
 
 void CSmoke::Update()
 {
 	CPawnHit::Update();
-	UpdateImages();
-	m_t += m_fAnimSpeed;
-	m_t -= floor( m_t );
-	for( int i = 0; i < 3; i++ )
+	if( m_bImg )
 	{
-		m_items[i].tex.x += m_items[i].fTexSpeed;
-		m_items[i].tex.x -= floor( m_items[i].tex.x );
+		UpdateImages();
+		m_t += m_fAnimSpeed;
+		m_t -= floor( m_t );
+		for( int i = 0; i < 3; i++ )
+		{
+			m_items[i].tex.x += m_items[i].fTexSpeed;
+			m_items[i].tex.x -= floor( m_items[i].tex.x );
+		}
+	}
+	if( m_pLightningEft && !m_pLightningEft->GetParentEntity() )
+	{
+		m_pLightningEft->SetParentEntity( this );
+		SafeCast<CLightningEffect>( m_pLightningEft.GetPtr() )->Set( TVector2<int32>( 0, 40 ), m_nEftInterval, 2, 0.05f );
 	}
 
 	auto pPlayer = GetLevel()->GetPlayer();
@@ -390,6 +541,8 @@ void CSmoke::Update()
 
 void CSmoke::Render( CRenderContext2D& context )
 {
+	if( !m_bImg )
+		return;
 	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
 	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
 	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
@@ -430,14 +583,19 @@ void CSmoke::UpdateRendered( double dTime )
 {
 	if( m_bPreview )
 	{
-		UpdateImages();
-		m_t += m_fAnimSpeed;
-		m_t -= floor( m_t );
-		for( int i = 0; i < 3; i++ )
+		if( m_bImg )
 		{
-			m_items[i].tex.x += m_items[i].fTexSpeed;
-			m_items[i].tex.x -= floor( m_items[i].tex.x );
+			UpdateImages();
+			m_t += m_fAnimSpeed;
+			m_t -= floor( m_t );
+			for( int i = 0; i < 3; i++ )
+			{
+				m_items[i].tex.x += m_items[i].fTexSpeed;
+				m_items[i].tex.x -= floor( m_items[i].tex.x );
+			}
 		}
+		if( m_pLightningEft )
+			SafeCast<CLightningEffect>( m_pLightningEft.GetPtr() )->Update();
 	}
 }
 
@@ -445,12 +603,18 @@ void CSmoke::OnPreview()
 {
 	m_bPreview = true;
 	InitImages();
-	UpdateImages();
+	if( m_bImg )
+		UpdateImages();
+	if( m_pLightningEft )
+		SafeCast<CLightningEffect>( m_pLightningEft.GetPtr() )->Set( TVector2<int32>( 0, 40 ), 0, 2, 0.05f );
 }
 
 void CSmoke::InitImages()
 {
 	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
+	if( !pImg )
+		return;
+	m_bImg = true;
 	auto pParam = pImg->GetParam();
 	m_origParam[0] = pParam[0];
 	m_origParam[1] = pParam[1];
@@ -1141,6 +1305,7 @@ void RegisterGameClasses_MiscElem()
 
 	REGISTER_CLASS_BEGIN( CCommonLink )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nKillType )
 		REGISTER_MEMBER( m_pSrc )
 		REGISTER_MEMBER( m_pDst )
 		REGISTER_MEMBER( m_srcOfs )
@@ -1168,6 +1333,18 @@ void RegisterGameClasses_MiscElem()
 
 	REGISTER_CLASS_BEGIN( CPawnAIAutoDoor )
 		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER( m_nType )
+		REGISTER_MEMBER( m_strOpenCondition )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CHitButton )
+		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER( m_arrStates )
+		REGISTER_MEMBER( m_arrTransferStates )
+		REGISTER_MEMBER( m_strStateKey )
+		REGISTER_MEMBER_BEGIN( m_strStateChangeScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CConsole )
@@ -1178,6 +1355,16 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_BEGIN( m_strExtraScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CAlarm )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER_BEGIN( m_strTriggerScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_strSound )
+		REGISTER_MEMBER_TAGGED_PTR( m_p[0], 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_p[1], 2 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CFallPoint )
@@ -1198,6 +1385,8 @@ void RegisterGameClasses_MiscElem()
 
 	REGISTER_CLASS_BEGIN( CSmoke )
 		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER_TAGGED_PTR( m_pLightningEft, eft )
+		REGISTER_MEMBER( m_nEftInterval )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CElevator )

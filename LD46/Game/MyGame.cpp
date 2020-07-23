@@ -210,6 +210,7 @@ void RegisterGameClasses_UtilEntities();
 void RegisterGameClasses_Ablilities();
 void RegisterGameClasses_PawnAI();
 void RegisterGlobalLuaCFunc();
+void RegisterGameClasses_WorldMap();
 void RegisterGameClasses()
 {
 	REGISTER_CLASS_BEGIN( SHitProxyCircle )
@@ -265,6 +266,7 @@ void RegisterGameClasses()
 	RegisterGameClasses_UtilEntities();
 	RegisterGameClasses_Ablilities();
 	RegisterGameClasses_PawnAI();
+	RegisterGameClasses_WorldMap();
 	RegisterGlobalLuaCFunc();
 }
 

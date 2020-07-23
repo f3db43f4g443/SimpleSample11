@@ -1,5 +1,5 @@
 ﻿<root>
-  <world cfg_path="stages/world.w" entry="test.pf" entry_x="4" entry_y="2" entry_dir="0"
+  <world cfg_path="stages/world.w" entry="stages/3f_pipes_2_2.pf" entry_x="0" entry_y="2" entry_dir="0"
          lua_start="scripts/0.lua" lua_world_init="scripts/world.lua"  />
   <prefabs>
     <fail_lightning_eft>data/misc/lightning.pf</fail_lightning_eft>

@@ -16,6 +16,12 @@ struct SLevelData
 	SLevelData( const SClassCreateContext& context ) {}
 	TResourceRef<CPrefab> pLevel;
 	CVector2 displayOfs;
+
+	TArray<CVector2> arrGrids;
+	TArray<CVector2> arrNxtStages;
+	TArray<CVector2> arrConsoles;
+	TArray<CVector2> arrFall;
+	TArray<CVector2> arrClimb;
 };
 
 struct SRegionData
@@ -24,6 +30,7 @@ struct SRegionData
 	CString strName;
 	TArray<SLevelData> arrLevelData;
 	TResourceRef<CPrefab> pBlueprint;
+	TResourceRef<CPrefab> pMap;
 };
 
 struct SWorldCfg
