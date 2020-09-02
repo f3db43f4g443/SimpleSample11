@@ -42,6 +42,7 @@ private:
 	void OnSrcKilled();
 	void OnDstKilled();
 	int8 m_nKillType;
+	int8 m_nTargetEffectType;
 	TObjRef<CEntity> m_pSrc;
 	TObjRef<CEntity> m_pDst;
 	CVector2 m_srcOfs;
@@ -100,9 +101,44 @@ public:
 	CPawnAIAutoDoor( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIAutoDoor ); }
 	virtual bool CanCheckAction( bool bScenario ) override { return true; }
 	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
 private:
 	int32 m_nType;
 	CString m_strOpenCondition;
+	int8 m_nStateMapIconX[2], m_nStateMapIconY[2];
+};
+
+class CPawnAIBot : public CPawnAI
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CPawnAIBot( const SClassCreateContext& context ) : CPawnAI( context ), m_onSignal( this, &CPawnAIBot::OnSignal ) { SET_BASEOBJECT_ID( CPawnAIBot ); }
+	virtual void OnInit() override;
+	virtual bool CanCheckAction( bool bScenario ) override { return true; }
+	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
+private:
+	void OnSignal( int32 i );
+	int32 m_nType;
+	CString m_strOpenCondition;
+	int8 m_nStateMapIconX[2], m_nStateMapIconY[2];
+
+	TClassTrigger1<CPawnAIBot, int32> m_onSignal;
+};
+
+class CSeal : public CPawn
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CSeal( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CSeal ); }
+	virtual void Update() override;
+	virtual int32 Signal( int32 i ) override;
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
+protected:
+	virtual void InitState() override;
+	CString m_strStateKey;
+	CString m_strStateChangeScript;
+	int8 m_nStateMapIconX[3], m_nStateMapIconY[3];
 };
 
 class CHitButton : public CPawn
@@ -110,14 +146,25 @@ class CHitButton : public CPawn
 	friend void RegisterGameClasses_MiscElem();
 public:
 	CHitButton( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CHitButton ); }
+	virtual void Init() override;
+	virtual void OnPreview() override;
+	virtual int32 Signal( int32 i ) override;
 	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ) ) override;
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
 protected:
 	virtual void InitState() override;
 	TArray<int32> m_arrStates;
 	TArray<int32> m_arrTransferStates;
+	TArray<int8> m_arrStateIconTexX;
+	TArray<int8> m_arrStateIconTexY;
+	int32 m_nBrokenState;
+	int8 m_nBrokenIconTexX, m_nBrokenIconTexY;
 	CString m_strStateKey;
 	CString m_strStateChangeScript;
+	CString m_strRepairedKey;
+	CString m_strStateChangeSound;
 
+	bool m_bReady;
 	int32 m_nCur;
 };
 
@@ -135,6 +182,22 @@ private:
 
 	CReference<CLuaState> m_pDefault;
 	CReference<CLuaState> m_pExtra;
+};
+
+class CPressurePlate : public CPawnHit
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CPressurePlate( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CPressurePlate ); }
+	virtual void Update() override;
+private:
+	void OnPress( bool bDown );
+	CString m_strPressStateTag;
+	CString m_strPressKey;
+	CString m_strPressScript;
+	CString m_strSound[2];
+
+	bool m_bTriggered;
 };
 
 class CAlarm : public CPawnHit
@@ -176,13 +239,23 @@ public:
 	CClimbPoint( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CClimbPoint ); }
 	virtual void Init() override;
 	virtual int32 Signal( int32 i ) override;
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
 private:
 	virtual int32 GetDefaultState() override;
 	int32 m_nNxtStage;
 	CString m_strKey;
-	CReference<CPlayerMount> m_pMount[2];
 
 	bool m_bReady;
+};
+
+class CHeavyDoor : public CPawn
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CHeavyDoor( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CHeavyDoor ); }
+	virtual int32 Signal( int32 i ) override;
+private:
+	int32 m_nNxtStage;
 };
 
 class CSmoke : public CPawnHit

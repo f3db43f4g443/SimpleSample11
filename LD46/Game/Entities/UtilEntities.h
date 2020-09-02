@@ -173,6 +173,7 @@ public:
 	void SetTypeSound( const char* sz, int32 nTextInterval );
 	void ForceFinish();
 	bool IsFinished();
+	bool IsForceFinish() { return m_nForceFinishTick >= 0; }
 	void Update();
 	virtual void SetParam( const CVector4& param ) override;
 	virtual void Render( CRenderContext2D& context ) override;

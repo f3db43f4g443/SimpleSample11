@@ -410,6 +410,8 @@
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
+    <ClCompile Include="GUI\ActionPreview.cpp" />
+    <ClCompile Include="GUI\Menu.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\WorldMap.cpp" />
     <ClCompile Include="MyGame.cpp" />
@@ -439,6 +441,8 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="GameState.h" />
     <ClInclude Include="GlobalCfg.h" />
+    <ClInclude Include="GUI\ActionPreview.h" />
+    <ClInclude Include="GUI\Menu.h" />
     <ClInclude Include="GUI\StageDirector.h" />
     <ClInclude Include="GUI\WorldMap.h" />
     <ClInclude Include="MyGame.h" />

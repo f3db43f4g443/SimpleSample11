@@ -46,10 +46,9 @@ public:
 	virtual void UpdateFrame() override;
 
 	CWorld* GetWorld() { return m_pWorld; }
-	void SetStageName( const char* szStage ) { m_strStage = szStage; }
 
 	DECLARE_GLOBAL_INST_REFERENCE( CMainGameState );
 private:
 	CWorld* m_pWorld;
-	string m_strStage;
+	int8 m_nState;
 };

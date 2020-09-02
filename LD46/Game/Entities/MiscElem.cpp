@@ -80,17 +80,29 @@ void CCommonLink::OnAddedToStage()
 
 void CCommonLink::OnRemovedFromStage()
 {
-	if( m_bSrcKilled )
+	if( m_nTargetEffectType == 2 )
 	{
 		auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
 		if( pPawn )
 			pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
-	}
-	if( m_bDstKilled )
-	{
-		auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+		pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
 		if( pPawn )
 			pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
+	}
+	else
+	{
+		if( m_bSrcKilled )
+		{
+			auto pPawn = SafeCast<CPawn>( m_nTargetEffectType == 1 ? m_pDst.GetPtr() : m_pSrc.GetPtr() );
+			if( pPawn )
+				pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+		if( m_bDstKilled )
+		{
+			auto pPawn = SafeCast<CPawn>( m_nTargetEffectType == 1 ? m_pSrc.GetPtr() : m_pDst.GetPtr() );
+			if( pPawn )
+				pPawn->DecSpecialState( CPawn::eSpecialState_Frenzy );
+		}
 	}
 	if( m_onBegin.IsRegistered() )
 		m_onBegin.Unregister();
@@ -147,17 +159,29 @@ void CCommonLink::Begin()
 		m_pSrc = m_pDst = NULL;
 	if( m_pSrc && m_pDst )
 	{
-		if( m_bSrcKilled )
+		if( m_nTargetEffectType == 2 )
 		{
 			auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
 			if( pPawn )
 				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
-		}
-		if( m_bDstKilled )
-		{
-			auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+			pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
 			if( pPawn )
 				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+		else
+		{
+			if( m_bSrcKilled )
+			{
+				auto pPawn = SafeCast<CPawn>( m_nTargetEffectType == 1 ? m_pDst.GetPtr() : m_pSrc.GetPtr() );
+				if( pPawn )
+					pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+			}
+			if( m_bDstKilled )
+			{
+				auto pPawn = SafeCast<CPawn>( m_nTargetEffectType == 1 ? m_pSrc.GetPtr() : m_pDst.GetPtr() );
+				if( pPawn )
+					pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+			}
 		}
 	}
 	else
@@ -208,9 +232,18 @@ void CCommonLink::OnSrcKilled()
 		if( m_bSrcKilled )
 			return;
 		m_bSrcKilled = true;
-		auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
-		if( pPawn )
-			pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		if( m_nTargetEffectType == 0 )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+		if( m_nTargetEffectType == 1 )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
 		if( m_bDstKilled )
 			SetParentEntity( NULL );
 	}
@@ -225,9 +258,18 @@ void CCommonLink::OnDstKilled()
 		if( m_bDstKilled )
 			return;
 		m_bDstKilled = true;
-		auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
-		if( pPawn )
-			pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		if( m_nTargetEffectType == 0 )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pDst.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
+		if( m_nTargetEffectType == 1 )
+		{
+			auto pPawn = SafeCast<CPawn>( m_pSrc.GetPtr() );
+			if( pPawn )
+				pPawn->IncSpecialState( CPawn::eSpecialState_Frenzy );
+		}
 		if( m_bSrcKilled )
 			SetParentEntity( NULL );
 	}
@@ -312,14 +354,212 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 	return -1;
 }
 
+void CPawnAIAutoDoor::CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const
+{
+	if( m_nType == 0 )
+		return;
+	CVector2 p( floor( pNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+	arrData.Resize( arrData.Size() + 2 );
+	auto& item = arrData[arrData.Size() - 2];
+	item.ofs = p;
+	item.nDir = pNode->GetPatchedNode()->GetStaticDataSafe<CPawn>()->GetInitDir();
+	item.nTexX = m_nStateMapIconX[0];
+	item.nTexY = m_nStateMapIconY[0];
+	item.bKeepSize = false;
+	item.strTag = "";
+	auto pSpawnData = pNode->GetStaticDataSafe<CLevelSpawnHelper>();
+	if( szCondition0[0] )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = szCondition0;
+	}
+	if( pSpawnData && pSpawnData->GetSpawnCondition().length() )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->GetSpawnCondition();
+	}
+	item.strCondition = m_strOpenCondition;
+	item.nConditionValue = 0;
+
+	auto& item1 = arrData[arrData.Size() - 1];
+	item1.ofs = p;
+	item1.nDir = item.nDir;
+	item1.nTexX = m_nStateMapIconX[1];
+	item1.nTexY = m_nStateMapIconY[1];
+	item1.bKeepSize = false;
+	item1.strTag = "";
+	item1.arrFilter = item.arrFilter;
+	item1.strCondition = item.strCondition;
+	item1.nConditionValue = 1;
+}
+
+void CPawnAIBot::OnInit()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );;
+	pPawn->RegisterSignal( &m_onSignal );
+}
+
+int32 CPawnAIBot::CheckAction( int8& nCurDir )
+{
+	return 0;
+}
+
+void CPawnAIBot::CreateIconData( CPrefabNode * pNode, const char * szCondition0, TArray<SMapIconData>& arrData ) const
+{
+}
+
+void CPawnAIBot::OnSignal( int32 i )
+{
+}
+
+void CSeal::Update()
+{
+	if( m_nCurState == 0 )
+	{
+		auto pPlayer = GetLevel()->GetPlayer();
+		if( pPlayer )
+		{
+			if( pPlayer->GetPos() == GetPos() || pPlayer->GetMoveTo() == GetPos() )
+			{
+				ChangeState( 1, false );
+				if( m_strStateKey )
+					GetStage()->GetMasterLevel()->SetKeyInt( m_strStateKey, 1 );
+				if( m_strStateChangeScript.c_str() )
+				{
+					auto pLuaState = CLuaMgr::GetCurLuaState();
+					pLuaState->Load( m_strStateChangeScript );
+					pLuaState->PushLua( 1 );
+					pLuaState->Call( 1, 0 );
+				}
+			}
+		}
+	}
+	else if( m_nCurState == 2 )
+	{
+		if( GetLevel()->PawnTransform( this, 1, TVector2<int32>( 0, 0 ) ) )
+			ChangeState( 4, false );
+	}
+	CPawn::Update();
+}
+
+int32 CSeal::Signal( int32 i )
+{
+	if( m_nCurState == 0 )
+	{
+		ChangeState( 3, false );
+		if( m_strStateKey )
+			GetStage()->GetMasterLevel()->SetKeyInt( m_strStateKey, 2 );
+		if( m_strStateChangeScript.c_str() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strStateChangeScript );
+			pLuaState->PushLua( 2 );
+			pLuaState->Call( 1, 0 );
+		}
+		return 1;
+	}
+	return 0;
+}
+
+void CSeal::CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const
+{
+	CVector2 p( floor( pNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+	arrData.Resize( arrData.Size() + 3 );
+	auto& item = arrData[arrData.Size() - 3];
+	item.ofs = p;
+	item.nDir = pNode->GetPatchedNode()->GetStaticDataSafe<CPawn>()->GetInitDir();
+	item.nTexX = m_nStateMapIconX[0];
+	item.nTexY = m_nStateMapIconY[0];
+	item.bKeepSize = false;
+	item.strTag = "";
+	auto pSpawnData = pNode->GetStaticDataSafe<CLevelSpawnHelper>();
+	if( szCondition0[0] )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = szCondition0;
+	}
+	if( pSpawnData && pSpawnData->GetSpawnCondition().length() )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->GetSpawnCondition();
+	}
+	item.strCondition = m_strStateKey;
+	item.nConditionValue = 0;
+	for( int i = 1; i < 3; i++ )
+	{
+		auto& item1 = arrData[arrData.Size() - 3 + i];
+		item1.ofs = p;
+		item1.nDir = item.nDir;
+		item1.nTexX = m_nStateMapIconX[i];
+		item1.nTexY = m_nStateMapIconY[i];
+		item1.bKeepSize = false;
+		item1.strTag = "";
+		item1.arrFilter = item.arrFilter;
+		item1.strCondition = item.strCondition;
+		item1.nConditionValue = i;
+	}
+}
+
+void CSeal::InitState()
+{
+	if( m_strStateKey )
+	{
+		m_bUseInitState = true;
+		m_nInitState = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+	}
+	CPawn::InitState();
+}
+
+void CHitButton::Init()
+{
+	if( m_strRepairedKey.length() )
+	{
+		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strRepairedKey ) )
+			m_bReady = true;
+	}
+	else
+		m_bReady = true;
+	CPawn::Init();
+}
+
+void CHitButton::OnPreview()
+{
+	if( m_strRepairedKey.length() )
+	{
+		m_bUseInitState = true;
+		m_nInitState = m_nBrokenState;
+	}
+	CPawn::OnPreview();
+}
+
+int32 CHitButton::Signal( int32 i )
+{
+	if( !m_bReady )
+	{
+		m_bReady = true;
+		ChangeState( m_arrTransferStates[m_nCur], false );
+		if( m_strRepairedKey.length() )
+			GetStage()->GetMasterLevel()->SetKeyInt( m_strRepairedKey, 1 );
+		return 1;
+	}
+	return 0;
+}
+
 int32 CHitButton::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOfs )
 {
+	if( !m_bReady )
+		return 0;
+	auto curState = GetCurState();
+	if( curState.nTotalTicks )
+		return 0;
 	auto nMaxState = m_arrStates.Size();
 	if( hitOfs.x >= 0 )
 		m_nCur = m_nCur == 0 ? nMaxState - 1 : m_nCur - 1;
 	else
 		m_nCur = m_nCur == nMaxState - 1 ? 0 : m_nCur + 1;
 	ChangeState( m_arrTransferStates[m_nCur], false );
+	if( m_strStateChangeSound.c_str() )
+		PlaySoundEffect( m_strStateChangeSound );
 	if( m_strStateKey.c_str() )
 		GetStage()->GetMasterLevel()->SetKeyInt( m_strStateKey, m_nCur );
 	if( m_strStateChangeScript.c_str() )
@@ -332,16 +572,76 @@ int32 CHitButton::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOf
 	return nDamage;
 }
 
+void CHitButton::CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const
+{
+	if( !m_arrStates.Size() )
+		return;
+	CVector2 p( floor( pNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+	int32 nSize0 = arrData.Size() + ( m_strRepairedKey.length() ? 1 : 0 );
+	arrData.Resize( nSize0 + m_arrStates.Size() );
+	auto& item = arrData[nSize0];
+	item.ofs = p;
+	item.nDir = pNode->GetPatchedNode()->GetStaticDataSafe<CPawn>()->GetInitDir();
+	item.nTexX = m_arrStateIconTexX[0];
+	item.nTexY = m_arrStateIconTexY[0];
+	item.bKeepSize = false;
+	item.strTag = "";
+	auto pSpawnData = pNode->GetStaticDataSafe<CLevelSpawnHelper>();
+	if( szCondition0[0] )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = szCondition0;
+	}
+	if( pSpawnData && pSpawnData->GetSpawnCondition().length() )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->GetSpawnCondition();
+	}
+	if( m_strRepairedKey )
+	{
+		auto& item0 = arrData[nSize0 - 1];
+		item0.ofs = p;
+		item0.nDir = item.nDir;
+		item0.nTexX = m_nBrokenIconTexX;
+		item0.nTexY = m_nBrokenIconTexY;
+		item0.bKeepSize = false;
+		item0.strTag = "";
+		item0.arrFilter = item.arrFilter;
+		item0.strCondition = m_strRepairedKey;
+		item0.nConditionValue = 0;
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = m_strRepairedKey;
+	}
+	item.strCondition = m_strStateKey;
+	item.nConditionValue = 0;
+	for( int i = 1; i < m_arrStates.Size(); i++ )
+	{
+		auto& item1 = arrData[nSize0 + i];
+		item1.ofs = p;
+		item1.nDir = item.nDir;
+		item1.nTexX = m_arrStateIconTexX[i];
+		item1.nTexY = m_arrStateIconTexY[i];
+		item1.bKeepSize = false;
+		item1.strTag = "";
+		item1.arrFilter = item.arrFilter;
+		item1.strCondition = item.strCondition;
+		item1.nConditionValue = i;
+	}
+}
+
 void CHitButton::InitState()
 {
-	if( m_strStateKey.c_str() )
+	m_bUseInitState = true;
+	if( m_bReady )
 	{
-		m_bUseInitState = true;
-		m_nCur = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+		if( m_strStateKey.c_str() )
+			m_nCur = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+		else
+			m_nCur = 0;
+		m_nInitState = m_arrStates[m_nCur];
 	}
 	else
-		m_nCur = 0;
-	m_nInitState = m_arrStates[m_nCur];
+		m_nInitState = m_nBrokenState;
 	CPawn::InitState();
 }
 
@@ -400,6 +700,40 @@ void CConsole::RunDefault()
 	}
 }
 
+void CPressurePlate::Update()
+{
+	bool bPress = false;
+	for( int i = 0; i < m_nWidth && !bPress; i++ )
+	{
+		for( int j = 0; j < m_nHeight && !bPress; j++ )
+		{
+			auto pGrid = GetLevel()->GetGrid( GetPos() );
+			if( pGrid && pGrid->pPawn && pGrid->pPawn->HasStateTag( m_strPressStateTag ) )
+				bPress = true;
+		}
+	}
+	bool bPress0 = m_nCurState > 0;
+	if( bPress != bPress0 )
+		OnPress( bPress );
+	CPawnHit::Update();
+}
+
+void CPressurePlate::OnPress( bool bDown )
+{
+	if( m_strPressKey.length() )
+		GetStage()->GetMasterLevel()->SetKeyInt( m_strPressKey, bDown ? 1 : 0 );
+	if( m_strPressScript.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( m_strPressScript );
+		pLuaState->PushLua( bDown );
+		pLuaState->Call( 1, 0 );
+	}
+	if( m_strSound[bDown ? 1 : 0].length() )
+		PlaySoundEffect( m_strSound[bDown ? 1 : 0] );
+	ChangeState( bDown ? 1 : 0 );
+}
+
 void CAlarm::Update()
 {
 	CPawnHit::Update();
@@ -421,16 +755,13 @@ void CAlarm::Update()
 
 void CFallPoint::Init()
 {
-	if( m_strKey.length() )
+	if( !m_strKey.length() || GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
 	{
-		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
-		{
-			auto p = static_cast<CImage2D*>( GetRenderObject() );
-			auto texRect = p->GetElem().texRect;
-			texRect.x += texRect.width;
-			p->SetTexRect( texRect );
-			m_bVisited = true;
-		}
+		auto p = static_cast<CImage2D*>( GetRenderObject() );
+		auto texRect = p->GetElem().texRect;
+		texRect.x += texRect.width;
+		p->SetTexRect( texRect );
+		m_bVisited = true;
 	}
 	CPawnHit::Init();
 }
@@ -465,6 +796,8 @@ void CClimbPoint::Init()
 		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
 			m_bReady = true;
 	}
+	else
+		m_bReady = true;
 	CPawnHit::Init();
 }
 
@@ -486,9 +819,55 @@ int32 CClimbPoint::Signal( int32 i )
 	return 1;
 }
 
+void CClimbPoint::CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const
+{
+	CVector2 p( floor( pNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+	arrData.Resize( arrData.Size() + 2 );
+	auto& item = arrData[arrData.Size() - 2];
+	item.ofs = p;
+	item.nDir = pNode->GetPatchedNode()->GetStaticDataSafe<CPawn>()->GetInitDir();
+	item.nTexX = m_nMapIconTexX[0];
+	item.nTexY = m_nMapIconTexY[0];
+	item.bKeepSize = m_bMapIconKeepSize[0];
+	item.strTag = m_strMapIconTag[0];
+	auto pSpawnData = pNode->GetStaticDataSafe<CLevelSpawnHelper>();
+	if( szCondition0[0] )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = szCondition0;
+	}
+	if( pSpawnData && pSpawnData->GetSpawnCondition().length() )
+	{
+		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+		item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->GetSpawnCondition();
+	}
+	item.strCondition = m_strKey;
+	item.nConditionValue = 0;
+
+	auto& item1 = arrData[arrData.Size() - 1];
+	item1.ofs = p;
+	item1.nDir = item.nDir;
+	item1.nTexX = m_nMapIconTexX[1];
+	item1.nTexY = m_nMapIconTexY[1];
+	item1.bKeepSize = m_bMapIconKeepSize[1];
+	item1.strTag = m_strMapIconTag[1];
+	item1.arrFilter = item.arrFilter;
+	item1.strCondition = item.strCondition;
+	item1.nConditionValue = 1;
+}
+
 int32 CClimbPoint::GetDefaultState()
 {
 	return m_bReady ? 1 : 0;
+}
+
+int32 CHeavyDoor::Signal( int32 i )
+{
+	auto pPlayer = GetLevel()->GetPlayer();
+	auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
+	GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, GetMoveTo() - TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY )
+		+ TVector2<int32>( pPlayer->GetCurDir() ? -2 : 2, 0 ), 1 - pPlayer->GetCurDir(), 3 );
+	return 1;
 }
 
 void CSmoke::OnRemovedFromStage()
@@ -1306,6 +1685,7 @@ void RegisterGameClasses_MiscElem()
 	REGISTER_CLASS_BEGIN( CCommonLink )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nKillType )
+		REGISTER_MEMBER( m_nTargetEffectType )
 		REGISTER_MEMBER( m_pSrc )
 		REGISTER_MEMBER( m_pDst )
 		REGISTER_MEMBER( m_srcOfs )
@@ -1335,16 +1715,35 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_BASE_CLASS( CPawnAI )
 		REGISTER_MEMBER( m_nType )
 		REGISTER_MEMBER( m_strOpenCondition )
+		REGISTER_MEMBER( m_nStateMapIconX )
+		REGISTER_MEMBER( m_nStateMapIconY )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CSeal )
+		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER( m_strStateKey )
+		REGISTER_MEMBER_BEGIN( m_strStateChangeScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_nStateMapIconX )
+		REGISTER_MEMBER( m_nStateMapIconY )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CHitButton )
 		REGISTER_BASE_CLASS( CPawn )
 		REGISTER_MEMBER( m_arrStates )
 		REGISTER_MEMBER( m_arrTransferStates )
+		REGISTER_MEMBER( m_arrStateIconTexX )
+		REGISTER_MEMBER( m_arrStateIconTexY )
+		REGISTER_MEMBER( m_nBrokenState )
+		REGISTER_MEMBER( m_nBrokenIconTexX )
+		REGISTER_MEMBER( m_nBrokenIconTexY )
 		REGISTER_MEMBER( m_strStateKey )
+		REGISTER_MEMBER( m_strRepairedKey )
 		REGISTER_MEMBER_BEGIN( m_strStateChangeScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_strStateChangeSound )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CConsole )
@@ -1355,6 +1754,16 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_BEGIN( m_strExtraScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPressurePlate )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_strPressStateTag )
+		REGISTER_MEMBER( m_strPressKey )
+		REGISTER_MEMBER_BEGIN( m_strPressScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_strSound )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CAlarm )
@@ -1379,8 +1788,11 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_BASE_CLASS( CPawnHit )
 		REGISTER_MEMBER( m_nNxtStage )
 		REGISTER_MEMBER( m_strKey )
-		REGISTER_MEMBER_TAGGED_PTR( m_pMount[0], mount_0 )
-		REGISTER_MEMBER_TAGGED_PTR( m_pMount[1], mount_1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CHeavyDoor )
+		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER( m_nNxtStage )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSmoke )

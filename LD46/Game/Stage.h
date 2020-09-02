@@ -18,10 +18,9 @@ struct SStageContext
 class CUIViewport;
 struct SStageEnterContext
 {
-	SStageEnterContext() : pTarget( NULL ), enterPos( 0, 0 ), nEnterDir( -1 ), pViewport( NULL ) {}
+	SStageEnterContext() : pTarget( NULL ), nParam( 0 ), pViewport( NULL ) {}
 	SStageContext* pTarget;
-	TVector2<int32> enterPos;
-	int8 nEnterDir;
+	int32 nParam;
 	CUIViewport* pViewport;
 };
 
@@ -110,7 +109,7 @@ private:
 	bool m_bLight;
 	CHitTestMgr m_hitTestMgr;
 	CReference<CEntity> m_pEntityRoot;
-	CMasterLevel* m_pMasterLevel;
+	CReference<CMasterLevel> m_pMasterLevel;
 	CCamera2D m_camera;
 	map<string, CReference<CEntity> > m_mapStartPoints;
 	SStageEnterContext m_enterContext;

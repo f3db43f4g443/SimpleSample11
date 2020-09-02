@@ -113,12 +113,14 @@ public:
 	void Clear();
 	void Fill( int8 n, const TVector2<int32>& p );
 	void SetFade( float fFade ) { m_fFade = fFade; }
+	const char* GetCondition() const { return m_strCondition; }
 private:
 	TArray<SLevelEnvDesc> m_arrEnvDescs;
 	TArray<int8> m_arrEnvMap;
 	int32 m_nWidth, m_nHeight;
 	CVector2 m_gridSize;
 	CVector2 m_gridOfs;
+	CString m_strCondition;
 
 	struct SElem
 	{
@@ -142,6 +144,21 @@ struct SLevelNextStageData
 	CString strKeyRedirect;
 };
 
+class CLevelStealthLayer : public CEntity
+{
+	friend void RegisterGameClasses_Level();
+public:
+	CLevelStealthLayer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CLevelStealthLayer ); }
+
+	virtual void OnAddedToStage() override;
+	void Update( class CMyLevel* pLevel );
+	virtual void Render( CRenderContext2D& context ) override;
+private:
+	CElement2D& AddElem( int32 x, int32 y, const CVector2& ofs, void* pParams );
+	vector<CElement2D> m_elems;
+	uint32 m_nTick;
+};
+
 class CLevelIndicatorLayer : public CEntity
 {
 	friend void RegisterGameClasses_Level();
@@ -158,6 +175,7 @@ private:
 	uint32 m_nTick;
 	vector<CVector4> m_vecNxtStageParam[2];
 	vector<CVector2> m_vecNxtStageOfs[2];
+	CReference<CLevelStealthLayer> m_pStealthLayer;
 };
 
 class CMyLevel;
@@ -206,15 +224,18 @@ public:
 	virtual void OnPreview() override;
 	struct SGrid
 	{
-		SGrid() : bCanEnter( true ), nNextStage( 0 ), nHitEft( 0 ), nMissEft( 0 ), nHitBlockedEft( 0 ), nHitBashEft( 0 ), nMissBashEft( 0 ),
-			nBlockEft( 0 ), pMounts( NULL ) {}
+		SGrid() : bCanEnter( true ), bBlockSight( false ), nNextStage( 0 ), nHitEft( 0 ), nMissEft( 0 ), nHitBlockedEft( 0 ), nHitBashEft( 0 ), nMissBashEft( 0 ),
+			nBlockEft( 0 ), bStealthAlert( false ), bStealthDetect( false ), pMounts( NULL ) {}
 		bool bCanEnter;
+		bool bBlockSight;
 		int8 nHitEft;
 		int8 nMissEft;
 		int8 nHitBlockedEft;
 		int8 nHitBashEft;
 		int8 nMissBashEft;
 		int8 nBlockEft;
+		bool bStealthAlert;
+		bool bStealthDetect;
 		int32 nNextStage;
 		TVector2<int32> blockOfs;
 		CReference<CPawn> pPawn;
@@ -229,8 +250,11 @@ public:
 	const CVector2& GetCamPos() { return m_camPos; }
 	CPlayer* GetPlayer() { return m_pPlayer; }
 	bool IsBegin() { return m_bBegin; }
+	bool IsEnd() { return m_bEnd; }
 	bool IsComplete() { return m_bComplete; }
 	bool IsFailed() { return m_bFailed; }
+	bool IsActionPreview() { return m_pActionPreviewCoroutine != NULL; }
+	class CMasterLevel* GetMasterLevel();
 	CEntity* GetPawnRoot() { return m_pPawnRoot; }
 	CLevelEnvEffect* GetEnvEffect() { return m_pEnvEffect; }
 
@@ -241,13 +265,14 @@ public:
 	void UnFreeze();
 	CPawn* SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* szRemaining = NULL, CPawn* pCreator = NULL, int32 nForm = 0 );
 	bool AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
+	bool AddPawn1( CPawn* pPawn, int32 nState, int32 nStateTick, const TVector2<int32>& pos, const TVector2<int32>& moveTo, int8 nDir );
 	void RemovePawn( CPawn* pPawn );
 	bool IsGridMoveable( const TVector2<int32>& p, CPawn* pPawn, int8 nForceCheckType = 0 );
-	bool PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType = 0 );
+	bool PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType = 0, bool bBlockEft = true );
 	void PawnMoveEnd( CPawn* pPawn );
 	void PawnMoveBreak( CPawn* pPawn );
 	void PawnDeath( CPawn* pPawn );
-	bool PawnTransform( CPawn* pPawn, int32 nForm, const TVector2<int32>& ofs );
+	bool PawnTransform( CPawn* pPawn, int32 nForm, const TVector2<int32>& ofs, bool bBlockEft = true );
 	CPickUp* FindPickUp( const TVector2<int32>& p, int32 w, int32 h );
 	CPlayerMount* FindMount();
 	CPawn* FindUseablePawn( const TVector2<int32>& p, int8 nDir, int32 w, int32 h );
@@ -255,6 +280,7 @@ public:
 	void OnPlayerChangeState( SPawnState& state, int32 nStateSource, int8 nDir );
 	void OnPlayerAction( int32 nMatchLen, int8 nType );
 	TVector2<int32> SimpleFindPath( const TVector2<int32>& begin, const TVector2<int32>& end, int32 nCheckFlag, vector<TVector2<int32> >* pVecPath = NULL );
+	void Alert();
 
 	void BlockStage();
 	void BlockExit( int32 n );
@@ -270,8 +296,10 @@ public:
 	bool IsScenario() { return m_bScenario; }
 	void GetAllUseableGrid( vector<TVector2<int32> >& result );
 
-	void Init();
+	void Init( bool bPreview = false );
 	void Update();
+	int32 UpdateActionPreview();
+	void ActionPreviewPause();
 
 	void RegisterBegin( CTrigger* pTrigger );
 	void RegisterUpdate( CTrigger* pTrigger ) { m_trigger.Register( 0, pTrigger ); }
@@ -283,10 +311,10 @@ private:
 	void FlushSpawn();
 	void InitTiles();
 	void InitScripts();
+	void UpdateActionPreviewFunc();
 	int32 m_nWidth, m_nHeight;
 	CString m_strRegion;
 	CReference<CEntity> m_pPawnRoot;
-	CReference<CLevelEnvEffect> m_pEnvEffect;
 	CVector2 m_camPos;
 	TArray<SLevelTileData> m_arrTileData;
 	TArray<SLevelGridData> m_arrGridData;
@@ -298,6 +326,7 @@ private:
 	CString m_strDestroyScript;
 
 	bool m_bBegin;
+	bool m_bEnd;
 	bool m_bScenario;
 	bool m_bComplete;
 	bool m_bFailed;
@@ -309,6 +338,7 @@ private:
 	TClassTrigger<CMyLevel> m_onTick;
 	CReference<CPlayer> m_pPlayer;
 	CReference<CLevelIndicatorLayer> m_pIndicatorLayer;
+	CReference<CLevelEnvEffect> m_pEnvEffect;
 	struct SExitState
 	{
 		SExitState() : nRedirect( -1 ), bBlocked( false ) {}
@@ -318,6 +348,7 @@ private:
 	vector<SExitState> m_vecExitState;
 	vector<CReference<CLevelSpawnHelper> > m_vecSpawner;
 
+	class ICoroutine* m_pActionPreviewCoroutine;
 	CEventTrigger<1> m_beginTrigger;
 	CEventTrigger<3> m_trigger;
 	struct
@@ -405,11 +436,18 @@ private:
 struct SWorldDataFrame
 {
 	SWorldDataFrame() : bForceAllVisible( false ) {}
+	void Load( IBufReader& buf, int32 nVersion );
+	void Save( CBufFile& buf );
 	struct SPawnData
 	{
+		SPawnData() { memset( this, 0, sizeof( SPawnData ) ); }
+		int32 nState;
+		int32 nStateTick;
 		TVector2<int32> p;
+		TVector2<int32> p1;
 		int8 nDir;
 		int8 nSpawnIndex;
+		int16 nEmpty;
 	};
 	struct SLevelData
 	{
@@ -417,6 +455,11 @@ struct SWorldDataFrame
 		bool bVisited;
 		map<string, int32> mapDataInt;
 		map<string, SPawnData> mapDataDeadPawn;
+	};
+	struct SLevelMark
+	{
+		string strLevelName;
+		TVector2<int32> ofs;
 	};
 
 	string strCurLevel;
@@ -428,6 +471,7 @@ struct SWorldDataFrame
 	bool bForceAllVisible;
 	CBufFile playerData;
 	set<string> unlockedRegionMaps;
+	map<string, SLevelMark> mapLevelMarks;
 };
 
 struct SWorldData
@@ -440,6 +484,8 @@ struct SWorldData
 	int32 nCurFrameCount;
 	static constexpr int32 nMaxFrameCount = 10;
 
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
 	const char* GetCurLevel() { return curFrame.strCurLevel.c_str(); }
 	SWorldDataFrame::SLevelData& GetLevelData( const char* szLevel ) { return curFrame.mapLevelData[szLevel]; }
 	SWorldDataFrame::SLevelData& GetCurLevelData() { return curFrame.mapLevelData[curFrame.strCurLevel]; }
@@ -459,8 +505,10 @@ class CMasterLevel : public CEntity
 public:
 	CMasterLevel( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CMasterLevel ); }
 
-	void Init( CPlayer* pPlayer );
-	void Begin( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir );
+	virtual void OnAddedToStage() override;
+	void NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir );
+	void Continue( CPlayer* pPlayer, IBufReader& buf );
+	void Save();
 	void TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0 );
 	void JumpBack( int8 nType );
 	void Fall( const char* szTargetRegion );
@@ -478,15 +526,23 @@ public:
 	void RunScenarioScriptText( const char* sz );
 	void RunScenarioScript();
 
-	void CheckPoint( bool bRefresh = false );
-	int32 EvaluateKeyInt( const char* str );
-	void SetKeyInt( const char* str, int32 n );
+	void CheckPoint( bool bRefresh = false, bool bIgnoreSave = false );
+	int32 EvaluateKeyInt( const char* str ) { return EvaluateKeyIntLevelData( str, m_worldData.GetCurLevelData() ); }
+	int32 EvaluateKeyIntLevelData( const char* str, SWorldDataFrame::SLevelData& levelData );
+	void SetKeyInt( const char* str, int32 n ) { SetKeyIntLevelData( str, n, m_worldData.GetCurLevelData() ); }
+	void SetKeyIntLevelData( const char* str, int32 n, SWorldDataFrame::SLevelData& levelData );
 	void ClearKeys() { m_worldData.ClearKeys(); }
 	void Respawn() { m_worldData.Respawn(); }
 	void TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0 );
 	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType = 0 );
 	void UnlockRegionMap( const char* szRegion ) { m_worldData.UnlockRegionMap( szRegion ); }
 	void ShowWorldMap( bool bShow, int8 nType = 0 );
+	void AddLevelMark( const char* szKey, const char* szLevel, int32 x, int32 y );
+	void RemoveLevelMark( const char* szKey );
+	void ShowActionPreview( bool bShow );
+	void ShowMenu( bool bShow, int8 nCurPage );
+	void SwitchMenuPage( int8 nPage );
+	bool IsMenuPageEnabled( int8 nPage );
 
 	CVector2 GetCamPos();
 	void OnPlayerDamaged();
@@ -498,12 +554,29 @@ private:
 	void TransferFuncLevel2Level();
 	void TransferFuncLevel2Level1();
 	void TransferFuncLevel2Level2();
+	void TransferFuncLevel2Level3();
 	void TransferFuncCut2Level();
 	void TransferFuncLevel2Cut();
+	enum
+	{
+		eMenuPage_ActionPreview,
+		eMenuPage_Map,
+		eMenuPage_2,
+		eMenuPage_3,
+		eMenuPage_4
+	};
 
 	CReference<CMainUI> m_pMainUI;
 	CReference<CRenderObject2D> m_pLevelFadeMask;
+	CReference<CEntity> m_pMenu;
+	CReference<CEntity> m_pMenuItem[5];
+	CReference<CRenderObject2D> m_pMenuSelected;
 	CReference<CEntity> m_pWorldMap;
+	CReference<CEntity> m_pActionPreview;
+	int8 m_nMenuPage;
+	int8 m_nEnabledPageCount;
+	int8 m_nMenuPageItemIndex;
+	int8 m_enabledPages[5];
 
 	SWorldData m_worldData;
 	CReference<CPlayer> m_pPlayer;

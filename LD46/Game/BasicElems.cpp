@@ -7,6 +7,7 @@
 #include "Common/Rand.h"
 #include "GlobalCfg.h"
 #include "CommonUtils.h"
+#include <algorithm>
 
 void CLevelSpawnHelper::OnPreview()
 {
@@ -62,11 +63,12 @@ void CPawn::Update()
 	bVisible = !m_bMountHide && !m_bForceHide;
 	if( m_arrSubStates.Size() )
 	{
-		if( !m_bMounted )
+		if( !m_bMountHide )
 		{
 			while( 1 )
 			{
 				bool bInterrupted = IsCurStateInterrupted();
+				int8 nBreakFlag = 0;
 				bool bCheckAction = false;
 				bool bCanCheckAction = true;
 				bool bJumpTo = false;
@@ -94,33 +96,19 @@ void CPawn::Update()
 							if( !bSuccess )
 							{
 								bInterrupted = true;
+								nBreakFlag = evt.nParams[3];
 								break;
 							}
 						}
 						else if( evt.eType == ePawnStateEventType_MoveEnd )
-							GetLevel()->PawnMoveEnd( this );
-						else if( evt.eType == ePawnStateEventType_Hit )
 						{
-							auto hitOfs = OnHit( evt );
-							auto pHitDesc = GetHitSpawn( evt.nParams[3] );
-							if( pHitDesc )
-							{
-								auto pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
-								TVector2<int32> ofs( pHitDesc->nOfsX, pHitDesc->nOfsY );
-								ofs = ofs + hitOfs;
-								if( m_nCurDir )
-								{
-									ofs.x = m_nWidth - ( ofs.x + pHit->m_nWidth );
-								}
-								auto pPawnHit = SafeCast<CPawnHit>( pHit );
-								if( pPawnHit )
-									pPawnHit->SetHitOfs( ofs );
-								auto pos = m_moveTo + ofs;
-								auto dir = pHitDesc->nDir ? 1 - m_nCurDir : m_nCurDir;
-								if( GetLevel()->AddPawn( pHit, pos, dir, this ) )
-									pHit->Signal( evt.nParams[2] );
-							}
+							if( evt.nParams[0] == 0 )
+								GetLevel()->PawnMoveEnd( this );
+							else if( evt.nParams[0] == 1 )
+								GetLevel()->PawnMoveBreak( this );
 						}
+						else if( evt.eType == ePawnStateEventType_Hit )
+							HandleHit( evt );
 						else if( evt.eType == ePawnStateEventType_Death )
 						{
 							GetLevel()->PawnDeath( this );
@@ -132,6 +120,7 @@ void CPawn::Update()
 							if( !bSuccess )
 							{
 								bInterrupted = true;
+								nBreakFlag = evt.nParams[3];
 								break;
 							}
 						}
@@ -149,28 +138,41 @@ void CPawn::Update()
 						}
 						else if( evt.eType == ePawnStateEventType_UnMount )
 						{
-							SafeCast<CPlayer>( this )->UnMount();
-							bInterrupted = true;
+							SafeCast<CPlayer>( this )->UnMount( evt.strParam, evt.nParams[0], evt.nParams[1] );
+							if( !evt.nParams[2] )
+								bInterrupted = true;
 							break;
 						}
 						else if( evt.eType == ePawnStateEventType_SetZ )
 							m_nRenderOrder = evt.nParams[0];
 						else if( evt.eType == ePawnStateEventType_Sound )
+						{
 							PlaySoundEffect( evt.strParam );
+							if( evt.nParams[0] )
+								GetLevel()->Alert();
+						}
 						else if( evt.eType == ePawnStateEventType_JumpTo )
 						{
 							bJumpTo = true;
 							TransitTo( evt.strParam, evt.nParams[0], ePawnStateTransitReason_JumpTo );
 						}
+						else if( evt.eType == ePawnStateEventType_SpecialState )
+						{
+							ASSERT( evt.nParams[0] < ELEM_COUNT( m_nCurStateSpecialState ) );
+							m_nCurStateSpecialState[evt.nParams[0]] += evt.nParams[1];
+						}
 						else if( evt.eType == ePawnStateEventType_Script )
 						{
-							CLuaMgr::Inst().Load( evt.strParam );
-							CLuaMgr::Inst().PushLua( this );
-							CLuaMgr::Inst().Call( 1, 1 );
-							if( CLuaMgr::Inst().PopLuaValue<bool>() )
+							if( !IsActionPreview() )
 							{
-								bInterrupted = true;
-								break;
+								CLuaMgr::Inst().Load( evt.strParam );
+								CLuaMgr::Inst().PushLua( this );
+								CLuaMgr::Inst().Call( 1, 1 );
+								if( CLuaMgr::Inst().PopLuaValue<bool>() )
+								{
+									bInterrupted = true;
+									break;
+								}
 							}
 						}
 					}
@@ -179,7 +181,7 @@ void CPawn::Update()
 				if( bJumpTo )
 					continue;
 				if( bInterrupted )
-					CheckStateTransits( GetDefaultState() );
+					CheckStateTransits( GetDefaultState(), nBreakFlag );
 				else if( bCheckAction )
 				{
 					if( GetLevel()->GetPlayer()->GetControllingPawn() == this )
@@ -196,17 +198,18 @@ void CPawn::Update()
 				else
 					break;
 			}
-		}
-		if( !m_bMountHide )
 			Update0();
+		}
 	}
+	if( m_pAI )
+		m_pAI->OnUpdate();
 	if( m_pUsage )
 		m_pUsage->Update();
 }
 
 void CPawn::Update1()
 {
-	if( !m_arrSubStates.Size() || m_bMounted )
+	if( !m_arrSubStates.Size() || m_bMountHide )
 		return;
 	m_nCurStateTick++;
 	auto& curState = GetCurState();
@@ -226,6 +229,29 @@ void CPawn::Update1()
 	m_bDamaged = false;
 }
 
+bool CPawn::IsActionPreview()
+{
+	return GetLevel()->IsActionPreview();
+}
+
+void CPawn::OnLevelEnd()
+{
+	if( m_pSpawnHelper )
+	{
+		if( m_pSpawnHelper->m_nDataType == 2 )
+		{
+			auto& mapDeadPawn = GetStage()->GetMasterLevel()->GetCurLevelData().mapDataDeadPawn;
+			auto& data = mapDeadPawn[m_pSpawnHelper->GetName().c_str()];
+			data.p = GetPos();
+			data.p1 = GetMoveTo();
+			data.nDir = m_nCurDir;
+			data.nState = m_nCurState;
+			data.nStateTick = m_nCurState == m_pSpawnHelper->m_nDeathState ? 0 : m_nCurStateTick;
+			data.nSpawnIndex = m_pSpawnHelper->m_nSpawnIndex;
+		}
+	}
+}
+
 void CPawn::UpdateAnimOnly()
 {
 	if( m_arrSubStates.Size() )
@@ -242,24 +268,40 @@ void CPawn::UpdateAnimOnly()
 		Update0();
 		bool bFinished = curState.nTotalTicks && m_nCurStateTick >= curState.nTotalTicks;
 		if( !bFinished )
+		{
 			m_nCurStateTick++;
+			if( m_nCurStateTick == curState.nTotalTicks )
+				CheckStateTransits1( -1, true );
+		}
 	}
 }
 
 int32 CPawn::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> damageOfs )
 {
+	if( m_bIsEnemy )
+		GetLevel()->Alert();
+	if( m_pAI )
+	{
+		if( m_pAI->Damage( nDamage, nDamageType, damageOfs ) )
+			return nDamage;
+	}
 	if( m_nArmorType > nDamageType )
 		return 0;
 	m_nHp = Max( 0, m_nHp - nDamage );
-	if( !m_bDamaged || m_nDamageType < nDamageType )
-	{
-		m_nDamageType = nDamageType;
-		m_damageOfs = damageOfs;
-	}
-	m_bDamaged = true;
+	SetDamaged( nDamageType, damageOfs );
 	if( m_nHp <= 0 )
 		OnKilled();
 	return nDamage;
+}
+
+void CPawn::SetDamaged( int8 nType, const TVector2<int32>& ofs )
+{
+	if( !m_bDamaged || m_nDamageType < nType )
+	{
+		m_nDamageType = nType;
+		m_damageOfs = ofs;
+	}
+	m_bDamaged = true;
 }
 
 CMyLevel* CPawn::GetLevel()
@@ -267,6 +309,58 @@ CMyLevel* CPawn::GetLevel()
 	if( !GetParentEntity() )
 		return NULL;
 	return SafeCast<CMyLevel>( GetParentEntity()->GetParentEntity() );
+}
+
+TVector2<int32> CPawn::GetCurStateDest( int32 nTick )
+{
+	auto p = m_curStateOrigPos;
+	auto p1 = p;
+	auto& state = GetCurState();
+	if( !state.nTotalTicks )
+		return p;
+	if( nTick <= 0 )
+		nTick = state.nTotalTicks;
+
+	struct SItem
+	{
+		int8 nType;
+		int32 nTick;
+		TVector2<int32> ofs;
+	};
+	static vector<SItem> vecItems;
+	for( int i = 0; i < state.arrEvts.Size(); i++ )
+	{
+		auto& evt = state.arrEvts[i];
+		if( evt.nTick >= nTick )
+			continue;
+		if( evt.eType == ePawnStateEventType_MoveBegin )
+		{
+			SItem item = { 0, evt.nTick, { evt.nParams[0] * ( m_nCurDir ? -1 : 1 ), evt.nParams[1] } };
+			vecItems.push_back( item );
+		}
+		else if( evt.eType == ePawnStateEventType_MoveEnd )
+		{
+			SItem item = { evt.nParams[0] == 0 ? 1 : 2, evt.nTick, { evt.nParams[0] * ( m_nCurDir ? -1 : 1 ), evt.nParams[1] } };
+			vecItems.push_back( item );
+		}
+	}
+	if( !vecItems.size() )
+		return p;
+	std::stable_sort( vecItems.begin(), vecItems.end(), [] ( const SItem& a, const SItem& b )
+	{
+		return a.nTick < b.nTick;
+	} );
+	for( auto& item : vecItems )
+	{
+		if( item.nType == 0 )
+			p1 = p1 + item.ofs;
+		else if( item.nType == 1 )
+			p = p1;
+		else
+			p1 = p;
+	}
+	vecItems.resize( 0 );
+	return p;
 }
 
 int32 CPawn::GetStateIndexByName( const char* szName ) const
@@ -288,6 +382,19 @@ bool CPawn::CanBeHit()
 	return true;
 }
 
+void CPawn::SetMounted( bool b, bool bMountHide, int8 nMoveType )
+{
+	m_bMounted = b;
+	m_bMountHide = b ? bMountHide : false;
+	if( !b )
+	{
+		if( nMoveType )
+			m_pos = m_moveTo;
+		else
+			m_moveTo = m_pos;
+	}
+}
+
 int8 CPawn::GetDamageOfsDir()
 {
 	if( !m_damageOfs.x && !m_damageOfs.y )
@@ -304,6 +411,64 @@ int8 CPawn::GetDamageOfsDir()
 	else if( m_damageOfs.x < 0 )
 		nDir = 1;
 	return n * 2 + nDir;
+}
+
+void CPawn::HandleHit( SPawnStateEvent& evt )
+{
+	auto hitOfs = OnHit( evt );
+	auto pHitDesc = GetHitSpawn( evt.nParams[3] );
+	if( pHitDesc )
+	{
+		auto pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
+		if( pHitDesc->strInitState.length() )
+		{
+			auto nIndex = pHit->GetStateIndexByName( pHitDesc->strInitState );
+			if( nIndex >= 0 )
+				pHit->SetInitState( nIndex );
+		}
+		TVector2<int32> ofs( pHitDesc->nOfsX, pHitDesc->nOfsY );
+		ofs = ofs + hitOfs;
+		if( m_nCurDir )
+		{
+			ofs.x = m_nWidth - ( ofs.x + pHit->m_nWidth );
+		}
+		auto pPawnHit = SafeCast<CPawnHit>( pHit );
+		if( pPawnHit )
+			pPawnHit->SetHitOfs( ofs );
+		auto pos = m_moveTo + ofs;
+		auto dir = pHitDesc->nDir ? 1 - m_nCurDir : m_nCurDir;
+		if( GetLevel()->AddPawn( pHit, pos, dir, this ) )
+			pHit->Signal( evt.nParams[2] );
+	}
+}
+
+void CPawn::HandleStealthDetect()
+{
+	if( m_pAI )
+		m_pAI->HandleStealthDetect();
+}
+
+bool CPawn::HasStateTag( const char* sz )
+{
+	if( !m_arrSubStates.Size() )
+		return false;
+	auto state = GetCurState();
+	for( int i = 0; i < state.arrTags.Size(); i++ )
+	{
+		if( state.arrTags[i] == sz )
+			return true;
+	}
+	return false;
+}
+
+CVector2 CPawn::GetHpBarOfs()
+{
+	return CVector2( m_moveTo.x, m_moveTo.y ) * LEVEL_GRID_SIZE - m_curStateBeginPos;
+}
+
+void CPawn::ResetState()
+{
+	ChangeState( GetCurState(), 0, false );
 }
 
 bool CPawn::PlayState( const char* sz )
@@ -375,8 +540,80 @@ void CPawn::RegisterKilledScript()
 	RegisterKilled( pTrigger );
 }
 
+void CPawn::CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const
+{
+	if( !m_nMapIconType )
+		return;
+	if( m_nMapIconType >= 1 )
+	{
+		int8 nDir = pNode->GetPatchedNode()->GetStaticDataSafe<CPawn>()->GetInitDir();
+		CVector2 p( floor( pNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+		if( nDir )
+			p.x += m_nWidth - 2;
+		arrData.Resize( arrData.Size() + 1 );
+		auto& item = arrData[arrData.Size() - 1];
+		item.ofs = p;
+		item.nDir = nDir;
+		item.nTexX = m_nMapIconTexX[0];
+		item.nTexY = m_nMapIconTexY[0];
+		item.bKeepSize = m_bMapIconKeepSize[0];
+		item.strTag = m_strMapIconTag[0];
+		auto pSpawnData = pNode->GetStaticDataSafe<CLevelSpawnHelper>();
+		if( szCondition0[0] )
+		{
+			item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+			item.arrFilter[item.arrFilter.Size() - 1] = szCondition0;
+		}
+		if( pSpawnData && pSpawnData->m_strSpawnCondition.length() )
+		{
+			item.arrFilter.Resize( item.arrFilter.Size() + 1 );
+			item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->m_strSpawnCondition;
+		}
+		if( pSpawnData &&( pSpawnData->m_strDeathKey.length() || pSpawnData->m_nDataType ) )
+		{
+			if( pSpawnData->m_nDataType )
+			{
+				string str = "&dead&";
+				str += pNode->GetName().c_str();
+				item.strCondition = str.c_str();
+			}
+			else
+				item.strCondition = pSpawnData->m_strDeathKey;
+			item.nConditionValue = 0;
+			if( m_nMapIconType >= 2 )
+			{
+				arrData.Resize( arrData.Size() + 1 );
+				auto& item0 = arrData[arrData.Size() - 2];
+				auto& item1 = arrData[arrData.Size() - 1];
+				item1.ofs = p;
+				item1.nDir = nDir;
+				item1.nTexX = m_nMapIconTexX[1];
+				item1.nTexY = m_nMapIconTexY[1];
+				item1.bKeepSize = m_bMapIconKeepSize[1];
+				item1.strTag = m_strMapIconTag[1];
+				item1.arrFilter = item0.arrFilter;
+				item1.strCondition = item0.strCondition;
+				item1.nConditionValue = 1;
+			}
+		}
+	}
+}
+
 void CPawn::InitState()
 {
+	if( m_pSpawnHelper && m_pSpawnHelper->m_bInitState )
+	{
+		if( m_pSpawnHelper->m_bSpawnDeath )
+			m_nHp = 0;
+		m_nCurForm = m_arrSubStates[m_pSpawnHelper->m_nInitState].nForm;
+		ChangeState( m_pSpawnHelper->m_nInitState, true );
+		m_nCurStateTick = m_pSpawnHelper->m_nInitStateTick;
+		if( m_pAI )
+			m_pAI->OnInit();
+		Update0();
+		return;
+	}
+
 	int32 nInitState;
 	if( m_pSpawnHelper && m_pSpawnHelper->m_bSpawnDeath )
 	{
@@ -394,8 +631,12 @@ void CPawn::InitState()
 	if( m_arrSubStates.Size() )
 	{
 		ChangeState( nInitState, true );
+		if( m_pAI )
+			m_pAI->OnInit();
 		Update0();
 	}
+	else if( m_pAI )
+		m_pAI->OnInit();
 }
 
 bool CPawn::CheckTransitCondition( EPawnStateTransitCondition eCondition, const char* strCondition )
@@ -411,7 +652,7 @@ bool CPawn::CheckTransitCondition( EPawnStateTransitCondition eCondition, const 
 
 bool CPawn::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 {
-	if( GetLevel()->GetPlayer()->GetControllingPawn() == this )
+	if( GetLevel()->GetPlayer() && GetLevel()->GetPlayer()->GetControllingPawn() == this )
 	{
 		if( GetLevel()->GetPlayer()->ControllingPawnCheckStateInput( nReason ) )
 			return true;
@@ -496,8 +737,10 @@ void CPawn::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 		m_origRect.width * ( 1 + state.nImgExtLeft + state.nImgExtRight ), m_origRect.height * ( 1 + state.nImgExtTop + state.nImgExtBottom ) );
 	if( m_nCurDir )
 		rect = CRectangle( LEVEL_GRID_SIZE_X * m_nWidth - rect.GetRight(), rect.y, rect.width, rect.height );
+	m_curStateOrigPos = m_pos;
 	m_curStateRect = rect;
 	m_curStateOrigTexRect = m_origTexRect;
+	memset( m_nCurStateSpecialState, 0, sizeof( m_nCurStateSpecialState ) );
 	m_trigger.Trigger( 2, NULL );
 }
 
@@ -519,21 +762,21 @@ void CPawn::Update0()
 		SetPosition( m_curStateBeginPos );
 		if( m_pHpBar )
 		{
+			m_pHpBar->bVisible = true;
 			auto rect = m_hpBarOrigRect;
 			rect.width = m_nHp * rect.width / m_nMaxHp;
 			static_cast<CImage2D*>( m_pHpBar.GetPtr() )->SetRect( rect );
 			m_pHpBar->SetBoundDirty();
-			m_pHpBar->SetPosition( CVector2( m_moveTo.x, m_moveTo.y ) * LEVEL_GRID_SIZE - m_curStateBeginPos );
+			m_pHpBar->SetPosition( GetHpBarOfs() );
 		}
 	}
 	else
 	{
 		if( m_pHpBar )
-		{
-			m_pHpBar->RemoveThis();
-			m_pHpBar = NULL;
-		}
+			m_pHpBar->bVisible = false;
 	}
+	if( m_pAI )
+		m_pAI->OnUpdate0();
 }
 
 bool CPawn::CheckAction()
@@ -549,7 +792,7 @@ bool CPawn::CheckAction()
 	return false;
 }
 
-bool CPawn::CheckStateTransits( int32 nDefaultState )
+bool CPawn::CheckStateTransits( int32 nDefaultState, int8 nBreakFlag )
 {
 	if( m_pAI )
 	{
@@ -569,20 +812,20 @@ bool CPawn::CheckStateTransits( int32 nDefaultState )
 			&& CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
-			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
+				m_nCurDir = 1 - m_nCurDir;
+			TransitTo( transit.strToName, transit.nTo, nBreakFlag ? ePawnStateTransitReason_JumpTo : ePawnStateTransitCondition_Break );
 			return true;
 		}
 	}
-	auto Func = [this] ( SPawnStateTransit1& transit, int32 nSource ) {
+	auto Func = [this, nBreakFlag] ( SPawnStateTransit1& transit, int32 nSource ) {
 		if( !FilterCommonTransit( transit, nSource ) )
 			return false;
 		if( ( transit.eCondition == ePawnStateTransitCondition_Break || transit.eCondition == ePawnStateTransitCondition_Finish )
 			&& CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
-			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
+				m_nCurDir = 1 - m_nCurDir;
+			TransitTo( transit.strToName, transit.nTo, nBreakFlag ? ePawnStateTransitReason_JumpTo : ePawnStateTransitCondition_Break );
 			return true;
 		}
 		return false;
@@ -611,21 +854,21 @@ bool CPawn::CheckStateTransits1( int32 nDefaultState, bool bFinished )
 		if( m_bDamaged && transit.eCondition == ePawnStateTransitCondition_Hit && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
 		if( m_nHp <= 0 && bFinished && transit.eCondition == ePawnStateTransitCondition_Killed && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
 		if( bFinished && transit.eCondition == ePawnStateTransitCondition_Finish && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
@@ -636,21 +879,21 @@ bool CPawn::CheckStateTransits1( int32 nDefaultState, bool bFinished )
 		if( m_bDamaged && transit.eCondition == ePawnStateTransitCondition_Hit && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
 		if( m_nHp <= 0 && bFinished && transit.eCondition == ePawnStateTransitCondition_Killed && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
 		if( bFinished && transit.eCondition == ePawnStateTransitCondition_Finish && CheckTransitCondition( transit.eCondition, transit.strCondition ) )
 		{
 			if( transit.bInverse )
-				m_nCurDir = -m_nCurDir;
+				m_nCurDir = 1 - m_nCurDir;
 			TransitTo( transit.strToName, transit.nTo, transit.eCondition );
 			return true;
 		}
@@ -824,6 +1067,7 @@ void CPlayer::LoadData( IBufReader& buf )
 	int32 nVersionData;
 	buf.Read( nVersionData );
 	buf.Read( m_nHp );
+	buf.Read( m_nMaxStealthValue );
 	for( int i = 0; i < ePlayerEquipment_Count; i++ )
 	{
 		CBufReader tempBuf( buf );
@@ -849,6 +1093,7 @@ void CPlayer::SaveData( CBufFile& buf )
 	int32 nVersionData = 0;
 	buf.Write( nVersionData );
 	buf.Write( m_nHp );
+	buf.Write( m_nMaxStealthValue );
 	for( int i = 0; i < ePlayerEquipment_Count; i++ )
 	{
 		if( m_pCurEquipment[i] && m_pCurEquipment[i] != m_pDefaultEquipment.GetPtr() )
@@ -872,6 +1117,7 @@ void CPlayer::Init()
 	m_pCurMountingPawn = NULL;
 	m_pControllingPawn = NULL;
 	m_bForceUnMount = false;
+	m_nStealthValue = m_nMaxStealthValue;
 	ChangeAI( NULL );
 	m_vecInputQueues.resize( 0 );
 	m_nActionEftFrame = 0;
@@ -882,6 +1128,7 @@ void CPlayer::Init()
 		m_pOrigRenderObject = GetRenderObject();
 	for( int i = 0; i < 2; i++ )
 	{
+		m_pEft[i]->bVisible = false;
 		if( !m_pCurEft[i] )
 			m_pCurEft[i] = m_pEft[i];
 	}
@@ -894,38 +1141,41 @@ void CPlayer::Init()
 void CPlayer::Update()
 {
 	uint8 nKeyUp = 0;
-	if( !GetLevel()->IsScenario() )
+	if( !GetLevel()->IsActionPreview() )
 	{
-		bool bInput = false;
-		bool bDown = false;
-		if( CGame::Inst().IsKeyUp( 'D' ) || CGame::Inst().IsKeyUp( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
-		if( CGame::Inst().IsKeyUp( 'W' ) || CGame::Inst().IsKeyUp( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
-		if( CGame::Inst().IsKeyUp( 'A' ) || CGame::Inst().IsKeyUp( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
-		if( CGame::Inst().IsKeyUp( 'S' ) || CGame::Inst().IsKeyUp( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
-		if( CGame::Inst().IsKeyDown( 'D' ) || CGame::Inst().IsKeyDown( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'W' ) || CGame::Inst().IsKeyDown( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'A' ) || CGame::Inst().IsKeyDown( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'S' ) || CGame::Inst().IsKeyDown( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyUp( 'J' ) || CGame::Inst().IsKeyUp( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
-		if( CGame::Inst().IsKeyUp( 'K' ) || CGame::Inst().IsKeyUp( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
-		if( CGame::Inst().IsKeyUp( 'U' ) || CGame::Inst().IsKeyUp( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }
-		if( CGame::Inst().IsKeyUp( 'I' ) || CGame::Inst().IsKeyUp( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Up ); bInput = true; nKeyUp |= 128; }
-		if( CGame::Inst().IsKeyDown( 'J' ) || CGame::Inst().IsKeyDown( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'K' ) || CGame::Inst().IsKeyDown( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'U' ) || CGame::Inst().IsKeyDown( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
-		if( CGame::Inst().IsKeyDown( 'I' ) || CGame::Inst().IsKeyDown( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
-		if( bDown && m_bActionStop )
-			m_nTickInputOnActionStop = 10;
-		if( bInput )
-			GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
-	}
-	if( m_nTickInputOnActionStop )
-	{
-		m_nTickInputOnActionStop--;
-		if( !m_nTickInputOnActionStop )
+		if( !GetLevel()->IsScenario() )
 		{
-			m_bActionStop = false;
-			CheckAction();
+			bool bInput = false;
+			bool bDown = false;
+			if( CGame::Inst().IsKeyUp( 'D' ) || CGame::Inst().IsKeyUp( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
+			if( CGame::Inst().IsKeyUp( 'W' ) || CGame::Inst().IsKeyUp( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
+			if( CGame::Inst().IsKeyUp( 'A' ) || CGame::Inst().IsKeyUp( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
+			if( CGame::Inst().IsKeyUp( 'S' ) || CGame::Inst().IsKeyUp( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
+			if( CGame::Inst().IsKeyDown( 'D' ) || CGame::Inst().IsKeyDown( 'd' ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'W' ) || CGame::Inst().IsKeyDown( 'w' ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'A' ) || CGame::Inst().IsKeyDown( 'a' ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'S' ) || CGame::Inst().IsKeyDown( 's' ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyUp( 'J' ) || CGame::Inst().IsKeyUp( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
+			if( CGame::Inst().IsKeyUp( 'K' ) || CGame::Inst().IsKeyUp( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
+			if( CGame::Inst().IsKeyUp( 'U' ) || CGame::Inst().IsKeyUp( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }
+			if( CGame::Inst().IsKeyUp( 'I' ) || CGame::Inst().IsKeyUp( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Up ); bInput = true; nKeyUp |= 128; }
+			if( CGame::Inst().IsKeyDown( 'J' ) || CGame::Inst().IsKeyDown( 'j' ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'K' ) || CGame::Inst().IsKeyDown( 'k' ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'U' ) || CGame::Inst().IsKeyDown( 'u' ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsKeyDown( 'I' ) || CGame::Inst().IsKeyDown( 'i' ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
+			if( bDown && m_bActionStop )
+				m_nTickInputOnActionStop = 10;
+			if( bInput )
+				GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
+		}
+		if( m_nTickInputOnActionStop )
+		{
+			m_nTickInputOnActionStop--;
+			if( !m_nTickInputOnActionStop )
+			{
+				m_bActionStop = false;
+				CheckAction();
+			}
 		}
 	}
 	if( m_bForceUnMount )
@@ -955,9 +1205,44 @@ void CPlayer::Update()
 		m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = false;
 }
 
+CPlayer* CPlayer::InitActionPreviewLevel( CMyLevel* pLevel, const TVector2<int32>& pos )
+{
+	auto pPlayer = SafeCast<CPlayer>( GetInstanceOwnerNode()->CreateInstance() );
+	for( int i = 0; i < ePlayerEquipment_Count; i++ )
+	{
+		if( m_pCurEquipment[i] && m_pCurEquipment[i] != m_pDefaultEquipment.GetPtr() )
+		{
+			auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_pCurEquipment[i]->m_pPickUp->strCreatedFrom );
+			auto pPickUp = SafeCast<CPickUp>( pPrefab->GetRoot()->CreateInstance() );
+			pPickUp->strCreatedFrom = m_pCurEquipment[i]->m_pPickUp->strCreatedFrom;
+			pPickUp->PickUp( pPlayer );
+			auto pEquip = pPlayer->m_pCurEquipment[i];
+			pEquip->Init();
+			pEquip->SetAmmo( pEquip->GetMaxAmmo() );
+		}
+	}
+	pPlayer->m_bEnableDefaultEquipment = m_bEnableDefaultEquipment;
+	pLevel->AddPawn( pPlayer, pos, 0 );
+	if( m_pCurMountingPawn )
+	{
+		auto pPawn1 = SafeCast<CPawn>( m_pCurMountingPawn->GetInstanceOwnerNode()->CreateInstance() );
+		auto ofs = m_pCurMountingPawn->GetPos() - GetPos();
+		auto dir = m_pCurMountingPawn->GetCurDir() == m_nDirBeforeMounting ? 0 : 1;
+		if( m_nDirBeforeMounting == 1 )
+			ofs.x = GetWidth() - ofs.x - pPawn1->GetWidth();
+		pLevel->AddPawn( pPawn1, pos + ofs, dir );
+	}
+	pLevel->Begin();
+	auto pMount = pLevel->FindMount();
+	if( pMount )
+		pMount->Mount( pPlayer );
+	return pPlayer;
+}
+
 int32 CPlayer::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> damageOfs )
 {
-	GetStage()->GetMasterLevel()->OnPlayerDamaged();
+	if( !IsActionPreview() )
+		GetStage()->GetMasterLevel()->OnPlayerDamaged();
 	return CPawn::Damage( nDamage, nDamageType, damageOfs );
 }
 
@@ -965,7 +1250,8 @@ bool CPlayer::TryPickUp( int32 nParam )
 {
 	if( m_pCurMountingPawn )
 	{
-		m_pCurMountingPawn->Signal( nParam );
+		if( !IsActionPreview() )
+			m_pCurMountingPawn->Signal( nParam );
 		return true;
 	}
 	if( m_pCurUsingPawn )
@@ -1035,7 +1321,7 @@ void CPlayer::UnEquip( CPlayerEquipment* pEquipment, int32 nPickupState )
 void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide )
 {
 	m_pCurMountingPawn = pPawn;
-	m_pCurMountingPawn->SetMounted( true, bMountHide );
+	m_pCurMountingPawn->SetMounted( true, bMountHide, 0 );
 	m_pCurMount = pMount;
 	m_bMountAnimPlayerOriented = bAnimPlayerOriented;
 	m_nDirBeforeMounting = m_nCurDir;
@@ -1044,13 +1330,23 @@ void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState
 	VERIFY( TransitTo( szState, -1, -1 ) );
 }
 
-void CPlayer::UnMount()
+void CPlayer::UnMount( const char* szAction, int8 nActionDirType, int8 nMoveType )
 {
-	m_pCurMountingPawn->SetMounted( false, false );
+	CReference<CPawn> pMount = m_pCurMountingPawn;
+	m_pCurMountingPawn->SetMounted( false, false, nMoveType );
 	m_pCurMount = NULL;
 	m_pCurMountingPawn = NULL;
 	m_bForceUnMount = false;
 	m_nCurDir = m_nDirBeforeMounting;
+	if( szAction && szAction[0] )
+	{
+		if( nActionDirType == 1 )
+			pMount->PlayStateTurnBack( szAction );
+		else
+			pMount->PlayState( szAction );
+	}
+	else
+		pMount->ResetState();
 }
 
 void CPlayer::ForceUnMount()
@@ -1171,6 +1467,11 @@ void CPlayer::EndControl()
 	FlushInput( 0, 0, 0 );
 }
 
+bool CPlayer::ControllingPawnCheckAction()
+{
+	return CheckAction();
+}
+
 bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 {
 	if( nReason == ePawnStateTransitCondition_Finish || nReason == ePawnStateTransitReason_JumpTo )
@@ -1190,7 +1491,9 @@ bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 					{
 						bChecked = true;
 						auto& item = inputTable[i].input;
-						if( CheckInputTableItem( item ) )
+						if( IsActionPreview() )
+							ActionPreviewAddInputItem( m_nCurStateSource, &item );
+						else if( CheckInputTableItem( item ) )
 						{
 							int32 nMatchLen = item.strInput.length();
 							int32 nChargeKey = 0;
@@ -1208,12 +1511,33 @@ bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 				}
 			}
 			if( bChecked )
-				GetStage()->GetMasterLevel()->GetMainUI()->InsertDefaultFinishAction();
+			{
+				if( IsActionPreview() )
+				{
+					ActionPreviewAddInputItem( m_nCurStateSource, NULL );
+					if( ActionPreviewWaitInput() )
+						return true;
+				}
+				else
+					GetStage()->GetMasterLevel()->GetMainUI()->InsertDefaultFinishAction();
+			}
 		}
 	}
 	else if( nReason > ePawnStateTransitCondition_Finish )
 		FlushInput( 0, 0, 2 );
 	return false;
+}
+
+void CPlayer::BeginStealth( int32 nMaxValue )
+{
+	m_nStealthValue = m_nMaxStealthValue = nMaxValue;
+}
+
+void CPlayer::UpdateStealthValue( int32 n )
+{
+	m_nStealthValue = Min( m_nMaxStealthValue, Max( 0, m_nStealthValue + n ) );
+	if( !m_nStealthValue )
+		m_nMaxStealthValue = 0;
 }
 
 void CPlayer::SetInputSequence( const char* szInput )
@@ -1336,7 +1660,9 @@ bool CPlayer::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 					{
 						bChecked = true;
 						auto& item = inputTable[i].input;
-						if( CheckInputTableItem( item ) )
+						if( IsActionPreview() )
+							ActionPreviewAddInputItem( m_nCurStateSource, &item );
+						else if( CheckInputTableItem( item ) )
 						{
 							int32 nMatchLen = item.strInput.length();
 							int32 nChargeKey = 0;
@@ -1356,8 +1682,17 @@ bool CPlayer::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 			}
 			if( bChecked )
 			{
-				m_nActionEftFrame = ACTION_EFT_FRAMES;
-				GetStage()->GetMasterLevel()->GetMainUI()->InsertDefaultFinishAction();
+				if( IsActionPreview() )
+				{
+					ActionPreviewAddInputItem( m_nCurStateSource, NULL );
+					if( ActionPreviewWaitInput() )
+						return true;
+				}
+				else
+				{
+					m_nActionEftFrame = ACTION_EFT_FRAMES;
+					GetStage()->GetMasterLevel()->GetMainUI()->InsertDefaultFinishAction();
+				}
 			}
 		}
 	}
@@ -1445,6 +1780,11 @@ void CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 			m_pCurUsingPawn->GetUsage()->EndUse( this );
 		m_pCurUsingPawn = NULL;
 	}
+	if( m_pCurMount )
+	{
+		if( nStateSource != ePlayerStateSource_Mount )
+			UnMount();
+	}
 	m_bActionStop = false;
 	m_nChargeKeyDown = 0;
 	m_nTickInputOnActionStop = 0;
@@ -1474,9 +1814,12 @@ void CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 		origRect.width * ( 1 + state.nImgExtLeft + state.nImgExtRight ), origRect.height * ( 1 + state.nImgExtTop + state.nImgExtBottom ) );
 	if( m_nCurDir )
 		rect = CRectangle( LEVEL_GRID_SIZE_X * m_nWidth - rect.GetRight(), rect.y, rect.width, rect.height );
+	m_curStateOrigPos = m_pos;
 	m_curStateRect = rect;
 	m_curStateOrigTexRect = origTexRect;
-	GetLevel()->OnPlayerChangeState( state, nStateSource, m_nCurDir );
+	memset( m_nCurStateSpecialState, 0, sizeof( m_nCurStateSpecialState ) );
+	if( GetLevel() )
+		GetLevel()->OnPlayerChangeState( state, nStateSource, m_nCurDir );
 	m_trigger.Trigger( 2, NULL );
 }
 
@@ -1507,8 +1850,8 @@ void CPlayer::Update0()
 
 bool CPlayer::IsCurStateInterrupted()
 {
-	if( !m_pCurMount && m_nCurStateSource == ePlayerStateSource_Mount )
-		return true;
+	//if( !m_pCurMount && m_nCurStateSource == ePlayerStateSource_Mount )
+	//	return true;
 	return false;
 }
 
@@ -1541,7 +1884,9 @@ bool CPlayer::HandleInput()
 		for( int j = inputTable.Size() - 1; j >= 0; j-- )
 		{
 			auto& item = inputTable[j];
-			if( CheckInputTableItem( item ) )
+			if( IsActionPreview() )
+				ActionPreviewAddInputItem( m_nCurStateSource, &item );
+			else if( CheckInputTableItem( item ) )
 			{
 				bool b = ExecuteInputtableItem( item, -1 );
 				ASSERT( b );
@@ -1549,6 +1894,8 @@ bool CPlayer::HandleInput()
 				return true;
 			}
 		}
+		if( IsActionPreview() )
+			return ActionPreviewWaitInput();
 		FlushInput( 0, 0, 0 );
 		return false;
 	}
@@ -1558,7 +1905,9 @@ bool CPlayer::HandleInput()
 		for( int j = inputTable.Size() - 1; j >= 0; j-- )
 		{
 			auto& item = inputTable[j];
-			if( CheckInputTableItem( item ) )
+			if( IsActionPreview() )
+				ActionPreviewAddInputItem( ePlayerStateSource_Mount, &item );
+			else if( CheckInputTableItem( item ) )
 			{
 				bool b = ExecuteInputtableItem( item, ePlayerStateSource_Mount );
 				ASSERT( b );
@@ -1566,10 +1915,15 @@ bool CPlayer::HandleInput()
 				return true;
 			}
 		}
+		if( IsActionPreview() )
+		{
+			if( ActionPreviewWaitInput() )
+				return true;
+		}
 		m_nCurState = 0;
 		ChangeState( m_pCurMount->m_arrSubStates[0], ePlayerStateSource_Mount, false );
 		FlushInput( 0, 0, 0 );
-		return true;
+		return false;
 	}
 	if( m_pCurEquipment[ePlayerEquipment_Large] )
 	{
@@ -1577,7 +1931,9 @@ bool CPlayer::HandleInput()
 		for( int j = inputTable.Size() - 1; j >= 0; j-- )
 		{
 			auto& item = inputTable[j];
-			if( CheckInputTableItem( item ) )
+			if( IsActionPreview() )
+				ActionPreviewAddInputItem( ePlayerEquipment_Large + 1, &item );
+			else if( CheckInputTableItem( item ) )
 			{
 				bool b = ExecuteInputtableItem( item, ePlayerEquipment_Large + 1 );
 				ASSERT( b );
@@ -1585,7 +1941,7 @@ bool CPlayer::HandleInput()
 				return true;
 			}
 		}
-		if( m_parsedInputSequence.size() && m_parsedInputSequence.back() == -4 )
+		if( !IsActionPreview() && m_parsedInputSequence.size() && m_parsedInputSequence.back() == -4 )
 		{
 			FlushInput( 1, 0, 0 );
 			auto pMount = GetLevel()->FindMount();
@@ -1602,6 +1958,11 @@ bool CPlayer::HandleInput()
 			TransitTo( "break", 0, -1 );
 			return true;
 		}
+		if( IsActionPreview() )
+		{
+			if( ActionPreviewWaitInput() )
+				return true;
+		}
 		m_nCurState = 0;
 		ChangeState( m_pCurEquipment[ePlayerEquipment_Large]->m_arrSubStates[0], ePlayerEquipment_Large + 1, false );
 		FlushInput( 0, 0, 0 );
@@ -1616,7 +1977,9 @@ bool CPlayer::HandleInput()
 			for( int j = inputTable.Size() - 1; j >= 0; j-- )
 			{
 				auto& item = inputTable[j];
-				if( CheckInputTableItem( item ) )
+				if( IsActionPreview() )
+					ActionPreviewAddInputItem( i + 1, &item );
+				else if( CheckInputTableItem( item ) )
 				{
 					bool b = ExecuteInputtableItem( item, i + 1 );
 					ASSERT( b );
@@ -1629,7 +1992,9 @@ bool CPlayer::HandleInput()
 	for( int i = m_inputTable.Size() - 1; i >= 0; i-- )
 	{
 		auto& item = m_inputTable[i];
-		if( CheckInputTableItem( item ) )
+		if( IsActionPreview() )
+			ActionPreviewAddInputItem( 0, &item );
+		else if( CheckInputTableItem( item ) )
 		{
 			bool b = ExecuteInputtableItem( item, 0 );
 			ASSERT( b );
@@ -1637,6 +2002,8 @@ bool CPlayer::HandleInput()
 			return true;
 		}
 	}
+	if( IsActionPreview() )
+		return ActionPreviewWaitInput();
 
 	if( m_parsedInputSequence.size() )
 	{
@@ -1761,6 +2128,7 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 		}
 		if( !bCharge )
 			nChargeKeyDown = 0;
+		m_strActionPreviewCharge = item.strCharge;
 	}
 
 	if( m_pControllingPawn )
@@ -1817,6 +2185,8 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 
 void CPlayer::FlushInput( int32 nMatchLen, int8 nChargeKey, int8 nType )
 {
+	if( IsActionPreview() )
+		return;
 	m_vecInputQueues.resize( 0 );
 	if( nType == 2 )
 		m_parsedInputSequence.resize( 0 );
@@ -1847,6 +2217,65 @@ bool CPlayer::StateCost( int8 nType, int32 nCount )
 		return true;
 	}
 	return false;
+}
+
+void CPlayer::ActionPreviewAddInputItem( int8 nType, SInputTableItem* pItem )
+{
+	if( pItem )
+	{
+		if( pItem->nStateIndex < 0 )
+			return;
+		auto& vec = m_vecActionPreviewInputItem[nType];
+		for( auto& pItem1 : vec )
+		{
+			if( !pItem1 )
+				continue;
+			if( pItem1->bInverse != pItem->bInverse )
+				continue;
+			if( pItem1->strStateName.length() || pItem->strStateName.length() )
+			{
+				if( pItem1->strStateName == pItem->strStateName )
+				{
+					pItem1 = pItem;
+					return;
+				}
+			}
+			else if( pItem1->nStateIndex == pItem->nStateIndex )
+			{
+				pItem1 = pItem;
+				return;
+			}
+		}
+	}
+	m_vecActionPreviewInputItem[nType].push_back( pItem );
+}
+
+bool CPlayer::ActionPreviewWaitInput()
+{
+	m_nActionPreviewType = -1;
+	m_nActionPreviewIndex = -1;
+	while( m_nActionPreviewIndex == -1 )
+		GetLevel()->ActionPreviewPause();
+
+	if( m_nActionPreviewType == -1 )
+		return false;
+	auto pItem = m_vecActionPreviewInputItem[m_nActionPreviewType][m_nActionPreviewIndex];
+	for( int i = 0; i < ELEM_COUNT( m_vecActionPreviewInputItem ); i++ )
+	{
+		m_vecActionPreviewInputItem[i].clear();
+	}
+	if( pItem )
+	{
+		ExecuteInputtableItem( *pItem, m_nActionPreviewType );
+		return true;
+	}
+	return false;
+}
+
+void CPlayer::ActionPreviewInput( int8 nType, int32 nIndex )
+{
+	m_nActionPreviewType = nType;
+	m_nActionPreviewIndex = nIndex;
 }
 
 CPlayerEquipment* CPlayer::GetStateSource( int8 nType )
@@ -1887,7 +2316,7 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 			if( !pGrid || !pGrid->bCanEnter )
 				break;
 			CPawn* pPawn = pGrid->pPawn;
-			if( pPawn && pPawn != m_pCreator && !pPawn->IsIgnoreBullet() )
+			if( pPawn && pPawn != m_pCreator && !pPawn->IsIgnoreBullet() && !pPawn->IsSpecialState( eSpecialState_Fall ) )
 				break;
 		}
 		hitOfs = ofs[m_nHitParam[0]] * l;
@@ -1924,23 +2353,23 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 		if( !pGrid )
 			continue;
 		auto pPawn = pGrid->pPawn;
-		if( !pPawn || pPawn.GetPtr() == m_pCreator || !pPawn->CanBeHit() )
+		if( !pPawn || pPawn.GetPtr() == m_pCreator || !pPawn->CanBeHit() || desc.nHitType && pPawn->IsSpecialState( eSpecialState_Fall ) )
 		{
 			if( desc.nDamageType )
-				pGrid->nMissBashEft = CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
+				pGrid->nMissBashEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
 			else
-				pGrid->nMissEft = CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
+				pGrid->nMissEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
 			continue;
 		}
 		if( desc.nDamage )
 		{
 			auto n = pPawn->Damage( desc.nDamage, desc.nDamageType, hitOfs + m_hitOfs );
 			if( !n )
-				pGrid->nHitBlockedEft = CGlobalCfg::Inst().lvIndicatorData.vecHitBlockedParams.size();
+				pGrid->nHitBlockedEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitBlockedParams.size();
 			else if( desc.nDamageType )
-				pGrid->nHitBashEft = CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
+				pGrid->nHitBashEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
 			else
-				pGrid->nHitEft = CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
+				pGrid->nHitEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
 			if( pPawn->GetDamageEft() )
 			{
 				auto pEft = SafeCast<CPawn>( pPawn->GetDamageEft()->GetRoot()->CreateInstance() );
@@ -1972,6 +2401,25 @@ void CPickUp::Init()
 		m_pEquipment->SetParentEntity( NULL );
 		m_pEquipment->Init();
 	}
+	m_nLifeLeft = m_nLife;
+}
+
+void CPickUp::Update()
+{
+	CPawn::Update();
+	if( m_nLifeLeft && IsPickUpReady() )
+	{
+		m_nLifeLeft--;
+		if( !m_nLifeLeft )
+		{
+			GetLevel()->PawnDeath( this );
+			return;
+		}
+		if( m_nLifeLeft < 300 )
+			GetRenderObject()->bVisible = !( ( m_nLifeLeft / 2 ) % 5 );
+		else
+			GetRenderObject()->bVisible = !( ( m_nLifeLeft / 15 ) & 1 );
+	}
 }
 
 bool CPickUp::IsPickUpReady()
@@ -2001,8 +2449,6 @@ int32 CPickUp::GetDefaultState()
 {
 	if( !m_bDropped )
 		return GetStateIndexByName( "stand" );
-	if( m_nDropState >= 0 && m_nDropState < m_arrSubStates.Size() )
-		return m_nDropState;
 	return CPawnHit::GetDefaultState();
 }
 
@@ -2023,6 +2469,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_ENUM_ITEM( ePawnStateEventType_SetZ )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_Sound )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_JumpTo )
+		REGISTER_ENUM_ITEM( ePawnStateEventType_SpecialState )
 		REGISTER_ENUM_ITEM( ePawnStateEventType_Script )
 	REGISTER_ENUM_END()
 
@@ -2075,10 +2522,24 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( nImgTexCount )
 		REGISTER_MEMBER( arrEvts )
 		REGISTER_MEMBER( arrTransits )
+		REGISTER_MEMBER( arrTags )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SMapIconData )
+		REGISTER_MEMBER( ofs )
+		REGISTER_MEMBER( strTag )
+		REGISTER_MEMBER( strCondition )
+		REGISTER_MEMBER( nConditionValue )
+		REGISTER_MEMBER( arrFilter )
+		REGISTER_MEMBER( bKeepSize )
+		REGISTER_MEMBER( nTexX )
+		REGISTER_MEMBER( nTexY )
+		REGISTER_MEMBER( nDir )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SPawnHitSpawnDesc )
 		REGISTER_MEMBER( pHit )
+		REGISTER_MEMBER( strInitState )
 		REGISTER_MEMBER( nOfsX )
 		REGISTER_MEMBER( nOfsY )
 		REGISTER_MEMBER( nDir )
@@ -2137,11 +2598,14 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_bIgnoreBullet )
 		REGISTER_MEMBER( m_bForceHit )
 		REGISTER_MEMBER( m_bIgnoreBlockedExit )
+		REGISTER_MEMBER( m_bNextStageBlock )
 		REGISTER_MEMBER( m_bHideInEditor )
 		REGISTER_MEMBER( m_nInitDir )
 		REGISTER_MEMBER( m_nArmorType )
 		REGISTER_MEMBER( m_bUseInitState )
 		REGISTER_MEMBER( m_bUseDefaultState )
+		REGISTER_MEMBER( m_nLevelDataType )
+		REGISTER_MEMBER( m_bIconOnly )
 		REGISTER_MEMBER( m_nInitState )
 		REGISTER_MEMBER( m_nDefaultState )
 		REGISTER_MEMBER( m_nWidth )
@@ -2161,6 +2625,11 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER_TAGGED_PTR( m_pAI, ai )
 		REGISTER_MEMBER_TAGGED_PTR( m_pUsage, usage )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBar, hpbar )
+		REGISTER_MEMBER( m_nMapIconType )
+		REGISTER_MEMBER( m_bMapIconKeepSize )
+		REGISTER_MEMBER( m_nMapIconTexX )
+		REGISTER_MEMBER( m_nMapIconTexY )
+		REGISTER_MEMBER( m_strMapIconTag )
 
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetLevel )
@@ -2234,6 +2703,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_LUA_CFUNCTION( ForceUnMount )
 		REGISTER_LUA_CFUNCTION( EnableDefaultEquipment )
 		REGISTER_LUA_CFUNCTION( RestoreAmmo )
+		REGISTER_LUA_CFUNCTION( BeginStealth )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SHitGridDesc )
@@ -2241,6 +2711,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( nOfsX )
 		REGISTER_MEMBER( nOfsY )
 		REGISTER_MEMBER( nDamage )
+		REGISTER_MEMBER( nHitType )
 		REGISTER_MEMBER( nDamageType )
 		REGISTER_MEMBER( nFlag )
 	REGISTER_CLASS_END()
@@ -2259,6 +2730,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER_BEGIN( m_strScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_nLife )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEquipment, equipment )
 		DEFINE_LUA_REF_OBJECT()
 	REGISTER_CLASS_END()

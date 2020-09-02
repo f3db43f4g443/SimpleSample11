@@ -77,6 +77,11 @@ void CGlobalCfg::Load()
 			lvIndicatorData.vecPawnParams.resize( lvIndicatorData.vecPawnParams.size() + 1 );
 			ReadFunc( pItem, lvIndicatorData.vecPawnParams.back() );
 		}
+		for( auto pItem = pIndicator->FirstChildElement( "pawn_fall" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecPawnFallParams.resize( lvIndicatorData.vecPawnFallParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecPawnFallParams.back() );
+		}
 		for( auto pItem = pIndicator->FirstChildElement( "use" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 		{
 			lvIndicatorData.vecUseParams.resize( lvIndicatorData.vecUseParams.size() + 1 );
@@ -114,6 +119,26 @@ void CGlobalCfg::Load()
 			lvIndicatorData.vecBlockedParams1[i].params[0] = CVector4( 1, 1, 1, param0.ofs.x );
 			lvIndicatorData.vecBlockedParams1[i].params[1] = CVector4( 0, 0, 0, param0.ofs.y );
 			lvIndicatorData.vecBlockedParams1[i].ofs = CVector2( 0, 0 );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_back_1" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthBackParams1.resize( lvIndicatorData.vecStealthBackParams1.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthBackParams1.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_back_2" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthBackParams2.resize( lvIndicatorData.vecStealthBackParams2.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthBackParams2.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_alert" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthAlertParams.resize( lvIndicatorData.vecStealthAlertParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthAlertParams.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_detect" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthDetectParams.resize( lvIndicatorData.vecStealthDetectParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthDetectParams.back() );
 		}
 
 		auto pNextLevelCfg = pIndicator->FirstChildElement( "next_level" );

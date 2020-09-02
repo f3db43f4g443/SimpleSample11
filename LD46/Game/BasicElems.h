@@ -16,11 +16,14 @@ enum EPawnStateEventType
 	ePawnStateEventType_SetZ,
 	ePawnStateEventType_Sound,
 	ePawnStateEventType_JumpTo,
+	ePawnStateEventType_SpecialState,
 	ePawnStateEventType_Script,
 };
 
 struct SPawnStateEvent
 {
+	SPawnStateEvent( EPawnStateEventType eType, int32 nTick, int32 nParams[4], const char* szParam )
+	: eType( eType ), nTick( nTick ), strParam( szParam ) { for( int i = 0; i < 4; i++ ) this->nParams[i] = nParams[i]; }
 	SPawnStateEvent( const SClassCreateContext& context ) {}
 	EPawnStateEventType eType;
 	int32 nTick;
@@ -72,6 +75,20 @@ struct SPawnState
 	int32 nImgTexCols, nImgTexCount;
 	TArray<SPawnStateEvent> arrEvts;
 	TArray<SPawnStateTransit> arrTransits;
+	TArray<CString> arrTags;
+};
+
+struct SMapIconData
+{
+	SMapIconData( const SClassCreateContext& context ) {}
+	CVector2 ofs;
+	CString strTag;
+	CString strCondition;
+	int32 nConditionValue;
+	TArray<CString> arrFilter;
+	bool bKeepSize;
+	int8 nTexX, nTexY;
+	int8 nDir;
 };
 
 class CPawnAI : public CEntity
@@ -79,10 +96,16 @@ class CPawnAI : public CEntity
 	friend void RegisterGameClasses_BasicElems();
 public:
 	CPawnAI( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CPawnAI ); }
+	virtual void OnInit() {}
+	virtual void OnUpdate() {}
+	virtual void OnUpdate0() {}
 	virtual bool CanCheckAction( bool bScenario ) { return !bScenario; }
 	virtual int32 CheckAction( int8& nCurDir ) { return -1; }
 	virtual int32 CheckStateTransits( int8& nCurDir ) { return -1; }
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) { return -1; }
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) { return false; }
+	virtual void HandleStealthDetect() {}
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const {}
 };
 
 class CPawnUsage : public CEntity
@@ -110,6 +133,7 @@ struct SPawnHitSpawnDesc
 {
 	SPawnHitSpawnDesc( const SClassCreateContext& context ) {}
 	TResourceRef<CPrefab> pHit;
+	CString strInitState;
 	int32 nOfsX, nOfsY;
 	int8 nDir;
 };
@@ -136,10 +160,13 @@ class CLevelSpawnHelper : public CEntity
 	friend class CPawnTool;
 public:
 	CLevelSpawnHelper( int8 nSpawnIndex, const char* szDeathKey, int32 nDeathState ) : CEntity(), m_nSpawnType( 0 ), m_nSpawnIndex( nSpawnIndex ), m_nDataType( 1 ),
-		m_strSpawnCondition( "" ), m_strDeathKey( szDeathKey ), m_nDeathState( nDeathState ), m_bSpawnDeath( false ) {}
+		m_strSpawnCondition( "" ), m_strDeathKey( szDeathKey ), m_nDeathState( nDeathState ), m_bSpawnDeath( false ), m_bInitState( false )
+	{ SET_BASEOBJECT_ID( CLevelSpawnHelper ); }
 	CLevelSpawnHelper( const SClassCreateContext& context ) : CEntity( context ), m_nSpawnIndex( -1 ) { SET_BASEOBJECT_ID( CLevelSpawnHelper ); }
 	virtual bool IsPreview() override { return true; }
 	virtual void OnPreview() override;
+	const CString& GetSpawnCondition() const { return m_strSpawnCondition; }
+	const CString& GetDeathKey() const { return m_strDeathKey; }
 private:
 	int8 m_nSpawnType;
 	int8 m_nDataType;
@@ -149,8 +176,11 @@ private:
 	CString m_strDeathKey;
 	int32 m_nDeathState;
 
+	bool m_bInitState;
 	int8 m_nSpawnIndex;
 	int32 m_nStateParam[2];
+	int32 m_nInitState;
+	int32 m_nInitStateTick;
 };
 
 struct SInputTableItem
@@ -186,19 +216,25 @@ public:
 	virtual void Init();
 	virtual void Update();
 	virtual void Update1();
+	bool IsActionPreview();
+	void OnLevelEnd();
 	void UpdateAnimOnly();
-	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ) );
+	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> damageOfs = TVector2<int32>( 0, 0 ) );
+	void SetDamaged( int8 nType, const TVector2<int32>& ofs );
 	int32 GetWidth() const { return m_nWidth; }
 	int32 GetHeight() const { return m_nHeight; }
 	class CMyLevel* GetLevel();
 	const TVector2<int32>& GetPos() { return m_pos; }
 	const TVector2<int32>& GetMoveTo() { return m_moveTo; }
+	TVector2<int32> GetCurStateDest( int32 nTick = 0 );
+	bool IsIconOnly() const { return m_bIconOnly; }
 	int32 GetPosX() { return m_pos.x; }
 	int32 GetPosY() { return m_pos.y; }
 	int32 GetToX() { return m_moveTo.x; }
 	int32 GetToY() { return m_moveTo.y; }
 	int8 GetCurDir() { return m_nCurDir; }
 	int32 GetCurForm() { return m_nCurForm; }
+	int8 GetInitDir() const { return m_nInitDir; }
 	virtual SPawnState& GetCurState() { return m_arrSubStates[m_nCurState]; }
 	int32 GetCurStateIndex() { return m_nCurState; }
 	int32 GetCurStateTick() { return m_nCurStateTick; }
@@ -206,6 +242,7 @@ public:
 	void SetInitState( int32 nState ) { m_bUseInitState = true; m_nInitState = nState; }
 	void SetDefaultState( int32 nState ) { m_bUseDefaultState = true; m_nDefaultState = nState; }
 	bool IsIgnoreBlockedExit() { return m_bIgnoreBlockedExit; }
+	bool IsNextStageBlock() { return m_bNextStageBlock; }
 	bool IsValidStateIndex( int32 i ) { return i >= 0 && i < m_arrSubStates.Size(); }
 	int8 GetArmorType() { return m_nArmorType; }
 	int32 GetHp() { return m_nHp; }
@@ -221,7 +258,7 @@ public:
 	bool IsKilled() { return m_nMaxHp > 0 && m_nHp <= 0; }
 	bool CanBeHit();
 	bool IsIgnoreBullet() { return m_bIgnoreBullet; }
-	void SetMounted( bool b, bool bMountHide ) { m_bMounted = b; m_bMountHide = b ? bMountHide : false; }
+	void SetMounted( bool b, bool bMountHide, int8 nMoveType );
 	void SetForceHide( bool bForceHide ) { m_bForceHide = bForceHide; }
 	CPrefab* GetDamageEft() { return m_pDamageEft; }
 	bool IsDamaged() { return m_bDamaged; }
@@ -230,15 +267,21 @@ public:
 	virtual TArray<SInputTableItem>* GetControllingInputTable() { return NULL; }
 	virtual TArray<SStateInputTableItem>* GetControllingStateInputTable() { return NULL; }
 	void StateTransit( const char* szToName, int32 nTo, int8 nDir ) { m_nCurDir = nDir; TransitTo( szToName, nTo, -1 ); }
+	void HandleHit( SPawnStateEvent& evt );
+	virtual void HandleStealthDetect();
 	enum
 	{
+		eSpecialState_Fall,
 		eSpecialState_Frenzy,
 
 		eSpecialState_Count,
 	};
 	void IncSpecialState( int32 n ) { m_nSpecialState[n]++; }
 	void DecSpecialState( int32 n ) { m_nSpecialState[n]--; }
-	bool IsSpecialState( int32 n ) { return m_nSpecialState[n] > 0; }
+	bool IsSpecialState( int32 n ) { return m_nSpecialState[n] > 0 || m_nCurStateSpecialState[n] > 0; }
+	bool HasStateTag( const char* sz );
+	CVector2 GetHpBarOfs();
+	void ResetState();
 
 	/*<-------------------For Script----------------------*/
 	bool PlayState( const char* sz );
@@ -250,6 +293,8 @@ public:
 	void RegisterKilledScript();
 	/*--------------------For Script--------------------->*/
 	bool IsHideInEditor() const { return m_bHideInEditor; }
+	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const;
+
 	CString strCreatedFrom;
 	int8 nTempFlag;
 protected:
@@ -266,7 +311,7 @@ protected:
 	virtual TVector2<int32> OnHit( SPawnStateEvent& evt ) { return TVector2<int32>( 0, 0 ); }
 	virtual bool CheckAction();
 	virtual bool CheckCanFinish() { return true; }
-	bool CheckStateTransits( int32 nDefaultState );
+	bool CheckStateTransits( int32 nDefaultState, int8 nBreakFlag );
 	bool CheckStateTransits1( int32 nDefaultState, bool bFinished );
 	virtual bool StateCost( int8 nType, int32 nCount ) { return false; }
 	void OnKilled();
@@ -275,11 +320,14 @@ protected:
 	bool m_bIgnoreBullet;
 	bool m_bForceHit;
 	bool m_bIgnoreBlockedExit;
+	bool m_bNextStageBlock;
 	bool m_bHideInEditor;
 	int8 m_nInitDir;
 	int8 m_nArmorType;
 	bool m_bUseInitState;
 	bool m_bUseDefaultState;
+	int8 m_nLevelDataType;
+	bool m_bIconOnly;
 	int32 m_nInitState;
 	int32 m_nDefaultState;
 	int32 m_nWidth, m_nHeight;
@@ -295,11 +343,16 @@ protected:
 	CReference<CRenderObject2D> m_pHpBar;
 	CString m_strKillScript;
 	TResourceRef<CPrefab> m_pDamageEft;
+	int8 m_nMapIconType;
+	bool m_bMapIconKeepSize[2];
+	int8 m_nMapIconTexX[2], m_nMapIconTexY[2];
+	CString m_strMapIconTag[2];
 
 	CReference<CLevelSpawnHelper> m_pSpawnHelper;
 	CReference<CPawn> m_pCreator;
 	TVector2<int32> m_pos;
 	TVector2<int32> m_moveTo;
+	TVector2<int32> m_curStateOrigPos;
 	int32 m_nCurForm;
 	int8 m_nCurDir;
 	bool m_bDamaged;
@@ -317,6 +370,7 @@ protected:
 	CRectangle m_curStateOrigTexRect;
 	CRectangle m_hpBarOrigRect;
 	int32 m_nSpecialState[eSpecialState_Count];
+	int32 m_nCurStateSpecialState[eSpecialState_Count];
 	CEventTrigger<3> m_trigger;
 	LINK_LIST_REF( CPawn, Pawn );
 };
@@ -410,6 +464,7 @@ private:
 class CPlayer : public CPawn
 {
 	friend void RegisterGameClasses_BasicElems();
+	friend class CActionPreview;
 public:
 	CPlayer( const SClassCreateContext& context ) : CPawn( context ) { SET_BASEOBJECT_ID( CPlayer ); }
 
@@ -418,6 +473,7 @@ public:
 	void SaveData( CBufFile& buf );
 	virtual void Init() override;
 	virtual void Update() override;
+	CPlayer* InitActionPreviewLevel( class CMyLevel* pLevel, const TVector2<int32>& pos );
 
 	virtual int32 Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ) ) override;
 	bool TryPickUp( int32 nParam );
@@ -427,8 +483,9 @@ public:
 	void UnEquip( CPlayerEquipment* pEquipment, int32 nPickupState = -1 );
 	CPlayerEquipment* GetEquipment( int8 n ) { return m_pCurEquipment[n]; }
 	void Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide );
-	void UnMount();
+	void UnMount( const char* szAction = "", int8 nActionDirType = 0, int8 nMoveType = 0 );
 	void ForceUnMount();
+	CPawn* GetCurMountingPawn() { return m_pCurMountingPawn; }
 	bool IsReadyForMount( CPlayerMount* pMount );
 	bool IsReadyToUse() { return !m_pCurMount && !m_pCurEquipment[ePlayerEquipment_Large]; }
 	virtual SPawnState& GetCurState() override;
@@ -438,9 +495,12 @@ public:
 	void RestoreAmmo();
 	void BeginControl( CPawn* pPawn );
 	void EndControl();
-	bool ControllingPawnCheckAction() { return CheckAction(); }
+	bool ControllingPawnCheckAction();
 	bool ControllingPawnCheckStateInput( int32 nReason );
 	CPawn* GetControllingPawn() { return m_pControllingPawn; }
+	void BeginStealth( int32 nMaxValue );
+	int32 GetStealthValue() { return m_nStealthValue; }
+	void UpdateStealthValue( int32 n );
 
 	void SetInputSequence( const char* szInput );
 	vector<int8>& ParseInputSequence();
@@ -458,6 +518,10 @@ protected:
 	bool ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource );
 	void FlushInput( int32 nMatchLen, int8 nChargeKey, int8 nType );
 	virtual bool StateCost( int8 nType, int32 nCount ) override;
+	void ActionPreviewAddInputItem( int8 nType, SInputTableItem* pItem );
+	bool ActionPreviewWaitInput();
+	void ActionPreviewInput( int8 nType, int32 nIndex );
+
 	CPlayerEquipment* GetStateSource( int8 nType );
 	TArray<SInputTableItem> m_inputTable;
 	TArray<SStateInputTableItem> m_stateInputTable;
@@ -469,6 +533,8 @@ protected:
 	bool m_bActionStop;
 	bool m_bEnableDefaultEquipment;
 	uint8 m_nChargeKeyDown;
+	int32 m_nStealthValue;
+	int32 m_nMaxStealthValue;
 	int32 m_nTickInputOnActionStop;
 	CReference<CPlayerEquipment> m_pCurEquipment[ePlayerEquipment_Count];
 	CReference<CRenderObject2D> m_pOrigRenderObject;
@@ -486,6 +552,11 @@ protected:
 	bool m_bForceUnMount;
 	int8 m_nDirBeforeMounting;
 	int8 m_nActionEftFrame;
+
+	vector<SInputTableItem*> m_vecActionPreviewInputItem[ePlayerStateSource_Count];
+	int8 m_nActionPreviewType;
+	int32 m_nActionPreviewIndex;
+	CString m_strActionPreviewCharge;
 	/*int8 m_nMoveXInput;
 	int8 m_nMoveYInput;
 	int8 m_nAttackInput;*/
@@ -497,6 +568,7 @@ struct SHitGridDesc
 	int32 nHitIndex;
 	int32 nOfsX, nOfsY;
 	int32 nDamage;
+	int8 nHitType;
 	int8 nDamageType;
 	int32 nFlag;
 };
@@ -525,15 +597,17 @@ public:
 	CPickUp( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CPickUp ); }
 	virtual void OnPreview() override;
 	virtual void Init() override;
+	virtual void Update() override;
 	CPlayerEquipment* GetEquipment() { return m_pEquipment; }
 	bool IsPickUpReady();
 	void PickUp( CPlayer* pPlayer );
-	void PreDrop( CPlayerEquipment* pEquipment, int32 nDropState ) { m_pEquipment = pEquipment; m_bDropped = true; m_nDropState = nDropState; }
+	void PreDrop( CPlayerEquipment* pEquipment, int32 nDropState ) { m_pEquipment = pEquipment; SetInitState( nDropState ); m_bDropped = true; }
 protected:
 	virtual int32 GetDefaultState() override;
 	CReference<CPlayerEquipment> m_pEquipment;
 	CString m_strScript;
+	int32 m_nLife;
 
 	bool m_bDropped;
-	int32 m_nDropState;
+	int32 m_nLifeLeft;
 };

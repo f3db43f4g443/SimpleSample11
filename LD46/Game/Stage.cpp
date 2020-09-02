@@ -72,9 +72,19 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 	{
 		if( m_pMasterLevel )
 		{
-			m_pMasterLevel->Init( pPlayer );
-			CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().strEntry.c_str() );
-			m_pMasterLevel->Begin( pPrefab, CGlobalCfg::Inst().playerEnterPos, CGlobalCfg::Inst().nPlayerEnterDir );
+			vector<char> content;
+			if( context.nParam == 1 )
+				GetFileContent( content, "save/a", false );
+			if( content.size() )
+			{
+				CBufReader buf( &content[0], content.size() );
+				m_pMasterLevel->Continue( pPlayer, buf );
+			}
+			else
+			{
+				CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( CGlobalCfg::Inst().strEntry.c_str() );
+				m_pMasterLevel->NewGame( pPlayer, pPrefab, CGlobalCfg::Inst().playerEnterPos, CGlobalCfg::Inst().nPlayerEnterDir );
+			}
 		}
 	}
 

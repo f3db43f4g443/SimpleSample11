@@ -1,6 +1,12 @@
 ﻿<root type="element" x="1000" y="0" >
   <template type="EditorRes/UI/button.xml" name="import" x="50" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import" >
   </template>
+
+  <template type="EditorRes/UI/button.xml" name="layer_script" rectX="0" rectY="80" rectWidth="40" rectHeight="20" text="" >
+  </template>
+  <template type="EditorRes/UI/textbox.xml" name="layer_script_text" rectX="40" rectY="80" rectWidth="360" rectHeight="20" text="" >
+  </template>
+  
   <template name="node_view" type="EditorRes/UI/treeview.xml" x="0" y="100" rectX="0" rectY="0" rectWidth="400" rectHeight="600" >
   </template>
 </root>

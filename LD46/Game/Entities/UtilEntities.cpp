@@ -754,7 +754,7 @@ void CTypeText::Update()
 	}
 	int32 nCur = Min<int32>( m_elems.size() - 1, m_nTick / m_nTypeInterval );
 	int32 nTime = m_nEftFadeTime - m_nTick + nCur * m_nTypeInterval;
-	if( nTime <= 0 )
+	if( nCur == m_elems.size() - 1 && nTime <= 0 )
 	{
 		m_bFinished = true;
 		if( m_pEnter )

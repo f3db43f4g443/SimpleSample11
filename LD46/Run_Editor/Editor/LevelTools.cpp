@@ -35,7 +35,7 @@ CPrefab* CLevelTool::GetRes()
 class CTileTool : public CLevelTool
 {
 public:
-	CTileTool() : m_nCurSelectedOpr( 0 ), m_nCurSelectedValue( 0 ) {}
+	CTileTool() : m_nCurSelectedOpr( 0 ), m_nCurSelectedValue( 0 ), m_nDragType( 0 ) {}
 	virtual void OnSetVisible( bool bVisible ) override
 	{
 		CLevelTool::OnSetVisible( bVisible );
@@ -99,33 +99,54 @@ void CTileTool::OnDebugDraw( IRenderSystem* pRenderSystem, class CUIViewport* pV
 			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.2f, 0.2f, 0.1f, 0.25f ) );
 		}
 	}
+	{
+		CVector2 ofs1[] = { { LEVEL_GRID_SIZE_X * 0.5f, 0 }, { 0, LEVEL_GRID_SIZE_Y * 0.5f }, { -LEVEL_GRID_SIZE_X * 0.5f, 0 }, { 0, -LEVEL_GRID_SIZE_Y * 0.5f } };
+		for( int j = 0; j < 4; j++ )
+		{
+			auto pt1 = pObj->GetCamPos();
+			auto pt2 = pt1 + ofs1[j];
+			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 1, 1, 1, 1 ) );
+		}
+	}
+
 	if( p.x < 0 || p.y < 0 || p.x >= pObj->m_nWidth || p.y >= pObj->m_nHeight )
 		return;
 	auto x1 = !( ( p.x + p.y ) & 1 ) ? p.x + 1 : p.x - 1;
 	if( x1 < 0 || x1 >= pObj->m_nWidth )
 		return;
 
-	CVector4 colors[] = { { 1, 1, 0, 1 }, { 0, 1, 1, 1 }, { 1, 0, 1, 1 }, { 1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 } };
-	CRectangle rect( Min( p.x, x1 ) * LEVEL_GRID_SIZE_X, p.y * LEVEL_GRID_SIZE_Y, LEVEL_GRID_SIZE_X * 2, LEVEL_GRID_SIZE_Y );
-	CVector4 color( 0.5f, 0.5f, 0.5f, 1 );
-	if( m_nCurSelectedOpr == 0 )
-		color = colors[m_nCurSelectedValue % ELEM_COUNT( colors )];
-	else if( m_nCurSelectedValue > 0 )
-		color = colors[( m_nCurSelectedValue - 1 ) % ELEM_COUNT( colors )];
-
-	CVector2 a( rect.x, rect.y );
-	auto b = rect.GetSize();
-	for( int j = 0; j < 4; j++ )
+	if( m_nCurSelectedOpr < 2 )
 	{
-		auto pt1 = a + b * ofs[j];
-		auto pt2 = a + b * ofs[( j + 1 ) % 4];
-		pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
+		CVector4 colors[] = { { 1, 1, 0, 1 }, { 0, 1, 1, 1 }, { 1, 0, 1, 1 }, { 1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 } };
+		CRectangle rect( Min( p.x, x1 ) * LEVEL_GRID_SIZE_X, p.y * LEVEL_GRID_SIZE_Y, LEVEL_GRID_SIZE_X * 2, LEVEL_GRID_SIZE_Y );
+		CVector4 color( 0.5f, 0.5f, 0.5f, 1 );
+		if( m_nCurSelectedOpr == 0 )
+			color = colors[m_nCurSelectedValue % ELEM_COUNT( colors )];
+		else if( m_nCurSelectedValue > 0 )
+			color = colors[( m_nCurSelectedValue - 1 ) % ELEM_COUNT( colors )];
+
+		CVector2 a( rect.x, rect.y );
+		auto b = rect.GetSize();
+		for( int j = 0; j < 4; j++ )
+		{
+			auto pt1 = a + b * ofs[j];
+			auto pt2 = a + b * ofs[( j + 1 ) % 4];
+			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
+		}
 	}
 }
 
 bool CTileTool::OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos )
 {
 	auto pObj = GetLevelData();
+	if( m_nCurSelectedOpr == 2 )
+	{
+		int32 x = floor( mousePos.x / ( LEVEL_GRID_SIZE_X / 2 ) + 0.5f );
+		int32 y = floor( mousePos.y / ( LEVEL_GRID_SIZE_Y / 2 ) + 0.5f );
+		pObj->m_camPos = CVector2( x, y ) * ( LEVEL_GRID_SIZE / 2 );
+		return false;
+	}
+
 	auto b = CVector2( pObj->m_nWidth, pObj->m_nHeight ) * LEVEL_GRID_SIZE;
 	CRectangle r[4] = { { -32, b.y * 0.5f - 16, 32, 32 },
 	{ b.x * 0.5f - 16, -32, 32, 32 },
@@ -192,13 +213,15 @@ void CTileTool::OnViewportKey( SUIKeyEvent* pEvent )
 		m_nCurSelectedOpr = 0;
 		m_nCurSelectedValue = 0;
 	}
-	else if( n == 'E' )
+	else if( n == 'W' )
 	{
 		if( m_nCurSelectedOpr == 1 )
 			return;
 		m_nCurSelectedOpr = 1;
 		m_nCurSelectedValue = 0;
 	}
+	else if( n == 'E' )
+		m_nCurSelectedOpr = 2;
 	else if( n >= '0' && n <= '9' )
 	{
 		auto n1 = n - '0';
@@ -797,7 +820,7 @@ void CPawnTool::Add( const TVector2<int32>& p )
 	if( pPawnData->m_bIsEnemy )
 	{
 		auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( pNode->GetFinalObjData() );
-		pSpawnHelper->m_nDataType = 1;
+		pSpawnHelper->m_nDataType = pPawnData->m_nLevelDataType;
 		pSpawnHelper->m_nDeathState = pPawnData->GetStateIndexByName( "death" );
 	}
 
@@ -825,10 +848,18 @@ void CPawnTool::Remove( const TRectangle<int32>& p )
 class CLevelEnvTool : public CLevelTool
 {
 public:
-	CLevelEnvTool() : m_nCurSelectedValue( 0 ) {}
+	CLevelEnvTool() : m_nCurSelectedValue( 0 ), m_nDragType( 0 ) {}
 	CLevelEnvEffect* GetData() { return (CLevelEnvEffect*)m_pEnvNode->GetObjData(); }
 	virtual void OnInited() override
 	{
+		m_pLayerScript = GetChildByName<CUIButton>( "layer_script" );
+		m_pLayerScriptText = GetChildByName<CUITextBox>( "layer_script_text" );
+		m_onLayerScript.Set( this, &CLevelEnvTool::OnLayerScript );
+		m_pLayerScript->Register( eEvent_Action, &m_onLayerScript );
+		m_onLayerScriptEditOK.Set( this, &CLevelEnvTool::OnLayerScriptEditOK );
+		m_onLayerScriptText.Set( this, &CLevelEnvTool::OnLayerScriptText );
+		m_pLayerScriptText->Register( eEvent_Action, &m_onLayerScriptText );
+
 		auto pImport = GetChildByName<CUIElement>( "import" );
 		m_onImport.Set( this, &CLevelEnvTool::OnImport );
 		m_onImportOK.Set( this, &CLevelEnvTool::OnImportOK );
@@ -840,33 +871,31 @@ public:
 		if( bVisible )
 		{
 			m_nCurSelectedValue = 0;
-			m_pEnvNode = m_pLevelNode->GetChildByName<CPrefabNode>( "env" );
-			if( !m_pEnvNode )
+			for( auto p = m_pLevelNode->Get_RenderChild(); p; p = p->NextRenderChild() )
 			{
-				m_pEnvNode = new CPrefabNode( GetRes() );
-				m_pEnvNode->SetName( "env" );
-				m_pLevelNode->AddChild( m_pEnvNode );
-				m_pEnvNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelEnvEffect>()->strClassName.c_str() );
-				auto pData = GetData();
+				if( p == m_pLevelNode->GetRenderObject() )
+					continue;
+				auto pPrefabNode = dynamic_cast<CPrefabNode*>( p );
+				if( pPrefabNode && pPrefabNode->GetStaticDataSafe<CLevelEnvEffect>() )
+					m_vecEnvNodes.push_back( pPrefabNode );
+			}
+			if( !m_vecEnvNodes.size() )
+			{
+				auto pEnvNode = new CPrefabNode( GetRes() );
+				pEnvNode->SetName( "env" );
+				m_pLevelNode->AddChild( pEnvNode );
+				pEnvNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelEnvEffect>()->strClassName.c_str() );
+				auto pData = (CLevelEnvEffect*)pEnvNode->GetObjData();
 				pData->m_gridSize = LEVEL_GRID_SIZE * 0.5f;
 				pData->m_nWidth = GetLevelData()->GetSize().x * 2;
 				pData->m_nHeight = GetLevelData()->GetSize().y * 2;
-				m_pEnvNode->OnEditorActive( false );
+				pEnvNode->OnEditorActive( false );
+				m_vecEnvNodes.push_back( pEnvNode );
 			}
-			else if( m_pEnvNode->GetClassData() != CClassMetaDataMgr::Inst().GetClassData<CLevelEnvEffect>() )
-			{
-				m_pEnvNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelEnvEffect>()->strClassName.c_str() );
-				auto pData = GetData();
-				pData->m_gridSize = LEVEL_GRID_SIZE * 0.5f;
-				pData->m_nWidth = GetLevelData()->GetSize().x * 2;
-				pData->m_nHeight = GetLevelData()->GetSize().y * 2;
-				m_pEnvNode->OnEditorActive( false );
-			}
-			auto pData = GetData();
-			pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
-			m_pEftPreviewNode = SafeCast<CLevelEnvEffect>( m_pEnvNode->CreateInstance( false ) );
-			m_pEnvNode->AddChild( m_pEftPreviewNode );
-			m_pEftPreviewNode->Init();
+			for( int i = 0; i < m_vecEnvNodes.size() / 2; i++ )
+				swap( m_vecEnvNodes[i], m_vecEnvNodes[m_vecEnvNodes.size() - 1 - i] );
+			m_nEnvNode = -1;
+			SelectEnvNode( 0 );
 		}
 		else
 		{
@@ -874,6 +903,8 @@ public:
 			m_pEftPreviewNode->RemoveThis();
 			m_pEftPreviewNode = NULL;
 			m_pEnvNode = NULL;
+			m_nEnvNode = -1;
+			m_vecEnvNodes.resize( 0 );
 		}
 	}
 	virtual void OnDebugDraw( IRenderSystem* pRenderSystem, class CUIViewport* pViewport ) override;
@@ -886,14 +917,26 @@ public:
 
 	void UpdateDrag( class CUIViewport* pViewport, const TVector2<int32>& p );
 private:
+	void SelectEnvNode( int32 n );
+	void OnLayerScript();
+	void OnLayerScriptEditOK( const wchar_t* sz );
+	void OnLayerScriptText();
+
 	int32 m_nCurSelectedValue;
+	vector<CReference<CPrefabNode> > m_vecEnvNodes;
+	int32 m_nEnvNode;
 	CReference<CPrefabNode> m_pEnvNode;
 	CReference<CLevelEnvEffect> m_pEftPreviewNode;
+	CReference<CUIButton> m_pLayerScript;
+	CReference<CUITextBox> m_pLayerScriptText;
 	int8 m_nDragType;
 	CVector2 m_dragPos;
 	TRectangle<int32> m_newSize;
 	TClassTrigger<CLevelEnvTool> m_onImport;
 	TClassTrigger1<CLevelEnvTool, const char*> m_onImportOK;
+	TClassTrigger<CLevelEnvTool> m_onLayerScript;
+	TClassTrigger1<CLevelEnvTool, const wchar_t*> m_onLayerScriptEditOK;
+	TClassTrigger<CLevelEnvTool> m_onLayerScriptText;
 };
 
 void CLevelEnvTool::OnDebugDraw( IRenderSystem* pRenderSystem, CUIViewport* pViewport )
@@ -1083,6 +1126,40 @@ void CLevelEnvTool::OnViewportKey( SUIKeyEvent* pEvent )
 			return;
 		m_nCurSelectedValue = n1;
 	}
+
+	if( pEvent->nChar == 'P' )
+	{
+		auto n = m_vecEnvNodes.size();
+		CPrefabNode* pEnvNode1 = m_vecEnvNodes.back();
+		auto pNode = new CPrefabNode( GetRes() );
+		pNode->SetClassName( CClassMetaDataMgr::Inst().GetClassData<CLevelEnvEffect>()->strClassName.c_str() );
+		m_pLevelNode->AddChildBefore( pNode, m_vecEnvNodes.back() );
+		pNode->OnEditorActive( false );
+		m_vecEnvNodes.push_back( pNode );
+		n = Min( n, m_vecEnvNodes.size() - 1 );
+		char sz[32];
+		sprintf( sz, "env%d", n + 1 );
+		pNode->SetName( sz );
+
+		pNode->SetResource( pEnvNode1->GetResource() );
+		auto pObj = (CLevelEnvEffect*)pEnvNode1->GetObjData();
+		auto pData = (CLevelEnvEffect*)pNode->GetObjData();
+		pData->m_gridSize = pObj->m_gridSize;
+		pData->m_nWidth = pObj->m_nWidth;
+		pData->m_nHeight = pObj->m_nHeight;
+		pData->m_gridOfs = pObj->m_gridOfs;
+		pData->m_arrEnvDescs = pObj->m_arrEnvDescs;
+		for( int i = 0; i < pData->m_arrEnvMap.Size(); i++ )
+		{
+			if( pData->m_arrEnvMap[i] > pData->m_arrEnvDescs.Size() )
+				pData->m_arrEnvMap[i] = 0;
+		}
+		SelectEnvNode( n );
+	}
+	else if( pEvent->nChar == 'A' )
+		SelectEnvNode( m_nEnvNode < m_vecEnvNodes.size() - 1 ? m_nEnvNode + 1 : 0 );
+	else if( pEvent->nChar == 'S' )
+		SelectEnvNode( m_nEnvNode > 0 ? m_nEnvNode - 1 : m_vecEnvNodes.size() - 1 );
 }
 
 void CLevelEnvTool::OnImport()
@@ -1107,6 +1184,10 @@ void CLevelEnvTool::OnImportOK( const char* szText )
 			m_pEnvNode->SetResource( pEnvNode1->GetResource() );
 			auto pObj = (CLevelEnvEffect*)pEnvNode1->GetObjData();
 			auto pData = GetData();
+			pData->m_nWidth = Max<int32>( 1, floor( pData->m_nWidth * pData->m_gridSize.x / pObj->m_gridSize.x + 0.5f ) );
+			pData->m_nHeight = Max<int32>( 1, floor( pData->m_nHeight * pData->m_gridSize.y / pObj->m_gridSize.y + 0.5f ) );
+			pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
+			pData->m_gridSize = pObj->m_gridSize;
 			pData->m_arrEnvDescs = pObj->m_arrEnvDescs;
 			for( int i = 0; i < pData->m_arrEnvMap.Size(); i++ )
 			{
@@ -1135,6 +1216,55 @@ void CLevelEnvTool::UpdateDrag( CUIViewport* pViewport, const TVector2<int32>& p
 	grid = m_nCurSelectedValue;
 	m_pEftPreviewNode->m_arrEnvMap[p.x + p.y * pEnvData->m_nWidth] = m_nCurSelectedValue;
 	m_pEftPreviewNode->Init();
+}
+
+void CLevelEnvTool::SelectEnvNode( int32 n )
+{
+	if( m_nEnvNode == n )
+		return;
+	if( m_pEftPreviewNode )
+	{
+		m_pEftPreviewNode->RemoveThis();
+		m_pEftPreviewNode = NULL;
+	}
+	if( m_pEnvNode )
+		m_pEnvNode->OnEdit();
+	m_nEnvNode = n;
+	m_pEnvNode = m_vecEnvNodes[n];
+	auto pData = GetData();
+	pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
+	m_pEftPreviewNode = SafeCast<CLevelEnvEffect>( m_pEnvNode->CreateInstance( false ) );
+	m_pEnvNode->AddChild( m_pEftPreviewNode );
+	m_pEftPreviewNode->Init();
+
+	m_pLayerScript->SetText( m_pEnvNode->GetName() );
+	m_pLayerScriptText->SetText( pData->GetCondition() );
+}
+
+void CLevelEnvTool::OnLayerScript()
+{
+	auto p = m_pEnvNode->GetStaticDataSafe<CLevelEnvEffect>();
+	if( !p )
+		return;
+	CTextEditDialog::Inst()->Show( Utf8ToUnicode( p->GetCondition() ).c_str(), &m_onLayerScriptEditOK );
+}
+
+void CLevelEnvTool::OnLayerScriptEditOK( const wchar_t * sz )
+{
+	if( sz )
+	{
+		static_cast<CLevelEnvEffect*>( m_pEnvNode->GetFinalObjData() )->m_strCondition = UnicodeToUtf8( sz ).c_str();
+		m_pEnvNode->OnEdit();
+	}
+}
+
+void CLevelEnvTool::OnLayerScriptText()
+{
+	auto p = m_pEnvNode->GetStaticDataSafe<CLevelEnvEffect>();
+	if( !p )
+		return;
+	static_cast<CLevelEnvEffect*>( m_pEnvNode->GetFinalObjData() )->m_strCondition = UnicodeToUtf8( m_pLayerScriptText->GetText() ).c_str();
+	m_pEnvNode->OnEdit();
 }
 
 void CLevelToolsView::OnInited()

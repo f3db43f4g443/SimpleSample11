@@ -14,12 +14,28 @@ void CWorldCfgFile::Create()
 		return;
 	CBufReader bufReader( &fileContent[0], fileContent.size() );
 	m_pWorldCfg = (SWorldCfg*)CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>()->NewObjFromData( bufReader, true, NULL );
+	for( int i = 0; i < m_pWorldCfg->arrRegionData.Size(); i++ )
+	{
+		auto& arrLevelData = m_pWorldCfg->arrRegionData[i].arrLevelData;
+		for( int j = 0; j < arrLevelData.Size(); j++ )
+		{
+			m_mapLevels[arrLevelData[j].pLevel.c_str()] = TVector2<int32>( i, j );
+		}
+	}
 	m_bCreated = true;
 }
 
 void CWorldCfgFile::Save( CBufFile& buf )
 {
 	CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>()->PackData( (uint8*)m_pWorldCfg, buf, true );
+}
+
+TVector2<int32> CWorldCfgFile::GetLevelIndex( const char* szLevel )
+{
+	auto itr = m_mapLevels.find( szLevel );
+	if( itr == m_mapLevels.end() )
+		return TVector2<int32>( -1, -1 );
+	return itr->second;
 }
 
 CWorld::CWorld()
@@ -54,13 +70,12 @@ void CWorld::CreatePlayer()
 	SetPlayer( pPlayer );
 }
 
-void CWorld::Start()
+void CWorld::Start( const char* szName, int32 nParam )
 {
 	SStageEnterContext context;
-	context.enterPos = TVector2<int32>( 0, 0 );
-	context.nEnterDir = 0;
+	context.nParam = nParam;
 
-	const char* szSubStageName = "main.pf";
+	const char* szSubStageName = szName;
 	auto itr = m_mapStageContexts.find( szSubStageName );
 	if( itr == m_mapStageContexts.end() )
 	{
@@ -103,8 +118,6 @@ void CWorld::EnterStage( SStageEnterContext& enterContext )
 void CWorld::EnterStage( CPrefab* pStage, const TVector2<int32>& pos, int8 nDir )
 {
 	SStageEnterContext context;
-	context.enterPos = pos;
-	context.nEnterDir = nDir;
 
 	const char* szSubStageName = pStage->GetName();
 	auto itr = m_mapStageContexts.find( szSubStageName );
@@ -223,8 +236,7 @@ void RegisterGameClasses_World()
 		REGISTER_MEMBER( arrGrids )
 		REGISTER_MEMBER( arrNxtStages )
 		REGISTER_MEMBER( arrConsoles )
-		REGISTER_MEMBER( arrFall )
-		REGISTER_MEMBER( arrClimb )
+		REGISTER_MEMBER( arrIconData )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SRegionData )

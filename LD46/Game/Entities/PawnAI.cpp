@@ -2,6 +2,7 @@
 #include "PawnAI.h"
 #include "MyLevel.h"
 #include "Common/Rand.h"
+#include "Algorithm.h"
 
 int32 CPlayerHelperAIAttack::CheckAction( int8& nCurDir )
 {
@@ -71,7 +72,7 @@ int32 CPlayerHelperAIAttack::CheckAction( int8& nCurDir )
 enum
 {
 	eCommonAction_Stand,
-	eCommonAction_Move_Forward,
+	eCommonAction_Move_X,
 	eCommonAction_Move_Up,
 	eCommonAction_Move_Down,
 };
@@ -97,7 +98,7 @@ int32 CPawnAI0::CheckAction( int8& nCurDir )
 	else if( moveY == -1 )
 		return eCommonAction_Move_Down;
 	else
-		return eCommonAction_Move_Forward;
+		return eCommonAction_Move_X;
 }
 
 
@@ -107,34 +108,43 @@ class CPawnAI1 : public CPawnAI
 public:
 	CPawnAI1( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI1 ); }
 	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished );
 private:
+	enum
+	{
+		Action_Death = 5,
+		Action_Atk_X = 7,
+		Action_Atk_Up,
+		Action_Atk_Down,
+		Action_Dash_X,
+		Action_Dash_Up,
+		Action_Dash_Down,
+		Action_Move_X_1,
+		Action_Move_Up_1,
+		Action_Move_Down_1,
+		Action_Explode,
+		Action_Explode_1,
+		Action_Death_1,
+	};
 	bool m_bDash;
 	int32 m_nSightRange;
 };
 
 int32 CPawnAI1::CheckAction( int8& nCurDir )
 {
-	enum
-	{
-		Action_Atk_Forward = 7,
-		Action_Atk_Up,
-		Action_Atk_Down,
-		Action_Dash_Forward,
-		Action_Dash_Up,
-		Action_Dash_Down,
-	};
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pLevel = pPawn->GetLevel();
 	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+	bool bType = pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy );
 	if( pPlayer )
 	{
 		auto d = pPlayer->GetMoveTo() - pPawn->GetPos();
-		if( d == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return Action_Atk_Forward; }
-		if( d == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return Action_Atk_Forward; }
-		if( d == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return Action_Atk_Up; }
-		if( d == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return Action_Atk_Up; }
-		if( d == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return Action_Atk_Down; }
-		if( d == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return Action_Atk_Down; }
+		if( d == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_X; }
+		if( d == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_X; }
+		if( d == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_Up; }
+		if( d == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_Up; }
+		if( d == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_Down; }
+		if( d == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_Down; }
 
 		static vector<TVector2<int32> > vecPath;
 		vecPath.resize( 0 );
@@ -146,8 +156,8 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 			auto d1 = nxt - pPawn->GetPos();
 			if( m_bDash && d == d1 * 2 )
 			{
-				if( d == TVector2<int32>( 4, 0 ) ) { nCurDir = 0; return Action_Dash_Forward; }
-				if( d == TVector2<int32>( -4, 0 ) ) { nCurDir = 1; return Action_Dash_Forward; }
+				if( d == TVector2<int32>( 4, 0 ) ) { nCurDir = 0; return Action_Dash_X; }
+				if( d == TVector2<int32>( -4, 0 ) ) { nCurDir = 1; return Action_Dash_X; }
 				if( d == TVector2<int32>( 2, 2 ) ) { nCurDir = 0; return Action_Dash_Up; }
 				if( d == TVector2<int32>( -2, 2 ) ) { nCurDir = 1; return Action_Dash_Up; }
 				if( d == TVector2<int32>( 2, -2 ) ) { nCurDir = 0; return Action_Dash_Down; }
@@ -156,12 +166,12 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 
 			if( m_nSightRange < 0 || m_nSightRange >= vecPath.size() )
 			{
-				if( d1 == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return eCommonAction_Move_Forward; }
-				if( d1 == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return eCommonAction_Move_Forward; }
-				if( d1 == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return eCommonAction_Move_Up; }
-				if( d1 == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return eCommonAction_Move_Up; }
-				if( d1 == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return eCommonAction_Move_Down; }
-				if( d1 == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return eCommonAction_Move_Down; }
+				if( d1 == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return bType ? Action_Move_X_1 : eCommonAction_Move_X; }
+				if( d1 == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return bType ? Action_Move_X_1 : eCommonAction_Move_X; }
+				if( d1 == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return bType ? Action_Move_Up_1 : eCommonAction_Move_Up; }
+				if( d1 == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return bType ? Action_Move_Up_1 : eCommonAction_Move_Up; }
+				if( d1 == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return bType ? Action_Move_Down_1 : eCommonAction_Move_Down; }
+				if( d1 == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return bType ? Action_Move_Down_1 : eCommonAction_Move_Down; }
 			}
 		}
 	}
@@ -170,11 +180,32 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 	int8 moveY = SRand::Inst().Rand( -1, 2 );
 	nCurDir = moveX;
 	if( moveY == 1 )
-		return eCommonAction_Move_Up;
+		return bType ? Action_Move_Up_1 : eCommonAction_Move_Up;
 	else if( moveY == -1 )
-		return eCommonAction_Move_Down;
+		return bType ? Action_Move_Down_1 : eCommonAction_Move_Down;
 	else
-		return eCommonAction_Move_Forward;
+		return bType ? Action_Move_X_1 : eCommonAction_Move_X;
+}
+
+int32 CPawnAI1::CheckStateTransits1( int8& nCurDir, bool bFinished )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetCurStateIndex() == Action_Death_1 )
+	{
+		if( !pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy ) )
+			return Action_Death;
+		else if( pPawn->IsDamaged() )
+		{
+			pPawn->SetHp( pPawn->GetMaxHp() );
+			return Action_Explode;
+		}
+	}
+	else if( pPawn->GetCurStateIndex() == Action_Death )
+	{
+		if( pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy ) )
+			return Action_Death_1;
+	}
+	return -1;
 }
 
 
@@ -261,8 +292,8 @@ int32 CPawnAI_Spore::CheckAction( int8& nCurDir )
 			pPlayer->nTempFlag = 0;
 			auto d1 = nxt - pPawn->GetPos();
 
-			if( d1 == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return eCommonAction_Move_Forward; }
-			if( d1 == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return eCommonAction_Move_Forward; }
+			if( d1 == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return eCommonAction_Move_X; }
+			if( d1 == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return eCommonAction_Move_X; }
 			if( d1 == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return eCommonAction_Move_Up; }
 			if( d1 == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return eCommonAction_Move_Up; }
 			if( d1 == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return eCommonAction_Move_Down; }
@@ -278,7 +309,7 @@ int32 CPawnAI_Spore::CheckAction( int8& nCurDir )
 	else if( moveY == -1 )
 		return eCommonAction_Move_Down;
 	else
-		return eCommonAction_Move_Forward;
+		return eCommonAction_Move_X;
 }
 
 
@@ -662,6 +693,8 @@ int32 CPawnAI_Pig::CheckStateTransits1( int8& nCurDir, bool bFinished )
 		auto nDamageDir = pPawn->GetDamageOfsDir();
 		if( nDamageDir >= 0 )
 		{
+			if( pPawn->GetMoveTo() != pPawn->GetPos() )
+				pPawn->GetLevel()->PawnMoveEnd( pPawn );
 			auto n0 = nDamageDir & 1;
 			auto n1 = nDamageDir >> 1;
 			if( n0 == nCurDir )
@@ -715,6 +748,746 @@ int32 CPawnAI_Pig::GetInvertState( int32 nBaseType, int32 n0, int8& nCurDir )
 }
 
 
+class CPawnAI_Crow : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	CPawnAI_Crow( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI_Crow ); }
+	virtual void OnInit() override;
+	virtual void OnUpdate() override;
+	virtual void OnUpdate0() override;
+	virtual int32 CheckAction( int8& nCurDir ) override;
+
+	enum
+	{
+		eState_Stand_0,
+		eState_Stand_1,
+		eState_Stand_2,
+		eState_Move_Ready_0,
+		eState_Move_Ready_1,
+		eState_Move_Ready_2,
+		eState_Recover_0,
+		eState_Recover_1,
+		eState_Recover_2,
+		eState_Move_X,
+		eState_Move_Up,
+		eState_Move_Down,
+		eState_Move_Back,
+		eState_Turn_0,
+		eState_Turn_1,
+		eState_Hit_1,
+		eState_Hit_2,
+		eState_Death,
+		eState_Attack_1,
+		eState_Attack_2,
+		eState_Draw_Blade_0,
+		eState_Draw_Blade_1,
+		eState_Throw_Blade_0,
+		eState_Throw_Blade_1,
+		eState_Draw_Blade_0a,
+		eState_Draw_Blade_1a,
+	};
+
+	virtual int32 CheckStateTransits( int8& nCurDir ) override;
+	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) override;
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override;
+	virtual void HandleStealthDetect() override;
+private:
+	int32 Break();
+	int32 ActionFunc( int8& nCurDir, int32 nPrevState );
+	int32 ActionFuncStealth( int8& nCurDir, int32 nPrevState );
+	int32 ActionFindPath( int8& nCurDir, int32 nPrevState );
+	bool CheckSeePlayer( CPlayer* pPlayer );
+	int32 m_nBladeMaxHp;
+	int32 m_nDrawBladeCD;
+	CReference<CRenderObject2D> m_pHpBarImg[5];
+
+	CRectangle m_hpBarOrigRect;
+	int32 m_nDrawBladeCDLeft;
+	int32 m_nAlertTime;
+	int32 m_nBladeHp;
+	int8 m_nBlades;
+	int8 m_nCurBladesHpBar;
+	int8 m_nIntention;
+	int8 m_bLastSeePlayerPosValid;
+	TVector2<int32> m_origPos;
+	int8 m_nOrigDir;
+	vector<TVector2<int32> > m_vecAlert;
+	vector<TVector2<int32> > m_vecDetect;
+	TVector2<int32> m_lastSeePlayerPos;
+};
+
+void CPawnAI_Crow::OnInit()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
+	m_origPos = pPawn->GetPos();
+	m_nOrigDir = pPawn->GetCurDir();
+}
+
+void CPawnAI_Crow::OnUpdate()
+{
+	if( m_nDrawBladeCDLeft )
+		m_nDrawBladeCDLeft--;
+	if( m_nAlertTime )
+		m_nAlertTime--;
+}
+
+void CPawnAI_Crow::OnUpdate0()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( !pPawn->GetLevel() )
+	{
+		m_pHpBarImg[0]->bVisible = false;
+		return;
+	}
+	int32 nHp, nMaxHp;
+	if( m_nCurBladesHpBar )
+	{
+		nHp = m_nBladeHp;
+		nMaxHp = m_nBladeMaxHp;
+	}
+	else
+	{
+		nHp = pPawn->GetHp();
+		nMaxHp = pPawn->GetMaxHp();
+	}
+
+	m_pHpBarImg[0]->bVisible = true;
+	auto rect = m_hpBarOrigRect;
+	rect.width = nHp * rect.width / nMaxHp;
+	static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->SetRect( rect );
+	m_pHpBarImg[0]->SetBoundDirty();
+	m_pHpBarImg[0]->SetPosition( pPawn->GetHpBarOfs() );
+	for( int i = 1; i <= 2; i++ )
+	{
+		m_pHpBarImg[i]->bVisible = i <= m_nBlades;
+		m_pHpBarImg[i + 2]->bVisible = i <= m_nCurBladesHpBar;
+	}
+}
+
+int32 CPawnAI_Crow::CheckAction( int8& nCurDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	int8 nType = 0;
+	if( pPlayer->GetStealthValue() )
+	{
+		CheckSeePlayer( pPlayer );
+		nType = m_bLastSeePlayerPosValid ? 1 : 2;
+	}
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+	if( nType == 2 )
+		return -1;
+	if( nType == 1 )
+		return ActionFuncStealth( nCurDir, -1 );
+	return ActionFunc( nCurDir, -1 );
+}
+
+int32 CPawnAI_Crow::CheckStateTransits( int8& nCurDir )
+{
+	return Break();
+}
+
+int32 CPawnAI_Crow::CheckStateTransits1( int8& nCurDir, bool bFinished )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	int8 nType = 0;
+	if( pPlayer->GetStealthValue() )
+	{
+		CheckSeePlayer( pPlayer );
+		nType = m_bLastSeePlayerPosValid ? 1 : 2;
+	}
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+
+	auto nCurStateIndex = pPawn->GetCurStateIndex();
+	if( !nType && pPlayer->GetMoveTo() != pPlayer->GetPos() )
+	{
+		auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+		if( m_nBlades == 2 && abs( d.x ) == 2 && abs( d.y ) == 2 )
+		{
+			auto p0 = pPawn->GetMoveTo() + d / 2;
+			auto p1 = pPawn->GetMoveTo() + TVector2<int32>( d.x > 0 ? -2 : 2, 0 );
+			if( pPawn->GetLevel()->IsGridMoveable( p0, pPawn ) && pPawn->GetLevel()->IsGridMoveable( p1, pPawn ) )
+				m_nAlertTime = 40;
+		}
+		if( m_nBlades >= 1 && abs( d.x ) == 6 && d.y == 0 )
+		{
+			auto p0 = pPawn->GetMoveTo() + TVector2<int32>( d.x > 0 ? 2 : -2, 0 );
+			auto p1 = p0 + TVector2<int32>( d.x > 0 ? 2 : -2, 0 );
+			if( pPawn->GetLevel()->IsGridMoveable( p0, pPawn ) && pPawn->GetLevel()->IsGridMoveable( p1, pPawn ) )
+				m_nAlertTime = 40;
+		}
+		if( m_nBlades == 2 && abs( d.x ) == 5 && abs( d.y ) == 1 )
+		{
+			auto p0 = pPawn->GetMoveTo() + TVector2<int32>( d.x > 0 ? 2 : -2, 0 );
+			auto p1 = p0 + TVector2<int32>( d.x > 0 ? 1 : -1, d.y > 0 ? 1 : -1 );
+			if( pPawn->GetLevel()->IsGridMoveable( p0, pPawn ) && pPawn->GetLevel()->IsGridMoveable( p1, pPawn ) )
+				m_nAlertTime = 40;
+		}
+	}
+
+	if( pPawn->IsDamaged() )
+	{
+		if( !m_nBlades )
+			return Break();
+		m_nDrawBladeCDLeft = m_nDrawBladeCD;
+		if( nCurStateIndex >= eState_Stand_0 && nCurStateIndex <= eState_Recover_2 ||
+			nCurStateIndex == eState_Draw_Blade_0 || nCurStateIndex == eState_Draw_Blade_1 )
+		{
+			if( !m_nBladeHp )
+				return Break();
+			return m_nBlades + eState_Recover_0;
+		}
+	}
+	if( !bFinished )
+		return -1;
+	switch( nCurStateIndex )
+	{
+	case eState_Stand_0:
+	case eState_Stand_1:
+	case eState_Stand_2:
+		return -1;
+	case eState_Move_Ready_0:
+	case eState_Move_Ready_1:
+	case eState_Move_Ready_2:
+		return m_nIntention;
+	case eState_Recover_0:
+	case eState_Recover_1:
+	case eState_Recover_2:
+	case eState_Attack_1:
+	case eState_Attack_2:
+	case eState_Draw_Blade_0a:
+	case eState_Draw_Blade_1a:
+	case eState_Throw_Blade_1:
+		if( m_nBlades && !m_nBladeHp )
+			return Break();
+		if( pPawn->IsKilled() )
+			return eState_Death;
+		return m_nBlades + eState_Stand_0;
+	case eState_Turn_0:
+		nCurDir = 1 - nCurDir;
+		return eState_Turn_1;
+	case eState_Hit_1:
+	case eState_Hit_2:
+		if( m_nCurBladesHpBar != m_nBlades )
+		{
+			m_nCurBladesHpBar = m_nBlades;
+			if( m_nBlades )
+				m_nBladeHp = m_nBladeMaxHp;
+			else
+				pPawn->SetHp( pPawn->GetMaxHp() );
+		}
+		if( pPawn->IsKilled() )
+			return eState_Death;
+		return m_nBlades + eState_Recover_0;
+	case eState_Death:
+		return -1;
+	case eState_Draw_Blade_0:
+	case eState_Draw_Blade_1:
+		m_nBlades++;
+		m_nDrawBladeCDLeft = m_nDrawBladeCD;
+		m_nCurBladesHpBar = m_nBlades;
+		m_nBladeHp = m_nBladeMaxHp;
+		return nCurStateIndex + eState_Draw_Blade_0a - eState_Draw_Blade_0;
+	case eState_Throw_Blade_0:
+		m_nBlades--;
+		m_nCurBladesHpBar = m_nBlades;
+		m_nBladeHp = m_nBladeMaxHp;
+		return eState_Throw_Blade_1;
+	}
+
+	if( m_nBlades && !m_nBladeHp )
+		return Break();
+	if( pPawn->IsKilled() )
+		return eState_Death;
+	if( nType == 2 )
+		return -1;
+	if( nType == 1 )
+		return ActionFuncStealth( nCurDir, nCurStateIndex );
+	return ActionFunc( nCurDir, nCurStateIndex );
+}
+
+bool CPawnAI_Crow::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs )
+{
+	if( m_nCurBladesHpBar )
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		m_nBladeHp = Max( 0, m_nBladeHp - nDamage );
+		pPawn->SetDamaged( nDamageType, damageOfs );
+		return true;
+	}
+	return false;
+}
+
+void CPawnAI_Crow::HandleStealthDetect()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto levelSize = pLevel->GetSize();
+	TVector3<int32> target( -1, -1, -1 );
+	TVector3<int32> nxt;
+	int32 l = 0;
+	static vector<int8> vec;
+	static vector<TVector2<int32> > q;
+	vec.resize( levelSize.x * levelSize.y );
+	q.resize( 0 );
+	for( int i = 0; i < levelSize.x; i++ )
+	{
+		for( int j = 0; j < levelSize.y; j++ )
+		{
+			if( !!( ( i + j ) & 1 ) )
+				continue;
+			vec[i + j * levelSize.x] = pLevel->GetGrid( TVector2<int32>( i, j ) )->bBlockSight ? 1 : 0;
+		}
+	}
+	auto p0 = pPawn->GetMoveTo();
+	q.push_back( p0 );
+	vec[p0.x + p0.y * levelSize.x] = 3;
+
+	TVector2<int32> ofs0[] = { { 2, 0 }, { 1, 1 }, { 1, -1 } };
+	if( pPawn->GetCurDir() )
+	{
+		for( int i = 0; i < 3; i++ )
+			ofs0[i].x *= -1;
+	}
+	bool bFound = false;
+	for( int i = 0; i < q.size(); i++ )
+	{
+		auto p = q[i];
+		auto& n0 = vec[p.x + p.y * levelSize.x];
+		n0 += 2;
+		TVector2<int32> ofs[3];
+		ofs[0] = ofs0[0];
+		int32 nOfs = 1;
+		if( p == p0 )
+		{
+			ofs[nOfs++] = ofs0[1];
+			ofs[nOfs++] = ofs0[2];
+		}
+		else if( p.y > p0.y )
+			ofs[nOfs++] = ofs0[1];
+		else if( p.y < p0.y )
+			ofs[nOfs++] = ofs0[2];
+		for( int j = 0; j < nOfs; j++ )
+		{
+			auto p1 = p + ofs[j];
+			if( p1.x >= 0 && p1.y >= 0 && p1.x < levelSize.x && p1.y < levelSize.y )
+			{
+				auto& type = vec[p1.x + p1.y * levelSize.x];
+				if( type == 1 )
+					continue;
+				if( !type )
+					q.push_back( p1 );
+				type = Max<int8>( type, n0 - 2 );
+			}
+		}
+	}
+	m_vecAlert.resize( 0 );
+	m_vecDetect.resize( 0 );
+	for( auto& p : q )
+	{
+		if( vec[p.x + p.y * levelSize.x] != 5 )
+			continue;
+		m_vecAlert.push_back( p );
+		pLevel->GetGrid( p )->bStealthAlert = true;
+		if( p.y == p0.y || abs( p.x - p0.x ) + abs( p.y - p0.y ) <= 4 )
+		{
+			pLevel->GetGrid( p )->bStealthDetect = true;
+			m_vecDetect.push_back( p );
+		}
+	}
+	q.resize( 0 );
+}
+
+int32 CPawnAI_Crow::Break()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( m_nBlades )
+	{
+		int32 nParams[] = { 0, 0, 0, 3 };
+		SPawnStateEvent evt = { ePawnStateEventType_Hit, 0, nParams, "" };
+		pPawn->HandleHit( evt );
+		m_nBlades--;
+		m_nBladeHp = 0;
+	}
+	return m_nBlades < 1 ? eState_Hit_1 : eState_Hit_2;
+}
+
+int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	auto d = pPlayer->GetMoveTo() - pPawn->GetPos();
+	auto d1 = d;
+	if( nCurDir == 1 )
+		d1.x = -d1.x;
+
+	if( m_nBlades )
+	{
+		auto p0 = pPawn->GetPos();
+		auto p1 = pPlayer->GetMoveTo();
+		TVector2<int32> ofs( nCurDir == 0 ? 2 : -2, 0 );
+		if( d1.x == 4 && d1.y == 0 || m_nBlades >= 2 && d1.x == 3 && ( d1.y == 1 || d1.y == -1 ) )
+		{
+			if( pPawn->GetLevel()->IsGridMoveable( p0 + ofs, pPawn ) )
+				return m_nBlades == 2 ? eState_Attack_2 : eState_Attack_1;
+		}
+		if( d1.x == 2 && d1.y == 0 )
+		{
+			if( !pPawn->GetLevel()->IsGridMoveable( pPawn->GetPos() + TVector2<int32>( nCurDir == 0 ? -2 : 2, 0 ), pPawn ) )
+				return m_nBlades == 2 ? eState_Attack_2 : eState_Attack_1;
+		}
+		if( m_nBlades == 2 && d1.y == 0 && d1.x > 4 )
+		{
+			bool b = true;
+			for( auto p = p0 + ofs; p != p1; p = p + ofs )
+			{
+				if( !pPawn->GetLevel()->IsGridMoveable( p, pPawn ) )
+				{
+					b = false;
+					break;
+				}
+			}
+			if( b )
+			{
+				m_nDrawBladeCDLeft = 0;
+				return eState_Throw_Blade_0;
+			}
+		}
+	}
+
+	d = pPlayer->GetCurStateDest() - pPawn->GetPos();
+	d1 = d;
+	if( nCurDir == 1 )
+		d1.x = -d1.x;
+	if( d1.y == 0 && d1.x == 2 || m_nBlades == 2 && d1.x == 1 && ( d1.y == 1 || d1.y == -1 ) )
+	{
+		if( pPawn->GetLevel()->IsGridMoveable( pPawn->GetPos() + TVector2<int32>( nCurDir == 0 ? -2 : 2, 0 ), pPawn ) )
+			return eState_Move_Back;
+	}
+
+	if( !m_nAlertTime || !m_nBlades )
+	{
+		auto nResult = ActionFindPath( nCurDir, nPrevState );
+		if( nResult >= 0 )
+			return nResult;
+		if( m_nBlades < 2 && !m_nDrawBladeCDLeft )
+		{
+			if( nPrevState >= 0 )
+				return eState_Draw_Blade_0 + m_nBlades;
+			m_nIntention = eState_Draw_Blade_0 + m_nBlades;
+			return eState_Move_Ready_0 + m_nBlades;
+		}
+	}
+	
+	if( d1.x < 0 )
+	{
+		if( nPrevState >= 0 )
+			return eState_Turn_0;
+		m_nIntention = eState_Turn_0;
+		return eState_Move_Ready_0 + m_nBlades;
+	}
+	if( nPrevState >= 0  )
+		return m_nBlades + eState_Recover_0;
+	return -1;
+}
+
+int32 CPawnAI_Crow::ActionFuncStealth( int8 & nCurDir, int32 nPrevState )
+{
+	if( m_nBlades < 2 && !m_nDrawBladeCDLeft )
+	{
+		if( nPrevState >= 0 )
+			return eState_Draw_Blade_0 + m_nBlades;
+		m_nIntention = eState_Draw_Blade_0 + m_nBlades;
+		return eState_Move_Ready_0 + m_nBlades;
+	}
+	return ActionFindPath( nCurDir, nPrevState );
+}
+
+int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto levelSize = pLevel->GetSize();
+	TVector3<int32> target( -1, -1, -1 );
+	TVector3<int32> nxt;
+	int32 l = 0;
+	static vector<int8> vec;
+	static vector<TVector3<int32> > q;
+	static vector<TVector3<int32> > par;
+	int8 nType = m_nBlades;
+	auto pPlayer = pLevel->GetPlayer();
+	bool bStealth = pPlayer->GetStealthValue();
+
+	for( ;; )
+	{
+		for( int k = ( bStealth ? 1 : 0 ); k < 2; k++ )
+		{
+			vec.resize( levelSize.x * levelSize.y * 2 );
+			memset( &vec[0], 0, vec.size() );
+			for( int i = 0; i < levelSize.x; i++ )
+			{
+				for( int j = 0; j < levelSize.y; j++ )
+				{
+					if( !!( ( i + j ) & 1 ) )
+						continue;
+					if( !pLevel->IsGridMoveable( TVector2<int32>( i, j ), pPawn ) )
+						vec[( i + j * levelSize.x ) * 2] = vec[( i + j * levelSize.x ) * 2 + 1] = 1;
+				}
+			}
+			auto p0 = pPawn->GetPos();
+			TVector2<int32> ofs[] = { { 2, 0 }, { -2, 0 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
+			int32 nOfs = ELEM_COUNT( ofs );
+			bool bMoveBack = false;
+			if( bStealth )
+			{
+				auto p1 = pPlayer->GetPos();
+				auto p2 = pPlayer->GetMoveTo();
+				vec[( p1.x + p1.y * levelSize.x ) * 2] = vec[( p1.x + p1.y * levelSize.x ) * 2 + 1] = 0;
+				vec[( p2.x + p2.y * levelSize.x ) * 2] = vec[( p2.x + p2.y * levelSize.x ) * 2 + 1] = 0;
+				if( m_bLastSeePlayerPosValid == 1 )
+				{
+					auto p3 = m_lastSeePlayerPos;
+					vec[( p3.x + p3.y * levelSize.x ) * 2] = vec[( p3.x + p3.y * levelSize.x ) * 2 + 1] = 2;
+				}
+				else
+					vec[( m_origPos.x + m_origPos.y * levelSize.x ) * 2 + m_nOrigDir] = 2;
+			}
+			else
+			{
+				auto p = pPlayer->GetMoveTo();
+				for( int i = 0; i < 6; i++ )
+				{
+					auto pp = p + ofs[i];
+					if( pp.x < 0 || pp.y < 0 || pp.x >= levelSize.x || pp.y >= levelSize.y )
+						continue;
+					if( pp != pPlayer->GetPos() && vec[( pp.x + pp.y * levelSize.x ) * 2] )
+						continue;
+					if( k == 0 )
+						vec[( pp.x + pp.y * levelSize.x ) * 2] = vec[( pp.x + pp.y * levelSize.x ) * 2 + 1] = 1;
+
+					auto d = p0 - pp;
+					auto l1 = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2;
+					if( l1 < 2 )
+						bMoveBack = true;
+
+					if( !nType || nType == 1 && i >= 2 )
+						continue;
+					auto p1 = pp + TVector2<int32>( ofs[i].x > 0 ? 2 : -2, 0 );
+					if( p1.x >= 0 && p1.x < levelSize.x )
+					{
+						int32 a = ofs[i].x > 0 ? 1 : 0;
+						if( p1 == p0 && a == nCurDir )
+							return -1;
+						if( vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
+							continue;
+						vec[( p1.x + p1.y * levelSize.x ) * 2 + a] = 2;
+						if( nType == 2 && i < 2 )
+						{
+							for( p1 = p1 + ofs[i]; p1.x >= 0 && p1.x < levelSize.x; p1 = p1 + ofs[i] )
+							{
+								if( vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
+									break;
+								vec[( p1.x + p1.y * levelSize.x ) * 2 + a] = 2;
+							}
+						}
+					}
+				}
+			}
+			vec[( p0.x + p0.y * levelSize.x ) * 2] = vec[( p0.x + p0.y * levelSize.x ) * 2 + 1] = 0;
+
+			q.push_back( TVector3<int32>( p0.x, p0.y, nCurDir ) );
+			par.resize( vec.size() );
+			{
+				TVector2<int32> ofs1[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 } };
+				bool bFound = false;
+				for( int i = 0; i < q.size(); i++ )
+				{
+					auto p = q[i];
+					SRand::Inst().Shuffle( ofs1, 3 );
+					auto nOfs = 3;
+					if( bMoveBack )
+						nOfs = 4;
+					for( int j = nOfs - 1; j >= 0; j-- )
+					{
+						auto p1 = p + TVector3<int32>( p.z ? -ofs1[j].x : ofs1[j].x, ofs1[j].y, 0 );
+						if( p1.x >= 0 && p1.y >= 0 && p1.x < levelSize.x && p1.y < levelSize.y )
+						{
+							auto& type = vec[( p1.x + p1.y * levelSize.x ) * 2 + p1.z];
+							if( type == 0 )
+							{
+								type = 1;
+								par[( p1.x + p1.y * levelSize.x ) * 2 + p1.z] = p;
+								q.push_back( p1 );
+							}
+							else if( type == 2 )
+							{
+								par[( p1.x + p1.y * levelSize.x ) * 2 + p1.z] = p;
+								q.push_back( p1 );
+								bFound = true;
+								break;
+							}
+						}
+					}
+					if( bFound )
+						break;
+					TVector3<int32> p1( p.x, p.y, 1 - p.z );
+					auto& type = vec[( p1.x + p1.y * levelSize.x ) * 2 + p1.z];
+					if( type == 0 )
+					{
+						type = 1;
+						par[( p1.x + p1.y * levelSize.x ) * 2 + p1.z] = p;
+						q.push_back( p1 );
+					}
+					else if( type == 2 )
+					{
+						par[( p1.x + p1.y * levelSize.x ) * 2 + p1.z] = p;
+						q.push_back( p1 );
+						bFound = true;
+						break;
+					}
+				}
+				if( bFound )
+					target = q.back();
+				else if( !nType && q.size() > 1 )
+				{
+					int32 l = -1;
+					int32 n = -1;
+					for( int i = q.size() - 1; i >= 1; i-- )
+					{
+						if( q[i].x == pPawn->GetPos().x && q[i].y == pPawn->GetPos().y )
+							continue;
+						auto d = TVector2<int32>( q[i].x, q[i].y ) - pPlayer->GetMoveTo();
+						int32 l1 = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) );
+						l1 = l1 * l1 + d.Dot( p0 - pPlayer->GetMoveTo() );
+						if( l1 > l )
+						{
+							n = i;
+							l = l1;
+						}
+					}
+					if( n >= 0 )
+						target = q[n];
+				}
+				q.resize( 0 );
+			}
+
+			if( target.x >= 0 )
+			{
+				nxt = target;
+				l = 1;
+				for( ; nxt.x >= 0; )
+				{
+					auto p1 = par[( nxt.x + nxt.y * levelSize.x ) * 2 + nxt.z];
+					if( p1 == TVector3<int32>( p0.x, p0.y, nCurDir ) )
+						break;
+					if( p1.z == nxt.z )
+						l++;
+					nxt = p1;
+				}
+				if( !bStealth && !m_nDrawBladeCDLeft )
+				{
+					if( nType == 1 && l >= 2 )
+					{
+						if( pPlayer )
+						{
+							auto d = pPlayer->GetMoveTo() - p0;
+							auto l1 = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2;
+							if( l1 > 2 )
+								return -1;
+							if( l1 == 2 )
+							{
+								if( !pLevel->IsGridMoveable( p0 + d / 2, pPawn ) )
+									return -1;
+							}
+						}
+					}
+					else if( nType == 0 )
+						return -1;
+				}
+				break;
+			}
+		}
+		if( bStealth || !nType || target.x >= 0 )
+			break;
+		nType = 0;
+	}
+
+	if( target.x >= 0 )
+	{
+		auto d = TVector2<int32>( nxt.x, nxt.y ) - pPawn->GetPos();
+		auto d1 = d;
+		if( nCurDir == 1 )
+			d1.x = -d1.x;
+		if( d1 == TVector2<int32>( -2, 0 ) )
+			return eState_Move_Back;
+		int32 nState;
+		if( d1 == TVector2<int32>( 2, 0 ) )
+			nState = eState_Move_X;
+		else if( d1 == TVector2<int32>( 1, 1 ) )
+			nState = eState_Move_Up;
+		else if( d1 == TVector2<int32>( 1, -1 ) )
+			nState = eState_Move_Down;
+		else
+			nState = eState_Turn_0;
+		if( nPrevState >= 0 )
+			return nState;
+		m_nIntention = nState;
+		return eState_Move_Ready_0 + m_nBlades;
+	}
+
+	return -1;
+}
+
+bool CPawnAI_Crow::CheckSeePlayer( CPlayer * pPlayer )
+{
+	for( auto& p : m_vecAlert )
+	{
+		if( p == pPlayer->GetMoveTo() )
+		{
+			m_lastSeePlayerPos = p;
+			m_bLastSeePlayerPosValid = 1;
+			return true;
+		}
+	}
+	for( auto& p : m_vecAlert )
+	{
+		if( p == pPlayer->GetPos() )
+		{
+			m_lastSeePlayerPos = p;
+			m_bLastSeePlayerPosValid = 1;
+			return true;
+		}
+	}
+	if( m_bLastSeePlayerPosValid )
+	{
+		auto pPawn1 = pPlayer->GetLevel()->GetGrid( m_lastSeePlayerPos )->pPawn;
+		if( pPawn1 != pPlayer )
+		{
+			for( auto& p : m_vecDetect )
+			{
+				if( p == m_lastSeePlayerPos )
+				{
+					m_bLastSeePlayerPosValid = -1;
+					break;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+
 void RegisterGameClasses_PawnAI()
 {
 	REGISTER_CLASS_BEGIN( CPlayerHelperAIAttack )
@@ -748,5 +1521,16 @@ void RegisterGameClasses_PawnAI()
 
 	REGISTER_CLASS_BEGIN( CPawnAI_Pig )
 		REGISTER_BASE_CLASS( CPawnAI )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAI_Crow )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER( m_nBladeMaxHp )
+		REGISTER_MEMBER( m_nDrawBladeCD )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[0], hpbar )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[1], hpbar/1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[2], hpbar/2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[3], hpbar/3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[4], hpbar/4 )
 	REGISTER_CLASS_END()
 }

@@ -33,6 +33,7 @@ public:
 			CVector2 ofs;
 		};
 		vector<SParamItem> vecPawnParams;
+		vector<SParamItem> vecPawnFallParams;
 		vector<SParamItem> vecUseParams;
 		vector<SParamItem> vecMountParams;
 		vector<SParamItem> vecHitParams;
@@ -40,6 +41,10 @@ public:
 		vector<SParamItem> vecMissParams;
 		vector<SParamItem> vecBlockedParams;
 		vector<SParamItem> vecBlockedParams1;
+		vector<SParamItem> vecStealthBackParams1;
+		vector<SParamItem> vecStealthBackParams2;
+		vector<SParamItem> vecStealthAlertParams;
+		vector<SParamItem> vecStealthDetectParams;
 		SParamItem NextLevelParamMin;
 		SParamItem NextLevelParamMax;
 		int32 nNextLevelParamCount;

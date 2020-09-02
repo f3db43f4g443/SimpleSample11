@@ -610,8 +610,7 @@ void CWorldCfgEditor::RefreshLevelData( int32 nRegion, int32 nLevel )
 	levelData.arrGrids.Resize( 0 );
 	levelData.arrNxtStages.Resize( 0 );
 	levelData.arrConsoles.Resize( 0 );
-	levelData.arrFall.Resize( 0 );
-	levelData.arrClimb.Resize( 0 );
+	levelData.arrIconData.Resize( 0 );
 	auto pLevelNode = m_vecRegionData[nRegion].vecLevelData[nLevel].pClonedLevelData;
 	auto pLevel = pLevelNode->GetStaticDataSafe<CMyLevel>();
 	auto levelSize = pLevel->GetSize();
@@ -645,6 +644,7 @@ void CWorldCfgEditor::RefreshLevelData( int32 nRegion, int32 nLevel )
 		auto pPrefabNode = static_cast<CPrefabNode*>( p );
 		if( pPrefabNode->GetName() == "1" || pPrefabNode->GetClassData() && pPrefabNode->GetClassData()->Is( CClassMetaDataMgr::Inst().GetClassData<CPawnLayer>() ) )
 		{
+			auto pPawnLayer = pPrefabNode->GetStaticDataSafe<CPawnLayer>();
 			for( auto p1 = pPrefabNode->Get_RenderChild(); p1; p1 = p1->NextRenderChild() )
 			{
 				if( p1 == pPrefabNode->GetRenderObject() || p1 == pPrefabNode->GetPatchedNode() )
@@ -660,15 +660,22 @@ void CWorldCfgEditor::RefreshLevelData( int32 nRegion, int32 nLevel )
 						levelData.arrConsoles.Resize( levelData.arrConsoles.Size() + 1 );
 						levelData.arrConsoles[levelData.arrConsoles.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
 					}
-					else if( pData->Is( CClassMetaDataMgr::Inst().GetClassData<CFallPoint>() ) )
+					auto pPawn = pPawnNode->GetPatchedNode()->GetStaticDataSafe<CPawn>();
+					if( pPawn )
+						pPawn->CreateIconData( pPawnNode, pPawnLayer ? pPawnLayer->GetCondition().c_str() : "", levelData.arrIconData );
+
+					auto pPatchedNode = pPawnNode->GetPatchedNode();
+					for( auto pPawnChild = pPatchedNode->Get_RenderChild(); pPawnChild; pPawnChild = pPawnChild->NextRenderChild() )
 					{
-						levelData.arrFall.Resize( levelData.arrFall.Size() + 1 );
-						levelData.arrFall[levelData.arrFall.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
-					}
-					else if( pData->Is( CClassMetaDataMgr::Inst().GetClassData<CClimbPoint>() ) )
-					{
-						levelData.arrClimb.Resize( levelData.arrClimb.Size() + 1 );
-						levelData.arrClimb[levelData.arrClimb.Size() - 1] = CVector2( floor( pPawnNode->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawnNode->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
+						if( pPawnChild == pPatchedNode->GetRenderObject() || pPawnChild == pPatchedNode->GetPatchedNode() )
+							continue;
+						auto pPrefabNode1 = static_cast<CPrefabNode*>( pPawnChild );
+						if( pPrefabNode1->GetName() == "ai" )
+						{
+							auto pPawnAI = pPrefabNode1->GetStaticDataSafe<CPawnAI>();
+							if( pPawnAI )
+								pPawnAI->CreateIconData( pPawnNode, pPawnLayer ? pPawnLayer->GetCondition().c_str() : "", levelData.arrIconData );
+						}
 					}
 				}
 			}
