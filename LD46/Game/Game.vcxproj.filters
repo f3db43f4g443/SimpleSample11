@@ -47,6 +47,12 @@
     <ClCompile Include="GUI\ActionPreview.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
+    <ClCompile Include="Entities\InteractionUI.cpp">
+      <Filter>Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\LogUI.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -92,6 +98,12 @@
       <Filter>GUI</Filter>
     </ClInclude>
     <ClInclude Include="GUI\ActionPreview.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Entities\InteractionUI.h">
+      <Filter>Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\LogUI.h">
       <Filter>GUI</Filter>
     </ClInclude>
   </ItemGroup>

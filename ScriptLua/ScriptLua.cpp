@@ -110,6 +110,11 @@ void CLuaState::PushLuaCFunction( void* p, SLuaCFunction& func )
 	lua_pushcclosure( pLuaState, &STemp::Lua_CFunc, 1 );
 }
 
+void CLuaState::PushLuaIndex( void * p, int32 i )
+{
+	lua_pushvalue( (lua_State*)p, i );
+}
+
 void CLuaState::SetGlobal( void* p, const char* szName )
 {
 	lua_setglobal( (lua_State*)p, szName );

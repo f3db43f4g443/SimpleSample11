@@ -15,6 +15,7 @@ public:
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
 	virtual void OnPlayerChangeState( SPawnState& state, int32 nStateSource, int8 nDir ) override;
 	virtual void OnPlayerAction( int32 nMatchLen, int8 nType ) override;
+	virtual void OnAlert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs ) override;
 	virtual int32 Signal( int32 i ) override;
 private:
 	CString m_strInit;
@@ -24,6 +25,7 @@ private:
 	CString m_strUpdate1;
 	CString m_strPlayerChangeState;
 	CString m_strPlayerAction;
+	CString m_strAlert;
 	CString m_strSignal;
 };
 
@@ -99,12 +101,25 @@ class CPawnAIAutoDoor : public CPawnAI
 	friend void RegisterGameClasses_MiscElem();
 public:
 	CPawnAIAutoDoor( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIAutoDoor ); }
+	virtual void OnInit() override;
 	virtual bool CanCheckAction( bool bScenario ) override { return true; }
 	virtual int32 CheckAction( int8& nCurDir ) override;
 	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
 private:
+	enum
+	{
+		eState_Open,
+		eState_Close,
+		eState_Opening,
+		eState_Closing,
+		eState_Closing_Broken,
+		eState_Broken,
+	};
 	int32 m_nType;
 	CString m_strOpenCondition;
+	CString m_strBlockPlayerCondition;
+	CString m_strBrokenKey;
+	CString m_strOnBlockPlayerClose;
 	int8 m_nStateMapIconX[2], m_nStateMapIconY[2];
 };
 
@@ -349,15 +364,21 @@ public:
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
 	virtual int32 Signal( int32 i ) override;
 private:
+	CString m_str;
+	CString m_strFinishedScript;
+	CString m_strFailedScript;
 	CReference<CEntity> m_p;
 	CReference<CEntity> m_p1;
 	CReference<CEntity> m_pImgs[8];
 	CReference<CRenderObject2D> m_pImg1;
 	CReference<CEntity> m_pImg2[3];
+	CReference<CRenderObject2D> m_pImgNxt;
 
-	bool m_bStarted;
+	int8 m_nType;
 	int8 m_nState;
+	int8 m_nLastDir;
 	int32 m_nStateTick;
+	int32 m_nCurStep;
 };
 
 class CTutorialFollowing : public CLevelScript, public ISignalObj

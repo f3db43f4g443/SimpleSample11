@@ -1,7 +1,9 @@
-SetKeyInt( "day", 4 )
-SetCurTime( 1 )
-GetPlayer():EnableDefaultEquipment()
---PlayerPickUp( "data/pickups/hammer.pf" )
+InitPlayerData()
+
+--SetKeyInt( "day", 4 )
+--SetCurTime( 0 )
+--GetPlayer():EnableDefaultEquipment()
+--PlayerPickUp( "data/pickups/whip.pf" )
 --PlayerPickUp( "data/pickups/ladder.pf" )
 --PlayerPickUp( "data/pickups/stealth.pf" )
 --PlayerPickUp( "data/pickups/revolver.pf" )

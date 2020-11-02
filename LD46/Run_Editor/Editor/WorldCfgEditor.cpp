@@ -947,6 +947,86 @@ fail:
 	m_pPanel[1]->SetVisible( false );
 }
 
+void CWorldCfgEditor::MendLevels( const TVector2<int32>& p )
+{
+	auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
+	auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
+	CMyLevel* pLevel0 = NULL;
+	int32 nLevel = -1;
+	TVector2<int32> p0;
+	for( int i = 0; i < vecLevelData.size(); i++ )
+	{
+		auto pLevel1 = SafeCast<CMyLevel>( vecLevelData[i].pClonedLevelData->GetFinalObjData() );
+		auto bound1 = TRectangle<int32>( arrLevelData[i].displayOfs.x / LEVEL_GRID_SIZE_X, arrLevelData[i].displayOfs.y / LEVEL_GRID_SIZE_Y,
+			pLevel1->GetSize().x, pLevel1->GetSize().y );
+		auto p1 = p - TVector2<int32>( bound1.x, bound1.y );
+		if( !!( ( p1.x + p1.y ) & 1 ) )
+			p1.x--;
+		if( p1.x < 0 || p1.y < 0 || p1.x >= bound1.width || p1.y >= bound1.height )
+			continue;
+		auto& grid = pLevel1->m_arrGridData[p1.x + p1.y * bound1.width];
+		if( !grid.nNextStage && !pLevel1->m_arrTileData[grid.nTile].bBlocked )
+		{
+			if( !pLevel0 )
+			{
+				pLevel0 = pLevel1;
+				nLevel = i;
+				p0 = p1;
+			}
+			else
+			{
+				int32 nNxt0 = -1, nNxt1 = -1;
+
+				for( int k = 0; k < pLevel0->m_arrNextStage.Size(); k++ )
+				{
+					if( pLevel0->m_arrNextStage[k].pNxtStage == arrLevelData[i].pLevel.c_str() )
+					{
+						nNxt0 = k;
+						break;
+					}
+				}
+				if( nNxt0 == -1 )
+				{
+					pLevel0->m_arrNextStage.Resize( pLevel0->m_arrNextStage.Size() + 1 );
+					auto& data = pLevel0->m_arrNextStage[pLevel0->m_arrNextStage.Size() - 1];
+					data.nOfsX = p0.x - p1.x;
+					data.nOfsY = p0.y - p1.y;
+					data.pNxtStage = arrLevelData[i].pLevel.c_str();
+					nNxt0 = pLevel0->m_arrNextStage.Size();
+				}
+
+				for( int k = 0; k < pLevel1->m_arrNextStage.Size(); k++ )
+				{
+					if( pLevel1->m_arrNextStage[k].pNxtStage == arrLevelData[nLevel].pLevel.c_str() )
+					{
+						nNxt1 = k;
+						break;
+					}
+				}
+				if( nNxt1 == -1 )
+				{
+					pLevel1->m_arrNextStage.Resize( pLevel1->m_arrNextStage.Size() + 1 );
+					auto& data1 = pLevel1->m_arrNextStage[pLevel1->m_arrNextStage.Size() - 1];
+					data1.nOfsX = p1.x - p0.x;
+					data1.nOfsY = p1.y - p0.y;
+					data1.pNxtStage = arrLevelData[nLevel].pLevel.c_str();
+					nNxt1 = pLevel1->m_arrNextStage.Size();
+				}
+
+				for( int i = 0; i < 2; i++ )
+				{
+					pLevel0->m_arrGridData[p0.x + i + p0.y * pLevel0->GetSize().x].nNextStage = nNxt0;
+					pLevel1->m_arrGridData[p1.x + i + p1.y * bound1.width].nNextStage = nNxt1;
+				}
+				OnLevelDataEdit( m_nCurRegion, nLevel );
+				OnLevelDataEdit( m_nCurRegion, i );
+				RefreshExtLevel( m_nCurRegion );
+				return;
+			}
+		}
+	}
+}
+
 void CWorldCfgEditor::OnBlueprintChange()
 {
 	auto strName = UnicodeToUtf8( m_pBlueprint->GetText() );
@@ -996,6 +1076,13 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 	}
 	else if( m_nCurRegion >= 0 )
 	{
+		if( GetMgr()->IsKey( 'M' ) )
+		{
+			CVector2 p = m_pViewport->GetScenePos( GetMgr()->GetMousePos() );
+			MendLevels( TVector2<int32>( floor( p.x / LEVEL_GRID_SIZE_X ), floor( p.y / LEVEL_GRID_SIZE_Y ) ) );
+			return;
+		}
+
 		auto& arrLevelData = m_pData->arrRegionData[m_nCurRegion].arrLevelData;
 		auto& vecLevelData = m_vecRegionData[m_nCurRegion].vecLevelData;
 		for( int i = 0; i < arrLevelData.Size(); i++ )

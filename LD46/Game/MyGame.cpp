@@ -78,12 +78,7 @@ void CGame::Update()
 		if( m_pCurGameState )
 			m_pCurGameState->UpdateFrame();
 		m_trigger.UpdateTime();
-
-		m_keyDown.Clear();
-		m_keyUp.Clear();
-		m_char.Clear();
-		m_bIsMouseDown = m_bIsMouseUp = false;
-		m_bIsRightMouseDown = m_bIsRightMouseUp = false;
+		ClearInputEvent();
 	}
 	if( m_bRestart )
 	{
@@ -200,6 +195,43 @@ void CGame::OnChar( uint32 nChar )
 		m_pCurGameState->HandleChar( nChar );
 }
 
+bool CGame::IsInput( int32 n )
+{
+	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
+	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
+	return IsKey( tbl[n][0] ) || IsKey( tbl[n][1] );
+}
+
+bool CGame::IsInputDown( int32 n )
+{
+	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
+	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
+	return IsKeyDown( tbl[n][0] ) || IsKeyDown( tbl[n][1] );
+}
+
+bool CGame::IsInputUp( int32 n )
+{
+	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
+	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
+	return IsKeyUp( tbl[n][0] ) || IsKeyUp( tbl[n][1] );
+}
+
+bool CGame::IsInputHolding( int32 n )
+{
+	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
+	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
+	return IsKeyHolding( tbl[n][0] ) || IsKeyHolding( tbl[n][1] );
+}
+
+void CGame::ClearInputEvent()
+{
+	m_keyDown.Clear();
+	m_keyUp.Clear();
+	m_char.Clear();
+	m_bIsMouseDown = m_bIsMouseUp = false;
+	m_bIsRightMouseDown = m_bIsRightMouseUp = false;
+}
+
 void Game_ShaderImplement_Dummy();
 
 void RegisterGameClasses_World();
@@ -209,9 +241,11 @@ void RegisterGameClasses_MiscElem();
 void RegisterGameClasses_UtilEntities();
 void RegisterGameClasses_Ablilities();
 void RegisterGameClasses_PawnAI();
+void RegisterGameClasses_InteractionUI();
 void RegisterGameClasses_Menu();
 void RegisterGameClasses_WorldMap();
 void RegisterGameClasses_ActionPreview();
+void RegisterGameClasses_LogUI();
 void RegisterGlobalLuaCFunc();
 void RegisterGameClasses()
 {
@@ -268,9 +302,11 @@ void RegisterGameClasses()
 	RegisterGameClasses_UtilEntities();
 	RegisterGameClasses_Ablilities();
 	RegisterGameClasses_PawnAI();
+	RegisterGameClasses_InteractionUI();
 	RegisterGameClasses_Menu();
 	RegisterGameClasses_WorldMap();
 	RegisterGameClasses_ActionPreview();
+	RegisterGameClasses_LogUI();
 	RegisterGlobalLuaCFunc();
 }
 

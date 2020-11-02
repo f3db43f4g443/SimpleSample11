@@ -38,13 +38,13 @@ void CStartMenu::Init()
 
 int8 CStartMenu::Update()
 {
-	if( CGame::Inst().IsKeyDown( 'W' ) || CGame::Inst().IsKeyDown( VK_UP ) )
+	if( CGame::Inst().IsInputDown( eInput_Up ) )
 	{
 		m_nCurSelectedItem--;
 		if( m_nCurSelectedItem < 0 )
 			m_nCurSelectedItem = m_vecValidMenuItem.size() - 1;
 	}
-	if( CGame::Inst().IsKeyDown( 'S' ) || CGame::Inst().IsKeyDown( VK_DOWN ) )
+	if( CGame::Inst().IsInputDown( eInput_Down ) )
 	{
 		m_nCurSelectedItem++;
 		if( m_nCurSelectedItem >= m_vecValidMenuItem.size() )

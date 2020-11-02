@@ -16,6 +16,8 @@ public:
 
 	CReference<CPrefab> pFailLightningEffectPrefab;
 	CReference<CDrawableGroup> pFallEftDrawable;
+	CReference<CPrefab> pInterferenceStripEftPrefab;
+	CReference<CPrefab> pTracerSpawnEftPrefab;
 
 	map<string, CReference<CSoundFile> > mapSoundEffect;
 
@@ -45,6 +47,9 @@ public:
 		vector<SParamItem> vecStealthBackParams2;
 		vector<SParamItem> vecStealthAlertParams;
 		vector<SParamItem> vecStealthDetectParams;
+		vector<SParamItem> vecStealthHiddenParams;
+		vector<SParamItem> vecStealthAlertHiddenParams;
+		vector<SParamItem> vecStealthDetectHiddenParams;
 		SParamItem NextLevelParamMin;
 		SParamItem NextLevelParamMax;
 		int32 nNextLevelParamCount;

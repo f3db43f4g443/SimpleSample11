@@ -39,6 +39,7 @@ protected:
 	void EndNewLevel( bool bOK );
 	void OnNewLevelOK() { EndNewLevel( true ); }
 	void OnNewLevelCancel() { EndNewLevel( false ); }
+	void MendLevels( const TVector2<int32>& p );
 	void OnBlueprintChange();
 	void OnMapChange();
 

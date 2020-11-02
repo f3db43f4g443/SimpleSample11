@@ -145,6 +145,7 @@ protected:
 	static int32* GetTextTbl();
 	int32 m_nMaxLineLen;
 	int8 m_nTexLayoutType;
+	bool m_bCtrlChar;
 	CRectangle m_textSpacing;
 
 	CRectangle m_initRect;
@@ -210,6 +211,7 @@ public:
 private:
 	void RefreshImg();
 	void OnTick();
+	CVector4 m_colors[3];
 
 	int32 m_nDuration;
 	float m_fStrength;
@@ -221,4 +223,103 @@ private:
 	vector<CVector4> m_vecParams;
 	CReference<ISoundTrack> m_pSound;
 	TClassTrigger<CLightningEffect> m_onTick;
+};
+
+class CInterferenceStripEffect : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CInterferenceStripEffect( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CInterferenceStripEffect ); }
+	void Init( const CRectangle& bound, const CRectangle& rect1, float fSpeed );
+	void Update();
+	void RefreshImg();
+	virtual void Render( CRenderContext2D& context ) override;
+private:
+	void SplitBands( bool bInit = false );
+	float GenBandStrength( float fOrigStrength );
+	int32 m_nSubWidth;
+	float m_fBandWidth0, m_fBandWidth1;
+	float m_fPhaseSpeed;
+	float m_fInflateSpeed;
+	float m_fVerticalRepSpace;
+	float m_fStrength0;
+	float m_dStrength;
+	float m_fRandStrength;
+	float m_fHorizonalRepLen;
+	float m_fHorizonalRepOfs;
+	CVector4 m_params[6];
+
+	CRectangle m_bound;
+	CRectangle m_rect1;
+	float m_fSpeed;
+	float m_fPhase;
+	float m_fStrength;
+	struct SBand
+	{
+		float y0, y1;
+		float fStrength;
+		uint32 nSeed;
+	};
+	vector<SBand> m_vecBands;
+	struct SElem
+	{
+		CElement2D elem;
+		CVector4 param[2];
+	};
+	vector<SElem> m_elems;
+};
+
+class CTracerEffect : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CTracerEffect( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CTracerEffect::OnTick ) { SET_BASEOBJECT_ID( CTracerEffect ); }
+
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void SetRect( const CRectangle& rect ) { m_rect = rect; }
+	void SetTexRect( const CRectangle& rect ) { m_texRect = rect; }
+	virtual void Render( CRenderContext2D& context ) override;
+	virtual void OnPreview() override;
+private:
+	void OnTick();
+	CRectangle m_rect;
+	CRectangle m_texRect;
+	struct SElem
+	{
+		CElement2D elem;
+		CVector4 param[2];
+	};
+	int32 m_nSeed;
+	int32 m_nSeed1;
+	vector<SElem> m_elems;
+	TClassTrigger<CTracerEffect> m_onTick;
+};
+
+class CTracerSpawnEffect : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CTracerSpawnEffect( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CTracerSpawnEffect ); }
+
+	virtual void OnAddedToStage() override { SetRenderObject( NULL ); }
+	void Update();
+	void Kill() { if( !m_nKillTimeLeft ) m_nKillTimeLeft = m_nKillTime; }
+	void RefreshImg();
+	virtual void Render( CRenderContext2D& context ) override;
+private:
+	CVector4 m_a;
+	CVector4 m_b;
+	CVector4 m_height[3];
+	CVector4 m_ofs[3];
+	int32 m_nKillTime;
+
+	int32 m_t;
+	int32 m_nKillTimeLeft;
+	struct SElem
+	{
+		CElement2D elem;
+		CVector4 param[2];
+	};
+	vector<SElem> m_elems;
 };

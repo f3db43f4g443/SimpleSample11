@@ -133,6 +133,7 @@ public:
 	static void PushReference( void* p, CReferenceObject* pObj, SClassMetaData* pMetaData );
 	static bool PushMetaTable( void* p, SClassMetaData* pMetaData );
 	static void PushLuaCFunction( void* p, SLuaCFunction& func );
+	static void PushLuaIndex( void* p, int32 i );
 	static void SetGlobal( void* p, const char* szName );
 
 	static bool FetchLuaBool( void* p, int32 idx );
@@ -149,6 +150,7 @@ public:
 	void PushLuaVec( float x, float y, float z, float w, int8 n ) { return PushLuaVec( m_pLuaState, x, y, z, w, n ); }
 	void PushLuaString( const char* str ) { return PushLuaString( m_pLuaState, str ); }
 	void PushReference( CReferenceObject* pObj, SClassMetaData* pMetaData ) { return PushReference( m_pLuaState, pObj, pMetaData ); }
+	void PushLuaIndex( int32 i ) { PushLuaIndex( m_pLuaState, i ); }
 	void SetGlobal( const char* szName ) { return SetGlobal( m_pLuaState, szName ); }
 
 	bool FetchLuaBool( int32 idx ) { return FetchLuaBool( m_pLuaState, idx ); }

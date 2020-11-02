@@ -129,8 +129,8 @@ void CActionPreview::Update()
 			pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 			pImg->SetRect( CRectangle( -8, -5000, 128, 10000 ) );
 			pImg->SetTexRect( CRectangle( 0, 0.25f, 0.125f, 0.125f ) );
-			pImg->GetParam()[0] = CVector4( 1.01f, 1.01f, 1.01f, -4 );
-			pImg->GetParam()[1] = CVector4( 0.07f, 0.07f, -0.03f, -4 );
+			pImg->GetParam()[0] = CVector4( 1, 1, 1, -4 );
+			pImg->GetParam()[1] = CVector4( 0.09f, 0.09f, -0.03f, -4 );
 			m_pInputRoot->SetRenderObject( pImg );
 			pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
 			pImg->SetRect( CRectangle( -5000, -8, 10000, 24 ) );
@@ -144,19 +144,19 @@ void CActionPreview::Update()
 	}
 	if( m_bWaitingInput )
 	{
-		if( CGame::Inst().IsKeyDown( 'W' ) )
+		if( CGame::Inst().IsInputDown( eInput_Up ) )
 		{
 			m_nSelectedIndex++;
 			if( m_nSelectedIndex >= m_vecText[m_nSelectedType].size() )
 				m_nSelectedIndex = 0;
 		}
-		if( CGame::Inst().IsKeyDown( 'S' ) )
+		if( CGame::Inst().IsInputDown( eInput_Down ) )
 		{
 			m_nSelectedIndex--;
 			if( m_nSelectedIndex < 0 )
 				m_nSelectedIndex = m_vecText[m_nSelectedType].size() - 1;
 		}
-		if( CGame::Inst().IsKeyDown( 'A' ) )
+		if( CGame::Inst().IsInputDown( eInput_Left ) )
 		{
 			auto nType1 = m_nSelectedType;
 			for( int k = 0; k < ePlayerStateSource_Count; k++ )
@@ -173,7 +173,7 @@ void CActionPreview::Update()
 				m_nSelectedType = nType1;
 			}
 		}
-		if( CGame::Inst().IsKeyDown( 'D' ) )
+		if( CGame::Inst().IsInputDown( eInput_Right ) )
 		{
 			auto nType1 = m_nSelectedType;
 			for( int k = 0; k < ePlayerStateSource_Count; k++ )

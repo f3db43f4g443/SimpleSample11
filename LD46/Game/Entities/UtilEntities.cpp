@@ -458,6 +458,28 @@ void CSimpleText::Set( const char* szText, int8 nAlign )
 		{
 			if( ch <= ' ' )
 				goto nxt;
+
+			if( m_bCtrlChar && ch == '^' )
+			{
+				auto ch1 = c[1];
+				if( ch1 == '^' )
+					c++;
+				else if( ch1 >= '0' && ch1 <= '9' )
+				{
+					c++;
+					auto ch2 = c[1];
+					if( ch2 >= '0' && ch2 <= '9' )
+					{
+						ch = ( ch1 - '0' ) * 10 + ch2 - '0';
+						c++;
+					}
+					else
+						goto nxt;
+				}
+				else
+					goto nxt;
+			}
+
 			int32 nRow = ch / 16;
 			int32 nColumn = ch - nRow * 16;
 			texRect = CRectangle( m_initTexRect.x + nColumn * 0.0625f, m_initTexRect.y + nRow * 0.125f, m_initTexRect.width, m_initTexRect.height );
@@ -519,6 +541,28 @@ const char* CSimpleText::CalcLineCount( const char* szText, int32& nLineCount, i
 		{
 			if( ch <= ' ' )
 				goto nxt;
+
+			if( m_bCtrlChar && ch == '^' )
+			{
+				auto ch1 = c[1];
+				if( ch1 == '^' )
+					c++;
+				else if( ch1 >= '0' && ch1 <= '9' )
+				{
+					c++;
+					auto ch2 = c[1];
+					if( ch2 >= '0' && ch2 <= '9' )
+					{
+						ch = ( ch1 - '0' ) * 10 + ch2 - '0';
+						c++;
+					}
+					else
+						goto nxt;
+				}
+				else
+					goto nxt;
+			}
+
 			int32 nRow = ch / 16;
 			int32 nColumn = ch - nRow * 16;
 			texRect = CRectangle( m_initTexRect.x + nColumn * 0.0625f, m_initTexRect.y + nRow * 0.125f, m_initTexRect.width, m_initTexRect.height );
@@ -943,14 +987,13 @@ void CLightningEffect::Update()
 			RefreshImg();
 		}
 	}
-	CVector4 colors[3] = { { 1, 0, 0, 0 }, { 1, 1, 1, 0 }, { 0, 1, 1, 0 } };
 	for( int i = 0; i < m_elems.size(); i++ )
 	{
 		if( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) >= m_fStrength || ( m_nDuration ?
 			SRand::Inst<eRand_Render>().Rand( 0, m_nDuration ) < m_nTick : !SRand::Inst<eRand_Render>().Rand( 0, m_nTick + 2 ) ) )
 			m_vecParams[i] = CVector4( 0, 0, 0, 0 );
 		else
-			m_vecParams[i] = colors[i % 3];
+			m_vecParams[i] = m_colors[i % 3];
 	}
 	m_nTick++;
 }
@@ -1046,6 +1089,501 @@ void CLightningEffect::OnTick()
 	GetStage()->RegisterTick( 1, &m_onTick );
 }
 
+
+void CInterferenceStripEffect::Init( const CRectangle& bound, const CRectangle& rect1, float fSpeed )
+{
+	SetRenderObject( NULL );
+	m_bound = bound;
+	m_rect1 = rect1;
+	m_fSpeed = fSpeed;
+	m_fStrength = m_fStrength0;
+	SBand band = { m_rect1.y, m_rect1.GetBottom(), 0 };
+	m_vecBands.push_back( band );
+	SplitBands( true );
+	for( int i = 0; i < m_vecBands.size(); i++ )
+	{
+		m_vecBands[i].fStrength = m_fStrength;
+		m_vecBands[i].nSeed = SRand::Inst<eRand_Render>().Rand();
+	}
+
+	RefreshImg();
+	SetLocalBound( m_bound );
+	SetBoundDirty();
+}
+
+void CInterferenceStripEffect::Update()
+{
+	m_fPhase += m_fPhaseSpeed * m_fSpeed;
+	m_fPhase = m_fPhase / ( m_rect1.height + m_fVerticalRepSpace );
+	m_fPhase = ( m_fPhase - floor( m_fPhase ) ) * ( m_rect1.height + m_fVerticalRepSpace );
+	m_fStrength = Min( 1.0f, m_fStrength + m_dStrength * m_fSpeed );
+
+	float yCenter = m_rect1.y + m_rect1.height * ( m_bound.GetBottom() - m_rect1.GetBottom() )
+		/ ( m_bound.height - m_rect1.height );
+	for( auto& band : m_vecBands )
+	{
+		band.y0 = ( band.y0 - yCenter ) * m_fInflateSpeed + yCenter;
+		band.y1 = ( band.y1 - yCenter ) * m_fInflateSpeed + yCenter;
+	}
+	SplitBands( false );
+	for( int i = m_vecBands.size() - 1; i >= 0; i-- )
+	{
+		auto& band = m_vecBands[i];
+		if( band.y1 <= m_bound.y || band.y0 >= m_bound.GetBottom() )
+		{
+			band = m_vecBands.back();
+			m_vecBands.resize( m_vecBands.size() - 1 );
+		}
+	}
+	RefreshImg();
+}
+
+void CInterferenceStripEffect::RefreshImg()
+{
+	m_elems.resize( 0 );
+	float fPeriod = m_rect1.height + m_fVerticalRepSpace;
+	float fOfs = floor( m_fPhase * 0.5f + 0.5f ) * 2;
+	for( auto& band : m_vecBands )
+	{
+		SRand rnd;
+		rnd.nSeed = band.nSeed;
+		float fOfs0 = rnd.Rand( -64.0f, 64.0f );
+		int32 n = m_elems.size();
+		m_elems.resize( m_elems.size() + 1 );
+		auto& elem = m_elems.back();
+		float y0 = floor( band.y0 * 0.5f + 0.5f ) * 2;
+		float y1 = floor( band.y1 * 0.5f + 0.5f ) * 2;
+		elem.elem.rect = CRectangle( m_bound.x, y0, m_bound.width, y1 - y0 );
+		for( int i = n; i < m_elems.size(); i++ )
+		{
+			auto& elem = m_elems[i];
+			if( elem.elem.rect.height >= m_nSubWidth * 2 )
+			{
+				auto h1 = rnd.Rand<int32>( m_nSubWidth / 2, ( elem.elem.rect.height - m_nSubWidth ) / 2 + 1 ) * 2;
+				auto elem1 = elem;
+				elem.elem.rect.height = h1;
+				elem1.elem.rect.SetTop( elem.elem.rect.GetBottom() );
+				m_elems.push_back( elem1 );
+				i--;
+			}
+		}
+		for( int i = m_elems.size() - 1; i >= n; i-- )
+		{
+			auto& elem = m_elems[i];
+			float fStrength = rnd.Rand( 0.0f, band.fStrength );
+			float l = ( m_fPhase + elem.elem.rect.GetCenterY() - ( m_rect1.y - m_fVerticalRepSpace * 0.5f ) ) / fPeriod;
+			int32 n0 = floor( l );
+			l = ( l - n0 ) * fPeriod - m_fVerticalRepSpace * 0.5f;
+			if( l < 0 )
+				fStrength *= 1 + l / ( m_fVerticalRepSpace * 0.5f );
+			else if( l > m_rect1.height )
+				fStrength *= 1 - ( l - m_rect1.height ) / ( m_fVerticalRepSpace * 0.5f );
+
+			float k = fStrength * 3 + rnd.Rand( 0.0f, 1.0f );
+			int32 n1 = floor( k );
+			if( n1 <= 0 )
+			{
+				m_elems[i] = m_elems.back();
+				m_elems.resize( m_elems.size() - 1 );
+				rnd.Rand();
+				rnd.Rand();
+				continue;
+			}
+			int32 nType1 = Min( 2, Max( n1 - 1, rnd.Rand( 0, 12 ) ) );
+			k = ( k - 1 ) / ( nType1 + 1 );
+
+			elem.param[0] = m_params[nType1 * 2] * k;
+			elem.param[0].w = floor( ( elem.param[0].w * rnd.Rand( -1.0f, 1.0f ) + fOfs0 ) * 0.5f + 0.5f ) * 2;
+			elem.param[1] = m_params[nType1 * 2 + 1] * k;
+			elem.param[1].w += fOfs - n0 * fPeriod;
+		}
+	}
+	for( int i = m_elems.size() - 1; i >= 0; i-- )
+	{
+		auto& elem = m_elems[i];
+		float l = m_rect1.x - m_fHorizonalRepOfs - elem.param[0].w;
+		float r = m_rect1.GetRight() + m_fHorizonalRepOfs - elem.param[0].w;
+		elem.elem.rect.x = l;
+		elem.elem.rect.width = r - l;
+		auto elem1 = elem;
+		for( ; l > m_bound.x; )
+		{
+			float l1 = l - m_fHorizonalRepLen;
+			elem1.elem.rect.x = l1;
+			elem1.elem.rect.width = m_fHorizonalRepLen;
+			elem1.param[0].w += m_fHorizonalRepLen;
+			l = l1;
+			m_elems.push_back( elem1 );
+		}
+		elem1 = elem;
+		for( ; r < m_bound.GetRight(); )
+		{
+			float r1 = r + m_fHorizonalRepLen;
+			elem1.elem.rect.x = r;
+			elem1.elem.rect.width = m_fHorizonalRepLen;
+			elem1.param[0].w -= m_fHorizonalRepLen;
+			r = r1;
+			m_elems.push_back( elem1 );
+		}
+	}
+	for( auto& elem : m_elems )
+	{
+		elem.elem.texRect = CRectangle( 0, 0, 1, 1 );
+		elem.elem.nInstDataSize = sizeof( elem.param );
+		elem.elem.pInstData = elem.param;
+	}
+}
+
+void CInterferenceStripEffect::Render( CRenderContext2D& context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_elems )
+	{
+		elem.elem.worldMat = globalTransform;
+		elem.elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem.elem, nGroup );
+	}
+}
+
+void CInterferenceStripEffect::SplitBands( bool bInit )
+{
+	for( int i = 0; i < m_vecBands.size(); i++ )
+	{
+		auto& band = m_vecBands[i];
+		auto h = band.y1 - band.y0;
+		if( h >= m_fBandWidth1 )
+		{
+			float h1 = SRand::Inst<eRand_Render>().Rand( m_fBandWidth0, h - m_fBandWidth0 );
+			SBand band1 = { band.y0 + h1, band.y1, band.fStrength };
+			band.y1 = band.y0 + h1;
+			if( !bInit )
+			{
+				band.fStrength = GenBandStrength( band.fStrength );
+				band.nSeed = SRand::Inst<eRand_Render>().Rand();
+				band1.fStrength = GenBandStrength( band1.fStrength );
+				band1.nSeed = SRand::Inst<eRand_Render>().Rand();
+			}
+			m_vecBands.push_back( band1 );
+			i--;
+		}
+	}
+}
+
+float CInterferenceStripEffect::GenBandStrength( float fOrigStrength )
+{
+	return fOrigStrength * 0.5f + m_fStrength * SRand::Inst<eRand_Render>().Rand( m_fRandStrength, 1.0f ) * 0.5f;
+}
+
+
+void CTracerEffect::OnAddedToStage()
+{
+	m_nSeed = SRand::Inst<eRand_Render>().Rand();
+	m_nSeed1 = SRand::Inst<eRand_Render>().Rand();
+	SetRenderObject( NULL );
+	GetStage()->RegisterTick( 1, &m_onTick );
+}
+
+void CTracerEffect::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CTracerEffect::Render( CRenderContext2D& context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_elems )
+	{
+		elem.elem.worldMat = globalTransform;
+		elem.elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem.elem, nGroup );
+	}
+}
+
+void CTracerEffect::OnPreview()
+{
+	SetRenderObject( NULL );
+	m_elems.resize( 1 );
+	auto& elem = m_elems[0];
+	elem.elem.rect = m_rect;
+	elem.elem.texRect = m_texRect;
+	elem.param[0] = CVector4( 1, 1, 1, 0 );
+	elem.param[1] = CVector4( 0, 0, 0, 0 );
+	elem.elem.nInstDataSize = sizeof( elem.param );
+	elem.elem.pInstData = elem.param;
+	SetLocalBound( m_rect );
+	SetBoundDirty();
+}
+
+void CTracerEffect::OnTick()
+{
+	GetStage()->RegisterTick( 1, &m_onTick );
+	m_elems.resize( 0 );
+	auto& rnd = SRand::Inst<eRand_Render>();
+	SRand rnd0, rnd1;
+	rnd0.nSeed = m_nSeed;
+	rnd1.nSeed = m_nSeed1;
+	if( !rnd.Rand( 0, 40 ) )
+		m_nSeed = rnd0.Rand();
+	if( !rnd.Rand( 0, 6 ) )
+		m_nSeed1 = rnd1.Rand();
+
+	int32 y0 = 0;
+	for( int32 x = 0; x < m_rect.width; )
+	{
+		m_elems.resize( m_elems.size() + 1 );
+		auto& elem = m_elems.back().elem;
+		auto w = Min( m_rect.width - x, Max( 1, rnd0.Rand( -3, 8 ) ) * 2.0f );
+		x += w;
+		elem.rect = CRectangle( 0, y0 * 2, w, m_rect.height );
+		y0 += Max( 0, rnd.Rand( -2, 3 ) );
+	}
+	rnd0.Shuffle( m_elems );
+
+	float x0 = 0;
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		x0 += m_elems[i].elem.rect.width;
+		CVector4* params = m_elems[i].param;
+		float k = x0 / m_rect.width;
+		params[0] = CVector4( 1 + k * rnd1.Rand( -1.0f, 1.0f ), 1 + k * rnd1.Rand( -1.0f, 1.0f ), 1 + k * rnd1.Rand( -1.0f, 1.0f ), 0 );
+		params[1] = CVector4( 0, 0, 0, 0 );
+		CVector4 param1( rnd1.Rand( 0.0f, 1.0f ), rnd1.Rand( 0.0f, 1.0f ), rnd1.Rand( 0.0f, 1.0f ), 0 );
+		CVector4 param2 = param1 * 5 + CVector4( 1, 1, 1, rnd1.Rand( -8, 9 ) * 2 );
+		float r = rnd1.Rand( 0.0f, 1.0f );
+		if( r < k - 0.75f )
+			params[1] = param2;
+		else if( r < k - 0.5F )
+		{
+			params[1] = param1;
+			params[0] = ( params[0] - CVector4( 1, 1, 1, 0 ) ) * 3 + CVector4( 1, 1, 1, 0 );
+		}
+	}
+	rnd0.Shuffle( m_elems );
+
+	x0 = m_rect.x;
+	y0 = ( y0 + rnd.Rand( 0, 2 ) ) / 2;
+	CRectangle bound( 0, 0, 0, 0 );
+	float w = m_texRect.width / m_rect.width;
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		auto& item = m_elems[i];
+		item.elem.rect.y -= y0 * 2;
+		item.elem.rect.y += m_rect.y;
+		item.elem.rect.x = x0;
+		x0 += item.elem.rect.width;
+		item.elem.texRect = CRectangle( m_texRect.x + ( item.elem.rect.x - m_rect.x ) * w, m_texRect.y,
+			w * item.elem.rect.width, m_texRect.height );
+		item.elem.nInstDataSize = sizeof( item.param );
+		item.elem.pInstData = item.param;
+		bound = bound + item.elem.rect;
+	}
+	SetLocalBound( bound );
+	SetBoundDirty();
+}
+
+void CTracerSpawnEffect::Update()
+{
+	m_t++;
+	if( m_nKillTimeLeft )
+	{
+		m_nKillTimeLeft--;
+		if( !m_nKillTimeLeft )
+		{
+			SetParentEntity( NULL );
+			return;
+		}
+	}
+	RefreshImg();
+}
+
+void CTracerSpawnEffect::RefreshImg()
+{
+	m_elems.resize( 0 );
+	CRectangle bound( 0, 0, 0, 0 );
+	for( int x = 0; x < LEVEL_GRID_SIZE_X * 4; x += 2 )
+	{
+		auto k = m_a * m_t + m_b * x;
+		float* f = &k.x;
+		for( int i = 0; i < 4; i++ )
+			f[i] = cos( f[i] ) * 0.5f + 0.5f;
+		if( !m_nKillTimeLeft )
+		{
+			float k1 = ( x + 1 ) / ( LEVEL_GRID_SIZE_X * 2 ) - 1;
+			k = k * ( 1 - k1 * k1 );
+		}
+		float h0 = 0;
+		for( int i = 0; i < 3; i++ )
+		{
+			float h = k.Dot( m_height[i] );
+			if( m_nKillTimeLeft )
+				h *= ( 12.0f * m_nKillTimeLeft / m_nKillTime );
+			h = floor( h * 0.5f + 0.5f ) * 2;
+			float ofs = k.Dot( m_ofs[i] );
+			if( m_nKillTimeLeft )
+				ofs = ( h0 + ofs * 2 ) * m_nKillTimeLeft / m_nKillTime;
+			ofs = floor( ofs + 0.5f );
+			if( h > h0 )
+			{
+				m_elems.resize( m_elems.size() + 1 );
+				auto& elem = m_elems.back();
+				elem.elem.rect = CRectangle( x - LEVEL_GRID_SIZE_X * 2, h0, 2, h - h0 );
+				elem.param[0] = CVector4( 1, 1, 1, 0 );
+				elem.param[1] = CVector4( 0, 0, 0, -ofs );
+				if( m_nKillTimeLeft )
+				{
+					if( m_nKillTimeLeft == m_nKillTime - 1 )
+					{
+						elem.param[1].x = elem.param[1].y = elem.param[1].z = 1;
+					}
+					else if( m_nKillTimeLeft == m_nKillTime - 2 )
+					{
+						elem.param[1].x = 1;
+					}
+					else if( m_nKillTimeLeft == m_nKillTime - 3 )
+					{
+						elem.param[0] = CVector4( 0, 0, 0, 0 );
+					}
+					else if( m_nKillTimeLeft == m_nKillTime - 4 )
+					{
+						elem.param[0] = CVector4( 0, 0.5, 0.5, 0 );
+					}
+					else
+					{
+						float k = SRand::Inst<eRand_Render>().Rand( 0.0f, m_nKillTimeLeft * 1.0f / m_nKillTime );
+						elem.param[0] = elem.param[0] + CVector4( 5.0f, 0.5f, 0.5f, 0 ) * k;
+						elem.param[1].x += 0.25f * k;
+					}
+				}
+			}
+			h0 = h;
+		}
+	}
+
+	if( m_nKillTimeLeft )
+	{
+		float k1 = ( m_nKillTime - m_nKillTimeLeft ) * 1.0f / m_nKillTime;
+		k1 = 1 + ( k1 * k1 * k1 ) * 20;
+		if( m_nKillTimeLeft >= m_nKillTime - 4 )
+			k1 *= 6;
+		for( auto& elem : m_elems )
+		{
+			auto& rect = elem.elem.rect;
+			float k0 = rect.GetCenterX() / ( LEVEL_GRID_SIZE_X * 2 );
+			float x1 = rect.x * k1;
+			float x2 = rect.GetRight() * k1;
+			x1 = floor( x1 * 0.5f + 0.5f ) * 2;
+			x2 = floor( x2 * 0.5f + 0.5f ) * 2;
+			float ofs = x1 + x2 - rect.x - rect.GetRight();
+			rect.x = x1;
+			rect.width = x2 - x1;
+			ofs = -ofs * abs( k0 ) * ( m_nKillTimeLeft * 1.0f / m_nKillTime );
+			elem.param[0].w = floor( ofs + 0.5f );
+			if( m_nKillTimeLeft >= m_nKillTime - 4 )
+				rect.SetTop( -rect.GetBottom() );
+		}
+	}
+	for( auto& elem : m_elems )
+	{
+		bound = bound + elem.elem.rect;
+		elem.elem.texRect = CRectangle( 0, 0, 1, 1 );
+		elem.elem.nInstDataSize = sizeof( elem.param );
+		elem.elem.pInstData = elem.param;
+	}
+	SetLocalBound( bound );
+	SetBoundDirty();
+}
+
+void CTracerSpawnEffect::Render( CRenderContext2D& context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_elems )
+	{
+		elem.elem.worldMat = globalTransform;
+		elem.elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem.elem, nGroup );
+	}
+}
+
+
 void RegisterGameClasses_UtilEntities()
 {
 	REGISTER_INTERFACE_BEGIN( IImageEffectTarget )
@@ -1103,7 +1641,10 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_BASE_CLASS( IImageEffectTarget )
 		REGISTER_MEMBER( m_nMaxLineLen )
 		REGISTER_MEMBER( m_nTexLayoutType )
+		REGISTER_MEMBER( m_bCtrlChar )
 		REGISTER_MEMBER( m_textSpacing )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Set )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTypeText )
@@ -1117,5 +1658,35 @@ void RegisterGameClasses_UtilEntities()
 
 	REGISTER_CLASS_BEGIN( CLightningEffect )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_colors )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CInterferenceStripEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nSubWidth )
+		REGISTER_MEMBER( m_fBandWidth0 )
+		REGISTER_MEMBER( m_fBandWidth1 )
+		REGISTER_MEMBER( m_fPhaseSpeed )
+		REGISTER_MEMBER( m_fInflateSpeed )
+		REGISTER_MEMBER( m_fVerticalRepSpace )
+		REGISTER_MEMBER( m_fStrength0 )
+		REGISTER_MEMBER( m_dStrength )
+		REGISTER_MEMBER( m_fRandStrength )
+		REGISTER_MEMBER( m_fHorizonalRepLen )
+		REGISTER_MEMBER( m_fHorizonalRepOfs )
+		REGISTER_MEMBER( m_params )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTracerEffect )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CTracerSpawnEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_a )
+		REGISTER_MEMBER( m_b )
+		REGISTER_MEMBER( m_height )
+		REGISTER_MEMBER( m_ofs )
+		REGISTER_MEMBER( m_nKillTime )
 	REGISTER_CLASS_END()
 }

@@ -42,7 +42,7 @@ void SEnumMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData
 bool SEnumMetaData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile & buf )
 {
 	auto n0 = *(uint32*)pObj0;
-	auto n1 = *(uint32*)pObj0;
+	auto n1 = *(uint32*)pObj1;
 	if( n0 == n1 )
 		return false;
 	PackData( pObj1, buf, true );

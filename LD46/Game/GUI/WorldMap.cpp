@@ -346,6 +346,14 @@ void CWorldMap::Render( CRenderContext2D& context )
 		return;
 	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
 
+	for( auto& item : m_vecMarks )
+	{
+		auto& elem = item.elem;
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+	}
+
 	for( int i = 0; i < eMapElemType_Count; i++ )
 	{
 		if( i == eMapElemType_Console && m_nPickConsoleTick >= 15 )
@@ -359,14 +367,6 @@ void CWorldMap::Render( CRenderContext2D& context )
 			elem.SetDrawable( pDrawables[nPass] );
 			context.AddElement( &elem, nGroup );
 		}
-	}
-
-	for( auto& item : m_vecMarks )
-	{
-		auto& elem = item.elem;
-		elem.worldMat = globalTransform;
-		elem.SetDrawable( pDrawables[nPass] );
-		context.AddElement( &elem, nGroup );
 	}
 }
 
@@ -460,7 +460,7 @@ void CWorldMapUI::Update()
 {
 	auto& worldCfg = CMainGameState::Inst().GetWorld()->GetWorldCfg();
 	auto& worldData = CMainGameState::Inst().GetWorld()->GetCurStage()->GetMasterLevel()->GetWorldData();
-	auto nRegion = Max( 0, Min<int32>( worldCfg.arrRegionData.Size() - 1, m_nCurRegion + CGame::Inst().IsKeyDown( 'I' ) - CGame::Inst().IsKeyDown( 'K' ) ) );
+	auto nRegion = Max( 0, Min<int32>( worldCfg.arrRegionData.Size() - 1, m_nCurRegion + CGame::Inst().IsInputDown( eInput_D ) - CGame::Inst().IsInputDown( eInput_B ) ) );
 	if( nRegion != m_nCurRegion )
 	{
 		m_nCurRegion = nRegion;
@@ -482,10 +482,11 @@ void CWorldMapUI::Update()
 
 	if( m_pMap->bVisible )
 	{
-		CVector2 ofs( CGame::Inst().IsKey( 'D' ) - CGame::Inst().IsKey( 'A' ), CGame::Inst().IsKey( 'W' ) - CGame::Inst().IsKey( 'S' ) );
+		CVector2 ofs( CGame::Inst().IsInput( eInput_Right ) - CGame::Inst().IsInput( eInput_Left ),
+			CGame::Inst().IsInput( eInput_Up ) - CGame::Inst().IsInput( eInput_Down ) );
 		if( ofs.x != 0 || ofs.y != 0 )
 			m_pMap->Move( ofs * 8 * m_arrScale[m_nScale] );
-		auto nScale = Max( 0, Min<int32>( m_nScale + CGame::Inst().IsKeyDown( 'J' ) - CGame::Inst().IsKeyDown( 'U' ), m_arrScale.Size() - 1 ) );
+		auto nScale = Max( 0, Min<int32>( m_nScale + CGame::Inst().IsInputDown( eInput_A ) - CGame::Inst().IsInputDown( eInput_C ), m_arrScale.Size() - 1 ) );
 		if( nScale != m_nScale )
 		{
 			m_nScale = nScale;

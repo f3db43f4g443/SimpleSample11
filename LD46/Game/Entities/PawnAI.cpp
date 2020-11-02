@@ -4,6 +4,102 @@
 #include "Common/Rand.h"
 #include "Algorithm.h"
 
+
+class CPawnAIScript : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	CPawnAIScript( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIScript ); }
+
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override
+	{
+		if( !m_strDamage.length() )
+			return false;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto nCurStateIndex = pPawn->GetCurStateIndex();
+		pLuaState->Load( m_strDamage );
+		pLuaState->PushLua( pPawn );
+		pLuaState->PushLua( nDamage );
+		pLuaState->PushLua( nDamageType );
+		pLuaState->PushLua( damageOfs.x );
+		pLuaState->PushLua( damageOfs.y );
+		pLuaState->Call( 5, 2 );
+		nDamage = pLuaState->PopLuaValue<int32>();
+		bool bResult = pLuaState->PopLuaValue<bool>();
+		return bResult;
+	}
+	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished )
+	{
+		if( !m_strCheckStateTransits1.length() )
+			return -1;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto nCurStateIndex = pPawn->GetCurStateIndex();
+		pLuaState->Load( m_strCheckStateTransits1 );
+		pLuaState->PushLua( pPawn );
+		pLuaState->PushLua( nCurStateIndex );
+		pLuaState->PushLua( nCurDir );
+		pLuaState->PushLua( bFinished );
+		pLuaState->Call( 4, 2 );
+		int8 nDir = pLuaState->PopLuaValue<int8>();
+		int32 nState = pLuaState->PopLuaValue<int32>();
+		if( nState < 0 )
+			return -1;
+		nCurDir = nDir;
+		return nState;
+	}
+private:
+	CString m_strDamage;
+	CString m_strCheckStateTransits1;
+};
+
+
+bool CommonCheckSeePlayer( CPlayer* pPlayer, vector<TVector2<int32> >& vecAlert, vector<TVector2<int32> >& vecDetect,
+	TVector2<int32>& lastSeePlayerPos, int8& bLastSeePlayerPosValid )
+{
+	if( !pPlayer->IsToHidden() )
+	{
+		for( auto& p : vecAlert )
+		{
+			if( p == pPlayer->GetMoveTo() )
+			{
+				lastSeePlayerPos = p;
+				bLastSeePlayerPosValid = 1;
+				return true;
+			}
+		}
+	}
+	if( !pPlayer->IsPosHidden() )
+	{
+		for( auto& p : vecAlert )
+		{
+			if( p == pPlayer->GetPos() )
+			{
+				lastSeePlayerPos = p;
+				bLastSeePlayerPosValid = 1;
+				return true;
+			}
+		}
+	}
+	if( bLastSeePlayerPosValid > 0 )
+	{
+		auto pPawn1 = pPlayer->GetLevel()->GetGrid( lastSeePlayerPos )->pPawn0;
+		if( pPawn1 != pPlayer )
+		{
+			for( auto& p : vecDetect )
+			{
+				if( p == lastSeePlayerPos )
+				{
+					bLastSeePlayerPosValid = -1;
+					break;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 int32 CPlayerHelperAIAttack::CheckAction( int8& nCurDir )
 {
 	if( m_bFinished )
@@ -107,9 +203,24 @@ class CPawnAI1 : public CPawnAI
 	friend void RegisterGameClasses_PawnAI();
 public:
 	CPawnAI1( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI1 ); }
+	virtual void OnInit() override;
 	virtual int32 CheckAction( int8& nCurDir ) override;
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished );
+	virtual TVector2<int32> HandleStealthDetect() override;
+	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+		if( !pPlayer->IsHidden() )
+			return;
+		if( !CheckSeePlayer( pPlayer ) )
+		{
+			m_bLastSeePlayerPosValid = 1;
+			m_lastSeePlayerPos = p;
+		}
+	}
 private:
+	bool CheckSeePlayer( CPlayer* pPlayer ) { return CommonCheckSeePlayer( pPlayer, m_vecAlert, m_vecDetect, m_lastSeePlayerPos, m_bLastSeePlayerPosValid ); }
 	enum
 	{
 		Action_Death = 5,
@@ -127,8 +238,24 @@ private:
 		Action_Death_1,
 	};
 	bool m_bDash;
+	bool m_bMoveAsAttack;
 	int32 m_nSightRange;
+	int32 m_nActionRange;
+
+	int8 m_bLastSeePlayerPosValid;
+	TVector2<int32> m_origPos;
+	int8 m_nOrigDir;
+	vector<TVector2<int32> > m_vecAlert;
+	vector<TVector2<int32> > m_vecDetect;
+	TVector2<int32> m_lastSeePlayerPos;
 };
+
+void CPawnAI1::OnInit()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	m_origPos = pPawn->GetPos();
+	m_nOrigDir = pPawn->GetCurDir();
+}
 
 int32 CPawnAI1::CheckAction( int8& nCurDir )
 {
@@ -136,23 +263,63 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 	auto pLevel = pPawn->GetLevel();
 	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
 	bool bType = pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy );
-	if( pPlayer )
+	int8 nType1 = 0;
+	if( pPlayer->IsHidden() )
 	{
-		auto d = pPlayer->GetMoveTo() - pPawn->GetPos();
-		if( d == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_X; }
-		if( d == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_X; }
-		if( d == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_Up; }
-		if( d == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_Up; }
-		if( d == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return bType ? Action_Explode : Action_Atk_Down; }
-		if( d == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return bType ? Action_Explode : Action_Atk_Down; }
+		CheckSeePlayer( pPlayer );
+		nType1 = m_bLastSeePlayerPosValid == 1 ? 1 : 2;
+	}
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+
+	if( nType1 <= 1 )
+	{
+		auto target = nType1 ? m_lastSeePlayerPos : pPlayer->GetMoveTo();
+		auto d = target - pPawn->GetPos();
+		if( d == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_X : Action_Atk_X ); }
+		if( d == TVector2<int32>( -2, 0 ) ) { nCurDir = 1; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_X : Action_Atk_X ); }
+		if( d == TVector2<int32>( 1, 1 ) ) { nCurDir = 0; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_Up : Action_Atk_Up ); }
+		if( d == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_Up : Action_Atk_Up ); }
+		if( d == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_Down : Action_Atk_Down ); }
+		if( d == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return bType ? Action_Explode : ( m_bMoveAsAttack ? eCommonAction_Move_Down : Action_Atk_Down ); }
 
 		static vector<TVector2<int32> > vecPath;
 		vecPath.resize( 0 );
-		pPlayer->nTempFlag = 1;
-		auto nxt = pLevel->SimpleFindPath( pPawn->GetPos(), pPlayer->GetPos(), (int8)-1, &vecPath );
+		TVector2<int32> nxt;
+		if( m_nActionRange )
+		{
+			nxt = pLevel->FindPath1( pPawn->GetPos(), target, [=] ( CMyLevel::SGrid* pGrid, const TVector2<int32>& p ) {
+				auto d = m_origPos - p;
+				int32 l = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2;
+				if( l > m_nActionRange )
+					return false;
+				if( pGrid->pPawn1 && pGrid->pPawn1 == pPlayer )
+					return true;
+				if( !pLevel->IsGridMoveable( p, pPawn ) )
+					return false;
+				return true;
+			}, &vecPath );
+			if( nxt.x < 0 )
+			{
+				if( pPawn->GetPos() == m_origPos )
+					return -1;
+				nxt = pLevel->SimpleFindPath( pPawn->GetPos(), m_origPos, (int8)-1, &vecPath );
+				if( nxt.x < 0 )
+					return -1;
+			}
+		}
+		else
+		{
+			pPlayer->nTempFlag = 1;
+			nxt = pLevel->SimpleFindPath( pPawn->GetPos(), target, (int8)-1, &vecPath );
+			pPlayer->nTempFlag = 0;
+		}
+
 		if( nxt.x >= 0 )
 		{
-			pPlayer->nTempFlag = 0;
 			auto d1 = nxt - pPawn->GetPos();
 			if( m_bDash && d == d1 * 2 )
 			{
@@ -174,22 +341,37 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 				if( d1 == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return bType ? Action_Move_Down_1 : eCommonAction_Move_Down; }
 			}
 		}
-	}
 
-	int8 moveX = SRand::Inst().Rand( 0, 2 );
-	int8 moveY = SRand::Inst().Rand( -1, 2 );
-	nCurDir = moveX;
-	if( moveY == 1 )
-		return bType ? Action_Move_Up_1 : eCommonAction_Move_Up;
-	else if( moveY == -1 )
-		return bType ? Action_Move_Down_1 : eCommonAction_Move_Down;
+		int8 moveX = SRand::Inst().Rand( 0, 2 );
+		int8 moveY = SRand::Inst().Rand( -1, 2 );
+		nCurDir = moveX;
+		if( moveY == 1 )
+			return bType ? Action_Move_Up_1 : eCommonAction_Move_Up;
+		else if( moveY == -1 )
+			return bType ? Action_Move_Down_1 : eCommonAction_Move_Down;
+		else
+			return bType ? Action_Move_X_1 : eCommonAction_Move_X;
+	}
 	else
-		return bType ? Action_Move_X_1 : eCommonAction_Move_X;
+	{
+		if( bType )
+			return Action_Explode;
+		return -1;
+	}
 }
 
 int32 CPawnAI1::CheckStateTransits1( int8& nCurDir, bool bFinished )
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+	if( pPlayer->IsHidden() )
+		CheckSeePlayer( pPlayer );
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+
 	if( pPawn->GetCurStateIndex() == Action_Death_1 )
 	{
 		if( !pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy ) )
@@ -206,6 +388,47 @@ int32 CPawnAI1::CheckStateTransits1( int8& nCurDir, bool bFinished )
 			return Action_Death_1;
 	}
 	return -1;
+}
+
+TVector2<int32> CPawnAI1::HandleStealthDetect()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto levelSize = pLevel->GetSize();
+	static vector<int8> vec;
+	static vector<TVector2<int32> > q;
+	vec.resize( levelSize.x * levelSize.y );
+	for( int i = 0; i < levelSize.x; i++ )
+	{
+		for( int j = 0; j < levelSize.y; j++ )
+		{
+			if( !!( ( i + j ) & 1 ) )
+				continue;
+			vec[i + j * levelSize.x] = pLevel->IsGridBlockSight( TVector2<int32>( i, j ) ) ? 1 : 0;
+		}
+	}
+	auto p0 = pPawn->GetMoveTo();
+	q.push_back( p0 );
+	vec[p0.x + p0.y * levelSize.x] = 2;
+	TVector2<int32> ofs0[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	ExpandDist( vec, levelSize.x, levelSize.y, 2, 0, 3, q, ofs0, ELEM_COUNT( ofs0 ) );
+	m_vecAlert.resize( 0 );
+	m_vecDetect.resize( 0 );
+	for( auto& p : q )
+	{
+		m_vecAlert.push_back( p );
+		pLevel->GetGrid( p )->bStealthAlert = true;
+		auto d = p - p0;
+		d.x = abs( d.x );
+		d.y = abs( d.y );
+		if( d.x + d.y + Max( 0, d.y - d.x ) <= 2 )
+		{
+			pLevel->GetGrid( p )->bStealthDetect = true;
+			m_vecDetect.push_back( p );
+		}
+	}
+	q.resize( 0 );
+	return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
 }
 
 
@@ -287,9 +510,9 @@ int32 CPawnAI_Spore::CheckAction( int8& nCurDir )
 		vecPath.resize( 0 );
 		pPlayer->nTempFlag = 1;
 		auto nxt = pLevel->SimpleFindPath( pPawn->GetPos(), pPlayer->GetPos(), (int8)-1, &vecPath );
+		pPlayer->nTempFlag = 0;
 		if( nxt.x >= 0 )
 		{
-			pPlayer->nTempFlag = 0;
 			auto d1 = nxt - pPawn->GetPos();
 
 			if( d1 == TVector2<int32>( 2, 0 ) ) { nCurDir = 0; return eCommonAction_Move_X; }
@@ -373,9 +596,9 @@ int32 CPawnAI_Hound::CheckAction( int8& nCurDir )
 					bAttack = false;
 					break;
 				}
-				if( pGrid->pPawn )
+				if( pGrid->pPawn0 )
 				{
-					if( pGrid->pPawn != pPlayer || pPawn->GetCurForm() == 0 && l < 2 )
+					if( pGrid->pPawn0 != pPlayer || pPawn->GetCurForm() == 0 && l < 2 )
 						bAttack = false;
 					break;
 				}
@@ -791,13 +1014,25 @@ public:
 	virtual int32 CheckStateTransits( int8& nCurDir ) override;
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) override;
 	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override;
-	virtual void HandleStealthDetect() override;
+	virtual TVector2<int32> HandleStealthDetect() override;
+	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+		if( !pPlayer->IsHidden() )
+			return;
+		if( !CheckSeePlayer( pPlayer ) )
+		{
+			m_bLastSeePlayerPosValid = 1;
+			m_lastSeePlayerPos = p;
+		}
+	}
 private:
 	int32 Break();
 	int32 ActionFunc( int8& nCurDir, int32 nPrevState );
 	int32 ActionFuncStealth( int8& nCurDir, int32 nPrevState );
 	int32 ActionFindPath( int8& nCurDir, int32 nPrevState );
-	bool CheckSeePlayer( CPlayer* pPlayer );
+	bool CheckSeePlayer( CPlayer* pPlayer ) { return CommonCheckSeePlayer( pPlayer, m_vecAlert, m_vecDetect, m_lastSeePlayerPos, m_bLastSeePlayerPosValid ); }
 	int32 m_nBladeMaxHp;
 	int32 m_nDrawBladeCD;
 	CReference<CRenderObject2D> m_pHpBarImg[5];
@@ -871,7 +1106,7 @@ int32 CPawnAI_Crow::CheckAction( int8& nCurDir )
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pPlayer = pPawn->GetLevel()->GetPlayer();
 	int8 nType = 0;
-	if( pPlayer->GetStealthValue() )
+	if( pPlayer->IsHidden() )
 	{
 		CheckSeePlayer( pPlayer );
 		nType = m_bLastSeePlayerPosValid ? 1 : 2;
@@ -898,7 +1133,7 @@ int32 CPawnAI_Crow::CheckStateTransits1( int8& nCurDir, bool bFinished )
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pPlayer = pPawn->GetLevel()->GetPlayer();
 	int8 nType = 0;
-	if( pPlayer->GetStealthValue() )
+	if( pPlayer->IsHidden() )
 	{
 		CheckSeePlayer( pPlayer );
 		nType = m_bLastSeePlayerPosValid ? 1 : 2;
@@ -1023,13 +1258,13 @@ bool CPawnAI_Crow::Damage( int32& nDamage, int8 nDamageType, const TVector2<int3
 	{
 		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 		m_nBladeHp = Max( 0, m_nBladeHp - nDamage );
-		pPawn->SetDamaged( nDamageType, damageOfs );
+		pPawn->SetDamaged( nDamageType, damageOfs.x, damageOfs.y );
 		return true;
 	}
 	return false;
 }
 
-void CPawnAI_Crow::HandleStealthDetect()
+TVector2<int32> CPawnAI_Crow::HandleStealthDetect()
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pLevel = pPawn->GetLevel();
@@ -1047,7 +1282,7 @@ void CPawnAI_Crow::HandleStealthDetect()
 		{
 			if( !!( ( i + j ) & 1 ) )
 				continue;
-			vec[i + j * levelSize.x] = pLevel->GetGrid( TVector2<int32>( i, j ) )->bBlockSight ? 1 : 0;
+			vec[i + j * levelSize.x] = pLevel->IsGridBlockSight( TVector2<int32>( i, j ) ) ? 1 : 0;
 		}
 	}
 	auto p0 = pPawn->GetMoveTo();
@@ -1100,13 +1335,14 @@ void CPawnAI_Crow::HandleStealthDetect()
 			continue;
 		m_vecAlert.push_back( p );
 		pLevel->GetGrid( p )->bStealthAlert = true;
-		if( p.y == p0.y || abs( p.x - p0.x ) + abs( p.y - p0.y ) <= 4 )
+		if( p.y == p0.y || abs( p.x - p0.x ) + abs( p.y - p0.y ) <= 2 )
 		{
 			pLevel->GetGrid( p )->bStealthDetect = true;
 			m_vecDetect.push_back( p );
 		}
 	}
 	q.resize( 0 );
+	return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
 }
 
 int32 CPawnAI_Crow::Break()
@@ -1227,7 +1463,7 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 	static vector<TVector3<int32> > par;
 	int8 nType = m_nBlades;
 	auto pPlayer = pLevel->GetPlayer();
-	bool bStealth = pPlayer->GetStealthValue();
+	bool bStealth = pPlayer->IsHidden();
 
 	for( ;; )
 	{
@@ -1253,15 +1489,32 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 			{
 				auto p1 = pPlayer->GetPos();
 				auto p2 = pPlayer->GetMoveTo();
-				vec[( p1.x + p1.y * levelSize.x ) * 2] = vec[( p1.x + p1.y * levelSize.x ) * 2 + 1] = 0;
-				vec[( p2.x + p2.y * levelSize.x ) * 2] = vec[( p2.x + p2.y * levelSize.x ) * 2 + 1] = 0;
+				if( pLevel->GetGrid( p1 )->pPawn1 == pPlayer )
+					vec[( p1.x + p1.y * levelSize.x ) * 2] = vec[( p1.x + p1.y * levelSize.x ) * 2 + 1] = 0;
+				if( pLevel->GetGrid( p2 )->pPawn1 == pPlayer )
+					vec[( p2.x + p2.y * levelSize.x ) * 2] = vec[( p2.x + p2.y * levelSize.x ) * 2 + 1] = 0;
 				if( m_bLastSeePlayerPosValid == 1 )
 				{
 					auto p3 = m_lastSeePlayerPos;
 					vec[( p3.x + p3.y * levelSize.x ) * 2] = vec[( p3.x + p3.y * levelSize.x ) * 2 + 1] = 2;
 				}
 				else
-					vec[( m_origPos.x + m_origPos.y * levelSize.x ) * 2 + m_nOrigDir] = 2;
+				{
+					if( m_origPos == p0 )
+					{
+						if( nCurDir != m_nOrigDir )
+						{
+							if( nPrevState >= 0 )
+								return eState_Turn_0;
+							m_nIntention = eState_Turn_0;
+							return eState_Move_Ready_0 + m_nBlades;
+						}
+						else
+							return -1;
+					}
+					else
+						vec[( m_origPos.x + m_origPos.y * levelSize.x ) * 2 + m_nOrigDir] = 2;
+				}
 			}
 			else
 			{
@@ -1449,44 +1702,6 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 	return -1;
 }
 
-bool CPawnAI_Crow::CheckSeePlayer( CPlayer * pPlayer )
-{
-	for( auto& p : m_vecAlert )
-	{
-		if( p == pPlayer->GetMoveTo() )
-		{
-			m_lastSeePlayerPos = p;
-			m_bLastSeePlayerPosValid = 1;
-			return true;
-		}
-	}
-	for( auto& p : m_vecAlert )
-	{
-		if( p == pPlayer->GetPos() )
-		{
-			m_lastSeePlayerPos = p;
-			m_bLastSeePlayerPosValid = 1;
-			return true;
-		}
-	}
-	if( m_bLastSeePlayerPosValid )
-	{
-		auto pPawn1 = pPlayer->GetLevel()->GetGrid( m_lastSeePlayerPos )->pPawn;
-		if( pPawn1 != pPlayer )
-		{
-			for( auto& p : m_vecDetect )
-			{
-				if( p == m_lastSeePlayerPos )
-				{
-					m_bLastSeePlayerPosValid = -1;
-					break;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 
 void RegisterGameClasses_PawnAI()
 {
@@ -1497,6 +1712,16 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_LUA_CFUNCTION( IsFinished )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CPawnAIScript )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER_BEGIN( m_strDamage )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strCheckStateTransits1 )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CPawnAI0 )
 		REGISTER_BASE_CLASS( CPawnAI )
 	REGISTER_CLASS_END()
@@ -1504,7 +1729,9 @@ void RegisterGameClasses_PawnAI()
 	REGISTER_CLASS_BEGIN( CPawnAI1 )
 		REGISTER_BASE_CLASS( CPawnAI )
 		REGISTER_MEMBER( m_bDash )
+		REGISTER_MEMBER( m_bMoveAsAttack )
 		REGISTER_MEMBER( m_nSightRange )
+		REGISTER_MEMBER( m_nActionRange )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAI2 )

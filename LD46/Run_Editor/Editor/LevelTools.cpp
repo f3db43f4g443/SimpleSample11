@@ -817,7 +817,7 @@ void CPawnTool::Add( const TVector2<int32>& p )
 	pNode->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
 
 	auto pPawnData = m_pCurSelected->GetRoot()->GetStaticDataSafe<CPawn>();
-	if( pPawnData->m_bIsEnemy )
+	if( pPawnData->m_nLevelDataType )
 	{
 		auto pSpawnHelper = SafeCast<CLevelSpawnHelper>( pNode->GetFinalObjData() );
 		pSpawnHelper->m_nDataType = pPawnData->m_nLevelDataType;
@@ -1370,6 +1370,12 @@ void CLevelToolsView::Set( CPrefabNode* p, function<void()> FuncOK, SLevelData* 
 
 void CLevelToolsView::AddNeighbor( CPrefabNode* p, const CVector2& displayOfs )
 {
+	int32 nIndex = 0;
+	for( int i = 0; i < m_vecNeightborData.size(); i++ )
+	{
+		if( m_vecNeightborData[i].pLevelNode == p )
+			return;
+	}
 	auto pRes = p->GetPrefab();
 	FixLevelData( p, pRes );
 	auto pPreview = CreateLevelSimplePreview( p );
@@ -1541,6 +1547,18 @@ void CLevelToolsView::ResizeLevel( const TRectangle<int32>& newSize )
 	auto d = CVector2( newSize.x, newSize.y ) * LEVEL_GRID_SIZE;
 	if( m_pLevelData )
 		m_pLevelData->displayOfs = m_pLevelData->displayOfs + d;
+	for( auto p = m_pLevelNode->Get_RenderChild(); p; p = p->NextRenderChild() )
+	{
+		if( p == m_pLevelNode->GetRenderObject() )
+			continue;
+		auto pPrefabNode = dynamic_cast<CPrefabNode*>( p );
+		if( pPrefabNode && pPrefabNode->GetStaticDataSafe<CLevelEnvEffect>() )
+		{
+			auto pEnvData = (CLevelEnvEffect*)pPrefabNode->GetObjData();
+			pEnvData->m_gridOfs = pEnvData->m_gridOfs - d;
+		}
+	}
+
 	for( int i = 0; i < pObj->m_arrNextStage.Size(); i++ )
 	{
 		pObj->m_arrNextStage[i].nOfsX -= newSize.x;
@@ -1556,7 +1574,6 @@ void CLevelToolsView::ResizeLevel( const TRectangle<int32>& newSize )
 			{
 				p->m_arrNextStage[i].nOfsX += newSize.x;
 				p->m_arrNextStage[i].nOfsY += newSize.y;
-				break;
 			}
 		}
 	}

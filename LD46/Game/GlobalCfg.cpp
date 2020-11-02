@@ -26,6 +26,10 @@ void CGlobalCfg::Load()
 		pFailLightningEffectPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
 		szPrefab = XmlGetValue( pPrefabs, "fall_eft", "" );
 		pFallEftDrawable = CResourceManager::Inst()->CreateResource<CDrawableGroup>( szPrefab );
+		szPrefab = XmlGetValue( pPrefabs, "interference_strip_eft", "" );
+		pInterferenceStripEftPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		szPrefab = XmlGetValue( pPrefabs, "tracer_spawn_eft", "" );
+		pTracerSpawnEftPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
 	}
 
 	auto pSoundEfts = doc.RootElement()->FirstChildElement( "sound" );
@@ -139,6 +143,21 @@ void CGlobalCfg::Load()
 		{
 			lvIndicatorData.vecStealthDetectParams.resize( lvIndicatorData.vecStealthDetectParams.size() + 1 );
 			ReadFunc( pItem, lvIndicatorData.vecStealthDetectParams.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_hidden" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthHiddenParams.resize( lvIndicatorData.vecStealthHiddenParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthHiddenParams.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_alert_hidden" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthAlertHiddenParams.resize( lvIndicatorData.vecStealthAlertHiddenParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthAlertHiddenParams.back() );
+		}
+		for( auto pItem = pIndicator->FirstChildElement( "stealth_detect_hidden" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecStealthDetectHiddenParams.resize( lvIndicatorData.vecStealthDetectHiddenParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecStealthDetectHiddenParams.back() );
 		}
 
 		auto pNextLevelCfg = pIndicator->FirstChildElement( "next_level" );

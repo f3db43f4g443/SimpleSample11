@@ -404,6 +404,7 @@
     <ClCompile Include="CommonUtils.cpp" />
     <ClCompile Include="Entities\Abilities.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
+    <ClCompile Include="Entities\InteractionUI.cpp" />
     <ClCompile Include="Entities\MiscElem.cpp" />
     <ClCompile Include="Entities\PawnAI.cpp" />
     <ClCompile Include="Entities\UtilEntities.cpp" />
@@ -411,6 +412,7 @@
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="GlobalCfg.cpp" />
     <ClCompile Include="GUI\ActionPreview.cpp" />
+    <ClCompile Include="GUI\LogUI.cpp" />
     <ClCompile Include="GUI\Menu.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
     <ClCompile Include="GUI\WorldMap.cpp" />
@@ -435,6 +437,7 @@
     <ClInclude Include="CommonUtils.h" />
     <ClInclude Include="Entities\Abilities.h" />
     <ClInclude Include="Entities\EffectObject.h" />
+    <ClInclude Include="Entities\InteractionUI.h" />
     <ClInclude Include="Entities\MiscElem.h" />
     <ClInclude Include="Entities\PawnAI.h" />
     <ClInclude Include="Entities\UtilEntities.h" />
@@ -442,6 +445,7 @@
     <ClInclude Include="GameState.h" />
     <ClInclude Include="GlobalCfg.h" />
     <ClInclude Include="GUI\ActionPreview.h" />
+    <ClInclude Include="GUI\LogUI.h" />
     <ClInclude Include="GUI\Menu.h" />
     <ClInclude Include="GUI\StageDirector.h" />
     <ClInclude Include="GUI\WorldMap.h" />

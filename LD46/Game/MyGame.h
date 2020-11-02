@@ -7,6 +7,18 @@
 #include "UICommon/UIManager.h"
 #include "GameState.h"
 
+enum
+{
+	eInput_Right,
+	eInput_Up,
+	eInput_Left,
+	eInput_Down,
+	eInput_A,
+	eInput_B,
+	eInput_C,
+	eInput_D,
+};
+
 class CGame : public IGame
 {
 public:
@@ -43,6 +55,11 @@ public:
 	bool IsRightMouse() { return m_bIsRightMouse; }
 	bool IsRightMouseUp() { return m_bIsRightMouseUp; }
 	bool IsRightMouseDown() { return m_bIsRightMouseDown; }
+	bool IsInput( int32 n );
+	bool IsInputDown( int32 n );
+	bool IsInputUp( int32 n );
+	bool IsInputHolding( int32 n );
+	void ClearInputEvent();
 
 	void Register( uint32 nTime, CTrigger* pTrigger ) { m_trigger.Register( nTime, pTrigger ); }
 

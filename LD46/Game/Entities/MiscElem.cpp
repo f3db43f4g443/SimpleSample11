@@ -59,6 +59,18 @@ void CLevelScriptCustom::OnPlayerAction( int32 nMatchLen, int8 nType )
 	}
 }
 
+void CLevelScriptCustom::OnAlert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs )
+{
+	if( m_strAlert.length() )
+	{
+		CLuaMgr::Inst().Load( m_strAlert );
+		CLuaMgr::Inst().PushLua( pTriggeredPawn );
+		CLuaMgr::Inst().PushLua( pawnOfs.x );
+		CLuaMgr::Inst().PushLua( pawnOfs.y );
+		CLuaMgr::Inst().Call( 3, 0 );
+	}
+}
+
 int32 CLevelScriptCustom::Signal( int32 i )
 {
 	if( m_strSignal.length() )
@@ -323,32 +335,71 @@ void CPawnUsageButton::Update()
 		m_nEftFramesLeft--;
 }
 
+void CPawnAIAutoDoor::OnInit()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( m_strBrokenKey.length() )
+	{
+		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strBrokenKey ) )
+			pPawn->ChangeState( eState_Broken, true );
+	}
+}
+
 int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 {
-	enum
-	{
-		eState_Open,
-		eState_Close,
-		eState_Opening,
-		eState_Closing,
-	};
-
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pLevel = pPawn->GetLevel();
 	auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
 	bool bOpen;
+	bool bBlockPlayerClose = false;
 	if( m_nType )
 		bOpen = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strOpenCondition );
 	else
 		bOpen = !pLevel->IsGridBlockedExit( pGrid, true );
+	bool bBlockPlayer = false;
+	if( m_strBlockPlayerCondition.length() )
+	{
+		bBlockPlayer = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strBlockPlayerCondition );
+		if( bBlockPlayer && bOpen )
+		{
+			auto pPlayer = pPawn->GetLevel()->GetPlayer();
+			if( pPlayer && !pPlayer->IsHidden() )
+			{
+				if( pPlayer->GetCurStateDest() == pPawn->GetPos() )
+				{
+					bBlockPlayerClose = true;
+					bOpen = false;
+				}
+			}
+		}
+	}
 	if( pPawn->GetCurStateIndex() == eState_Open )
 	{
-		if( !pGrid->pPawn && !bOpen )
+		if( bBlockPlayer && m_strBrokenKey.length() )
+		{
+			auto p = pLevel->FindPickUp( pPawn->GetPos(), 2, 1 );
+			if( p )
+			{
+				pLevel->RemovePawn( p );
+				GetStage()->GetMasterLevel()->SetKeyInt( m_strBrokenKey, 1 );
+				return eState_Closing_Broken;
+			}
+		}
+		if( !pGrid->pPawn0 && !bOpen )
+		{
+			if( bBlockPlayerClose )
+			{
+				if( m_strOnBlockPlayerClose.length() )
+					CLuaMgr::GetCurLuaState()->Run( m_strOnBlockPlayerClose );
+			}
 			return eState_Closing;
+		}
 	}
-	else
+	else if( pPawn->GetCurStateIndex() == eState_Close )
 	{
 		if( bOpen )
+			return eState_Opening;
+		else if( pGrid->pPawn0 && pGrid->pPawn0 != pPawn )
 			return eState_Opening;
 	}
 	return -1;
@@ -378,7 +429,10 @@ void CPawnAIAutoDoor::CreateIconData( CPrefabNode* pNode, const char* szConditio
 		item.arrFilter.Resize( item.arrFilter.Size() + 1 );
 		item.arrFilter[item.arrFilter.Size() - 1] = pSpawnData->GetSpawnCondition();
 	}
-	item.strCondition = m_strOpenCondition;
+	if( m_strOpenCondition.length() )
+		item.strCondition = m_strOpenCondition;
+	else
+		item.strCondition = "=false";
 	item.nConditionValue = 0;
 
 	auto& item1 = arrData[arrData.Size() - 1];
@@ -708,7 +762,7 @@ void CPressurePlate::Update()
 		for( int j = 0; j < m_nHeight && !bPress; j++ )
 		{
 			auto pGrid = GetLevel()->GetGrid( GetPos() );
-			if( pGrid && pGrid->pPawn && pGrid->pPawn->HasStateTag( m_strPressStateTag ) )
+			if( pGrid && pGrid->pPawn1 && pGrid->pPawn1->HasStateTag( m_strPressStateTag ) )
 				bPress = true;
 		}
 	}
@@ -1185,7 +1239,7 @@ int32 CProjector::Signal( int32 i )
 
 void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 {
-	if( !m_bStarted )
+	if( !m_nType )
 		return;
 	m_p->bVisible = true;
 	m_p1->bVisible = true;
@@ -1200,16 +1254,58 @@ void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 		m_pImgs[i + 4]->bVisible = nDir == 1;
 	}
 	CVector2 ofs[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+
 	if( m_nState == 0 )
 	{
-		if( pPlayer->GetCurStateTick() == 1 )
+		if( pPlayer->GetCurStateTick() == 1 && curState.strName != "stand" && curState.strName != "break" )
 		{
-			if( curState.strName == "move_x" )
-				m_nState = 1 + 3 * nDir;
-			else if( curState.strName == "move_up" )
-				m_nState = 2 + 3 * nDir;
-			else if( curState.strName == "move_down" )
-				m_nState = 3 + 3 * nDir;
+			bool bSucceed = true;
+			if( m_nType == 1 )
+			{
+				auto c = m_str[m_nCurStep];
+				switch( c )
+				{
+				case '6':
+					bSucceed = curState.strName == "move_x" && nDir == 0;
+					break;
+				case '4':
+					bSucceed = curState.strName == "move_x" && nDir == 1;
+					break;
+				case '9':
+					bSucceed = curState.strName == "move_up" && nDir == 0;
+					break;
+				case '7':
+					bSucceed = curState.strName == "move_up" && nDir == 1;
+					break;
+				case '3':
+					bSucceed = curState.strName == "move_down" && nDir == 0;
+					break;
+				case '1':
+					bSucceed = curState.strName == "move_down" && nDir == 1;
+				default:
+					break;
+				}
+				if( !bSucceed )
+				{
+					pPlayer->PlayStateSetDir( "break", m_nLastDir );
+					if( m_strFailedScript.length() )
+					{
+						auto pLuaState = CLuaMgr::GetCurLuaState();
+						pLuaState->Run( m_strFailedScript );
+					}
+				}
+			}
+
+			if( bSucceed )
+			{
+				if( curState.strName == "move_x" )
+					m_nState = 1 + 3 * nDir;
+				else if( curState.strName == "move_up" )
+					m_nState = 2 + 3 * nDir;
+				else if( curState.strName == "move_down" )
+					m_nState = 3 + 3 * nDir;
+				m_nLastDir = pPlayer->GetCurDir();
+			}
 		}
 		if( m_nState )
 			m_nStateTick = 10;
@@ -1236,6 +1332,7 @@ void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 		}
 	}
 
+	m_pImgNxt->bVisible = false;
 	if( m_nState )
 	{
 		m_pImg1->bVisible = true;
@@ -1256,7 +1353,49 @@ void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 		static_cast<CImage2D*>( m_pImg1.GetPtr() )->GetParam()[0] = frames[10 - m_nStateTick];
 		m_nStateTick--;
 		if( !m_nStateTick )
+		{
 			m_nState = 0;
+			if( m_nType == 1 )
+			{
+				m_nCurStep++;
+				if( m_nCurStep >= m_str.length() )
+				{
+					m_nType = 2;
+					if( m_strFinishedScript )
+					{
+						auto pLuaState = CLuaMgr::GetCurLuaState();
+						pLuaState->Run( m_strFinishedScript );
+					}
+				}
+			}
+		}
+	}
+	else if( m_nType == 1 )
+	{
+		m_pImgNxt->bVisible = true;
+		auto c = m_str[m_nCurStep];
+		switch( c )
+		{
+		case '6':
+			m_pImgNxt->SetPosition( ofs[0] * LEVEL_GRID_SIZE );
+			break;
+		case '4':
+			m_pImgNxt->SetPosition( ofs[3] * LEVEL_GRID_SIZE );
+			break;
+		case '9':
+			m_pImgNxt->SetPosition( ofs[1] * LEVEL_GRID_SIZE );
+			break;
+		case '7':
+			m_pImgNxt->SetPosition( ofs[4] * LEVEL_GRID_SIZE );
+			break;
+		case '3':
+			m_pImgNxt->SetPosition( ofs[2] * LEVEL_GRID_SIZE );
+			break;
+		case '1':
+			m_pImgNxt->SetPosition( ofs[5] * LEVEL_GRID_SIZE );
+		default:
+			break;
+		}
 	}
 
 	auto p1 = pt + CVector2( -64, 64 );
@@ -1270,14 +1409,14 @@ void CTutorialMoving::OnUpdate1( CMyLevel* pLevel )
 
 int32 CTutorialMoving::Signal( int32 i )
 {
-	bool b0 = m_bStarted;
-	if( i > 0 && i <= 1 )
-		m_bStarted = !!i;
-	bool b1 = m_bStarted;
+	bool b0 = m_nType > 0;
+	m_nType = i;
+	bool b1 = m_nType > 0;
 	if( b1 && !b0 )
 		PlaySoundEffect( "activate" );
 	else if( !b1 && b0 )
 		PlaySoundEffect( "deactivate" );
+	m_nLastDir = GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer()->GetCurDir();
 	return 1;
 }
 
@@ -1677,6 +1816,9 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_BEGIN( m_strPlayerAction )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strAlert )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strSignal )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
@@ -1715,6 +1857,9 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_BASE_CLASS( CPawnAI )
 		REGISTER_MEMBER( m_nType )
 		REGISTER_MEMBER( m_strOpenCondition )
+		REGISTER_MEMBER( m_strBlockPlayerCondition )
+		REGISTER_MEMBER( m_strBrokenKey )
+		REGISTER_MEMBER( m_strOnBlockPlayerClose )
 		REGISTER_MEMBER( m_nStateMapIconX )
 		REGISTER_MEMBER( m_nStateMapIconY )
 	REGISTER_CLASS_END()
@@ -1823,11 +1968,19 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, 2 )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetProjSrc )
+		REGISTER_LUA_CFUNCTION( SetTarget )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTutorialMoving )
 		REGISTER_BASE_CLASS( CLevelScript )
 		REGISTER_BASE_CLASS( ISignalObj )
+		REGISTER_MEMBER( m_str )
+		REGISTER_MEMBER_BEGIN( m_strFinishedScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strFailedScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_TAGGED_PTR( m_p, 1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, 2 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pImgs[0], 1/1 )
@@ -1842,6 +1995,7 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER_TAGGED_PTR( m_pImg2[0], 2/2 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pImg2[1], 2/3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pImg2[2], 2/4 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pImgNxt, 1/nxt )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTutorialFollowing )
