@@ -12,7 +12,7 @@ class CResourceEditor : public CUIElement
 {
 public:
 	virtual void NewFile( const char* szFileName ) {}
-	virtual void SetFileName( const char* szFileName ) {}
+	virtual void SetFileName( const char* szFileName, const char* szParam ) {}
 	static bool& IsLighted() { static bool b = true; return b; }
 };
 
@@ -26,14 +26,57 @@ public:
 		Save();
 	}
 
-	virtual void SetFileName( const char* szFileName ) override
+	const char* GetFileName()
+	{
+		if( !m_pRes )
+			return "";
+		return m_pRes->GetName();
+	}
+	virtual void SetFileName( const char* szFileName, const char* szParam = "" ) override
 	{
 		CReference<CResource> pTemp = m_pRes;
 		m_pRes = szFileName && szFileName[0] ? CResourceManager::Inst()->CreateResource<T>( szFileName ) : NULL;
+
+		m_mapParams.clear();
+		if( szParam && szParam[0] )
+		{
+			char* sz = (char*)alloca( strlen( szParam ) + 1 );
+			strcpy( sz, szParam );
+			for( char* p = sz; p; )
+			{
+				char* p1 = strchr( p, ' ' );
+				if( p1 )
+					*p1 = 0;
+				if( *p )
+				{
+					char* p2 = strchr( p, '=' );
+					if( p2 )
+					{
+						*p2 = 0;
+						m_mapParams[p] = p2 + 1;
+					}
+					else
+						m_mapParams[p] = "";
+				}
+				if( !p1 )
+					break;
+				p = p1 + 1;
+			}
+		}
+		if( m_pRes )
+			OnOpenFile();
 		Refresh();
 	}
-
+	virtual void OnOpenFile() {}
 	virtual void Refresh() {}
+
+	const char* GetParam( const char* szKey )
+	{
+		auto itr = m_mapParams.find( szKey );
+		if( itr == m_mapParams.end() )
+			return NULL;
+		return itr->second.c_str();
+	}
 protected:
 	virtual void OnInited() override
 	{
@@ -164,6 +207,7 @@ protected:
 	
 	CVector2 m_startDragPos;
 	CVector2 m_camOfs;
+	map<string, string> m_mapParams;
 private:
 	CReference<CRenderObject2D> m_pLight;
 	CReference<CRenderObject2D> m_pBackground;

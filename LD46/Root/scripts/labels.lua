@@ -17,12 +17,33 @@ g_labels = {
 	{
 		day = 4,
 		items = {
-			{ name = "_DISINFECTANT", key = "%_DISINFECTANT", value = { { 0, 7 } } },
+			{ name = "_DISINFECTANT", key = "%_DISINFECTANT", value = { { 0, 7 }, { 6, 7 } } },
 			{ name = "_HANDLE", key = "%_HANDLE", value = { { 1, 7 }, { 7, 7 } } },
 			{ name = "_TAPE", key = "%_TAPE", value = { { 2, 7 }, { 2, 7 }, { 2, 7 }, { 7, 7 } } },
 			{ name = "_BOOK_1", key = "%_BOOK_1", value = { { 3, 7 }, { 7, 7 } } },
 			{ name = "_BOOK_2", key = "%_BOOK_2", value = { { 4, 7 }, { 7, 7 } } },
 			{ name = "_BOOK_3", key = "%_BOOK_3", value = { { 5, 7 }, { 7, 7 } } },
+		}
+	},
+	{
+		day = 5,
+		items = {
+			{ name = "_FOOD", key = "%_FOOD", value = { { 0, 7 } } },
+			{ name = "_COIN_1", key = "%_COIN_1", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_2", key = "%_COIN_2", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_3", key = "%_COIN_3", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_4", key = "%_COIN_4", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_5", key = "%_COIN_5", value = { { 0, 6 }, { 7, 7 } } },
+		}
+	},
+	{
+		day = 6,
+		items = {
+		}
+	},
+	{
+		day = 7,
+		items = {
 		}
 	},
 }
@@ -77,7 +98,9 @@ end
 
 function RefreshAllLabels()
 	GetMasterLevel():GetMainUI():ClearLabels()
-	local labels = g_labels[CurDay()].items
+	local labels = g_labels[CurDay()]
+	if not labels then return end
+	labels = labels.items
 	for k, v in ipairs( labels ) do
 		local res = v.value[EvaluateKeyInt( v.key )]
 		if res then

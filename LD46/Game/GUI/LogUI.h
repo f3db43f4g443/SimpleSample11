@@ -18,19 +18,23 @@ private:
 	float m_fDocTitleHeight;
 	float m_fRecordTexLeft;
 	float m_fRecordTexRight;
+	int32 m_nDocMaxLines;
 	CReference<CEntity> m_pPages[2];
 	CReference<CSimpleText> m_pPageItemText[2];
 	CReference<CEntity> m_pPageSelectEffect;
 	CReference<CSimpleText> m_pDocTitleText[8];
 	CReference<CEntity> m_pDocSelectEffect;
 	CReference<CSimpleText> m_pDocContentText;
+	CReference<CEntity> m_pDocContentScroll;
 	CReference<CSimpleText> m_pRecordItemText[16];
 	CReference<CEntity> m_pRecordScroll;
 	
+	CRectangle m_docScrollOrigRect;
 	CRectangle m_recordScrollOrigRect;
 	int8 m_nSelectedPage;
 	int32 m_nSelectedIndex;
 	int32 m_nShowBeginIndex;
+	int32 m_nCurDocLineScroll, m_nMaxDocLineScroll;
 	struct SDocument
 	{
 		bool bUnlocked;

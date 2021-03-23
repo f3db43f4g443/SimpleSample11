@@ -18,6 +18,7 @@ public:
 	CReference<CDrawableGroup> pFallEftDrawable;
 	CReference<CPrefab> pInterferenceStripEftPrefab;
 	CReference<CPrefab> pTracerSpawnEftPrefab;
+	CReference<CPrefab> pCommonLinkPrefab;
 
 	map<string, CReference<CSoundFile> > mapSoundEffect;
 

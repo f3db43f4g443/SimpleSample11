@@ -135,20 +135,22 @@ CResourceEditor* CEditor::SetEditor( const char* szTag )
 	return NULL;
 }
 
-void CEditor::OpenFile( const char* szFile )
+void CEditor::OpenFile( const char* szFile, const char* szParam )
 {
 	if( !szFile[0] )
 		return;
 	if( !IsFileExist( szFile ) )
 		return;
 
-	const char* szExt = GetFileExtension( szFile );
+	string strFile = szFile;
+	string strParam = szParam;
+	const char* szExt = GetFileExtension( strFile.c_str() );
 	auto pEditor = SetEditor( szExt );
 	if( pEditor )
-		pEditor->SetFileName( szFile );
+		pEditor->SetFileName( strFile.c_str(), strParam.c_str() );
 	else if( !strcmp( szExt, "wav" ) || !strcmp( szExt, "mp3" ) || !strcmp( szExt, "sf" ) )
 	{
-		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( szFile )->CreateSoundTrack();
+		ISoundTrack* pSoundTrack = CResourceManager::Inst()->CreateResource<CSoundFile>( strFile.c_str() )->CreateSoundTrack();
 		pSoundTrack->Play( ESoundPlay_KeepRef );
 	}
 }

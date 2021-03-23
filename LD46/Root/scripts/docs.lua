@@ -73,7 +73,7 @@ T.E.M.****************T.H.R.O.W. .H.I.M. .O.U.T.************
 		key = "_NEED",
 		name = "National Elementary Education Documents, Page 251",
 		content = function()
-			local str = "[handwriting]  " .. EvaluateKeyString( "%myname_str" ) .. "\n" .. [====[
+			local str = "[your own handwriting]  " .. EvaluateKeyString( "%myname_str" ) .. "\n" .. [====[
 
 ...is used for all formal occasions and documents. Our government have finished the conversion of ]====] .. [====[
 old records for us. If you've never had a name in Common Language, your new name is converted from the ]====] .. [====[
@@ -108,11 +108,12 @@ sorry to say that these are all I can help. I'm just a free lawyer and don't hav
 
 I think the best strategy is to just admit your guilt. It's not that terrible crime as you thought. I'm afraid you regarded that as too ]====] .. [====[
 serious. Simply admitting it will let us avoid many unwanted complications. Honestly, they are so buzy that they just want to get it ]====] .. [====[
-done as soon as possible...I've heard they are not even going to have a court. 
+done ASAP...I've heard they are not even going to have a court. 
 
 Please trust me.
 
-Your sincere lawyer]====]
+Yours sincerely,
+Lawyer ]====] .. NAME_LAWYER
 	},
 }
 for i = 1, #g_docs, 1 do
@@ -126,7 +127,7 @@ function GetKeyUnlockDoc( strName )
 end
 
 function IsDocUnlocked( strName )
-	return GetKeyUnlockDoc() > 0
+	return EvaluateKeyInt( GetKeyUnlockDoc( strName ) ) > 0
 end
 
 function UnlockDoc( strName )

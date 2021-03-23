@@ -91,6 +91,7 @@ protected:
 	void MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 	void MoveNodeLeft( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 	void MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
+	void ShowChildren( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 
 	virtual void OnViewportStartDrag( SUIMouseEvent* pEvent ) override;
 	virtual void OnViewportDragged( SUIMouseEvent* pEvent ) override;

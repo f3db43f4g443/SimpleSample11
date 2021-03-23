@@ -245,6 +245,7 @@ static CDropDownBox::SItem g_blendItems[] =
 	{ "subtract", (void*)5 },
 	{ "exclude", (void*)6 },
 	{ "min", (void*)7 },
+	{ "blend1", (void*)8 },
 	{ "custom", (void*)-1 },
 };
 

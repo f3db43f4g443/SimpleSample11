@@ -16,7 +16,7 @@ public:
 	};
 
 	bool IsChecked() { return m_bChecked; }
-	void SetChecked( bool bChecked );
+	void SetChecked( bool bChecked, bool bTriggerEvent = true );
 	virtual CUIElement* CreateObject() override { return new CUICheckBox; }
 	virtual void Render( CRenderContext2D& context ) override;
 protected:

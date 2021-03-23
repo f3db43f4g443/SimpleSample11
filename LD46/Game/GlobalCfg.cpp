@@ -30,6 +30,8 @@ void CGlobalCfg::Load()
 		pInterferenceStripEftPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
 		szPrefab = XmlGetValue( pPrefabs, "tracer_spawn_eft", "" );
 		pTracerSpawnEftPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+		szPrefab = XmlGetValue( pPrefabs, "common_link", "" );
+		pCommonLinkPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
 	}
 
 	auto pSoundEfts = doc.RootElement()->FirstChildElement( "sound" );

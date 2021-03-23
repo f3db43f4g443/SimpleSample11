@@ -101,8 +101,12 @@ void CLuaState::PushLuaCFunction( void* p, SLuaCFunction& func )
 		static int Lua_CFunc( lua_State* L )
 		{
 			auto p = (SLuaCFunction*)lua_touserdata( L, lua_upvalueindex( 1 ) );
-			p->Func( L );
-			return p->nRet;
+			auto pCurState = GetCurLuaState();
+			auto L0 = pCurState->m_pLuaState;
+			pCurState->m_pLuaState = L;
+			int nRet = p->Func( L );
+			pCurState->m_pLuaState = L0;
+			return nRet;
 		}
 	};
 	auto pLuaState = (lua_State*)p;
@@ -162,6 +166,21 @@ CReferenceObject* CLuaState::FetchReference( void* p, int32 idx )
 void CLuaState::PopLua( void* p, int32 n )
 {
 	lua_pop( (lua_State*)p, n );
+}
+
+int32 CLuaState::GetTop()
+{
+	return lua_gettop( (lua_State*)m_pLuaState );
+}
+
+void CLuaState::NewTable()
+{
+	lua_newtable( (lua_State*)m_pLuaState );
+}
+
+void CLuaState::SetTableIndex( int32 idx, int32 i )
+{
+	lua_rawseti( (lua_State*)m_pLuaState, idx, i );
 }
 
 void CLuaState::Run( const char* str, int32 nRet )

@@ -4,8 +4,7 @@
 struct SLuaCFunction
 {
 	string strFuncName;
-	function<void( void* )> Func;
-	int32 nRet;
+	function<int( void* )> Func;
 };
 
 class CClassScriptDataLua : public CReferenceObject
@@ -114,6 +113,12 @@ public:
 	{ CRectangle result; FetchLuaVec( p, n, 4, &result.x ); return result; } };
 	template <>
 	struct FecthLua_Impl<const char*> { static const char* call( void* p, int32 n ) { return FetchLuaString( p, n ); } };
+	template <>
+	struct FecthLua_Impl<CString> { static CString call( void* p, int32 n )
+	{
+		auto sz = FetchLuaString( p, n );
+		return sz ? sz : "";
+	} };
 	
 	template <typename T>
 	struct FecthLua_Impl<const T&> { static T call( void* p, int32 n ) { return FecthLua_Impl<T>::call( p, n ); } };
@@ -160,6 +165,10 @@ public:
 	const char* FetchLuaString( int32 idx ) { return FetchLuaString( m_pLuaState, idx ); }
 	CReferenceObject* FetchReference( int32 idx ) { return FetchReference( m_pLuaState, idx ); }
 	void PopLua( int32 n ) { return PopLua( m_pLuaState, n ); }
+	int32 GetTop();
+
+	void NewTable();
+	void SetTableIndex( int32 idx, int32 i );
 
 	void Run( const char* str, int32 nRet = 0 );
 	void Load( const char* str );
@@ -193,6 +202,8 @@ public:
 
 	template <bool RetVoid, typename T>
 	struct SLuaCImpl { static void Init( CLuaMgr* pMgr, SLuaCFunction& C, T Func ) { ASSERT( false ); } };
+	template <typename T>
+	struct SLuaCImplRetUnWr { static void Init( CLuaMgr* pMgr, SLuaCFunction& C, T Func ) { ASSERT( false ); } };
 
 	template<typename T>
 	static constexpr bool is_ret_void = false;
@@ -253,8 +264,7 @@ public:
 	{ \
 		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, TRet( *Func )( TN_SEQ ) ) \
 		{ \
-			C.Func = [pMgr, Func] ( void* p ) { PushLua( p, ( *Func )( FETCHLUA_SEQ ) ); }; \
-			C.nRet = 1; \
+			C.Func = [pMgr, Func] ( void* p ) { PushLua( p, ( *Func )( FETCHLUA_SEQ ) ); return 1; }; \
 		} \
 	}; \
 	template <TYPENAME_SEQ> \
@@ -262,8 +272,15 @@ public:
 	{ \
 		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, void( *Func )( TN_SEQ ) ) \
 		{ \
-			C.Func = [pMgr, Func] ( void* p ) { ( *Func )( FETCHLUA_SEQ ); }; \
-			C.nRet = 0; \
+			C.Func = [pMgr, Func] ( void* p ) { ( *Func )( FETCHLUA_SEQ ); return 0; }; \
+		} \
+	}; \
+	template <TYPENAME_SEQ> \
+	struct SLuaCImplRetUnWr<int32(*)( TN_SEQ )> \
+	{ \
+		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, int32( *Func )( TN_SEQ ) ) \
+		{ \
+			C.Func = [pMgr, Func] ( void* p ) { return ( *Func )( FETCHLUA_SEQ ); }; \
 		} \
 	}; \
 	template <typename TRet, typename TThis TYPENAME_SEQ1> \
@@ -271,8 +288,7 @@ public:
 	{ \
 		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, TRet( TThis::*Func )( TN_SEQ ) ) \
 		{ \
-			C.Func = [pMgr, Func] ( void* p ) { PushLua( p, ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ) ); }; \
-			C.nRet = 1; \
+			C.Func = [pMgr, Func] ( void* p ) { PushLua( p, ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ) ); return 1; }; \
 		} \
 	}; \
 	template <typename TThis TYPENAME_SEQ1> \
@@ -280,8 +296,15 @@ public:
 	{ \
 		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, void( TThis::*Func )( TN_SEQ ) ) \
 		{ \
-			C.Func = [pMgr, Func] ( void* p ) { ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); }; \
-			C.nRet = 0; \
+			C.Func = [pMgr, Func] ( void* p ) { ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); return 0; }; \
+		} \
+	}; \
+	template <typename TThis TYPENAME_SEQ1> \
+	struct SLuaCImplRetUnWr<int32( TThis::* )( TN_SEQ )> \
+	{ \
+		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, int32( TThis::*Func )( TN_SEQ ) ) \
+		{ \
+			C.Func = [pMgr, Func] ( void* p ) { return ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); }; \
 		} \
 	}; \
 	template<typename TRet TYPENAME_SEQ1> \
@@ -314,6 +337,17 @@ public:
 			m_vecGlobalLuaCFuncs.push_back( m_vecLuaCFuncs.size() - 1 );
 		return m_vecLuaCFuncs.size() - 1;
 	}
+	template<typename T>
+	int32 BindLuaCFuncRetUnWr( const char* szName, T Func, bool bGlobal = false )
+	{
+		m_vecLuaCFuncs.resize( m_vecLuaCFuncs.size() + 1 );
+		SLuaCFunction& C = m_vecLuaCFuncs.back();
+		SLuaCImplRetUnWr<T>::Init( this, C, Func );
+		C.strFuncName = szName;
+		if( bGlobal )
+			m_vecGlobalLuaCFuncs.push_back( m_vecLuaCFuncs.size() - 1 );
+		return m_vecLuaCFuncs.size() - 1;
+	}
 	void InitMetaTable( CClassScriptDataLua* pScriptData );
 	DECLARE_GLOBAL_INST_REFERENCE( CLuaMgr )
 protected:
@@ -331,4 +365,10 @@ protected:
 
 #define REGISTER_LUA_CFUNCTION_GLOBAL( Name ) \
 	CLuaMgr::Inst().BindLuaCFunc( #Name, &Name, true ); \
+
+#define REGISTER_LUA_CFUNCTION_RETUNWR( Name ) \
+	pScript->vecLuaCFuncs.push_back( CLuaMgr::Inst().BindLuaCFuncRetUnWr( #Name, &__cur_class::Name ) ); \
+
+#define REGISTER_LUA_CFUNCTION_GLOBAL_RETUNWR( Name ) \
+	CLuaMgr::Inst().BindLuaCFuncRetUnWr( #Name, &Name, true ); \
 	

@@ -308,3 +308,348 @@ function Interaction_Bookshelf( ui, pawn )
   coroutine.yield()
  end
 end
+
+function Interaction_DoorLock( ui, pwdKey )
+ local ok = ui:FindChildEntity( "ok" )
+ local error = ui:FindChildEntity( "error" )
+ local p1 = ui:FindChildEntity( "1" )
+ ok:SetVisible( false )
+ error:SetVisible( false )
+ p1:SetVisible( false )
+ local keys = {}
+ local ofs = { { 0, -128 }, { -96, 160 }, { 0, 160 }, { 96, 160 }, { -96, 64 }, { 0, 64 }, { 96, 64 }, { -96, -32 }, { 0, -32 }, { 96, -32 } }
+ for i = 1, 10, 1 do
+  keys[i] = string.byte( tostring( i - 1 ) )
+ end
+
+ pwdKey = pwdKey or "$pwd"
+ local str = ""
+ local pwd = EvaluateKeyString( pwdKey )
+ while true do
+  coroutine.yield()
+  if IsKeyDown( VK_ESCAPE ) then return end
+  local n = 0
+  for i = 1, 10, 1 do
+   if IsKeyDown( keys[i] ) then
+    str = str .. tostring( i - 1 )
+    n = i
+    break
+   end
+  end
+  if n > 0 then
+   PlaySoundEffect( "btn" )
+   p1:SetVisible( true )
+   SetPosition( p1, ofs[n][1], ofs[n][2] )
+   Delay( 10 )
+   p1:SetVisible( false )
+  end
+  if #str >= 6 then
+   if str == pwd then
+    PlaySoundEffect( "btn" )
+    ok:SetVisible( true )
+    Delay( 60 )
+	return true
+   else
+    PlaySoundEffect( "btn_error" )
+    error:SetVisible( true )
+    Delay( 60 )
+    error:SetVisible( false )
+   end
+   str = ""
+  end
+ end
+
+ return false
+end
+
+function Init_Cinema_Seat()
+ local level = GetCurLevel()
+ for i = 1, 9, 1 do
+  if EvaluateKeyInt( "_CINEMA_SEAT_" .. tostring( i ) ) > 0 then
+   local x = EvaluateKeyInt( "_CINEMA_SEAT_X_" .. tostring( i ) )
+   local y = EvaluateKeyInt( "_CINEMA_SEAT_Y_" .. tostring( i ) )
+   local npc = level:GetPawnByName( tostring( i ) )
+   npc:PlayStateForceMove( "", x, y, npc:GetCurDir() )
+  end
+ end
+end
+
+function Interaction_Cinema_Seat( ui, pawn )
+ local npcs = {}
+ local npcData = { { 6, 4, 5 }, { 6, 2, 1 }, { 9, 3, 1 }, { 10, 0, 1 }, { 14, 2, 2 }, { 8, 8, 2 }, { 4, 6, 2 }, { 15, 5, 3 }, { 10, 2, 4 } }
+ local npcGrids = { { { 6, 4 }, { 5, 5 }, { 5, 1 }, { 10, 2 }, { 15, 1 }, { 14, 4 }, { 15, 5 } },
+  { { 6, 2 }, { 4, 2 }, { 5, 1 } },
+  { { 9, 3 }, { 10, 4 }, { 11, 3 }, { 10, 2 } },
+  { { 10, 0 }, { 12, 0 }, { 8, 0 } },
+  { { 14, 2 }, { 16, 2 }, { 4, 2 }, { 6, 2 } },
+  { { 8, 8 }, { 12, 8 }, { 14, 8 }, { 6, 8 } },
+  { { 4, 6 }, { 6, 6 }, { 10, 6 }, { 14, 6 }, { 16, 6 } },
+  { { 15, 5 }, { 16, 6 }, { 10, 0 }, { 14, 4 } },
+  { { 10, 2 }, { 9, 3 }, { 7, 5 }, { 6, 6 }, { 12, 0 } },
+ }
+
+ for i = 1, #npcData, 1 do
+  local data = npcData[i]
+  if EvaluateKeyInt( "_CINEMA_SEAT_" .. tostring( i ) ) > 0 then
+   data[1] = EvaluateKeyInt( "_CINEMA_SEAT_X_" .. tostring( i ) )
+   data[2] = EvaluateKeyInt( "_CINEMA_SEAT_Y_" .. tostring( i ) )
+  end
+  npcs[i] = ui:FindChildEntity( tostring( i ) )
+  SetPosition( npcs[i], data[1] * 24 - 264, data[2] * 32 - 160 )
+ end
+ local eftX = ui:FindChildEntity( "x" )
+ eftX:SetVisible( false )
+ local cursorX = ui:FindChildEntity( "cursor_x" )
+ local cursorY = ui:FindChildEntity( "cursor_y" )
+ local cursorPos = { 0, 0 }
+ local cursorRegion = { -264, -160, 264, 352 }
+
+ coroutine.yield()
+ while not IsKeyDown( VK_ESCAPE ) do
+  if IsInput( 0 ) then
+   cursorPos[1] = math.min( cursorRegion[3] - 4, cursorPos[1] + 4 )
+   SetPosition( cursorX, cursorPos[1], 0 )
+  end
+  if IsInput( 1 ) then
+   cursorPos[2] = math.min( cursorRegion[4] - 4, cursorPos[2] + 4 )
+   SetPosition( cursorY, 0, cursorPos[2] )
+  end
+  if IsInput( 2 ) then
+   cursorPos[1] = math.max( cursorRegion[1], cursorPos[1] - 4 )
+   SetPosition( cursorX, cursorPos[1], 0 )
+  end
+  if IsInput( 3 ) then
+   cursorPos[2] = math.max( cursorRegion[2], cursorPos[2] - 4 )
+   SetPosition( cursorY, 0, cursorPos[2] )
+  end
+
+  if IsInputDown( 4 ) then
+   local x = math.floor( ( cursorPos[1] + 2 - cursorRegion[1] ) / 24 )
+   local y = math.floor( ( cursorPos[2] + 2 - cursorRegion[2] ) / 32 )
+   if ( x + y ) % 2 == 1 then
+    x = x - 1
+   end
+   
+   eftX:SetVisible( true )
+   SetPosition( eftX, x * 24 - 264, y * 32 - 160 )
+   PlaySoundEffect( "electric1" )
+   Delay( 20 )
+
+   for i = 1, #npcData, 1 do
+    local data = npcData[i]
+	if data[1] == x and data[2] == y then
+	 local grids = npcGrids[i]
+	 local j0 = 0
+	 local n = #grids
+	 for j = 1, n, 1 do
+	  if grids[j][1] == x and grids[j][2] == y then
+	   j0 = j
+	   break
+	  end
+	 end
+
+	 for j = 1, n - 1, 1 do
+	  local j1 = ( j0 + j - 1 ) % n + 1
+	  local x1 = grids[j1][1]
+	  local y1 = grids[j1][2]
+	  local b = true
+	  for k = 1, #npcData, 1 do
+	   local data1 = npcData[k]
+	   if data1[1] == x1 and data1[2] == y1 or data[3] == 5 and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 + 1
+	    or data1[3] == 5 and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 - 1 then
+	    b = false
+		break
+	   end
+	  end
+	  if b then
+	   data[1] = x1
+	   data[2] = y1
+       SetPosition( npcs[i], x1 * 24 - 264, y1 * 32 - 160 )
+       SetKeyInt( "_CINEMA_SEAT_" .. tostring( i ), 1 )
+       SetKeyInt( "_CINEMA_SEAT_X_" .. tostring( i ), x1 )
+       SetKeyInt( "_CINEMA_SEAT_Y_" .. tostring( i ), y1 )
+	   break
+	  end
+	 end
+
+	 break
+	end
+   end
+
+   Delay( 20 )
+   eftX:SetVisible( false )
+  end
+  
+  coroutine.yield()
+ end
+end
+
+function Interaction_Library_Assist( ui )
+ local err = ui:FindChildEntity( "error" )
+ err:FindChildEntity( "text" ):Set( "NO MATCH RESULT", 2 )
+ local cursorX = ui:FindChildEntity( "cursor_x" )
+ local cursorY = ui:FindChildEntity( "cursor_y" )
+ local cursorPos = { 0, 0 }
+ local cursorRegion = { -264, -160, 264, 352 }
+
+ local options
+ local nSelectedOption = 0
+ local entryStack = {}
+ local function DlgEntry( tbl, nOpr )
+  if tbl then
+   for i = 1, #entryStack, 1 do
+    if entryStack[i] == tbl then
+	 for j = #entryStack, i + 1, -1 do
+	  table.remove( entryStack )
+	 end
+	 nOpr = -1
+	 break
+    end
+   end
+  end
+  
+  if nOpr ~= -1 then
+   if nOpr == 1 then
+    entryStack[#entryStack + 1] = tbl
+   elseif nOpr == 2 then
+    table.remove( entryStack, #entryStack )
+    tbl = entryStack[#entryStack]
+   else
+    entryStack[#entryStack] = tbl
+   end
+  end
+
+  local contents = tbl.contents
+  if type( contents ) == "function" then
+   contents = contents()
+  end
+
+  local texts = {}
+  options = {}
+  for i = 1, #contents, 1 do
+   local content = contents[i]
+   if type( content ) == "function" then
+    content = content()
+   end
+   if i == 1 then
+    texts[i] = content
+   else
+    texts[i] = content[1]
+    if type( texts[i] ) == "function" then
+     texts[i] = texts[i]()
+    end
+	options[i - 1] = content[2]
+   end
+  end
+
+  ui:Refresh( table.unpack( texts ) )
+  if #options >= 1 then
+   nSelectedOption = 1
+   ui:SelectOption( 1 )
+  end
+ end
+ DlgEntry( g_libassist_dialogues[1], 1 )
+ 
+ while not IsKeyDown( VK_ESCAPE ) do
+  coroutine.yield()
+  
+  if IsInput( 0 ) then
+   cursorPos[1] = math.min( cursorRegion[3] - 4, cursorPos[1] + 4 )
+   SetPosition( cursorX, cursorPos[1], 0 )
+  end
+  if IsInput( 1 ) then
+   cursorPos[2] = math.min( cursorRegion[4] - 4, cursorPos[2] + 4 )
+   SetPosition( cursorY, 0, cursorPos[2] )
+  end
+  if IsInput( 2 ) then
+   cursorPos[1] = math.max( cursorRegion[1], cursorPos[1] - 4 )
+   SetPosition( cursorX, cursorPos[1], 0 )
+  end
+  if IsInput( 3 ) then
+   cursorPos[2] = math.max( cursorRegion[2], cursorPos[2] - 4 )
+   SetPosition( cursorY, 0, cursorPos[2] )
+  end
+
+  local strKeyWord = ui:PickWord( cursorPos[1], cursorPos[2] );
+  local bContinue = false
+  if #strKeyWord and IsInputDown( 4 ) then
+   bContinue = true
+   local tbl = g_libassist_dialogues[string.lower( strKeyWord )]
+   if not tbl then
+    PlaySoundEffect( "btn_error" )
+    err:SetVisible( true )
+	Delay( 40 )
+	err:SetVisible( false )
+   else
+    DlgEntry( tbl, 1 )
+   end
+  end
+
+  if #options > 0 and not bContinue then
+   if IsKeyDown( 5 ) then
+    nSelectedOption = nSelectedOption + 1
+    if nSelectedOption > #options then
+     nSelectedOption = 1
+    end
+    ui:SelectOption( nSelectedOption )
+   end
+   if IsKeyDown( 7 ) then
+    nSelectedOption = nSelectedOption - 1
+    if nSelectedOption <= 0 then
+     nSelectedOption = #options
+    end
+    ui:SelectOption( nSelectedOption )
+   end
+
+   if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) or IsInputDown( 4 ) then
+    local nxt = options[nSelectedOption]
+    if type( nxt ) == "function" then
+     nxt = nxt()
+    end
+	if nxt == "~" then
+     DlgEntry( tbl, 2 )
+	else
+	 local nOpr = 0
+	 if string.sub( nxt, 1, 1 ) == ":" then
+	  nOpr = 1
+	  nxt = string.sub( nxt, 2 )
+	 end
+     local tbl = g_libassist_dialogues[string.lower( nxt )]
+     if not tbl then return end
+     DlgEntry( tbl, nOpr )
+	end
+   end
+  end
+ end
+
+end
+
+function Interaction_Vending_Machine_1( ui )
+ local n = EvaluateKeyInt( "$v_knifes" )
+ n = n + 1
+ SetKeyInt( "$v_knifes", n )
+ for i = 1, 3, 1 do
+  local p = ui:FindChildEntity( tostring( i ) )
+  if i < n then SetImgTexRect( p, { 0.59375, 0.4375 + ( i - 1 ) * 0.03125, 0.03125, 0.03125 } )
+  else p:SetVisible( false ) end
+ end
+
+ local p = ui:FindChildEntity( tostring( n ) )
+ Delay( 20 )
+ p:SetVisible( true )
+ for i = 1, 3, 1 do
+  SetImgTexRect( p, { 0.5 + 0.03125 * i, 0.4375 + ( n - 1 ) * 0.03125, 0.03125, 0.03125 } )
+  Delay( 20 )
+ end
+ Delay( 40 )
+ if n == 3 then
+  local c = ui:FindChildEntity( "c" )
+  for i = 1, 4, 1 do
+   SetImgTexRect( c, { 0.375 + 0.03125 * i, 0.5625, 0.03125, 0.0625 } )
+   Delay( 20 )
+  end
+  c:SetVisible( false )
+  SetLabelKey( "_COIN_4", 1 )
+  Delay( 40 )
+ end
+end

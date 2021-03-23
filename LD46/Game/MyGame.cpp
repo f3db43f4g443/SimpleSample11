@@ -223,6 +223,16 @@ bool CGame::IsInputHolding( int32 n )
 	return IsKeyHolding( tbl[n][0] ) || IsKeyHolding( tbl[n][1] );
 }
 
+bool CGame::IsAnyInputDown()
+{
+	for( int i = 0; i < 8; i++ )
+	{
+		if( IsInputDown( i ) )
+			return true;
+	}
+	return false;
+}
+
 void CGame::ClearInputEvent()
 {
 	m_keyDown.Clear();
@@ -281,7 +291,10 @@ void RegisterGameClasses()
 		REGISTER_BASE_CLASS( CPrefabBaseNode )
 		REGISTER_BASE_CLASS( CHitProxy )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetEntityName )
+		REGISTER_LUA_CFUNCTION( SetEntityName )
 		REGISTER_LUA_CFUNCTION( SetParentEntity )
+		REGISTER_LUA_CFUNCTION( IsVisible )
 		REGISTER_LUA_CFUNCTION( SetVisible )
 		REGISTER_LUA_CFUNCTION( FindChildEntity )
 	REGISTER_CLASS_END()

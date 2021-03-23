@@ -33,8 +33,9 @@ void CPawn::OnPreview()
 		else
 			nInitState = GetDefaultState();
 		ChangeState( nInitState, true );
-		Update0();
+		m_bTracerEffectDisabled = true;
 	}
+	Update0();
 	for( auto pChild = Get_TransformChild(); pChild; pChild = pChild->NextTransformChild() )
 	{
 		auto pMount = SafeCast<CPlayerMount>( pChild );
@@ -50,6 +51,8 @@ void CPawn::Init()
 {
 	if( m_pHpBar && m_hpBarOrigRect.width == 0 )
 		m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBar.GetPtr() )->GetElem().rect;
+	if( m_pAI )
+		m_pAI->PreInit();
 	InitState();
 	if( m_pUsage )
 		m_pUsage->Init();
@@ -64,7 +67,7 @@ void CPawn::Init()
 
 void CPawn::Update()
 {
-	bVisible = !m_bMountHide && !m_bForceHide;
+	bVisible = !m_bForceHide;
 	if( m_bCurStateDirty )
 	{
 		m_bCurStateDirty = false;
@@ -116,7 +119,13 @@ void CPawn::Update()
 								GetLevel()->PawnMoveBreak( this );
 						}
 						else if( evt.eType == ePawnStateEventType_Hit )
-							HandleHit( evt );
+						{
+							if( !HandleHit( evt ) )
+							{
+								bInterrupted = true;
+								break;
+							}
+						}
 						else if( evt.eType == ePawnStateEventType_Death )
 						{
 							GetLevel()->PawnDeath( this );
@@ -227,11 +236,11 @@ void CPawn::Update()
 				else
 					break;
 			}
-			Update0();
 		}
 	}
 	if( m_pAI )
 		m_pAI->OnUpdate();
+	Update0();
 	if( m_pUsage )
 		m_pUsage->Update();
 }
@@ -258,6 +267,8 @@ void CPawn::Update1()
 	if( bFinished && bCanFinish )
 		nNewState = GetDefaultState();
 	CheckStateTransits1( nNewState, ( bFinished || !curState.nTotalTicks ) && bCanFinish );
+	if( m_pAI )
+		m_pAI->OnUpdate1();
 	m_bDamaged = false;
 }
 
@@ -266,7 +277,19 @@ bool CPawn::IsActionPreview()
 	return GetLevel()->IsActionPreview();
 }
 
+void CPawn::OnRemovedFromLevel()
+{
+	if( m_pAI )
+		m_pAI->OnRemovedFromLevel();
+}
+
 void CPawn::OnLevelEnd()
+{
+	if( m_pAI )
+		m_pAI->OnLevelEnd();
+}
+
+void CPawn::OnLevelSave()
 {
 	if( m_pSpawnHelper )
 	{
@@ -282,6 +305,13 @@ void CPawn::OnLevelEnd()
 			data.nSpawnIndex = m_pSpawnHelper->m_nSpawnIndex;
 		}
 	}
+}
+
+bool CPawn::OnPlayerTryToLeave()
+{
+	if( m_pAI )
+		return m_pAI->OnPlayerTryToLeave();
+	return true;
 }
 
 void CPawn::UpdateAnimOnly()
@@ -317,12 +347,20 @@ int32 CPawn::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> damageOfs 
 		if( m_pAI->Damage( nDamage, nDamageType, damageOfs ) )
 			return nDamage;
 	}
-	if( m_nArmorType > nDamageType )
+	if( nDamageType < 0 )
+	{
+		if( m_nArmorType != nDamageType )
+			return 0;
+	}
+	else if( m_nArmorType > nDamageType )
 		return 0;
 	m_nHp = Max( 0, m_nHp - nDamage );
 	SetDamaged( nDamageType, damageOfs.x, damageOfs.y );
 	if( nDamage && m_nHp <= 0 )
-		OnKilled();
+	{
+		if( !m_pAI || m_pAI->PreKill() )
+			OnKilled();
+	}
 	return nDamage;
 }
 
@@ -405,12 +443,44 @@ int32 CPawn::GetStateIndexByName( const char* szName ) const
 	return -1;
 }
 
-bool CPawn::CanBeHit()
+int32 CPawn::Signal( int32 i )
+{
+	m_trigger.Trigger( 0, (void*)i );
+	if( m_pAI )
+		return m_pAI->Signal( i );
+	return 0;
+}
+
+bool CPawn::CheckHit( const TVector2<int32>& p, int8 nDamageType )
+{
+	if( !CanBeHit( nDamageType ) )
+		return false;
+	auto nHitWidth = m_nHitWidth ? m_nHitWidth : m_nWidth;
+	auto nHitHeight = m_nHitHeight ? m_nHitHeight : m_nHeight;
+	TRectangle<int32> r[4] = { { m_pos.x, m_pos.y, m_nWidth, m_nHeight },
+	{ m_moveTo.x, m_moveTo.y, m_nWidth, m_nHeight },
+	{ m_pos.x, m_pos.y, nHitWidth, nHitHeight },
+	{ m_moveTo.x, m_moveTo.y, nHitWidth, nHitHeight } };
+	if( m_nCurDir )
+	{
+		r[2].x = r[0].GetRight() - r[2].width;
+		r[3].x = r[1].GetRight() - r[3].width;
+	}
+	bool b[4];
+	for( int i = 0; i < 4; i++ )
+		b[i] = p.x >= r[i].x && p.y >= r[i].y && p.x < r[i].GetRight() && p.y < r[i].GetBottom();
+	return b[2] && b[3] || b[2] && !b[1] || b[3] && !b[0];
+}
+
+bool CPawn::CanBeHit( int8 nDamageType )
 {
 	if( m_bForceHit )
 		return true;
 	if( m_nHp <= 0 && !m_bIsEnemy )
-		return false;
+	{
+		if( nDamageType >= 0 || nDamageType != m_nArmorType )
+			return false;
+	}
 	return true;
 }
 
@@ -425,6 +495,8 @@ void CPawn::SetMounted( bool b, bool bMountHide, int8 nMoveType )
 		else
 			m_moveTo = m_pos;
 	}
+	if( m_pAI )
+		m_pAI->OnSetMounted( b );
 }
 
 int8 CPawn::GetDamageOfsDir()
@@ -450,33 +522,44 @@ int8 CPawn::GetDamageOfsDir1( int32 x, int32 y )
 	return n * 2 + nDir;
 }
 
-void CPawn::HandleHit( SPawnStateEvent& evt )
+bool CPawn::HandleHit( SPawnStateEvent& evt )
 {
 	auto hitOfs = OnHit( evt );
-	auto pHitDesc = GetHitSpawn( evt.nParams[3] );
-	if( pHitDesc )
+	if( evt.nParams[0] == 1 )
 	{
-		auto pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
-		if( pHitDesc->strInitState.length() )
-		{
-			auto nIndex = pHit->GetStateIndexByName( pHitDesc->strInitState );
-			if( nIndex >= 0 )
-				pHit->SetInitState( nIndex );
-		}
-		TVector2<int32> ofs( pHitDesc->nOfsX, pHitDesc->nOfsY );
-		ofs = ofs + hitOfs;
-		if( m_nCurDir )
-		{
-			ofs.x = m_nWidth - ( ofs.x + pHit->m_nWidth );
-		}
-		auto pPawnHit = SafeCast<CPawnHit>( pHit );
-		if( pPawnHit )
-			pPawnHit->SetHitOfs( ofs );
-		auto pos = m_moveTo + ofs;
-		auto dir = pHitDesc->nDir ? 1 - m_nCurDir : m_nCurDir;
-		if( GetLevel()->AddPawn( pHit, pos, dir, this ) )
-			pHit->Signal( evt.nParams[2] );
+		if( !GetLevel()->SpawnPreset1( evt.strParam, m_moveTo.x, m_moveTo.y, m_nCurDir ) )
+			return false;
 	}
+	else
+	{
+		auto pHitDesc = GetHitSpawn( evt.nParams[3] );
+		if( pHitDesc )
+		{
+			CReference<CPawn> pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
+			if( pHitDesc->strInitState.length() )
+			{
+				auto nIndex = pHit->GetStateIndexByName( pHitDesc->strInitState );
+				if( nIndex >= 0 )
+					pHit->SetInitState( nIndex );
+			}
+			TVector2<int32> ofs( pHitDesc->nOfsX, pHitDesc->nOfsY );
+			ofs = ofs + hitOfs;
+			if( m_nCurDir )
+			{
+				ofs.x = m_nWidth - ( ofs.x + pHit->m_nWidth );
+			}
+			auto pPawnHit = SafeCast<CPawnHit>( pHit.GetPtr() );
+			if( pPawnHit )
+				pPawnHit->SetHitOfs( ofs );
+			auto pos = m_moveTo + ofs;
+			auto dir = pHitDesc->nDir ? 1 - m_nCurDir : m_nCurDir;
+			if( GetLevel()->AddPawn( pHit, pos, dir, this ) )
+				pHit->Signal( evt.nParams[2] );
+			else
+				return false;
+		}
+	}
+	return true;
 }
 
 TVector2<int32> CPawn::HandleStealthDetect()
@@ -515,18 +598,20 @@ void CPawn::ResetState()
 	ChangeState( GetCurState(), 0, false );
 }
 
-bool CPawn::PlayState( const char* sz )
+bool CPawn::PlayState( const char* sz, int8 nType )
 {
 	if( TransitTo( sz, -1, -1 ) )
 	{
 		if( !GetLevel()->IsBegin() )
 			Update0();
+		else if( nType )
+			Update();
 		return true;
 	}
 	return false;
 }
 
-bool CPawn::PlayStateTurnBack( const char* sz )
+bool CPawn::PlayStateTurnBack( const char* sz, int8 nType )
 {
 	auto nDir0 = m_nCurDir;
 	m_nCurDir = !m_nCurDir;
@@ -537,10 +622,12 @@ bool CPawn::PlayStateTurnBack( const char* sz )
 	}
 	if( !GetLevel()->IsBegin() )
 		Update0();
+	else if( nType )
+		Update();
 	return true;
 }
 
-bool CPawn::PlayStateSetDir( const char* sz, int8 nDir )
+bool CPawn::PlayStateSetDir( const char* sz, int8 nDir, int8 nType )
 {
 	auto nDir0 = m_nCurDir;
 	m_nCurDir = nDir;
@@ -551,10 +638,12 @@ bool CPawn::PlayStateSetDir( const char* sz, int8 nDir )
 	}
 	if( !GetLevel()->IsBegin() )
 		Update0();
+	else if( nType )
+		Update();
 	return true;
 }
 
-bool CPawn::PlayStateForceMove( const char* sz, int32 x, int32 y, int8 nDir )
+bool CPawn::PlayStateForceMove( const char* sz, int32 x, int32 y, int8 nDir, int8 nType )
 {
 	GetLevel()->PawnMoveBreak( this );
 	if( !GetLevel()->PawnMoveTo( this, TVector2<int32>( x, y ) - GetPos() ) )
@@ -562,9 +651,11 @@ bool CPawn::PlayStateForceMove( const char* sz, int32 x, int32 y, int8 nDir )
 	GetLevel()->PawnMoveEnd( this );
 	m_nCurDir = nDir;
 	if( !TransitTo( sz, -1, -1 ) )
-		return false;
+		ChangeState( GetCurState(), m_nCurStateSource, false );
 	if( !GetLevel()->IsBegin() )
 		Update0();
+	else if( nType )
+		Update();
 	return true;
 }
 
@@ -668,6 +759,21 @@ bool CPawn::ChangeState( int32 nNewState, bool bInit )
 	m_nCurState = nNewState;
 	ChangeState( m_arrSubStates[nNewState], 0, bInit );
 	return true;
+}
+
+void CPawn::AutoCreateSpawnHelper()
+{
+	if( m_nLevelDataType )
+	{
+		auto pSpawnHelper = new CLevelSpawnHelper( -1, "", GetStateIndexByName( "death" ), m_nLevelDataType );
+		pSpawnHelper->SetName( GetName() );
+		m_pSpawnHelper = pSpawnHelper;
+	}
+}
+
+void CPawn::SetTracerEffectDisabled( bool bDisabled )
+{
+	m_bTracerEffectDisabled = bDisabled;
 }
 
 void CPawn::InitState()
@@ -812,31 +918,49 @@ void CPawn::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 	m_curStateOrigTexRect = m_origTexRect;
 	m_nCurStateCheckAction = -1;
 	m_bCurStateDirty = true;
+	if( m_pAI )
+		m_pAI->OnChangeState();
 	m_trigger.Trigger( 2, NULL );
 }
 
 void CPawn::Update0()
 {
-	auto& curState = GetCurState();
-	CRectangle texRect( m_curStateOrigTexRect.x + curState.nImgTexBeginX * m_curStateOrigTexRect.width, m_curStateOrigTexRect.y + curState.nImgTexBeginY * m_curStateOrigTexRect.height,
-		m_curStateOrigTexRect.width * ( 1 + curState.nImgExtLeft + curState.nImgExtRight ), m_curStateOrigTexRect.height * ( 1 + curState.nImgExtTop + curState.nImgExtBottom ) );
-	int32 nFrame = Min( curState.nImgTexCount - 1, m_nCurStateTick / curState.nTicksPerFrame );
-	texRect = texRect.Offset( CVector2( texRect.width * ( nFrame % curState.nImgTexCols ), texRect.height * ( nFrame / curState.nImgTexCols ) ) );
-	if( m_nCurDir )
-		texRect = CRectangle( 2 - texRect.GetRight(), texRect.y, texRect.width, texRect.height );
-	auto pTracerEffect = SafeCast<CTracerEffect>( GetRenderObject() );
-	if( pTracerEffect )
+	m_nCurStateRenderOrder = ( m_pos.y + m_moveTo.y ) * 64 - m_nRenderOrder;
+	if( GetRenderObject() )
+		GetRenderObject()->bVisible = true;
+	if( m_bMountHide )
 	{
-		pTracerEffect->SetRect( m_curStateRect );
-		pTracerEffect->SetTexRect( texRect );
+		if( GetRenderObject() )
+			GetRenderObject()->bVisible = false;
+	}
+	else if( m_arrSubStates.Size() )
+	{
+		auto& curState = GetCurState();
+		CRectangle texRect( m_curStateOrigTexRect.x + curState.nImgTexBeginX * m_curStateOrigTexRect.width, m_curStateOrigTexRect.y + curState.nImgTexBeginY * m_curStateOrigTexRect.height,
+			m_curStateOrigTexRect.width * ( 1 + curState.nImgExtLeft + curState.nImgExtRight ), m_curStateOrigTexRect.height * ( 1 + curState.nImgExtTop + curState.nImgExtBottom ) );
+		int32 nFrame = Min( curState.nImgTexCount - 1, m_nCurStateTick / curState.nTicksPerFrame );
+		texRect = texRect.Offset( CVector2( texRect.width * ( nFrame % curState.nImgTexCols ), texRect.height * ( nFrame / curState.nImgTexCols ) ) );
+		if( m_nCurDir )
+			texRect = CRectangle( 2 - texRect.GetRight(), texRect.y, texRect.width, texRect.height );
+		auto pTracerEffect = SafeCast<CTracerEffect>( GetRenderObject() );
+		if( pTracerEffect )
+			pTracerEffect->SetDisabled( m_bTracerEffectDisabled );
+		auto pEft = SafeCastToInterface<IImageRect>( GetRenderObject() );
+		if( pEft )
+		{
+			pEft->SetRect( m_curStateRect );
+			pEft->SetTexRect( texRect );
+		}
+		else
+		{
+			auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+			pImage->SetRect( m_curStateRect );
+			pImage->SetBoundDirty();
+			pImage->SetTexRect( texRect );
+		}
 	}
 	else
-	{
-		auto pImage = static_cast<CImage2D*>( GetRenderObject() );
-		pImage->SetRect( m_curStateRect );
-		pImage->SetBoundDirty();
-		pImage->SetTexRect( texRect );
-	}
+		m_curStateBeginPos = CVector2( m_pos.x, m_pos.y ) * LEVEL_GRID_SIZE;
 	if( GetLevel() )
 	{
 		SetPosition( m_curStateBeginPos );
@@ -1021,6 +1145,8 @@ void CPlayerEquipment::OnPreview()
 		if( m_pEft[i] )
 			m_pEft[i]->RemoveThis();
 	}
+	if( m_pSpecialRenderObject )
+		m_pSpecialRenderObject->RemoveThis();
 }
 
 void CPlayerEquipment::Init()
@@ -1029,11 +1155,20 @@ void CPlayerEquipment::Init()
 		return;
 	m_pOrigRenderObject = GetRenderObject();
 	SetRenderObject( NULL );
+	if( m_pSpecialRenderObject )
+	{
+		if( SafeCast<CEntity>( m_pSpecialRenderObject.GetPtr() ) )
+			SafeCast<CEntity>( m_pSpecialRenderObject.GetPtr() )->SetParentEntity( NULL );
+		else
+			m_pSpecialRenderObject->RemoveThis();
+	}
 	for( int i = 0; i < 2; i++ )
 	{
 		if( m_pEft[i] )
 			m_pEft[i]->RemoveThis();
 	}
+	if( m_pSpecialRenderObject )
+		m_pSpecialRenderObject->RemoveThis();
 }
 
 void CPlayerEquipment::Drop( class CPlayer* pPlayer, const TVector2<int32>& pos, int8 nDir, int32 nPickupState )
@@ -1048,6 +1183,11 @@ void CPlayerEquipment::Drop( class CPlayer* pPlayer, const TVector2<int32>& pos,
 void CPlayerEquipment::PrePickedUp( CPawn* pPickUp )
 {
 	m_pPickUp = pPickUp;
+}
+
+CPickUp* CPlayerEquipment::GetPickUp()
+{
+	return SafeCast<CPickUp>( m_pPickUp.GetPtr() );
 }
 
 void CPlayerEquipment::LoadData( IBufReader& buf )
@@ -1069,7 +1209,8 @@ void CPlayerMount::OnPreview()
 void CPlayerMount::Init()
 {
 	m_levelPos = TVector2<int32>( -1, -1 );
-	m_pEquipment->Init();
+	if( m_pEquipment )
+		m_pEquipment->Init();
 }
 
 bool CPlayerMount::IsEnabled()
@@ -1077,7 +1218,9 @@ bool CPlayerMount::IsEnabled()
 	if( m_bDisabled )
 		return false;
 	auto pPawn = GetPawn();
-	if( pPawn->GetCurStateIndex() != m_nNeedStateIndex )
+	if( pPawn->IsLocked() )
+		return false;
+	if( pPawn->GetCurStateIndex() != m_nNeedStateIndex || pPawn->GetCurStateSource() != 0 )
 		return false;
 	if( m_bNeedLevelComplete && !pPawn->GetLevel()->IsComplete() )
 		return false;
@@ -1099,7 +1242,20 @@ bool CPlayerMount::CheckMount( CPlayer* pPlayer )
 
 void CPlayerMount::Mount( CPlayer* pPlayer )
 {
-	pPlayer->Mount( GetPawn(), m_pEquipment, m_strEntryState, m_bAnimPlayerOriented, !m_bShowPawnOnMount );
+	pPlayer->Mount( GetPawn(), GetEquipment(), m_strEntryState, m_bAnimPlayerOriented, !m_bShowPawnOnMount, m_bUseMountRenderOrder );
+}
+
+CPlayerEquipment* CPlayerMount::GetEquipment()
+{
+	CPlayerMount* pMount = this;
+	for( ;; )
+	{
+		auto pMount1 = SafeCast<CPlayerMount>( pMount->GetParentEntity() );
+		if( !pMount1 )
+			break;
+		pMount = pMount1;
+	}
+	return pMount->m_pEquipment;
 }
 
 CPawn* CPlayerMount::GetPawn()
@@ -1138,6 +1294,13 @@ void CPlayer::OnRemovedFromStage()
 	m_bForceHide = false;
 }
 
+void CPlayer::OnPreview()
+{
+	CPawn::OnPreview();
+	if( m_pDefaultEquipment )
+		m_pDefaultEquipment->RemoveThis();
+}
+
 void CPlayer::Reset( int8 nFlag )
 {
 	for( int i = 0; i < ePlayerEquipment_Count; i++ )
@@ -1173,6 +1336,7 @@ void CPlayer::LoadData( IBufReader& buf )
 			continue;
 		auto pPickUp = SafeCast<CPickUp>( pPrefab->GetRoot()->CreateInstance() );
 		pPickUp->strCreatedFrom = strName.c_str();
+		pPickUp->AutoCreateSpawnHelper();
 		pPickUp->PickUp( this );
 		ASSERT( m_pCurEquipment[i] && m_pCurEquipment[i] != m_pDefaultEquipment.GetPtr() );
 		m_pCurEquipment[i]->LoadData( tempBuf );
@@ -1204,14 +1368,16 @@ void CPlayer::SaveData( CBufFile& buf )
 
 void CPlayer::Init()
 {
-	m_pDefaultEquipment->SetParentEntity( NULL );
+	if( m_pDefaultEquipment )
+		m_pDefaultEquipment->SetParentEntity( NULL );
 	m_pCurUsingPawn = NULL;
 	m_pCurMount = NULL;
 	m_pCurMountingPawn = NULL;
 	m_pControllingPawn = NULL;
 	m_bForceUnMount = false;
 	m_nStealthValue = m_nMaxStealthValue;
-	ChangeAI( NULL );
+	if( m_bIsRealPlayer )
+		ChangeAI( NULL );
 	m_vecInputQueues.resize( 0 );
 	m_nActionEftFrame = 0;
 	/*m_nMoveXInput = 0;
@@ -1219,16 +1385,23 @@ void CPlayer::Init()
 	m_nAttackInput = 0;*/
 	if( !m_pOrigRenderObject )
 		m_pOrigRenderObject = GetRenderObject();
-	for( int i = 0; i < 2; i++ )
+	if( m_bIsRealPlayer )
 	{
-		m_pEft[i]->bVisible = false;
-		if( !m_pCurEft[i] )
-			m_pCurEft[i] = m_pEft[i];
+		for( int i = 0; i < 2; i++ )
+		{
+			m_pEft[i]->bVisible = false;
+			if( !m_pCurEft[i] )
+				m_pCurEft[i] = m_pEft[i];
+		}
 	}
 	CPawn::Init();
-	m_pDefaultEquipment->Init();
-	if( !m_pCurEquipment[0] && m_bEnableDefaultEquipment )
-		Equip( m_pDefaultEquipment );
+	if( m_pDefaultEquipment )
+	{
+		m_pDefaultEquipment->Init();
+		if( !m_pCurEquipment[0] && ( !m_bIsRealPlayer || m_bEnableDefaultEquipment ) )
+			Equip( m_pDefaultEquipment );
+	}
+	m_bActionStop = true;
 }
 
 void CPlayer::Update()
@@ -1239,68 +1412,90 @@ void CPlayer::Update()
 		memset( m_nCurStateSpecialState, 0, sizeof( m_nCurStateSpecialState ) );
 	}
 	uint8 nKeyUp = 0;
-	if( !GetLevel()->IsActionPreview() )
+	if( m_bIsRealPlayer )
 	{
-		if( !GetLevel()->IsScenario() )
+		if( !GetLevel()->IsActionPreview() )
 		{
-			bool bInput = false;
-			bool bDown = false;
-			if( CGame::Inst().IsInputUp( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
-			if( CGame::Inst().IsInputUp( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
-			if( CGame::Inst().IsInputUp( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
-			if( CGame::Inst().IsInputUp( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
-			if( CGame::Inst().IsInputDown( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputUp( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
-			if( CGame::Inst().IsInputUp( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
-			if( CGame::Inst().IsInputUp( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }
-			if( CGame::Inst().IsInputUp( eInput_D ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Up ); bInput = true; nKeyUp |= 128; }
-			if( CGame::Inst().IsInputDown( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_D ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
-			if( bDown && m_bActionStop )
-				m_nTickInputOnActionStop = 10;
-			if( bInput )
-				GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
-		}
-		if( m_nTickInputOnActionStop )
-		{
-			m_nTickInputOnActionStop--;
-			if( !m_nTickInputOnActionStop )
+			if( !GetLevel()->IsScenario() )
 			{
-				m_bActionStop = false;
-				CheckAction( m_nCurActionGroup );
+				bool bInput = false;
+				bool bDown = false;
+				if( CGame::Inst().IsInputUp( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
+				if( CGame::Inst().IsInputUp( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
+				if( CGame::Inst().IsInputUp( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
+				if( CGame::Inst().IsInputUp( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
+				if( CGame::Inst().IsInputDown( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputUp( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
+				if( CGame::Inst().IsInputUp( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
+				if( CGame::Inst().IsInputUp( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }
+				if( CGame::Inst().IsInputUp( eInput_D ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Up ); bInput = true; nKeyUp |= 128; }
+				if( CGame::Inst().IsInputDown( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputDown( eInput_D ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
+				if( bDown && m_bActionStop && !m_nTickInputOnActionStop )
+					m_nTickInputOnActionStop = 10;
+				if( bInput )
+					GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
+			}
+			if( m_nTickInputOnActionStop )
+			{
+				m_nTickInputOnActionStop--;
+				if( !m_nTickInputOnActionStop )
+				{
+					m_bActionStop = false;
+					CheckAction( m_nCurActionGroup );
+				}
 			}
 		}
 	}
 	if( m_bForceUnMount )
+	{
 		UnMount();
+		PlayState( "stand" );
+	}
 	if( m_pControllingPawn && ( m_pControllingPawn->IsKilled() || !m_pControllingPawn->GetLevel() ) )
 		EndControl();
 	CPawn::Update();
 
-	if( !!( nKeyUp & m_nChargeKeyDown ) )
-		m_nChargeKeyDown = 0;
-	if( m_nActionEftFrame )
+	if( m_bIsRealPlayer )
 	{
-		m_nActionEftFrame--;
-		m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = true;
-		auto pImg = static_cast<CImage2D*>( GetRenderObject() );
-		for( int i = 0; i < 2; i++ )
+		if( !!( nKeyUp & m_nChargeKeyDown ) )
+			m_nChargeKeyDown = 0;
+		if( m_nActionEftFrame )
 		{
-			auto pImg1 = static_cast<CImage2D*>( m_pCurEft[i].GetPtr() );
-			pImg1->SetRect( pImg->GetElem().rect );
-			pImg1->SetTexRect( pImg->GetElem().texRect );
-			pImg1->SetBoundDirty();
-			pImg1->SetPosition( m_actionEftOfs[i * ACTION_EFT_FRAMES + m_nActionEftFrame] );
-			pImg1->GetParam()[0] = m_actionEftParam[i * ACTION_EFT_FRAMES + m_nActionEftFrame];
+			m_nActionEftFrame--;
+			m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = true;
+			CRectangle rect, texRect;
+			auto pEft = SafeCastToInterface<IImageRect>( GetRenderObject() );
+			if( pEft )
+			{
+				rect = pEft->GetRect();
+				texRect = pEft->GetTexRect();
+			}
+			else
+			{
+				auto pImg = static_cast<CImage2D*>( GetRenderObject() );
+
+				rect = pImg->GetElem().rect;
+				texRect = pImg->GetElem().texRect;
+			}
+			for( int i = 0; i < 2; i++ )
+			{
+				auto pImg1 = static_cast<CImage2D*>( m_pCurEft[i].GetPtr() );
+				pImg1->SetRect( rect );
+				pImg1->SetTexRect( texRect );
+				pImg1->SetBoundDirty();
+				pImg1->SetPosition( m_actionEftOfs[i * ACTION_EFT_FRAMES + m_nActionEftFrame] );
+				pImg1->GetParam()[0] = m_actionEftParam[i * ACTION_EFT_FRAMES + m_nActionEftFrame];
+			}
 		}
+		else
+			m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = false;
 	}
-	else
-		m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = false;
 }
 
 void CPlayer::UpdateInputOnly()
@@ -1328,7 +1523,7 @@ void CPlayer::UpdateInputOnly()
 			if( CGame::Inst().IsInputDown( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Down ); bInput = true; bDown = true; }
 			if( CGame::Inst().IsInputDown( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Down ); bInput = true; bDown = true; }
 			if( CGame::Inst().IsInputDown( eInput_D ) ) { m_vecInputQueues.push_back( ePlayerInput_D_Down ); bInput = true; bDown = true; }
-			if( bDown && m_bActionStop )
+			if( bDown && m_bActionStop && !m_nTickInputOnActionStop )
 				m_nTickInputOnActionStop = 10;
 			if( bInput )
 				GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
@@ -1374,13 +1569,19 @@ CPlayer* CPlayer::InitActionPreviewLevel( CMyLevel* pLevel, const TVector2<int32
 
 int32 CPlayer::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> damageOfs )
 {
-	if( !IsActionPreview() )
+	if( m_bIsRealPlayer && !IsActionPreview() )
 		GetStage()->GetMasterLevel()->OnPlayerDamaged();
 	return CPawn::Damage( nDamage, nDamageType, damageOfs );
 }
 
 int8 CPlayer::TryPickUp( int32 nParam )
 {
+	if( !m_bIsRealPlayer )
+	{
+		if( m_pAI )
+			m_pAI->TryPickUp();
+		return 1;
+	}
 	if( m_pCurMountingPawn )
 	{
 		if( !IsActionPreview() )
@@ -1405,7 +1606,8 @@ int8 CPlayer::TryPickUp( int32 nParam )
 			if( pMount->GetCostEquipment().length() )
 			{
 				ASSERT( m_pCurEquipment[ePlayerEquipment_Large]->GetEquipmentName() == pMount->GetCostEquipment() );
-				m_pCurEquipment[ePlayerEquipment_Large] = NULL;
+				if( pMount->GetCostEquipmentType() == 0 )
+					m_pCurEquipment[ePlayerEquipment_Large] = NULL;
 			}
 			pMount->Mount( this );
 			return -1;
@@ -1450,7 +1652,7 @@ bool CPlayer::TryDropIndex( int32 nIndex, int32 nPickupState )
 	if( m_pCurEquipment[nIndex] )
 	{
 		UnEquip( m_pCurEquipment[nIndex], nPickupState );
-		if( nIndex == ePlayerEquipment_Melee && m_bEnableDefaultEquipment )
+		if( nIndex == ePlayerEquipment_Melee && ( !m_bIsRealPlayer || m_bEnableDefaultEquipment ) )
 			m_pCurEquipment[ePlayerEquipment_Melee] = m_pDefaultEquipment;
 		return true;
 	}
@@ -1479,12 +1681,13 @@ void CPlayer::UnEquip( CPlayerEquipment* pEquipment, int32 nPickupState )
 	m_pCurEquipment[pEquipment->m_nEquipType] = NULL;
 }
 
-void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide )
+void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide, bool bUseMountRenderOrder )
 {
 	m_pCurMountingPawn = pPawn;
 	m_pCurMountingPawn->SetMounted( true, bMountHide, 0 );
 	m_pCurMount = pMount;
 	m_bMountAnimPlayerOriented = bAnimPlayerOriented;
+	m_bUseMountRenderOrder = bUseMountRenderOrder;
 	m_nDirBeforeMounting = m_nCurDir;
 	if( !bAnimPlayerOriented )
 		m_nCurDir = pPawn->GetCurDir();
@@ -1525,7 +1728,8 @@ bool CPlayer::IsReadyForMount( CPlayerMount* pMount )
 	auto sz = pMount->GetCostEquipment();
 	if( sz.length() )
 	{
-		if( !m_pCurEquipment[ePlayerEquipment_Large] || sz != m_pCurEquipment[ePlayerEquipment_Large]->GetEquipmentName() )
+		if( !m_pCurEquipment[ePlayerEquipment_Large] || sz != m_pCurEquipment[ePlayerEquipment_Large]->GetEquipmentName()
+			|| m_pCurEquipment[ePlayerEquipment_Large]->GetAmmo() < pMount->GetNeedEquipmentCharge() )
 			return false;
 	}
 	else
@@ -1610,6 +1814,16 @@ void CPlayer::EnableDefaultEquipment()
 		Equip( m_pDefaultEquipment );
 }
 
+bool CPlayer::HasEquipment( int8 n, const char* szName )
+{
+	return m_pCurEquipment[n] && m_pCurEquipment[n]->GetEquipmentName() == szName;
+}
+
+void CPlayer::RemoveEquipment( int8 n )
+{
+	m_pCurEquipment[n] = NULL;
+}
+
 void CPlayer::RestoreAmmo()
 {
 	auto pEquipment = GetEquipment( ePlayerEquipment_Ranged );
@@ -1668,6 +1882,11 @@ bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 							else
 								ActionPreviewAddInputItem( m_nCurStateSource, &item );
 						}
+						else if( !m_bIsRealPlayer )
+						{
+							if( CheckAction( m_nCurActionGroup ) )
+								return true;
+						}
 						else if( CheckInputTableItem( item ) )
 						{
 							int32 nMatchLen = item.strInput.length();
@@ -1722,8 +1941,13 @@ void CPlayer::UpdateStealthValue( int32 n )
 
 void CPlayer::SetInputSequence( const char* szInput )
 {
+	SetInputSequence( szInput, m_parsedInputSequence );
+}
+
+void CPlayer::SetInputSequence( const char* szInput, vector<int8>& result )
+{
 	auto l = strlen( szInput );
-	m_parsedInputSequence.resize( l );
+	result.resize( l );
 	for( int i = 0; i < l; i++ )
 	{
 		auto chInput = szInput[i];
@@ -1747,7 +1971,7 @@ void CPlayer::SetInputSequence( const char* szInput )
 			nInput = -3;
 		else if( chInput == 'D' )
 			nInput = -4;
-		m_parsedInputSequence[i] = nInput;
+		result[i] = nInput;
 	}
 }
 
@@ -1855,6 +2079,11 @@ bool CPlayer::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 							else
 								ActionPreviewAddInputItem( m_nCurStateSource, &item );
 						}
+						else if( !m_bIsRealPlayer )
+						{
+							if( CheckAction( m_nCurActionGroup ) )
+								return true;
+						}
 						else if( CheckInputTableItem( item ) )
 						{
 							int32 nMatchLen = item.strInput.length();
@@ -1912,9 +2141,10 @@ forcebreak:
 		}
 		else
 		{
-			for( int i = 0; i < ePlayerEquipment_Count; i++ )
+			for( int i0 = 0; i0 < ePlayerEquipment_Count; i0++ )
 			{
-				if( m_nCurStateSource && i != m_nCurStateSource - 1 )
+				auto i = i0 == 0 ? ePlayerEquipment_Large : i0 - 1;
+				if( m_nCurStateSource && m_nCurStateSource != ePlayerStateSource_Mount && i != m_nCurStateSource - 1 )
 					continue;
 				if( m_pCurEquipment[i] )
 				{
@@ -2000,15 +2230,25 @@ void CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 	{
 		origRect = m_pCurStateSource->m_origRect;
 		origTexRect = m_pCurStateSource->m_origTexRect;
-		m_pNewRenderObject = m_pCurStateSource->m_pOrigRenderObject;
-		for( int i = 0; i < 2; i++ )
-			m_pNewEft[i] = m_pCurStateSource->m_pEft[i];
+		auto pTracerEffect = SafeCast<CTracerEffect>( m_pOrigRenderObject.GetPtr() );
+		if( pTracerEffect && m_pCurStateSource->m_pSpecialRenderObject )
+			m_pNewRenderObject = m_pCurStateSource->m_pSpecialRenderObject;
+		else
+			m_pNewRenderObject = m_pCurStateSource->m_pOrigRenderObject;
+		if( m_bIsRealPlayer )
+		{
+			for( int i = 0; i < 2; i++ )
+				m_pNewEft[i] = m_pCurStateSource->m_pEft[i];
+		}
 	}
 	else
 	{
 		m_pNewRenderObject = m_pOrigRenderObject;
-		for( int i = 0; i < 2; i++ )
-			m_pNewEft[i] = m_pEft[i];
+		if( m_bIsRealPlayer )
+		{
+			for( int i = 0; i < 2; i++ )
+				m_pNewEft[i] = m_pEft[i];
+		}
 	}
 	m_nCurStateSource = nStateSource;
 
@@ -2026,6 +2266,8 @@ void CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 	m_bCurStateDirty = true;
 	if( GetLevel() )
 		GetLevel()->OnPlayerChangeState( state, nStateSource, m_nCurDir );
+	if( m_pAI )
+		m_pAI->OnChangeState();
 	m_trigger.Trigger( 2, NULL );
 }
 
@@ -2037,21 +2279,26 @@ void CPlayer::Update0()
 			SetRenderObject( m_pNewRenderObject );
 		m_pNewRenderObject = NULL;
 	}
-	for( int i = 0; i < 2; i++ )
+	if( m_bIsRealPlayer )
 	{
-		if( m_pNewEft[i] )
+		for( int i = 0; i < 2; i++ )
 		{
-			if( m_pNewEft[i] != m_pCurEft[i].GetPtr() )
+			if( m_pNewEft[i] )
 			{
-				AddChildBefore( m_pNewEft[i], m_pCurEft[i] );
-				m_pCurEft[i]->RemoveThis();
-				m_pNewEft[i]->bVisible = false;
-				m_pCurEft[i] = m_pNewEft[i];
+				if( m_pNewEft[i] != m_pCurEft[i].GetPtr() )
+				{
+					AddChildBefore( m_pNewEft[i], m_pCurEft[i] );
+					m_pCurEft[i]->RemoveThis();
+					m_pNewEft[i]->bVisible = false;
+					m_pCurEft[i] = m_pNewEft[i];
+				}
+				m_pNewEft[i] = NULL;
 			}
-			m_pNewEft[i] = NULL;
 		}
 	}
 	CPawn::Update0();
+	if( m_pCurMountingPawn && m_nCurStateSource == ePlayerStateSource_Mount && m_bUseMountRenderOrder )
+		m_nCurStateRenderOrder = ( m_pCurMountingPawn->GetPosY() + m_pCurMountingPawn->GetToY() ) * 64 - m_pCurMountingPawn->GetRenderOrder();
 }
 
 bool CPlayer::IsCurStateInterrupted()
@@ -2063,6 +2310,23 @@ bool CPlayer::IsCurStateInterrupted()
 
 bool CPlayer::CheckAction( int32 nGroup )
 {
+	if( !m_bIsRealPlayer )
+	{
+		if( m_bMounted )
+			return false;
+		if( m_pAI )
+		{
+			auto nDir = m_nCurDir;
+			CString strState = "";
+			if( m_pAI->CheckAction1( strState, m_nCurDir ) )
+			{
+				if( TransitTo( strState, -1, -1 ) )
+					return true;
+				m_nCurDir = nDir;
+			}
+		}
+		return false;
+	}
 	m_nCurActionGroup = nGroup;
 	if( !m_bActionStop )
 	{
@@ -2163,7 +2427,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				if( pMount->GetCostEquipment().length() )
 				{
 					ASSERT( m_pCurEquipment[ePlayerEquipment_Large]->GetEquipmentName() == pMount->GetCostEquipment() );
-					m_pCurEquipment[ePlayerEquipment_Large] = NULL;
+					if( pMount->GetCostEquipmentType() == 0 )
+						m_pCurEquipment[ePlayerEquipment_Large] = NULL;
 				}
 				pMount->Mount( this );
 				return true;
@@ -2402,7 +2667,7 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 
 void CPlayer::FlushInput( int32 nMatchLen, int8 nChargeKey, int8 nType )
 {
-	if( IsActionPreview() )
+	if( !m_bIsRealPlayer || IsActionPreview() )
 		return;
 	m_vecInputQueues.resize( 0 );
 	if( nType == 2 )
@@ -2410,7 +2675,7 @@ void CPlayer::FlushInput( int32 nMatchLen, int8 nChargeKey, int8 nType )
 	else if( !m_pControllingPawn )
 		m_nActionEftFrame = ACTION_EFT_FRAMES;
 	GetStage()->GetMasterLevel()->GetMainUI()->OnPlayerAction( m_parsedInputSequence, nMatchLen, nChargeKey, nType );
-	GetLevel()->OnPlayerAction( nMatchLen, nType );
+	GetLevel()->OnPlayerAction( m_parsedInputSequence, nMatchLen, nType );
 }
 
 bool CPlayer::StateCost( int8 nType, int32 nCount )
@@ -2575,9 +2840,9 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 		if( !pGrid )
 			continue;
 		auto pPawn = pGrid->pPawn0;
-		if( !pPawn || pPawn.GetPtr() == m_pCreator || !pPawn->CanBeHit() || desc.nHitType && pPawn->IsSpecialState( eSpecialState_Fall ) )
+		if( !pPawn || pPawn.GetPtr() == m_pCreator || !pPawn->CheckHit( p, desc.nDamageType ) || desc.nHitType && pPawn->IsSpecialState( eSpecialState_Fall ) )
 		{
-			if( desc.nDamageType )
+			if( desc.nDamageType > 0 )
 				pGrid->nMissBashEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
 			else
 				pGrid->nMissEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecMissParams.size();
@@ -2588,7 +2853,7 @@ TVector2<int32> CPawnHit::OnHit( SPawnStateEvent& evt )
 			auto n = pPawn->Damage( desc.nDamage, desc.nDamageType, hitOfs + m_hitOfs );
 			if( !n )
 				pGrid->nHitBlockedEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitBlockedParams.size();
-			else if( desc.nDamageType )
+			else if( desc.nDamageType > 0 )
 				pGrid->nHitBashEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
 			else
 				pGrid->nHitEft = ( desc.nHitType == 1 ? -1 : 1 ) * (int32)CGlobalCfg::Inst().lvIndicatorData.vecHitParams.size();
@@ -2778,6 +3043,8 @@ void RegisterGameClasses_BasicElems()
 	REGISTER_CLASS_BEGIN( CPawnAI )
 		REGISTER_BASE_CLASS( CEntity )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetIntValue )
+		REGISTER_LUA_CFUNCTION( SetIntValue )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnUsage )
@@ -2819,6 +3086,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_BASE_CLASS( ISignalObj )
 		REGISTER_MEMBER( m_bIsEnemy )
+		REGISTER_MEMBER( m_bIsDynamic )
 		REGISTER_MEMBER( m_bBlockSight )
 		REGISTER_MEMBER( m_bIgnoreBullet )
 		REGISTER_MEMBER( m_bForceHit )
@@ -2835,6 +3103,8 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_nDefaultState )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_nHitWidth )
+		REGISTER_MEMBER( m_nHitHeight )
 		REGISTER_MEMBER( m_nMaxHp )
 		REGISTER_MEMBER( m_arrForms )
 		REGISTER_MEMBER( m_arrSubStates )
@@ -2865,24 +3135,35 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_LUA_CFUNCTION( GetToY )
 		REGISTER_LUA_CFUNCTION( IsPosHidden )
 		REGISTER_LUA_CFUNCTION( IsToHidden )
+		REGISTER_LUA_CFUNCTION( IsEnemy )
 		REGISTER_LUA_CFUNCTION( GetCurDir )
 		REGISTER_LUA_CFUNCTION( GetCurStateIndex )
+		REGISTER_LUA_CFUNCTION( SetInitState )
+		REGISTER_LUA_CFUNCTION( SetDefaultState )
 		REGISTER_LUA_CFUNCTION( GetHp )
 		REGISTER_LUA_CFUNCTION( GetMaxHp )
 		REGISTER_LUA_CFUNCTION( SetHp )
+		REGISTER_LUA_CFUNCTION( IsKilled )
 		REGISTER_LUA_CFUNCTION( SetForceHide )
 		REGISTER_LUA_CFUNCTION( IsDamaged )
 		REGISTER_LUA_CFUNCTION( GetDamageType )
+		REGISTER_LUA_CFUNCTION( GetDamageOfsX )
+		REGISTER_LUA_CFUNCTION( GetDamageOfsY )
 		REGISTER_LUA_CFUNCTION( GetDamageOfsDir )
 		REGISTER_LUA_CFUNCTION( GetDamageOfsDir1 )
+		REGISTER_LUA_CFUNCTION( HasStateTag )
+		REGISTER_LUA_CFUNCTION( IsLocked )
+		REGISTER_LUA_CFUNCTION( SetLocked )
 		REGISTER_LUA_CFUNCTION( PlayState )
 		REGISTER_LUA_CFUNCTION( PlayStateTurnBack )
 		REGISTER_LUA_CFUNCTION( PlayStateSetDir )
 		REGISTER_LUA_CFUNCTION( PlayStateForceMove )
+		REGISTER_LUA_CFUNCTION( GetAI )
 		REGISTER_LUA_CFUNCTION( ChangeAI )
 		REGISTER_LUA_CFUNCTION( GetCurStateName )
 		REGISTER_LUA_CFUNCTION( RegisterSignalScript )
 		REGISTER_LUA_CFUNCTION( RegisterKilledScript )
+		REGISTER_LUA_CFUNCTION( SetTracerEffectDisabled )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPlayerEquipment )
@@ -2902,7 +3183,10 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_origTexRect )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft[0], 0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft[1], 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpecialRenderObject, sp )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetAmmo )
+		REGISTER_LUA_CFUNCTION( SetAmmo )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPlayerMount )
@@ -2910,14 +3194,17 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_bDisabled )
 		REGISTER_MEMBER( m_bHidden )
 		REGISTER_MEMBER( m_bAnimPlayerOriented )
+		REGISTER_MEMBER( m_bUseMountRenderOrder )
 		REGISTER_MEMBER( m_bShowPawnOnMount )
 		REGISTER_MEMBER( m_bNeedLevelComplete )
 		REGISTER_MEMBER( m_nEnterDir )
+		REGISTER_MEMBER( m_nCostEquipType )
 		REGISTER_MEMBER( m_nOfsX )
 		REGISTER_MEMBER( m_nOfsY )
 		REGISTER_MEMBER( m_strEntryState )
 		REGISTER_MEMBER( m_strCostEquipment )
 		REGISTER_MEMBER( m_nNeedStateIndex )
+		REGISTER_MEMBER( m_nNeedEquipCharge )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEquipment, equipment )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( SetEnabled )
@@ -2925,6 +3212,7 @@ void RegisterGameClasses_BasicElems()
 
 	REGISTER_CLASS_BEGIN( CPlayer )
 		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER( m_bIsRealPlayer )
 		REGISTER_MEMBER( m_inputTable )
 		REGISTER_MEMBER( m_stateInputTable )
 		REGISTER_MEMBER( m_actionEftOfs )
@@ -2935,13 +3223,18 @@ void RegisterGameClasses_BasicElems()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( Reset )
 		REGISTER_LUA_CFUNCTION( DropAll )
+		REGISTER_LUA_CFUNCTION( GetEquipment )
 		REGISTER_LUA_CFUNCTION( ForceUnMount )
+		REGISTER_LUA_CFUNCTION( GetCurMountingPawn )
 		REGISTER_LUA_CFUNCTION( IsReadyForMount )
 		REGISTER_LUA_CFUNCTION( EnableDefaultEquipment )
+		REGISTER_LUA_CFUNCTION( HasEquipment )
+		REGISTER_LUA_CFUNCTION( RemoveEquipment )
 		REGISTER_LUA_CFUNCTION( RestoreAmmo )
 		REGISTER_LUA_CFUNCTION( BeginStealth )
 		REGISTER_LUA_CFUNCTION( CancelStealth )
 		REGISTER_LUA_CFUNCTION( GetStealthValue )
+		REGISTER_LUA_CFUNCTION( IsHidden )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SHitGridDesc )
@@ -2971,5 +3264,6 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_nLife )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEquipment, equipment )
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetEquipment )
 	REGISTER_CLASS_END()
 }

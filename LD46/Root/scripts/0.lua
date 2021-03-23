@@ -7,11 +7,17 @@ VK_UP = 38
 VK_RIGHT = 39
 VK_DOWN = 40
 
+NAME_LAWYER = "Harrison"
+
 htx_color_0 = { { 0.67, 0.47, 0.23, 1 }, "typing", 2 }
 htx_color_x = { { 0.47, 0.05, 0.65, 1 }, "typing", 2 }
 htx_color_1 = { { 0.65, 0, 0, 1 }, "typing_system_error", 6 }
 htx_color_2 = { { 0.75, 0.8, 0.4, 1 }, "typing_system_warning", 4 }
+htx_color_sys = { { 0.2, 0.55, 0.3, 1 }, "typing_system", 2 }
 htx_color_5 = { { 0.7, 0.7, 0.7, 1 }, "typing", 2 }
+htx_color_6 = { { 0.35, 0.35, 0.35, 1 }, "typing", 2 }
+htx_color_6a = { { 0.65, 0.55, 0.55, 1 }, "typing", 2 }
+htx_color_6b = { { 0.55, 0.55, 0.65, 1 }, "typing", 2 }
 htx_color_h = { { 1, 0.4, 0.35, 1 }, "typing", 2 }
 
 dtx_color_0 = { { 0.47, 0.05, 0.65, 1 }, "typing", 2 }
@@ -21,15 +27,22 @@ dtx_color_3 = { { 0.65, 0, 0, 1 }, "typing_system_error", 6 }
 dtx_color_4 = { { 0.75, 0.8, 0.4, 1 }, "typing_system_warning", 4 }
 dtx_color_5 = { { 0.7, 0.7, 0.7, 1 }, "typing_system", 2 }
 dtx_color_6 = { { 0.35, 0.35, 0.35, 1 }, "typing", 2 }
+dtx_color_6a = { { 0.45, 0.35, 0.35, 1 }, "typing", 2 }
+dtx_color_6b = { { 0.35, 0.35, 0.45, 1 }, "typing", 2 }
 dtx_color_h = { { 1, 0.4, 0.35, 1 }, "typing", 2 }
 
 LEVEL_GRID_SIZE_X = 24
 LEVEL_GRID_SIZE_Y = 32
 
-function Delay( n )
-	for i = 1, n, 1 do
+function Delay( n, ... )
+	if n == 1 then
+		return coroutine.yield( ... )
+	end
+	coroutine.yield( ... )
+	for i = 2, n - 1, 1 do
 		coroutine.yield()
 	end
+	return coroutine.yield()
 end
 
 function WaitFor( ... )
@@ -108,6 +121,10 @@ function FEVT( key )
 		return true
 	end
 	return false
+end
+
+function SetLevelIgnoreGlobalClearKeys( sz, b )
+	GetMasterLevel():SetLevelIgnoreGlobalClearKeys( sz, b )
 end
 
 function CurDay()

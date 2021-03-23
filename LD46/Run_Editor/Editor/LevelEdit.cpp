@@ -6,6 +6,7 @@
 #include "Common/Utf8Util.h"
 #include "UICommon/UIFactory.h"
 #include "LevelTools.h"
+#include "Editor/Editor.h"
 
 CLevelEdit::CLevelEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* pParent, uint8* pData, SClassMetaData* pMetaData, const char* szName )
 	: CObjectDataEdit( pTreeView, pParent, pData, pMetaData, szName )
@@ -19,6 +20,15 @@ CLevelEdit::CLevelEdit( CUITreeView* pTreeView, CUITreeView::CTreeViewContent* p
 		pTools->Register( CUIElement::eEvent_Action, &m_onLevelTools );
 		pTools->SetText( "Tools" );
 	}
+	const char* szWorld = CPrefabEditor::Inst()->GetParam( "world" );
+	if( szWorld )
+	{
+		auto pWorld = static_cast<CUIButton*>( CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/button.xml" )->GetElement()->Clone() );
+		pTreeView->AddContentChild( pWorld, m_pContent, true );
+		m_onWorld.Set( this, &CLevelEdit::OnWorld );
+		pWorld->Register( CUIElement::eEvent_Action, &m_onWorld );
+		pWorld->SetText( "World" );
+	}
 }
 
 void CLevelEdit::OnLevelTools()
@@ -29,4 +39,12 @@ void CLevelEdit::OnLevelTools()
 	CLevelToolsView::Inst()->Set( pNode, [] () {
 		CPrefabEditor::Inst()->RefreshCurItem();
 	} );
+}
+
+void CLevelEdit::OnWorld()
+{
+	const char* szWorld = CPrefabEditor::Inst()->GetParam( "world" );
+	string str = "level=";
+	str += CPrefabEditor::Inst()->GetFileName();
+	CEditor::Inst().OpenFile( szWorld, str.c_str() );
 }

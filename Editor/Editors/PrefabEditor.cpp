@@ -130,6 +130,10 @@ protected:
 			return;
 		switch( nChar )
 		{
+		case 'Q':
+		case 'q':
+			m_pView->ShowChildren( m_pNode, m_pContent );
+			break;
 		case 'W':
 		case 'w':
 			m_pView->MoveNodeUp( m_pNode, m_pContent );
@@ -1516,6 +1520,20 @@ void CPrefabEditor::MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewCon
 	CReference<CPrefabNode> pParentNode = static_cast<CPrefabNodeTreeFolder*>( pParent->pElement.GetPtr() )->m_pNode;
 	pNode->RemoveThis();
 	pParentNode->AddChild( pNode );
+}
+
+void CPrefabEditor::ShowChildren( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
+{
+	m_pSceneView->SetContentFolded( pCurNodeItem, false );
+	static_cast<CPrefabNodeTreeFolder*>( pCurNodeItem->pElement.GetPtr() )->SetChecked( false, false );
+	if( pCurNodeItem->pTail && pCurNodeItem->NextContent() != pCurNodeItem->pTail )
+	{
+		for( auto p = ( CUITreeView::CTreeViewContent* )pCurNodeItem->NextContent(); p; p = m_pSceneView->GetNextSibling( p ) )
+		{
+			m_pSceneView->SetContentFolded( p, true );
+			static_cast<CPrefabNodeTreeFolder*>( p->pElement.GetPtr() )->SetChecked( true, false );
+		}
+	}
 }
 
 void CPrefabEditor::OnCurNodeNameChanged()

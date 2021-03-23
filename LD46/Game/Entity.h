@@ -104,6 +104,9 @@ public:
 	virtual void OnRemovedFromStage() {}
 
 	/*<-------------------For Script----------------------*/
+	const char* GetEntityName() { return GetName(); }
+	void SetEntityName( const char* szName ) { m_strName = szName; }
+	bool IsVisible( bool b ) { return bVisible; }
 	void SetVisible( bool b ) { bVisible = b; }
 	CEntity* FindChildEntity( const char* szName );
 	/*--------------------For Script--------------------->*/

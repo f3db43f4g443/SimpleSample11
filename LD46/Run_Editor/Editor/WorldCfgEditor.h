@@ -15,6 +15,7 @@ public:
 	CWorldCfgEditor() : m_fScale( 0 ), m_pData( NULL ), m_nState( 0 ) {}
 
 	virtual void NewFile( const char* szFileName ) override;
+	virtual void OnOpenFile() override;
 	virtual void Refresh() override;
 
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CWorldCfgEditor )
@@ -35,6 +36,7 @@ protected:
 	void RefreshLevelDataLink( int32 nRegion, int32 n, map<CString, TVector2<int32> >* pMap = NULL );
 	void RefreshExtLevel( int32 nRegion );
 	void ShowLevelTool();
+	void OpenLevelFile();
 	void BeginNewLevel();
 	void EndNewLevel( bool bOK );
 	void OnNewLevelOK() { EndNewLevel( true ); }

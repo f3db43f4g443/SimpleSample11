@@ -225,6 +225,8 @@ void CTileTool::OnViewportKey( SUIKeyEvent* pEvent )
 	else if( n >= '0' && n <= '9' )
 	{
 		auto n1 = n - '0';
+		if( pEvent->bAltDown )
+			n1 += 10;
 		if( m_nCurSelectedOpr == 0 )
 		{
 			if( n1 >= GetLevelData()->m_arrTileData.Size() )
@@ -603,9 +605,9 @@ void CPawnTool::OnViewportKey( SUIKeyEvent* pEvent )
 		}
 		SelectPawnRoot( n );
 	}
-	else if( pEvent->nChar == 'A' )
-		SelectPawnRoot( m_nPawnRoot < m_vecAllPawnRoots.size() - 1 ? m_nPawnRoot + 1 : 0 );
 	else if( pEvent->nChar == 'S' )
+		SelectPawnRoot( m_nPawnRoot < m_vecAllPawnRoots.size() - 1 ? m_nPawnRoot + 1 : 0 );
+	else if( pEvent->nChar == 'A' )
 		SelectPawnRoot( m_nPawnRoot > 0 ? m_nPawnRoot - 1 : m_vecAllPawnRoots.size() - 1 );
 	else if( pEvent->nChar == VK_TAB )
 		m_bNoAlign = !m_bNoAlign;
@@ -877,7 +879,10 @@ public:
 					continue;
 				auto pPrefabNode = dynamic_cast<CPrefabNode*>( p );
 				if( pPrefabNode && pPrefabNode->GetStaticDataSafe<CLevelEnvEffect>() )
+				{
+					pPrefabNode->bVisible = false;
 					m_vecEnvNodes.push_back( pPrefabNode );
+				}
 			}
 			if( !m_vecEnvNodes.size() )
 			{
@@ -890,6 +895,7 @@ public:
 				pData->m_nWidth = GetLevelData()->GetSize().x * 2;
 				pData->m_nHeight = GetLevelData()->GetSize().y * 2;
 				pEnvNode->OnEditorActive( false );
+				pEnvNode->bVisible = false;
 				m_vecEnvNodes.push_back( pEnvNode );
 			}
 			for( int i = 0; i < m_vecEnvNodes.size() / 2; i++ )
@@ -904,6 +910,8 @@ public:
 			m_pEftPreviewNode = NULL;
 			m_pEnvNode = NULL;
 			m_nEnvNode = -1;
+			for( auto& p : m_vecEnvNodes )
+				p->bVisible = true;
 			m_vecEnvNodes.resize( 0 );
 		}
 	}
@@ -1228,13 +1236,17 @@ void CLevelEnvTool::SelectEnvNode( int32 n )
 		m_pEftPreviewNode = NULL;
 	}
 	if( m_pEnvNode )
+	{
+		m_pEnvNode->bVisible = false;
 		m_pEnvNode->OnEdit();
+	}
 	m_nEnvNode = n;
 	m_pEnvNode = m_vecEnvNodes[n];
 	auto pData = GetData();
 	pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
 	m_pEftPreviewNode = SafeCast<CLevelEnvEffect>( m_pEnvNode->CreateInstance( false ) );
 	m_pEnvNode->AddChild( m_pEftPreviewNode );
+	m_pEnvNode->bVisible = true;
 	m_pEftPreviewNode->Init();
 
 	m_pLayerScript->SetText( m_pEnvNode->GetName() );
@@ -1765,7 +1777,17 @@ CRenderObject2D* CLevelToolsView::CreateLevelSimplePreview( CPrefabNode* pNode )
 		}
 	}
 	std::sort( vecPawns.begin(), vecPawns.end(), [] ( CPrefabBaseNode* a, CPrefabBaseNode* b ) {
-		return a->y > b->y;
+		if( a->y > b->y )
+			return true;
+		if( a->y < b->y )
+			return false;
+		auto pPawnA = SafeCast<CPawn>( a );
+		if( !pPawnA )
+			pPawnA = SafeCast<CPawn>( SafeCast<CLevelSpawnHelper>( a )->GetRenderObject() );
+		auto pPawnB = SafeCast<CPawn>( b );
+		if( !pPawnB )
+			pPawnB = SafeCast<CPawn>( SafeCast<CLevelSpawnHelper>( b )->GetRenderObject() );
+		return pPawnA->GetRenderOrder() < pPawnB->GetRenderOrder();
 	} );
 	for( CPrefabBaseNode* pPawn : vecPawns )
 	{

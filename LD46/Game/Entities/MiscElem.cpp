@@ -48,14 +48,18 @@ void CLevelScriptCustom::OnPlayerChangeState( SPawnState& state, int32 nStateSou
 	}
 }
 
-void CLevelScriptCustom::OnPlayerAction( int32 nMatchLen, int8 nType )
+void CLevelScriptCustom::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
 {
 	if( m_strPlayerAction.length() )
 	{
 		CLuaMgr::Inst().Load( m_strPlayerAction );
 		CLuaMgr::Inst().PushLua( nMatchLen );
 		CLuaMgr::Inst().PushLua( nType );
-		CLuaMgr::Inst().Call( 2, 0 );
+		string str;
+		for( auto n : vecInput )
+			str.push_back( n + '0' );
+		CLuaMgr::Inst().PushLua( str.c_str() );
+		CLuaMgr::Inst().Call( 3, 0 );
 	}
 }
 
@@ -129,6 +133,14 @@ void CCommonLink::OnRemovedFromStage()
 		m_pSound->FadeOut( 0.5f );
 		m_pSound = NULL;
 	}
+}
+
+void CCommonLink::Set( CEntity* pSrc, CEntity* pDst, int8 nKillType, int8 nTargetEffecType )
+{
+	m_pSrc = pSrc;
+	m_pDst = pDst;
+	m_nKillType = nKillType;
+	m_nTargetEffectType = nTargetEffecType;
 }
 
 void CCommonLink::Begin()
@@ -335,6 +347,36 @@ void CPawnUsageButton::Update()
 		m_nEftFramesLeft--;
 }
 
+void CPawnAISignalLight::OnUpdate0()
+{
+	if( !m_strCondition.length() )
+		return;
+	CMyLevel* pLevel = NULL;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn )
+		pLevel = pPawn->GetLevel();
+	if( !pLevel )
+		return;
+	int32 n = pLevel->GetMasterLevel()->EvaluateKeyInt( m_strCondition );
+	for( int i = 0; i < ELEM_COUNT( m_pEft ); i++ )
+	{
+		if( m_pEft[i] )
+			SafeCast<CImageEffect>( m_pEft[i].GetPtr() )->SetEnabled( i < n );
+	}
+}
+
+int32 CPawnAISignalLight::Signal( int32 i )
+{
+	for( int i = 0; i < ELEM_COUNT( m_pEft ); i++ )
+	{
+		if( m_pEft[i] )
+			SafeCast<CImageEffect>( m_pEft[i].GetPtr() )->SetEnabled( true );
+	}
+	if( m_strSound )
+		PlaySoundEffect( m_strSound );
+	return 1;
+}
+
 void CPawnAIAutoDoor::OnInit()
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
@@ -356,6 +398,8 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 		bOpen = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strOpenCondition );
 	else
 		bOpen = !pLevel->IsGridBlockedExit( pGrid, true );
+	if( pLevel->GetTracerSpawnExit() && pLevel->GetTracerDelayLeft() && pPawn->GetPos() == pLevel->GetTracerEnterPos() )
+		bOpen = true;
 	bool bBlockPlayer = false;
 	if( m_strBlockPlayerCondition.length() )
 	{
@@ -825,6 +869,8 @@ void CFallPoint::Update()
 	auto pPlayer = GetLevel()->GetPlayer();
 	if( pPlayer->GetMoveTo() == GetPos() && pPlayer->GetMoveTo() == pPlayer->GetPos() )
 	{
+		if( pPlayer->IsMounted() )
+			pPlayer->UnMount();
 		if( !m_bVisited )
 		{
 			if( m_strKey.length() )
@@ -834,9 +880,12 @@ void CFallPoint::Update()
 			texRect.x += texRect.width;
 			p->SetTexRect( texRect );
 			m_bVisited = true;
-			AddChild( m_pEft->GetRoot()->CreateInstance() );
-			PlaySoundEffect( m_strSound );
+			if( m_pEft )
+				AddChild( m_pEft->GetRoot()->CreateInstance() );
+			if( m_strSound.length() )
+				PlaySoundEffect( m_strSound );
 		}
+		GetLevel()->BlockTracer();
 		auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
 		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, pPlayer->GetMoveTo() -
 			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ), pPlayer->GetCurDir(), 1 );
@@ -859,6 +908,7 @@ int32 CClimbPoint::Signal( int32 i )
 {
 	if( m_bReady )
 	{
+		GetLevel()->BlockTracer();
 		auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
 		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, GetMoveTo() -
 			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ) + TVector2<int32>( GetCurDir() ? -2 : 2, 0 ), GetCurDir(), 2 );
@@ -915,13 +965,363 @@ int32 CClimbPoint::GetDefaultState()
 	return m_bReady ? 1 : 0;
 }
 
+void CLift::Init()
+{
+	if( m_strKey.length() )
+	{
+		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) == m_nCurValue )
+			m_bReady = true;
+	}
+	else
+		m_bReady = true;
+	CPawnHit::Init();
+}
+
+int32 CLift::Signal( int32 i )
+{
+	if( i == 0 )
+	{
+		if( m_nNxtStage < 0 || m_nNxtStage >= GetLevel()->GetNextLevelCount() )
+		{
+			auto pPlayer = GetLevel()->GetPlayer();
+			pPlayer->ForceUnMount();
+			ChangeState( 2 );
+			return 0;
+		}
+		ChangeState( 1 );
+		return 1;
+	}
+	else if( i == 1 )
+	{
+		auto pPlayer = GetLevel()->GetPlayer();
+		auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
+		GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, m_nToValue );
+		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, pPlayer->GetMoveTo() -
+			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ), pPlayer->GetCurDir(), m_bUp ? 5 : 4, m_nTile );
+		return 1;
+	}
+	else if( i == 2 )
+	{
+		ChangeState( 1 );
+		GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, m_nCurValue );
+		m_bReady = true;
+		return 1;
+	}
+	else
+	{
+		GetStage()->GetMasterLevel()->BlackOut( 40, 40 );
+		GetLevel()->ReplaceTiles( m_nTile, m_nTile );
+		GetLevel()->ReplaceTiles( m_nTile1, m_nTile1 );
+		return 1;
+	}
+	return 1;
+}
+
+int32 CLift::GetDefaultState()
+{
+	return m_bReady ? 0 : 3;
+}
+
 int32 CHeavyDoor::Signal( int32 i )
 {
 	auto pPlayer = GetLevel()->GetPlayer();
 	auto& nxtStage = GetLevel()->GetNextLevelData( m_nNxtStage );
+	int8 nDir = 1 - pPlayer->GetCurDir();
+	int16 nTransferParam = nDir ? 4 : -4;
 	GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, GetMoveTo() - TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY )
-		+ TVector2<int32>( pPlayer->GetCurDir() ? -2 : 2, 0 ), 1 - pPlayer->GetCurDir(), 3 );
+		+ TVector2<int32>( pPlayer->GetCurDir() ? -2 : 2, 0 ), nDir, 3, (uint16)nTransferParam );
 	return 1;
+}
+
+void CPawnAITransit::PreInit()
+{
+	if( m_strStateKey.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		int32 nState = pPawn->GetLevel()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+		if( pPawn->IsValidStateIndex( nState ) )
+			pPawn->SetInitState( nState );
+	}
+}
+
+int32 CPawnAITransit::CheckAction( int8& nCurDir )
+{
+	if( m_strStateKey.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		int32 nState = pPawn->GetLevel()->GetMasterLevel()->EvaluateKeyInt( m_strStateKey );
+		if( nState != pPawn->GetCurStateIndex() && pPawn->IsValidStateIndex( nState ) )
+			return nState;
+	}
+	return -1;
+}
+
+int32 CPawnAITransit::Signal( int32 i )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	auto& nxtStage = pPawn->GetLevel()->GetNextLevelData( m_nNxtStage );
+	TVector2<int32> ofs( m_arrOfs[i].x, m_arrOfs[i].y );
+	int32 nDir = m_arrOfs[i].z;
+	if( pPlayer->GetCurDir() )
+		nDir = 1 - nDir;
+	if( pPawn->GetCurDir() )
+	{
+		nDir = 1 - nDir;
+		ofs.x = -ofs.x;
+	}
+	union
+	{
+		int32 nTransferParam;
+		int16 nParams[2];
+	};
+	nParams[0] = ofs.x;
+	nParams[1] = ofs.y;
+	GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, pPlayer->GetMoveTo() - TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ) + ofs, nDir, 3, nTransferParam );
+	return 1;
+}
+
+void CScrew::OnPreview()
+{
+	m_p1->SetRenderObject( NULL );
+	CPawn::OnPreview();
+}
+
+void CScrew::Init()
+{
+	m_p1->SetRenderObject( NULL );
+	m_nCur = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strCurKey );
+	CPawn::Init();
+	UpdateMounts();
+}
+
+bool CScrew::Move( bool bUp )
+{
+	if( m_nCur == 0 && bUp || m_nCur == m_nMax )
+		return false;
+	auto n1 = m_nCur + ( bUp ? -1 : 1 );
+	auto nEvt0 = GetEvt( m_nCur );
+	auto nEvtType0 = nEvt0 >= 0 ? m_arrEvts[nEvt0].y : 0;
+	auto e1 = GetEvt1( m_nCur );
+	auto eType1 = e1 >= 0 ? m_arrEvts1[e1].y : 0;
+	if( eType1 > 3 )
+		return false;
+	if( eType1 == 3 && !bUp )
+	{
+		if( m_arrEvts1[e1].z < 0 || !m_arrScripts[m_arrEvts1[e1].z].length() )
+			return false;
+		if( !GetStage()->GetMasterLevel()->EvaluateKeyInt( m_arrScripts[m_arrEvts1[e1].z] ) )
+			return false;
+	}
+
+	auto nEvt1 = GetEvt( n1 );
+	auto nEvtType1 = nEvt1 >= 0 ? m_arrEvts[nEvt1].y : 0;
+	if( nEvtType1 == 1 )
+	{
+		if( m_arrEvts[nEvt1].z >= 0 && m_arrScripts[m_arrEvts[nEvt1].z].length() )
+		{
+			CLuaMgr::Inst().Load( m_arrScripts[m_arrEvts[nEvt1].z] );
+			CLuaMgr::Inst().PushLua( this );
+			CLuaMgr::Inst().Call( 1 );
+		}
+	}
+	if( nEvtType0 != nEvtType1 || nEvtType0 == 2 && m_arrEvts[nEvt0].z != m_arrEvts[nEvt1].z )
+	{
+		if( nEvtType0 == 2 )
+		{
+			if( m_arrEvts[nEvt0].z >= 0 && m_arrScripts[m_arrEvts[nEvt0].z].length() )
+			{
+				CLuaMgr::Inst().Load( m_arrScripts[m_arrEvts[nEvt0].z] );
+				CLuaMgr::Inst().PushLua( this );
+				CLuaMgr::Inst().PushLua( 0 );
+				CLuaMgr::Inst().Call( 2 );
+			}
+		}
+		if( nEvtType1 == 2 )
+		{
+			if( m_arrScripts[m_arrEvts[nEvt1].z].length() )
+			{
+				CLuaMgr::Inst().Load( m_arrScripts[m_arrEvts[nEvt1].z] );
+				CLuaMgr::Inst().PushLua( this );
+				CLuaMgr::Inst().PushLua( 1 );
+				CLuaMgr::Inst().Call( 2 );
+			}
+		}
+	}
+	m_nCur = n1;
+	GetStage()->GetMasterLevel()->SetKeyInt( m_strCurKey, m_nCur );
+	if( m_nCur == m_nMax )
+	{
+		if( m_strComplete.length() )
+		{
+			CLuaMgr::Inst().Load( m_strComplete );
+			CLuaMgr::Inst().PushLua( this );
+			CLuaMgr::Inst().Call( 1 );
+		}
+	}
+	UpdateMounts();
+	return true;
+}
+
+void CScrew::Update0()
+{
+	CPawn::Update0();
+	if( m_nCur >= m_nMax )
+	{
+		m_p1->RemoveAllChild();
+		m_vecImgs.resize( 0 );
+		return;
+	}
+
+	int32 nImg = 0;
+	int32 nEvt = 0;
+	int32 nEvt1 = 0;
+	int32 nEvtType = 0;
+	int32 nEvtColor = 0;
+	int32 nEvtScript = -1;
+
+	for( int i = 0; i <= m_nMax; i++ )
+	{
+		float fImgY = i * 8;
+
+		int32 nType = 0;
+		int32 nColor = 0;
+		int32 nScript = -1;
+		if( nEvt < m_arrEvts.Size() )
+		{
+			auto& nxtEvt = m_arrEvts[nEvt];
+			if( nxtEvt.x == i + 1 )
+			{
+				nType = nxtEvt.y;
+				nColor = nxtEvt.w;
+				nScript = nxtEvt.z;
+				nEvt++;
+			}
+		}
+		if( nEvtType == 2 )
+		{
+			for( int k = ( i - 1 == m_nMax - m_nCur - 1 ? 4 : 1 ); k > 0; k-- )
+			{
+				auto pImg = GetNxtImage( nImg );
+				pImg->SetPosition( CVector2( 0, fImgY - 8 ) );
+				pImg->SetTexRect( CRectangle( nEvtColor * 4 + ( m_nFrame >= 3 ? 18 : 16 ), nType == 2 && nColor == nEvtColor ? 25 : 26, 2, 1 ) / 32.0f );
+			}
+		}
+		nEvtType = nType;
+		nEvtColor = nColor;
+		nEvtScript = nScript;
+
+		while( nEvt1 < m_arrEvts1.Size() && m_arrEvts1[nEvt1].x - m_nCur < i )
+			nEvt1++;
+		if( nEvt1 < m_arrEvts1.Size() )
+		{
+			auto& nxtEvt = m_arrEvts1[nEvt1];
+			if( nxtEvt.x - m_nCur == i )
+			{
+				if( nxtEvt.y == 3 )
+				{
+					auto n = 0;
+					if( GetStage() )
+						n = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_arrScripts[m_arrEvts1[nEvt1].z] );
+					if( n == 0 )
+					{
+						for( int k = ( i == 0 ? 2 : 1 ); k > 0; k-- )
+						{
+							auto pImg = GetNxtImage( nImg );
+							pImg->SetPosition( CVector2( 0, fImgY ) );
+							pImg->SetTexRect( CRectangle( nxtEvt.w * 4 + ( m_nFrame >= 3 ? 18 : 16 ), 28, 2, 1 ) / 32.0f );
+						}
+					}
+				}
+				nEvt1++;
+			}
+		}
+
+		if( i < m_nMax - m_nCur )
+		{
+			auto pImg = GetNxtImage( nImg );
+			pImg->SetPosition( CVector2( 0, fImgY ) );
+			pImg->SetTexRect( CRectangle( 30, i == m_nMax - m_nCur - 1 ? 5 : 4, 2, 1 ) / 32.0f );
+		}
+
+		if( nType == 1 )
+		{
+			for( int k = ( i == m_nMax - m_nCur - 1 ? 2 : 1 ); k > 0; k-- )
+			{
+				auto pImg = GetNxtImage( nImg );
+				pImg->SetPosition( CVector2( 0, fImgY ) );
+				pImg->SetTexRect( CRectangle( nEvtColor * 4 + ( m_nFrame >= 3 ? 18 : 16 ), 27, 2, 1 ) / 32.0f );
+			}
+		}
+	}
+	for( int i = nImg; i < m_vecImgs.size(); i++ )
+		m_vecImgs[i]->bVisible = false;
+	m_nFrame++;
+	if( m_nFrame >= 6 )
+		m_nFrame = 0;
+}
+
+void CScrew::UpdateMounts()
+{
+	for( int i = 0; i < 3; i++ )
+		m_pMounts[i]->SetEnabled( m_nCur < m_nMax );
+	for( int i = 3; i < 6; i++ )
+		m_pMounts[i]->SetEnabled( m_nCur < m_nMax && m_nCur > 0 );
+}
+
+CImage2D* CScrew::GetNxtImage( int32& nImg )
+{
+	CImage2D* pImg;
+	if( nImg >= m_vecImgs.size() )
+	{
+		auto pDrawable = static_cast<CDrawableGroup*>( m_p1->GetResource() );
+		pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+		pImg->SetRect( CRectangle( 0, 0, 64, 32 ) );
+		m_p1->AddChild( pImg );
+		m_vecImgs.push_back( pImg );
+	}
+	else
+	{
+		pImg = static_cast<CImage2D*>( m_vecImgs[nImg].GetPtr() );
+		pImg->bVisible = true;
+	}
+
+	nImg++;
+	return pImg;
+}
+
+int32 CScrew::GetNxtEvt( int32 i, int32& nEvt )
+{
+	if( nEvt >= m_arrEvts.Size() )
+		return 0;
+	auto& nxtEvt = m_arrEvts[nEvt];
+	if( nxtEvt.x == i )
+	{
+		nEvt++;
+		return nxtEvt.y;
+	}
+}
+
+int32 CScrew::GetEvt( int32 n )
+{
+	for( int i = 0; i < m_arrEvts.Size(); i++ )
+	{
+		if( m_arrEvts[i].x == m_nMax - n )
+			return i;
+	}
+	return -1;
+}
+
+int32 CScrew::GetEvt1( int32 n )
+{
+	for( int i = 0; i < m_arrEvts1.Size(); i++ )
+	{
+		if( m_arrEvts1[i].x == n )
+			return i;
+	}
+	return -1;
 }
 
 void CSmoke::OnRemovedFromStage()
@@ -1101,6 +1501,30 @@ void CSmoke::UpdateImages()
 	}
 }
 
+void CBalloon::Update()
+{
+	if( GetCurState().strName != "death" )
+	{
+		auto pPawn = GetLevel()->GetGrid( GetPos() )->pPawn0;
+		if( pPawn && pPawn->GetPos() == pPawn->GetMoveTo() )
+			PlayState( "death" );
+		else if( GetLevel()->FindPickUp( GetPos(), 2, 1 ) )
+			PlayState( "death" );
+	}
+	CPawnHit::Update();
+}
+
+void COil::Update()
+{
+	auto pPlayer = SafeCast<CPlayer>( GetLevel()->GetGrid( GetPos() )->pPawn0.GetPtr() );
+	if( m_pPlayer && m_pPlayer != pPlayer && m_pPlayer->GetPos() == m_pPlayer->GetMoveTo() )
+	{
+		if( !m_pPlayer->GetCurMountingPawn() && !m_pPlayer->IsMounted() && !m_pPlayer->GetEquipment( ePlayerEquipment_Large ) )
+			m_pPlayer->PlayState( "break", 1 );
+	}
+	m_pPlayer = pPlayer;
+}
+
 void CElevator::OnAddedToStage()
 {
 	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
@@ -1175,7 +1599,7 @@ void CElevator::OnCurFloorChanged()
 
 void CProjector::OnUpdate1( CMyLevel* pLevel )
 {
-	if( !m_bSetTarget && ( m_nFixedTarget < 0 || m_nFixedTarget >= m_arrFixedTargets.Size() ) )
+	if( !IsActivated() )
 	{
 		if( m_p )
 			m_p->bVisible = false;
@@ -1184,7 +1608,11 @@ void CProjector::OnUpdate1( CMyLevel* pLevel )
 		return;
 	}
 
-	auto target = m_bSetTarget ? m_target : m_arrFixedTargets[m_nFixedTarget];
+	CVector2 target;
+	if( m_pPawn )
+		target = CVector2( m_pPawn->GetToX() + m_pPawn->GetWidth() * 0.5f, m_pPawn->GetToY() + m_pPawn->GetHeight() * 0.5f ) * LEVEL_GRID_SIZE;
+	else
+		target = m_bSetTarget ? m_target : m_arrFixedTargets[m_nFixedTarget];
 	if( m_p )
 	{
 		m_p->bVisible = true;
@@ -1211,6 +1639,20 @@ void CProjector::SetTarget( const CVector2& target )
 	bool b0 = IsActivated();
 	m_bSetTarget = true;
 	m_target = target;
+	m_pPawn = NULL;
+	m_nFixedTarget = -1;
+	bool b1 = IsActivated();
+	if( b1 && !b0 )
+		PlaySoundEffect( "activate" );
+	else if( !b1 && b0 )
+		PlaySoundEffect( "deactivate" );
+}
+
+void CProjector::Follow( CPawn* pPawn )
+{
+	bool b0 = IsActivated();
+	m_bSetTarget = false;
+	m_pPawn = pPawn;
 	m_nFixedTarget = -1;
 	bool b1 = IsActivated();
 	if( b1 && !b0 )
@@ -1221,7 +1663,7 @@ void CProjector::SetTarget( const CVector2& target )
 
 bool CProjector::IsActivated()
 {
-	return m_bSetTarget || m_nFixedTarget >= 0 && m_nFixedTarget < m_arrFixedTargets.Size();
+	return m_pPawn && m_pPawn->GetLevel() || m_bSetTarget || m_nFixedTarget >= 0 && m_nFixedTarget < m_arrFixedTargets.Size();
 }
 
 int32 CProjector::Signal( int32 i )
@@ -1442,27 +1884,52 @@ void CTutorialFollowing::OnUpdate1( CMyLevel* pLevel )
 				return;
 			}
 		}
-		m_nErrorTick++;
+		if( pPlayer->IsHidden() )
+		{
+			if( pPlayer->GetMoveTo() != pPlayer->GetPos() )
+				m_bLastSoundPosValid = false;
+		}
+		m_nErrorTick = Min( 30, m_nErrorTick + 1 );
 		if( m_nErrorTick == 30 )
 		{
-			m_nErrorTick = 0;
-			auto nxt = pLevel->SimpleFindPath( m_curPos, pPlayer->GetMoveTo(), 1 );
-			if( nxt.x >= 0 )
+			bool b = true;
+			auto p = pPlayer->GetMoveTo();
+			if( pPlayer->IsHidden() )
 			{
-				auto pImg = CreateErrImg();
-				m_vecImgs.push_back( pImg );
-				pImg->SetPosition( CVector2( m_curPos.x, m_curPos.y ) * LEVEL_GRID_SIZE );
-				m_curPos = nxt;
-				m_vecError.push_back( m_curPos );
-				m_pProjector->SetTarget( CVector2( m_curPos.x, m_curPos.y ) * LEVEL_GRID_SIZE );
+				if( pPlayer->GetMoveTo() == pPlayer->GetPos() )
+				{
+					if( m_bLastSoundPosValid )
+						p = m_lastSoundPos;
+					else
+						b = false;
+				}
+			}
 
-				auto pLightning = SafeCast<CLightningEffect>( m_pFailEffect->GetRoot()->CreateInstance() );
-				pLightning->SetParentEntity( this );
-				pLightning->SetPosition( m_pProjector->GetProjSrc() );
-				auto ofs = CVector2( m_curPos.x + 1, m_curPos.y + 0.5f ) * LEVEL_GRID_SIZE - pLightning->GetPosition();
-				auto p = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
-				pLightning->Set( p, 60 );
-				PlaySoundEffect( "electric" );
+			if( b )
+			{
+				pPlayer->nTempFlag = 1;
+				auto nxt = pLevel->SimpleFindPath( m_curPos, p, 1 );
+				pPlayer->nTempFlag = 0;
+				if( nxt.x >= 0 )
+				{
+					if( m_bLastSoundPosValid && nxt == m_lastSoundPos )
+						m_bLastSoundPosValid = false;
+					auto pImg = CreateErrImg();
+					m_vecImgs.push_back( pImg );
+					pImg->SetPosition( CVector2( m_curPos.x, m_curPos.y ) * LEVEL_GRID_SIZE );
+					m_curPos = nxt;
+					m_vecError.push_back( m_curPos );
+					m_pProjector->SetTarget( CVector2( m_curPos.x, m_curPos.y ) * LEVEL_GRID_SIZE );
+
+					auto pLightning = SafeCast<CLightningEffect>( m_pFailEffect->GetRoot()->CreateInstance() );
+					pLightning->SetParentEntity( this );
+					pLightning->SetPosition( m_pProjector->GetProjSrc() );
+					auto ofs = CVector2( m_curPos.x + 1, m_curPos.y + 0.5f ) * LEVEL_GRID_SIZE - pLightning->GetPosition();
+					auto p = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
+					pLightning->Set( p, 60 );
+					PlaySoundEffect( "electric" );
+				}
+				m_nErrorTick = 0;
 			}
 		}
 		return;
@@ -1549,7 +2016,7 @@ void CTutorialFollowing::OnPlayerChangeState( SPawnState& state, int32 nStateSou
 		Fail( m_curPos );
 }
 
-void CTutorialFollowing::OnPlayerAction( int32 nMatchLen, int8 nType )
+void CTutorialFollowing::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
 {
 	if( m_nState != 1 )
 		return;
@@ -1557,10 +2024,20 @@ void CTutorialFollowing::OnPlayerAction( int32 nMatchLen, int8 nType )
 		Fail( m_curPos );
 }
 
+void CTutorialFollowing::OnAlert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs )
+{
+	if( pTriggeredPawn )
+	{
+		m_bLastSoundPosValid = true;
+		m_lastSoundPos = pawnOfs;
+	}
+}
+
 int32 CTutorialFollowing::Signal( int32 i )
 {
 	if( i == 0 )
 	{
+		m_nEndTick = 0;
 		if( m_bError )
 		{
 			m_bError = false;
@@ -1600,12 +2077,14 @@ int32 CTutorialFollowing::Signal( int32 i )
 		if( m_bError )
 			return 0;
 		m_bError = true;
+		m_bLastSoundPosValid = false;
 		m_nErrorTick = 0;
 		m_curPos = TVector2<int32>( m_nBeginX, m_nBeginY );
 		m_pProjector->SetTarget( CVector2( m_nBeginX, m_nBeginY ) * LEVEL_GRID_SIZE );
 		for( CRenderObject2D* p : m_vecImgs )
 			p->RemoveThis();
 		m_vecImgs.resize( 0 );
+		m_vecError.resize( 0 );
 		m_vecError.push_back( m_curPos );
 		UpdateStateImg();
 	}
@@ -1790,6 +2269,183 @@ void CTutorialFollowing::UpdateStateImg()
 	}
 }
 
+void CCinemaScreenLoading::OnInit( CMyLevel* pLevel )
+{
+	if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
+		ShowPage( 3 );
+	else
+		ShowPage( 0 );
+}
+
+void CCinemaScreenLoading::OnUpdate1( CMyLevel* pLevel )
+{
+	if( m_nCurPage != 1 )
+		return;
+	if( m_bAd )
+	{
+		if( m_pAd[0]->bVisible )
+		{
+			m_nAdTime--;
+			if( !m_nAdTime )
+			{
+				if( !m_pAd[1]->bVisible )
+				{
+					m_nAdTime = 40;
+					m_pAd[1]->bVisible = true;
+					for( int i = 0; i < ELEM_COUNT( m_pAdEft ); i++ )
+						m_pAdEft[i]->bVisible = false;
+					for( int i = 0; i < ELEM_COUNT( m_pAdEft1 ); i++ )
+						m_pAdEft1[i]->bVisible = false;
+				}
+				else
+				{
+					m_pAd[0]->bVisible = false;
+					for( int i = 0; i < ELEM_COUNT( m_pAdEft ); i++ )
+					{
+						m_pAdEft[i]->bVisible = true;
+						auto pImg = SafeCast<CImage2D>( m_pAdEft[i].GetPtr() );
+						CRectangle rect0 = m_rectAd;
+						rect0.width = floor( SRand::Inst().Rand( 0.5f, 0.8f ) * rect0.width * 0.5f + 0.5f ) * 2;
+						rect0.height = floor( SRand::Inst().Rand( 0.5f, 0.8f ) * rect0.height * 0.5f + 0.5f ) * 2;
+						rect0.x += floor( SRand::Inst().Rand( 0.0f, m_rectAd.width - rect0.width ) * 0.5f + 0.5f ) * 2;
+						rect0.y += floor( SRand::Inst().Rand( 0.0f, m_rectAd.height - rect0.height ) * 0.5f + 0.5f ) * 2;
+						pImg->SetRect( rect0 );
+						pImg->SetBoundDirty();
+					}
+					m_nAdTime = SRand::Inst().Rand( m_nAdDurationMin, m_nAdDurationMax );
+				}
+			}
+		}
+		else
+		{
+			for( int i = 0; i < ELEM_COUNT( m_pAdEft ); i++ )
+			{
+				m_pAdEft[i]->bVisible = true;
+				auto pImg = SafeCast<CImage2D>( m_pAdEft[i].GetPtr() );
+				int32 n = SRand::Inst<eRand_Render>().Rand( 0, 4 );
+				pImg->SetTexRect( CRectangle( ( 22 + n ), 2, 1, 1 ) / 32.0f );
+			}
+
+			m_nAdTime--;
+			if( !m_nAdTime )
+			{
+				if( m_vecInput.size() )
+				{
+					GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer()->ForceUnMount();
+					ShowPage( 2 );
+				}
+				else
+				{
+					m_bAd = false;
+					m_pAd[1]->bVisible = false;
+					m_nAdTime = SRand::Inst().Rand( m_nAdIntervalMin, m_nAdIntervalMax );
+				}
+			}
+			else if( m_nAdTime == m_nInputTime )
+			{
+				const char* sz[] = { "", "", "", "", "6", "8", "4", "2", "896", "236", "874", "214" };
+				const char* sz1[] = { "A", "B", "C", "D", "A", "B", "D", "C" };
+				string str = sz[Min<int32>( ELEM_COUNT( sz ), floor( ( ( m_nMaxTime - m_nTimeLeft ) * 0.8f / m_nMaxTime + SRand::Inst().Rand( 0.0f, 0.2f ) ) * ELEM_COUNT( sz ) ) )];
+				str += sz1[Min<int32>( ELEM_COUNT( sz1 ), floor( ( ( m_nMaxTime - m_nTimeLeft ) * 0.5f / m_nMaxTime + SRand::Inst().Rand( 0.0f, 0.5f ) ) * ELEM_COUNT( sz1 ) ) )];
+				CPlayer::SetInputSequence( str.c_str(), m_vecInput );
+
+				int32 l = m_vecInput.size();
+				for( int i = 0; i < ELEM_COUNT( m_pAdEft1 ); i++ )
+				{
+					if( i >= l )
+					{
+						m_pAdEft1[i]->bVisible = false;
+						continue;
+					}
+					auto n = m_vecInput[i];
+					if( n == 1 )
+						n = 0;
+					else if( n == ( 1 | 2 ) )
+						n = 1;
+					else if( n == 2 )
+						n = 2;
+					else if( n == ( 2 | 4 ) )
+						n = 3;
+					else if( n == 4 )
+						n = 4;
+					else if( n == ( 4 | 8 ) )
+						n = 5;
+					else if( n == 8 )
+						n = 6;
+					else if( n == ( 8 | 1 ) )
+						n = 7;
+					else if( n < 0 )
+						n = 7 - n;
+					auto pImg = SafeCast<CImage2D>( m_pAdEft1[i].GetPtr() );
+					pImg->bVisible = true;
+					pImg->SetPosition( CVector2( 12 * ( ELEM_COUNT( m_pAdEft1 ) - l ) * 0.5f, 0 ) );
+					pImg->SetTexRect( CRectangle( ( n / 2 ) / 64.0f, ( n & 1 ) / 64.0f + 0.28125, 1 / 64.0f, 1 / 64.0f ) );
+				}
+			}
+		}
+	}
+	else
+	{
+		m_nTimeLeft--;
+		if( !m_nTimeLeft )
+		{
+			GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer()->ForceUnMount();
+			GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, 1 );
+			ShowPage( 3 );
+			return;
+		}
+		m_pProgress->SetPosition( CVector2( floor( ( 1 - m_nTimeLeft * 1.0f / m_nMaxTime ) * m_fMaxProgressOfs * 0.5f + 0.5f ) * 2, m_pProgress->y ) );
+		m_nAdTime--;
+		if( !m_nAdTime )
+		{
+			m_bAd = true;
+			m_pAd[0]->bVisible = true;
+			m_nAdTime = 20;
+		}
+	}
+}
+
+void CCinemaScreenLoading::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
+{
+	if( m_vecInput.size() )
+	{
+		if( vecInput.size() != m_vecInput.size() || memcmp( &vecInput[0], &m_vecInput[0], m_vecInput.size() ) )
+		{
+			GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer()->ForceUnMount();
+			ShowPage( 2 );
+		}
+		for( int i = 0; i < ELEM_COUNT( m_pAdEft1 ); i++ )
+			m_pAdEft1[i]->bVisible = false;
+		m_vecInput.resize( 0 );
+	}
+}
+
+int32 CCinemaScreenLoading::Signal( int32 i )
+{
+	if( m_nCurPage == 3 )
+	{
+		GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer()->ForceUnMount();
+		return 0;
+	}
+	ShowPage( 1 );
+	return 1;
+}
+
+void CCinemaScreenLoading::ShowPage( int8 nPage )
+{
+	m_nCurPage = nPage;
+	for( int i = 0; i < ELEM_COUNT( m_pPages ); i++ )
+		m_pPages[i]->bVisible = i == nPage;
+	m_pAd[0]->bVisible = m_pAd[1]->bVisible = false;
+	m_vecInput.resize( 0 );
+	m_bAd = false;
+	if( nPage == 1 )
+	{
+		m_nTimeLeft = m_nMaxTime;
+		m_nAdTime = SRand::Inst().Rand( m_nAdIntervalMin, m_nAdIntervalMax );
+	}
+}
+
 void RegisterGameClasses_MiscElem()
 {
 	REGISTER_CLASS_BEGIN( CLevelScriptCustom )
@@ -1851,6 +2507,16 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_eftParam0 )
 		REGISTER_MEMBER( m_nEftFrames1 )
 		REGISTER_MEMBER( m_eftParam1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAISignalLight )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER( m_strCondition )
+		REGISTER_MEMBER( m_strSound )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft[0], 1/eft )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft[1], 2/eft )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft[2], 3/eft )
+		REGISTER_MEMBER_TAGGED_PTR( m_pEft[3], 4/eft )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAIAutoDoor )
@@ -1935,15 +2601,64 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_strKey )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CLift )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_nNxtStage )
+		REGISTER_MEMBER( m_strKey )
+		REGISTER_MEMBER( m_nCurValue )
+		REGISTER_MEMBER( m_nToValue )
+		REGISTER_MEMBER( m_nTile )
+		REGISTER_MEMBER( m_nTile1 )
+		REGISTER_MEMBER( m_bUp )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CHeavyDoor )
 		REGISTER_BASE_CLASS( CPawn )
 		REGISTER_MEMBER( m_nNxtStage )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAITransit )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER( m_arrOfs )
+		REGISTER_MEMBER( m_nNxtStage )
+		REGISTER_MEMBER( m_strStateKey )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CScrew )
+		REGISTER_BASE_CLASS( CPawn )
+		REGISTER_MEMBER( m_nMax )
+		REGISTER_MEMBER( m_strCurKey )
+		REGISTER_MEMBER_BEGIN( m_strComplete )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_arrEvts )
+		REGISTER_MEMBER( m_arrEvts1 )
+		REGISTER_MEMBER_BEGIN( m_arrScripts )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_TAGGED_PTR( m_p1, 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[0], mount_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[1], mount_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[2], mount_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[3], mount_3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[4], mount_4 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMounts[5], mount_5 )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Move )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSmoke )
 		REGISTER_BASE_CLASS( CPawnHit )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLightningEft, eft )
 		REGISTER_MEMBER( m_nEftInterval )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CBalloon )
+		REGISTER_BASE_CLASS( CPawnHit )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( COil )
+		REGISTER_BASE_CLASS( CPawnHit )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CElevator )
@@ -1969,6 +2684,7 @@ void RegisterGameClasses_MiscElem()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetProjSrc )
 		REGISTER_LUA_CFUNCTION( SetTarget )
+		REGISTER_LUA_CFUNCTION( Follow )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTutorialMoving )
@@ -2019,5 +2735,35 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_pFailEffect )
 		REGISTER_MEMBER( m_pStateImg )
 		REGISTER_MEMBER_TAGGED_PTR( m_pProjector, proj )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( IsAnythingAbnormal )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CCinemaScreenLoading )
+		REGISTER_BASE_CLASS( CLevelScript )
+		REGISTER_BASE_CLASS( ISignalObj )
+		REGISTER_MEMBER( m_strKey )
+		REGISTER_MEMBER( m_nMaxTime )
+		REGISTER_MEMBER( m_fMaxProgressOfs )
+		REGISTER_MEMBER( m_nAdIntervalMin )
+		REGISTER_MEMBER( m_nAdIntervalMax )
+		REGISTER_MEMBER( m_nAdDurationMin )
+		REGISTER_MEMBER( m_nAdDurationMax )
+		REGISTER_MEMBER( m_nInputTime )
+		REGISTER_MEMBER( m_rectAd )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPages[0], 0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPages[1], 1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPages[2], 2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPages[3], 3 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pProgress, 1/p )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAd[0], 1/ad_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAd[1], 1/ad_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft[0], 1/ad_1/eft_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft[1], 1/ad_1/eft_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft[2], 1/ad_1/eft_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft1[0], 1/ad_1/eft1_0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft1[1], 1/ad_1/eft1_1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft1[2], 1/ad_1/eft1_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pAdEft1[3], 1/ad_1/eft1_3 )
 	REGISTER_CLASS_END()
 }

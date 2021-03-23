@@ -2,6 +2,7 @@
 #include "MyGame.h"
 #include "MyLevel.h"
 #include "GameState.h"
+#include "Entities/MiscElem.h"
 #include "Entities/UtilEntities.h"
 #include "Common/Rand.h"
 #include "GlobalCfg.h"
@@ -76,17 +77,20 @@ void SetPosition( CRenderObject2D* p, float x, float y )
 	p->SetPosition( CVector2( x, y ) );
 }
 
-void PlayerPickUp( const char* szName )
+void PlayerPickUp( const char* szName, CPlayer* pPlayer = NULL )
 {
 	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
 	if( !pPrefab || !pPrefab->GetRoot()->GetStaticDataSafe<CPickUp>() )
 		return;
 	auto pPickUp = SafeCast<CPickUp>( pPrefab->GetRoot()->CreateInstance() );
 	pPickUp->strCreatedFrom = szName;
+	pPickUp->AutoCreateSpawnHelper();
 	auto pEquipment = pPickUp->GetEquipment();
 	if( pEquipment )
 		pEquipment->Init();
-	pPickUp->PickUp( GetPlayer() );
+	if( !pPlayer )
+		pPlayer = GetPlayer();
+	pPickUp->PickUp( pPlayer );
 }
 
 int32 RandInt( int32 nMin, int32 nMax )
@@ -105,6 +109,13 @@ int32 Signal( CEntity* pEntity, int32 n )
 	if( p )
 		return p->Signal( n );
 	return 0;
+}
+
+void SetImgTexRect( CEntity* pEntity, const CRectangle& rect )
+{
+	auto pImg = SafeCast<CImage2D>( pEntity->GetRenderObject() );
+	if( pImg )
+		pImg->SetTexRect( rect );
 }
 
 void SetImgParam( CEntity* pEntity, const CVector4& param )
@@ -160,11 +171,50 @@ CEntity* CreateLighningEft_Script( CVector2 begin, CVector2 end, float fStrength
 	return pLightning;
 }
 
+CEntity* CreateCommonLink( CEntity* pSrc, CEntity* pDst, int8 nKillType, int8 nTargetEffecType )
+{
+	auto pCommonLink = SafeCast<CCommonLink>( CGlobalCfg::Inst().pCommonLinkPrefab->GetRoot()->CreateInstance() );
+	pCommonLink->Set( pSrc, pDst, nKillType, nTargetEffecType );
+	pCommonLink->SetParentEntity( GetCurLevel() );
+	return pCommonLink;
+}
+
+bool PawnCanMoveTo( CPawn* pPawn, int32 x, int32 y )
+{
+	return pPawn->GetLevel()->IsGridMoveable( TVector2<int32>( x, y ), pPawn );
+}
+
+bool BulletCanPass( CPawn* pTarget, int32 x, int32 y )
+{
+	auto pLevel = pTarget->GetLevel();
+	auto pGrid = pLevel->GetGrid( TVector2<int32>( x, y ) );
+	if( !pGrid || !pGrid->bCanEnter )
+		return false;
+	CPawn* pPawn = pGrid->pPawn0;
+	if( pPawn && pPawn != pTarget && !pPawn->IsIgnoreBullet() && !pPawn->IsSpecialState( CPawn::eSpecialState_Fall ) )
+		return false;
+	return true;
+}
+
+int32 FindPath( int32 x1, int32 y1, int32 x2, int32 y2, int32 nCheckFlag )
+{
+	auto pLevel = GetCurLevel();
+	auto result = pLevel->SimpleFindPath( TVector2<int32>( x1, y1 ), TVector2<int32>( x2, y2 ), nCheckFlag );
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	pLuaState->PushLua( result.x );
+	pLuaState->PushLua( result.y );
+	return 2;
+}
 
 void ForceAllVisible()
 {
 	auto& worldData = GetMasterLevel()->GetWorldData();
 	worldData.curFrame.bForceAllVisible = true;
+}
+
+int32 GetCurTick()
+{
+	return CGame::Inst().GetTimeStamp();
 }
 
 
@@ -187,6 +237,7 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandInt )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandFloat )
 	REGISTER_LUA_CFUNCTION_GLOBAL( Signal )
+	REGISTER_LUA_CFUNCTION_GLOBAL( SetImgTexRect )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetImgParam )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RunScenario )
 	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterBegin )
@@ -194,6 +245,11 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterUpdate1 )
 	REGISTER_LUA_CFUNCTION_GLOBAL( LevelRegisterAlwaysUpdate )
 	REGISTER_LUA_CFUNCTION_GLOBAL( CreateLighningEft_Script )
+	REGISTER_LUA_CFUNCTION_GLOBAL( CreateCommonLink )
+	REGISTER_LUA_CFUNCTION_GLOBAL( PawnCanMoveTo )
+	REGISTER_LUA_CFUNCTION_GLOBAL( BulletCanPass )
 	REGISTER_LUA_CFUNCTION_GLOBAL( PlaySoundEffect )
+	REGISTER_LUA_CFUNCTION_GLOBAL_RETUNWR( FindPath )
 	REGISTER_LUA_CFUNCTION_GLOBAL( ForceAllVisible )
+	REGISTER_LUA_CFUNCTION_GLOBAL( GetCurTick )
 }

@@ -166,7 +166,7 @@ void CImageEffect::SetEnabled( bool b )
 	if( b == m_bEnabled )
 		return;
 	m_bEnabled = b;
-	auto p = SafeCastToInterface<IImageEffectTarget>( GetParentEntity() );
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetParent() );
 	if( !p )
 		return;
 	if( m_bEnabled )
@@ -203,9 +203,41 @@ void CImageEffect::SetEnabled( bool b )
 	}
 }
 
+void CImageEffect::OnUpdatePreview()
+{
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetParent() );
+	if( !p )
+		return;
+	switch( m_nType )
+	{
+	case 0:
+	{
+		m_params[2].w += IRenderSystem::Inst()->GetElapsedTime() * m_params[2].x;
+		m_params[2].w -= floor( m_params[2].w );
+		float t = m_params[2].w;
+		if( m_params[2].y == 0 )
+			t = sin( t * PI * 2 );
+		else if( m_params[2].y == 1 )
+			t = 1 - abs( t * 2 - 1 );
+		else if( m_params[2].y == 2 )
+			t = t < 0.5f ? 0 : 1;
+		else if( m_params[2].y == 3 )
+			;
+		else if( m_params[2].y == 4 )
+			t = t * t;
+		auto param = m_params[0] + ( m_params[1] - m_params[0] ) * t;
+
+		p->SetParam( param );
+		break;
+	}
+	default:
+		break;
+	}
+}
+
 void CImageEffect::OnTick()
 {
-	auto p = SafeCastToInterface<IImageEffectTarget>( GetParentEntity() );
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetParent() );
 	if( !p )
 		return;
 	switch( m_nType )
@@ -214,16 +246,27 @@ void CImageEffect::OnTick()
 	{
 		GetStage()->RegisterTick( 1, &m_onTick );
 		m_params[2].w += GetStage()->GetElapsedTimePerTick() * m_params[2].x;
-		m_params[2].w -= floor( m_params[2].w );
+		if( m_params[2].z )
+		{
+			if( m_params[2].w >= 1.0f )
+			{
+				SetEnabled( false );
+				return;
+			}
+		}
+		else
+			m_params[2].w -= floor( m_params[2].w );
 		float t = m_params[2].w;
-		if( m_params[2].y == 1 )
+		if( m_params[2].y == 0 )
+			t = sin( t * PI * 2 );
+		else if( m_params[2].y == 1 )
 			t = 1 - abs( t * 2 - 1 );
 		else if( m_params[2].y == 2 )
 			t = t < 0.5f ? 0 : 1;
 		else if( m_params[2].y == 3 )
 			;
-		else
-			t = sin( t * PI * 2 );
+		else if( m_params[2].y == 4 )
+			t = t * t;
 		auto param = m_params[0] + ( m_params[1] - m_params[0] ) * t;
 
 		p->SetParam( param );
@@ -410,7 +453,7 @@ void CSimpleText::OnRemovedFromStage()
 		m_onTick.Unregister();
 }
 
-void CSimpleText::Set( const char* szText, int8 nAlign )
+void CSimpleText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 {
 	Init();
 	m_textRect = CRectangle( 0, 0, 0, 0 );
@@ -431,7 +474,7 @@ void CSimpleText::Set( const char* szText, int8 nAlign )
 			if( nAlign )
 			{
 				for( int i = iImage; i < m_elems.size(); i++ )
-					m_elems[i].rect = m_elems[i].rect.Offset( CVector2( nAlign == 2 ? -rect.x * 0.5f : -rect.x, 0 ) );
+					m_elems[i].elem.rect = m_elems[i].elem.rect.Offset( CVector2( nAlign == 2 ? -rect.x * 0.5f : -rect.x, 0 ) );
 			}
 			if( !ch )
 				break;
@@ -440,6 +483,8 @@ void CSimpleText::Set( const char* szText, int8 nAlign )
 			rect.x = m_initTextBound.x;
 			rect.y -= m_initTextBound.height;
 			nCurLine++;
+			if( nMaxLines > 0 && nCurLine >= nMaxLines )
+				break;
 			if( ch == ( m_nTexLayoutType == 0 ? '`' : '\n' ) )
 				continue;
 		}
@@ -486,8 +531,10 @@ void CSimpleText::Set( const char* szText, int8 nAlign )
 		}
 		m_elems.resize( m_elems.size() + 1 );
 		auto& elem = m_elems.back();
-		elem.rect = rect;
-		elem.texRect = texRect;
+		elem.nChar = ch;
+		elem.nIndex = c - szText;
+		elem.elem.rect = rect;
+		elem.elem.texRect = texRect;
 		m_nLineCount = nCurLine + 1;
 nxt:
 		rect.x += rect.width;
@@ -495,8 +542,9 @@ nxt:
 	}
 	for( auto& elem : m_elems )
 	{
-		m_textRect = m_textRect + elem.rect;
-		elem.rect = CRectangle( elem.rect.x - m_textSpacing.x, elem.rect.y - m_textSpacing.y, elem.rect.width - m_textSpacing.width, elem.rect.height - m_textSpacing.height );
+		m_textRect = m_textRect + elem.elem.rect;
+		elem.elem.rect = CRectangle( elem.elem.rect.x - m_textSpacing.x, elem.elem.rect.y - m_textSpacing.y,
+			elem.elem.rect.width - m_textSpacing.width, elem.elem.rect.height - m_textSpacing.height );
 	}
 	m_nShowTextCount = m_elems.size();
 	SetLocalBound( m_textRect );
@@ -619,7 +667,62 @@ void CSimpleText::FadeAnim( const CVector2& speed, float fFadeSpeed, bool bGUI )
 		GetStage()->RegisterTick( 1, &m_onTick );
 }
 
-void CSimpleText::Render( CRenderContext2D & context )
+TVector2<int32> CSimpleText::PickWord( const CVector2& p )
+{
+	int32 n = -1;
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		if( m_elems[i].elem.rect.Contains( p ) )
+		{
+			auto ch = m_elems[i].nChar;
+			if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' || ch <= 'z' ) )
+				return TVector2<int32>( -1, -1 );
+			n = i;
+			break;
+		}
+	}
+	if( n == -1 )
+		return TVector2<int32>( -1, -1 );
+	TVector2<int32> result( n, n + 1 );
+	for( int32 nIndex = m_elems[n].nIndex; result.x > 0; result.x--, nIndex-- )
+	{
+		if( m_elems[result.x - 1].nIndex != nIndex - 1 )
+			break;
+		auto ch = m_elems[result.x - 1].nChar;
+		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' || ch <= 'z' ) )
+			break;
+	}
+	for( int32 nIndex = m_elems[n].nIndex; result.y < m_elems.size(); result.y++, nIndex++ )
+	{
+		if( m_elems[result.y].nIndex != nIndex + 1 )
+			break;
+		auto ch = m_elems[result.y].nChar;
+		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' || ch <= 'z' ) )
+			break;
+	}
+	return result;
+}
+
+CRectangle CSimpleText::GetWordBound( int32 nIndexBegin, int32 nIndexEnd )
+{
+	for( int i = 0; i < m_elems.size(); i++ )
+	{
+		if( m_elems[i].nIndex >= nIndexBegin )
+		{
+			auto rect = m_elems[i].elem.rect;
+			for( i++; i < m_elems.size(); i++ )
+			{
+				if( m_elems[i].nIndex >= nIndexEnd )
+					break;
+				rect = rect + m_elems[i].elem.rect;
+			}
+			return rect;
+		}
+	}
+	return CRectangle( 0, 0, 0, 0 );
+}
+
+void CSimpleText::Render( CRenderContext2D& context )
 {
 	if( !m_bInited )
 		return;
@@ -653,15 +756,15 @@ void CSimpleText::Render( CRenderContext2D & context )
 	for( int i = 0; i < m_nShowTextCount; i++ )
 	{
 		auto& elem = m_elems[i];
-		elem.worldMat = globalTransform;
-		elem.SetDrawable( pDrawables[nPass] );
+		elem.elem.worldMat = globalTransform;
+		elem.elem.SetDrawable( pDrawables[nPass] );
 		if( nPass == 0 )
-			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetColorParam( elem.elem.pInstData, elem.elem.nInstDataSize );
 		else if( nPass == 1 )
-			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetOcclusionParam( elem.elem.pInstData, elem.elem.nInstDataSize );
 		else
-			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
-		context.AddElement( &elem, nGroup );
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetGUIParam( elem.elem.pInstData, elem.elem.nInstDataSize );
+		context.AddElement( &elem.elem, nGroup );
 	}
 }
 
@@ -744,9 +847,9 @@ void CTypeText::OnAddedToStage()
 		m_pEnter->bVisible = false;
 }
 
-void CTypeText::Set( const char* szText, int8 nAlign )
+void CTypeText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 {
-	CSimpleText::Set( szText, nAlign );
+	CSimpleText::Set( szText, nAlign, nMaxLines );
 	m_nShowTextCount = 0;
 	m_nTick = 0;
 	m_nForceFinishTick = -1;
@@ -885,7 +988,7 @@ void CTypeText::AddElem( int32 i, float t )
 {
 	m_elemsEft.resize( m_elemsEft.size() + 1 );
 	auto& elem = m_elemsEft.back();
-	elem.rect = m_elems[i].rect;
+	elem.rect = m_elems[i].elem.rect;
 	elem.texRect = CRectangle( SRand::Inst<eRand_Render>().Rand<int32>( 0, m_origRect.width / 2 ) * 2 / m_origRect.width,
 		floor( ( t + SRand::Inst<eRand_Render>().Rand( 0.0f, 0.25f ) / m_nEftFadeTime ) * ( m_origRect.height - elem.rect.height ) * 0.5f ) * 2 / m_origRect.height,
 		elem.rect.width / m_origRect.width, elem.rect.height / m_origRect.height );
@@ -1301,11 +1404,70 @@ float CInterferenceStripEffect::GenBandStrength( float fOrigStrength )
 }
 
 
+CRectangle CChargeEffect::GetRect()
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	return p->GetElem().rect;
+}
+
+CRectangle CChargeEffect::GetTexRect()
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	return p->GetElem().texRect;
+}
+
+void CChargeEffect::SetRect( const CRectangle& rect )
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	p->SetRect( rect );
+	auto pParams = p->GetParam();
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = SafeCast<CPlayer>( GetParentEntity() );
+	int32 nCharge = 0;
+	if( pPlayer )
+	{
+		auto nStateSource = pPlayer->GetCurStateSource();
+		if( nStateSource <= ePlayerEquipment_Count )
+			nCharge = pPlayer->GetEquipment( nStateSource - 1 )->GetAmmo();
+		else
+		{
+			auto pEquipment = pPlayer->GetEquipment( ePlayerEquipment_Large );
+			if( pEquipment )
+				nCharge = pEquipment->GetAmmo();
+		}
+	}
+	else if( pPawn && pPawn->GetAI() )
+		nCharge = pPawn->GetAI()->GetIntValue( "charge" );
+	if( nCharge )
+	{
+		pParams[0] = m_arrParam1[Min<int32>( m_arrParam1.Size(), nCharge ) - 1];
+		pParams[1] = m_arrParam2[Min<int32>( m_arrParam2.Size(), nCharge ) - 1];
+	}
+	else
+	{
+		pParams[0] = CVector4( 0, 0, 0, 0 );
+		pParams[1] = CVector4( 0, 0, 0, 0 );
+	}
+}
+
+void CChargeEffect::SetTexRect( const CRectangle& rect )
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	p->SetTexRect( rect );
+}
+
 void CTracerEffect::OnAddedToStage()
 {
-	m_nSeed = SRand::Inst<eRand_Render>().Rand();
-	m_nSeed1 = SRand::Inst<eRand_Render>().Rand();
-	SetRenderObject( NULL );
+	if( GetRenderObject() )
+	{
+		auto p = static_cast<CImage2D*>( GetRenderObject() );
+		memcpy( m_origElem.param, p->GetParam(), sizeof( m_origElem.param ) );
+		m_origElem.elem.nInstDataSize = sizeof( m_origElem.param );
+		m_origElem.elem.pInstData = m_origElem.param;
+		m_nSeed = SRand::Inst<eRand_Render>().Rand();
+		m_nSeed1 = SRand::Inst<eRand_Render>().Rand();
+		SetRenderObject( NULL );
+	}
 	GetStage()->RegisterTick( 1, &m_onTick );
 }
 
@@ -1344,26 +1506,32 @@ void CTracerEffect::Render( CRenderContext2D& context )
 		return;
 	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
 
-	for( auto& elem : m_elems )
+	if( m_bDisabled )
 	{
-		elem.elem.worldMat = globalTransform;
-		elem.elem.SetDrawable( pDrawables[nPass] );
-		context.AddElement( &elem.elem, nGroup );
+		m_origElem.elem.worldMat = globalTransform;
+		m_origElem.elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &m_origElem.elem, nGroup );
+	}
+	else
+	{
+		for( auto& elem : m_elems )
+		{
+			elem.elem.worldMat = globalTransform;
+			elem.elem.SetDrawable( pDrawables[nPass] );
+			context.AddElement( &elem.elem, nGroup );
+		}
 	}
 }
 
 void CTracerEffect::OnPreview()
 {
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	memcpy( m_origElem.param, p->GetParam(), sizeof( m_origElem.param ) );
+	m_origElem.elem.nInstDataSize = sizeof( m_origElem.param );
+	m_origElem.elem.pInstData = m_origElem.param;
 	SetRenderObject( NULL );
-	m_elems.resize( 1 );
-	auto& elem = m_elems[0];
-	elem.elem.rect = m_rect;
-	elem.elem.texRect = m_texRect;
-	elem.param[0] = CVector4( 1, 1, 1, 0 );
-	elem.param[1] = CVector4( 0, 0, 0, 0 );
-	elem.elem.nInstDataSize = sizeof( elem.param );
-	elem.elem.pInstData = elem.param;
-	SetLocalBound( m_rect );
+	m_bDisabled = true;
+	SetLocalBound( m_origElem.elem.rect );
 	SetBoundDirty();
 }
 
@@ -1381,13 +1549,13 @@ void CTracerEffect::OnTick()
 		m_nSeed1 = rnd1.Rand();
 
 	int32 y0 = 0;
-	for( int32 x = 0; x < m_rect.width; )
+	for( int32 x = 0; x < m_origElem.elem.rect.width; )
 	{
 		m_elems.resize( m_elems.size() + 1 );
 		auto& elem = m_elems.back().elem;
-		auto w = Min( m_rect.width - x, Max( 1, rnd0.Rand( -3, 8 ) ) * 2.0f );
+		auto w = Min( m_origElem.elem.rect.width - x, Max( 1, rnd0.Rand( -3, 8 ) ) * 2.0f );
 		x += w;
-		elem.rect = CRectangle( 0, y0 * 2, w, m_rect.height );
+		elem.rect = CRectangle( 0, y0 * 2, w, m_origElem.elem.rect.height );
 		y0 += Max( 0, rnd.Rand( -2, 3 ) );
 	}
 	rnd0.Shuffle( m_elems );
@@ -1397,7 +1565,7 @@ void CTracerEffect::OnTick()
 	{
 		x0 += m_elems[i].elem.rect.width;
 		CVector4* params = m_elems[i].param;
-		float k = x0 / m_rect.width;
+		float k = x0 / m_origElem.elem.rect.width;
 		params[0] = CVector4( 1 + k * rnd1.Rand( -1.0f, 1.0f ), 1 + k * rnd1.Rand( -1.0f, 1.0f ), 1 + k * rnd1.Rand( -1.0f, 1.0f ), 0 );
 		params[1] = CVector4( 0, 0, 0, 0 );
 		CVector4 param1( rnd1.Rand( 0.0f, 1.0f ), rnd1.Rand( 0.0f, 1.0f ), rnd1.Rand( 0.0f, 1.0f ), 0 );
@@ -1413,19 +1581,19 @@ void CTracerEffect::OnTick()
 	}
 	rnd0.Shuffle( m_elems );
 
-	x0 = m_rect.x;
+	x0 = m_origElem.elem.rect.x;
 	y0 = ( y0 + rnd.Rand( 0, 2 ) ) / 2;
 	CRectangle bound( 0, 0, 0, 0 );
-	float w = m_texRect.width / m_rect.width;
+	float w = m_origElem.elem.texRect.width / m_origElem.elem.rect.width;
 	for( int i = 0; i < m_elems.size(); i++ )
 	{
 		auto& item = m_elems[i];
 		item.elem.rect.y -= y0 * 2;
-		item.elem.rect.y += m_rect.y;
+		item.elem.rect.y += m_origElem.elem.rect.y;
 		item.elem.rect.x = x0;
 		x0 += item.elem.rect.width;
-		item.elem.texRect = CRectangle( m_texRect.x + ( item.elem.rect.x - m_rect.x ) * w, m_texRect.y,
-			w * item.elem.rect.width, m_texRect.height );
+		item.elem.texRect = CRectangle( m_origElem.elem.texRect.x + ( item.elem.rect.x - m_origElem.elem.rect.x ) * w, m_origElem.elem.texRect.y,
+			w * item.elem.rect.width, m_origElem.elem.texRect.height );
 		item.elem.nInstDataSize = sizeof( item.param );
 		item.elem.pInstData = item.param;
 		bound = bound + item.elem.rect;
@@ -1588,6 +1756,8 @@ void RegisterGameClasses_UtilEntities()
 {
 	REGISTER_INTERFACE_BEGIN( IImageEffectTarget )
 	REGISTER_INTERFACE_END()
+	REGISTER_INTERFACE_BEGIN( IImageRect )
+	REGISTER_INTERFACE_END()
 
 	REGISTER_CLASS_BEGIN( CTexRectRandomModifier )
 		REGISTER_BASE_CLASS( CEntity )
@@ -1677,8 +1847,16 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER( m_params )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CChargeEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_BASE_CLASS( IImageRect )
+		REGISTER_MEMBER( m_arrParam1 )
+		REGISTER_MEMBER( m_arrParam2 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CTracerEffect )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_BASE_CLASS( IImageRect )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CTracerSpawnEffect )

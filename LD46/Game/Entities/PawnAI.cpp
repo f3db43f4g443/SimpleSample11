@@ -3,7 +3,9 @@
 #include "MyLevel.h"
 #include "Common/Rand.h"
 #include "Algorithm.h"
-
+#include "Common/PriorityQueue.h"
+#include "Entities/UtilEntities.h"
+#include "GlobalCfg.h"
 
 class CPawnAIScript : public CPawnAI
 {
@@ -11,6 +13,75 @@ class CPawnAIScript : public CPawnAI
 public:
 	CPawnAIScript( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIScript ); }
 
+	virtual void PreInit() override
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto pLevel = pPawn->GetLevel();
+		m_vecValueInt.resize( m_arrKeyInt.Size() );
+		if( pLevel )
+		{
+			for( int i = 0; i < m_arrKeyInt.Size(); i++ )
+				m_vecValueInt[i] = pLevel->GetMasterLevel()->EvaluateKeyInt( m_arrSaveKeyInt[i] );
+		}
+		if( m_strPreInit.length() )
+		{
+			pLuaState->Load( m_strPreInit );
+			pLuaState->PushLua( pPawn );
+			pLuaState->Call( 1, 1 );
+			int32 nInitState = pLuaState->PopLuaValue<int32>();
+			if( pPawn->IsValidStateIndex( nInitState ) )
+				pPawn->SetInitState( nInitState );
+		}
+		if( m_bUpdateCoroutine )
+		{
+			if( !m_pUpdate )
+			{
+				auto pCoroutine = pLuaState->CreateCoroutine( m_strUpdate );
+				ASSERT( pCoroutine );
+				m_pUpdate = pCoroutine;
+			}
+		}
+	}
+	virtual void OnUpdate() override
+	{
+		if( !m_strUpdate.length() )
+			return;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( m_bUpdateCoroutine )
+		{
+			if( m_pUpdate )
+			{
+				m_pUpdate->PushLua( pPawn );
+				if( !m_pUpdate->Resume( 1, 0 ) )
+					m_pUpdate = NULL;
+			}
+		}
+		else
+		{
+			pLuaState->Load( m_strUpdate );
+			pLuaState->PushLua( pPawn );
+			pLuaState->Call( 1, 0 );
+		}
+	}
+	void OnRemovedFromLevel() override
+	{
+		if( m_pUpdate )
+			m_pUpdate = NULL;
+	}
+	virtual bool OnPlayerTryToLeave() override
+	{
+		if( !m_strOnPlayerTryToLeave.length() )
+			return true;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		pLuaState->Load( m_strOnPlayerTryToLeave );
+		pLuaState->PushLua( pPawn );
+		pLuaState->Call( 1, 1 );
+		bool b = pLuaState->PopLuaValue<bool>();
+		return b;
+	}
 	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override
 	{
 		if( !m_strDamage.length() )
@@ -49,9 +120,64 @@ public:
 		nCurDir = nDir;
 		return nState;
 	}
+	virtual int32 Signal( int32 i ) override
+	{
+		if( !m_strSignal.length() )
+			return 0;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		pLuaState->Load( m_strSignal );
+		pLuaState->PushLua( pPawn );
+		pLuaState->PushLua( i );
+		pLuaState->Call( 2, 1 );
+		return pLuaState->PopLuaValue<int32>();
+	}
+
+	virtual int32 GetIntValue( const char* szKey ) override
+	{
+		CMyLevel* pLevel = NULL;
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( pPawn )
+			pLevel = pPawn->GetLevel();
+		if( !pLevel )
+			return 0;
+		for( int i = 0; i < m_arrKeyInt.Size(); i++ )
+		{
+			if( m_arrKeyInt[i] == szKey )
+				return m_vecValueInt[i];
+		}
+		return 0;
+	}
+	virtual void SetIntValue( const char* szKey, int32 nValue ) override
+	{
+		CMyLevel* pLevel = NULL;
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( pPawn )
+			pLevel = pPawn->GetLevel();
+		for( int i = 0; i < m_arrKeyInt.Size(); i++ )
+		{
+			if( m_arrKeyInt[i] == szKey )
+			{
+				if( pLevel && pLevel->GetMasterLevel() && m_arrSaveKeyInt[i].length() )
+					pLevel->GetMasterLevel()->SetKeyInt( m_arrSaveKeyInt[i], nValue );
+				m_vecValueInt[i] = nValue;
+				break;
+			}
+		}
+	}
 private:
+	CString m_strPreInit;
+	CString m_strUpdate;
+	CString m_strOnPlayerTryToLeave;
 	CString m_strDamage;
 	CString m_strCheckStateTransits1;
+	CString m_strSignal;
+	TArray<CString> m_arrKeyInt;
+	TArray<CString> m_arrSaveKeyInt;
+	bool m_bUpdateCoroutine;
+
+	vector<int32> m_vecValueInt;
+	CReference<CLuaState> m_pUpdate;
 };
 
 
@@ -210,6 +336,8 @@ public:
 	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
 	{
 		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( pPawn->GetCurStateIndex() == Action_Hit )
+			return;
 		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
 		if( !pPlayer->IsHidden() )
 			return;
@@ -219,11 +347,15 @@ public:
 			m_lastSeePlayerPos = p;
 		}
 	}
+	bool IsSeePlayer() { return m_bLastSeePlayerPosValid; }
+	void SetSpecialBehaviorEnabled( bool b ) { m_bSpecialBehaviorEnabled = b; }
+	void RunCustomScript();
 private:
 	bool CheckSeePlayer( CPlayer* pPlayer ) { return CommonCheckSeePlayer( pPlayer, m_vecAlert, m_vecDetect, m_lastSeePlayerPos, m_bLastSeePlayerPosValid ); }
 	enum
 	{
-		Action_Death = 5,
+		Action_Hit = 4,
+		Action_Death,
 		Action_Atk_X = 7,
 		Action_Atk_Up,
 		Action_Atk_Down,
@@ -241,6 +373,8 @@ private:
 	bool m_bMoveAsAttack;
 	int32 m_nSightRange;
 	int32 m_nActionRange;
+	CString m_strSpecialBehaviorCheckAction;
+	bool m_bSpecialBehaviorEnabled;
 
 	int8 m_bLastSeePlayerPosValid;
 	TVector2<int32> m_origPos;
@@ -248,6 +382,7 @@ private:
 	vector<TVector2<int32> > m_vecAlert;
 	vector<TVector2<int32> > m_vecDetect;
 	TVector2<int32> m_lastSeePlayerPos;
+	CReference<CLuaState> m_pCustomScript;
 };
 
 void CPawnAI1::OnInit()
@@ -260,6 +395,26 @@ void CPawnAI1::OnInit()
 int32 CPawnAI1::CheckAction( int8& nCurDir )
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( m_bSpecialBehaviorEnabled && m_strSpecialBehaviorCheckAction.length() )
+	{
+		if( m_strSpecialBehaviorCheckAction.length() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+			pLuaState->Load( m_strSpecialBehaviorCheckAction );
+			pLuaState->PushLua( pPawn );
+			pLuaState->PushLua( nCurDir );
+			pLuaState->Call( 2, 2 );
+			int8 nDir = pLuaState->PopLuaValue<int8>();
+			int32 nState = pLuaState->PopLuaValue<int32>();
+			if( nState >= 0 )
+			{
+				nCurDir = nDir;
+				return nState;
+			}
+		}
+	}
+
 	auto pLevel = pPawn->GetLevel();
 	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
 	bool bType = pPawn->IsSpecialState( CPawn::eSpecialState_Frenzy );
@@ -362,6 +517,29 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 
 int32 CPawnAI1::CheckStateTransits1( int8& nCurDir, bool bFinished )
 {
+	if( m_pCustomScript )
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto nCurStateIndex = pPawn->GetCurStateIndex();
+		m_pCustomScript->PushLua( "CheckStateTransits1" );
+		m_pCustomScript->PushLua( nCurStateIndex );
+		m_pCustomScript->PushLua( nCurDir );
+		m_pCustomScript->PushLua( bFinished );
+		bool b = m_pCustomScript->Resume( 4, 3 );
+		int8 nDir = m_pCustomScript->PopLuaValue<int8>();
+		int32 nState = m_pCustomScript->PopLuaValue<int32>();
+		bool bOK = m_pCustomScript->PopLuaValue<bool>();
+		if( !b )
+			m_pCustomScript = NULL;
+		if( bOK )
+		{
+			if( nState < 0 )
+				return -1;
+			nCurDir = nDir;
+			return nState;
+		}
+	}
+
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
 	if( pPlayer->IsHidden() )
@@ -392,7 +570,11 @@ int32 CPawnAI1::CheckStateTransits1( int8& nCurDir, bool bFinished )
 
 TVector2<int32> CPawnAI1::HandleStealthDetect()
 {
+	m_vecAlert.resize( 0 );
+	m_vecDetect.resize( 0 );
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetCurStateIndex() == Action_Hit || pPawn->IsKilled() )
+		return TVector2<int32>( -1, -1 );
 	auto pLevel = pPawn->GetLevel();
 	auto levelSize = pLevel->GetSize();
 	static vector<int8> vec;
@@ -412,8 +594,6 @@ TVector2<int32> CPawnAI1::HandleStealthDetect()
 	vec[p0.x + p0.y * levelSize.x] = 2;
 	TVector2<int32> ofs0[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
 	ExpandDist( vec, levelSize.x, levelSize.y, 2, 0, 3, q, ofs0, ELEM_COUNT( ofs0 ) );
-	m_vecAlert.resize( 0 );
-	m_vecDetect.resize( 0 );
 	for( auto& p : q )
 	{
 		m_vecAlert.push_back( p );
@@ -431,6 +611,19 @@ TVector2<int32> CPawnAI1::HandleStealthDetect()
 	return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
 }
 
+void CPawnAI1::RunCustomScript()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLuaState = CLuaState::GetCurLuaState();
+	auto pCoroutine = pLuaState->CreateCoroutineAuto();
+	ASSERT( pCoroutine );
+	m_pCustomScript = pCoroutine;
+	m_pCustomScript->PushLua( this );
+	m_pCustomScript->PushLua( pPawn );
+	if( !m_pCustomScript->Resume( 2, 0 ) )
+		m_pCustomScript = NULL;
+}
+
 
 class CPawnAI2 : public CPawnAI
 {
@@ -444,10 +637,11 @@ public:
 int32 CPawnAI2::CheckAction( int8& nCurDir )
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
 	int8 moveX = SRand::Inst().Rand( 0, 2 );
 	if( pPawn->GetHp() <= 0 )
 		return 3;
-	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+	CPlayer* pPlayer = pLevel->GetPlayer();
 	if( pPlayer )
 	{
 		auto d = pPlayer->GetMoveTo() - pPawn->GetPos();
@@ -457,6 +651,20 @@ int32 CPawnAI2::CheckAction( int8& nCurDir )
 		if( d == TVector2<int32>( -1, 1 ) ) { nCurDir = 1; return 1; }
 		if( d == TVector2<int32>( 1, -1 ) ) { nCurDir = 0; return 1; }
 		if( d == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return 1; }
+	}
+	TVector2<int32> ofs[] = { { 2, 0 }, { -2, 0 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
+	for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+	{
+		auto p = pPawn->GetPos() + ofs[i];
+		auto pGrid = pLevel->GetGrid( p );
+		if( !pGrid )
+			continue;
+		auto player1 = SafeCast<CPlayer>( pGrid->pPawn0.GetPtr() );
+		if( player1 && player1->GetMoveTo() == p )
+		{
+			nCurDir = i % 2;
+			return 1;
+		}
 	}
 	if( moveX != nCurDir )
 	{
@@ -523,16 +731,7 @@ int32 CPawnAI_Spore::CheckAction( int8& nCurDir )
 			if( d1 == TVector2<int32>( -1, -1 ) ) { nCurDir = 1; return eCommonAction_Move_Down; }
 		}
 	}
-
-	int8 moveX = SRand::Inst().Rand( 0, 2 );
-	int8 moveY = SRand::Inst().Rand( -1, 2 );
-	nCurDir = moveX;
-	if( moveY == 1 )
-		return eCommonAction_Move_Up;
-	else if( moveY == -1 )
-		return eCommonAction_Move_Down;
-	else
-		return eCommonAction_Move_X;
+	return -1;
 }
 
 
@@ -1267,6 +1466,8 @@ bool CPawnAI_Crow::Damage( int32& nDamage, int8 nDamageType, const TVector2<int3
 TVector2<int32> CPawnAI_Crow::HandleStealthDetect()
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->IsKilled() )
+		return TVector2<int32>( -1, -1 );
 	auto pLevel = pPawn->GetLevel();
 	auto levelSize = pLevel->GetSize();
 	TVector3<int32> target( -1, -1, -1 );
@@ -1703,6 +1904,909 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 }
 
 
+class CPawnAI_PlayerTracer : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	CPawnAI_PlayerTracer( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI_PlayerTracer ); }
+	virtual void OnRemovedFromStage() override
+	{
+		m_pHpBarImg[0]->SetRenderParent( this );
+		m_pHpBarImg[1]->SetRenderParent( this );
+	}
+	virtual void PreInit() override
+	{
+		if( !m_strPreInit.length() )
+			return;
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		pLuaState->Load( m_strPreInit );
+		pLuaState->PushLua( pPawn );
+		pLuaState->Call( 1, 1 );
+		int32 nInitState = pLuaState->PopLuaValue<int32>();
+		for( int i = 0; i < ELEM_COUNT( m_pOrigWeapon ); i++ )
+		{
+			auto pEquipment = pPawn->GetEquipment( i );
+			if( pEquipment )
+				m_pOrigWeapon[i] = pEquipment->GetPickUp();
+		}
+
+		if( pPawn->GetEquipment( 3 ) )
+			StartSpecialAction();
+		else if( pPawn->IsValidStateIndex( nInitState ) )
+			pPawn->SetInitState( nInitState );
+	}
+	virtual void OnInit() override
+	{
+		m_hpBarOrigRect[0] = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
+		m_hpBarOrigRect[1] = static_cast<CImage2D*>( m_pHpBarImg[1].GetPtr() )->GetElem().rect;
+		auto rect = m_hpBarOrigRect[1];
+		rect.width = m_nCharge * rect.width / m_nChargeMax;
+		static_cast<CImage2D*>( m_pHpBarImg[1].GetPtr() )->SetRect( rect );
+		m_pHpBarImg[1]->SetBoundDirty();
+	}
+	virtual void OnUpdate0() override;
+	virtual void OnLevelEnd() override;
+	virtual bool CheckAction1( CString& strState, int8& nCurDir ) override;
+	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) override;
+	virtual void OnChangeState() override;
+
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override;
+	virtual bool PreKill() override;
+	virtual void TryPickUp() override
+	{
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		auto pPickUp = FindPickUp();
+		if( pPickUp )
+		{
+			pPickUp->PickUp( pPawn );
+			Break();
+		}
+	}
+	void OnSetMounted( bool bMounted ) override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( bMounted )
+		{
+			pPawn->SetHp( pPawn->GetMaxHp() );
+			auto pPlayer = pPawn->GetLevel()->GetPlayer();
+			m_pHpBarImg[0]->SetRenderParent( pPlayer );
+			m_pHpBarImg[1]->SetRenderParent( pPlayer );
+		}
+		else
+		{
+			m_pHpBarImg[0]->SetRenderParent( this );
+			m_pHpBarImg[1]->SetRenderParent( this );
+		}
+	}
+	virtual TVector2<int32> HandleStealthDetect() override;
+	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+		if( !pPlayer->IsHidden() )
+			return;
+		if( !CheckSeePlayer( pPlayer ) )
+		{
+			m_bLastSeePlayerPosValid = 1;
+			m_lastSeePlayerPos = p;
+		}
+	}
+	void Reset()
+	{
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		Break();
+		pPawn->PlayState( "stand" );
+		pPawn->SetHp( pPawn->GetMaxHp() );
+		m_nCharge = 0;
+	}
+	int32 FindTarget( CPawn* pTarget0, int8 nType );
+	int32 FindTarget1();
+	CPickUp* FindPickUp()
+	{
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		for( int i = 0; i < ELEM_COUNT( m_pOrigWeapon ); i++ )
+		{
+			if( m_pOrigWeapon[i] && m_pOrigWeapon[i]->GetLevel() && m_pOrigWeapon[i]->IsPickUpReady()
+				&& m_pOrigWeapon[i]->GetPos() == pPawn->GetPos() )
+				return m_pOrigWeapon[i];
+		}
+		/*auto pPickUp = pPawn->GetLevel()->FindPickUp( pPawn->GetPos(), pPawn->GetWidth(), pPawn->GetHeight() );
+		if( !pPickUp || !pPickUp->GetEquipment() )
+			return NULL;
+		if( GetCurEquip( pPickUp->GetEquipment()->GetEquipmentType() ) >= 0 )
+			return NULL;
+		auto strName = pPickUp->GetEquipment()->GetEquipmentName();
+		for( int i = 0; i < m_arrEquip.Size(); i++ )
+		{
+			if( strName == m_arrEquip[i] )
+				return pPickUp;
+		}*/
+		return NULL;
+	}
+	void DisableAction( bool b, bool b1 ) { m_bDisableAction = b; m_bDisableActionAutoRecover = b1; }
+	bool IsValidTarget( CPawn* pPawn ) { return pPawn->GetLevel() && !pPawn->IsKilled(); }
+	bool IsOrigWeaponLost( int8 n )
+	{
+		if( !m_pOrigWeapon[n] )
+			return false;
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto pPlayer = pPawn->GetLevel()->GetPlayer();
+		auto pEquipment = pPlayer->GetEquipment( n );
+		if( pEquipment && m_pOrigWeapon[n] == pEquipment->GetPickUp() )
+			return true;
+		return false;
+	}
+	const char* GetCurEquipName( int8 nEquip )
+	{
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		auto pEquipment = pPawn->GetEquipment( nEquip );
+		if( !pEquipment )
+			return "";
+		return pEquipment->GetEquipmentName();
+	}
+private:
+	bool CheckSeePlayer( CPlayer* pPlayer ) { return CommonCheckSeePlayer( pPlayer, m_vecAlert, m_vecDetect, m_lastSeePlayerPos, m_bLastSeePlayerPosValid ); }
+	void Break();
+	void StartAction();
+	void StartSpecialAction();
+	void CheckWeapon1( const char* szCurState, int8 nCurDir, CString& state, int8& nDir );
+	int32 GetCurEquip( int8 nEquip )
+	{
+		auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+		auto pEquipment = pPawn->GetEquipment( nEquip );
+		if( !pEquipment )
+			return -1;
+		
+		for( int i = 0; i < m_arrEquip.Size(); i++ )
+		{
+			if( m_arrEquip[i] == pEquipment->GetEquipmentName() )
+				return i;
+		}
+		return -1;
+	}
+	CString m_strPreInit;
+	CString m_strLevelEnd;
+	CString m_strAction;
+	CString m_strSpecialAction;
+	int32 m_nChargeMax;
+	int32 m_nChargeSpeed1;
+	TArray<CString> m_arrEquip;
+	TArray<CString> m_arrEquipAction;
+	TArray<CString> m_arrEquipSpecialAction;
+	CReference<CRenderObject2D> m_pHpBarImg[2];
+
+	bool m_bDisableAction;
+	bool m_bDisableActionAutoRecover;
+	int8 m_bLastSeePlayerPosValid;
+	vector<TVector2<int32> > m_vecAlert;
+	vector<TVector2<int32> > m_vecDetect;
+	TVector2<int32> m_lastSeePlayerPos;
+	CReference<CLuaState> m_pAction;
+	CReference<CLuaState> m_pActionSpecial;
+	int32 m_nCharge;
+	CRectangle m_hpBarOrigRect[2];
+	CReference<CPickUp> m_pOrigWeapon[ePlayerEquipment_Count];
+};
+
+void CPawnAI_PlayerTracer::OnUpdate0()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+
+	m_pHpBarImg[1]->bVisible = true;
+	auto rect = m_hpBarOrigRect[1];
+	rect.width = m_nCharge * rect.width / m_nChargeMax;
+	static_cast<CImage2D*>( m_pHpBarImg[1].GetPtr() )->SetRect( rect );
+	m_pHpBarImg[1]->SetBoundDirty();
+	m_pHpBarImg[1]->SetPosition( pPawn->GetHpBarOfs() );
+	
+	if( !pPawn->GetLevel() )
+	{
+		m_pHpBarImg[0]->bVisible = m_pHpBarImg[1]->bVisible = false;
+		return;
+	}
+	auto szCurState = pPawn->GetCurStateName();
+	if( !strcmp( szCurState, "respawn" ) || !strcmp( szCurState, "pick" ) || m_pActionSpecial )
+	{
+		m_pHpBarImg[0]->bVisible = false;
+		pPawn->SetTracerEffectDisabled( false );
+		return;
+	}
+
+	pPawn->SetTracerEffectDisabled( true );
+	m_pHpBarImg[0]->bVisible = true;
+	rect = m_hpBarOrigRect[0];
+	rect.width = pPawn->GetHp() * rect.width / pPawn->GetMaxHp();
+	static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->SetRect( rect );
+	m_pHpBarImg[0]->SetBoundDirty();
+	m_pHpBarImg[0]->SetPosition( pPawn->GetHpBarOfs() );
+}
+
+void CPawnAI_PlayerTracer::OnLevelEnd()
+{
+	if( !m_strLevelEnd.length() )
+		return;
+
+	auto pPawn = SafeCast<CPlayer>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	auto enterPos = pLevel->GetTracerEnterPos();
+	TVector2<int32> nearest( -1, -1 );
+
+	auto nxt = pLevel->Search( pPawn->GetMoveTo(), [=, &nearest] ( CMyLevel::SGrid* pGrid, const TVector2<int32>& p ) -> int8 {
+		if( p == pPlayer->GetMoveTo() )
+			return 1;
+		if( !pGrid->bCanEnter )
+			return -1;
+		if( pGrid->pPawn0 && !pGrid->pPawn0->IsDynamic() )
+			return -1;
+		if( pGrid->nNextStage )
+		{
+			if( p == enterPos )
+				nearest = enterPos;
+			else if( nearest.x < 0 )
+				nearest = p;
+		}
+		return 0;
+	} );
+	if( nxt.x < 0 )
+	{
+		pLevel->BlockTracer();
+		if( nearest.x > 0 )
+			pLevel->GetMasterLevel()->GetWorldData().curFrame.tracerLevelEnterPos = nearest;
+	}
+
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	pLuaState->Load( m_strLevelEnd );
+	pLuaState->PushLua( this );
+	pLuaState->PushLua( pPawn );
+	pLuaState->Call( 2, 0 );
+}
+
+bool CPawnAI_PlayerTracer::CheckAction1( CString& strState, int8& nCurDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto szCurState = pPawn->GetCurStateName();
+	auto pLevel = pPawn->GetLevel();
+	if( pLevel->IsScenario() )
+		return false;
+	if( m_bDisableAction )
+	{
+		if( m_bDisableActionAutoRecover && strcmp( szCurState, "respawn" ) != 0 )
+			m_bDisableActionAutoRecover = m_bDisableAction = false;
+		else
+			return false;
+	}
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+
+	CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+	if( pPlayer->IsHidden() )
+	{
+		CheckSeePlayer( pPlayer );
+	}
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+
+	bool bRespawn = !strcmp( szCurState, "respawn" );
+	bool bBreak = !strncmp( szCurState, "break", 5 );
+	if( !bRespawn && pPawn->GetHp() <= 0 )
+	{
+		m_nCharge = 0;
+		strState = "respawn";
+		return true;
+	}
+	if( !strcmp( szCurState, "stand" ) || bBreak || bRespawn && m_nCharge >= m_nChargeMax )
+	{
+		if( FindPickUp() )
+		{
+			strState = "pick";
+			if( bRespawn )
+				pPawn->SetHp( pPawn->GetMaxHp() );
+			return true;
+		}
+	}
+	if( m_nCharge >= m_nChargeMax )
+	{
+		StartSpecialAction();
+		if( m_pActionSpecial )
+		{
+			m_nCharge = 0;
+			m_pAction = NULL;
+			strState = "stand";
+			if( bRespawn )
+			{
+				pPawn->SetHp( pPawn->GetMaxHp() );
+				bRespawn = false;
+			}
+			return true;
+		}
+		else if( bRespawn )
+		{
+			pPawn->SetHp( pPawn->GetMaxHp() );
+			strState = "stand";
+			return true;
+		}
+	}
+	if( !bRespawn )
+	{
+		auto& pAction = m_pActionSpecial ? m_pActionSpecial : m_pAction;
+		if( !pAction )
+			StartAction();
+
+		pAction->PushLua( szCurState );
+		pAction->PushLua( nCurDir );
+		bool b = pAction->Resume( 2, 3 );
+		int8 nType = pAction->PopLuaValue<int8>();
+		int8 nDir = pAction->PopLuaValue<int8>();
+		CString state1 = pAction->PopLuaValue<CString>();
+		if( !b )
+			pAction = NULL;
+		else
+		{
+			if( nType )
+				CheckWeapon1( strState, nCurDir, state1, nDir );
+			if( !state1.length() )
+				return false;
+			strState = state1;
+			nCurDir = nDir;
+			return true;
+		}
+	}
+	return false;
+}
+
+int32 CPawnAI_PlayerTracer::CheckStateTransits1( int8& nCurDir, bool bFinished )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetLevel()->IsScenario() )
+		return -1;
+	if( !m_pActionSpecial )
+	{
+		if( !strcmp( pPawn->GetCurStateName(), "respawn" ) )
+			m_nCharge += m_nChargeSpeed1;
+		else
+			m_nCharge++;
+		m_nCharge = Min( m_nChargeMax, m_nCharge );
+	}
+	return -1;
+}
+
+void CPawnAI_PlayerTracer::OnChangeState()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( !strncmp( pPawn->GetCurStateName(), "break", 5 ) )
+		Break();
+}
+
+bool CPawnAI_PlayerTracer::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs )
+{
+	if( m_pActionSpecial )
+	{
+		nDamage = 0;
+		return true;
+	}
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->IsMountHide() )
+		return false;
+	auto szCurState = pPawn->GetCurStateName();
+	if( !strcmp( szCurState, "respawn" ) || !strcmp( szCurState, "pick" ) )
+	{
+		nDamage = 0;
+		return true;
+	}
+	return false;
+}
+
+bool CPawnAI_PlayerTracer::PreKill()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->IsMountHide() || !strncmp( pPawn->GetCurStateName(), "break", 5 ) )
+		return false;
+	Break();
+	m_nCharge = 0;
+	pPawn->PlayState( "respawn" );
+	return false;
+}
+
+TVector2<int32> CPawnAI_PlayerTracer::HandleStealthDetect()
+{
+	m_vecAlert.resize( 0 );
+	m_vecDetect.resize( 0 );
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( !strncmp( pPawn->GetCurStateName(), "break", 5 ) || pPawn->IsKilled() )
+		return TVector2<int32>( -1, -1 );
+	auto pLevel = pPawn->GetLevel();
+	auto levelSize = pLevel->GetSize();
+	static vector<int8> vec;
+	static vector<TVector2<int32> > q;
+	vec.resize( levelSize.x * levelSize.y );
+	for( int i = 0; i < levelSize.x; i++ )
+	{
+		for( int j = 0; j < levelSize.y; j++ )
+		{
+			if( !!( ( i + j ) & 1 ) )
+				continue;
+			vec[i + j * levelSize.x] = pLevel->IsGridBlockSight( TVector2<int32>( i, j ) ) ? 1 : 0;
+		}
+	}
+	auto p0 = pPawn->GetMoveTo();
+	q.push_back( p0 );
+	vec[p0.x + p0.y * levelSize.x] = 2;
+	TVector2<int32> ofs0[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	ExpandDist( vec, levelSize.x, levelSize.y, 2, 0, 3, q, ofs0, ELEM_COUNT( ofs0 ) );
+	for( auto& p : q )
+	{
+		m_vecAlert.push_back( p );
+		pLevel->GetGrid( p )->bStealthAlert = true;
+		auto d = p - p0;
+		d.x = abs( d.x );
+		d.y = abs( d.y );
+		if( d.x + d.y + Max( 0, d.y - d.x ) <= 2 )
+		{
+			pLevel->GetGrid( p )->bStealthDetect = true;
+			m_vecDetect.push_back( p );
+		}
+	}
+	q.resize( 0 );
+	return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
+}
+
+int32 CPawnAI_PlayerTracer::FindTarget( CPawn* pTarget0, int8 nType )
+{
+	if( pTarget0 && ( !pTarget0->GetLevel() || pTarget0->IsKilled() ) )
+		pTarget0 = NULL;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	TVector2<int32> ofs[] = { { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 }, { 2, 0 }, { -2, 0 } };
+	TVector2<int32>* pOfs = NULL;
+	int32 nOfs = 0;
+	if( nType == 1 )
+	{
+		SRand::Inst().Shuffle( ofs, 4 );
+		SRand::Inst().Shuffle( ofs + 4, 2 );
+		pOfs = ofs;
+		nOfs = ELEM_COUNT( ofs );
+	}
+
+#define _RETURN_LUA( x, y, p ) { pLuaState->PushLua( ( x ) ); pLuaState->PushLua( ( y ) ); pLuaState->PushLua( ( p ) ); return 3; }
+	if( pTarget0 )
+	{
+		auto dst = pTarget0->GetMoveTo();
+		if( pTarget0 == pPlayer && pPlayer->IsHidden() )
+		{
+			if( !m_bLastSeePlayerPosValid )
+			{
+				goto search;
+			}
+			else
+				dst = m_lastSeePlayerPos;
+		}
+
+		TVector2<int32> nxt;
+		pTarget0->nTempFlag = 1;
+		nxt = pLevel->SimpleFindPath( pPawn->GetMoveTo(), dst, 2 ^ (int8)-1, NULL, pOfs, nOfs );
+		pTarget0->nTempFlag = 0;
+
+		if( nxt.x >= 0 )
+			_RETURN_LUA( nxt.x, nxt.y, pTarget0 );
+	}
+search:
+	CReference<CPawn> pTarget1 = NULL;
+	auto nxt = pLevel->Search( pPawn->GetMoveTo(), [=, &pTarget1] ( CMyLevel::SGrid* pGrid, const TVector2<int32>& p ) -> int8 {
+		if( pGrid->pPawn0 )
+		{
+			if( pGrid->pPawn0->IsEnemy() && !pGrid->pPawn0->IsKilled() )
+			{
+				pTarget1 = pGrid->pPawn0;
+				return 1;
+			}
+			if( pPlayer->IsHidden() )
+			{
+				if( m_bLastSeePlayerPosValid && p == m_lastSeePlayerPos )
+					return 1;
+				if( pGrid->pPawn0 != pPlayer )
+					return -1;
+			}
+			else
+			{
+				if( pGrid->pPawn0 == pPlayer )
+				{
+					pTarget1 = pGrid->pPawn0;
+					return 1;
+				}
+				return -1;
+			}
+		}
+		if( pGrid->pPawn1 && pGrid->pPawn1.GetPtr() != pGrid->pPawn0 )
+			return -1;
+		if( pLevel->IsGridBlockedExit( pGrid ) )
+			return -1;
+		return 0;
+	}, NULL, pOfs, nOfs );
+	_RETURN_LUA( nxt.x, nxt.y, pTarget1.GetPtr() );
+#undef _RETURN_LUA
+}
+
+int32 CPawnAI_PlayerTracer::FindTarget1()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	TVector2<int32> ofs[] = { { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 }, { 2, 0 }, { -2, 0 } };
+	SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+
+	struct SNode : public TPriorityQueueNode<SNode>
+	{
+		TVector2<int32> p;
+		TVector2<int32> par;
+		int32 nDist;
+		bool bBlocked;
+		int8 nState;
+
+		uint32 GetPriority() { return nDist; }
+	};
+	TPriorityQueue<SNode> q;
+	vector<SNode> vec;
+	int32 nWidth = pLevel->GetSize().x;
+	int32 nHeight = pLevel->GetSize().y;
+	vec.resize( nWidth * nHeight );
+	auto src = pPawn->GetMoveTo();
+	auto dst = pPlayer->GetMoveTo();
+	for( int i = 0; i < nWidth; i++ )
+	{
+		for( int j = 0; j < nHeight; j++ )
+		{
+			if( !!( ( i ^ j ) & 1 ) )
+				continue;
+			auto& node = vec[i + j * nWidth];
+			node.p = TVector2<int32>( i, j );
+			node.par = TVector2<int32>( -1, -1 );
+			node.nDist = 0x7fffffff;
+
+			node.nState = 0;
+			auto pGrid = pLevel->GetGrid( TVector2<int32>( i, j ) );
+			if( !pGrid->bCanEnter )
+				node.bBlocked = true;
+			else if( pGrid->pPawn0 && !pGrid->pPawn0->IsDynamic() )
+				node.bBlocked = true;
+		}
+	}
+	auto& srcNode = vec[src.x + src.y * nWidth];
+	srcNode.nDist = 0;
+	srcNode.nState = 1;
+	q.Insert( &srcNode );
+	SNode* pResult = NULL;
+	while( q.Size() )
+	{
+		auto pNode = (SNode*)q.Pop();
+		pNode->nState = 2;
+		auto p = pNode->p;
+		if( p == dst )
+		{
+			pResult = pNode;
+			break;
+		}
+		for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+		{
+			auto p1 = p;
+			int32 l = 0;
+			for( ;; l++ )
+			{
+				if( p1 == dst )
+					break;
+				p1 = p1 + ofs[i];
+				if( p1.x < 0 || p1.y < 0 || p1.x >= nWidth || p1.y >= nHeight )
+					break;
+				auto& node = vec[p1.x + p1.y * nWidth];
+				if( node.bBlocked )
+					break;
+			}
+
+			if( !l )
+				continue;
+			p1 = p + ofs[i] * l;
+			auto& node = vec[p1.x + p1.y * nWidth];
+			if( node.nState == 2 )
+				continue;
+			int32 nDist = pNode->nDist + l + 1;
+			if( node.nState == 1 )
+			{
+				if( nDist >= node.nDist )
+					continue;
+				node.par = p;
+				node.nDist = nDist;
+				q.Modify( &node );
+			}
+			else
+			{
+				node.par = p;
+				node.nDist = nDist;
+				node.nState = 1;
+				q.Insert( &node );
+			}
+		}
+	}
+
+	if( pResult )
+	{
+		TVector2<int32> p = pResult->p;
+		for( ;; )
+		{
+			auto p1 = pResult->par;
+			if( p1 == src )
+				break;
+			p = p1;
+			pResult = &vec[p.x + p.y * nWidth];
+		}
+
+		pLuaState->PushLua( p.x );
+		pLuaState->PushLua( p.y );
+		return 2;
+	}
+	return 0;
+}
+
+void CPawnAI_PlayerTracer::Break()
+{
+	if( m_pAction )
+		m_pAction = NULL;
+	if( m_pActionSpecial )
+		m_pActionSpecial = NULL;
+}
+
+void CPawnAI_PlayerTracer::StartAction()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLuaState = CLuaState::GetCurLuaState();
+	auto nEquip = GetCurEquip( 3 );
+	if( nEquip <= 1 )
+		nEquip = 0;
+	auto pCoroutine = pLuaState->CreateCoroutine( nEquip >= 0 ? m_arrEquipAction[nEquip] : m_strAction );
+	ASSERT( pCoroutine );
+	m_pAction = pCoroutine;
+	m_pAction->PushLua( this );
+	m_pAction->PushLua( pPawn );
+	if( !m_pAction->Resume( 2, 0 ) )
+		m_pAction = NULL;
+}
+
+void CPawnAI_PlayerTracer::StartSpecialAction()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLuaState = CLuaState::GetCurLuaState();
+	auto nEquip = GetCurEquip( 3 );
+	if( nEquip <= 1 )
+		nEquip = 0;
+	auto pCoroutine = pLuaState->CreateCoroutine( nEquip >= 0 ? m_arrEquipSpecialAction[nEquip] : m_strSpecialAction );
+	ASSERT( pCoroutine );
+	m_pActionSpecial = pCoroutine;
+	m_pActionSpecial->PushLua( this );
+	m_pActionSpecial->PushLua( pPawn );
+	if( !m_pActionSpecial->Resume( 2, 0 ) )
+		m_pActionSpecial = NULL;
+}
+
+void CPawnAI_PlayerTracer::CheckWeapon1( const char* szCurState, int8 nCurDir, CString& state, int8& nDir )
+{
+	auto nEquip = GetCurEquip( 1 );
+	if( nEquip < 0 )
+		return;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLuaState = CLuaState::GetCurLuaState();
+	pLuaState->Load( m_arrEquipAction[nEquip] );
+	pLuaState->PushLua( this );
+	pLuaState->PushLua( pPawn );
+	pLuaState->PushLua( szCurState );
+	pLuaState->PushLua( nCurDir );
+	pLuaState->Call( 4, 2 );
+	nDir = pLuaState->PopLuaValue<int8>();
+	state = pLuaState->PopLuaValue<CString>();
+}
+
+
+class CPawnAIVortex : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	CPawnAIVortex( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIVortex ); }
+
+	virtual void PreInit() override;
+	virtual void OnUpdate() override;
+	virtual void OnUpdate0() override;
+	virtual void OnUpdate1() override;
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override
+	{
+		if( GetAliveSpawns() || m_bLocked )
+		{
+			nDamage = 0;
+			return true;
+		}
+		return false;
+	}
+	virtual bool PreKill() override { return false; }
+	virtual int32 Signal( int32 i );
+
+	CPawn* Spawn( const char* szPresetName );
+	CPawn* Spawn1( const char* szPresetName, int32 x, int32 y, int32 nDir );
+	void SetEnabled( bool bEnabled );
+	int32 GetAliveSpawns();
+	void ClearSpawn();
+
+	void Lock( bool bLock );
+private:
+	CString m_strScript;
+	CString m_strSignal;
+	bool m_bDisabled;
+	CReference<CEntity> m_p1;
+
+	vector<CReference<CPawn> > m_vecPawns;
+	CReference<CLuaState> m_pLuaState;
+	bool m_bLocked;
+};
+
+void CPawnAIVortex::PreInit()
+{
+	if( !m_bDisabled )
+	{
+		m_bDisabled = true;
+		SetEnabled( true );
+	}
+}
+
+void CPawnAIVortex::OnUpdate()
+{
+	if( !m_pLuaState )
+		return;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	m_pLuaState->PushLua( this );
+	m_pLuaState->PushLua( pPawn );
+	bool b = m_pLuaState->Resume( 2, 0 );
+	if( !b )
+	{
+		pPawn->GetLevel()->RemovePawn( pPawn );
+		return;
+	}
+}
+
+void CPawnAIVortex::OnUpdate0()
+{
+	bVisible = m_pLuaState != NULL;
+	bool b = GetAliveSpawns() > 0 || m_bLocked;
+	auto p = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
+	int32 nFrameBegin = b ? 2 : 0;
+	int32 nFrameEnd = b ? 5 : 3;
+	if( p->GetFrameBegin() != nFrameBegin || p->GetFrameEnd() != nFrameEnd )
+		p->SetFrames( nFrameBegin, nFrameEnd, p->GetFramesPerSec() );
+	if( m_p1 )
+		m_p1->bVisible = b;
+}
+
+void CPawnAIVortex::OnUpdate1()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	if( !m_bDisabled )
+		pLevel->BlockStage();
+}
+
+int32 CPawnAIVortex::Signal( int32 i )
+{
+	if( m_strSignal.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		pLuaState->Load( m_strSignal );
+		pLuaState->PushLua( pPawn );
+		pLuaState->PushLua( i );
+		pLuaState->Call( 2, 0 );
+	}
+	if( i == 0 )
+	{
+		if( !m_bDisabled )
+			return 0;
+		SetEnabled( true );
+		return 1;
+	}
+	else if( i == 1 )
+	{
+		if( m_bDisabled )
+			return 0;
+		SetEnabled( false );
+		return 1;
+	}
+}
+
+CPawn* CPawnAIVortex::Spawn( const char* szPresetName )
+{
+	return Spawn1( szPresetName, -1, -1, 0 );
+}
+
+CPawn* CPawnAIVortex::Spawn1( const char* szPresetName, int32 x, int32 y, int32 nDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto p = x < 0 ? pLevel->SpawnPreset( szPresetName ) : pLevel->SpawnPreset1( szPresetName, x, y, nDir );
+	if( p )
+	{
+		m_vecPawns.push_back( p );
+
+		CVector2 begin( ( pPawn->GetPosX() + pPawn->GetWidth() * 0.5f ) * LEVEL_GRID_SIZE_X, ( pPawn->GetPosY() + 1.5f ) * LEVEL_GRID_SIZE_Y );
+		CVector2 end( ( p->GetPosX() + p->GetWidth() * 0.5f ) * LEVEL_GRID_SIZE_X, ( p->GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y );
+		auto pLightning = SafeCast<CLightningEffect>( CGlobalCfg::Inst().pFailLightningEffectPrefab->GetRoot()->CreateInstance() );
+		pLightning->SetParentEntity( pLevel );
+		pLightning->SetPosition( begin );
+		auto ofs = end - begin;
+		auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
+		pLightning->Set( p1, 40 );
+	}
+	return p;
+}
+
+void CPawnAIVortex::SetEnabled( bool bEnabled )
+{
+	if( m_bDisabled == !bEnabled )
+		return;
+	m_bDisabled = !bEnabled;
+	if( bEnabled )
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		auto pLuaState = CLuaState::GetCurLuaState();
+		auto pCoroutine = pLuaState->CreateCoroutine( m_strScript );
+		ASSERT( pCoroutine );
+		m_pLuaState = pCoroutine;
+		m_pLuaState->PushLua( this );
+		m_pLuaState->PushLua( pPawn );
+		if( !m_pLuaState->Resume( 2, 0 ) )
+			m_pLuaState = NULL;
+	}
+	else
+	{
+		ClearSpawn();
+		m_pLuaState = NULL;
+	}
+}
+
+int32 CPawnAIVortex::GetAliveSpawns()
+{
+	int32 n = 0;
+	for( CPawn* p : m_vecPawns )
+	{
+		if( !p->IsKilled() )
+			n++;
+	}
+	return n;
+}
+
+void CPawnAIVortex::ClearSpawn()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	for( CPawn* p : m_vecPawns )
+	{
+		pLevel->RemovePawn( p );
+	}
+	m_vecPawns.resize( 0 );
+}
+
+void CPawnAIVortex::Lock( bool bLock )
+{
+	if( m_bLocked == bLock )
+		return;
+	m_bLocked = bLock;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
+	if( pGrid && pGrid->pPawn0 )
+		pGrid->pPawn0->SetLocked( bLock );
+}
+
+
 void RegisterGameClasses_PawnAI()
 {
 	REGISTER_CLASS_BEGIN( CPlayerHelperAIAttack )
@@ -1714,12 +2818,27 @@ void RegisterGameClasses_PawnAI()
 
 	REGISTER_CLASS_BEGIN( CPawnAIScript )
 		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER_BEGIN( m_strPreInit )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strUpdate )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_bUpdateCoroutine )
+		REGISTER_MEMBER_BEGIN( m_strOnPlayerTryToLeave )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strDamage )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strCheckStateTransits1 )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strSignal )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_arrKeyInt )
+		REGISTER_MEMBER( m_arrSaveKeyInt )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAI0 )
@@ -1732,6 +2851,14 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_MEMBER( m_bMoveAsAttack )
 		REGISTER_MEMBER( m_nSightRange )
 		REGISTER_MEMBER( m_nActionRange )
+		REGISTER_MEMBER_BEGIN( m_strSpecialBehaviorCheckAction )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_bSpecialBehaviorEnabled )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( IsSeePlayer )
+		REGISTER_LUA_CFUNCTION( SetSpecialBehaviorEnabled )
+		REGISTER_LUA_CFUNCTION( RunCustomScript )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAI2 )
@@ -1759,5 +2886,58 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[2], hpbar/2 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[3], hpbar/3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[4], hpbar/4 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAI_PlayerTracer )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER_BEGIN( m_strPreInit )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strLevelEnd )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strAction )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strSpecialAction )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_nChargeMax )
+		REGISTER_MEMBER( m_nChargeSpeed1 )
+		REGISTER_MEMBER( m_arrEquip )
+		REGISTER_MEMBER_BEGIN( m_arrEquipAction )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_arrEquipSpecialAction )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[0], hpbar )
+		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[1], charge )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Reset )
+		REGISTER_LUA_CFUNCTION_RETUNWR( FindTarget )
+		REGISTER_LUA_CFUNCTION_RETUNWR( FindTarget1 )
+		REGISTER_LUA_CFUNCTION( DisableAction )
+		REGISTER_LUA_CFUNCTION( IsValidTarget )
+		REGISTER_LUA_CFUNCTION( IsOrigWeaponLost )
+		REGISTER_LUA_CFUNCTION( GetCurEquipName )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAIVortex )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER_BEGIN( m_strScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strSignal )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_bDisabled )
+		REGISTER_MEMBER_TAGGED_PTR( m_p1, a )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Spawn )
+		REGISTER_LUA_CFUNCTION( Spawn1 )
+		REGISTER_LUA_CFUNCTION( GetAliveSpawns )
+		REGISTER_LUA_CFUNCTION( ClearSpawn )
+		REGISTER_LUA_CFUNCTION( Lock )
 	REGISTER_CLASS_END()
 }

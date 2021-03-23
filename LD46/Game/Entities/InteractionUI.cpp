@@ -13,7 +13,7 @@ class CInteractionUIScript : public CInteractionUI
 	friend void RegisterGameClasses_InteractionUI();
 public:
 	CInteractionUIScript( const SClassCreateContext& context ) : CInteractionUI( context ) { SET_BASEOBJECT_ID( CInteractionUIScript ); }
-	virtual void Init( CPawn* pPawn )
+	virtual void Init( CPawn* pPawn ) override
 	{
 		m_pLuaState = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strScript );
 		m_pLuaState->PushLua( this );
@@ -21,7 +21,7 @@ public:
 		if( !m_pLuaState->Resume( 2, 0 ) )
 			m_pLuaState = NULL;
 	}
-	virtual bool Update( CPawn* pPawn )
+	virtual bool Update( CPawn* pPawn ) override
 	{
 		if( !m_pLuaState )
 			return false;
@@ -427,6 +427,76 @@ protected:
 	vector<SMultiPasswordItem> m_vecMultiPassword;
 };
 
+class CDialogueUI : public CInteractionUIScript
+{
+	friend void RegisterGameClasses_InteractionUI();
+public:
+	CDialogueUI( const SClassCreateContext& context ) : CInteractionUIScript( context ) { SET_BASEOBJECT_ID( CDialogueUI ); }
+
+	virtual void Init( CPawn* pPawn ) override
+	{
+		m_p->SetRenderObject( NULL );
+		CInteractionUIScript::Init( pPawn );
+	}
+
+	void Refresh()
+	{
+		int32 n = CLuaState::GetCurLuaState()->GetTop() - 1;
+		m_str = "";
+		string str1;
+		for( int i = 0; i < n; i++ )
+		{
+			auto sz = CLuaState::GetCurLuaState()->FetchLuaString( i + 2 );
+			if( i > 0 )
+			{
+				str1 += "\n";
+				str1 += sz;
+			}
+			else
+				m_str = sz;
+		}
+		m_pText1->Set( m_str.c_str() );
+		m_pText2->Set( str1.c_str() );
+		m_pText2->SetPosition( CVector2( m_pText2->x, m_pText1->y - m_pText1->GetLineCount() * m_pText1->GetInitTextBound().height ) );
+		while( m_p->Get_ChildEntity() )
+			m_p->Get_ChildEntity()->SetParentEntity( NULL );
+		auto pPrefabNode = m_p->GetInstanceOwnerNode();
+		m_p2->bVisible = false;
+		for( int i = 1; i < n; i++ )
+		{
+			auto p = SafeCast<CEntity>( pPrefabNode->CreateInstance() );
+			p->y = m_pText2->y - ( i * 2 * m_pText2->GetInitTextBound().height );
+			p->SetParentEntity( m_p );
+		}
+	}
+	void SelectOption( int32 i )
+	{
+		m_p2->SetPosition( CVector2( m_p2->x, m_pText2->y - ( i * 2 * m_pText2->GetInitTextBound().height ) ) );
+	}
+
+	const char* PickWord( float x, float y )
+	{
+		m_p1->bVisible = false;
+		auto result = m_pText1->PickWord( CVector2( x, y ) );
+		if( result.x < 0 )
+			return "";
+		m_tempStr = m_str.substr( result.x, result.y - result.x );
+		m_p1->bVisible = true;
+		auto wordBound = m_pText1->GetWordBound( result.x, result.y );
+		static_cast<CImage2D*>( m_p1.GetPtr() )->SetRect( wordBound );
+		return m_tempStr.c_str();
+	}
+private:
+	CReference<CSimpleText> m_pText1;
+	CReference<CSimpleText> m_pText2;
+	CReference<CEntity> m_p;
+	CReference<CRenderObject2D> m_p1;
+	CReference<CEntity> m_p2;
+
+	string m_str;
+	string m_tempStr;
+};
+
 void RegisterGameClasses_InteractionUI()
 {
 	REGISTER_CLASS_BEGIN( CInteractionUI )
@@ -475,5 +545,18 @@ void RegisterGameClasses_InteractionUI()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( SetPassword )
 		REGISTER_LUA_CFUNCTION( AddMultiPassword )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CDialogueUI )
+		REGISTER_BASE_CLASS( CInteractionUIScript )
+		REGISTER_MEMBER_TAGGED_PTR( m_pText1, text1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pText2, text2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_p, p )
+		REGISTER_MEMBER_TAGGED_PTR( m_p1, p1 )
+		REGISTER_MEMBER_TAGGED_PTR( m_p2, p2 )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( Refresh )
+		REGISTER_LUA_CFUNCTION( SelectOption )
+		REGISTER_LUA_CFUNCTION( PickWord )
 	REGISTER_CLASS_END()
 }

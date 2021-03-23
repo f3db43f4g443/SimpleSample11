@@ -14,6 +14,8 @@
 #include "GUI/LogUI.h"
 #include "Common/FileUtil.h"
 #include "Entities/InteractionUI.h"
+#include "CommonUtils.h"
+#include <algorithm>
 
 void SLevelEnvDesc::OverlayToGrid( SLevelEnvGridDesc& grid, int32 nDist )
 {
@@ -427,7 +429,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 					vecBlocked.push_back( blocked );
 					pGrid->nBlockEft--;
 				}
-				if( pGrid->nNextStage )
+				if( pGrid->bCanEnter && pGrid->nNextStage )
 				{
 					if( pLevel->IsGridBlockedExit( pGrid ) )
 						vecNxtStage[0].push_back( TVector2<int32>( i, j ) );
@@ -468,7 +470,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 					}
 					if( pGrid->pPawn0 )
 					{
-						if( pGrid->pPawn0->CanBeHit() )
+						if( pGrid->pPawn0->CanBeHit( 0 ) )
 							vecPawn.push_back( TVector3<int32>( i, j, pGrid->pPawn0->IsSpecialState( CPawn::eSpecialState_Fall ) ? 1 : 0 ) );
 					}
 					if( pPlayer && pLevel->IsGridMoveable( TVector2<int32>( i, j ), pPlayer ) )
@@ -482,6 +484,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 							if( nDir <= 1 && pPawn->GetCurDir() )
 								nDir = 1 - nDir;
 							TRectangle<int32> r( pPawn->GetPosX(), pPawn->GetPosY(), pPawn->GetWidth(), pPawn->GetHeight() );
+							r = r.Offset( pMount->GetPawnOfs() );
 							TRectangle<int32> r1( i, j, 2, 1 );
 							auto n1 = r1.x < r.x ? 1 : ( r1.GetRight() > r.GetRight() ? -1 : 0 );
 							auto n2 = r1.y < r.y ? 1 : ( r1.GetBottom() > r.GetBottom() ? -1 : 0 );
@@ -658,7 +661,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 	vecMount.resize( 0 );
 	m_nTick++;
 
-	if( pPlayer && pPlayer->IsHidden() )
+	if( pPlayer && pPlayer->IsHidden() && !pLevel->IsScenario() )
 	{
 		m_pStealthLayer->bVisible = true;
 		m_pStealthLayer->Update( pLevel );
@@ -776,15 +779,12 @@ void CMyLevel::OnAddedToStage()
 		m_vecGrid[i].bCanEnter = !m_arrGridData[i].bBlocked;
 		m_vecGrid[i].bBlockSight = m_arrGridData[i].bBlocked;
 		m_vecGrid[i].nNextStage = m_arrGridData[i].nNextStage;
+		m_vecGrid[i].nTile = m_arrGridData[i].nTile;
 	}
 }
 
 void CMyLevel::OnRemovedFromStage()
 {
-	if( m_strDestroyScript.length() )
-		CLuaMgr::Inst().Run( m_strDestroyScript );
-	for( int i = m_vecScripts.size() - 1; i >= 0; i-- )
-		m_vecScripts[i]->OnDestroy( this );
 	while( m_spawningPawns.Get_Pawn() )
 		RemovePawn( m_spawningPawns.Get_Pawn() );
 	for( int i = 0; i < m_vecPawnHits.size(); i++ )
@@ -821,6 +821,19 @@ void CMyLevel::OnPreview()
 	InitTiles();
 }
 
+int32 CMyLevel::CheckGrid( int32 x, int32 y )
+{
+	auto pGrid = GetGrid( TVector2<int32>( x, y ) );
+	if( !pGrid || !pGrid->bCanEnter )
+		return 0;
+	int32 n = 3;
+	if( pGrid->pPawn0 )
+		n = Min( n, pGrid->pPawn0->IsDynamic() ? 2 : 1 );
+	if( pGrid->pPawn1 )
+		n = Min( n, pGrid->pPawn1->IsDynamic() ? 2 : 1 );
+	return n;
+}
+
 CMasterLevel* CMyLevel::GetMasterLevel()
 {
 	return SafeCast<CMasterLevel>( GetParentEntity() );
@@ -834,11 +847,54 @@ void CMyLevel::Begin()
 		if( worldData.nTracerSpawnDelay )
 		{
 			m_nTracerDelayLeft = worldData.nTracerSpawnDelay;
-			auto pGrid = GetGrid( worldData.playerEnterPos );
-			m_nTracerSpawnExit = pGrid->nNextStage;
-			m_pTracerSpawnEffect = SafeCast<CEntity>( CGlobalCfg::Inst().pTracerSpawnEftPrefab->GetRoot()->CreateInstance() );
-			m_pTracerSpawnEffect->SetParentEntity( this );
-			m_pTracerSpawnEffect->SetPosition( CVector2( worldData.playerEnterPos.x + 1, worldData.playerEnterPos.y ) * LEVEL_GRID_SIZE );
+			auto grid = worldData.playerEnterPos;
+			if( worldData.strTracerLevel.length() )
+			{
+				if( worldData.strTracerLevel == worldData.strCurLevel )
+				{
+					grid = worldData.tracerLevelEnterPos;
+					worldData.strTracerLevel = "";
+				}
+				else
+				{
+					bool bOK = false;
+					for( int i = 0; i < m_nWidth && !bOK; i++ )
+					{
+						for( int j = 0; j < m_nHeight; j++ )
+						{
+							if( !!( ( i ^ j ) & 1 ) )
+								continue;
+							auto nNext = GetGrid( TVector2<int32>( i, j ) )->nNextStage;
+							if( nNext )
+							{
+								auto& nextData = GetNextLevelData( nNext - 1 );
+								if( strcmp( nextData.pNxtStage->GetName(), worldData.strTracerLevel.c_str() ) )
+									continue;
+								TVector2<int32> p( i - nextData.nOfsX, j - nextData.nOfsY );
+								if( p == worldData.tracerLevelEnterPos )
+								{
+									grid = TVector2<int32>( i, j );
+									worldData.strTracerLevel = "";
+									bOK = true;
+									break;
+								}
+							}
+						}
+					}
+					if( !bOK )
+						m_nTracerDelayLeft = 0;
+				}
+			}
+
+			if( m_nTracerDelayLeft )
+			{
+				m_tracerEnterPos = grid;
+				auto pGrid = GetGrid( grid );
+				m_nTracerSpawnExit = pGrid->nNextStage;
+				m_pTracerSpawnEffect = SafeCast<CEntity>( CGlobalCfg::Inst().pTracerSpawnEftPrefab->GetRoot()->CreateInstance() );
+				m_pTracerSpawnEffect->SetParentEntity( this );
+				m_pTracerSpawnEffect->SetPosition( CVector2( grid.x + 1, grid.y ) * LEVEL_GRID_SIZE );
+			}
 		}
 	}
 
@@ -876,6 +932,12 @@ void CMyLevel::End()
 			pPawn->OnLevelEnd();
 	}
 	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
+	LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
+	{
+		if( pPawn != m_pPlayer )
+			pPawn->OnLevelSave();
+	}
+	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
 	for( int i = 0; i < m_vecPawnHits.size(); i++ )
 	{
 		auto p = m_vecPawnHits[i];
@@ -891,11 +953,17 @@ void CMyLevel::End()
 	}
 	m_beginTrigger.Clear();
 	m_trigger.Clear();
+	EndNoise();
 	if( m_pIndicatorLayer )
 	{
 		m_pIndicatorLayer->SetParentEntity( NULL );
 		m_pIndicatorLayer = NULL;
 	}
+
+	if( m_strDestroyScript.length() )
+		CLuaMgr::Inst().Run( m_strDestroyScript );
+	for( int i = m_vecScripts.size() - 1; i >= 0; i-- )
+		m_vecScripts[i]->OnDestroy( this );
 }
 
 void CMyLevel::Fail( int8 nFailType )
@@ -948,10 +1016,74 @@ CPawn* CMyLevel::SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* sz
 		pSpawnHelper->m_nDataType = pPawn->m_nLevelDataType;
 		pPawn->m_pSpawnHelper = pSpawnHelper;
 	}
+	pPawn->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
 	if( !AddPawn( pPawn, TVector2<int32>( x, y ), nDir, pCreator, nForm ) )
 		return NULL;
 	pPawn->strCreatedFrom = m_arrSpawnPrefab[n]->GetName();
 	return pPawn;
+}
+
+CPawn* CMyLevel::SpawnPawn1( const char* szPrefab, int32 x, int32 y, int8 nDir, CPawn* pCreator, int32 nForm )
+{
+	CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szPrefab );
+	if( !pPrefab || !pPrefab->GetRoot()->GetStaticDataSafe<CPawn>() )
+		return NULL;
+	CReference<CPawn> pPawn = SafeCast<CPawn>( pPrefab->GetRoot()->CreateInstance() );
+	pPawn->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
+	if( !AddPawn( pPawn, TVector2<int32>( x, y ), nDir, pCreator, nForm ) )
+		return NULL;
+	pPawn->strCreatedFrom = pPrefab->GetName();
+	return pPawn;
+}
+
+CPawn* CMyLevel::SpawnPreset( const char* szName )
+{
+	for( auto& pSpawner : m_vecSpawner )
+	{
+		if( pSpawner && pSpawner->m_nSpawnType >= 2 && pSpawner->GetName() == szName )
+		{
+			if( pSpawner->m_nSpawnType == 2 )
+			{
+				auto pPawn = HandleSpawn( pSpawner );
+				if( pPawn )
+				{
+					pSpawner = NULL;
+					return pPawn;
+				}
+			}
+			else
+			{
+				CReference<CLevelSpawnHelper> pSpawnHelper = SafeCast<CLevelSpawnHelper>( pSpawner->GetInstanceOwnerNode()->CreateInstance() );
+				return HandleSpawn( pSpawnHelper );
+			}
+		}
+	}
+	return NULL;
+}
+
+CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir )
+{
+	for( auto& pSpawner : m_vecSpawner )
+	{
+		if( pSpawner && pSpawner->m_nSpawnType >= 2 && pSpawner->GetName() == szName )
+		{
+			if( pSpawner->m_nSpawnType == 2 )
+			{
+				auto pPawn = HandleSpawn1( pSpawner, TVector2<int32>( x, y ), nDir );
+				if( pPawn )
+				{
+					pSpawner = NULL;
+					return pPawn;
+				}
+			}
+			else
+			{
+				CReference<CLevelSpawnHelper> pSpawnHelper = SafeCast<CLevelSpawnHelper>( pSpawner->GetInstanceOwnerNode()->CreateInstance() );
+				return HandleSpawn1( pSpawnHelper, TVector2<int32>( x, y ), nDir );
+			}
+		}
+	}
+	return NULL;
 }
 
 bool CMyLevel::AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator, int32 nForm )
@@ -998,9 +1130,12 @@ bool CMyLevel::AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPa
 				pGrid->pPawn0 = pGrid->pPawn1 = pPawn;
 			}
 		}
-		auto pPlayer = SafeCast<CPlayer>( pPawn );
-		if( pPlayer )
-			m_pPlayer = pPlayer;
+		if( !m_pPlayer )
+		{
+			auto pPlayer = SafeCast<CPlayer>( pPawn );
+			if( pPlayer && pPlayer->IsRealPlayer() )
+				m_pPlayer = pPlayer;
+		}
 		m_spawningPawns.Insert_Pawn( pPawn );
 	}
 	else
@@ -1068,9 +1203,12 @@ bool CMyLevel::AddPawn1( CPawn* pPawn, int32 nState, int32 nStateTick, const TVe
 				pGrid->pPawn0 = pGrid->pPawn1 = pPawn;
 			}
 		}
-		auto pPlayer = SafeCast<CPlayer>( pPawn );
-		if( pPlayer )
-			m_pPlayer = pPlayer;
+		if( !m_pPlayer )
+		{
+			auto pPlayer = SafeCast<CPlayer>( pPawn );
+			if( pPlayer && pPlayer->IsRealPlayer() )
+				m_pPlayer = pPlayer;
+		}
 		m_spawningPawns.Insert_Pawn( pPawn );
 	}
 	else
@@ -1085,6 +1223,7 @@ bool CMyLevel::AddPawn1( CPawn* pPawn, int32 nState, int32 nStateTick, const TVe
 
 void CMyLevel::RemovePawn( CPawn* pPawn )
 {
+	pPawn->OnRemovedFromLevel();
 	HandlePawnMounts( pPawn, true );
 	auto pPawnHit = SafeCast<CPawnHit>( pPawn );
 	if( !pPawnHit )
@@ -1188,7 +1327,8 @@ bool CMyLevel::IsGridBlockSight( const TVector2<int32>& p )
 
 bool CMyLevel::PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType, int32 nMoveFlag, bool bBlockEft )
 {
-	ASSERT( pPawn->m_moveTo == pPawn->m_pos && ( ofs.x || ofs.y ) );
+	if( !( pPawn->m_moveTo == pPawn->m_pos && ( ofs.x || ofs.y ) ) )
+		return false;
 	auto moveTo = pPawn->m_pos + ofs;
 
 	bool bOK = true;
@@ -1564,6 +1704,7 @@ CPlayerMount* CMyLevel::FindMount( const TVector2<int32>& ofs )
 				{
 					auto pGrid1 = GetGrid( TVector2<int32>( i, j ) + ofs );
 					TRectangle<int32> r( pPawn->GetPosX(), pPawn->GetPosY(), pPawn->GetWidth(), pPawn->GetHeight() );
+					r = r.Offset( pMount->GetPawnOfs() );
 					TRectangle<int32> r0( i, j, 2, 1 );
 					TRectangle<int32> r1( i + ofs.x, j + ofs.y, 2, 1 );
 					r0 = r0 * r;
@@ -1616,7 +1757,7 @@ CPawn* CMyLevel::GetPawnByName( const char* szName )
 {
 	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
 	{
-		if( pPawn->GetName() == szName )
+		if( pPawn->GetLevel() == this && pPawn->GetName() == szName )
 			return pPawn;
 	}
 	for( auto& pPawn : m_vecPawnHits )
@@ -1632,19 +1773,61 @@ CPawn* CMyLevel::GetPawnByName( const char* szName )
 	return NULL;
 }
 
+int32 CMyLevel::GetAllPawnsByNameScript( const char * szName )
+{
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	pLuaState->NewTable();
+
+	int32 n = 0;
+	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
+	{
+		if( pPawn->GetLevel() == this && pPawn->GetName() == szName )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+	for( auto& pPawn : m_vecPawnHits )
+	{
+		if( pPawn->GetName() == szName )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+	for( auto pPawn = m_spawningPawns.Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
+	{
+		if( pPawn->GetName() == szName )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+
+	return 1;
+}
+
+CPawn* CMyLevel::GetPawnByGrid( int32 x, int32 y )
+{
+	auto pGrid = GetGrid( TVector2<int32>( x, y ) );
+	if( !pGrid )
+		return NULL;
+	return pGrid->pPawn0;
+}
+
 void CMyLevel::OnPlayerChangeState( SPawnState& state, int32 nStateSource, int8 nDir )
 {
 	for( CLevelScript* pScript : m_vecScripts )
 		pScript->OnPlayerChangeState( state, nStateSource, nDir );
 }
 
-void CMyLevel::OnPlayerAction( int32 nMatchLen, int8 nType )
+void CMyLevel::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
 {
 	for( CLevelScript* pScript : m_vecScripts )
-		pScript->OnPlayerAction( nMatchLen, nType );
+		pScript->OnPlayerAction( vecInput, nMatchLen, nType );
 }
 
-TVector2<int32> CMyLevel::SimpleFindPath( const TVector2<int32>& begin, const TVector2<int32>& end, int32 nCheckFlag, vector<TVector2<int32> >* pVecPath )
+TVector2<int32> CMyLevel::SimpleFindPath( const TVector2<int32>& begin, const TVector2<int32>& end, int32 nCheckFlag, vector<TVector2<int32> >* pVecPath, TVector2<int32>* pOfs, int32 nOfs )
 {
 	vector<int8> vec;
 	vec.resize( m_nWidth * m_nHeight );
@@ -1667,14 +1850,19 @@ TVector2<int32> CMyLevel::SimpleFindPath( const TVector2<int32>& begin, const TV
 	par.push_back( -1 );
 	vec[begin.x + begin.y * m_nWidth] = 1;
 	TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	if( !pOfs )
+	{
+		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+		pOfs = ofs;
+		nOfs = ELEM_COUNT( ofs );
+	}
 	bool bFind = false;
 	for( int32 i = 0; i < q.size(); i++ )
 	{
 		auto p = q[i];
-		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
-		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
+		for( int j = 0; j < nOfs; j++ )
 		{
-			auto p1 = p + ofs[j];
+			auto p1 = p + pOfs[j];
 			if( p1 == end )
 			{
 				q.push_back( p1 );
@@ -1707,7 +1895,7 @@ TVector2<int32> CMyLevel::SimpleFindPath( const TVector2<int32>& begin, const TV
 	return result;
 }
 
-TVector2<int32> CMyLevel::FindPath1( const TVector2<int32>& begin, const TVector2<int32>& end, function<bool( SGrid*, const TVector2<int32>& )> FuncGrid, vector<TVector2<int32>>* pVecPath )
+TVector2<int32> CMyLevel::FindPath1( const TVector2<int32>& begin, const TVector2<int32>& end, function<bool( SGrid*, const TVector2<int32>& )> FuncGrid, vector<TVector2<int32>>* pVecPath, TVector2<int32>* pOfs, int32 nOfs )
 {
 	vector<int8> vec;
 	vec.resize( m_nWidth * m_nHeight );
@@ -1726,19 +1914,84 @@ TVector2<int32> CMyLevel::FindPath1( const TVector2<int32>& begin, const TVector
 	par.push_back( -1 );
 	vec[begin.x + begin.y * m_nWidth] = 1;
 	TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	if( !pOfs )
+	{
+		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+		pOfs = ofs;
+		nOfs = ELEM_COUNT( ofs );
+	}
 	bool bFind = false;
 	for( int32 i = 0; i < q.size(); i++ )
 	{
 		auto p = q[i];
-		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
-		for( int j = 0; j < ELEM_COUNT( ofs ); j++ )
+		for( int j = 0; j < nOfs; j++ )
 		{
-			auto p1 = p + ofs[j];
+			auto p1 = p + pOfs[j];
 			if( p1.x < 0 || p1.y < 0 || p1.x >= m_nWidth || p1.y >= m_nHeight )
 				continue;
 			if( vec[p1.x + p1.y * m_nWidth] )
 				continue;
 			if( p1 == end )
+			{
+				q.push_back( p1 );
+				par.push_back( i );
+				bFind = true;
+				break;
+			}
+			vec[p1.x + p1.y * m_nWidth] = 1;
+			q.push_back( p1 );
+			par.push_back( i );
+		}
+		if( bFind )
+			break;
+	}
+
+	TVector2<int32> result( -1, -1 );
+	if( bFind )
+	{
+		for( int i = q.size() - 1; i > 0; i = par[i] )
+		{
+			result = q[i];
+			if( pVecPath )
+				pVecPath->push_back( result );
+		}
+	}
+	return result;
+}
+
+TVector2<int32> CMyLevel::Search( const TVector2<int32>& begin, function<int8( SGrid*, const TVector2<int32>& )> FuncGrid, vector<TVector2<int32> >* pVecPath, TVector2<int32>* pOfs, int32 nOfs )
+{
+	vector<int8> vec;
+	vec.resize( m_nWidth * m_nHeight );
+	vector<TVector2<int32> > q;
+	vector<int32> par;
+	q.push_back( begin );
+	par.push_back( -1 );
+	vec[begin.x + begin.y * m_nWidth] = 1;
+	TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	if( !pOfs )
+	{
+		SRand::Inst().Shuffle( ofs, ELEM_COUNT( ofs ) );
+		pOfs = ofs;
+		nOfs = ELEM_COUNT( ofs );
+	}
+	bool bFind = false;
+	for( int32 i = 0; i < q.size(); i++ )
+	{
+		auto p = q[i];
+		for( int j = 0; j < nOfs; j++ )
+		{
+			auto p1 = p + pOfs[j];
+			auto pGrid = GetGrid( TVector2<int32>( p1.x, p1.y ) );
+			if( !pGrid || vec[p1.x + p1.y * m_nWidth] || !pGrid->bCanEnter )
+				continue;
+			auto nResult = FuncGrid( pGrid, p1 );
+			if( nResult == -1 )
+			{
+				vec[p1.x + p1.y * m_nWidth] = 1;
+				continue;
+			}
+			if( nResult == 1 )
 			{
 				q.push_back( p1 );
 				par.push_back( i );
@@ -1772,17 +2025,19 @@ void CMyLevel::Alert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs )
 	if( pTriggeredPawn->GetCurDir() )
 		ofs.x = -ofs.x;
 	auto p = pTriggeredPawn->GetMoveTo() + pawnOfs;
-	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
+	if( !IsNoise() )
 	{
-		if( pPawn->GetLevel() )
-			pPawn->HandleAlert( pTriggeredPawn, p );
+		for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
+		{
+			if( pPawn->GetLevel() )
+				pPawn->HandleAlert( pTriggeredPawn, p );
+		}
+		for( auto& pPawn : m_vecPawnHits )
+		{
+			if( pPawn->GetLevel() )
+				pPawn->HandleAlert( pTriggeredPawn, p );
+		}
 	}
-	for( auto& pPawn : m_vecPawnHits )
-	{
-		if( pPawn->GetLevel() )
-			pPawn->HandleAlert( pTriggeredPawn, p );
-	}
-
 	for( CLevelScript* pScript : m_vecScripts )
 		pScript->OnAlert( pTriggeredPawn, p );
 }
@@ -1790,8 +2045,8 @@ void CMyLevel::Alert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs )
 void CMyLevel::Alert1()
 {
 	m_bStartBattle = true;
-	if( m_pPlayer->GetStealthValue() )
-		m_pPlayer->UpdateStealthValue( -10000 );
+	//if( m_pPlayer->GetStealthValue() )
+		//m_pPlayer->UpdateStealthValue( -10000 );
 	for( CLevelScript* pScript : m_vecScripts )
 		pScript->OnAlert( NULL, TVector2<int32>( 0, 0 ) );
 }
@@ -1802,6 +2057,7 @@ void CMyLevel::BeginTracer( const char* sz, int32 nDelay )
 	auto& worldData = GetMasterLevel()->GetWorldData().curFrame;
 	worldData.strTracer = sz;
 	worldData.nTracerSpawnDelay = nDelay;
+	worldData.strTracerLevel = "";
 }
 
 void CMyLevel::BeginTracer1( int32 n, int32 nDelay )
@@ -1816,12 +2072,46 @@ void CMyLevel::EndTracer()
 	auto& worldData = GetMasterLevel()->GetWorldData().curFrame;
 	worldData.strTracer = "";
 	worldData.nTracerSpawnDelay = 0;
+	worldData.strTracerLevel = "";
 	m_nTracerDelayLeft = 0;
 	m_nTracerSpawnExit = 0;
 	if( m_pTracerSpawnEffect )
 	{
 		m_pTracerSpawnEffect->SetParentEntity( NULL );
 		m_pTracerSpawnEffect = NULL;
+	}
+}
+
+void CMyLevel::BlockTracer()
+{
+	auto& worldData = GetMasterLevel()->GetWorldData().curFrame;
+	if( !worldData.nTracerSpawnDelay || worldData.strTracerLevel.length() && worldData.strTracerLevel != worldData.strCurLevel )
+		return;
+	worldData.strTracerLevel = worldData.strCurLevel;
+	worldData.tracerLevelEnterPos = m_tracerEnterPos;
+}
+
+void CMyLevel::SetTracerDelay( int32 n )
+{
+	auto& worldData = GetMasterLevel()->GetWorldData().curFrame;
+	if( !worldData.strTracer.length() )
+		return;
+	worldData.nTracerSpawnDelay = n;
+	if( m_bBegin )
+		m_nTracerDelayLeft = n;
+}
+
+void CMyLevel::BeginNoise( const char* szSound )
+{
+	m_pNoise = PlaySoundLoop( szSound );
+}
+
+void CMyLevel::EndNoise()
+{
+	if( m_pNoise )
+	{
+		m_pNoise->Stop();
+		m_pNoise = NULL;
 	}
 }
 
@@ -1869,9 +2159,34 @@ int32 CMyLevel::FindNextLevelIndex( const char* szLevelName )
 	return -1;
 }
 
+TVector2<int32> CMyLevel::GetPlayerEnterPos()
+{
+	return GetMasterLevel()->GetWorldData().curFrame.playerEnterPos;
+}
+
 void CMyLevel::Redirect( int32 n, int32 n1 )
 {
 	m_vecExitState[n].nRedirect = n1;
+}
+
+void CMyLevel::ReplaceTiles( int32 n0, int32 n1 )
+{
+	auto& tileData = m_arrTileData[n1];
+	for( int x = 0; x < m_nWidth; x++ )
+	{
+		for( int y = 0; y < m_nHeight; y++ )
+		{
+			auto& grid = m_arrGridData[x + y * m_nWidth];
+			if( grid.nTile == n0 )
+			{
+				auto pGrid = GetGrid( TVector2<int32>( x, y ) );
+				pGrid->nTile = n1;
+				pGrid->bCanEnter = !tileData.bBlocked;
+				pGrid->bBlockSight = tileData.bBlocked;
+				InitTile( TVector2<int32>( x, y ) );
+			}
+		}
+	}
 }
 
 void CMyLevel::BeginScenario()
@@ -2010,7 +2325,7 @@ void CMyLevel::Init( bool bPreview )
 				continue;
 			}
 		}
-		if( pSpawnHelper->m_nSpawnType == 1 )
+		if( pSpawnHelper->m_nSpawnType >= 1 )
 		{
 			m_vecSpawner.push_back( pSpawnHelper );
 			pSpawnHelper->SetParentEntity( NULL );
@@ -2096,19 +2411,28 @@ void CMyLevel::Update()
 				pMasterLevel->JumpBack( 2 );
 				return;
 			}
+			if( m_bFailed && CGame::Inst().IsAnyInputDown() )
+			{
+				pMasterLevel->JumpBack( 0 );
+				pMasterLevel->GetCurLevel()->Update();
+				return;
+			}
 		}
 		if( m_bFailed )
 			return;
 
 		for( CLevelSpawnHelper* p : m_vecSpawner )
 		{
-			if( !p->m_nStateParam[0] )
+			if( p && p->m_nSpawnType == 1 )
 			{
-				CReference<CLevelSpawnHelper> pSpawnHelper = SafeCast<CLevelSpawnHelper>( p->GetInstanceOwnerNode()->CreateInstance() );
-				HandleSpawn( pSpawnHelper );
-				p->m_nStateParam[0] = p->m_nSpawnParam[0];
+				if( !p->m_nStateParam[0] )
+				{
+					CReference<CLevelSpawnHelper> pSpawnHelper = SafeCast<CLevelSpawnHelper>( p->GetInstanceOwnerNode()->CreateInstance() );
+					HandleSpawn( pSpawnHelper );
+					p->m_nStateParam[0] = p->m_nSpawnParam[0];
+				}
+				p->m_nStateParam[0]--;
 			}
-			p->m_nStateParam[0]--;
 		}
 	}
 	FlushSpawn();
@@ -2161,9 +2485,9 @@ void CMyLevel::Update()
 				auto worldData = GetMasterLevel()->GetWorldData().curFrame;
 				auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( worldData.strTracer.c_str() );
 				CReference<CPawn> pPawn = SafeCast<CPawn>( pPrefab->GetRoot()->CreateInstance() );
-				if( !AddPawn( pPawn, worldData.playerEnterPos, worldData.nPlayerEnterDir ) )
+				if( !AddPawn( pPawn, m_tracerEnterPos, worldData.nPlayerEnterDir ) )
 				{
-					if( m_pPlayer->GetPos() == worldData.playerEnterPos || m_pPlayer->GetMoveTo() == worldData.playerEnterPos )
+					if( m_pPlayer->GetPos() == m_tracerEnterPos || m_pPlayer->GetMoveTo() == m_tracerEnterPos )
 						Fail();
 					else
 						m_nTracerDelayLeft = 1;
@@ -2186,7 +2510,16 @@ void CMyLevel::Update()
 		for( int i = 0; i < m_vecExitState.size(); i++ )
 			m_vecExitState[i].bBlocked = false;
 		if( m_nTracerSpawnExit > 0 )
-			BlockExit( m_nTracerSpawnExit - 1 );
+		{
+			if( m_nTracerDelayLeft )
+				BlockExit( m_nTracerSpawnExit - 1 );
+			else
+			{
+				auto pPawn = GetPawnByName( "__TRACER" );
+				if( pPawn && !pPawn->IsKilled() )
+					BlockExit( m_nTracerSpawnExit - 1 );
+			}
+		}
 		m_trigger.Trigger( 0, this );
 		for( auto& pScript : m_vecScripts )
 			pScript->OnUpdate( this );
@@ -2357,9 +2690,7 @@ void CMyLevel::Update()
 	m_pPawnRoot->SortChildrenRenderOrder( [] ( CRenderObject2D* a, CRenderObject2D* b ) {
 		auto pPawn1 = static_cast<CPawn*>( a );
 		auto pPawn2 = static_cast<CPawn*>( b );
-		auto n1 = ( pPawn1->m_pos.y + pPawn1->m_moveTo.y ) * 64 - pPawn1->m_nRenderOrder;
-		auto n2 = ( pPawn2->m_pos.y + pPawn2->m_moveTo.y ) * 64 - pPawn2->m_nRenderOrder;
-		return n1 < n2;
+		return pPawn1->m_nCurStateRenderOrder < pPawn2->m_nCurStateRenderOrder;
 	} );
 	if( m_pPlayer && !m_bFailed )
 	{
@@ -2404,6 +2735,42 @@ void CMyLevel::ActionPreviewPause()
 		throw( 1 );
 }
 
+bool CMyLevel::OnPlayerTryToLeave()
+{
+	LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
+	{
+		if( !pPawn->OnPlayerTryToLeave() )
+			return false;
+	}
+	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
+	for( int i = 0; i < m_vecPawnHits.size(); i++ )
+	{
+		auto p = m_vecPawnHits[i];
+		if( p->GetParentEntity() )
+		{
+			if( !p->OnPlayerTryToLeave() )
+				return false;
+		}
+	}
+	return true;
+}
+
+void CMyLevel::OnCheckPoint()
+{
+	LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
+	{
+		if( pPawn != m_pPlayer )
+			pPawn->OnLevelSave();
+	}
+	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
+	for( int i = 0; i < m_vecPawnHits.size(); i++ )
+	{
+		auto p = m_vecPawnHits[i];
+		if( p->GetParentEntity() )
+			p->OnLevelSave();
+	}
+}
+
 void CMyLevel::RegisterBegin( CTrigger* pTrigger )
 {
 	if( m_bBegin )
@@ -2412,6 +2779,40 @@ void CMyLevel::RegisterBegin( CTrigger* pTrigger )
 		return;
 	}
 	m_beginTrigger.Register( 0, pTrigger );
+}
+
+void CMyLevel::ScriptForEachPawn()
+{
+	auto pLuaState = CLuaState::GetCurLuaState();
+	bool b = false;
+	LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
+	{
+		if( pPawn->GetLevel() == this )
+		{
+			pLuaState->PushLuaIndex( -1 );
+			pLuaState->PushLua( pPawn );
+			pLuaState->Call( 1, 1 );
+			if( !pLuaState->PopLuaValue<bool>() )
+			{
+				b = true;
+				break;
+			}
+		}
+	}
+	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
+	if( b )
+		return;
+	for( CPawn* p : m_vecPawnHits )
+	{
+		if( p->GetLevel() == this )
+		{
+			pLuaState->PushLuaIndex( -1 );
+			pLuaState->PushLua( p );
+			pLuaState->Call( 1, 1 );
+			if( !pLuaState->PopLuaValue<bool>() )
+				return;
+		}
+	}
 }
 
 void CMyLevel::ScriptForEachEnemy()
@@ -2431,16 +2832,23 @@ void CMyLevel::ScriptForEachEnemy()
 	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
 }
 
-void CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
+CPawn* CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
 {
 	CReference<CPawn> pPawn = SafeCast<CPawn>( pSpawnHelper->GetRenderObject() );
 	if( pPawn->IsIconOnly() )
 	{
 		pSpawnHelper->SetParentEntity( NULL );
-		return;
+		return NULL;
 	}
 	TVector2<int32> pos( floor( pSpawnHelper->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pSpawnHelper->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
 	auto nDir = pPawn->m_nInitDir;
+	return HandleSpawn1( pSpawnHelper, pos, nDir );
+}
+
+CPawn* CMyLevel::HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<int32>& p, int32 nDir )
+{
+	CReference<CPawn> pPawn = SafeCast<CPawn>( pSpawnHelper->GetRenderObject() );
+	auto pos = p;
 	auto pos0 = pos;
 	auto nDir0 = nDir;
 	bool bInitState = false;
@@ -2505,7 +2913,7 @@ void CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
 			if( !pPawn->IsValidStateIndex( pSpawnHelper->m_nDeathState ) )
 			{
 				pSpawnHelper->SetParentEntity( NULL );
-				return;
+				return NULL;
 			}
 			bool b = true;
 			if( !SafeCast<CPawnHit>( pPawn.GetPtr() ) )
@@ -2538,7 +2946,7 @@ void CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
 		if( !pPawn->IsValidStateIndex( pSpawnHelper->m_nDeathState ) )
 		{
 			pSpawnHelper->SetParentEntity( NULL );
-			return;
+			return NULL;
 		}
 	}
 
@@ -2556,17 +2964,40 @@ void CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
 		bSucceed = true;
 	else if( pos0 != pos && AddPawn( pPawn, pos0, nDir0 ) )
 		bSucceed = true;
+	else if( pSpawnHelper->m_nSpawnType >= 2 && pSpawnHelper->m_nSpawnParam[0] )
+	{
+		TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { -1, 1 }, { -2, 0 }, { -1, -1 }, { -1, 1 } };
+		int32 k0 = SRand::Inst().Rand( 0, 6 );
+		int32 nMaxDist = Max( m_nWidth / 2, m_nHeight );
+		if( pSpawnHelper->m_nSpawnParam[0] > 0 )
+			nMaxDist = Min( pSpawnHelper->m_nSpawnParam[0], nMaxDist );
+		for( int32 i = 1; i <= nMaxDist && !bSucceed; i++ )
+		{
+			for( int32 j = 0; j < i && !bSucceed; j++ )
+			{
+				for( int32 k = 0; k < 6 && !bSucceed; k++ )
+				{
+					auto p = pos + ofs[( k + k0 ) % 6] * ( i - j ) + ofs[( k + k0 + 1 ) % 6] * j;
+					if( AddPawn( pPawn, p, nDir ) )
+						bSucceed = true;
+				}
+			}
+		}
+	}
 	if( !bSucceed )
 	{
 		pPawn->SetParentEntity( NULL );
-		return;
+		return NULL;
 	}
 	pPawn->strCreatedFrom = pSpawnHelper->GetResource()->GetName();
+	return pPawn;
 }
 
-void CMyLevel::HandlePawnMounts( CPawn* pPawn, bool bRemove )
+void CMyLevel::HandlePawnMounts( CPawn* pPawn, bool bRemove, CEntity* pRoot )
 {
-	for( auto pChild = pPawn->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
+	if( !pRoot )
+		pRoot = pPawn;
+	for( auto pChild = pRoot->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
 	{
 		auto pMount = SafeCast<CPlayerMount>( pChild );
 		if( !pMount )
@@ -2581,6 +3012,7 @@ void CMyLevel::HandlePawnMounts( CPawn* pPawn, bool bRemove )
 			if( pGrid )
 				pGrid->Insert_Mount( pMount );
 		}
+		HandlePawnMounts( pPawn, bRemove, pRoot );
 	}
 }
 
@@ -2603,33 +3035,50 @@ void CMyLevel::InitTiles()
 	{
 		for( int y = 0; y < m_nHeight; y++ )
 		{
-			auto& grid = m_arrGridData[x + y * m_nWidth];
-			if( !( ( x + y ) & 1 ) )
+			InitTile( TVector2<int32>( x, y ) );
+		}
+	}
+}
+
+void CMyLevel::InitTile( const TVector2<int32>& p )
+{
+	auto& grid = m_arrGridData[p.x + p.y * m_nWidth];
+	auto pGrid = GetGrid( p );
+	if( !( ( p.x + p.y ) & 1 ) )
+	{
+		if( m_arrTileData.Size() )
+		{
+			auto& tileData = m_arrTileData[Min<int32>( pGrid->nTile, m_arrTileData.Size() - 1 )];
+			CRenderObject2D* pRenderObject;
+			if( tileData.pTileDrawable )
 			{
-				if( m_arrTileData.Size() )
-				{
-					auto& tileData = m_arrTileData[Min<int32>( grid.nTile, m_arrTileData.Size() - 1 )];
-					if( tileData.pTileDrawable )
-					{
-						auto pImage = static_cast<CImage2D*>( tileData.pTileDrawable->CreateInstance() );
-						pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
-						auto rect = pImage->GetElem().rect;
-						rect.width *= tileData.texRect.width;
-						rect.height *= tileData.texRect.height;
-						pImage->SetRect( rect );
-						pImage->SetTexRect( tileData.texRect );
-						AddChildAfter( pImage, m_pPawnRoot );
-					}
-				}
-				else
-				{
-					if( grid.bBlocked == false && m_pTileDrawable )
-					{
-						auto pImage = m_pTileDrawable->CreateInstance();
-						pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
-						AddChildAfter( pImage, m_pPawnRoot );
-					}
-				}
+				auto pImage = static_cast<CImage2D*>( tileData.pTileDrawable->CreateInstance() );
+				pImage->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
+				auto rect = pImage->GetElem().rect;
+				rect.width *= tileData.texRect.width;
+				rect.height *= tileData.texRect.height;
+				pImage->SetRect( rect );
+				pImage->SetTexRect( tileData.texRect );
+				pRenderObject = pImage;
+			}
+			else
+				pRenderObject = new CRenderObject2D;
+			if( pGrid->pTile )
+			{
+				AddChildAfter( pRenderObject, pGrid->pTile );
+				pGrid->pTile->RemoveThis();
+			}
+			else
+				AddChildAfter( pRenderObject, m_pPawnRoot );
+			pGrid->pTile = pRenderObject;
+		}
+		else
+		{
+			if( grid.bBlocked == false && m_pTileDrawable )
+			{
+				auto pImage = m_pTileDrawable->CreateInstance();
+				pImage->SetPosition( CVector2( x, y ) * LEVEL_GRID_SIZE );
+				AddChildAfter( pImage, m_pPawnRoot );
 			}
 		}
 	}
@@ -2879,6 +3328,7 @@ void CMainUI::HeadText( const char* sz, const CVector4& color, int32 nTime, cons
 	pText->Set( sz, 2 );
 	pText->SetTypeSound( szSound, nSoundInterval );
 	m_nHeadTextTime = nTime;
+	GetStage()->GetMasterLevel()->GetWorldData().OnScenarioText( 2, sz, color );
 }
 
 void CMainUI::ShowFailEft( bool b )
@@ -2950,37 +3400,7 @@ void CMainUI::Update()
 {
 	UpdatePos();
 	UpdateIcons();
-	m_vecPlayerActionElems.resize( 0 );
-	m_vecPlayerActionElemParams.resize( 0 );
-	auto pCurLevel = GetStage()->GetMasterLevel()->GetCurLevel();
-	if( !m_bScenario && m_nPlayerActionFrame )
-	{
-		Effect0();
-	}
-	if( m_nRecordEftFrames )
-	{
-		RecordEffect();
-		m_nRecordEftFrames--;
-	}
-	else if( pCurLevel && pCurLevel->IsFailed() )
-	{
-		RecordEffect();
-		FailEffect();
-	}
-	else if( m_nFreezeLevel )
-		FreezeEffect( m_nFreezeLevel );
-
-	if( m_bScenario )
-	{
-		if( pCurLevel )
-			Effect1();
-	}
-	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto& elem = m_vecPlayerActionElems[i];
-		elem.nInstDataSize = sizeof( CVector4 ) * 2;
-		elem.pInstData = &m_vecPlayerActionElemParams[i * 2];
-	}
+	UpdateEffect();
 
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
 	if( m_nHeadTextTime )
@@ -3011,6 +3431,45 @@ void CMainUI::Update()
 			if( pText->IsFinished() )
 				m_nScenarioTextFinishDelay--;
 		}
+	}
+}
+
+void CMainUI::UpdateEffect()
+{
+	m_vecPlayerActionElems.resize( 0 );
+	m_vecPlayerActionElemParams.resize( 0 );
+	auto pCurLevel = GetStage()->GetMasterLevel()->GetCurLevel();
+	if( GetStage()->GetMasterLevel()->IsBlackOut() )
+		FailEffect( 1 );
+	else
+	{
+		if( !m_bScenario && m_nPlayerActionFrame )
+		{
+			Effect0();
+		}
+		if( m_nRecordEftFrames )
+		{
+			RecordEffect();
+			m_nRecordEftFrames--;
+		}
+		else if( pCurLevel && pCurLevel->IsFailed() )
+		{
+			RecordEffect();
+			FailEffect();
+		}
+		else if( m_nFreezeLevel )
+			FreezeEffect( m_nFreezeLevel );
+	}
+	if( m_bScenario )
+	{
+		if( pCurLevel )
+			Effect1();
+	}
+	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
+	{
+		auto& elem = m_vecPlayerActionElems[i];
+		elem.nInstDataSize = sizeof( CVector4 ) * 2;
+		elem.pInstData = &m_vecPlayerActionElemParams[i * 2];
 	}
 }
 
@@ -3394,7 +3853,7 @@ void CMainUI::RecordEffect()
 	}
 }
 
-void CMainUI::FailEffect()
+void CMainUI::FailEffect( int8 nType0 )
 {
 	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
 	CRectangle r0( -camSize.x * 0.5f, -28, camSize.x, 28 );
@@ -3403,12 +3862,14 @@ void CMainUI::FailEffect()
 	SRand rand1 = rand0_1;
 	if( !SRand::Inst<eRand_Render>().Rand( 0, 8 ) )
 		rand0_1.Rand();
-	for( int n = rand1.Rand( -6, 4 ); n > 0; n-- )
+	for( int n = nType0? SRand::Inst<eRand_Render>().Rand( 15, 45 ) : rand1.Rand( -6, 4 ); n > 0; n-- )
 	{
 		CRectangle rect = r0;
 		rect.width = rand1.Rand( 20, 70 ) * 4;
 		rect.x = rand1.Rand<int32>( r0.x / 2, ( r0.GetRight() - rect.width ) / 2 + 1 ) * 2;
-		rect.y -= rand1.Rand( 0, 4 ) * 2;
+		rect.y -= nType0? rand1.Rand( 0, 100 ) * 2 : rand1.Rand( 0, 4 ) * 2;
+		if( nType0 )
+			rect.height = rand1.Rand( 1, 6 ) * 2;
 		int32 nOfs0 = rand1.Rand( 0, 4 );
 		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
 		auto& elem = m_vecPlayerActionElems.back();
@@ -3416,42 +3877,61 @@ void CMainUI::FailEffect()
 		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
 
 		CVector3 color( rand1.Rand( 0.0f, 1.0f ), rand1.Rand( 0.0f, 1.0f ), rand1.Rand( 0.0f, 1.0f ) );
-		float f = Min( color.x, Min( color.y, color.z ) );
-		color = ( color - CVector3( f, f, f ) ) * rand1.Rand( 1.0f, 1.3f );
+		if( nType0 )
+		{
+			color = color * 0.5f + CVector3( 0.5f, 0.5f, 0.5f );
+			float f = 1 - Max( color.x, Max( color.y, color.z ) );
+			color = ( color + CVector3( f, f, f ) ) * rand1.Rand( 0.8f, 1.1f );
+		}
+		else
+		{
+			float f = Min( color.x, Min( color.y, color.z ) );
+			color = ( color - CVector3( f, f, f ) ) * rand1.Rand( 1.0f, 1.3f );
+		}
 		m_vecPlayerActionElemParams.push_back( CVector4( color.x, color.y, color.z, nOfs0 * 2 ) );
-		m_vecPlayerActionElemParams.push_back( CVector4( color.x, color.y, color.z, 0 ) * rand1.Rand( 0.01f, 0.2f ) );
+		m_vecPlayerActionElemParams.push_back( nType0 ? CVector4( 0, 0, 0, 0 ) :
+			CVector4( color.x, color.y, color.z, 0 ) * rand1.Rand( 0.01f, 0.2f ) );
 	}
 
 	static SRand rand0_2 = SRand::Inst<eRand_Render>();
 	rand1 = rand0_2;
 	if( !SRand::Inst<eRand_Render>().Rand( 0, 16 ) )
 		rand0_2.Rand();
-	int8 nType = rand1.Rand( -4, 3 );
-	if( nType == 0 || nType == 1 )
+	int8 nType = nType0 ? rand1.Rand( 1, 3 ) : rand1.Rand( -4, 3 );
+	CRectangle rect0 = r0;
+	rect0.y -= rand1.Rand( 100, 200 ) * 2;
+	rect0.SetBottom( rand1.Rand<int32>( r0.y / 2, r0.GetBottom() / 2 ) * 2 );
+	if( nType0 )
 	{
-		CRectangle rect = r0;
-		rect.y -= rand1.Rand( 100, 200 ) * 2;
-		rect.SetBottom( rand1.Rand<int32>( r0.y / 2, r0.GetBottom() / 2 ) * 2 );
-		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
-		auto& elem = m_vecPlayerActionElems.back();
-		elem.rect = rect;
-		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
-
-		CVector3 color( rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ) );
-		m_vecPlayerActionElemParams.push_back( CVector4( 1, 1, 1, rand1.Rand( -3, 4 ) * 2 ) );
-		m_vecPlayerActionElemParams.push_back( CVector4( -color.x, -color.y, -color.z, rand1.Rand( -3, 4 ) * 2 ) );
+		rect0.y -= 50;
+		rect0.height += 100;
 	}
-	else if( nType == 2 )
+	if( nType == 2 )
 	{
-		CRectangle rect = r0;
-		rect.y -= rand1.Rand( 100, 200 ) * 2;
-		rect.SetBottom( rand1.Rand<int32>( r0.y / 2, r0.GetBottom() / 2 ) * 2 );
-		rect.x = rand1.Rand( -16, 64 ) * 2;
-		rect.width = rand1.Rand( 18, 56 ) * 2;
-		int32 nCount = ( r0.GetRight() - rect.x ) / rect.width;
+		auto rect = rect0;
 		int8 nDir = rand1.Rand( 0, 2 );
-		if( nDir )
-			rect.x = r0.x + r0.GetRight() - rect.GetRight();
+		if( nType0 )
+		{
+			float x0 = 0;
+			auto pPlayer = GetStage()->GetWorld()->GetPlayer();
+			if( pPlayer && pPlayer->GetLevel() )
+				x0 = ( pPlayer->GetMoveTo().x + 1 ) * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - GetPosition().x;
+
+			rect.x = rand1.Rand( 32, 64 ) * 2;
+			rect.width = rand1.Rand( 18, 56 ) * 2;
+			if( nDir )
+				rect.x = x0 - rect.GetRight();
+			else
+				rect.x += x0;
+		}
+		else
+		{
+			rect.x = rand1.Rand( -16, 64 ) * 2;
+			rect.width = rand1.Rand( 18, 56 ) * 2;
+			if( nDir )
+				rect.x = r0.x + r0.GetRight() - rect.GetRight();
+		}
+		int32 nCount = ( r0.GetRight() - rect.x ) / rect.width;
 		float fOfsY = rand1.Rand( -3, 4 ) * 2;
 		CVector3 color( rand1.Rand( 0.0f, 0.07f ), rand1.Rand( 0.0f, 0.07f ), rand1.Rand( 0.0f, 0.07f ) );
 		for( int i = 0; i < nCount; i++ )
@@ -3460,23 +3940,55 @@ void CMainUI::FailEffect()
 			auto& elem = m_vecPlayerActionElems.back();
 			elem.rect = rect;
 			elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
-			m_vecPlayerActionElemParams.resize( m_vecPlayerActionElemParams.size() + 2 );
 			m_vecPlayerActionElemParams.push_back( CVector4( 1, 1, 1, ( nDir ? rect.width : -rect.width ) * ( i + 1 ) ) );
 			auto color1 = color * -i;
 			m_vecPlayerActionElemParams.push_back( CVector4( color1.x, color1.y, color1.z, -fOfsY * ( i + 1 ) ) );
 			rect.x += nDir ? -rect.width : rect.width;
 		}
 	}
+	if( nType == 0 || nType == 1 || nType0 )
+	{
+		auto rect = rect0;
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = rect;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
 
-	CRectangle rect = r0;
-	int32 nOfs0 = SRand::Inst<eRand_Render>().Rand( 0, 4 );
-	rect.x += nOfs0 * 8;
-	m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
-	auto& elem = m_vecPlayerActionElems.back();
-	elem.rect = rect;
-	elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
-	m_vecPlayerActionElemParams.push_back( CVector4( 0.95f, 0.88f, 0.88f, nOfs0 * 2 ) );
-	m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, -0.05f, -0.05f, 0 ) );
+		CVector3 color( rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ), rand1.Rand( 0.0f, 0.025f ) );
+		if( nType0 )
+		{
+			float f = Min( color.x, Min( color.y, color.z ) );
+			color = color - CVector3( f, f, f );
+			m_vecPlayerActionElemParams.push_back( CVector4( 1 - color.x * 3, 1 - color.y * 3, 1 - color.z * 3, rand1.Rand( -3, 4 ) * 2 ) );
+			m_vecPlayerActionElemParams.push_back( CVector4( 0, 0, 0, rand1.Rand( -3, 4 ) * 2 ) );
+		}
+		else
+		{
+			m_vecPlayerActionElemParams.push_back( CVector4( 1, 1, 1, rand1.Rand( -3, 4 ) * 2 ) );
+			m_vecPlayerActionElemParams.push_back( CVector4( -color.x, -color.y, -color.z, rand1.Rand( -3, 4 ) * 2 ) );
+		}
+	}
+
+	if( nType0 )
+	{
+		for( int i = 0; i < m_vecPlayerActionElemParams.size(); i += 2 )
+		{
+			m_vecPlayerActionElemParams[i] = m_vecPlayerActionElemParams[i] * CVector4( 2.6f, 2.6f, 2.6f, 1 ) - CVector4( 1.4f, 1.4f, 1.4f, 1 );
+			m_vecPlayerActionElemParams[i + 1] = m_vecPlayerActionElemParams[i + 1] - CVector4( 0.13f, 0.13f, 0.13f, 0 );
+		}
+	}
+	else
+	{
+		CRectangle rect = r0;
+		int32 nOfs0 = SRand::Inst<eRand_Render>().Rand( 0, 4 );
+		rect.x += nOfs0 * 8;
+		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+		auto& elem = m_vecPlayerActionElems.back();
+		elem.rect = rect;
+		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.95f, 0.88f, 0.88f, nOfs0 * 2 ) );
+		m_vecPlayerActionElemParams.push_back( CVector4( 0.1f, -0.05f, -0.05f, 0 ) );
+	}
 }
 
 void CMainUI::FreezeEffect( int32 nLevel )
@@ -3563,6 +4075,8 @@ void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 		buf.Read( key );
 		auto& item = mapLevelData[key];
 		buf.Read( item.bVisited );
+		if( nVersion >= 5 )
+			buf.Read( item.bIgnoreGlobalClearKeys );
 		int32 n1 = buf.Read<int32>();
 		for( int i1 = 0; i1 < n1; i1++ )
 		{
@@ -3642,6 +4156,11 @@ void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 	{
 		buf.Read( strTracer );
 		buf.Read( nTracerSpawnDelay );
+		if( nVersion >= 6 )
+		{
+			buf.Read( strTracerLevel );
+			buf.Read( tracerLevelEnterPos );
+		}
 	}
 	if( nVersion >= 3 )
 	{
@@ -3670,6 +4189,7 @@ void SWorldDataFrame::Save( CBufFile& buf )
 	{
 		buf.Write( item.first );
 		buf.Write( item.second.bVisited );
+		buf.Write( item.second.bIgnoreGlobalClearKeys );
 		buf.Write( item.second.mapDataInt.size() );
 		for( auto& item1 : item.second.mapDataInt )
 		{
@@ -3725,6 +4245,8 @@ void SWorldDataFrame::Save( CBufFile& buf )
 	}
 	buf.Write( strTracer );
 	buf.Write( nTracerSpawnDelay );
+	buf.Write( strTracerLevel );
+	buf.Write( tracerLevelEnterPos );
 	buf.Write( vecScenarioRecords.size() );
 	for( auto& item : vecScenarioRecords )
 	{
@@ -3753,7 +4275,7 @@ void SWorldData::Load( IBufReader& buf )
 
 void SWorldData::Save( CBufFile& buf )
 {
-	int32 nVersion = 4;
+	int32 nVersion = 6;
 	buf.Write( nVersion );
 	buf.Write( nCurFrameCount );
 	for( int i = 0; i < nCurFrameCount; i++ )
@@ -3850,41 +4372,29 @@ void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer )
 
 void SWorldData::ClearKeys()
 {
-	curFrame.mapDataInt.clear();
-	curFrame.mapDataString.clear();
+	vector<string> vecTemp;
+	ClearKeys( curFrame.mapDataInt, vecTemp );
+	ClearKeys( curFrame.mapDataString, vecTemp );
 	for( auto& item : curFrame.mapLevelData )
 	{
-		item.second.mapDataDeadPawn.clear();
-		item.second.mapDataInt.clear();
-		item.second.mapDataString.clear();
+		if( item.second.bIgnoreGlobalClearKeys )
+			continue;
+		ClearKeys( item.second.mapDataDeadPawn, vecTemp );
+		ClearKeys( item.second.mapDataInt, vecTemp );
+		ClearKeys( item.second.mapDataString, vecTemp );
 	}
 }
 
 void SWorldData::Respawn()
 {
+	vector<string> vecTemp;
 	for( auto& item : curFrame.mapLevelData )
 	{
+		if( item.second.bIgnoreGlobalClearKeys )
+			continue;
 		if( item.first != curFrame.strCurLevel )
-		{
-			vector<string> vecTemp;
-			for( auto& pair : item.second.mapDataInt )
-			{
-				if( pair.first.find( '%' ) != string::npos )
-					vecTemp.push_back( pair.first );
-			}
-			for( auto& key : vecTemp )
-				item.second.mapDataInt.erase( key );
-			item.second.mapDataDeadPawn.clear();
-		}
+			ClearKeys( item.second.mapDataDeadPawn, vecTemp );
 	}
-	vector<string> vecTemp;
-	for( auto& pair : curFrame.mapDataInt )
-	{
-		if( pair.first.find( '%' ) != string::npos )
-			vecTemp.push_back( pair.first );
-	}
-	for( auto& key : vecTemp )
-		curFrame.mapDataInt.erase( key );
 }
 
 void SWorldData::RespawnLevel( const char* szLevel )
@@ -3896,15 +4406,32 @@ void SWorldData::RespawnLevel( const char* szLevel )
 	if( itr->first != curFrame.strCurLevel )
 	{
 		vector<string> vecTemp;
-		for( auto& pair : itr->second.mapDataInt )
-		{
-			if( pair.first.find( '%' ) != string::npos )
-				vecTemp.push_back( pair.first );
-		}
-		for( auto& key : vecTemp )
-			itr->second.mapDataInt.erase( key );
-		itr->second.mapDataDeadPawn.clear();
+		ClearKeys( itr->second.mapDataDeadPawn, vecTemp );
 	}
+}
+
+void SWorldData::ClearByPrefix( const char* sz )
+{
+	string strLevelPrefix = "stages/";
+	strLevelPrefix += sz;
+	auto itr1 = curFrame.mapLevelData.lower_bound( strLevelPrefix.c_str() );
+	auto itr2 = curFrame.mapLevelData.upper_bound( strLevelPrefix.c_str() );
+	vector<string> vecTemp;
+	ClearKeysByPrefix( curFrame.mapDataInt, sz, vecTemp );
+	ClearKeysByPrefix( curFrame.mapDataString, sz, vecTemp );
+	for( ; itr1 != itr2; itr1++ )
+	{
+		if( itr1->second.bIgnoreGlobalClearKeys )
+			continue;
+		ClearKeys( itr1->second.mapDataDeadPawn, vecTemp );
+		ClearKeys( itr1->second.mapDataInt, vecTemp );
+		ClearKeys( itr1->second.mapDataString, vecTemp );
+	}
+}
+
+void SWorldData::SetLevelIgnoreGlobalClearKeys( const char* szLevel, bool b )
+{
+	curFrame.mapLevelData[szLevel].bIgnoreGlobalClearKeys = b;
 }
 
 void SWorldData::UnlockRegionMap( const char* szRegion )
@@ -4006,13 +4533,16 @@ void CMasterLevel::Save()
 	SaveFile( "save/a", buf.GetBuffer(), buf.GetBufLen() );
 }
 
-void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType )
+bool CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType, int32 nTransferParam )
 {
+	if( m_pCurLevel && !m_pCurLevel->OnPlayerTryToLeave() )
+		return false;
 	ResetMainUI();
 	m_nPlayerDamageFrame = 0;
 	m_transferPos = playerPos;
 	m_nTransferDir = nPlayerDir;
 	m_nTransferType = nTransferType;
+	m_nTransferParam = nTransferParam;
 	m_pTransferTo = pLevelPrefab;
 
 	struct _STemp
@@ -4031,6 +4561,7 @@ void CMasterLevel::TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& pla
 		TCoroutinePool<0x10000>::Inst().Free( m_pTransferCoroutine );
 		m_pTransferCoroutine = NULL;
 	}
+	return true;
 }
 
 void CMasterLevel::JumpBack( int8 nType )
@@ -4157,6 +4688,7 @@ void CMasterLevel::RunScenarioScript()
 
 void CMasterLevel::CheckPoint( bool bRefresh, bool bIgnoreSave )
 {
+	m_pCurLevel->OnCheckPoint();
 	m_worldData.CheckPoint( m_pPlayer );
 	if( bRefresh )
 	{
@@ -4287,22 +4819,24 @@ void CMasterLevel::SetKeyStringLevelData( const char* str, const char* szValue, 
 		m_worldData.curFrame.mapDataString[str] = szValue;
 }
 
-void CMasterLevel::TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType )
+void CMasterLevel::TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType, int32 nTransferParam )
 {
 	m_pScriptTransferTo = pLevelPrefab;
 	m_nScriptTransferPlayerX = playerPos.x;
 	m_nScriptTransferPlayerY = playerPos.y;
 	m_nScriptTransferPlayerDir = nPlayerDir;
 	m_nScriptTransferType = nTransferType;
+	m_nScriptTransferParam = nTransferParam;
 }
 
-void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType )
+void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType, int32 nTransferParam )
 {
 	m_pScriptTransferTo = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
 	m_nScriptTransferPlayerX = nPlayerX;
 	m_nScriptTransferPlayerY = nPlayerY;
 	m_nScriptTransferPlayerDir = nPlayerDir;
 	m_nScriptTransferType = nTransferType;
+	m_nScriptTransferParam = nTransferParam;
 }
 
 void CMasterLevel::ShowWorldMap( bool bShow, int8 nType )
@@ -4537,6 +5071,8 @@ void CMasterLevel::Update()
 	}
 	if( !k && m_pCurLevel && m_pCurLevel->IsBegin() && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFailed() && !m_pCurLevel->IsFreeze() )
 		m_pPlayer->UpdateInputOnly();
+	if( !k )
+		m_pMainUI->UpdateEffect();
 	for( ; k > 0; k-- )
 	{
 		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
@@ -4586,7 +5122,7 @@ void CMasterLevel::Update()
 
 		if( m_pScriptTransferTo )
 		{
-			TransferTo( m_pScriptTransferTo, TVector2<int32>( m_nScriptTransferPlayerX, m_nScriptTransferPlayerY ), m_nScriptTransferPlayerDir, m_nScriptTransferType );
+			TransferTo( m_pScriptTransferTo, TVector2<int32>( m_nScriptTransferPlayerX, m_nScriptTransferPlayerY ), m_nScriptTransferPlayerDir, m_nScriptTransferType, m_nScriptTransferParam );
 			m_pScriptTransferTo = NULL;
 			m_nScriptTransferType = 0;
 		}
@@ -4707,7 +5243,6 @@ void CMasterLevel::Update()
 		if( m_pInterferenceStripEffect )
 			SafeCast<CInterferenceStripEffect>( m_pInterferenceStripEffect.GetPtr() )->Update();
 	}
-	bVisible = m_nBlackOutFrame1 == 0;
 }
 
 void CMasterLevel::ResetMainUI()
@@ -4772,6 +5307,10 @@ void CMasterLevel::TransferFunc()
 				TransferFuncLevel2Level2();
 			else if( m_nTransferType == 3 )
 				TransferFuncLevel2Level3();
+			else if( m_nTransferType == 4 )
+				TransferFuncLevel2Level4_5( false );
+			else if( m_nTransferType == 5 )
+				TransferFuncLevel2Level4_5( true );
 			else if( m_nTransferType == -1 )
 				TransferFuncLevel2Level0();
 			else
@@ -5188,7 +5727,9 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_pCurLevel = NULL;
 
 	auto d = m_pPlayer->GetPos() - m_transferPos;
-	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE + CVector2( m_nTransferDir ? 96 : -96, 0 );
+	int16* params = (int16*)&m_nTransferParam;
+	CVector2 transferOfs( params[0], params[1] );
+	transferOfs = ( CVector2( d.x, d.y ) + transferOfs ) * LEVEL_GRID_SIZE;
 	pCurLevel->SetPosition( transferOfs );
 	auto camTransferBegin = m_pLastLevel->GetCamPos();
 	int32 nTransferAnimFrames = 80;
@@ -5283,6 +5824,186 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_pTransferEft = NULL;
 	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
+	pParams[0] = CVector4( 0, 0, 0, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	ResetMainUI();
+	m_pCurLevel->Begin();
+}
+
+void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
+{
+	auto pCurLevel = m_pCurLevel;
+	m_pCurLevel = NULL;
+
+	auto d = m_pPlayer->GetPos() - m_transferPos;
+	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE;
+	pCurLevel->SetPosition( transferOfs );
+	auto camTransferBegin = m_pLastLevel->GetCamPos();
+	int32 nTransferAnimFrames = 50;
+	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
+	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+	pParams[0] = CVector4( 1, 1, 1, 0 );
+	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
+
+	m_transferCurCamPos = camTransferBegin;
+	m_pTransferEft = new CEntity;
+	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	vector<CReference<CPawn> > vecTransferPawn;
+	for( int y = m_pLastLevel->m_nHeight - 1; y >= 0; y-- )
+	{
+		for( int x = 0; x < m_pLastLevel->m_nWidth; x++ )
+		{
+			auto& grid = m_pLastLevel->m_arrGridData[x + y * m_pLastLevel->m_nWidth];
+			if( grid.nTile == m_nTransferParam )
+			{
+				auto pGrid = m_pLastLevel->GetGrid( TVector2<int32>( x, y ) );
+				auto pTile = pGrid->pTile;
+				if( pTile )
+				{
+					pTile->RemoveThis();
+					m_pTransferEft->AddChild( pTile );
+				}
+				if( pGrid->pPawn0 )
+				{
+					vecTransferPawn.push_back( pGrid->pPawn0 );
+					m_pLastLevel->RemovePawn( pGrid->pPawn0 );
+				}
+			}
+		}
+	}
+	for( CPawn* pPawn : m_pLastLevel->m_vecPawnHits )
+	{
+		auto p = pPawn->GetPos();
+		auto& grid = m_pLastLevel->m_arrGridData[p.x + p.y * m_pLastLevel->m_nWidth];
+		if( grid.nTile == m_nTransferParam )
+		{
+			vecTransferPawn.push_back( pPawn );
+			m_pLastLevel->RemovePawn( pPawn );
+		}
+	}
+	if( m_pPlayer->GetLevel() )
+	{
+		m_pLastLevel->RemovePawn( m_pPlayer );
+		vecTransferPawn.push_back( m_pPlayer.GetPtr() );
+	}
+	std::stable_sort( vecTransferPawn.begin(), vecTransferPawn.end(), [] ( CPawn* pPawn1, CPawn* pPawn2 ) {
+		auto n1 = ( pPawn1->m_pos.y + pPawn1->m_moveTo.y ) * 64 - pPawn1->m_nRenderOrder;
+		auto n2 = ( pPawn2->m_pos.y + pPawn2->m_moveTo.y ) * 64 - pPawn2->m_nRenderOrder;
+		return n1 > n2;
+	} );
+	for( CPawn* pPawn : vecTransferPawn )
+	{
+		pPawn->SetParentEntity( m_pTransferEft );
+		pPawn->SetPosition( m_pLastLevel->GetPosition() + pPawn->GetPosition() );
+	}
+
+	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+	int32 nFadeOutTotalFrames = 25;
+	int32 nFadeOutFrame = nFadeOutTotalFrames;
+	
+	{
+		float s1 = 0;
+		float v1 = 0;
+		for( int i = 0; ; i++ )
+		{
+			if( nFadeOutFrame )
+			{
+				m_pTransferCoroutine->Yield( 0 );
+				m_pPlayer->UpdateAnimOnly();
+				int32 nFrame = maskParams.size() - nFadeOutFrame;
+				nFadeOutFrame--;
+				float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
+				if( nFrame >= 0 && nFrame < maskParams.size() )
+				{
+					pParams[0] = maskParams[nFrame].first;
+					pParams[1] = maskParams[nFrame].second;
+				}
+				else
+				{
+					float a = t * 1.5f;
+					float b = Max( 0.0f, t * 1.5f - 0.5f );
+					pParams[0] = CVector4( a, b, b, 0 );
+					pParams[1] = CVector4( 0, 0, 0, 0 );
+				}
+				CMyLevel* pLevel = m_pLastLevel;
+				if( pLevel->GetEnvEffect() )
+					pLevel->GetEnvEffect()->SetFade( t );
+				if( !nFadeOutFrame )
+				{
+					pParams[0] = CVector4( 0, 0, 0, 0 );
+					pParams[1] = CVector4( 0, 0, 0, 0 );
+				}
+			}
+
+			float s0;
+			if( i < 60 )
+				s0 = 0.5f * i * i / 60 * 12;
+			else if( i < 120 )
+				s0 = ( 0.5f * 60 + ( i - 60 ) ) * 12;
+			else
+			{
+				auto i1 = Max( 0, 180 - i );
+				s0 = ( 120 - 0.5f * i1 * i1 / 60 ) * 12;
+			}
+			auto v2 = ( v1 + ( s0 - s1 ) * 0.005f ) * 0.95f;
+			s1 += ( v2 + v1 ) * 0.5f;
+			v1 = v2;
+			if( i >= 180 && abs( s1 - s0 ) < 1 && abs( v1 ) < 1 )
+				break;
+
+			m_pTransferEft->SetPosition( CVector2( 0, floor( ( s0 - s1 ) * 0.5f + 0.5f ) * ( bUp ? 2 : -2 ) ) );
+			m_pTransferCoroutine->Yield( 0 );
+			m_pPlayer->UpdateAnimOnly();
+		}
+	}
+
+	m_pLastLevel->SetParentEntity( NULL );
+	m_pLastLevel = NULL;
+	m_pCurLevel = pCurLevel;
+	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
+	m_pCurLevel->Init();
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+
+	if( m_pCurLevel->GetEnvEffect() )
+		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+	while( nTransferAnimFrames )
+	{
+		m_pTransferCoroutine->Yield( 0 );
+		m_pPlayer->UpdateAnimOnly();
+		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+		nTransferAnimFrames--;
+		float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+		if( nFrame < maskParams.size() )
+		{
+			pParams[0] = maskParams[nFrame].first;
+			pParams[1] = maskParams[nFrame].second;
+		}
+		else
+		{
+			float a = Min( 1.0f, t * 1.05f );
+			float b = Max( 0.0f, t * 1.05f - 0.05f );
+			pParams[0] = CVector4( b, a, a, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
+		}
+		auto p = transferOfs * ( 1 - t );
+		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
+		m_pCurLevel->SetPosition( p );
+		m_pTransferEft->SetPosition( p - transferOfs );
+		if( m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->SetFade( t );
+		auto cam = camTransferBegin + ( m_pCurLevel->GetCamPos() - camTransferBegin ) * t;
+		m_transferCurCamPos = CVector2( floor( cam.x * 0.5f + 0.5f ), floor( cam.y * 0.5f + 0.5f ) ) * 2;
+	}
+
+	for( CPawn* pPawn : vecTransferPawn )
+		pPawn->SetParentEntity( NULL );
+	m_pTransferEft->SetParentEntity( NULL );
+	m_pTransferEft = NULL;
+	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	for( CPawn* pPawn : vecTransferPawn )
+		m_pCurLevel->AddPawn( pPawn, pPawn->GetPos() - d, pPawn->GetCurDir() );
 	pParams[0] = CVector4( 0, 0, 0, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
 	ResetMainUI();
@@ -5471,17 +6192,31 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_END()
 
 		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( CheckGrid )
 		REGISTER_LUA_CFUNCTION( SpawnPawn )
+		REGISTER_LUA_CFUNCTION( SpawnPawn1 )
+		REGISTER_LUA_CFUNCTION( SpawnPreset )
+		REGISTER_LUA_CFUNCTION( SpawnPreset1 )
 		REGISTER_LUA_CFUNCTION( RemovePawn )
 		REGISTER_LUA_CFUNCTION( IsFailed )
 		REGISTER_LUA_CFUNCTION( Fail )
 		REGISTER_LUA_CFUNCTION( Freeze )
 		REGISTER_LUA_CFUNCTION( GetPawnByName )
+		REGISTER_LUA_CFUNCTION_RETUNWR( GetAllPawnsByNameScript )
+		REGISTER_LUA_CFUNCTION( GetPawnByGrid )
 		REGISTER_LUA_CFUNCTION( Redirect )
+		REGISTER_LUA_CFUNCTION( ReplaceTiles )
+		REGISTER_LUA_CFUNCTION( ScriptForEachPawn )
 		REGISTER_LUA_CFUNCTION( ScriptForEachEnemy )
 		REGISTER_LUA_CFUNCTION( BeginTracer )
 		REGISTER_LUA_CFUNCTION( BeginTracer1 )
 		REGISTER_LUA_CFUNCTION( EndTracer )
+		REGISTER_LUA_CFUNCTION( BlockTracer )
+		REGISTER_LUA_CFUNCTION( SetTracerDelay )
+		REGISTER_LUA_CFUNCTION( GetTracerSpawnExit )
+		REGISTER_LUA_CFUNCTION( BeginNoise )
+		REGISTER_LUA_CFUNCTION( EndNoise )
+		REGISTER_LUA_CFUNCTION( IsExitBlocked )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CCutScene )
@@ -5534,6 +6269,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pLogUI, log )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetMainUI )
+		REGISTER_LUA_CFUNCTION( GetCurLevelName )
 		REGISTER_LUA_CFUNCTION( IsScenario )
 		REGISTER_LUA_CFUNCTION( CheckPoint )
 		REGISTER_LUA_CFUNCTION( EvaluateKeyInt )
@@ -5543,6 +6279,8 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( ClearKeys )
 		REGISTER_LUA_CFUNCTION( Respawn )
 		REGISTER_LUA_CFUNCTION( RespawnLevel )
+		REGISTER_LUA_CFUNCTION( ClearByPrefix )
+		REGISTER_LUA_CFUNCTION( SetLevelIgnoreGlobalClearKeys )
 		REGISTER_LUA_CFUNCTION( ScriptTransferTo )
 		REGISTER_LUA_CFUNCTION( UnlockRegionMap )
 		REGISTER_LUA_CFUNCTION( ShowWorldMap )

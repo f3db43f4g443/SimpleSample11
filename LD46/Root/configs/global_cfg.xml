@@ -1,11 +1,12 @@
 ﻿<root>
-  <world cfg_path="stages/world.w" entry="data/cutscene/day1.pf" entry_x="2" entry_y="0" entry_dir="1"
+  <world cfg_path="stages/world.w" entry="stages/1f_el.pf" entry_x="5" entry_y="5" entry_dir="0"
          lua_start="scripts/0.lua" lua_world_init="scripts/world.lua"  />
   <prefabs>
     <fail_lightning_eft>data/misc/lightning.pf</fail_lightning_eft>
     <fall_eft>data/misc/misc_elem.mtl</fall_eft>
     <interference_strip_eft>data/misc/interference_strip_eft.pf</interference_strip_eft>
     <tracer_spawn_eft>data/misc/tracer_spawn_eft.pf</tracer_spawn_eft>
+    <common_link>data/misc/common_link.pf</common_link>
   </prefabs>
 
   <sound>
@@ -15,7 +16,10 @@
     <item name="typing_system_error" path="sound/typing_system_error.wav" />
     <item name="activate" path="sound/tip_activate.wav" />
     <item name="deactivate" path="sound/tip_deactivate.wav" />
+    <item name="tip1" path="sound/tip_1.mp3" />
     <item name="error" path="sound/tip_error.wav" />
+    <item name="beep" path="sound/beep.mp3" />
+    <item name="beep1" path="sound/beep1.mp3" />
     <item name="btn" path="sound/tip_btn.wav" />
     <item name="btn_error" path="sound/tip_btn_err.wav" />
     <item name="electric" path="sound/electric.wav" />
@@ -27,6 +31,7 @@
     <item name="hit_wooden" path="sound/hit_wooden.mp3" />
     <item name="drag_wooden" path="sound/drag_wooden.sf" />
     <item name="drop_wooden" path="sound/drop_wooden.mp3" />
+    <item name="drop_heavy" path="sound/drop_heavy.mp3" />
     <item name="wooden_destroy" path="sound/wooden_destroy.mp3" />
     <item name="pistol" path="sound/pistol.mp3" />
     <item name="pistol_noammo" path="sound/pistol_noammo.mp3" />
@@ -43,7 +48,10 @@
     <item name="auto_door_pipe" path="sound/auto_door_pipe.mp3" />
     <item name="pressure_plate_down" path="sound/pressure_plate_down.mp3" />
     <item name="pressure_plate_up" path="sound/pressure_plate_up.mp3" />
+    <item name="noise_0" path="sound/noise_0.wav" />
+    <item name="noise_tv" path="sound/noise_tv.mp3" />
     <item name="sfx_1" path="sound/sfx_1.wav" />
+    <item name="swallow" path="sound/swallow.wav" />
   </sound>
   
   <level_transfer cam_speed="5" fadeout="45">

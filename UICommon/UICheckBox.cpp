@@ -37,12 +37,13 @@ void CUICheckBox::Render( CRenderContext2D& context )
 	}
 }
 
-void CUICheckBox::SetChecked( bool bChecked )
+void CUICheckBox::SetChecked( bool bChecked, bool bTriggerEvent )
 {
 	if( bChecked == m_bChecked )
 		return;
 	m_bChecked = bChecked;
-	m_events.Trigger( eEvent_Action, NULL );
+	if( bTriggerEvent )
+		m_events.Trigger( eEvent_Action, NULL );
 }
 
 void CUICheckBox::OnClick( const CVector2& mousePos )

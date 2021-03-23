@@ -2,6 +2,15 @@
 #include "Entity.h"
 #include "Entities/EffectObject.h"
 
+class IImageRect
+{
+public:
+	virtual CRectangle GetRect() = 0;
+	virtual CRectangle GetTexRect() = 0;
+	virtual void SetRect( const CRectangle& rect ) = 0;
+	virtual void SetTexRect( const CRectangle& rect ) = 0;
+};
+
 class IImageEffectTarget
 {
 public:
@@ -89,6 +98,8 @@ public:
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
 	void SetEnabled( bool b );
+protected:
+	virtual void OnUpdatePreview() override;
 private:
 	void OnTick();
 	CVector4 m_params[4];
@@ -128,7 +139,7 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-	virtual void Set( const char* szText, int8 nAlign = 0 );
+	virtual void Set( const char* szText, int8 nAlign = 0, int32 nMaxLines = 0 );
 	const char* CalcLineCount( const char* szText, int32& nLineCount, int8 nType );
 	void SetMaxLineLen( int32 nLen ) { m_nMaxLineLen = nLen; }
 	virtual bool GetParam( CVector4& param ) override;
@@ -137,6 +148,8 @@ public:
 	const CRectangle& GetTextRect() const { return m_textRect; }
 	int32 GetLineCount() const { return m_nLineCount; }
 	const CRectangle& GetInitTextBound() { Init(); return m_initTextBound; }
+	TVector2<int32> PickWord( const CVector2& p );
+	CRectangle GetWordBound( int32 nIndexBegin, int32 nIndexEnd );
 
 	virtual void Render( CRenderContext2D& context ) override;
 protected:
@@ -158,7 +171,13 @@ protected:
 	bool m_bInited;
 	CVector2 m_floatSpeed;
 	float m_fFadeSpeed;
-	vector<CElement2D> m_elems;
+	struct SElem
+	{
+		int8 nChar;
+		int32 nIndex;
+		CElement2D elem;
+	};
+	vector<SElem> m_elems;
 	CReference<CRenderObject2D> m_pOrigRenderObject;
 	TClassTrigger<CSimpleText> m_onTick;
 };
@@ -169,7 +188,7 @@ class CTypeText : public CSimpleText
 public:
 	CTypeText( const SClassCreateContext& context ) : CSimpleText( context ) { SET_BASEOBJECT_ID( CTypeText ); }
 	virtual void OnAddedToStage() override;
-	virtual void Set( const char* szText, int8 nAlign = 0 ) override;
+	virtual void Set( const char* szText, int8 nAlign = 0, int32 nMaxLines = 0 ) override;
 	void SetTypeInterval( int32 n ) { m_nTypeInterval = n; }
 	void SetTypeSound( const char* sz, int32 nTextInterval );
 	void ForceFinish();
@@ -269,7 +288,22 @@ private:
 	vector<SElem> m_elems;
 };
 
-class CTracerEffect : public CEntity
+class CChargeEffect : public CEntity, public IImageRect
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CChargeEffect( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CChargeEffect ); }
+
+	virtual CRectangle GetRect() override;
+	virtual CRectangle GetTexRect() override;
+	virtual void SetRect( const CRectangle& rect ) override;
+	virtual void SetTexRect( const CRectangle& rect ) override;
+private:
+	TArray<CVector4> m_arrParam1;
+	TArray<CVector4> m_arrParam2;
+};
+
+class CTracerEffect : public CEntity, public IImageRect
 {
 	friend void RegisterGameClasses_UtilEntities();
 public:
@@ -277,19 +311,23 @@ public:
 
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
-	void SetRect( const CRectangle& rect ) { m_rect = rect; }
-	void SetTexRect( const CRectangle& rect ) { m_texRect = rect; }
+	virtual CRectangle GetRect() override { return m_origElem.elem.rect; }
+	virtual CRectangle GetTexRect() override { return m_origElem.elem.texRect; }
+	virtual void SetRect( const CRectangle& rect ) override { m_origElem.elem.rect = rect; }
+	virtual void SetTexRect( const CRectangle& rect ) override { m_origElem.elem.texRect = rect; }
+	bool IsDisabled() { return m_bDisabled; }
+	void SetDisabled( bool bDisabled ) { m_bDisabled = bDisabled; }
 	virtual void Render( CRenderContext2D& context ) override;
 	virtual void OnPreview() override;
 private:
 	void OnTick();
-	CRectangle m_rect;
-	CRectangle m_texRect;
+	bool m_bDisabled;
 	struct SElem
 	{
 		CElement2D elem;
 		CVector4 param[2];
 	};
+	SElem m_origElem;
 	int32 m_nSeed;
 	int32 m_nSeed1;
 	vector<SElem> m_elems;

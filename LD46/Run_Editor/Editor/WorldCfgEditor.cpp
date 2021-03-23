@@ -8,6 +8,7 @@
 #include "Game/MyLevel.h"
 #include "Editor/LevelTools.h"
 #include "Game/Entities/MiscElem.h"
+#include "Editor/Editor.h"
 
 void CWorldCfgEditor::NewFile( const char* szFileName )
 {
@@ -21,6 +22,29 @@ void CWorldCfgEditor::NewFile( const char* szFileName )
 	m_nCurRegion = -1;
 	SelectRegion( m_pData->arrRegionData.Size() ? 0 : -1 );
 	Super::NewFile( szFileName );
+}
+
+void CWorldCfgEditor::OnOpenFile()
+{
+	auto szLevel = GetParam( "level" );
+	if( szLevel )
+	{
+		auto& regionData = m_pRes->m_pWorldCfg->arrRegionData;
+		for( int i = 0; i < regionData.Size(); i++ )
+		{
+			auto levelData = regionData[i].arrLevelData;
+			for( int j = 0; j < levelData.Size(); j++ )
+			{
+				if( levelData[j].pLevel == szLevel )
+				{
+					m_nCurRegion = i;
+					m_nCurSelected = j;
+					SetCamOfs( levelData[j].displayOfs );
+					return;
+				}
+			}
+		}
+	}
 }
 
 void CWorldCfgEditor::Refresh()
@@ -652,6 +676,9 @@ void CWorldCfgEditor::RefreshLevelData( int32 nRegion, int32 nLevel )
 				auto pPawnNode = static_cast<CPrefabNode*>( p1 );
 				if( !pPawnNode->GetPatchedNode() )
 					continue;
+				auto pSpawnHelper = pPawnNode->GetStaticDataSafe<CLevelSpawnHelper>();
+				if( pSpawnHelper && pSpawnHelper->GetSpawnType() >= 2 )
+					continue;
 				auto pData = pPawnNode->GetPatchedNode()->GetClassData();
 				if( pData )
 				{
@@ -800,6 +827,17 @@ void CWorldCfgEditor::ShowLevelTool()
 
 		CLevelToolsView::Inst()->AddNeighbor( m_vecRegionData[link.nRegion].vecLevelData[link.nTarget].pClonedLevelData, ofs );
 	}
+}
+
+void CWorldCfgEditor::OpenLevelFile()
+{
+	if( m_nCurRegion < 0 || m_nCurSelected < 0 )
+		return;
+	Save();
+	string str = "world=";
+	str += GetFileName();
+	auto& cur = m_pData->arrRegionData[m_nCurRegion].arrLevelData[m_nCurSelected];
+	CEditor::Inst().OpenFile( cur.pLevel.c_str(), str.c_str() );
 }
 
 void CWorldCfgEditor::BeginNewLevel()
@@ -1175,6 +1213,8 @@ void CWorldCfgEditor::OnViewportKey( SUIKeyEvent* pEvent )
 	auto nChar = pEvent->nChar;
 	if( nChar == VK_F1 )
 		ShowLevelTool();
+	if( nChar == VK_F2 )
+		OpenLevelFile();
 }
 
 void CWorldCfgEditor::OnRegionSelectChanged()
