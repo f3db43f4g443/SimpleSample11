@@ -271,15 +271,28 @@ void CLevelStealthLayer::Update( CMyLevel* pLevel )
 			{
 				auto& data = bHidden ? ( pGrid->bStealthDetect ? detectHiddenData : ( pGrid->bStealthAlert ? alertHiddenData : hiddenData ) )
 					: ( pGrid->bStealthDetect ? detectData : alertData );
-				for( int k = n; k < n1; k++ )
+				if( bHidden )
 				{
 					m_elems.resize( m_elems.size() + 1 );
 					auto& elem = m_elems.back();
-					elem.rect = CRectangle( i * LEVEL_GRID_SIZE_X, vec1[k].x, 2 * LEVEL_GRID_SIZE_X, vec1[k].y );
+					elem.rect = CRectangle( i * LEVEL_GRID_SIZE_X, j * LEVEL_GRID_SIZE_Y, 2 * LEVEL_GRID_SIZE_X, LEVEL_GRID_SIZE_Y );
 					elem.rect = elem.rect.Offset( data.ofs );
 					elem.texRect = CRectangle( 0, 0, 1, 1 );
 					elem.nInstDataSize = sizeof( CVector4 ) * 2;
 					elem.pInstData = &data.params;
+				}
+				else
+				{
+					for( int k = n; k < n1; k++ )
+					{
+						m_elems.resize( m_elems.size() + 1 );
+						auto& elem = m_elems.back();
+						elem.rect = CRectangle( i * LEVEL_GRID_SIZE_X, vec1[k].x, 2 * LEVEL_GRID_SIZE_X, vec1[k].y );
+						elem.rect = elem.rect.Offset( data.ofs );
+						elem.texRect = CRectangle( 0, 0, 1, 1 );
+						elem.nInstDataSize = sizeof( CVector4 ) * 2;
+						elem.pInstData = &data.params;
+					}
 				}
 			}
 		}
@@ -361,6 +374,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 {
 	auto& globalData = CGlobalCfg::Inst().lvIndicatorData;
 	auto& pawnParamData = globalData.vecPawnParams[m_nTick % globalData.vecPawnParams.size()];
+	auto& pawn0ParamData = globalData.vecPawn0Params[m_nTick % globalData.vecPawn0Params.size()];
 	auto& pawnFallParamData = globalData.vecPawnFallParams[m_nTick % globalData.vecPawnFallParams.size()];
 	auto& useParamData = globalData.vecUseParams[m_nTick % globalData.vecUseParams.size()];
 	auto& mountParamData = globalData.vecMountParams[m_nTick % globalData.vecMountParams.size()];
@@ -412,6 +426,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 	static vector<SHit> vecMissBash;
 	static vector<TVector2<int32> > vecNxtStage[2];
 	static vector<TVector3<int32> > vecPawn;
+	static vector<TVector2<int32> > vecPawn0;
 	static vector<TVector2<int32> > vecUse;
 	static vector<SMount> vecMount;
 
@@ -470,8 +485,10 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 					}
 					if( pGrid->pPawn0 )
 					{
-						if( pGrid->pPawn0->CanBeHit( 0 ) )
+						if( pGrid->pPawn0->CheckHit( TVector2<int32>( i, j ), 1000 ) > 0 )
 							vecPawn.push_back( TVector3<int32>( i, j, pGrid->pPawn0->IsSpecialState( CPawn::eSpecialState_Fall ) ? 1 : 0 ) );
+						else if( pGrid->pPawn0->CanBeHit( 1000 ) )
+							vecPawn0.push_back( TVector2<int32>( i, j ) );
 					}
 					if( pPlayer && pLevel->IsGridMoveable( TVector2<int32>( i, j ), pPlayer ) )
 					{
@@ -647,6 +664,11 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 		auto& param = p.z ? pawnFallParamData : pawnParamData;
 		AddElem( p.x, p.y, param.ofs, param.params );
 	}
+	for( auto& p : vecPawn0 )
+	{
+		auto& param = pawn0ParamData;
+		AddElem( p.x, p.y, param.ofs, param.params );
+	}
 
 	vecBlocked.resize( 0 );
 	vecHit.resize( 0 );
@@ -657,6 +679,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 	for( int k = 0; k < 2; k++ )
 		vecNxtStage[k].resize( 0 );
 	vecPawn.resize( 0 );
+	vecPawn0.resize( 0 );
 	vecUse.resize( 0 );
 	vecMount.resize( 0 );
 	m_nTick++;
@@ -932,6 +955,14 @@ void CMyLevel::End()
 			pPawn->OnLevelEnd();
 	}
 	LINK_LIST_FOR_EACH_END( pPawn, m_pPawns, CPawn, Pawn )
+	for( int i = 0; i < m_vecPawnHits.size(); i++ )
+	{
+		auto p = m_vecPawnHits[i];
+		if( p && p->GetParentEntity() )
+		{
+			p->OnLevelEnd();
+		}
+	}
 	LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
 	{
 		if( pPawn != m_pPlayer )
@@ -941,10 +972,8 @@ void CMyLevel::End()
 	for( int i = 0; i < m_vecPawnHits.size(); i++ )
 	{
 		auto p = m_vecPawnHits[i];
-		if( p->GetParentEntity() )
-		{
-			p->OnLevelEnd();
-		}
+		if( p && p->GetParentEntity() )
+			p->OnLevelSave();
 	}
 	if( GetMasterLevel() )
 	{
@@ -1061,7 +1090,7 @@ CPawn* CMyLevel::SpawnPreset( const char* szName )
 	return NULL;
 }
 
-CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir )
+CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir, const char* szInitState )
 {
 	for( auto& pSpawner : m_vecSpawner )
 	{
@@ -1069,7 +1098,7 @@ CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir )
 		{
 			if( pSpawner->m_nSpawnType == 2 )
 			{
-				auto pPawn = HandleSpawn1( pSpawner, TVector2<int32>( x, y ), nDir );
+				auto pPawn = HandleSpawn1( pSpawner, TVector2<int32>( x, y ), nDir, szInitState );
 				if( pPawn )
 				{
 					pSpawner = NULL;
@@ -1079,7 +1108,7 @@ CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir )
 			else
 			{
 				CReference<CLevelSpawnHelper> pSpawnHelper = SafeCast<CLevelSpawnHelper>( pSpawner->GetInstanceOwnerNode()->CreateInstance() );
-				return HandleSpawn1( pSpawnHelper, TVector2<int32>( x, y ), nDir );
+				return HandleSpawn1( pSpawnHelper, TVector2<int32>( x, y ), nDir, szInitState );
 			}
 		}
 	}
@@ -1807,6 +1836,40 @@ int32 CMyLevel::GetAllPawnsByNameScript( const char * szName )
 	return 1;
 }
 
+int32 CMyLevel::GetAllPawnsByTagScript( const char* szTag )
+{
+	auto pLuaState = CLuaMgr::GetCurLuaState();
+	pLuaState->NewTable();
+
+	int32 n = 0;
+	for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
+	{
+		if( pPawn->GetLevel() == this && pPawn->HasTag( szTag ) )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+	for( auto& pPawn : m_vecPawnHits )
+	{
+		if( pPawn->HasTag( szTag ) )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+	for( auto pPawn = m_spawningPawns.Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
+	{
+		if( pPawn->HasTag( szTag ) )
+		{
+			pLuaState->PushLua( pPawn );
+			pLuaState->SetTableIndex( -2, ++n );
+		}
+	}
+
+	return 1;
+}
+
 CPawn* CMyLevel::GetPawnByGrid( int32 x, int32 y )
 {
 	auto pGrid = GetGrid( TVector2<int32>( x, y ) );
@@ -2019,12 +2082,8 @@ TVector2<int32> CMyLevel::Search( const TVector2<int32>& begin, function<int8( S
 	return result;
 }
 
-void CMyLevel::Alert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs )
+void CMyLevel::Alert( CPawn* pTriggeredPawn, const TVector2<int32>& p )
 {
-	auto ofs = pawnOfs;
-	if( pTriggeredPawn->GetCurDir() )
-		ofs.x = -ofs.x;
-	auto p = pTriggeredPawn->GetMoveTo() + pawnOfs;
 	if( !IsNoise() )
 	{
 		for( auto pPawn = m_pPawns; pPawn; pPawn = pPawn->NextPawn() )
@@ -2311,7 +2370,12 @@ void CMyLevel::Init( bool bPreview )
 	{
 		TVector2<int32> pos( floor( pPawn->x / LEVEL_GRID_SIZE_X + 0.5f ), floor( pPawn->y / LEVEL_GRID_SIZE_Y + 0.5f ) );
 		if( !pPawn->IsIconOnly() )
-			AddPawn( pPawn, pos, pPawn->m_nInitDir );
+		{
+			int32 nForm = 0;
+			if( pPawn->m_bUseInitState && pPawn->m_arrForms.Size() )
+				nForm = pPawn->m_arrSubStates[pPawn->m_nInitState].nForm;
+			AddPawn( pPawn, pos, pPawn->m_nInitDir, NULL, nForm );
+		}
 		else
 			pPawn->SetParentEntity( NULL );
 	}
@@ -2635,7 +2699,7 @@ void CMyLevel::Update()
 		{
 			for( auto pPawn = Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
 			{
-				if( pPawn->m_bIsEnemy )
+				if( pPawn->IsAutoBlockStage() )
 				{
 					m_bStartBattle = true;
 					break;
@@ -2645,7 +2709,7 @@ void CMyLevel::Update()
 			{
 				for( auto pPawn = m_spawningPawns.Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
 				{
-					if( pPawn->m_bIsEnemy )
+					if( pPawn->IsAutoBlockStage() )
 					{
 						m_bStartBattle = false;
 						break;
@@ -2664,7 +2728,7 @@ void CMyLevel::Update()
 		{
 			for( auto pPawn = Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
 			{
-				if( pPawn->m_bIsEnemy && pPawn->m_nHp > 0 )
+				if( pPawn->IsAutoBlockStage() && pPawn->m_nHp > 0 )
 				{
 					m_bComplete = false;
 					break;
@@ -2674,7 +2738,7 @@ void CMyLevel::Update()
 			{
 				for( auto pPawn = m_spawningPawns.Get_Pawn(); pPawn; pPawn = pPawn->NextPawn() )
 				{
-					if( pPawn->m_bIsEnemy && pPawn->m_nHp > 0 )
+					if( pPawn->IsAutoBlockStage() && pPawn->m_nHp > 0 )
 					{
 						m_bComplete = false;
 						break;
@@ -2845,9 +2909,15 @@ CPawn* CMyLevel::HandleSpawn( CLevelSpawnHelper* pSpawnHelper )
 	return HandleSpawn1( pSpawnHelper, pos, nDir );
 }
 
-CPawn* CMyLevel::HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<int32>& p, int32 nDir )
+CPawn* CMyLevel::HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<int32>& p, int32 nDir, const char* szInitState )
 {
 	CReference<CPawn> pPawn = SafeCast<CPawn>( pSpawnHelper->GetRenderObject() );
+	if( szInitState )
+	{
+		auto nInitState = pPawn->GetStateIndexByName( szInitState );
+		if( nInitState >= 0 )
+			pPawn->SetInitState( nInitState );
+	}
 	auto pos = p;
 	auto pos0 = pos;
 	auto nDir0 = nDir;
@@ -2900,7 +2970,7 @@ CPawn* CMyLevel::HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<i
 				nInitStateTick = itr->second.nStateTick;
 				nDir = itr->second.nDir;
 			}
-			if( pSpawnHelper->m_nDataType == 2 )
+			if( pSpawnHelper->m_nDataType == 2 && !itr->second.bIsAlive )
 				pSpawnHelper->m_bSpawnDeath = true;
 		}
 	}
@@ -2960,26 +3030,33 @@ CPawn* CMyLevel::HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<i
 	bool bSucceed = false;
 	if( bInitState && AddPawn1( pPawn, nInitState, nInitStateTick, pos, moveTo, nDir ) )
 		bSucceed = true;
-	else if( AddPawn( pPawn, pos, nDir ) )
-		bSucceed = true;
-	else if( pos0 != pos && AddPawn( pPawn, pos0, nDir0 ) )
-		bSucceed = true;
-	else if( pSpawnHelper->m_nSpawnType >= 2 && pSpawnHelper->m_nSpawnParam[0] )
+	else
 	{
-		TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { -1, 1 }, { -2, 0 }, { -1, -1 }, { -1, 1 } };
-		int32 k0 = SRand::Inst().Rand( 0, 6 );
-		int32 nMaxDist = Max( m_nWidth / 2, m_nHeight );
-		if( pSpawnHelper->m_nSpawnParam[0] > 0 )
-			nMaxDist = Min( pSpawnHelper->m_nSpawnParam[0], nMaxDist );
-		for( int32 i = 1; i <= nMaxDist && !bSucceed; i++ )
+		int32 nForm = 0;
+		if( pPawn->m_bUseInitState && pPawn->m_arrForms.Size() )
+			nForm = pPawn->m_arrSubStates[pPawn->m_nInitState].nForm;
+
+		if( AddPawn( pPawn, pos, nDir, NULL, nForm ) )
+			bSucceed = true;
+		else if( pos0 != pos && AddPawn( pPawn, pos0, nDir0, NULL, nForm ) )
+			bSucceed = true;
+		else if( pSpawnHelper->m_nSpawnType >= 2 && pSpawnHelper->m_nSpawnParam[0] )
 		{
-			for( int32 j = 0; j < i && !bSucceed; j++ )
+			TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { -1, 1 }, { -2, 0 }, { -1, -1 }, { -1, 1 } };
+			int32 k0 = SRand::Inst().Rand( 0, 6 );
+			int32 nMaxDist = Max( m_nWidth / 2, m_nHeight );
+			if( pSpawnHelper->m_nSpawnParam[0] > 0 )
+				nMaxDist = Min( pSpawnHelper->m_nSpawnParam[0], nMaxDist );
+			for( int32 i = 1; i <= nMaxDist && !bSucceed; i++ )
 			{
-				for( int32 k = 0; k < 6 && !bSucceed; k++ )
+				for( int32 j = 0; j < i && !bSucceed; j++ )
 				{
-					auto p = pos + ofs[( k + k0 ) % 6] * ( i - j ) + ofs[( k + k0 + 1 ) % 6] * j;
-					if( AddPawn( pPawn, p, nDir ) )
-						bSucceed = true;
+					for( int32 k = 0; k < 6 && !bSucceed; k++ )
+					{
+						auto p = pos + ofs[( k + k0 ) % 6] * ( i - j ) + ofs[( k + k0 + 1 ) % 6] * j;
+						if( AddPawn( pPawn, p, nDir, NULL, nForm ) )
+							bSucceed = true;
+					}
 				}
 			}
 		}
@@ -3012,7 +3089,7 @@ void CMyLevel::HandlePawnMounts( CPawn* pPawn, bool bRemove, CEntity* pRoot )
 			if( pGrid )
 				pGrid->Insert_Mount( pMount );
 		}
-		HandlePawnMounts( pPawn, bRemove, pRoot );
+		HandlePawnMounts( pPawn, bRemove, pMount );
 	}
 }
 
@@ -3447,18 +3524,21 @@ void CMainUI::UpdateEffect()
 		{
 			Effect0();
 		}
-		if( m_nRecordEftFrames )
-		{
-			RecordEffect();
-			m_nRecordEftFrames--;
-		}
-		else if( pCurLevel && pCurLevel->IsFailed() )
+		if( pCurLevel && pCurLevel->IsFailed() )
 		{
 			RecordEffect();
 			FailEffect();
 		}
-		else if( m_nFreezeLevel )
-			FreezeEffect( m_nFreezeLevel );
+		else
+		{
+			if( m_nFreezeLevel )
+				FreezeEffect( m_nFreezeLevel );
+			if( m_nRecordEftFrames )
+			{
+				RecordEffect();
+				m_nRecordEftFrames--;
+			}
+		}
 	}
 	if( m_bScenario )
 	{
@@ -5014,6 +5094,33 @@ CEntity* CMasterLevel::ShowInteractionUI( CPawn* pPawn, const char* szName )
 	return m_pInteractionUI;
 }
 
+CEntity* CMasterLevel::GotoInteractionUI( const char* szName )
+{
+	if( m_pInteractionUI )
+	{
+		m_pInteractionUI->SetParentEntity( NULL );
+		m_pInteractionUI = NULL;
+		m_strInteractionUI = "";
+	}
+
+	m_strInteractionUI = szName;
+	CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strInteractionUI.c_str() );
+	if( pPrefab && pPrefab->GetRoot()->GetStaticDataSafe<CInteractionUI>() )
+	{
+		auto p = SafeCast<CInteractionUI>( pPrefab->GetRoot()->CreateInstance() );
+		m_pInteractionUI = p;
+		p->SetParentBeforeEntity( m_pMainUI );
+		p->SetPosition( GetCamPos() );
+		p->Init( m_pInteractionUIPawn );
+	}
+	else
+	{
+		m_strInteractionUI = "";
+		m_pInteractionUIPawn = NULL;
+	}
+	return m_pInteractionUI;
+}
+
 void CMasterLevel::BlackOut( int32 nFrame1, int32 nFrame2 )
 {
 	m_nBlackOutFrame1 = nFrame1;
@@ -5218,12 +5325,13 @@ void CMasterLevel::Update()
 			}
 			else if( m_pInteractionUI )
 			{
+				auto p = m_pInteractionUI;
 				bool b = true;
 				if( m_pInteractionUIPawn && !m_pInteractionUIPawn->GetStage() )
 					b = false;
 				else
-					b = SafeCast<CInteractionUI>( m_pInteractionUI.GetPtr() )->Update( m_pInteractionUIPawn );
-				if( !b )
+					b = SafeCast<CInteractionUI>( p.GetPtr() )->Update( m_pInteractionUIPawn );
+				if( !b && p == m_pInteractionUI.GetPtr() )
 				{
 					m_pInteractionUI->SetParentEntity( NULL );
 					m_pInteractionUI = NULL;
@@ -6203,6 +6311,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( Freeze )
 		REGISTER_LUA_CFUNCTION( GetPawnByName )
 		REGISTER_LUA_CFUNCTION_RETUNWR( GetAllPawnsByNameScript )
+		REGISTER_LUA_CFUNCTION_RETUNWR( GetAllPawnsByTagScript )
 		REGISTER_LUA_CFUNCTION( GetPawnByGrid )
 		REGISTER_LUA_CFUNCTION( Redirect )
 		REGISTER_LUA_CFUNCTION( ReplaceTiles )
@@ -6290,6 +6399,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( HasLevelMark )
 		REGISTER_LUA_CFUNCTION( RemoveLevelMark )
 		REGISTER_LUA_CFUNCTION( ShowInteractionUI )
+		REGISTER_LUA_CFUNCTION( GotoInteractionUI )
 		REGISTER_LUA_CFUNCTION( GetInteractionUI )
 		REGISTER_LUA_CFUNCTION( BlackOut )
 		REGISTER_LUA_CFUNCTION( InterferenceStripEffect )

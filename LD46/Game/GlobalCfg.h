@@ -36,6 +36,7 @@ public:
 			CVector2 ofs;
 		};
 		vector<SParamItem> vecPawnParams;
+		vector<SParamItem> vecPawn0Params;
 		vector<SParamItem> vecPawnFallParams;
 		vector<SParamItem> vecUseParams;
 		vector<SParamItem> vecMountParams;

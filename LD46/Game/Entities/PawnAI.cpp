@@ -6,6 +6,7 @@
 #include "Common/PriorityQueue.h"
 #include "Entities/UtilEntities.h"
 #include "GlobalCfg.h"
+#include "CommonUtils.h"
 
 class CPawnAIScript : public CPawnAI
 {
@@ -82,7 +83,7 @@ public:
 		bool b = pLuaState->PopLuaValue<bool>();
 		return b;
 	}
-	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource ) override
 	{
 		if( !m_strDamage.length() )
 			return false;
@@ -95,7 +96,8 @@ public:
 		pLuaState->PushLua( nDamageType );
 		pLuaState->PushLua( damageOfs.x );
 		pLuaState->PushLua( damageOfs.y );
-		pLuaState->Call( 5, 2 );
+		pLuaState->PushLua( pSource );
+		pLuaState->Call( 6, 2 );
 		nDamage = pLuaState->PopLuaValue<int32>();
 		bool bResult = pLuaState->PopLuaValue<bool>();
 		return bResult;
@@ -343,6 +345,15 @@ public:
 			return;
 		if( !CheckSeePlayer( pPlayer ) )
 		{
+			auto pPawn1 = pPlayer->GetLevel()->GetGrid( p )->pPawn0;
+			if( pPawn1 != pPlayer )
+			{
+				for( auto& p1 : m_vecDetect )
+				{
+					if( p1 == p )
+						return;
+				}
+			}
 			m_bLastSeePlayerPosValid = 1;
 			m_lastSeePlayerPos = p;
 		}
@@ -476,7 +487,7 @@ int32 CPawnAI1::CheckAction( int8& nCurDir )
 		if( nxt.x >= 0 )
 		{
 			auto d1 = nxt - pPawn->GetPos();
-			if( m_bDash && d == d1 * 2 )
+			if( m_bDash && !nType1 && d == d1 * 2 )
 			{
 				if( d == TVector2<int32>( 4, 0 ) ) { nCurDir = 0; return Action_Dash_X; }
 				if( d == TVector2<int32>( -4, 0 ) ) { nCurDir = 1; return Action_Dash_X; }
@@ -573,8 +584,10 @@ TVector2<int32> CPawnAI1::HandleStealthDetect()
 	m_vecAlert.resize( 0 );
 	m_vecDetect.resize( 0 );
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
-	if( pPawn->GetCurStateIndex() == Action_Hit || pPawn->IsKilled() )
+	if( pPawn->IsKilled() )
 		return TVector2<int32>( -1, -1 );
+	if( pPawn->GetCurStateIndex() == Action_Hit )
+		return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
 	auto pLevel = pPawn->GetLevel();
 	auto levelSize = pLevel->GetSize();
 	static vector<int8> vec;
@@ -696,6 +709,152 @@ int32 CPawnAI2::CheckStateTransits1( int8& nCurDir, bool bFinished )
 			return 4;
 	}
 	return -1;
+}
+
+
+class CPawnAI_Worm : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	enum
+	{
+		Action_Stand,
+		Action_Stand1,
+		Action_Transform,
+		Action_Transform1,
+		Action_Death,
+		Action_Attack_Begin,
+		Action_Attack_Ready,
+		Action_Attack,
+		Action_Attack_End,
+		Action_Break,
+	};
+	CPawnAI_Worm( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI_Worm ); }
+	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual void OnUpdate() override
+	{
+		if( m_nAttackCD )
+			m_nAttackCD--;
+	}
+	virtual void OnLevelEnd() override;
+	virtual bool IsIgnoreBlockStage() override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		return pPawn->GetCurStateIndex() == Action_Stand1;
+	}
+private:
+	bool CheckShot();
+	bool CheckShot1( int8 nDir );
+	int32 m_nAttackCD;
+};
+
+int32 CPawnAI_Worm::CheckAction( int8& nCurDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+	auto nCur = pPawn->GetCurStateIndex();
+
+	if( nCur == Action_Stand )
+	{
+		if( CheckShot() )
+		{
+			nCurDir = d.x > 0 ? 0 : 1;
+			return Action_Attack_Begin;
+		}
+		if( abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2 <= 2 )
+		{
+			nCurDir = 0;
+			return Action_Transform;
+		}
+	}
+	else if( nCur == Action_Stand1 )
+	{
+		if( abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2 > 2 )
+		{
+			auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
+			if( !pGrid->pPawn0 )
+				return Action_Transform1;
+		}
+	}
+	else if( nCur == Action_Attack_Ready )
+	{
+		if( !CheckShot1( nCurDir ) )
+			return Action_Attack_End;
+		if( m_nAttackCD == 0 )
+		{
+			m_nAttackCD = 60;
+			return Action_Attack;
+		}
+	}
+
+	return -1;
+}
+
+void CPawnAI_Worm::OnLevelEnd()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto nCurIndex = pPawn->GetCurStateIndex();
+	if( nCurIndex )
+	{
+		if( !pPawn->PlayStateSetDir( "stand", 0 ) )
+			pPawn->PlayStateSetDir( "stand_1", 0 );
+	}
+}
+
+bool CPawnAI_Worm::CheckShot()
+{
+	bool b = true;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+	auto nDir = d.x > 0 ? 0 : 1;
+	auto l = d.x * ( nDir ? -1 : 1 ) / 2;
+	if( d.y || l < 2 )
+		return false;
+
+	for( auto p = pPawn->GetPos();; p.x += ( nDir ? -2 : 2 ) )
+	{
+		auto pGrid = pPawn->GetLevel()->GetGrid( p );
+		if( pGrid && pGrid->pPawn0 == pPlayer )
+			return true;
+		if( !pPawn->GetLevel()->IsGridMoveable( p, pPawn, 2 ) )
+			return false;
+	}
+	return false;
+}
+
+bool CPawnAI_Worm::CheckShot1( int8 nDir )
+{
+	bool b = true;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+	if( abs( d.y ) > 1 )
+		return false;
+	if( d.y )
+	{
+		d.y = 0;
+		d.x -= nDir ? -1 : 1;
+	}
+	auto l = d.x * ( nDir ? -1 : 1 ) / 2;
+	if( l < 2 )
+		return false;
+	auto p0 = pPawn->GetPos();
+	for( auto p = p0;; p.x += ( nDir ? -2 : 2 ) )
+	{
+		auto pGrid = pPawn->GetLevel()->GetGrid( p );
+		if( pGrid && pGrid->pPawn0 == pPlayer )
+			return true;
+		if( !pPawn->GetLevel()->IsGridMoveable( p, pPawn, 2 ) )
+			return false;
+		if( p == p0 + d )
+			return true;
+	}
+	return true;
 }
 
 
@@ -1052,15 +1211,57 @@ public:
 
 	virtual int32 CheckStateTransits( int8& nCurDir );
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished );
+	virtual TVector2<int32> HandleStealthDetect() override;
+	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
+	{
+		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
+		if( !pPlayer->IsHidden() )
+			return;
+		if( !CheckSeePlayer( pPlayer ) )
+		{
+			auto pPawn1 = pPlayer->GetLevel()->GetGrid( p )->pPawn0;
+			if( pPawn1 != pPlayer )
+			{
+				for( auto& p1 : m_vecDetect )
+				{
+					if( p1 == p )
+						return;
+				}
+			}
+			m_bLastSeePlayerPosValid = 1;
+			m_lastSeePlayerPos = p;
+		}
+	}
 private:
+	bool CheckSeePlayer( CPlayer* pPlayer ) { return CommonCheckSeePlayer( pPlayer, m_vecAlert, m_vecDetect, m_lastSeePlayerPos, m_bLastSeePlayerPosValid ); }
 	int32 GetInvertState( int32 nBaseType, int32 n0, int8& nCurDir );
+
+	int8 m_bLastSeePlayerPosValid;
+	vector<TVector2<int32> > m_vecAlert;
+	vector<TVector2<int32> > m_vecDetect;
+	TVector2<int32> m_lastSeePlayerPos;
 };
 
 int32 CPawnAI_Pig::CheckAction( int8& nCurDir )
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pPlayer = pPawn->GetLevel()->GetPlayer();
-	auto d = pPlayer->GetPos() - pPawn->GetPos();
+	int8 nType1 = 0;
+	if( pPlayer->IsHidden() )
+	{
+		CheckSeePlayer( pPlayer );
+		nType1 = m_bLastSeePlayerPosValid == 1 ? 1 : 2;
+	}
+	else
+	{
+		m_bLastSeePlayerPosValid = 1;
+		m_lastSeePlayerPos = pPlayer->GetPos();
+	}
+	if( nType1 >= 2 )
+		return -1;
+	auto target = nType1 == 1 ? m_lastSeePlayerPos : pPlayer->GetPos();
+	auto d = target - pPawn->GetPos();
 
 	if( d.x || d.y )
 	{
@@ -1115,16 +1316,32 @@ int32 CPawnAI_Pig::CheckStateTransits1( int8& nCurDir, bool bFinished )
 		auto nDamageDir = pPawn->GetDamageOfsDir();
 		if( nDamageDir >= 0 )
 		{
-			if( pPawn->GetMoveTo() != pPawn->GetPos() )
-				pPawn->GetLevel()->PawnMoveEnd( pPawn );
+			auto n = nCurStateIndex;
+			if( n >= eState_Move0 && n < eState_Bounce_Hit_Back + 3 )
+				n = ( n - eState_Move0 ) % 3;
+			else
+				n = -1;
+
 			auto n0 = nDamageDir & 1;
 			auto n1 = nDamageDir >> 1;
 			if( n0 == nCurDir )
-				return eState_Bounce_Hit_Back + n1;
+			{
+				if( n1 != n || nCurStateIndex - n == eState_Bounce_Hit )
+				{
+					if( pPawn->GetMoveTo() != pPawn->GetPos() )
+						pPawn->GetLevel()->PawnMoveEnd( pPawn );
+					return eState_Bounce_Hit_Back + n1;
+				}
+			}
 			else
 			{
-				nCurDir = 1 - nCurDir;
-				return eState_Bounce_Hit + n1;
+				if( n1 != ( n > 0 ? 3 - n : n ) )
+				{
+					if( pPawn->GetMoveTo() != pPawn->GetPos() )
+						pPawn->GetLevel()->PawnMoveEnd( pPawn );
+					nCurDir = 1 - nCurDir;
+					return eState_Bounce_Hit + n1;
+				}
 			}
 		}
 	}
@@ -1160,6 +1377,42 @@ int32 CPawnAI_Pig::CheckStateTransits1( int8& nCurDir, bool bFinished )
 		return eState_Move0 + nDir;
 	}
 	return -1;
+}
+
+TVector2<int32> CPawnAI_Pig::HandleStealthDetect()
+{
+	m_vecAlert.resize( 0 );
+	m_vecDetect.resize( 0 );
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->IsKilled() )
+		return TVector2<int32>( -1, -1 );
+	auto pLevel = pPawn->GetLevel();
+	auto levelSize = pLevel->GetSize();
+
+	auto p0 = pPawn->GetMoveTo();
+	m_vecAlert.push_back( p0 );
+	m_vecDetect.push_back( p0 );
+	pLevel->GetGrid( p0 )->bStealthAlert = true;
+	pLevel->GetGrid( p0 )->bStealthDetect = true;
+	TVector2<int32> ofs[] = { { 2, 0 }, { 1, 1 }, { 1, -1 }, { -2, 0 }, { -1, 1 }, { -1, -1 } };
+	for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+	{
+		auto p = p0 + ofs[i];
+		for( int l = 1; ; l++, p = p + ofs[i] )
+		{
+			if( pLevel->IsGridBlockSight( p ) )
+				break;
+			auto pGrid = pLevel->GetGrid( p );
+			m_vecAlert.push_back( p );
+			pLevel->GetGrid( p )->bStealthAlert = true;
+			if( l <= 1 )
+			{
+				m_vecDetect.push_back( p );
+				pLevel->GetGrid( p )->bStealthDetect = true;
+			}
+		}
+	}
+	return m_bLastSeePlayerPosValid > 0 ? m_lastSeePlayerPos : TVector2<int32>( -1, -1 );
 }
 
 int32 CPawnAI_Pig::GetInvertState( int32 nBaseType, int32 n0, int8& nCurDir )
@@ -1212,7 +1465,7 @@ public:
 
 	virtual int32 CheckStateTransits( int8& nCurDir ) override;
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) override;
-	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override;
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource ) override;
 	virtual TVector2<int32> HandleStealthDetect() override;
 	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
 	{
@@ -1222,6 +1475,15 @@ public:
 			return;
 		if( !CheckSeePlayer( pPlayer ) )
 		{
+			auto pPawn1 = pPlayer->GetLevel()->GetGrid( p )->pPawn0;
+			if( pPawn1 != pPlayer )
+			{
+				for( auto& p1 : m_vecDetect )
+				{
+					if( p1 == p )
+						return;
+				}
+			}
 			m_bLastSeePlayerPosValid = 1;
 			m_lastSeePlayerPos = p;
 		}
@@ -1257,6 +1519,16 @@ void CPawnAI_Crow::OnInit()
 	m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
 	m_origPos = pPawn->GetPos();
 	m_nOrigDir = pPawn->GetCurDir();
+	if( pPawn->GetCurStateIndex() == eState_Stand_1 )
+	{
+		m_nCurBladesHpBar = m_nBlades = 1;
+		m_nBladeHp = m_nBladeMaxHp;
+	}
+	else if( pPawn->GetCurStateIndex() == eState_Stand_2 )
+	{
+		m_nCurBladesHpBar = m_nBlades = 2;
+		m_nBladeHp = m_nBladeMaxHp;
+	}
 }
 
 void CPawnAI_Crow::OnUpdate()
@@ -1451,7 +1723,7 @@ int32 CPawnAI_Crow::CheckStateTransits1( int8& nCurDir, bool bFinished )
 	return ActionFunc( nCurDir, nCurStateIndex );
 }
 
-bool CPawnAI_Crow::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs )
+bool CPawnAI_Crow::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource )
 {
 	if( m_nCurBladesHpBar )
 	{
@@ -1584,12 +1856,12 @@ int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
 			if( !pPawn->GetLevel()->IsGridMoveable( pPawn->GetPos() + TVector2<int32>( nCurDir == 0 ? -2 : 2, 0 ), pPawn ) )
 				return m_nBlades == 2 ? eState_Attack_2 : eState_Attack_1;
 		}
-		if( m_nBlades == 2 && d1.y == 0 && d1.x > 4 )
+		if( m_nBlades == 2 && d1.y == 0 && d1.x > 2 )
 		{
 			bool b = true;
 			for( auto p = p0 + ofs; p != p1; p = p + ofs )
 			{
-				if( !pPawn->GetLevel()->IsGridMoveable( p, pPawn ) )
+				if( !pPawn->GetLevel()->IsGridMoveable( p, pPawn, 2 ) )
 				{
 					b = false;
 					break;
@@ -1722,38 +1994,48 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 				auto p = pPlayer->GetMoveTo();
 				for( int i = 0; i < 6; i++ )
 				{
-					auto pp = p + ofs[i];
-					if( pp.x < 0 || pp.y < 0 || pp.x >= levelSize.x || pp.y >= levelSize.y )
-						continue;
-					if( pp != pPlayer->GetPos() && vec[( pp.x + pp.y * levelSize.x ) * 2] )
-						continue;
-					if( k == 0 )
-						vec[( pp.x + pp.y * levelSize.x ) * 2] = vec[( pp.x + pp.y * levelSize.x ) * 2 + 1] = 1;
-
-					auto d = p0 - pp;
-					auto l1 = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2;
-					if( l1 < 2 )
-						bMoveBack = true;
-
-					if( !nType || nType == 1 && i >= 2 )
-						continue;
-					auto p1 = pp + TVector2<int32>( ofs[i].x > 0 ? 2 : -2, 0 );
-					if( p1.x >= 0 && p1.x < levelSize.x )
+					if( i < 2 && nType == 2 )
 					{
 						int32 a = ofs[i].x > 0 ? 1 : 0;
-						if( p1 == p0 && a == nCurDir )
-							return -1;
-						if( vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
+						auto p1 = p + ofs[i];
+						if( p1 != pPlayer->GetPos() && !pLevel->IsGridMoveable( p1, pPawn, 2 ) )
 							continue;
-						vec[( p1.x + p1.y * levelSize.x ) * 2 + a] = 2;
-						if( nType == 2 && i < 2 )
+						if( k == 0 && !vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
+							vec[( p1.x + p1.y * levelSize.x ) * 2] = vec[( p1.x + p1.y * levelSize.x ) * 2 + 1] = 1;
+						for( p1 = p1 + ofs[i]; p1.x >= 0 && p1.x < levelSize.x; p1 = p1 + ofs[i] )
 						{
-							for( p1 = p1 + ofs[i]; p1.x >= 0 && p1.x < levelSize.x; p1 = p1 + ofs[i] )
-							{
-								if( vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
-									break;
+							if( p1 != pPlayer->GetPos() && !pLevel->IsGridMoveable( p1, pPawn, 2 ) )
+								break;
+							if( !vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
 								vec[( p1.x + p1.y * levelSize.x ) * 2 + a] = 2;
-							}
+						}
+					}
+					else
+					{
+						auto pp = p + ofs[i];
+						if( pp.x < 0 || pp.y < 0 || pp.x >= levelSize.x || pp.y >= levelSize.y )
+							continue;
+						if( pp != pPlayer->GetPos() && vec[( pp.x + pp.y * levelSize.x ) * 2] )
+							continue;
+						if( k == 0 )
+							vec[( pp.x + pp.y * levelSize.x ) * 2] = vec[( pp.x + pp.y * levelSize.x ) * 2 + 1] = 1;
+
+						auto d = p0 - pp;
+						auto l1 = abs( d.y ) + Max( 0, abs( d.x ) - abs( d.y ) ) / 2;
+						if( l1 < 2 )
+							bMoveBack = true;
+
+						if( !nType || nType == 1 && i >= 2 )
+							continue;
+						auto p1 = pp + TVector2<int32>( ofs[i].x > 0 ? 2 : -2, 0 );
+						if( p1.x >= 0 && p1.x < levelSize.x )
+						{
+							int32 a = ofs[i].x > 0 ? 1 : 0;
+							if( p1 == p0 && a == nCurDir )
+								return -1;
+							if( vec[( p1.x + p1.y * levelSize.x ) * 2 + a] )
+								continue;
+							vec[( p1.x + p1.y * levelSize.x ) * 2 + a] = 2;
 						}
 					}
 				}
@@ -1874,7 +2156,10 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 		}
 		if( bStealth || !nType || target.x >= 0 )
 			break;
-		nType = 0;
+		if( nType == 2 )
+			nType = 3;
+		else
+			nType = 0;
 	}
 
 	if( target.x >= 0 )
@@ -1903,6 +2188,274 @@ int32 CPawnAI_Crow::ActionFindPath( int8& nCurDir, int32 nPrevState )
 	return -1;
 }
 
+
+class CPawnAI_Roach : public CPawnAI
+{
+	friend void RegisterGameClasses_PawnAI();
+public:
+	CPawnAI_Roach( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAI_Roach ); }
+	virtual int32 CheckAction( int8& nCurDir ) override;
+	virtual int32 CheckStateTransits( int8& nCurDir ) override;
+	virtual void OnChangeState() override;
+	virtual void Block( const TVector2<int32>& damageOfs ) override
+	{
+		PlaySoundEffect( m_strSoundBlock );
+	}
+
+	enum
+	{
+		eState_Stand,
+		eState_Stand_1,
+		eState_Transform,
+		eState_Transform1,
+		eState_Move0,
+		eState_Death,
+		eState_Move_X = 8,
+		eState_Move_Up,
+		eState_Move_Down,
+		eState_Atk_1 = 12,
+		eState_Atk_1_1,
+		eState_Atk_1_Cancel,
+		eState_Atk_2_0,
+		eState_Atk_2,
+		eState_Atk_2_1,
+		eState_Atk_2_Cancel,
+		eState_Atk_3_0,
+		eState_Atk_a = 23,
+	};
+private:
+	int32 FindPath1();
+	int32 FindPath2();
+	int32 FindPath3();
+	CString m_strSoundBlock;
+};
+
+int32 CPawnAI_Roach::CheckAction( int8& nCurDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto nCurStateIndex = pPawn->GetCurStateIndex();
+	auto pPlayer = pLevel->GetPlayer();
+	if( nCurStateIndex == eState_Stand_1 )
+	{
+		auto p = ( nCurDir ? TVector2<int32>( 4, 0 ) : TVector2<int32>( -2, 0 ) ) + pPawn->GetMoveTo();
+		auto pGrid = pLevel->GetGrid( p );
+		if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 && pGrid->pPawn0 != pPlayer )
+			return eState_Transform1;
+		return eState_Move0;
+	}
+
+	auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+	if( nCurDir )
+		d.x = -d.x;
+	if( d == TVector2<int32>( 2, 0 ) || d == TVector2<int32>( 1, 1 ) || d == TVector2<int32>( 1, -1 ) )
+		return eState_Atk_a;
+	if( d.y == 0 && d.x > 2 && d.x <= 8 )
+	{
+		bool b = true;
+		for( int x = 2; x < d.x; x += 2 )
+		{
+			auto p = ( nCurDir ? TVector2<int32>( -1, 0 ) : TVector2<int32>( 1, 0 ) ) * x + pPawn->GetMoveTo();
+			auto pGrid = pLevel->GetGrid( p );
+			if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 && pGrid->pPawn0 != pPlayer )
+			{
+				b = false;
+				break;
+			}
+		}
+		if( b )
+			return eState_Atk_1;
+	}
+
+	auto n = FindPath1();
+	if( n == 0 )
+		return -1;
+	if( n > 0 )
+		return n;
+	n = FindPath2();
+	if( n == 0 )
+		return -1;
+	if( n > 0 )
+		return n;
+	return FindPath3();
+}
+
+int32 CPawnAI_Roach::CheckStateTransits( int8& nCurDir )
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetMoveTo() == pPawn->GetPos() )
+		return -1;
+	auto nCurStateIndex = pPawn->GetCurStateIndex();
+	if( nCurStateIndex == eState_Atk_1_1 || nCurStateIndex == eState_Atk_2_1 )
+	{
+		if( pPawn->IsKilled() )
+			return eState_Death;
+		auto pPlayer = pPawn->GetLevel()->GetPlayer();
+		auto d = pPlayer->GetMoveTo() - pPawn->GetMoveTo();
+		if( nCurDir )
+			d.x = -d.x;
+		if( d.y > 1 || d.y < -1 )
+			return nCurStateIndex == eState_Atk_1_1 ? eState_Atk_1_Cancel : eState_Atk_2_Cancel;
+		auto l = d.x + ( d.y ? 1 : 0 );
+		if( d.x < 2 || l > ( nCurStateIndex == eState_Atk_1_1 ? 6 : 4 ) )
+			return nCurStateIndex == eState_Atk_1_1 ? eState_Atk_1_Cancel : eState_Atk_2_Cancel;
+		return nCurStateIndex == eState_Atk_1_1 ? eState_Atk_2_0 : eState_Atk_3_0;
+	}
+	return -1;
+}
+
+void CPawnAI_Roach::OnChangeState()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( strcmp( pPawn->GetCurStateName(), "break" ) == 0 || strcmp( pPawn->GetCurStateName(), "death_1" ) == 0 )
+		pPawn->SetHitSize( 2, 1 );
+	else
+		pPawn->SetHitSize( 1, 1 );
+}
+
+int32 CPawnAI_Roach::FindPath1()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto src = pPawn->GetMoveTo();
+	auto dst = pPlayer->GetMoveTo();
+	pPlayer->nTempFlag = 1;
+	TVector2<int32> ofs[] = { { 1, 1 }, { 1, -1 }, { 2, 0 } };
+	if( SRand::Inst().Rand( 0, 2 ) )
+		swap( ofs[0], ofs[1] );
+	if( pPawn->GetCurDir() )
+	{
+		for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+			ofs[i].x = -ofs[i].x;
+	}
+	auto nxt = pLevel->SimpleFindPath( src, dst, 2 ^ (int8)-1, NULL, ofs, ELEM_COUNT( ofs ) );
+	pPlayer->nTempFlag = 0;
+	if( nxt.x < 0 )
+		return -1;
+	if( nxt == dst )
+	{
+		auto pGrid = pLevel->GetGrid( nxt );
+		if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 )
+			return 0;
+	}
+	if( nxt.y == src.y )
+		return eState_Move_X;
+	else if( nxt.y > src.y )
+		return eState_Move_Up;
+	else
+		return eState_Move_Down;
+}
+
+int32 CPawnAI_Roach::FindPath2()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto src = pPawn->GetMoveTo();
+	TVector2<int32> dstofs[3] = { { 0, 0 }, { 1, 1 }, { 1, -1 } };
+	if( SRand::Inst().Rand( 0, 2 ) )
+		swap( dstofs[1], dstofs[2] );
+	for( int k = 0; k < ELEM_COUNT( dstofs ); k++ )
+	{
+		auto dst0 = pPlayer->GetMoveTo() + dstofs[k];
+		auto dst = dst0;
+		for( ;; )
+		{
+			auto p1 = dst + TVector2<int32>( pPawn->GetCurDir() ? 2 : -2, 0 );
+			auto pGrid = pLevel->GetGrid( p1 );
+			if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 && pGrid->pPawn0 != pPlayer )
+				break;
+			dst = p1;
+		}
+		if( dst == dst0 )
+			continue;
+
+		TVector2<int32> ofs[] = { { -2, 0 }, { 1, 1 }, { 1, -1 }, { 2, 0 } };
+		if( SRand::Inst().Rand( 0, 2 ) )
+			swap( ofs[1], ofs[2] );
+		if( pPawn->GetCurDir() )
+		{
+			for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+				ofs[i].x = -ofs[i].x;
+		}
+		auto nxt = pLevel->SimpleFindPath( src, dst, 2 ^ (int8)-1, NULL, ofs, ELEM_COUNT( ofs ) );
+		if( nxt.x < 0 )
+			continue;
+		if( nxt == dst )
+		{
+			auto pGrid = pLevel->GetGrid( nxt );
+			if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 )
+				return 0;
+		}
+		if( nxt.y == src.y )
+		{
+			if( nxt.x > src.x && !pPawn->GetCurDir() || nxt.x < src.x && pPawn->GetCurDir() )
+				return eState_Move_X;
+			return eState_Transform;
+		}
+		else if( nxt.y > src.y )
+			return eState_Move_Up;
+		else
+			return eState_Move_Down;
+	}
+	return -1;
+}
+
+int32 CPawnAI_Roach::FindPath3()
+{
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pLevel = pPawn->GetLevel();
+	auto pPlayer = pLevel->GetPlayer();
+	auto src = pPawn->GetMoveTo();
+	auto dst = pPlayer->GetMoveTo();
+	pPlayer->nTempFlag = 1;
+	TVector2<int32> ofs[] = { { -1, 1 }, { -1, -1 }, { -2, 0 } };
+	if( SRand::Inst().Rand( 0, 2 ) )
+		swap( ofs[0], ofs[1] );
+	if( pPawn->GetCurDir() )
+	{
+		for( int i = 0; i < ELEM_COUNT( ofs ); i++ )
+			ofs[i].x = -ofs[i].x;
+	}
+	static vector<TVector2<int32> > vecPath;
+	auto nxt = pLevel->SimpleFindPath( src, dst, 2 ^ (int8)-1, &vecPath, ofs, ELEM_COUNT( ofs ) );
+	pPlayer->nTempFlag = 0;
+	int32 l = vecPath.size();
+	vecPath.resize( 0 );
+	if( nxt.x < 0 )
+		return -1;
+	if( l > 3 )
+	{
+		auto d = dst - src;
+		if( !( d.y == 0 && l * 2 <= -d.x || abs( d.x ) == abs( d.y ) ) )
+			return -1;
+	}
+	TVector2<int32> ofs1[] = { { 2, 0 }, { 1, 1 }, { 1, -1 } };
+	if( nxt.y == src.y )
+	{
+		swap( ofs1[0], ofs1[2] );
+		if( SRand::Inst().Rand( 0, 2 ) )
+			swap( ofs1[0], ofs1[1] );
+	}
+	else if( nxt.y > src.y )
+		swap( ofs1[1], ofs1[2] );
+	for( int i = 0; i < ELEM_COUNT( ofs1 ); i++ )
+	{
+		auto p = src + ofs1[i];
+		auto pGrid = pLevel->GetGrid( p );
+		if( !pGrid || !pGrid->bCanEnter || pGrid->pPawn0 )
+			continue;
+
+		if( p.y == src.y )
+			return eState_Move_X;
+		else if( p.y > src.y )
+			return eState_Move_Up;
+		else
+			return eState_Move_Down;
+	}
+	return -1;
+}
 
 class CPawnAI_PlayerTracer : public CPawnAI
 {
@@ -1951,7 +2504,7 @@ public:
 	virtual int32 CheckStateTransits1( int8& nCurDir, bool bFinished ) override;
 	virtual void OnChangeState() override;
 
-	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override;
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource ) override;
 	virtual bool PreKill() override;
 	virtual void TryPickUp() override
 	{
@@ -2281,7 +2834,7 @@ void CPawnAI_PlayerTracer::OnChangeState()
 		Break();
 }
 
-bool CPawnAI_PlayerTracer::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs )
+bool CPawnAI_PlayerTracer::Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource )
 {
 	if( m_pActionSpecial )
 	{
@@ -2620,7 +3173,7 @@ public:
 	virtual void OnUpdate() override;
 	virtual void OnUpdate0() override;
 	virtual void OnUpdate1() override;
-	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs ) override
+	virtual bool Damage( int32& nDamage, int8 nDamageType, const TVector2<int32>& damageOfs, CPawn* pSource ) override
 	{
 		if( GetAliveSpawns() || m_bLocked )
 		{
@@ -2643,6 +3196,7 @@ private:
 	CString m_strScript;
 	CString m_strSignal;
 	bool m_bDisabled;
+	bool m_bNoBlockStage;
 	CReference<CEntity> m_p1;
 
 	vector<CReference<CPawn> > m_vecPawns;
@@ -2679,10 +3233,13 @@ void CPawnAIVortex::OnUpdate0()
 	bVisible = m_pLuaState != NULL;
 	bool b = GetAliveSpawns() > 0 || m_bLocked;
 	auto p = static_cast<CMultiFrameImage2D*>( GetRenderObject() );
-	int32 nFrameBegin = b ? 2 : 0;
-	int32 nFrameEnd = b ? 5 : 3;
-	if( p->GetFrameBegin() != nFrameBegin || p->GetFrameEnd() != nFrameEnd )
-		p->SetFrames( nFrameBegin, nFrameEnd, p->GetFramesPerSec() );
+	if( p )
+	{
+		int32 nFrameBegin = b ? 2 : 0;
+		int32 nFrameEnd = b ? 5 : 3;
+		if( p->GetFrameBegin() != nFrameBegin || p->GetFrameEnd() != nFrameEnd )
+			p->SetFrames( nFrameBegin, nFrameEnd, p->GetFramesPerSec() );
+	}
 	if( m_p1 )
 		m_p1->bVisible = b;
 }
@@ -2691,7 +3248,7 @@ void CPawnAIVortex::OnUpdate1()
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	auto pLevel = pPawn->GetLevel();
-	if( !m_bDisabled )
+	if( !m_bDisabled && !m_bNoBlockStage )
 		pLevel->BlockStage();
 }
 
@@ -2865,6 +3422,10 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_BASE_CLASS( CPawnAI )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CPawnAI_Worm )
+		REGISTER_BASE_CLASS( CPawnAI )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CPawnAI_Spore )
 		REGISTER_BASE_CLASS( CPawnAI )
 	REGISTER_CLASS_END()
@@ -2886,6 +3447,11 @@ void RegisterGameClasses_PawnAI()
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[2], hpbar/2 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[3], hpbar/3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHpBarImg[4], hpbar/4 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAI_Roach )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER( m_strSoundBlock )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAI_PlayerTracer )
@@ -2932,6 +3498,7 @@ void RegisterGameClasses_PawnAI()
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER( m_bDisabled )
+		REGISTER_MEMBER( m_bNoBlockStage )
 		REGISTER_MEMBER_TAGGED_PTR( m_p1, a )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( Spawn )

@@ -282,7 +282,7 @@ public:
 	CPawn* SpawnPawn( int32 n, int32 x, int32 y, int8 nDir, const char* szRemaining = NULL, CPawn* pCreator = NULL, int32 nForm = 0 );
 	CPawn* SpawnPawn1( const char* szPrefab, int32 x, int32 y, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	CPawn* SpawnPreset( const char* szName );
-	CPawn* SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir );
+	CPawn* SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir, const char* szInitState = NULL );
 	bool AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	bool AddPawn1( CPawn* pPawn, int32 nState, int32 nStateTick, const TVector2<int32>& pos, const TVector2<int32>& moveTo, int8 nDir );
 	void RemovePawn( CPawn* pPawn );
@@ -298,6 +298,7 @@ public:
 	CPawn* FindUseablePawn( const TVector2<int32>& p, int8 nDir, int32 w, int32 h );
 	CPawn* GetPawnByName( const char* szName );
 	int32 GetAllPawnsByNameScript( const char* szName );
+	int32 GetAllPawnsByTagScript( const char* szTag );
 	CPawn* GetPawnByGrid( int32 x, int32 y );
 	void OnPlayerChangeState( SPawnState& state, int32 nStateSource, int8 nDir );
 	void OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType );
@@ -307,7 +308,7 @@ public:
 		vector<TVector2<int32> >* pVecPath = NULL, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
 	TVector2<int32> Search( const TVector2<int32>& begin, function<int8( SGrid*, const TVector2<int32>& )> FuncGrid,
 		vector<TVector2<int32> >* pVecPath = NULL, TVector2<int32>* pOfs = NULL, int32 nOfs = 0 );
-	void Alert( CPawn* pTriggeredPawn, const TVector2<int32>& pawnOfs );
+	void Alert( CPawn* pTriggeredPawn, const TVector2<int32>& p );
 	void Alert1();
 	void BeginTracer( const char* sz, int32 nDelay );
 	void BeginTracer1( int32 n, int32 nDelay );
@@ -353,7 +354,7 @@ public:
 	void ScriptForEachEnemy();
 private:
 	CPawn* HandleSpawn( CLevelSpawnHelper* pSpawnHelper );
-	CPawn* HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<int32>& p, int32 nDir );
+	CPawn* HandleSpawn1( CLevelSpawnHelper* pSpawnHelper, const TVector2<int32>& p, int32 nDir, const char* szInitState = NULL );
 	void HandlePawnMounts( CPawn* pPawn, bool bRemove, CEntity* pRoot = NULL );
 	void FlushSpawn();
 	void InitTiles();
@@ -508,7 +509,8 @@ struct SWorldDataFrame
 		TVector2<int32> p1;
 		int8 nDir;
 		int8 nSpawnIndex;
-		int16 nEmpty;
+		int8 bIsAlive;
+		int8 nEmpty;
 	};
 	struct SLevelData
 	{
@@ -581,11 +583,11 @@ struct SWorldData
 	void OnScenarioText( int8 n, const char* sz, const CVector4& color );
 
 	template <typename T>
-	static void ClearKeys( T t, vector<string>& vecTemp )
+	static void ClearKeys( T& t, vector<string>& vecTemp )
 	{
 		for( auto& pair : t )
 		{
-			if( pair.first.find( '%' ) != string::npos )
+			if( pair.first.find( '%' ) == string::npos )
 				vecTemp.push_back( pair.first );
 		}
 		for( auto& key : vecTemp )
@@ -593,13 +595,13 @@ struct SWorldData
 		vecTemp.resize( 0 );
 	}
 	template <typename T>
-	static void ClearKeysByPrefix( T t, const char* sz, vector<string>& vecTemp )
+	static void ClearKeysByPrefix( T& t, const char* sz, vector<string>& vecTemp )
 	{
 		auto itr1 = t.lower_bound( sz );
 		auto itr2 = t.upper_bound( sz );
 		for( ; itr1 != itr2; itr1++ )
 		{
-			if( itr1->first.find( '%' ) != string::npos )
+			if( itr1->first.find( '%' ) == string::npos )
 				vecTemp.push_back( itr1->first );
 		}
 		for( auto& key : vecTemp )
@@ -665,6 +667,7 @@ public:
 	bool IsMenuShow() { return m_pMenu->bVisible; }
 	bool IsMenuPageEnabled( int8 nPage );
 	CEntity* ShowInteractionUI( CPawn* pPawn, const char* szName );
+	CEntity* GotoInteractionUI( const char* szName );
 	CEntity* GetInteractionUI() { return m_pInteractionUI; }
 	void BlackOut( int32 nFrame1, int32 nFrame2 );
 	bool IsBlackOut() { return m_nBlackOutFrame1 > 0; }

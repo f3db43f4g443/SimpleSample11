@@ -129,6 +129,7 @@ bool CPrefabNode::SetResource( CResource* pResource )
 			if( static_cast<CPrefabNode*>( pPrefabBaseNode )->GetNameSpace().pNameSpaceKey )
 				static_cast<CPrefabNode*>( pPrefabBaseNode )->NameSpaceClearNode( m_pPatchedNode );
 		}
+		m_pPatchedNode->m_pPatchedNodeParent = NULL;
 		m_pPatchedNode = NULL;
 		if( m_pPreviewNode )
 			m_pPreviewNode = NULL;
@@ -142,6 +143,7 @@ bool CPrefabNode::SetResource( CResource* pResource )
 		m_pPatchedNode = p->Clone( m_pPrefab, NULL, &context );
 		//SetRenderObject( m_pPatchedNode->CreateInstance() );
 		pRenderObject = m_pPatchedNode;
+		m_pPatchedNode->m_pPatchedNodeParent = this;
 	}
 	else
 	{
@@ -318,6 +320,7 @@ void CPrefabNode::LoadResourceExtraData( CResource* pResource, IBufReader& extra
 			m_pPatchedNode = p->Clone( m_pPrefab, pNameSpace, &context );
 			//SetRenderObject( m_pPatchedNode->CreateInstance() );
 			SetRenderObject( m_pPatchedNode );
+			m_pPatchedNode->m_pPatchedNodeParent;
 			m_pPrefab->AddDependency( pResource );
 		}
 	}
@@ -951,6 +954,8 @@ void CPrefabNode::UpdateTaggedNodePtrInfo()
 	auto pClassData = GetFinalClassData();
 	if( !pClassData )
 		return;
+	m_vecTaggedPrefabNodePtrInfo.resize( 0 );
+	m_vecTaggedNodePtrInfo.resize( 0 );
 	map<string, STaggedNodePtrInfo*> mapInfo;
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this]( SClassMetaData::SMemberData* pData, uint32 nOfs  )
 	{
@@ -1003,6 +1008,7 @@ void CPrefabNode::UpdateResPtrInfo()
 	auto pClassData = GetClassData();
 	if( !pClassData )
 		return;
+	m_vecResPtrInfo.resize( 0 );
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
 	{
 		int8 nType;
@@ -1146,6 +1152,7 @@ void CPrefabNode::UpdatePrefabNodeRefInfo()
 	auto pClassData = GetClassData();
 	if( !pClassData )
 		return;
+	m_vecPrefabNodeRefInfo.resize( 0 );
 	function<void( SClassMetaData::SMemberData* pData, uint32 nOfs )> func = [this] ( SClassMetaData::SMemberData* pData, uint32 nOfs )
 	{
 		int8 nType;
@@ -1485,6 +1492,15 @@ CResource * CPrefabNode::LoadResource( const char * szName )
 	return NULL;
 }
 
+void CPrefabNode::OnEditorMove( CPrefabNode* pRoot )
+{
+	m_bTaggedNodePtrInfoDirty = true;
+	if( pRoot == this )
+		return;
+	auto pParent = m_pPatchedNodeParent ? m_pPatchedNodeParent : (CPrefabNode*)GetParent();
+	pParent->OnEditorMove( pRoot );
+}
+
 void CPrefabNode::DebugDrawPreview( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
 {
 	if( m_pPreviewNode )
@@ -1687,6 +1703,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, CPrefabNodeNameSpace* pNameSp
 				pPrefabNode->m_pPatchedNode = p->Clone( pPrefab, pNameSpace, &context1, pNameSpaceCopyContext );
 				//SetRenderObject( m_pPatchedNode->CreateInstance() );
 				pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode );
+				pPrefabNode->m_pPatchedNode->m_pPatchedNodeParent = pPrefabNode;
 				pPrefab->AddDependency( pRes );
 			}
 			bLoadedRes = true;
@@ -1709,6 +1726,7 @@ CPrefabNode* CPrefabNode::Clone( CPrefab* pPrefab, CPrefabNodeNameSpace* pNameSp
 				pPrefabNode->m_pPatchedNode = m_pPatchedNode->Clone( pPrefab, pNameSpace, NULL, pNameSpaceCopyContext );
 				//pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode->CreateInstance() );
 				pPrefabNode->SetRenderObject( pPrefabNode->m_pPatchedNode );
+				pPrefabNode->m_pPatchedNode->m_pPatchedNodeParent = pPrefabNode;
 			}
 			else
 			{

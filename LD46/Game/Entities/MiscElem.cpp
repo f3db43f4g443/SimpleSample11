@@ -379,6 +379,7 @@ int32 CPawnAISignalLight::Signal( int32 i )
 
 void CPawnAIAutoDoor::OnInit()
 {
+	bVisible = false;
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	if( m_strBrokenKey.length() )
 	{
@@ -417,6 +418,7 @@ int32 CPawnAIAutoDoor::CheckAction( int8& nCurDir )
 			}
 		}
 	}
+	bVisible = !bOpen;
 	if( pPawn->GetCurStateIndex() == eState_Open )
 	{
 		if( bBlockPlayer && m_strBrokenKey.length() )
@@ -643,7 +645,7 @@ int32 CHitButton::Signal( int32 i )
 	return 0;
 }
 
-int32 CHitButton::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOfs )
+int32 CHitButton::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> hitOfs, CPawn* pSource )
 {
 	if( !m_bReady )
 		return 0;
@@ -806,7 +808,7 @@ void CPressurePlate::Update()
 		for( int j = 0; j < m_nHeight && !bPress; j++ )
 		{
 			auto pGrid = GetLevel()->GetGrid( GetPos() );
-			if( pGrid && pGrid->pPawn1 && pGrid->pPawn1->HasStateTag( m_strPressStateTag ) )
+			if( pGrid && pGrid->pPawn1 && ( !m_strPressStateTag.length() || pGrid->pPawn1->HasStateTag( m_strPressStateTag ) ) )
 				bPress = true;
 		}
 	}
@@ -856,9 +858,12 @@ void CFallPoint::Init()
 	if( !m_strKey.length() || GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strKey ) )
 	{
 		auto p = static_cast<CImage2D*>( GetRenderObject() );
-		auto texRect = p->GetElem().texRect;
-		texRect.x += texRect.width;
-		p->SetTexRect( texRect );
+		if( p )
+		{
+			auto texRect = p->GetElem().texRect;
+			texRect.x += texRect.width;
+			p->SetTexRect( texRect );
+		}
 		m_bVisited = true;
 	}
 	CPawnHit::Init();
@@ -876,9 +881,12 @@ void CFallPoint::Update()
 			if( m_strKey.length() )
 				GetStage()->GetMasterLevel()->SetKeyInt( m_strKey, 1 );
 			auto p = static_cast<CImage2D*>( GetRenderObject() );
-			auto texRect = p->GetElem().texRect;
-			texRect.x += texRect.width;
-			p->SetTexRect( texRect );
+			if( p )
+			{
+				auto texRect = p->GetElem().texRect;
+				texRect.x += texRect.width;
+				p->SetTexRect( texRect );
+			}
 			m_bVisited = true;
 			if( m_pEft )
 				AddChild( m_pEft->GetRoot()->CreateInstance() );
@@ -890,6 +898,7 @@ void CFallPoint::Update()
 		GetStage()->GetMasterLevel()->TransferTo1( nxtStage.pNxtStage, pPlayer->GetMoveTo() -
 			TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ), pPlayer->GetCurDir(), 1 );
 	}
+	CPawnHit::Update();
 }
 
 void CClimbPoint::Init()
@@ -1349,7 +1358,6 @@ void CSmoke::Init()
 
 void CSmoke::Update()
 {
-	CPawnHit::Update();
 	if( m_bImg )
 	{
 		UpdateImages();
@@ -1370,6 +1378,7 @@ void CSmoke::Update()
 	auto pPlayer = GetLevel()->GetPlayer();
 	if( pPlayer->GetMoveTo() == GetPos() || pPlayer->GetPos() == GetPos() )
 		GetLevel()->Fail( 1 );
+	CPawnHit::Update();
 }
 
 void CSmoke::Render( CRenderContext2D& context )
@@ -1499,6 +1508,10 @@ void CSmoke::UpdateImages()
 		m_params[i * 2] = CVector4( m_origParam[0].x, m_origParam[0].y, m_origParam[0].z, m_items[i].ofs.x );
 		m_params[i * 2 + 1] = CVector4( m_origParam[1].x, m_origParam[1].y, m_origParam[1].z, m_items[i].ofs.y );
 	}
+
+
+
+
 }
 
 void CBalloon::Update()
@@ -1507,11 +1520,37 @@ void CBalloon::Update()
 	{
 		auto pPawn = GetLevel()->GetGrid( GetPos() )->pPawn0;
 		if( pPawn && pPawn->GetPos() == pPawn->GetMoveTo() )
+		{
+			OnKilled();
 			PlayState( "death" );
+		}
 		else if( GetLevel()->FindPickUp( GetPos(), 2, 1 ) )
+		{
+			OnKilled();
 			PlayState( "death" );
+		}
 	}
 	CPawnHit::Update();
+}
+
+void CBrokenGlass::Update()
+{
+	auto pPawn = GetLevel()->GetGrid( GetPos() )->pPawn0.GetPtr();
+	if( pPawn )
+	{
+		if( pPawn != m_pPawn && pPawn->GetPos() == pPawn->GetMoveTo() )
+		{
+			if( pPawn->CanBeHit( 0 ) )
+			{
+				pPawn->Damage( 2 );
+				PlaySoundEffect( m_strSound );
+				GetLevel()->Alert( pPawn, GetPos() );
+			}
+			m_pPawn = pPawn;
+		}
+	}
+	else
+		m_pPawn = NULL;
 }
 
 void COil::Update()
@@ -1523,6 +1562,7 @@ void COil::Update()
 			m_pPlayer->PlayState( "break", 1 );
 	}
 	m_pPlayer = pPlayer;
+	CPawnHit::Update();
 }
 
 void CElevator::OnAddedToStage()
@@ -1865,6 +1905,12 @@ int32 CTutorialMoving::Signal( int32 i )
 void CTutorialFollowing::OnUpdate1( CMyLevel* pLevel )
 {
 	auto pPlayer = pLevel->GetPlayer();
+	if( m_nResetTick )
+	{
+		m_nResetTick--;
+		if( !m_nResetTick )
+			Signal( 2 );
+	}
 	if( m_bError )
 	{
 		if( pLevel->IsScenario() )
@@ -1907,9 +1953,15 @@ void CTutorialFollowing::OnUpdate1( CMyLevel* pLevel )
 
 			if( b )
 			{
-				pPlayer->nTempFlag = 1;
-				auto nxt = pLevel->SimpleFindPath( m_curPos, p, 1 );
-				pPlayer->nTempFlag = 0;
+				auto nxt = pLevel->FindPath1( m_curPos, p, [p] ( CMyLevel::SGrid* pGrid, const TVector2<int32>& pos ) {
+					if( p == pos )
+						return true;
+					if( !pGrid->bCanEnter )
+						return false;
+					if( pGrid->pPawn0 && !pGrid->pPawn0->IsDynamic() )
+						return false;
+					return true;
+				} );
 				if( nxt.x >= 0 )
 				{
 					if( m_bLastSoundPosValid && nxt == m_lastSoundPos )
@@ -2035,7 +2087,7 @@ void CTutorialFollowing::OnAlert( CPawn* pTriggeredPawn, const TVector2<int32>& 
 
 int32 CTutorialFollowing::Signal( int32 i )
 {
-	if( i == 0 )
+	if( i == 0 || i == -1 )
 	{
 		m_nEndTick = 0;
 		if( m_bError )
@@ -2045,6 +2097,14 @@ int32 CTutorialFollowing::Signal( int32 i )
 				p->RemoveThis();
 			m_vecImgs.resize( 0 );
 			m_pProjector->Signal( -1 );
+			if( i == -1 )
+			{
+				m_nResetTick = 60;
+				auto pLevel = GetStage()->GetMasterLevel()->GetCurLevel();
+				pLevel->Alert( NULL, TVector2<int32>( m_nBeginX, m_nBeginY ) );
+				if( m_strControlResetScript )
+					CLuaMgr::Inst().Run( m_strControlResetScript );
+			}
 		}
 		else if( m_bEnabled )
 		{
@@ -2657,6 +2717,11 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_BASE_CLASS( CPawnHit )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CBrokenGlass )
+		REGISTER_BASE_CLASS( CPawnHit )
+		REGISTER_MEMBER( m_strSound )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( COil )
 		REGISTER_BASE_CLASS( CPawnHit )
 	REGISTER_CLASS_END()
@@ -2729,6 +2794,9 @@ void RegisterGameClasses_MiscElem()
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strFailedScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strControlResetScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER( m_pPrefab )

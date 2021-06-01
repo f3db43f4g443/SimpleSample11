@@ -139,12 +139,17 @@ function SetCurTime( i )
 	SetKeyInt( "time", i )
 end
 
+function CurCharacter()
+	if CurDay() == 3 or CurDay() == 4 or CurDay() == 7 then return 1 end
+	return 0
+end
+
 function TransferTo( sz, x, y, dir, type )
 	GetMasterLevel():ScriptTransferTo( sz, x, y, dir, type )
 end
 
-function CreateLighningEft( src, dst, fStrength, fTurbulence )
-	return CreateLighningEft_Script( src, dst, fStrength or 1, fTurbulence or 2 )
+function CreateLighningEft( src, dst, fStrength, fTurbulence, nDuration )
+	return CreateLighningEft_Script( src, dst, fStrength or 1, fTurbulence or 2, nDuration )
 end
 
 function OnRefreshMainUI()

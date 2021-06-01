@@ -330,7 +330,7 @@ function Interaction_DoorLock( ui, pwdKey )
   if IsKeyDown( VK_ESCAPE ) then return end
   local n = 0
   for i = 1, 10, 1 do
-   if IsKeyDown( keys[i] ) then
+   if IsChar( keys[i] ) then
     str = str .. tostring( i - 1 )
     n = i
     break
@@ -364,7 +364,8 @@ end
 
 function Init_Cinema_Seat()
  local level = GetCurLevel()
- for i = 1, 9, 1 do
+ local n = EvaluateKeyInt( "%library_window_broken" ) > 0 and 10 or 9
+ for i = 1, n, 1 do
   if EvaluateKeyInt( "_CINEMA_SEAT_" .. tostring( i ) ) > 0 then
    local x = EvaluateKeyInt( "_CINEMA_SEAT_X_" .. tostring( i ) )
    local y = EvaluateKeyInt( "_CINEMA_SEAT_Y_" .. tostring( i ) )
@@ -374,9 +375,15 @@ function Init_Cinema_Seat()
  end
 end
 
+function Reset_Cinema_Seat()
+ for i = 1, 10, 1 do
+  SetKeyInt( "_CINEMA_SEAT_" .. tostring( i ), 0 )
+ end
+end
+
 function Interaction_Cinema_Seat( ui, pawn )
  local npcs = {}
- local npcData = { { 6, 4, 5 }, { 6, 2, 1 }, { 9, 3, 1 }, { 10, 0, 1 }, { 14, 2, 2 }, { 8, 8, 2 }, { 4, 6, 2 }, { 15, 5, 3 }, { 10, 2, 4 } }
+ local npcData = { { 6, 4, 5 }, { 6, 2, 1 }, { 9, 3, 1 }, { 10, 0, 1 }, { 14, 2, 2 }, { 8, 8, 2 }, { 4, 6, 2 }, { 15, 5, 3 }, { 10, 2, 4 }, { 13, 5, 3 } }
  local npcGrids = { { { 6, 4 }, { 5, 5 }, { 5, 1 }, { 10, 2 }, { 15, 1 }, { 14, 4 }, { 15, 5 } },
   { { 6, 2 }, { 4, 2 }, { 5, 1 } },
   { { 9, 3 }, { 10, 4 }, { 11, 3 }, { 10, 2 } },
@@ -386,9 +393,11 @@ function Interaction_Cinema_Seat( ui, pawn )
   { { 4, 6 }, { 6, 6 }, { 10, 6 }, { 14, 6 }, { 16, 6 } },
   { { 15, 5 }, { 16, 6 }, { 10, 0 }, { 14, 4 } },
   { { 10, 2 }, { 9, 3 }, { 7, 5 }, { 6, 6 }, { 12, 0 } },
+  { { 13, 5 }, { 14, 6 }, { 8, 0 }, { 10, 2 }, { 11, 3 } },
  }
-
- for i = 1, #npcData, 1 do
+ 
+ local nNpc = EvaluateKeyInt( "%library_window_broken" ) > 0 and 10 or 9
+ for i = 1, nNpc, 1 do
   local data = npcData[i]
   if EvaluateKeyInt( "_CINEMA_SEAT_" .. tostring( i ) ) > 0 then
    data[1] = EvaluateKeyInt( "_CINEMA_SEAT_X_" .. tostring( i ) )
@@ -396,6 +405,12 @@ function Interaction_Cinema_Seat( ui, pawn )
   end
   npcs[i] = ui:FindChildEntity( tostring( i ) )
   SetPosition( npcs[i], data[1] * 24 - 264, data[2] * 32 - 160 )
+ end
+
+
+
+ if nNpc == 9 then
+  ui:FindChildEntity( tostring( 10 ) ):SetVisible( false )
  end
  local eftX = ui:FindChildEntity( "x" )
  eftX:SetVisible( false )
@@ -435,7 +450,7 @@ function Interaction_Cinema_Seat( ui, pawn )
    PlaySoundEffect( "electric1" )
    Delay( 20 )
 
-   for i = 1, #npcData, 1 do
+   for i = 1, nNpc, 1 do
     local data = npcData[i]
 	if data[1] == x and data[2] == y then
 	 local grids = npcGrids[i]
@@ -485,12 +500,29 @@ function Interaction_Cinema_Seat( ui, pawn )
 end
 
 function Interaction_Library_Assist( ui )
+ if EvaluateKeyInt( "%library_assist_login" ) < 0 then
+  HeadText( "[Not responding]", htx_color_5, 240 )
+  return
+ end
  local err = ui:FindChildEntity( "error" )
+ err:SetVisible( false )
  err:FindChildEntity( "text" ):Set( "NO MATCH RESULT", 2 )
  local cursorX = ui:FindChildEntity( "cursor_x" )
  local cursorY = ui:FindChildEntity( "cursor_y" )
  local cursorPos = { 0, 0 }
- local cursorRegion = { -264, -160, 264, 352 }
+ local cursorRegion = { -320, -256, 320, 320 }
+ local pwdui = ui:FindChildEntity( "pwd" )
+ pwdui:SetVisible( false )
+ local tips = ui:FindChildEntity( "tips" )
+ local TIPS_0 = "[I/K, ENTER] SELECT   [WASD, J] PICK"
+ local TIPS_PWD = "PLEASE LOGIN - ENTER PASSWORD"
+ tips:Set( TIPS_0 )
+
+ local isLogin = EvaluateKeyInt( "%library_assist_login" ) ~= 0
+ ui:FindChildEntity( "0/kb/1" ):SetVisible( not isLogin )
+ ui:FindChildEntity( "0/kb/2" ):SetVisible( isLogin )
+ local menu = ui:FindChildEntity( "menu" )
+ menu:SetVisible( false )
 
  local options
  local nSelectedOption = 0
@@ -549,6 +581,47 @@ function Interaction_Library_Assist( ui )
   end
  end
  DlgEntry( g_libassist_dialogues[1], 1 )
+
+ ui:PickWord( 10000, 10000 )
+ cursorX:SetVisible( false )
+ cursorY:SetVisible( false )
+ local pwd = EvaluateKeyString( "%library_assist_pwd" )
+ local spray1 = ui:FindChildEntity( "spray/1" )
+ if pwd == "" then
+  SetImgParam( spray1, { 0, 0, 0, 0.99 } )
+
+  if GetLabelKey( "_SPRAY_1" ) == 1 then
+   SetLabelKey( "_SPRAY_1", 2 )
+  
+   for i = 1, 6, 1 do
+    local p = spray1:FindChildEntity( tostring( i ) )
+    local n = RandInt( 0, 10 )
+    SetImgTexRect( p, { ( n % 5 * 2 + 12 ) / 32, ( n // 5 * 2 + 21 ) / 32, 1.0 / 16, 1.0 / 16 } )
+    pwd = pwd .. tostring( n )
+   end
+   SetKeyString( "%library_assist_pwd", pwd )
+   PlaySoundEffect( "spray" )
+   for i = 1, 15, 1 do
+    SetImgParam( spray1, { 0, 0, 0, ( 15 - i ) / 15 } )
+	Delay( 10 )
+   end
+  else
+   for i = 1, 6, 1 do
+    spray1:FindChildEntity( tostring( i ) ):SetVisible( false )
+   end
+  end
+ else
+  for i = 1, 6, 1 do
+   local p = spray1:FindChildEntity( tostring( i ) )
+   local n = tonumber( string.sub( pwd, i, i ) )
+   SetImgTexRect( p, { ( n % 5 * 2 + 12 ) / 32, ( n // 5 * 2 + 21 ) / 32, 1.0 / 16, 1.0 / 16 } )
+  end
+  SetImgParam( spray1, { 0, 0, 0, 0 } )
+ end
+
+ cursorX:SetVisible( true )
+ cursorY:SetVisible( true )
+
  
  while not IsKeyDown( VK_ESCAPE ) do
   coroutine.yield()
@@ -569,10 +642,44 @@ function Interaction_Library_Assist( ui )
    cursorPos[2] = math.max( cursorRegion[2], cursorPos[2] - 4 )
    SetPosition( cursorY, 0, cursorPos[2] )
   end
-
-  local strKeyWord = ui:PickWord( cursorPos[1], cursorPos[2] );
+  
   local bContinue = false
-  if #strKeyWord and IsInputDown( 4 ) then
+  if isLogin then
+   if not menu:IsVisible() then
+    if cursorPos[1] <= -192 and cursorPos[2] <= -224 and IsInputDown( 4 ) then
+	 bContinue = true
+     menu:SetVisible( true )
+    end
+   else
+    if cursorPos[1] <= -192 and cursorPos[2] <= -224 and IsInputDown( 4 ) then
+	 bContinue = true
+     menu:SetVisible( false )
+	elseif cursorPos[1] <= -192 and cursorPos[2] > -160 and cursorPos[2] <= -96 and IsInputDown( 4 ) then
+	 GetMasterLevel():GotoInteractionUI( "data/interaction/library_assist_1.pf" )
+	 return
+    end
+   end 
+  end
+  if not isLogin and cursorPos[1] <= -192 and cursorPos[2] <= -224 and IsInputDown( 4 ) then
+   pwdui:SetVisible( true )
+   cursorX:SetVisible( false )
+   cursorY:SetVisible( false )
+   tips:Set( TIPS_PWD )
+
+   if Interaction_DoorLock( pwdui, "%library_assist_pwd" ) then
+    ui:FindChildEntity( "0/kb/1" ):SetVisible( false )
+    ui:FindChildEntity( "0/kb/2" ):SetVisible( true )
+	isLogin = true
+   end
+   coroutine.yield()
+   pwdui:SetVisible( false )
+   cursorX:SetVisible( true )
+   cursorY:SetVisible( true )
+   tips:Set( TIPS_0 )
+   bContinue = true
+  end
+  local strKeyWord = ui:PickWord( cursorPos[1], cursorPos[2] )
+  if not bContinue and #strKeyWord and IsInputDown( 4 ) then
    bContinue = true
    local tbl = g_libassist_dialogues[string.lower( strKeyWord )]
    if not tbl then
@@ -586,14 +693,14 @@ function Interaction_Library_Assist( ui )
   end
 
   if #options > 0 and not bContinue then
-   if IsKeyDown( 5 ) then
+   if IsInputDown( 5 ) then
     nSelectedOption = nSelectedOption + 1
     if nSelectedOption > #options then
      nSelectedOption = 1
     end
     ui:SelectOption( nSelectedOption )
    end
-   if IsKeyDown( 7 ) then
+   if IsInputDown( 7 ) then
     nSelectedOption = nSelectedOption - 1
     if nSelectedOption <= 0 then
      nSelectedOption = #options
@@ -622,6 +729,347 @@ function Interaction_Library_Assist( ui )
   end
  end
 
+end
+
+function Interaction_Library_Assist_1( ui )
+ local spray1 = ui:FindChildEntity( "spray/1" )
+ local pwd = EvaluateKeyString( "%library_assist_pwd" )
+ for i = 1, 6, 1 do
+  local p = spray1:FindChildEntity( tostring( i ) )
+  local n = tonumber( string.sub( pwd, i, i ) )
+  SetImgTexRect( p, { ( n % 5 * 2 + 12 ) / 32, ( n // 5 * 2 + 21 ) / 32, 1.0 / 16, 1.0 / 16 } )
+ end
+ SetImgParam( spray1, { 0, 0, 0, 0 } )
+
+ local back = ui:FindChildEntity( "back" )
+ local page1 = ui:FindChildEntity( "1" )
+ local page2 = ui:FindChildEntity( "2" )
+ page1:SetVisible( false )
+ page2:SetVisible( false )
+ SetImgParam( back, { 0, 0, 0, 0 } )
+ Delay( 80 )
+ SetImgParam( back, { 1, 1, 1, 1 } )
+ Delay( 15 )
+ SetImgParam( back, { 0.8, 0.1, 0.4, 1 } )
+ Delay( 10 )
+ SetImgParam( back, { 0.2, 0.6, 0.4, 1 } )
+ Delay( 5 )
+ SetImgParam( back, { 0.02, 0.01, 0.05, 1 } )
+ Delay( 60 )
+ page1:SetVisible( true )
+
+ local p1 = page1:GetRoot():FindChildEntity( "a/0" )
+ local p2 = page1:GetRoot():FindChildEntity( "a/1" )
+ local p3 = page1:GetRoot():FindChildEntity( "a/2" )
+ p2:SetVisible( false )
+ p3:SetVisible( false )
+ SetImgParam( p1, { 0.027, 0.11, 0.129, 1 } )
+
+ local h = 576
+ local scrollRange = { -512, 512 }
+ local yRange = { scrollRange[1] + h * 0.5, scrollRange[2] - h * 0.5 }
+ local curY = yRange[2]
+ page1:SetCamPos( { 0, curY } )
+ page1:GetRoot():FindChildEntity( "a" ):SetVisible( false );
+ page1:Refresh()
+ Delay( 80 )
+ page1:GetRoot():FindChildEntity( "a" ):SetVisible( true );
+ page1:Refresh()
+
+ while true do
+  coroutine.yield( 1 )
+  
+  local bRefresh = false
+  local y0 = math.floor( curY )
+
+  local bDown = IsInput( 5 ) or IsInput( 3 )
+  local bUp = IsInput( 7 ) or IsInput( 1 )
+  if bDown then
+   if curY > yRange[1] then curY = math.max( yRange[1], curY - 2 )
+   else
+    curY = curY - ( ( curY - yRange[1] + 128 ) / 128 * 1 + 0.25 )
+	if curY < yRange[1] - 128 then break end
+	local k = ( curY - yRange[1] + 128 ) / 128
+    SetImgParam( p1, { 0.027 * k + 0.16 * ( 1 - k ), 0.11 * k + 0.16 * ( 1 - k ), 0.129 * k + 0.16 * ( 1 - k ), 1 } )
+	page1:Refresh()
+   end
+  elseif bUp then
+   if curY >= yRange[1] then curY = math.min( yRange[2], curY + 2 )
+   else
+    curY = curY + ( yRange[1] - curY ) / 128 * 8 + 4
+	local k = ( curY - yRange[1] + 128 ) / 128
+    SetImgParam( p1, { 0.027 * k + 0.16 * ( 1 - k ), 0.11 * k + 0.16 * ( 1 - k ), 0.129 * k + 0.16 * ( 1 - k ), 1 } )
+	page1:Refresh()
+   end
+  else
+   if curY < yRange[1] then
+    curY = curY + ( yRange[1] - curY ) / 128 * 4 + 2
+	local k = ( curY - yRange[1] + 128 ) / 128
+    SetImgParam( p1, { 0.027 * k + 0.16 * ( 1 - k ), 0.11 * k + 0.16 * ( 1 - k ), 0.129 * k + 0.16 * ( 1 - k ), 1 } )
+	page1:Refresh()
+   end
+  end
+
+  if math.floor( curY ) ~= y0 then
+   page1:SetCamPos( { 0, curY } )
+   page1:Refresh()
+  end
+ end
+
+ p1:SetVisible( false )
+ p3:SetVisible( true )
+ page1:SetCamPos( { 0, yRange[1] - 316 } )
+ page1:Refresh()
+ Delay( 100 )
+ 
+ SetImgParam( back, { 0.5, 0.4, 0.3, 1 } )
+ page1:SetVisible( false )
+ Delay( 5 )
+ SetImgParam( back, { 0.02, 0.01, 0.05, 1 } )
+ page1:SetVisible( true )
+ p3:SetVisible( false )
+ p2:SetVisible( true )
+ page1:SetCamPos( { 0, yRange[1] - 64 } )
+ local p2_1 = p2:FindChildEntity( "1" )
+ for i = 1, 64, 1 do
+  SetImgTexRect( p2_1, { 0.5 + 0.03125 * ( i % 8 ), 0.0625, 0.03125, 0.03125 } )
+  page1:Refresh()
+  Delay( 6 )
+ end
+ Delay( 60 )
+
+ page1:SetVisible( false )
+ page2:SetVisible( true )
+ page2:Refresh()
+ local ofsX = 0
+ local ofsY = 0
+
+ local k = 0
+ while true do
+  coroutine.yield( 1 )
+
+  if IsInput( 0 ) then ofsX = ofsX + 2 end
+  if IsInput( 1 ) then ofsY = ofsY + 2 end
+  if IsInput( 2 ) then ofsX = ofsX - 2 end
+  if IsInput( 3 ) then ofsY = ofsY - 2 end
+  k = k + 1
+  if k == 10 then
+   k = 0
+   page2:SetClipOfs( { ofsX, -ofsY } )
+   page2:Refresh()
+   PlaySoundEffect( "btn_error" )
+  end
+  if ofsX * ofsX + ofsY * ofsY > 512 * 512 then break end
+ end
+ coroutine.yield( 1 )
+
+ k = 0
+ local l = 0
+ while true do
+  page1:CopyFrom( page2 )
+  ofsX = 0
+  ofsY = 0
+  for i = 1, 60, 1 do
+   if IsInput( 0 ) then ofsX = ofsX + 2 l = l + 2 end
+   if IsInput( 1 ) then ofsY = ofsY + 2 l = l + 2 end
+   if IsInput( 2 ) then ofsX = ofsX - 2 l = l + 2 end
+   if IsInput( 3 ) then ofsY = ofsY - 2 l = l + 2 end
+   k = k + 1
+   if k == 6 then
+    k = 0
+    page2:SetClipOfs( { ofsX, -ofsY } )
+    page2:Refresh()
+    PlaySoundEffect( "bzzz0" )
+   end
+   coroutine.yield( 1 )
+  end
+  if l > 1000 then break end
+ end
+ for i = 1, 60, 1 do
+  Delay( 2 )
+  PlaySoundEffect( "bzzz0" )
+ end
+ 
+ SetKeyInt( "%library_assist_login", -1 )
+ RunScenario( function()
+  GetCurLevel():GetPawnByName( "t" ):SetLocked( true )
+  Delay( 60 )
+  WaitFor( ScenarioDialogue( 1, "What's that?", dtx_color_6, 120 ), 60 )
+  WaitFor( ScenarioDialogue( 1, "Someone just logged in.", dtx_color_6, 120 ), 60 )
+  WaitFor( ScenarioDialogue( 1, "It must be " .. NAME_LAWYER .. ".", dtx_color_6, 120 ), 80 )
+  Delay( 80 )
+  GetMasterLevel():BlackOut( 40, 20 )
+  local pawn0 = GetCurLevel():SpawnPawn( 0, 1, 5, 0 )
+  local pawn1 = GetCurLevel():SpawnPawn( 0, 17, 5, 1 )
+  local pawn2 = GetCurLevel():SpawnPawn( 0, 6, 0, 0 )
+  Delay( 80 )
+  WaitFor( ScenarioDialogue( 1, "Fuck " .. NAME_LAWYER .. ".", dtx_color_6, 120 ), 60 )
+  pawn0:PlayState( "move_x" )
+  pawn1:PlayState( "move_x" )
+  pawn2:PlayState( "move_up" )
+  GetCurLevel():BeginTracer1( 0, 240 )
+  Delay( 30 )
+ end )
+ return
+end
+
+function Interaction_Scenario1( ui )
+ local n0 = EvaluateKeyInt( "$n0" )
+ local n1 = EvaluateKeyInt( "$n1" )
+
+ local a = ui:FindChildEntity( "a" )
+ local b = ui:FindChildEntity( "b" )
+ local c = ui:FindChildEntity( "c" )
+ local d = ui:FindChildEntity( "d" )
+ a:SetVisible( false )
+ b:SetVisible( false )
+ c:SetVisible( false )
+ d:SetVisible( false )
+ local tbl = {}
+ for i = 1, 12, 1 do
+  tbl[i] = ui:FindChildEntity( tostring( i - 1 ) )
+  tbl[i]:SetVisible( false )
+ end
+ 
+ local n = 0
+ local function SetFrame( nFrame )
+  if n > 0 then tbl[n]:SetVisible( false ) end
+  n = nFrame
+  if n > 0 then
+   tbl[n]:SetVisible( true )
+   SetPosition( a, GetX( tbl[n] ), GetY( tbl[n] ) )
+   SetPosition( b, GetX( tbl[n] ), GetY( tbl[n] ) )
+   SetPosition( c, GetX( tbl[n] ), GetY( tbl[n] ) )
+   SetPosition( d, GetX( tbl[n] ), GetY( tbl[n] ) )
+  end
+ end
+
+ local F1 = function()
+  a:SetVisible( true )
+  c:SetVisible( true )
+  Delay( 2 )
+  a:SetVisible( false )
+  b:SetVisible( true )
+  c:SetVisible( false )
+  Delay( 1 )
+  c:SetVisible( true )
+  Delay( 1 )
+  a:SetVisible( true )
+  b:SetVisible( false )
+  c:SetVisible( false )
+ end
+ local F2 = function()
+  a:SetVisible( false )
+  b:SetVisible( true )
+  c:SetVisible( false )
+  Delay( 6 )
+ end
+ local F3 = function()
+  SetFrame( n1 )
+  a:SetVisible( true )
+  local t1 = n1 > 3 and 1 or 2
+  Delay( 4 * t1 )
+  for i = 1, 8, 1 do
+   d:SetVisible( true )
+   Delay( t1 )
+   SetFrame( i > 1 and n1 + 1 or n1 )
+   Delay( t1 )
+   SetFrame( i > 3 and n1 + 1 or n1 )
+   d:SetVisible( false )
+   Delay( t1 )
+   SetFrame( i > 5 and n1 + 1 or n1 )
+   Delay( t1 )
+   SetFrame( i > 7 and n1 + 1 or n1 )
+  end
+  Delay( 4 * t1 )
+ end
+ local F4 = function()
+  for i = n1, 1, -1 do
+   SetFrame( i )
+   a:SetVisible( false )
+   b:SetVisible( true )
+   c:SetVisible( false )
+   Delay( 5 )
+   a:SetVisible( true )
+   b:SetVisible( false )
+   c:SetVisible( false )
+   Delay( 5 )
+  end
+ end
+ local F5 = function()
+  for i = 9, 11, 1 do
+   if i > 9 then F1() end
+   SetFrame( i )
+   Delay( 60 )
+  end
+ end
+
+ if n0 == 0 then
+  SetFrame( 1 )
+  F1()
+  Delay( 25 )
+  F2()
+ elseif n0 == 1 then
+  SetFrame( 1 )
+  F1()
+  Delay( 15 )
+  for i = 2, 5, 1 do
+   SetFrame( i )
+   Delay( 10 )
+  end
+  F2()
+  for i = 4, 1, -1 do
+   SetFrame( i )
+   Delay( 2 )
+  end
+ elseif n0 == 2 then
+  F3()
+  n1 = n1 + 1
+  SetKeyInt( "$n1", n1 )
+  if n1 == 9 then F5() end
+ elseif n0 == 3 then
+  F4()
+  SetKeyInt( "$n1", 1 )
+ elseif n0 == 4 then
+  a:SetVisible( true )
+  F5()
+ elseif n0 == 5 then
+  a:SetVisible( true )
+  F5()
+  SetFrame( 12 )
+  F1()
+  Delay( 80 )
+  for i = 1, 10, 1 do
+   d:SetVisible( true )
+   c:SetVisible( true )
+   a:SetVisible( false )
+   Delay( 3 )
+   d:SetVisible( false )
+   c:SetVisible( false )
+   a:SetVisible( true )
+   Delay( 3 )
+  end
+  c:SetVisible( true )
+  for i = 1, 40, 1 do
+   d:SetVisible( true )
+   Delay( 1 )
+   d:SetVisible( false )
+   Delay( 1 )
+  end
+ else
+  SetFrame( 12 )
+  SetFrame( 0 )
+  for i = 1, 10, 1 do
+   d:SetVisible( true )
+   c:SetVisible( true )
+   a:SetVisible( false )
+   Delay( 3 )
+   d:SetVisible( false )
+   c:SetVisible( false )
+   a:SetVisible( true )
+   Delay( 3 )
+  end
+ end
 end
 
 function Interaction_Vending_Machine_1( ui )

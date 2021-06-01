@@ -10,6 +10,7 @@ void Game_ShaderImplement_Dummy()
 
 IMPLEMENT_MATERIAL_SHADER( PSActionEffect, "Shader/Effect.shader", "PSActionEffect", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSTextureInstDataClip, "Shader/Effect.shader", "PSTextureInstDataClip", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSTextureColorRange, "Shader/Effect.shader", "PSTextureColorRange", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSChargeEffect, "Shader/Effect.shader", "PSChargeEffect", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortion, "Shader/Distortion.shader", "PSDistortion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionAdd, "Shader/Distortion.shader", "PSDistortionAdd", "ps_5_0" );

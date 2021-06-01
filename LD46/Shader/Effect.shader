@@ -18,6 +18,15 @@ void PSTextureInstDataClip( in float4 inPos : SV_Position,
 	clip( outColor.w - 0.5f );
 }
 
+void PSTextureColorRange( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
+	in float4 instData[2] : ExtraInstData0,
+	out float4 outColor : SV_Target )
+{
+	outColor = Texture0.Sample( LinearSampler, tex );
+	outColor = ( outColor - instData[0] ) / ( instData[1] - instData[0] );
+}
+
 float2 texSize;
 float texSpeed;
 float g_totalTime;

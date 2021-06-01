@@ -388,6 +388,7 @@ void CPrefabEditor::NewNode()
 	m_pCurNode->AddChild( pNode );
 	auto pContent = CPrefabNodeTreeFolder::Create( this, m_pSceneView, m_pCurNodeItem, pNode );
 	SelectNode( pNode, pContent );
+	pNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::DeleteNode()
@@ -402,6 +403,7 @@ void CPrefabEditor::DeleteNode()
 	SelectNode( pSelectedNode, pSelectedNodeItem );
 	m_pSceneView->RemoveContentTree( pDeletedNodeItem );
 	m_pSelectedPrefab->NameSpaceClearNode( pDeletedNode );
+	pDeletedNode->OnEditorMove( m_pSelectedPrefab );
 	pDeletedNode->RemoveThis();
 }
 
@@ -424,6 +426,7 @@ void CPrefabEditor::Paste()
 	m_pSceneView->ClearContent();
 	RefreshSceneView( m_pSelectedPrefab, NULL );
 	SelectNode( m_pSelectedPrefab, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
+	pNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::NewItem()
@@ -1479,6 +1482,7 @@ void CPrefabEditor::MoveNodeUp( CPrefabNode* pNode, CUITreeView::CTreeViewConten
 	CReference<CPrefabNode> pPrevNode = static_cast<CPrefabNodeTreeFolder*>( pPrevItem->pElement.GetPtr() )->m_pNode;
 	pPrevNode->RemoveThis();
 	pNode->GetParent()->AddChildBefore( pPrevNode, pNode );
+	pNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
@@ -1491,6 +1495,7 @@ void CPrefabEditor::MoveNodeDown( CPrefabNode* pNode, CUITreeView::CTreeViewCont
 	CReference<CPrefabNode> pNextNode = static_cast<CPrefabNodeTreeFolder*>( pNextItem->pElement.GetPtr() )->m_pNode;
 	pNextNode->RemoveThis();
 	pNode->GetParent()->AddChildAfter( pNextNode, pNode );
+	pNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::MoveNodeLeft( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
@@ -1499,27 +1504,40 @@ void CPrefabEditor::MoveNodeLeft( CPrefabNode* pNode, CUITreeView::CTreeViewCont
 		return;
 	if( !pCurNodeItem->pParent || !pCurNodeItem->pParent->pParent )
 		return;
+	SelectNode( NULL, NULL );
 	auto pParent = m_pSceneView->MoveLeft( pCurNodeItem );
 	if( !pParent )
+	{
+		SelectNode( pNode, pCurNodeItem );
 		return;
+	}
 	CReference<CPrefabNode> pTempNode = pNode;
 	CReference<CPrefabNode> pParentNode = static_cast<CPrefabNodeTreeFolder*>( pParent->pElement.GetPtr() )->m_pNode;
 	CReference<CPrefabNode> pParentParentNode = static_cast<CPrefabNodeTreeFolder*>( pParent->pParent->pElement.GetPtr() )->m_pNode;
 	pNode->RemoveThis();
 	pParentParentNode->AddChildBefore( pNode, pParentNode );
+	pNode->OnEditorMove( m_pSelectedPrefab );
+	pParentNode->OnEditorMove( m_pSelectedPrefab );
+	SelectNode( pNode, pCurNodeItem );
 }
 
 void CPrefabEditor::MoveNodeRight( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
 {
 	if( m_pCurNode->IsInstance() )
 		return;
+	SelectNode( NULL, NULL );
 	auto pParent = m_pSceneView->MoveRight( pCurNodeItem );
 	if( !pParent )
+	{
+		SelectNode( pNode, pCurNodeItem );
 		return;
+	}
 	CReference<CPrefabNode> pTempNode = pNode;
 	CReference<CPrefabNode> pParentNode = static_cast<CPrefabNodeTreeFolder*>( pParent->pElement.GetPtr() )->m_pNode;
 	pNode->RemoveThis();
 	pParentNode->AddChild( pNode );
+	pNode->OnEditorMove( m_pSelectedPrefab );
+	SelectNode( pNode, pCurNodeItem );
 }
 
 void CPrefabEditor::ShowChildren( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem )
@@ -1542,6 +1560,7 @@ void CPrefabEditor::OnCurNodeNameChanged()
 		return;
 	m_pCurNode->m_strName = UnicodeToUtf8( m_pNodeName->GetText() ).c_str();
 	m_pCurNodeItem->pElement->GetChildByName<CUIButton>( "label" )->SetText( m_pCurNode->m_strName.c_str() );
+	m_pCurNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::OnCurNodeResourceChanged()

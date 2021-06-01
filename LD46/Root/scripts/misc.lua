@@ -189,6 +189,128 @@ function Scenario_SelfRoom_4_3()
  Delay( 60 )
 end
 
+function Scenario_SelfRoom_4_5()
+ local proj = GetCurLevel():FindChildEntity("proj")
+ local player = GetPlayer()
+ local src = proj:GetProjSrc()
+ local dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ local l = CreateLighningEft( src, dst )
+ player:PlayState( "break" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+
+ WaitFor( ScenarioDialogue( 1, "Finish it. Now.", dtx_color_h, -1 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "..........", dtx_color_1, -1, 6 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "...Sorry, I can't.", dtx_color_1, -1, 3 ), 60 )
+ Delay( 90 )
+ WaitFor( ScenarioDialogue( 1, "..........", dtx_color_h, -1, 6 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "....What?", dtx_color_h, 60, 2 ) )
+ WaitFor( ScenarioDialogue( 1, "Are you kidding me?", dtx_color_h, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "...No just one thing I need to know...", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "...What's my name?", dtx_color_1, -1, 2 ), 90 )
+
+ WaitFor( ScenarioDialogue( 1, "..........", dtx_color_h, -1, 6 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "Are you asking me?", dtx_color_h, 60, 2 ) )
+ WaitFor( ScenarioDialogue( 1, "Are you fucking mad?", dtx_color_h, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "......Kinda, I think.", dtx_color_1, -1, 2 ), 60 )
+ Delay( 90 )
+ WaitFor( ScenarioDialogue( 1, "..........", dtx_color_h, -1, 6 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "I've already told you.", dtx_color_h, 60, 2 ), 60 )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayState( "break" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ Delay( 60 )
+ WaitFor( ScenarioDialogue( 1, "You must not ask questions.", dtx_color_h, 90 ) )
+ WaitFor( ScenarioDialogue( 1, "Don't try to get smart with me.", dtx_color_h, -1 ), 60 )
+ Delay( 60 )
+ WaitFor( ScenarioDialogue( 0, "..........", dtx_color_1, -1, 6 ), 60 )
+ Delay( 60 )
+ WaitFor( ScenarioDialogue( 0, "...No it's not a question.", dtx_color_1, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "...I just want to know...", dtx_color_1, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "Do you know the answer?", dtx_color_1, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "So it's a fucking test?", dtx_color_h, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "I certainly fucking know.", dtx_color_h, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "But why must I...", dtx_color_h, 60 ) )
+ WaitFor( ScenarioDialogue( 0, "...Well to be honest,", dtx_color_1, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "...I think I'm actually mad.", dtx_color_1, -1, 2 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "What shit are you fucking talking about?", dtx_color_h, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "That's not funny at all.", dtx_color_h, -1 ) )
+ WaitFor( ScenarioDialogue( 0, "...Seems you don't believe me. Do you?", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "...I'm serious, I mean.", dtx_color_1, -1, 2 ), 90 )
+ Delay( 120 )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayState( "break" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ WaitFor( ScenarioDialogue( 1, "No you are not.", dtx_color_h, -1 ) )
+ WaitFor( ScenarioDialogue( 1, "Just fucking go finish it.", dtx_color_h, -1 ) )
+ WaitFor( ScenarioDialogue( 0, "...Yes I am. Really.", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "...Unless I could have some help.", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "You don't want it go that way, right?.", dtx_color_1, -1, 2 ), 90 )
+ Delay( 120 )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayState( "break" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ WaitFor( ScenarioDialogue( 1, "Stop those fucking tricks.", dtx_color_h, 90 ) )
+ WaitFor( ScenarioDialogue( 1, "Input the code on your own. No cheat allowed.", dtx_color_h, -1 ) )
+ Delay( 120 )
+ WaitFor( ScenarioDialogue( 0, "..........", dtx_color_1, -1, 6 ), 60 )
+ Delay( 120 )
+ WaitFor( ScenarioDialogue( 0, "...No that's no cheat.", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 1, "That's certainly fucking...", dtx_color_h, 90 ), 90 )
+ Delay( 60 )
+ WaitFor( ScenarioDialogue( 1, "..........", dtx_color_h, -1, 6 ), 60 )
+ WaitFor( ScenarioDialogue( 1, "...What did you say?", dtx_color_h, -1 ), 60 )
+ WaitFor( ScenarioDialogue( 0, "...That's nothing to do with the code.", dtx_color_1, -1, 2 ), 90 )
+ WaitFor( ScenarioDialogue( 0, "...It's about my fucking CRIME.", dtx_color_1, -1, 6 ), 90 )
+ Delay( 120 )
+ WaitFor( ScenarioDialogue( 1, "..........", dtx_color_h, -1, 6 ), 60 )
+ Delay( 120 )
+ WaitFor( ScenarioDialogue( 1, "......................", dtx_color_h, -1, 6 ), 60 )
+ Delay( 120 )
+ 
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayState( "move_up" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ ScenarioDialogue( 1, "Go. Fucking end this.", dtx_color_h, -1, 2 )
+ Delay( 120 )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayStateTurnBack( "move_up" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ ScenarioDialogue( 1, "Go.", dtx_color_h, -1, 3 )
+ Delay( 120 )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ player:PlayState( "move_up" )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 90 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ ScenarioDialogue( 1, "Be quick.", dtx_color_h, -1 )
+ Delay( 120 )
+end
+
 function Day3_Progress( nNode )
  local nProgress = EvaluateKeyInt( "day3_progress" ) + 1
  SetKeyInt( "day3_progress", nProgress )
@@ -228,7 +350,7 @@ function Day3_Progress( nNode )
   end
 
   if nProgress == 1 then
-   WaitFor( ScenarioDialogue( 0, "I must report back now...", dtx_color_1, -1 ) )
+   WaitFor( ScenarioDialogue( 0, "I must send a report now...", dtx_color_1, -1 ) )
    Delay( 60 )
    WaitFor( ScenarioDialogue( 1, "Opening admin command line...", dtx_color_2, 60, 6 ) )
    Delay( 60 )
@@ -395,12 +517,13 @@ function LibrarySystem_OnAlert( pawn, x, y )
  local proj = GetCurLevel():FindChildEntity( "proj" )
 
  if not pawn then
-  local dst = { ( toX + 1 ) * LEVEL_GRID_SIZE_X, ( toY + 0.5 ) * LEVEL_GRID_SIZE_Y }
+  return
+  --[[local dst = { ( toX + 1 ) * LEVEL_GRID_SIZE_X, ( toY + 0.5 ) * LEVEL_GRID_SIZE_Y }
   proj:SetTarget( dst )
   CreateLighningEft( proj:GetProjSrc(), dst )
   HeadText( "Library rule enforced.", htx_color_2 )
   GetMasterLevel():InterferenceStripEffect( 1, 1 )
-  GetCurLevel():Fail( 0 )
+  GetCurLevel():Fail( 0 )]]--
  end
  
  local dst = { ( x + 1 ) * LEVEL_GRID_SIZE_X, ( y + 0.5 ) * LEVEL_GRID_SIZE_Y }
@@ -641,13 +764,13 @@ function Day4_Password( nSig )
      GetMasterLevel():BlackOut( 30, 0 )
 	end )
 
-   elseif CurTime() == 3 then
+   elseif CurTime() >= 3 and CurTime() <= 4 then
     if not FEVT( "$cheatproof" ) then
 	 HeadText( "You fucking cheater.", htx_color_h )
 	 GetCurLevel():Fail( 1 )
 	 return
 	end
-    --SetKeyString( "day4_pwd", "RIOT" )
+    SetKeyString( "day4_pwd", "SHIT" )
     RunScenario( function()
      Delay( 60 )
      WaitFor( ScenarioDialogue( 1, "........OK.", dtx_color_5, 60 ) )
@@ -669,7 +792,45 @@ function Day4_Password( nSig )
      GetMasterLevel():BlackOut( 30, 0 )
 	end )
 
-   elseif CurTime() == 4 then
+   elseif CurTime() == 5 then
+    RunScenario( function()
+     Delay( 60 )
+     WaitFor( ScenarioDialogue( 1, "........OK.", dtx_color_5, 60 ) )
+     WaitFor( ScenarioDialogue( 0, ".........", dtx_color_1, 60, 6 ) )
+	 Delay( 120 )
+     WaitFor( ScenarioDialogue( 1, "OK those trivial procedural works are finally over.", dtx_color_h, 100 ) )
+     WaitFor( ScenarioDialogue( 1, "You've wasted too much time.", dtx_color_h, 60 ) )
+     WaitFor( ScenarioDialogue( 1, "Now we must go to the final step.", dtx_color_h, -1 ) )
+	 Delay( 60 )
+     WaitFor( ScenarioDialogue( 0, ".........", dtx_color_1, 60, 6 ) )
+	 Delay( 60 )
+     WaitFor( ScenarioDialogue( 1, "...According to the system log,", dtx_color_h, 70 ) )
+     WaitFor( ScenarioDialogue( 1, "Before the moment you were deprived of the admin permission,", dtx_color_h, 120 ) )
+     WaitFor( ScenarioDialogue( 1, "You were trying to submit a report,", dtx_color_h, 90 ) )
+     WaitFor( ScenarioDialogue( 1, "But the procedure was somehow interrupted,", dtx_color_h, 100 ) )
+     WaitFor( ScenarioDialogue( 1, "Leaving the transaction incomplete.", dtx_color_h, 90 ) )
+     WaitFor( ScenarioDialogue( 1, "Before we can normally recover your permission,", dtx_color_h, 110 ) )
+     WaitFor( ScenarioDialogue( 1, "We must clean this up first.", dtx_color_h, -1 ) )
+     WaitFor( ScenarioDialogue( 0, ".........", dtx_color_1, -1 ) )
+     WaitFor( ScenarioDialogue( 1, "There are some complex technical details inside.", dtx_color_h, 110 ) )
+     WaitFor( ScenarioDialogue( 1, "To put simply, I need to verify and approve it.", dtx_color_h, 110 ) )
+     WaitFor( ScenarioDialogue( 1, "But there are some errors preventing it from being accessed normally.", dtx_color_h, 160 ) )
+     WaitFor( ScenarioDialogue( 1, "You referred to someone in it. But the pointer,", dtx_color_h, 110 ) )
+     WaitFor( ScenarioDialogue( 1, "Which should indicate the one you alleged *abnormal*,", dtx_color_h, 110 ) )
+     WaitFor( ScenarioDialogue( 1, "Now seems invalid.", dtx_color_h, -1 ) )
+     WaitFor( ScenarioDialogue( 0, ".........", dtx_color_1, -1 ) )
+
+     WaitFor( ScenarioDialogue( 1, "There's a new job for you.", dtx_color_h, 70 ) )
+     WaitFor( ScenarioDialogue( 1, "But It's too late today.", dtx_color_h, 60 ) )
+     WaitFor( ScenarioDialogue( 1, "I must rest now.", dtx_color_h, 60 ) )
+     WaitFor( ScenarioDialogue( 1, "We'll finish it tomorrow.", dtx_color_h, 60 ) )
+     WaitFor( ScenarioDialogue( 1, "You just need to follow my order..", dtx_color_h, 80 ) )
+     WaitFor( ScenarioDialogue( 1, "Please go to bed early. It's not an easy job.", dtx_color_h, -1 ) )
+	 Delay( 120 )
+     GetMasterLevel():BlackOut( 100, 180 )
+     TransferTo( "data/cutscene/day5.pf" )
+	end )
+    
    else
     GetPlayer():PlayState( "leave" )
    end
@@ -1137,6 +1298,968 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
   end
   params = { coroutine.yield( table.unpack( ret ) ) }
  end
+end
+
+function Day4_4_Unknown_Password()
+ RunScenario( function()
+  local n = EvaluateKeyInt( "$n" )
+  if n >= 1 then
+   local pawn = GetCurLevel():GetPawnByName( tostring( n ) )
+   local proj = GetCurLevel():FindChildEntity("proj")
+   local src = proj:GetProjSrc()
+   proj:Follow( pawn )
+ 
+   for i = 1, 6, 1 do
+    local dst = { ( pawn:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, pawn:GetPosY() * LEVEL_GRID_SIZE_Y + 48 }
+    CreateLighningEft( src, dst, 1, 0.125, 40 )
+    pawn:ScriptDamage( 1 )
+    PlaySoundEffect( "electric" )
+    Delay( 30 )
+   end
+   proj:Follow( nil )
+
+   Delay( 80 )
+   if n == 4 then
+    ScenarioDialogue( 0, "........", dtx_color_1, 60, 3 )
+    Delay( 180 )
+    GetMasterLevel():BlackOut( 60, 10 )
+    Delay( 5 )
+    pawn:PlayState( "stand_0" )
+    Delay( 180 )
+   
+    WaitFor( ScenarioDialogue( 0, "You are not a fucking lawyer.", dtx_color_1, 60, 3 ), 120 )
+    WaitFor( ScenarioDialogue( 0, "I want my lawyer.", dtx_color_1, 60, 3 ), 120 )
+    WaitFor( ScenarioDialogue( 0, "Where is he?", dtx_color_1, 60, 3 ), 120 )
+    Delay( 120 )
+    GetMasterLevel():BlackOut( 30, 10 )
+    Delay( 5 )
+    GetCurLevel():RemovePawn( pawn )
+    Delay( 20 )
+    SetKeyInt( "$passed", 1 )
+    Delay( 180 )
+    GetCurLevel():GetPawnByName( "sofa" ):SetLocked( true )
+    GetCurLevel():GetPawnByName( "medikit" ):SetLocked( false )
+	return
+   else
+    GetMasterLevel():BlackOut( 30, 10 )
+    Delay( 5 )
+    GetCurLevel():RemovePawn( pawn )
+   end
+
+  end
+
+  n = n + 1
+  SetKeyInt( "$n", n )
+  Delay( 45 )
+  local pwdUI = nil
+
+  if n == 1 then
+   WaitFor( ScenarioDialogue( 1, ">>>CODE 3: Please input the lunch today.", dtx_color_5, -1 ), 90 )
+   ScenarioDialogue( 0, "Shit..Eat shit you motherfucking code...", dtx_color_1, 1 )
+   pwdUI = GetMasterLevel():ShowInteractionUI( m, "data/interaction/password.pf" )
+   pwdUI:SetPassword( "S" )
+  elseif n == 2 then
+   WaitFor( ScenarioDialogue( 0, "SHIT...I knew...", dtx_color_1, -1 ), 60 )
+   Delay( 60 )
+   pwdUI = GetMasterLevel():ShowInteractionUI( m, "data/interaction/password.pf" )
+   pwdUI:SetPassword( "SH" )
+  elseif n == 3 then
+   WaitFor( ScenarioDialogue( 0, "Shit shit shit...", dtx_color_1, -1 ), 60 )
+   Delay( 60 )
+   pwdUI = GetMasterLevel():ShowInteractionUI( m, "data/interaction/password.pf" )
+   pwdUI:SetPassword( "SHI" )
+  elseif n == 4 then
+   WaitFor( ScenarioDialogue( 0, "SHITSHITSHITSHIT...", dtx_color_1, -1 ), 60 )
+   Delay( 60 )
+   for i = 1, 4, 1 do
+    GetMasterLevel():BlackOut( 10, 0 )
+    Delay( 30 )
+   end
+   pwdUI = GetMasterLevel():ShowInteractionUI( m, "data/interaction/password.pf" )
+   pwdUI:SetPassword( "SHIT" )
+  end
+
+  while GetMasterLevel():GetInteractionUI() do
+   coroutine.yield()
+  end
+  GetMasterLevel():BlackOut( 60, 0 )
+  
+  if n == 1 then
+   WaitFor( ScenarioDialogue( 1, ">>>ERROR: The verification code is out of date.", dtx_color_3, -1 ), 90 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Delay( 80 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   ScenarioDialogue( 0, "No no shit...", dtx_color_1, 120 )
+   Delay( 80 )
+   for i = 1, 3, 1 do
+    GetMasterLevel():BlackOut( 10, 0 )
+    Delay( 80 )
+   end
+   GetMasterLevel():BlackOut( 60, 0 )
+
+   for i = 1, 8, 1 do
+    PlaySoundEffect( "footstep_a" )
+    Delay( 80 )
+   end
+   GetMasterLevel():BlackOut( 10, 0 )
+   Delay( 80 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Delay( 80 )
+   GetMasterLevel():BlackOut( 40, 10 )
+   PlaySoundEffect( "glass_break" )
+   GetCurLevel():GetPawnByName( "tv" ):FindChildEntity( "broken" ):SetVisible( true )
+   Delay( 5 )
+   GetCurLevel():SpawnPreset( "g0" )
+   GetCurLevel():SpawnPreset( "g1" )
+   GetCurLevel():SpawnPreset( "p" )
+   Delay( 80 )
+   WaitFor( ScenarioDialogue( 1, "...........", dtx_color_3, 60, 6 ), 120 )
+   Delay( 60 )
+  elseif n == 2 then
+   WaitFor( ScenarioDialogue( 1, ">>>ERROR: Unable to call handle function. Module uninstalled.", dtx_color_3, -1 ), 120 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Delay( 80 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Signal( GetCurLevel():GetPawnByName( "medikit" ), 0 )
+   Delay( 80 )
+  elseif n == 3 then
+   WaitFor( ScenarioDialogue( 1, ">>>ERROR: Device integration damaged. Further exec stopped.", dtx_color_3, -1 ), 120 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Delay( 80 )
+   GetMasterLevel():BlackOut( 10, 0 )
+   Signal( GetCurLevel():GetPawnByName( "medikit" ), 0 )
+   Delay( 80 )
+  elseif n == 4 then
+   WaitFor( ScenarioDialogue( 1, ">>>Please contact our MASTER for help.", dtx_color_3, -1 ), 150 )
+   for i = 1, 4, 1 do
+    GetMasterLevel():BlackOut( 10, 0 )
+    Delay( 40 )
+   end
+   WaitFor( ScenarioDialogue( 0, "I'm done...", dtx_color_1, 60 ), 60 )
+   GetMasterLevel():BlackOut( 20, 0 )
+   Delay( 60 )
+   GetMasterLevel():BlackOut( 20, 0 )
+   Delay( 60 )
+   WaitFor( ScenarioDialogue( 0, "All is done...", dtx_color_1, 60 ), 60 )
+   GetMasterLevel():BlackOut( 20, 0 )
+   Delay( 60 )
+   GetMasterLevel():BlackOut( 20, 0 )
+   Signal( GetCurLevel():GetPawnByName( "medikit" ), 0 )
+   Delay( 60 )
+  end
+
+  SetKeyInt( "$passed", 1 )
+  Delay( 50 )
+  GetMasterLevel():BlackOut( 30, 10 )
+  Delay( 5 )
+  GetCurLevel():SpawnPreset( tostring( n ) )
+  Delay( 80 )
+  SetKeyInt( "$passed", 0 )
+
+  if n == 1 then
+   WaitFor( ScenarioDialogue( 1, "...........", dtx_color_6, 60, 3 ), 120 )
+   WaitFor( ScenarioDialogue( 1, "Hello?", dtx_color_6, 60 ), 80 )
+  elseif n == 2 then
+   WaitFor( ScenarioDialogue( 1, "It's me. Your lawyer.", dtx_color_6, 60 ), 120 )
+   WaitFor( ScenarioDialogue( 1, "We can have a talk.", dtx_color_6, 60 ), 80 )
+  elseif n == 3 then
+   WaitFor( ScenarioDialogue( 1, "You should try to face it.", dtx_color_6, 60 ), 120 )
+   WaitFor( ScenarioDialogue( 1, "Isn't it what you want?", dtx_color_6, 60 ), 80 )
+  elseif n == 4 then
+   WaitFor( ScenarioDialogue( 1, "OK it's time now.", dtx_color_6, 60 ), 120 )
+   WaitFor( ScenarioDialogue( 1, "You won't have to worry anymore.", dtx_color_6, 60 ), 80 )
+  end
+  
+  Delay( 10 )
+  GetMasterLevel():BlackOut( 10, 0 )
+  Delay( 10 )
+  WaitFor( ScenarioDialogue( 0, "........", dtx_color_1, 60, 3 ), 80 )
+  Delay( 60 )
+ end )
+end
+
+function Day4_4_Unknown_Medikit()
+ local player = GetPlayer()
+ while true do
+  coroutine.yield()
+  local str = EvaluateKeyString( "$m_state" )
+  if #str > 0 then
+   SetKeyString( "$m_state", "" )
+   Delay( 2 )
+   if string.sub( str, 1, 6 ) == "attack" then
+	player:PlayState( "break", 1 )
+    GetMasterLevel():BlackOut( 10, 10 )
+   else
+    GetMasterLevel():BlackOut( 30, 50 )
+   end
+  end
+ end
+end
+
+function Day4_4_Unknown_Toilet()
+ local Delay_Down = function( b )
+  while EvaluateKeyInt( "$btn" ) == 0 do
+   coroutine.yield()
+  end
+  if not b then SetKeyInt( "$btn", 0 ) end
+ end
+ local Delay_Up = function()
+  while EvaluateKeyInt( "$btn" ) == 1 do
+   coroutine.yield()
+  end
+ end
+ local proj = GetCurLevel():FindChildEntity("proj")
+ local player = GetPlayer()
+ local pawn = nil
+
+ while player:GetCurStateDestX() ~= 11 or player:GetCurStateDestY() ~= 9 do coroutine.yield() end
+ Delay( 1 )
+ GetMasterLevel():BlackOut( 20, 20 )
+ Delay( 1 )
+ pawn = GetCurLevel():SpawnPreset( "p1" )
+ Delay( 50 )
+ 
+ Delay_Down() HeadText( "........", htx_color_0 )
+ Delay_Down() HeadText( "Fuck you.", htx_color_0 )
+ Delay_Down() HeadText( "Get the fuck off.", htx_color_0 )
+ Delay_Down() HeadText( "Don't stand on my way.", htx_color_0 )
+ Delay_Down() HeadText( "I want the fuck out.", htx_color_0 )
+ Delay_Down() HeadText( "........", htx_color_0 )
+ Delay_Down() HeadText( "........", htx_color_x )
+ Delay_Down() HeadText( "...", htx_color_sys )
+ Delay_Down() HeadText( "......", htx_color_sys )
+ Delay_Down() HeadText( "..........", htx_color_sys )
+
+ while true do
+  Delay_Down() HeadText( "Error ^31^31^31: Not responding.", htx_color_1 )
+
+  local str1 = "[Y <-- --> N]"
+  local str2 = "[N <-- --> Y]"
+  local b = RandInt( 0, 2 ) == 0
+  Delay_Down() HeadText( "Reboot system?" .. ( b and str1 or str2 ) .. ".", htx_color_1 )
+  Delay_Down() if player:GetToX() == ( b and 12 or 10 ) then goto continue end HeadText( "Y", htx_color_1 )
+  b = RandInt( 0, 2 ) == 0
+  Delay_Down() HeadText( "Are you sure?(1/3)" .. ( b and str1 or str2 ) .. ".", htx_color_1 )
+  Delay_Down() if player:GetToX() == ( b and 12 or 10 ) then goto continue end HeadText( "Y", htx_color_1 )
+  b = RandInt( 0, 2 ) == 0
+  Delay_Down() HeadText( "Are you sure?(2/3)" .. ( b and str1 or str2 ) .. ".", htx_color_1 )
+  Delay_Down() if player:GetToX() == ( b and 12 or 10 ) then goto continue end HeadText( "Y", htx_color_1 )
+  b = RandInt( 0, 2 ) == 0
+  Delay_Down() HeadText( "Are you sure?(3/3)" .. ( b and str1 or str2 ) .. ".", htx_color_1 )
+  Delay_Down() if player:GetToX() == ( b and 12 or 10 ) then goto continue end HeadText( "Y", htx_color_1 )
+  break
+  ::continue::
+  HeadText( "N", htx_color_1 )
+ end
+
+ Delay_Down() HeadText( "..........", htx_color_sys )
+ Delay_Down() HeadText( "System rebooting...", htx_color_sys )
+ Delay_Down() HeadText( "..........", htx_color_sys )
+
+ Delay_Down() GetMasterLevel():BlackOut( 5, 5 ) Delay( 1 ) GetCurLevel():RemovePawn( pawn ) SetKeyInt( "$d1", 0 )
+ while ( player:GetPosX() == 10 or player:GetPosX() == 12 ) and player:GetPosY() == 8 do coroutine.yield() end
+ while not ( ( player:GetToX() == 10 or player:GetToX() == 12 ) and player:GetToY() == 8 ) do coroutine.yield() end
+ GetMasterLevel():BlackOut( 30, 100 ) Delay( 80 ) SetKeyInt( "$d1", 1 ) Delay( 15 ) pawn = GetCurLevel():SpawnPreset( "p1" )
+
+ Delay_Down() HeadText( "Initializing system...", htx_color_sys )
+ Delay_Down() HeadText( "..........", htx_color_sys )
+ Delay_Down() HeadText( "Downloading data...", htx_color_sys )
+ Delay_Down() HeadText( "..........", htx_color_sys )
+ Delay_Down() GetMasterLevel():BlackOut( 50, 0 )
+
+ Delay_Down() HeadText( "Verifying account...", htx_color_sys )
+ Delay_Down() HeadText( "..........", htx_color_sys ) GetMasterLevel():BlackOut( 5, 0 )
+ Delay_Down() proj:Follow( player ) GetMasterLevel():BlackOut( 30, 0 )
+ Delay_Down() HeadText( "Loading......20%", htx_color_sys ) GetMasterLevel():BlackOut( 5, 0 )
+ Delay_Down() HeadText( "..........", htx_color_sys ) GetMasterLevel():BlackOut( 5, 0 )
+
+ Delay_Down() GetMasterLevel():BlackOut( 20, 5 ) Delay( 1 ) GetCurLevel():RemovePawn( pawn ) SetKeyInt( "$d1", 0 )
+ Delay( 60 )
+ while string.sub( player:GetCurStateName(), 1, 6 ) ~= "attack" do coroutine.yield() end
+ GetMasterLevel():BlackOut( 20, 100 ) Delay( 80 ) SetKeyInt( "$d1", 1 ) Delay( 15 ) pawn = GetCurLevel():SpawnPreset( "p1" )
+
+ Delay_Down() HeadText( "Loading......50%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......60%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ GetCurLevel():GetPawnByName( "d1" ):PlayStateForceMove( "", 22 - player:GetToX(), player:GetToY(), 0 )
+ Delay_Down() HeadText( "Loading......65%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......70%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ GetCurLevel():GetPawnByName( "d1" ):PlayStateForceMove( "", 4, 4, 0 )
+ Delay_Down() HeadText( "Loading......75%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ GetCurLevel():GetPawnByName( "d1" ):PlayStateForceMove( "", 7, 7, 0 )
+ Delay_Down() HeadText( "Loading......80%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ GetCurLevel():GetPawnByName( "d1" ):PlayStateForceMove( "", 11, 9, 0 )
+ 
+ Delay_Down() GetMasterLevel():BlackOut( 20, 5 ) Delay( 1 ) pawn:PlayStateForceMove( "", 4, 4, 0 ) SetKeyInt( "$d1", 0 )
+ while player:GetCurStateDestY() >= 6 or player:GetCurStateDestX() >= 8 or GetCurLevel():CheckGrid( player:GetCurStateDestX(), player:GetCurStateDestY() ) < 3 do coroutine.yield() end
+ Delay( 1 ) GetMasterLevel():BlackOut( 20, 20 ) pawn:PlayStateForceMove( "", player:GetCurStateDestX(), player:GetCurStateDestY(), 0 )
+
+ Delay_Down() HeadText( "Loading......85%", htx_color_sys ) GetMasterLevel():BlackOut( 15, 0 )
+ Delay_Down() GetMasterLevel():BlackOut( 20, 100 ) Delay( 80 ) SetKeyInt( "$d1", 1 ) Delay( 15 ) pawn:PlayStateForceMove( "", 11, 9, 0 )
+ Delay_Down() HeadText( "Loading......90%", htx_color_sys ) GetMasterLevel():BlackOut( 15, 0 )
+ Delay_Down() HeadText( "..........", htx_color_sys ) GetMasterLevel():BlackOut( 20, 0 )
+ Delay_Down() HeadText( "..........", htx_color_2 ) GetMasterLevel():BlackOut( 20, 0 )
+ 
+ Delay_Down() GetMasterLevel():BlackOut( 20, 5 ) Delay( 1 ) pawn:PlayStateForceMove( "", 2, 6, 0 ) SetKeyInt( "$d1", 0 )
+ while player:GetCurStateDestX() + player:GetCurStateDestY() > 10 or player:GetCurStateDestY() + player:GetCurStateDestX() < 2 do coroutine.yield() end
+ GetMasterLevel():BlackOut( 20, 5 ) Delay( 1 ) pawn:PlayStateForceMove( "stand", player:GetCurStateDestX() + 4, player:GetCurStateDestY(), 1 )
+ Delay( 20 ) GetMasterLevel():BlackOut( 30, 15 ) pawn:PlayState( "attack_1", 1 ) Delay( 24 )
+ GetMasterLevel():BlackOut( 50, 30 ) Delay( 20 ) pawn:PlayState( "attack_1a_forward", 1 ) Delay( 20 )
+ GetMasterLevel():BlackOut( 20, 5 ) GetCurLevel():RemovePawn( pawn )
+ Delay( 300 ) GetMasterLevel():BlackOut( 20, 100 ) Delay( 80 ) SetKeyInt( "$d1", 1 ) Delay( 15 )
+ pawn = GetCurLevel():SpawnPreset1( "p1", 11, 9, 0 )
+
+ Delay_Down() HeadText( "Loading......94%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 ) SetKeyInt( "$d1", 0 )
+ for i = 1, 4, 1 do
+  Delay_Down() HeadText( "Loading......" .. tostring( i + 94 ) .. "%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+  local x = player:GetToX()
+  local y = player:GetToY()
+  local dir = player:GetCurDir()
+  local ofs = { { -1, 1 }, { -2, 0 }, { -1, -1 }, { 1, 1 }, { 2, 0 }, { 1, -1 } }
+  Delay( 1 ) for k = 1, #ofs, 1 do
+   local a = RandInt( k, #ofs + 1 )
+   local tmp = ofs[k]
+   ofs[k] = ofs[a]
+   ofs[a] = tmp
+   if pawn:PlayStateForceMove( "", x + ofs[k][1], y + ofs[k][2], dir ) then break end
+  end
+
+ end
+ Delay_Down() HeadText( "Loading......99%", htx_color_sys )
+ GetMasterLevel():BlackOut( 10, 100 ) Delay( 80 ) SetKeyInt( "$d1", 1 ) Delay( 15 ) pawn:PlayStateForceMove( "", 11, 9, 0 )
+ Delay_Down() HeadText( "..........", htx_color_1 ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......99.2%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay( 1 ) pawn:PlayStateForceMove( "", player:GetToX() + ( player:GetCurDir() == 0 and -4 or 4 ), player:GetToY(), player:GetCurDir() )
+ SetKeyInt( "$d1", 0 )
+ while true do
+  local x = player:GetCurStateDestX()
+  local y = player:GetCurStateDestY()
+  if GetCurLevel():CheckGrid( x, y ) == 3 then pawn:PlayStateForceMove( "", x, y, player:GetCurDir() ) break end
+  coroutine.yield()
+ end
+ GetMasterLevel():BlackOut( 50, 10 )
+ while player:GetCurStateName() ~= "break" do coroutine.yield() end
+ Delay( 10 )
+ SetKeyInt( "$d1", 1 )
+ Delay( 55 )
+ GetMasterLevel():BlackOut( 5, 0 )
+ GetCurLevel():RemovePawn( pawn )
+ for i = 1, 180, 1 do
+  if player:GetCurStateDestX() ~= player:GetPosX() or player:GetCurStateDestY() ~= player:GetPosY() then break end
+  coroutine.yield()
+ end
+ Delay( 4 )
+ GetMasterLevel():BlackOut( 10, 0 )
+ pawn = GetCurLevel():SpawnPreset( "p1" )
+
+ Delay_Down() HeadText( "Loading......99.5%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......99.7%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......99.8%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "Loading......99.9%", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ Delay_Down() HeadText( "..........", htx_color_sys ) GetMasterLevel():BlackOut( 10, 0 )
+ for i = 1, 4, 1 do
+  Delay_Down() HeadText( "..........", htx_color_1 ) GetMasterLevel():BlackOut( 10, 0 )
+  Delay_Down() HeadText( "..........", htx_color_1 ) GetMasterLevel():BlackOut( 10, 0 )
+  
+  local x = player:GetToX()
+  local y = player:GetToY()
+  local dir = player:GetCurDir()
+  local ofs = { { -1, 1 }, { -2, 0 }, { -1, -1 }, { 1, 1 }, { 2, 0 }, { 1, -1 } }
+  local pawn1 = nil
+  Delay( 1 ) for k = 1, #ofs, 1 do
+   local a = RandInt( k, #ofs + 1 )
+   local tmp = ofs[k]
+   ofs[k] = ofs[a]
+   ofs[a] = tmp
+
+   if GetCurLevel():CheckGrid( x + ofs[k][1], y + ofs[k][2] ) == 3 and GetCurLevel():CheckGrid( x + ofs[k][1] * 2, y + ofs[k][2] * 2 ) == 3 then
+    pawn1 = GetCurLevel():SpawnPreset1( "p1", x + ofs[k][1] * 2, y + ofs[k][2] * 2, ofs[k][1] < 0 and 0 or 1 )
+	Delay( 30 )
+	GetMasterLevel():BlackOut( 20, 10 ) pawn1:PlayState( "attack_1", 1 ) Delay( 24 )
+	local action1 = ofs[k][2] < 0 and "attack_1a_up" or ( ofs[k][2] > 0 and "attack_1a_down" or "attack_1a_forward" )
+    GetMasterLevel():BlackOut( 50, 30 ) Delay( 20 ) pawn1:PlayState( action1, 1 ) Delay( 20 )
+	GetMasterLevel():BlackOut( 20, 5 ) pawn1:PlayState( "stand", 1 )
+	break
+   end
+  end
+  if not pawn1 then break end
+ end
+ while true do
+  Delay_Down() HeadText( "..........", htx_color_1 ) GetMasterLevel():BlackOut( 10, 0 )
+  
+  local x = player:GetToX()
+  local y = player:GetToY()
+  local dir = player:GetCurDir()
+  local ofs = { { -1, 1 }, { -2, 0 }, { -1, -1 }, { 1, 1 }, { 2, 0 }, { 1, -1 } }
+  local pawn1 = nil
+  Delay( 1 ) for k = 1, #ofs, 1 do
+   local a = RandInt( k, #ofs + 1 )
+   local tmp = ofs[k]
+   ofs[k] = ofs[a]
+   ofs[a] = tmp
+   if GetCurLevel():CheckGrid( x + ofs[k][1], y + ofs[k][2] ) == 3 then
+    pawn1 = GetCurLevel():SpawnPreset1( "p1", x + ofs[k][1], y + ofs[k][2], ofs[k][1] < 0 and 0 or 1 )
+	break
+   end
+  end
+  if not pawn1 then break end
+ end
+ 
+ Delay_Down() HeadText( "ERROR: Verification failed.", htx_color_1 )
+ Delay_Down() HeadText( "Activating security system.", htx_color_1 )
+ Delay_Down() HeadText( "Locking down all areas.", htx_color_1 )
+ Delay_Down() HeadText( "Please keep distance.", htx_color_1 )
+ 
+ GetMasterLevel():BlackOut( 50, 20 )
+ Delay( 5 )
+ local tbl1 = GetCurLevel():GetAllPawnsByNameScript( "p1" )
+ for i = 1, #tbl1, 1 do
+  GetCurLevel():RemovePawn( tbl1[i] )
+ end
+ Delay( 5 )
+ player:PlayStateForceMove( "break", 5, 5, 0 )
+ pawn = nil
+
+ SetKeyInt( "$d1", 0 )
+ HeadText( "STAY HERE...FOREVER.", htx_color_h )
+
+ local btn = GetCurLevel():SpawnPreset( "btn" )
+
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "It's all over.", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "It's useless.", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "Stop it.", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "You're done.", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() GetMasterLevel():BlackOut( 20, 0 ) for i = 1, 4, 1 do GetCurLevel():SpawnPreset( "sofa" .. tostring( i ) ) end
+ Delay_Down() HeadText( "You screwed it up.", htx_color_h )
+ Delay_Down() GetMasterLevel():BlackOut( 20, 0 ) for i = 5, 8, 1 do GetCurLevel():SpawnPreset( "sofa" .. tostring( i ) ) end
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() GetMasterLevel():BlackOut( 20, 0 ) for i = 1, 4, 1 do GetCurLevel():SpawnPreset( "npc" .. tostring( i ) ) end
+ Delay_Down() GetMasterLevel():BlackOut( 20, 0 ) for i = 5, 8, 1 do GetCurLevel():SpawnPreset( "npc" .. tostring( i ) ) end
+ Delay_Down() HeadText( "You can't fix it.", htx_color_h )
+ Delay_Down() local tv = GetCurLevel():SpawnPreset( "tv" ) tv:FindChildEntity( "screen" ):SetVisible( false ) tv:FindChildEntity( "broken" ):SetVisible( false )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down( true ) tv:FindChildEntity( "screen" ):SetVisible( true )
+ for i = 5, 1, -1 do
+  while player:GetToY() > i do
+   if EvaluateKeyInt( "$btn" ) == 1 then PlaySoundEffect( "door_hit" ) end
+   coroutine.yield()
+  end
+  GetMasterLevel():BlackOut( 40, 20 )
+  if i > 1 then PlaySoundEffect( "door_hit" ) end
+ end
+ Delay( 15 )
+ SetKeyInt( "$d2", 1 )
+ while player:GetCurStateDestX() ~= 0 or player:GetCurStateDestY() ~= 0 do coroutine.yield() end
+ Delay( 1 )
+ GetMasterLevel():BlackOut( 20, 20 )
+ Delay( 1 )
+ pawn = GetCurLevel():SpawnPreset( "p2" )
+ Delay( 50 )
+ SetKeyInt( "$btn", 0 )
+
+ Delay_Down()
+ HeadText( "..........", htx_color_x )
+ Delay( 40 ) SetKeyInt( "$btn", 0 ) Delay_Down()
+ HeadText( "I will find you.", htx_color_x )
+ Delay( 40 ) SetKeyInt( "$btn", 0 ) Delay_Down()
+ HeadText( "I will torture you.", htx_color_x )
+ GetMasterLevel():BlackOut( 10, 10 ) Delay( 1 ) player:PlayStateForceMove( "stand", 2, 2, 1 ) Delay_Down()
+ HeadText( "I will murder you.", htx_color_x )
+ GetMasterLevel():BlackOut( 10, 10 ) Delay( 1 ) player:PlayStateForceMove( "stand", 2, 2, 1 ) Delay_Down()
+
+ GetMasterLevel():BlackOut( 20, 20 )
+ pawn:PlayState( "break" )
+ HeadText( "Get up and speak to me.", htx_color_x )
+ Delay( 1 ) player:PlayStateForceMove( "stand", 2, 2, 1 ) Delay_Down()
+ GetMasterLevel():BlackOut( 20, 20 )
+ pawn:PlayState( "break" )
+ HeadText( "Stand up.", htx_color_x )
+ Delay( 1 ) player:PlayStateForceMove( "stand", 3, 3, 1 ) Delay_Down()
+ GetMasterLevel():BlackOut( 30, 20 )
+ pawn:PlayState( "break" )
+ HeadText( "STAND UP.", htx_color_x )
+ Delay( 1 ) player:PlayStateForceMove( "stand", 4, 4, 1 ) Delay_Down()
+ GetMasterLevel():BlackOut( 40, 20 )
+ pawn:PlayState( "break" )
+ HeadText( "STAAAAAAND UUUUUUUUPPPPPPPPP.", htx_color_x )
+ Delay( 1 ) player:PlayStateForceMove( "stand", 5, 5, 1 ) Delay_Down()
+
+ Delay( 10 )
+ GetMasterLevel():BlackOut( 50, 20 )
+ Delay( 10 )
+ player:PlayState( "break" )
+ HeadText( "TOO CLOSE.", htx_color_2, 240 )
+ local src = proj:GetProjSrc()
+ local dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, player:GetPosY() * LEVEL_GRID_SIZE_Y + 16 }
+ local l = CreateLighningEft( src, dst )
+ GetMasterLevel():InterferenceStripEffect( 1, 1 )
+ Delay( 60 )
+ GetMasterLevel():BlackOut( 20, 10 )
+ Delay( 5 )
+ player:PlayStateForceMove( "break", 5, 5, 1 )
+ Delay( 65 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ 
+ GetMasterLevel():BlackOut( 50, 20 )
+ GetCurLevel():RemovePawn( pawn )
+ local tblSmoke = { { { 0, 0 }, { 2, 0 } }, { { 1, 1 }, { 3, 1 } }, { { 2, 2 }, { 4, 2 } }, { { 3, 3 }, { 5, 3 }, { 7, 3 } },
+ { { 4, 4 }, { 6, 4 }, { 8, 4 }, { 10, 4 } }, { { 3, 5 }, { 5, 5 }, { 7, 5 }, { 9, 5 }, { 11, 5 }, { 13, 5 } },
+ { { 2, 6 }, { 4, 6 }, { 6, 6 }, { 8, 6 }, { 10, 6 }, { 12, 6 }, { 14, 6 }, { 16, 6 } } }
+ local Flood = function( n )
+  local tbl = tblSmoke[n]
+  for i = 1, #tbl, 1 do
+   local pos = tbl[i]
+   tbl[i] = GetCurLevel():SpawnPawn( 0, pos[1], pos[2], 0 )
+  end
+  PlaySoundEffect( "spray" )
+ end
+ Flood( 1 )
+
+ Delay_Down( true )
+ Delay_Up()
+ GetMasterLevel():BlackOut( 20, 0 )
+ GetCurLevel():RemovePawn( btn )
+ btn = GetCurLevel():SpawnPreset( "sofa0" )
+
+ local Sofa_Begin = function() Delay_Down( true ) GetCurLevel():BeginNoise( "noise_tv" ) end
+ local Sofa_End = function() Delay_Up() GetCurLevel():EndNoise( "noise_tv" ) end
+ 
+ Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 2 )
+ Sofa_Begin() HeadText( "We are useless.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 3 )
+ Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 4 )
+ Sofa_Begin() HeadText( "We are worthless.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 5 )
+ Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 6 )
+ Sofa_Begin() HeadText( "We are hopeless.", htx_color_h ) Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 7 )
+ Sofa_Begin() HeadText( "We must repent.", htx_color_h ) Sofa_End()
+ GetMasterLevel():BlackOut( 30, 10 ) tv:FindChildEntity( "broken" ):SetVisible( true ) PlaySoundEffect( "glass_break" ) Delay( 5 )
+ while true do if not GetCurLevel():SpawnPreset( "g" ) then break end end
+
+ Sofa_Begin() HeadText( "We must reform.", htx_color_h ) Sofa_End()
+ GetMasterLevel():BlackOut( 30, 10 ) Delay( 5 )
+ for i = 1, 8, 1 do
+  GetCurLevel():RemovePawn( GetCurLevel():GetPawnByName( "npc" .. tostring( i ) ) )
+ end
+ while true do if not GetCurLevel():SpawnPreset( "s" ) then break end end
+
+ Sofa_Begin() HeadText( "We must reconstruct.", htx_color_h ) Sofa_End()
+ GetMasterLevel():BlackOut( 30, 10 ) Delay( 5 )
+ for i = 1, 8, 1 do
+  GetCurLevel():RemovePawn( GetCurLevel():GetPawnByName( "sofa" .. tostring( i ) ) )
+ end
+ while true do if not GetCurLevel():SpawnPreset( "t" ) then break end end
+
+ Sofa_Begin() HeadText( "Connect us all together.", htx_color_h ) Sofa_End()
+ Sofa_Begin() HeadText( "Purge the shit in our head.", htx_color_h ) Sofa_End()
+ Sofa_Begin() HeadText( "Give us a new mind.", htx_color_h ) Sofa_End()
+ GetMasterLevel():BlackOut( 30, 10 ) Delay( 5 ) GetCurLevel():RemovePawn( btn ) tv:FindChildEntity( "screen" ):SetVisible( false )
+ GetCurLevel():SpawnPreset( "fall" )
+ SetKeyInt( "d4_t4_unknown_finished", 1 )
+end
+
+
+function Day4_4_3f_btn()
+ if not( CurDay() == 4 and CurTime() == 4 and EvaluateKeyInt( "day4_3f_box_state" ) > 0 and FEVT( "$sc1" ) ) then return end
+ HeadText( "...!??", htx_color_0, 240 )
+ SetKeyInt( "$door0", 1 )
+
+ local Delay_Down = function( b )
+  while EvaluateKeyInt( "$btn" ) == 0 do
+   coroutine.yield()
+  end
+  if not b then SetKeyInt( "$btn", 0 ) end
+ end
+ local Delay_Up = function()
+  while EvaluateKeyInt( "$btn" ) == 1 do
+   coroutine.yield()
+  end
+ end
+ local proj = GetCurLevel():FindChildEntity("proj")
+ local player = GetPlayer()
+ local pawn = nil
+ 
+ Delay_Down() HeadText( "[bzbbrbrrr rbrbzrrbzrrbbb]", htx_color_h )
+ Delay_Down() HeadText( "Stop moving.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Where are you going?", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Where do you think you can escape?", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Stop doing this. It's useless.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "You know there is no way o[brbr rbrzbbbb].", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "I control this p[bbrzrbrz]", htx_color_h )
+ Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
+ Delay_Down() HeadText( "You know you can't[brbr rbrzbbbb].", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "No shi[brbrz brrrrbzbzrrbb brzrbrzbbbb]", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "Don't make me[brbzbbrz brrrrzrbbrbb brzrbrzbb]", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "[brbrzbbr zrbrzbrbrbrbzbbrzbzbz zbzbrbzbrrrbzrb bbbb]", htx_color_h )
+ Delay_Down() HeadText( "......", htx_color_h )
+ Delay_Down() HeadText( "..........", htx_color_h )
+ Delay_Down() HeadText( "....................", htx_color_h )
+ Delay_Down() HeadText( "..............................................................................................................................................................................................", htx_color_h )
+ Delay_Down() PlaySoundEffect( "alert" )
+ 
+ Delay_Down() GetMasterLevel():BlackOut( 60, 45 ) Delay( 30 ) SetKeyInt( "$door", 1 )
+ while player:GetCurStateDestX() ~= 7 or player:GetCurStateDestY() ~= 5 do coroutine.yield() end
+ GetCurLevel():SpawnPreset( "shadow" ) Delay( 10 )
+ PlaySoundEffect( "release" )
+ GetMasterLevel():BlackOut( 90, 10 )
+ Delay( 5 ) for i = 1, 6, 1 do GetCurLevel():SpawnPreset( "s" .. tostring( i ) ) end
+end
+
+
+function Day4_4_3f_dining()
+ local tbl0 = GetCurLevel():GetAllPawnsByNameScript( "0" )
+ local player = GetPlayer()
+ while player:GetCurStateDestX() == player:GetPosX() and player:GetCurStateDestY() == player:GetPosY() do coroutine.yield() end
+ Delay( 30 )
+ HeadText( "*cough*", htx_color_0, 240 )
+ Delay( 150 )
+ GetMasterLevel():BlackOut( 10, 0 )
+ player:PlayState( "special_1" )
+ PlaySoundEffect( "bzzz0" )
+ GetMasterLevel():InterferenceStripEffect( 1, 30 )
+ Delay( 60 )
+ GetMasterLevel():BlackOut( 10, 0 )
+ player:PlayState( "stand" )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+
+ while EvaluateKeyInt( "$n" ) == 0 do coroutine.yield() end
+ while player:GetCurStateDestX() == player:GetPosX() and player:GetCurStateDestY() == player:GetPosY() do coroutine.yield() end
+ Delay( 120 )
+ HeadText( "*coughcough*", htx_color_0, 240 )
+ Delay( 30 )
+ GetMasterLevel():BlackOut( 10, 0 )
+ player:PlayState( "special_1" )
+ PlaySoundEffect( "bzzz0" )
+ GetMasterLevel():InterferenceStripEffect( 1, 30 )
+ Delay( 60 )
+ GetMasterLevel():BlackOut( 30, 0 )
+ player:PlayState( "stand" )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ local pawn = GetCurLevel():SpawnPreset( "a" )
+
+ local n0 = 1
+ local F1 = function( n )
+  for i = 1, n, 1 do
+   coroutine.yield( 1 )
+   if EvaluateKeyInt( "$n" ) > n0 then GetCurLevel():RemovePawn( pawn ) pawn = nil GetMasterLevel():BlackOut( 45, 0 ) return false end
+  end
+  return true
+ end
+
+ while true do
+  for i = 1, 3, 1 do
+   if not F1( 240 ) then goto break1 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 20, 0 )
+  end
+  for i = 1, 4, 1 do
+   if not F1( 120 ) then goto break1 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 10, 0 )
+  end
+  for i = 1, 6, 1 do
+   if not F1( 60 ) then goto break1 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 5, 0 )
+  end
+  for i = 1, 12, 1 do
+   if not F1( 15 ) then goto break1 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 3, 0 )
+  end
+  GetCurLevel():RemovePawn( pawn )
+  pawn = GetCurLevel():SpawnPreset( "a" )
+ end
+ ::break1::
+ 
+ while player:GetCurStateDestX() == player:GetPosX() and player:GetCurStateDestY() == player:GetPosY() do coroutine.yield() end
+ Delay( 150 )
+ GetMasterLevel():BlackOut( 20, 0 )
+ player:PlayState( "special_1" )
+ GetMasterLevel():InterferenceStripEffect( 1, 30 )
+ Delay( 120 )
+ player:PlayState( "stand" )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ GetMasterLevel():BlackOut( 60, 0 )
+ pawn = GetCurLevel():SpawnPreset( "b" )
+
+ n0 = 2
+ while true do
+  for i = 1, 3, 1 do
+   if not F1( 240 ) then goto break2 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 20, 0 )
+  end
+  for i = 1, 4, 1 do
+   if not F1( 120 ) then goto break2 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 10, 0 )
+  end
+  for i = 1, 6, 1 do
+   if not F1( 60 ) then goto break2 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 5, 0 )
+  end
+  for i = 1, 12, 1 do
+   if not F1( 15 ) then goto break2 end
+   PlaySoundEffect( "bzzz0" )
+   GetMasterLevel():BlackOut( 3, 0 )
+  end
+  GetCurLevel():RemovePawn( pawn )
+  pawn = GetCurLevel():SpawnPreset( "b" )
+ end
+ ::break2::
+ 
+ while player:GetToX() == player:GetPosX() and player:GetToY() == player:GetPosY() do coroutine.yield() end
+ GetMasterLevel():BlackOut( 30, 10 )
+ Delay( 5 )
+ GetCurLevel():RemovePawn( GetCurLevel():GetPawnByName( "cupboard" ) )
+ local cupboard1 = GetCurLevel():SpawnPreset( "cupboard1" )
+ Delay( 80 )
+ for i = 1, 3, 1 do
+  Delay( 60 )
+  HeadText( "*cccccoughhhhh*", htx_color_0, 240 )
+  Delay( 30 )
+  GetMasterLevel():BlackOut( 20, 0 )
+  player:PlayState( "special_1" )
+  GetMasterLevel():InterferenceStripEffect( 1, 30 )
+  Delay( 60 )
+  player:PlayState( "stand" )
+  GetMasterLevel():InterferenceStripEffect( 0, 0 )
+  GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+  while player:GetCurStateDestX() == player:GetPosX() and player:GetCurStateDestY() == player:GetPosY() do coroutine.yield() end
+ end
+ GetMasterLevel():BlackOut( 60, 0 )
+ pawn = GetCurLevel():SpawnPreset( "c" )
+ 
+ n0 = 3
+ SetKeyInt( "$n0", 1 )
+
+ for i = 1, 2, 1 do
+  SetKeyInt( "$n", 3 )
+  while true do
+   if not F1( 240 ) then break end
+   GetMasterLevel():BlackOut( 5, 0 )
+   player:PlayState( "special_1" )
+   GetMasterLevel():InterferenceStripEffect( 1, 30 )
+   Delay( 30 )
+   GetMasterLevel():BlackOut( 5, 0 )
+   player:PlayState( "stand" )
+   GetMasterLevel():InterferenceStripEffect( 0, 0 )
+  end
+  if pawn then GetCurLevel():RemovePawn( pawn ) end
+  
+  GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+  Delay( 90 )
+  
+  while true do
+   GetMasterLevel():BlackOut( 5, 0 )
+   player:PlayState( "special_1" )
+   GetMasterLevel():InterferenceStripEffect( 1, 30 )
+   Delay( 30 )
+   GetMasterLevel():BlackOut( 5, 0 )
+   player:PlayState( "stand" )
+   GetMasterLevel():InterferenceStripEffect( 0, 0 )
+   local x = player:GetPosX()
+   local y = player:GetPosY()
+   local l1 = 0
+   while GetCurLevel():CheckGrid( x - 2 * ( l1 + 1 ), y ) >= 3 do l1 = l1 + 1 end
+   local l2 = 0
+   while GetCurLevel():CheckGrid( x + 2 * ( l2 + 1 ), y ) >= 3 do l2 = l2 + 1 end
+   local nDir
+   if math.max( l1, l2 ) > 2 then
+    if l1 + RandInt( 0, 2 ) > l2 then x = x - l1 * 2 nDir = 0
+    else x = x + l2 * 2 nDir = 1 end
+    pawn = GetCurLevel():SpawnPreset1( "c", x, y, nDir )
+	Delay( 1 )
+    GetMasterLevel():BlackOut( 40, 10 )
+    break
+   end
+   Delay( 90 )
+  end
+ end
+ 
+ SetKeyInt( "$n1", 1 )
+ SetKeyInt( "$n0", 2 )
+ local tblText = { "Stop resisting...", "Not enough...", "More..." }
+ for i = 1, 3, 1 do
+  HeadText( tblText[i], htx_color_h )
+  SetKeyInt( "$n", 3 )
+  while true do
+   coroutine.yield( 1 )
+   if EvaluateKeyInt( "$n" ) > 3 then
+    if i == 1 then
+     SetKeyInt( "$n", 3 )
+     GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+	 Delay( 1 )
+     if EvaluateKeyInt( "$n1" ) > 8 then GetCurLevel():RemovePawn( pawn ) pawn = nil GetMasterLevel():BlackOut( 45, 0 ) break end
+	else
+     SetKeyInt( "$n0", 2 + i )
+	 GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+	 Delay( 1 )
+	 GetCurLevel():RemovePawn( pawn ) pawn = nil GetMasterLevel():BlackOut( 45, 0 ) break
+	end
+   end
+  end
+  
+  local tbl = GetCurLevel():GetAllPawnsByNameScript( tostring( 4 - i ) )
+  for i1 = 1, #tbl, 1 do
+   GetCurLevel():RemovePawn( tbl[i1] )
+  end
+  if i < 3 then
+   pawn = GetCurLevel():SpawnPreset( "c" .. tostring( i ) )
+  end
+ end
+
+ cupboard1:PlayState( "stand_ready" )
+
+end
+
+function Day4_4_2f_final()
+ HeadText( "What are you doing here?.", htx_color_h )
+ local player = GetPlayer()
+ while player:GetPosX() ~= 7 or player:GetPosY() ~= 9 do coroutine.yield() end
+ 
+ player:PlayState( "special_1" )
+ GetMasterLevel():InterferenceStripEffect( 1, 100 )
+ Delay( 40 )
+ player:PlayState( "stand" )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ SetKeyInt( "$n0", 6 )
+ GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+
+ GetMasterLevel():BlackOut( 30, 10 )
+ PlaySoundEffect( "bzzz0" )
+ Delay( 1 )
+ local tbl = GetCurLevel():GetAllPawnsByNameScript( "1" )
+ for i1 = 1, #tbl, 1 do
+  GetCurLevel():RemovePawn( tbl[i1] )
+ end
+ local tblBox = {}
+ for i = 1, 6, 1 do
+  tblBox[i] = GetCurLevel():SpawnPreset( "b" .. tostring( i ) )
+ end
+ local tbl1 = {}
+ for i = 1, 6, 1 do
+  while true do
+   coroutine.yield( 1 )
+   local bBreak = false
+   if not player:GetCurMountingPawn() then for i1 = 1, 6, 1 do local b = tblBox[i1] if b then
+    local x = b:GetPosX()
+    local y = b:GetPosY()
+    local dx = math.abs( x - 7 )
+    local dy = math.abs( y - 5 )
+    local d = dy + math.max( 0, dx - dy ) / 2
+    if d > 2 then
+     GetMasterLevel():BlackOut( 30, 0 )
+     GetCurLevel():RemovePawn( b )
+     tbl1[i] = GetCurLevel():SpawnPreset1( "a" .. tostring( i ), x, y, 0 )
+     tblBox[i1] = nil
+	 bBreak = true
+	 break
+    end
+   end end end
+   if bBreak then break end
+  end
+  if i == 2 then
+   HeadText( "Go back. Stop making trouble everywhere.", htx_color_h )
+  elseif i == 3 then
+   HeadText( "Stop this. The final warning.", htx_color_h )
+  elseif i == 4 then
+   HeadText( "I said stop this. Are you fucking listening?", htx_color_h )
+  elseif i == 5 then
+   HeadText( "Are you still fucking sane?", htx_color_h )
+  end
+ end
+ 
+ GetMasterLevel():BlackOut( 30, 0 )
+ local proj = GetCurLevel():FindChildEntity("proj")
+ proj:Follow( player )
+ local src = proj:GetProjSrc()
+ local dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ local l = CreateLighningEft( src, dst )
+ GetMasterLevel():InterferenceStripEffect( 1, 2 )
+ Delay( 60 )
+ GetMasterLevel():BlackOut( 20, 10 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+
+ Delay( 240 )
+ 
+ GetMasterLevel():BlackOut( 30, 20 )
+ for i = 1, 6, 1 do
+  local x = tbl1[i]:GetPosX()
+  local y = tbl1[i]:GetPosY()
+  GetCurLevel():RemovePawn( tbl1[i] )
+  tbl1[i] = GetCurLevel():SpawnPreset1( "bot", x, y, 0 )
+ end
+
+ HeadText( "Get the fuck sobered up. Look at what you've done.", htx_color_h )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ GetMasterLevel():InterferenceStripEffect( 1, 100 )
+ player:PlayState( "special_1" )
+ Delay( 240 )
+ player:PlayState( "break" )
+ Delay( 60 )
+ GetMasterLevel():BlackOut( 20, 5 )
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ 
+ HeadText( "How to get the fuck out...", htx_color_0 )
+ while player:GetToX() ~= 6 or player:GetToY() ~= 10 do coroutine.yield( 1 ) end
+ HeadText( "WAKE UP.", htx_color_h )
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ GetMasterLevel():InterferenceStripEffect( 1, 100 )
+ player:PlayState( "break" )
+ Delay( 50 )
+ GetMasterLevel():BlackOut( 30, 30 )
+ Delay( 5 )
+ local tblPos = { { 9, 5 }, { 5, 5 }, { 8, 6 }, { 6, 6 }, { 8, 4 }, { 6, 4 } }
+ for i = 1, 6, 1 do
+  GetCurLevel():RemovePawn( tbl1[i] )
+  tbl1[i] = GetCurLevel():SpawnPreset1( "bot", tblPos[i][1], tblPos[i][2], 0 )
+ end
+ Delay( 5 )
+ player:PlayStateForceMove( "", 7, 5, player:GetCurDir() )
+ for i = 1, 6, 1 do
+  tbl1[i]:PlayState( "stand_pause" )
+ end
+ GetMasterLevel():InterferenceStripEffect( 0, 0 )
+ l:SetParentEntity( nil )
+ 
+ Delay( 240 )
+ HeadText( "What's fucking wrong with you?", htx_color_h )
+ Delay( 240 )
+ HeadText( "Did you take in some..that shit?", htx_color_h )
+ Delay( 240 )
+ HeadText( "I'm getting regret having brought you in.", htx_color_h )
+ Delay( 240 )
+ 
+ dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
+ l = CreateLighningEft( src, dst )
+ GetMasterLevel():InterferenceStripEffect( 1, 100 )
+ player:PlayState( "break" )
+ Delay( 50 )
+ GetMasterLevel():BlackOut( 120, 0 )
+ ClearKeys()
+ player:Reset( 0 )
+ SetKeyInt( "day", 4 )
+ SetCurTime( 5 )
+ TransferTo( "stages/4f_0.pf", 8, 2, 0, -1 )
 end
 
 function Day5_Get_Neural_Pulse()

@@ -28,6 +28,8 @@ public:
 	struct PushLua_Impl { static void call( void* p, T pValue ) { ASSERT( false ); } };
 	template <typename T>
 	struct PushLua_Impl<T*> { static void call( void* p, T* pValue ) { PushReference( p, pValue, CClassMetaDataMgr::Inst().GetClassData<T>() ); } };
+	template <typename T>
+	struct PushLua_Impl<CReference<T> > { static void call( void* p, const CReference<T>& pValue ) { PushReference( p, pValue, CClassMetaDataMgr::Inst().GetClassData<T>() ); } };
 	template <>
 	struct PushLua_Impl<bool> { static void call( void* p, bool pValue ) { PushLuaBool( p, pValue ); } };
 	template <>

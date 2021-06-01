@@ -358,7 +358,7 @@ protected:
 						m_pText->Set( str.c_str() );
 					}
 				}
-				if( str.length() >= 4 )
+				if( str.length() >= 4 || m_strPassword.length() > 0 && str == m_strPassword )
 					break;
 				auto pCur = m_pBox[str.length()];
 				pCur->bVisible = nTick < 4;
@@ -370,11 +370,14 @@ protected:
 
 			if( str == m_strPassword )
 			{
+				if( m_strPassword.length() < 4 )
+					break;
 				m_pOK->bVisible = true;
 				for( int i = 0; i < 60; i++ )
 					Yield();
 				m_pOK->bVisible = false;
-				m_pPawn->Signal( 1 );
+				if( m_pPawn )
+					m_pPawn->Signal( 1 );
 				break;
 			}
 			else
@@ -387,7 +390,8 @@ protected:
 						for( int i = 0; i < 60; i++ )
 							Yield();
 						m_pOK->bVisible = false;
-						m_pPawn->Signal( 1 );
+						if( m_pPawn )
+							m_pPawn->Signal( 1 );
 						item.pLuaState->PushLua( this );
 						bool b = item.pLuaState->Resume( 1, 0 );
 						while( b )
@@ -402,7 +406,8 @@ protected:
 				for( int i = 0; i < 60; i++ )
 					Yield();
 				m_pError->bVisible = false;
-				m_pPawn->Signal( 2 );
+				if( m_pPawn )
+					m_pPawn->Signal( 2 );
 			}
 			for( int i = 0; i < 4; i++ )
 				m_pBox[i]->bVisible = true;
@@ -449,7 +454,7 @@ public:
 			auto sz = CLuaState::GetCurLuaState()->FetchLuaString( i + 2 );
 			if( i > 0 )
 			{
-				str1 += "\n";
+				str1 += "\n\n";
 				str1 += sz;
 			}
 			else
@@ -471,19 +476,20 @@ public:
 	}
 	void SelectOption( int32 i )
 	{
+		m_p2->bVisible = true;
 		m_p2->SetPosition( CVector2( m_p2->x, m_pText2->y - ( i * 2 * m_pText2->GetInitTextBound().height ) ) );
 	}
 
 	const char* PickWord( float x, float y )
 	{
 		m_p1->bVisible = false;
-		auto result = m_pText1->PickWord( CVector2( x, y ) );
+		auto result = m_pText1->PickWord( CVector2( x, y ) - m_pText1->GetPosition() );
 		if( result.x < 0 )
 			return "";
 		m_tempStr = m_str.substr( result.x, result.y - result.x );
 		m_p1->bVisible = true;
 		auto wordBound = m_pText1->GetWordBound( result.x, result.y );
-		static_cast<CImage2D*>( m_p1.GetPtr() )->SetRect( wordBound );
+		static_cast<CImage2D*>( m_p1.GetPtr() )->SetRect( wordBound.Offset( m_pText1->GetPosition() ) );
 		return m_tempStr.c_str();
 	}
 private:

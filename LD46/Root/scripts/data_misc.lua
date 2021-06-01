@@ -159,7 +159,7 @@ g_libassist_dialogues = {
 			[====[
 Welcome to the library.
 
-This is the library smart assist system. I am ready to help you with any difficulties accessing our services here.
+This is the library smart assist system. I am ready to help you with any trouble accessing our services here.
 
 If you have anything to ask, please select one[I/K, ENTER] that matches your question best from the following options. 
 
@@ -242,7 +242,7 @@ instead of the full name of the book when using our library system.
 
 
 			]====],
-			{ "I have something else to ask...", "~" }
+			{ "[SHOW DETAIL AND REPORT THIS ERROR]", "__error" }
 		},
 	},
 	{
@@ -310,7 +310,7 @@ We will keep the recorded videos for you. If you want to watch it again, just te
 		tblAlias = { "blackboxex" },
 		contents = {
 			[====[
-A Blackbox is a portable terminal with high level of data security. Blackboxes are kept by our staff, if you see them in the library, please ]====] .. [====[
+A Blackbox is a portable terminal with high level of data security. Blackboxes are kept by our staff. If you find them in the library, please ]====] .. [====[
 contact our staff and don't try to take it out. Our security system will prevent them from being taken away by anyone except our staff.
 
 			]====],
@@ -374,7 +374,7 @@ from the information flow and our communications we learn your thoughts and dema
 you possibly have, list them and provide the answer. We try our best to cover all the possible questions so that you ]====] .. [====[
 can always get helped.
 			]====],
-			{ "But I still have some questions that I can't find here...", "keyword" },
+			{ "But I still have some questions that I can't find...", "keyword" },
 			{ "I have something else to ask...", "~" }
 		},
 	},
@@ -406,7 +406,7 @@ You have already accepted the UserAgreement. You don't need to confirm it manual
 
 
 			]====],
-			{ "I have something else to ask...", "~" }
+			{ "[SHOW DETAIL AND REPORT THIS ERROR]", "__error" }
 		},
 	},
 	{
@@ -436,6 +436,28 @@ This feature is currently not available for many reasons. We will support this f
 [This message has been blocked due to security issues]
 
 
+			]====],
+			{ "[SHOW DETAIL AND REPORT THIS ERROR]", "__error" }
+		},
+	},
+	{
+		strName = "__error",
+		contents = {
+			[====[
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
+^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31
 			]====],
 			{ "I have something else to ask...", "~" }
 		},

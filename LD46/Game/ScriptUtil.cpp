@@ -57,6 +57,11 @@ bool IsKeyDown( uint32 nKey )
 	return CGame::Inst().IsKeyDown( nKey );
 }
 
+bool IsChar( int32 nInput )
+{
+	return CGame::Inst().IsChar( nInput );
+}
+
 bool IsInput( int32 nInput )
 {
 	return CGame::Inst().IsInput( nInput );
@@ -70,6 +75,16 @@ bool IsInputUp( int32 nInput )
 bool IsInputDown( int32 nInput )
 {
 	return CGame::Inst().IsInputDown( nInput );
+}
+
+float GetX( CRenderObject2D* p )
+{
+	return p->x;
+}
+
+float GetY( CRenderObject2D* p )
+{
+	return p->y;
 }
 
 void SetPosition( CRenderObject2D* p, float x, float y )
@@ -160,14 +175,14 @@ void LevelRegisterAlwaysUpdate()
 	GetCurLevel()->RegisterAlwaysUpdate( pTrigger );
 }
 
-CEntity* CreateLighningEft_Script( CVector2 begin, CVector2 end, float fStrength, float fTurbulence )
+CEntity* CreateLighningEft_Script( CVector2 begin, CVector2 end, float fStrength, float fTurbulence, int32 nDuration )
 {
 	auto pLightning = SafeCast<CLightningEffect>( CGlobalCfg::Inst().pFailLightningEffectPrefab->GetRoot()->CreateInstance() );
 	pLightning->SetParentEntity( GetCurLevel() );
 	pLightning->SetPosition( begin );
 	auto ofs = end - begin;
 	auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
-	pLightning->Set( p1, 0, fStrength, fTurbulence );
+	pLightning->Set( p1, nDuration, fStrength, fTurbulence );
 	return pLightning;
 }
 
@@ -229,9 +244,12 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsKey )
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsKeyUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsKeyDown )
+	REGISTER_LUA_CFUNCTION_GLOBAL( IsChar )
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsInput )
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsInputUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsInputDown )
+	REGISTER_LUA_CFUNCTION_GLOBAL( GetX )
+	REGISTER_LUA_CFUNCTION_GLOBAL( GetY )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetPosition )
 	REGISTER_LUA_CFUNCTION_GLOBAL( PlayerPickUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandInt )

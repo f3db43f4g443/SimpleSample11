@@ -8,6 +8,78 @@
 #include "Render/DefaultDrawable2D.h"
 #include "GlobalCfg.h"
 #include "CommonUtils.h"
+#include "Render/Canvas.h"
+#include "Render/Scene2DManager.h"
+#include "Render/CommonShader.h"
+
+class CCanvasTexDrawer : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CCanvasTexDrawer( const SClassCreateContext& context ) : CEntity( context ), m_pCanvas( NULL )
+	{
+		SET_BASEOBJECT_ID( CCanvasTexDrawer );
+	}
+
+	virtual void OnAddedToStage() override
+	{
+		if( !m_pCanvas )
+		{
+			auto& desc = m_pTarget->GetTexture()->GetDesc();
+			m_pCanvas = new CCanvas( false, desc.nDim1, desc.nDim2, desc.eFormat, CCanvas::eDepthStencilType_Create, desc.nMipLevels == 0 );
+			m_pRoot = SafeCast<CEntity>( m_pPrefab->GetRoot()->CreateInstance() );
+			CScene2DManager::GetGlobalInst()->GetRoot()->AddChild( m_pRoot );
+			GetStage()->AddEntity( m_pRoot );
+			m_pCanvas->SetRoot( m_pRoot );
+			m_bDirty = true;
+		}
+	}
+	virtual void OnRemovedFromStage() override
+	{
+		if( m_pCanvas )
+		{
+			delete m_pCanvas;
+			m_pCanvas = NULL;
+		}
+	}
+	virtual void Render( CRenderContext2D& context ) override
+	{
+		if( m_bDirty )
+		{
+			m_bDirty = false;
+			auto& desc = m_pTarget->GetTexture()->GetDesc();
+			auto r = CRectangle( 0, 0, desc.nDim1, desc.nDim2 );
+			auto dstRect = r * ( r.Offset( m_clipOfs ) );
+			if( dstRect.width > 0 && dstRect.height > 0 )
+			{
+				auto srcRect = dstRect.Offset( m_clipOfs * -1 );
+				m_pCanvas->Render( context );
+				auto pTex = m_pCanvas->GetTexture();
+				CopyToRenderTarget( context.pRenderSystem, m_pTarget->GetRenderTarget(), pTex, dstRect, srcRect, r.GetSize(), r.GetSize() );
+				m_pCanvas->ReleaseTexture();
+			}
+		}
+	}
+	void CopyFrom( CCanvasTexDrawer* p1 )
+	{
+		auto& desc = m_pTarget->GetTexture()->GetDesc();
+		auto r = CRectangle( 0, 0, desc.nDim1, desc.nDim2 );
+		CopyToRenderTarget( IRenderSystem::Inst(), m_pTarget->GetRenderTarget(), p1->m_pTarget->GetTexture(), r, r, r.GetSize(), r.GetSize() );
+	}
+	CEntity* GetRoot() { return m_pRoot; }
+	void SetCamPos( const CVector2& cam ) { m_pCanvas->GetCamera().SetPosition( cam.x, cam.y ); }
+	void SetClipOfs( const CVector2& clipOfs ) { m_clipOfs = clipOfs; }
+	void Refresh() { m_bDirty = true; }
+private:
+	TResourceRef<CTextureFile> m_pTarget;
+	TResourceRef<CPrefab> m_pPrefab;
+
+	CCanvas* m_pCanvas;
+	CReference<CEntity> m_pRoot;
+	CVector2 m_clipOfs;
+	bool m_bDirty;
+};
+
 
 void CTexRectRandomModifier::OnAddedToStage()
 {
@@ -684,22 +756,25 @@ TVector2<int32> CSimpleText::PickWord( const CVector2& p )
 	if( n == -1 )
 		return TVector2<int32>( -1, -1 );
 	TVector2<int32> result( n, n + 1 );
-	for( int32 nIndex = m_elems[n].nIndex; result.x > 0; result.x--, nIndex-- )
+	int32 nIndex;
+	for( nIndex = m_elems[n].nIndex; result.x > 0; result.x--, nIndex-- )
 	{
 		if( m_elems[result.x - 1].nIndex != nIndex - 1 )
 			break;
 		auto ch = m_elems[result.x - 1].nChar;
-		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' || ch <= 'z' ) )
+		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' ) )
 			break;
 	}
-	for( int32 nIndex = m_elems[n].nIndex; result.y < m_elems.size(); result.y++, nIndex++ )
+	result.x = nIndex;
+	for( nIndex = m_elems[n].nIndex; result.y < m_elems.size(); result.y++, nIndex++ )
 	{
 		if( m_elems[result.y].nIndex != nIndex + 1 )
 			break;
 		auto ch = m_elems[result.y].nChar;
-		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' || ch <= 'z' ) )
+		if( !( ch >= '0' && ch <= '9' || ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' ) )
 			break;
 	}
+	result.y = nIndex + 1;
 	return result;
 }
 
@@ -1754,6 +1829,18 @@ void CTracerSpawnEffect::Render( CRenderContext2D& context )
 
 void RegisterGameClasses_UtilEntities()
 {
+	REGISTER_CLASS_BEGIN( CCanvasTexDrawer )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_pTarget )
+		REGISTER_MEMBER( m_pPrefab )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetRoot )
+		REGISTER_LUA_CFUNCTION( CopyFrom )
+		REGISTER_LUA_CFUNCTION( SetCamPos )
+		REGISTER_LUA_CFUNCTION( SetClipOfs )
+		REGISTER_LUA_CFUNCTION( Refresh )
+	REGISTER_CLASS_END()
+
 	REGISTER_INTERFACE_BEGIN( IImageEffectTarget )
 	REGISTER_INTERFACE_END()
 	REGISTER_INTERFACE_BEGIN( IImageRect )

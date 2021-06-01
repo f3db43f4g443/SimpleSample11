@@ -115,7 +115,7 @@ function AIFunc_PlayerTracer_PreInit( pawn )
    PlayerPickUp( strPickUp, pawn )
   end
  end
- pawn:RestoreAmmo()
+ pawn:RestoreAmmo( -1 )
  if GetLabelKey( "_FOOD" ) == 0 then
   pawn:FindChildEntity( "mount_0" ):SetEnabled( false )
   pawn:FindChildEntity( "mount_1" ):SetEnabled( false )

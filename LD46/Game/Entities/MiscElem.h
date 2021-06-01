@@ -179,7 +179,7 @@ public:
 	virtual void Init() override;
 	virtual void OnPreview() override;
 	virtual int32 Signal( int32 i ) override;
-	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ) ) override;
+	virtual int32 Damage( int32 nDamage, int8 nDamageType = 0, TVector2<int32> hitOfs = TVector2<int32>( 0, 0 ), CPawn* pSource = NULL ) override;
 	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const override;
 protected:
 	virtual void InitState() override;
@@ -396,6 +396,18 @@ public:
 	virtual void Update() override;
 };
 
+class CBrokenGlass : public CPawnHit
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CBrokenGlass( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CBrokenGlass ); }
+	virtual void OnRemovedFromStage() override { m_pPawn = NULL; }
+	virtual void Update() override;
+private:
+	CReference<CPawn> m_pPawn;
+	CString m_strSound;
+};
+
 class COil : public CPawnHit
 {
 	friend void RegisterGameClasses_MiscElem();
@@ -507,6 +519,7 @@ private:
 	CString m_strStepScript;
 	CString m_strFinishedScript;
 	CString m_strFailedScript;
+	CString m_strControlResetScript;
 	TResourceRef<CPrefab> m_pPrefab;
 	TResourceRef<CPrefab> m_pFailEffect;
 	CReference<CProjector> m_pProjector;
@@ -520,6 +533,7 @@ private:
 	int32 m_nCurShowStep;
 	int32 m_nEndTick;
 	int32 m_nErrorTick;
+	int32 m_nResetTick;
 	TVector2<int32> m_curPos;
 	vector<TVector2<int32> > m_vecError;
 	vector<CReference<CRenderObject2D> > m_vecImgs;

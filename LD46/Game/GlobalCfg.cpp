@@ -83,6 +83,11 @@ void CGlobalCfg::Load()
 			lvIndicatorData.vecPawnParams.resize( lvIndicatorData.vecPawnParams.size() + 1 );
 			ReadFunc( pItem, lvIndicatorData.vecPawnParams.back() );
 		}
+		for( auto pItem = pIndicator->FirstChildElement( "pawn0" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecPawn0Params.resize( lvIndicatorData.vecPawn0Params.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecPawn0Params.back() );
+		}
 		for( auto pItem = pIndicator->FirstChildElement( "pawn_fall" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 		{
 			lvIndicatorData.vecPawnFallParams.resize( lvIndicatorData.vecPawnFallParams.size() + 1 );

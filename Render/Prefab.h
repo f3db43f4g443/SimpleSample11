@@ -117,7 +117,7 @@ class CPrefabNode : public CPrefabBaseNode
 	friend class CPrefabEditor;
 public:
 	CPrefabNode( class CPrefab* pPrefab ) : m_pPrefab( pPrefab ), m_nType( 0 ), m_bIsInstance( false ), m_bTaggedNodePtrInfoDirty( true ), m_bNamespaceDirty( true ),
-		m_onResourceRefreshBegin( this, &CPrefabNode::OnResourceRefreshBegin ), m_onResourceRefreshEnd( this, &CPrefabNode::OnResourceRefreshEnd )
+		m_pPatchedNodeParent( NULL ), m_onResourceRefreshBegin( this, &CPrefabNode::OnResourceRefreshBegin ), m_onResourceRefreshEnd( this, &CPrefabNode::OnResourceRefreshEnd )
 	{
 		SetAutoUpdateAnim( true );
 	}
@@ -136,6 +136,7 @@ public:
 	static CResource* LoadResource( const char* szName );
 	CPrefabNode* GetPatchedNode() { return m_pPatchedNode; }
 	void OnEdit() { m_bTaggedNodePtrInfoDirty = true; m_obj.SetDirty(); }
+	void OnEditorMove( CPrefabNode* pRoot );
 	void DebugDrawPreview( class CUIViewport* pViewport, IRenderSystem* pRenderSystem );
 
 	void OnEditorActive( bool bActive );
@@ -212,10 +213,12 @@ protected:
 
 	CReference<CPrefabNode> m_pPatchedNode;
 	CReference<CPrefabBaseNode> m_pPreviewNode;
+	CPrefabNode* m_pPatchedNodeParent;
 	CPrefabNodeNameSpace m_nameSpace;
 
 	struct STaggedNodePtrInfo
 	{
+		STaggedNodePtrInfo() {}
 		STaggedNodePtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, uint32 nChild ) : pMemberData( pMemberData ), nOfs( nOfs ), nChild( nChild ) {}
 		SClassMetaData::SMemberData* pMemberData;
 		uint32 nOfs;
@@ -223,6 +226,7 @@ protected:
 	};
 	struct STaggedPrefabNodePtrInfo
 	{
+		STaggedPrefabNodePtrInfo() {}
 		STaggedPrefabNodePtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, CPrefabNode* pPrefabNode )
 			: pMemberData( pMemberData ), nOfs( nOfs ), pPrefabNode( pPrefabNode ) {}
 		SClassMetaData::SMemberData* pMemberData;
@@ -231,6 +235,7 @@ protected:
 	};
 	struct SResPtrInfo
 	{
+		SResPtrInfo() {}
 		SResPtrInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, int8 nType ) : pMemberData( pMemberData ), nOfs( nOfs ), nType( nType ) {}
 		SClassMetaData::SMemberData* pMemberData;
 		uint32 nOfs;
@@ -238,6 +243,7 @@ protected:
 	};
 	struct SPrefabNodeRefInfo
 	{
+		SPrefabNodeRefInfo() {}
 		SPrefabNodeRefInfo( SClassMetaData::SMemberData* pMemberData, uint32 nOfs, int8 nType, CPrefabNode* pPrefabNode )
 			: pMemberData( pMemberData ), nOfs( nOfs ), nType( nType ), pPrefabNode( pPrefabNode ) {}
 		SClassMetaData::SMemberData* pMemberData;

@@ -115,6 +115,87 @@ Please trust me.
 Yours sincerely,
 Lawyer ]====] .. NAME_LAWYER
 	},
+	{
+		key = "_WEBPAGE",
+		name = "A webpage snapshot",
+		content = [====[
+X83f0ivQ99      Yesterday at 3:58 PM
+Who the fuck knows what the fuck is happening there? The admin should do something.
+
+Views(331) Comments(6)
+---------------------------------------------
+nino_mihael: THAT'S WHAT HE IS DOING
+[ANONYMOUS]: [COMMENT BLOCKED]
+ThalKingDickens:  Don't worry guys we're just having a party. We are streaming at BigTubes. Don't tell anyone or we'll get banned...
+F0rumAdm1nstrator: Reply @[ANONYMOUS]: Yo better fuckin stop this. Think yo go anonymous yo never get found? Everything go their hand.
+torpedo1984: Reply @F0rumAdm1nstrator: Why the fuck you fucking admin delete my reply? This will never prevent anything from being revealed for we all know t...
+Ak0di03P1z: Reply @torpedo1984: Are you fucking blind?
+
+=============================================
+
+[ANONYMOUS]      Yesterday at 3:58 PM
+It's a total shutdown.
+WTF is the admin doing? 
+
+Views(17) Comments(2)
+---------------------------------------------
+CuteLizzy13156: home alone play with cork stuck in u3cX82zE.lk
+sdfewfwef: Reply @CuteLizzy13156: Then go find a power drill.
+
+=============================================
+
+ihaetfvk19nnme     Yesterday at 3:58 PM
+Let me say - This fuckin thing's completly down. No doublt abouit. In fuct it's been down since the fuckin newADMIN come. IF were I would go find him and...
+[FAILED TO LOAD COMPLETE CONTENT]
+
+Views(28145) Comments(0)
+
+=============================================
+
+JoeyAbbey      Yesterday at 3:59 PM
+I want to smash the admin's head with a golf pole. What he did really disgusted me.
+
+Views(6314) Comments(148)
+---------------------------------------------
+[COMMENTS DISABLED]
+
+=============================================
+
+[ANONYMOUS]      Yesterday at 3:59 PM
+OK Let's admit this failure. What I'm wondering now is who will be responsible for this - hope it won't simply be the admin. And how to deal with that...
+[THIS ENTRY WAS DELETED]
+
+=============================================
+
+______ZERO_chan______      Yesterday at 4:00 PM
+[VOTE CLOSED] The lunch tomorrow...
+* CHICKEN
+* BEEF
+* FISH
+* BURGER & FRIED POTATO
+* SALAD
+* PILLS ONLY
+* OTHERS(Please leave your comment)
+
+Votes(380549) Comments(374218)
+---------------------------------------------
+Z963r1AbEd: Shit
+[ANONYMOUS]: shit
+sena_my_waifu: Shit shit shit
+[ANONYMOUS]: MY SHIT
+[ANONYMOUS]: SHITSHITSHITSHITSHIT
+wE91D3Dn7nQ: SHIT
+love_kenny: EAT MY SHIT BABY
+brannywinkatme: shit
+[ANONYMOUS]: SHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHITSHIT...
+s0I9Bz32Mq: Shit
+d81Nv0iQn7: OH SHIT WE HAVE TROUBLE FEEDING THEM
+[ANONYMOUS]: SHIT
+joystick0837: Reply @d81Nv0iQn7: i think they have whales
+bigsb123456: shitsshitsitshitshitdhitshitdshitshitshititshshits
+[ANONYMOUS]: shit
+D1Lk9s ]====]
+	},
 }
 for i = 1, #g_docs, 1 do
 	local tbl = g_docs[i]
