@@ -113,6 +113,7 @@ end
 
 function ClearKeys()
 	GetMasterLevel():ClearKeys()
+	GetMasterLevel():ClearSnapShot()
 end
 
 function FEVT( key )
@@ -142,6 +143,10 @@ end
 function CurCharacter()
 	if CurDay() == 3 or CurDay() == 4 or CurDay() == 7 then return 1 end
 	return 0
+end
+
+function IsSnapShot()
+	return GetCurLevel():IsSnapShot()
 end
 
 function TransferTo( sz, x, y, dir, type )

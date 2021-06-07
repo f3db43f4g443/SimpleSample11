@@ -224,6 +224,34 @@ void CGlobalCfg::Load()
 		item.second.w = XmlGetAttr( pItem, "w1", 0.0f );
 	}
 
+	{
+		int32 nItems = 0;
+		CVector4 param[2] = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
+		for( auto pItem = doc.RootElement()->FirstChildElement( "show_snap_shot_mask" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			int32 nFrame = XmlGetAttr( pItem, "t", 0 );
+			CVector4 param1[2];
+			param1[0].x = XmlGetAttr( pItem, "x0", 0.0f );
+			param1[0].y = XmlGetAttr( pItem, "y0", 0.0f );
+			param1[0].z = XmlGetAttr( pItem, "z0", 0.0f );
+			param1[0].w = XmlGetAttr( pItem, "w0", 0.0f );
+			param1[1].x = XmlGetAttr( pItem, "x1", 0.0f );
+			param1[1].y = XmlGetAttr( pItem, "y1", 0.0f );
+			param1[1].z = XmlGetAttr( pItem, "z1", 0.0f );
+			param1[1].w = XmlGetAttr( pItem, "w1", 0.0f );
+			showSnapShotMask.resize( nItems + nFrame );
+			for( int i = 0; i < nFrame; i++ )
+			{
+				float t = ( i + 1.0f ) / nFrame;
+				showSnapShotMask[nItems + i].first = param[0] + ( param1[0] - param[0] ) * t;
+				showSnapShotMask[nItems + i].second = param[1] + ( param1[1] - param[1] ) * t;
+			}
+			param[0] = param1[0];
+			param[1] = param1[1];
+			nItems += nFrame;
+		}
+	}
+
 	if( szLuaStart[0] )
 	{
 		uint32 nLen;

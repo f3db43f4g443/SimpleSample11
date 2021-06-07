@@ -106,7 +106,7 @@ public:
 	/*<-------------------For Script----------------------*/
 	const char* GetEntityName() { return GetName(); }
 	void SetEntityName( const char* szName ) { m_strName = szName; }
-	bool IsVisible( bool b ) { return bVisible; }
+	bool IsVisible() { return bVisible; }
 	void SetVisible( bool b ) { bVisible = b; }
 	CEntity* FindChildEntity( const char* szName );
 	/*--------------------For Script--------------------->*/

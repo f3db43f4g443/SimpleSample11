@@ -17,6 +17,7 @@ struct SLevelData
 	TResourceRef<CPrefab> pLevel;
 	CVector2 displayOfs;
 
+	TArray<CString> arrShowSnapShot;
 	TArray<CVector2> arrGrids;
 	TArray<CVector2> arrNxtStages;
 	TArray<CVector2> arrConsoles;
@@ -36,6 +37,10 @@ struct SWorldCfg
 {
 	SWorldCfg( const SClassCreateContext& context ) {}
 	TArray<SRegionData> arrRegionData;
+
+	SLevelData* GetLevelData( const char* szLevel );
+	CVector2 GetLevelDisplayOfs( const char* szLevel ) { return GetLevelData( szLevel )->displayOfs; }
+	map<string, SLevelData*> m_mapLevelData;
 };
 
 enum EWorldCfgFileVersion

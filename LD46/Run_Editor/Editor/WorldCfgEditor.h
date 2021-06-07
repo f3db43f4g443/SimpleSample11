@@ -35,6 +35,7 @@ protected:
 	void RefreshLevelData( int32 nRegion, int32 nLevel );
 	void RefreshLevelDataLink( int32 nRegion, int32 n, map<CString, TVector2<int32> >* pMap = NULL );
 	void RefreshExtLevel( int32 nRegion );
+	void RefreshSnapShot();
 	void ShowLevelTool();
 	void OpenLevelFile();
 	void BeginNewLevel();

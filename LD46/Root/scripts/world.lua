@@ -1,10 +1,10 @@
 InitPlayerData()
 
-SetKeyInt( "day", 7 )
+--SetKeyInt( "day", 7 )
 --SetCurTime( 2 )
 --SetKeyInt( "%bookshelf_ok", 1 )
-GetPlayer():EnableDefaultEquipment()
-PlayerPickUp( "data/pickups/pan.pf" )
+--GetPlayer():EnableDefaultEquipment()
+--PlayerPickUp( "data/pickups/pan.pf" )
 --PlayerPickUp( "data/pickups/ladder.pf" )
 --PlayerPickUp( "data/pickups/stealth.pf" )
 --PlayerPickUp( "data/pickups/staff.pf" )

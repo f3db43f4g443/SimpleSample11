@@ -6,6 +6,22 @@
 #include "FileUtil.h"
 
 
+SLevelData* SWorldCfg::GetLevelData( const char * szLevel )
+{
+	if( !m_mapLevelData.size() )
+	{
+		for( int i = 0; i < arrRegionData.Size(); i++ )
+		{
+			auto& arrLevelData = arrRegionData[i].arrLevelData;
+			for( int j = 0; j < arrLevelData.Size(); j++ )
+			{
+				m_mapLevelData[arrLevelData[j].pLevel.c_str()] = &arrLevelData[j];
+			}
+		}
+	}
+	return m_mapLevelData[szLevel];
+}
+
 void CWorldCfgFile::Create()
 {
 	vector<char> fileContent;
@@ -233,6 +249,7 @@ void RegisterGameClasses_World()
 	REGISTER_CLASS_BEGIN( SLevelData )
 		REGISTER_MEMBER( pLevel )
 		REGISTER_MEMBER( displayOfs )
+		REGISTER_MEMBER( arrShowSnapShot )
 		REGISTER_MEMBER( arrGrids )
 		REGISTER_MEMBER( arrNxtStages )
 		REGISTER_MEMBER( arrConsoles )

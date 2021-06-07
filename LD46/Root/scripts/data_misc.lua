@@ -473,3 +473,16 @@ for i = 1, #g_libassist_dialogues, 1 do
 		end
 	end
 end
+
+function Day3_Sampling( n )
+	UnlockDoc( "_D3_ES_" .. tostring( n ) )
+	SetLabelKey( "_SAMPLE", 1 )
+	local n = GetLabelCounter( "_SAMPLE" )
+	n = n + 1
+	if n >= 20 then
+		SetLabelKey( "_SAMPLE", 2 )
+		SetLabelCounter( "_SAMPLE", 0 )
+	else
+		SetLabelCounter( "_SAMPLE", n )
+	end
+end

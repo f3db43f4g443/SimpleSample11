@@ -83,6 +83,7 @@ public:
 		vector<SPlayerInputParam> vecPlayerInputParams;
 	} MainUIData;
 	vector<pair<CVector4, CVector4> > playerDamagedMask;
+	vector<pair<CVector4, CVector4> > showSnapShotMask;
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGlobalCfg );
 };

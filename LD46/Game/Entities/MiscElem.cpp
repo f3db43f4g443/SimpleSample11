@@ -377,6 +377,60 @@ int32 CPawnAISignalLight::Signal( int32 i )
 	return 1;
 }
 
+void CPawnAIShelf::OnPreview()
+{
+	if( m_pSpawnHelper )
+		m_pSpawnHelper->OnPreview();
+}
+
+void CPawnAIShelf::OnInit()
+{
+	if( m_pSpawnHelper )
+	{
+		m_pPickUp = SafeCast<CPickUp>( m_pSpawnHelper->GetRenderObject() );
+		if( m_pPickUp )
+		{
+			m_pPickUp->strCreatedFrom = m_pSpawnHelper->GetResource()->GetName();
+			m_pPickUp->SetSpawnHelper( m_pSpawnHelper );
+			m_pPickUp->SetParentAfterEntity( m_pSpawnHelper );
+			m_pPickUp->SetPosition( m_pSpawnHelper->GetPosition() );
+			m_pSpawnHelper->SetParentEntity( NULL );
+			m_pPickUp->Init();
+		}
+	}
+}
+
+void CPawnAIShelf::OnUpdate()
+{
+	if( m_pPickUp )
+		m_pPickUp->UpdateAnimOnly();
+}
+
+int32 CPawnAIShelf::Signal( int32 i )
+{
+	if( !m_pSpawnHelper )
+		return 1;
+	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pPlayer = pPawn->GetLevel()->GetPlayer();
+	if( m_pPickUp )
+	{
+		m_pPickUp->SetParentEntity( NULL );
+		m_pPickUp->PickUp( pPlayer );
+		m_pPickUp = NULL;
+	}
+	m_pSpawnHelper = NULL;
+	if( m_strScript )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( m_strScript );
+		pLuaState->PushLua( 1 );
+		pLuaState->Call( 1, 0 );
+	}
+	bVisible = false;
+	pPawn->SetLocked( true );
+	return 1;
+}
+
 void CPawnAIAutoDoor::OnInit()
 {
 	bVisible = false;
@@ -385,6 +439,25 @@ void CPawnAIAutoDoor::OnInit()
 	{
 		if( GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strBrokenKey ) )
 			pPawn->ChangeState( eState_Broken, true );
+	}
+	else
+	{
+		auto pLevel = pPawn->GetLevel();
+		bool bOpen;
+		auto pGrid = pLevel->GetGrid( pPawn->GetPos() );
+		if( m_nType )
+			bOpen = GetStage()->GetMasterLevel()->EvaluateKeyInt( m_strOpenCondition );
+		else
+			bOpen = !pLevel->IsGridBlockedExit( pGrid, true );
+		if( !pLevel->IsSnapShot() )
+		{
+			if( pPawn->GetPos() == GetStage()->GetMasterLevel()->GetWorldData().curFrame.playerEnterPos )
+				bOpen = true;
+			else if( pLevel->GetTracerSpawnExit() && pLevel->GetTracerDelayLeft() && pPawn->GetPos() == pLevel->GetTracerEnterPos() )
+				bOpen = true;
+		}
+		if( !bOpen && pLevel->PawnTransform( pPawn, 1 - pPawn->GetCurForm(), TVector2<int32>( 0, 0 ), false ) )
+			pPawn->ChangeState( eState_Close, true );
 	}
 }
 
@@ -2567,6 +2640,14 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_eftParam0 )
 		REGISTER_MEMBER( m_nEftFrames1 )
 		REGISTER_MEMBER( m_eftParam1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CPawnAIShelf )
+		REGISTER_BASE_CLASS( CPawnAI )
+		REGISTER_MEMBER_BEGIN( m_strScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_TAGGED_PTR( m_pSpawnHelper, 1 )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CPawnAISignalLight )

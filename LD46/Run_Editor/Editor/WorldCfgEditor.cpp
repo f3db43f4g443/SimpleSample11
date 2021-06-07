@@ -161,11 +161,6 @@ void CWorldCfgEditor::RefreshPreview()
 		delete m_pRes->m_pWorldCfg;
 		m_pRes->m_pWorldCfg = NULL;
 	}
-	CBufFile buf;
-	auto pClassData = CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>();
-	pClassData->PackData( (uint8*)m_pData, buf, true );
-	m_pRes->m_pWorldCfg = (SWorldCfg*)pClassData->NewObjFromData( buf, true, NULL );
-	m_pRes->RefreshEnd();
 
 	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
 	{
@@ -184,6 +179,12 @@ void CWorldCfgEditor::RefreshPreview()
 			}
 		}
 	}
+	RefreshSnapShot();
+	CBufFile buf;
+	auto pClassData = CClassMetaDataMgr::Inst().GetClassData<SWorldCfg>();
+	pClassData->PackData( (uint8*)m_pData, buf, true );
+	m_pRes->m_pWorldCfg = (SWorldCfg*)pClassData->NewObjFromData( buf, true, NULL );
+	m_pRes->RefreshEnd();
 }
 
 void CWorldCfgEditor::OnDebugDraw( IRenderSystem* pRenderSystem )
@@ -542,9 +543,9 @@ void CWorldCfgEditor::InitLevel( int32 nRegion, int32 nLevel, CPrefab* pPrefab )
 	auto& lv = m_pData->arrRegionData[nRegion].arrLevelData[nLevel];
 	lv.pLevel = pPrefab;
 	auto pPrefabNode = pPrefab->GetRoot()->Clone( pPrefab );
+	levelData.pClonedLevelData = pPrefabNode;
 	CLevelToolsView::FixLevelData( pPrefabNode, pPrefab );
 	pPrefabNode->SetPosition( lv.displayOfs );
-	levelData.pClonedLevelData = pPrefabNode;
 
 	function<void( CPrefabNode* )> Func;
 	Func = [&Func] ( CPrefabNode* pNode ) {
@@ -789,6 +790,72 @@ void CWorldCfgEditor::RefreshExtLevel( int32 nRegion )
 	}
 	for( auto& item : vecExtLevel )
 		m_vecRegionData[item.nRegion].vecLevelData[item.nLevel].nFlag = 0;
+}
+
+void CWorldCfgEditor::RefreshSnapShot()
+{
+	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
+	{
+		TRectangle<int32> regionSize( 0, 0, 0, 0 );
+		auto& levelData = m_pData->arrRegionData[i].arrLevelData;
+		int32 nTotalAreaSize = 0;
+		for( int j = 0; j < levelData.Size(); j++ )
+		{
+			levelData[j].arrShowSnapShot.Resize( 0 );
+			auto pLevel = levelData[j].pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
+			auto size = pLevel->GetSize();
+			auto bound1 = TRectangle<int32>( levelData[j].displayOfs.x / LEVEL_GRID_SIZE_X, levelData[j].displayOfs.y / LEVEL_GRID_SIZE_Y, size.x, size.y );
+			regionSize = j == 0 ? bound1 : regionSize + bound1;
+			nTotalAreaSize += ( size.x * size.y + 1 ) / 2;
+		}
+
+		struct SNode
+		{
+			int32 j;
+			LINK_LIST( SNode, Node )
+		};
+		vector<SNode> vecNodes;
+		vecNodes.resize( nTotalAreaSize );
+		vector<SNode*> vecMap;
+		vecMap.resize( regionSize.width * regionSize.height );
+		int32 iNode = 0;
+		for( int j = 0; j < levelData.Size(); j++ )
+		{
+			auto& data = levelData[j];
+			auto pLevel = data.pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
+			auto size = pLevel->GetSize();
+			auto bound1 = TRectangle<int32>( levelData[j].displayOfs.x / LEVEL_GRID_SIZE_X, levelData[j].displayOfs.y / LEVEL_GRID_SIZE_Y, size.x, size.y );
+			set<string> setNames;
+			for( int x = 0; x < size.x; x++ )
+			{
+				for( int y = 0; y < size.y; y++ )
+				{
+					if( !!( ( x + y ) & 1 ) )
+						continue;
+					auto pGridData = pLevel->GetGridData( TVector2<int32>( x, y ) );
+					if( !pGridData->nTile )
+						continue;
+					auto pNode = &vecNodes[iNode++];
+					pNode->j = j;
+					SNode*& pHead = vecMap[x + bound1.x - regionSize.x + ( y + bound1.y - regionSize.y ) * regionSize.width];
+
+					for( SNode* pNode = pHead; pNode; pNode = pNode->NextNode() )
+					{
+						auto& data1 = levelData[pNode->j];
+						if( setNames.find( data1.pLevel.c_str() ) != setNames.end() )
+							continue;
+						setNames.insert( data1.pLevel.c_str() );
+						data1.arrShowSnapShot.Resize( data1.arrShowSnapShot.Size() + 1 );
+						data1.arrShowSnapShot[data1.arrShowSnapShot.Size() - 1] = data.pLevel.c_str();
+						data.arrShowSnapShot.Resize( data.arrShowSnapShot.Size() + 1 );
+						data.arrShowSnapShot[data.arrShowSnapShot.Size() - 1] = data1.pLevel.c_str();
+					}
+
+					pNode->InsertTo_Node( pHead );
+				}
+			}
+		}
+	}
 }
 
 void CWorldCfgEditor::ShowLevelTool()

@@ -4,6 +4,17 @@
 #include "Stage.h"
 #include "MyGame.h"
 
+void CActionPreview::OnAddedToStage()
+{
+	m_pInputRoot->SetRenderObject( NULL );
+	m_pRecordText->SetParentEntity( NULL );
+	m_timeImgOrigRect = static_cast<CImage2D*>( m_pTime->GetRenderObject() )->GetElem().rect;
+	auto pParam = static_cast<CImage2D*>( m_pTime->GetRenderObject() )->GetParam();
+	m_timeImgOrigParam[0] = pParam[0];
+	m_timeImgOrigParam[1] = pParam[1];
+	m_pTime->SetRenderObject( NULL );
+}
+
 void CActionPreview::Show( bool bShow )
 {
 	if( bShow )
@@ -140,7 +151,10 @@ void CActionPreview::Update()
 			m_pInputRoot->GetRenderObject()->AddChild( pImg );
 
 			m_bWaitingInput = true;
+			RefreshRecord();
 		}
+		else
+			UpdateTime();
 	}
 	if( m_bWaitingInput )
 	{
@@ -193,6 +207,7 @@ void CActionPreview::Update()
 
 		if( CGame::Inst().IsKeyDown( VK_RETURN ) || CGame::Inst().IsKeyDown( ' ' ) )
 		{
+			AddRecord( m_pPreviewPlayer->m_vecActionPreviewInputItem[m_nSelectedType][m_nSelectedIndex] );
 			m_pPreviewPlayer->ActionPreviewInput( m_nSelectedType, m_nSelectedIndex );
 			m_bWaitingInput = false;
 		}
@@ -206,13 +221,14 @@ void CActionPreview::CreateLevel()
 	m_pPreviewLevel->SetZOrder( -1 );
 	m_pPreviewLevel->SetParentEntity( this );
 	m_pPreviewLevel->SetPosition( m_pPreviewLevel->GetCamPos() * -1 );
-	m_pPreviewLevel->Init( true );
+	m_pPreviewLevel->Init( 2 );
 	auto pPlayer = GetStage()->GetMasterLevel()->GetCurLevel()->GetPlayer();
 	m_pPreviewPlayer = pPlayer->InitActionPreviewLevel( m_pPreviewLevel, TVector2<int32>( m_nStartX, m_nStartY ) );
 }
 
 void CActionPreview::Clear()
 {
+	ClearRecord();
 	for( int i = 0; i < ELEM_COUNT( m_vecText ); i++ )
 		m_vecText[i].resize( 0 );
 	m_pTip->bVisible = false;
@@ -255,6 +271,153 @@ void CActionPreview::RefreshText()
 	}
 }
 
+void CActionPreview::UpdateTime()
+{
+	if( !m_vecRecordItems.size() )
+		return;
+	m_vecRecordItems.back().nTime++;
+	auto& last = m_vecRecordItems.back();
+	auto p = static_cast<CImage2D*>( last.pTimeImg.GetPtr() );
+	auto r = p->GetElem().rect;
+	r.height += 2;
+	p->SetRect( r );
+
+	if( r.GetBottom() > m_timeImgOrigRect.GetBottom() )
+	{
+		for( int i = m_vecRecordItems.size() - 1; i >= 0; i-- )
+		{
+			auto& item = m_vecRecordItems[i];
+			auto p = static_cast<CImage2D*>( item.pTimeImg.GetPtr() );
+			auto r = p->GetElem().rect;
+			if( item.pText->GetParentEntity() )
+				item.pText->SetPosition( CVector2( item.pText->x, item.pText->y - 2 ) );
+			if( i == 0 )
+			{
+				r.height -= 2;
+				if( r.height == 0 )
+				{
+					item.pText->SetParentEntity( NULL );
+					item.pTimeImg->RemoveThis();
+					m_vecRecordItems.pop_front();
+				}
+				else
+					p->SetRect( r );
+			}
+			else
+			{
+				r.y -= 2;
+				p->SetRect( r );
+			}
+		}
+	}
+}
+
+void CActionPreview::AddRecord( SInputTableItem* pItem )
+{
+	auto y = m_vecRecordItems.size() ? static_cast<CImage2D*>( m_vecRecordItems.back().pTimeImg.GetPtr() )->GetElem().rect.GetBottom() : m_timeImgOrigRect.y;
+	if( m_vecRecordItems.size() )
+	{
+		auto pImg = static_cast<CImage2D*>( m_vecRecordItems.back().pTimeImg.GetPtr() );
+		auto r = pImg->GetElem().rect;
+		r.height -= 2;
+		pImg->SetRect( r );
+	}
+	m_vecRecordItems.resize( m_vecRecordItems.size() + 1 );
+	auto& item = m_vecRecordItems.back();
+	item.nTime = 0;
+	item.pText = SafeCast<CSimpleText>( m_pRecordText->GetInstanceOwnerNode()->CreateInstance() );
+	item.pTimeImg = static_cast<CDrawableGroup*>( m_pTime->GetResource() )->CreateInstance();
+	for( int i = 0; i < 2; i++ )
+		static_cast<CImage2D*>( item.pTimeImg.GetPtr() )->GetParam()[i] = m_timeImgOrigParam[i];
+	m_pTime->AddChild( item.pTimeImg );
+	auto r = m_timeImgOrigRect;
+	r.y = y;
+	r.height = 0;
+	static_cast<CImage2D*>( item.pTimeImg.GetPtr() )->SetRect( r );
+
+	auto pDrawable = static_cast<CDrawableGroup*>( m_pInputRoot->GetResource() );
+	if( !pItem )
+	{
+		CRectangle rect( 96, 0, -8, 16 );
+		CRectangle texRect( 0.0625f * 15, 0, 0.0625f, 0.0625f );
+		auto pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+		pImg->SetRect( rect );
+		pImg->SetTexRect( texRect );
+		item.pText->AddChild( pImg );
+	}
+	else
+	{
+		auto nCurDir = m_pPreviewPlayer->GetCurDir();
+		bool bChargeKey = false;
+		int32 n = 0;
+		for( int l = 0; l < 2; l++ )
+		{
+			if( l == 1 && !bChargeKey )
+				break;
+			auto str = l == 0 ? pItem->strInput : m_pPreviewPlayer->m_strActionPreviewCharge;
+			for( int k = 0; k < str.length(); k++ )
+			{
+				auto c = str[k];
+				int32 nTex;
+				if( c == '6' )
+					nTex = nCurDir ? 4 : 0;
+				else if( c == '9' )
+					nTex = nCurDir ? 3 : 1;
+				else if( c == '8' )
+					nTex = 2;
+				else if( c == '7' )
+					nTex = nCurDir ? 1 : 3;
+				else if( c == '4' )
+					nTex = nCurDir ? 0 : 4;
+				else if( c == '1' )
+					nTex = nCurDir ? 7 : 5;
+				else if( c == '2' )
+					nTex = 6;
+				else if( c == '3' )
+					nTex = nCurDir ? 5 : 7;
+				else if( c >= 'A' && c <= 'D' )
+					nTex = c - 'A' + 8;
+				else if( c == '#' )
+				{
+					bChargeKey = true;
+					continue;
+				}
+				CRectangle rect( 96 + n * 16, -8, 16, 16 );
+				CRectangle texRect( 0.0625f * nTex, 0.0625f * l, 0.0625f, 0.0625f );
+				auto pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+				pImg->SetRect( rect );
+				pImg->SetTexRect( texRect );
+				item.pText->AddChild( pImg );
+				n++;
+			}
+		}
+	}
+}
+
+void CActionPreview::RefreshRecord()
+{
+	if( m_vecRecordItems.size() <= 0 )
+		return;
+	auto& item = m_vecRecordItems.back();
+	auto r = static_cast<CImage2D*>( item.pTimeImg.GetPtr() )->GetElem().rect;
+	item.pText->SetPosition( CVector2( item.pText->x, r.GetBottom() ) );
+	if( !item.pText->GetParentEntity() )
+		item.pText->SetParentBeforeEntity( m_pTime );
+	char sz[32];
+	sprintf( sz, "+%d", item.nTime );
+	item.pText->Set( sz, 1 );
+}
+
+void CActionPreview::ClearRecord()
+{
+	for( auto& item : m_vecRecordItems )
+	{
+		item.pText->SetParentEntity( NULL );
+		item.pTimeImg->RemoveThis();
+	}
+	m_vecRecordItems.resize( 0 );
+}
+
 void RegisterGameClasses_ActionPreview()
 {
 	REGISTER_CLASS_BEGIN( CActionPreview )
@@ -264,5 +427,7 @@ void RegisterGameClasses_ActionPreview()
 		REGISTER_MEMBER( m_nStartY )
 		REGISTER_MEMBER_TAGGED_PTR( m_pInputRoot, 1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pTip, tp )
+		REGISTER_MEMBER_TAGGED_PTR( m_pRecordText, record_text )
+		REGISTER_MEMBER_TAGGED_PTR( m_pTime, record_time )
 	REGISTER_CLASS_END()
 }

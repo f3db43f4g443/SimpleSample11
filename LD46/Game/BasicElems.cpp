@@ -13,9 +13,12 @@
 void CLevelSpawnHelper::OnPreview()
 {
 	auto pPawn = SafeCast<CPawn>( GetRenderObject() );
-	pPawn->m_pos = pPawn->m_moveTo = TVector2<int32>( 0, 0 );
-	pPawn->m_nCurDir = pPawn->m_nInitDir;
-	pPawn->OnPreview();
+	if( pPawn )
+	{
+		pPawn->m_pos = pPawn->m_moveTo = TVector2<int32>( 0, 0 );
+		pPawn->m_nCurDir = pPawn->m_nInitDir;
+		pPawn->OnPreview();
+	}
 }
 
 void CPawn::OnPreview()
@@ -45,10 +48,17 @@ void CPawn::OnPreview()
 	auto pTracerEffect = SafeCast<CTracerEffect>( GetRenderObject() );
 	if( pTracerEffect )
 		pTracerEffect->OnPreview();
+	if( m_pAI )
+		m_pAI->OnPreview();
 }
 
 void CPawn::Init()
 {
+	if( m_pHpBar && GetLevel() && GetLevel()->IsSnapShot() )
+	{
+		m_pHpBar->RemoveThis();
+		m_pHpBar = NULL;
+	}
 	if( m_pHpBar && m_hpBarOrigRect.width == 0 )
 		m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBar.GetPtr() )->GetElem().rect;
 	if( m_pAI )
@@ -804,7 +814,7 @@ bool CPawn::ChangeState( int32 nNewState, bool bInit )
 	if( !IsValidStateIndex( nNewState ) )
 		return false;
 	m_nCurState = nNewState;
-	 return ChangeState( m_arrSubStates[nNewState], 0, bInit );
+	return ChangeState( m_arrSubStates[nNewState], 0, bInit );
 }
 
 void CPawn::AutoCreateSpawnHelper()
@@ -854,14 +864,10 @@ void CPawn::InitState()
 	else
 		nInitState = GetDefaultState();
 	if( m_arrSubStates.Size() )
-	{
 		ChangeState( nInitState, true );
-		if( m_pAI )
-			m_pAI->OnInit();
-		Update0();
-	}
-	else if( m_pAI )
+	if( m_pAI )
 		m_pAI->OnInit();
+	Update0();
 }
 
 bool CPawn::CheckTransitCondition( EPawnStateTransitCondition eCondition, const char* strCondition )
@@ -877,7 +883,7 @@ bool CPawn::CheckTransitCondition( EPawnStateTransitCondition eCondition, const 
 
 bool CPawn::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 {
-	if( GetLevel()->GetPlayer() && GetLevel()->GetPlayer()->GetControllingPawn() == this )
+	if( GetLevel() && GetLevel()->GetPlayer() && GetLevel()->GetPlayer()->GetControllingPawn() == this )
 	{
 		if( GetLevel()->GetPlayer()->ControllingPawnCheckStateInput( nReason ) )
 			return true;
@@ -1296,7 +1302,7 @@ bool CPlayerMount::CheckMount( CPlayer* pPlayer )
 
 void CPlayerMount::Mount( CPlayer* pPlayer )
 {
-	pPlayer->Mount( GetPawn(), GetEquipment(), m_strEntryState, m_bAnimPlayerOriented, !m_bShowPawnOnMount, m_bUseMountRenderOrder );
+	pPlayer->Mount( GetPawn(), GetEquipment(), m_strEntryState, m_bAnimPlayerOriented, !m_bShowPawnOnMount, m_bUseMountRenderOrder, m_bEnablePreview );
 }
 
 CPlayerEquipment* CPlayerMount::GetEquipment()
@@ -1494,6 +1500,8 @@ void CPlayer::Update()
 				if( bInput )
 					GetStage()->GetMasterLevel()->GetMainUI()->RefreshPlayerInput( ParseInputSequence(), -1, m_nChargeKeyDown, 0 );
 			}
+			else if( m_pAI && m_bActionStop && !m_nTickInputOnActionStop )
+				m_nTickInputOnActionStop = 10;
 			if( m_nTickInputOnActionStop )
 			{
 				m_nTickInputOnActionStop--;
@@ -1604,7 +1612,7 @@ CPlayer* CPlayer::InitActionPreviewLevel( CMyLevel* pLevel, const TVector2<int32
 	}
 	pPlayer->m_bEnableDefaultEquipment = m_bEnableDefaultEquipment;
 	pLevel->AddPawn( pPlayer, pos, 0 );
-	if( m_pCurMountingPawn )
+	if( m_pCurMountingPawn && m_bMountEnablePreview )
 	{
 		auto pPawn1 = SafeCast<CPawn>( m_pCurMountingPawn->GetInstanceOwnerNode()->CreateInstance() );
 		auto ofs = m_pCurMountingPawn->GetPos() - GetPos();
@@ -1759,13 +1767,14 @@ const char* CPlayer::GetEquipmentName( int8 n )
 	return m_pCurEquipment[n]->GetEquipmentName();
 }
 
-void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide, bool bUseMountRenderOrder )
+void CPlayer::Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide, bool bUseMountRenderOrder, bool bMountEnablePreview )
 {
 	m_pCurMountingPawn = pPawn;
 	m_pCurMountingPawn->SetMounted( true, bMountHide, 0 );
 	m_pCurMount = pMount;
 	m_bMountAnimPlayerOriented = bAnimPlayerOriented;
 	m_bUseMountRenderOrder = bUseMountRenderOrder;
+	m_bMountEnablePreview = bMountEnablePreview;
 	m_nDirBeforeMounting = m_nCurDir;
 	if( !bAnimPlayerOriented )
 		m_nCurDir = pPawn->GetCurDir();
@@ -3340,6 +3349,7 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_MEMBER( m_bUseMountRenderOrder )
 		REGISTER_MEMBER( m_bShowPawnOnMount )
 		REGISTER_MEMBER( m_bNeedLevelComplete )
+		REGISTER_MEMBER( m_bEnablePreview )
 		REGISTER_MEMBER( m_nEnterDir )
 		REGISTER_MEMBER( m_nCostEquipType )
 		REGISTER_MEMBER( m_nOfsX )

@@ -269,6 +269,7 @@ public:
 	bool IsComplete() { return m_bComplete; }
 	bool IsFailed() { return m_bFailed; }
 	bool IsActionPreview() { return m_pActionPreviewCoroutine != NULL; }
+	bool IsSnapShot() { return m_bSnapShot; }
 	class CMasterLevel* GetMasterLevel();
 	CEntity* GetPawnRoot() { return m_pPawnRoot; }
 	CLevelEnvEffect* GetEnvEffect() { return m_pEnvEffect; }
@@ -338,7 +339,7 @@ public:
 	bool IsScenario() { return m_bScenario; }
 	void GetAllUseableGrid( vector<TVector2<int32> >& result );
 
-	void Init( bool bPreview = false );
+	void Init( int8 nType = 0 );
 	void Update();
 	int32 UpdateActionPreview();
 	void ActionPreviewPause();
@@ -383,6 +384,7 @@ private:
 	bool m_bBlocked;
 	int8 m_nFreeze;
 	bool m_bStartBattle;
+	bool m_bSnapShot;
 	vector<CReference<CLevelScript> > m_vecScripts;
 	vector<SGrid> m_vecGrid;
 	TClassTrigger<CMyLevel> m_onTick;
@@ -520,6 +522,8 @@ struct SWorldDataFrame
 		map<string, int32> mapDataInt;
 		map<string, string> mapDataString;
 		map<string, SPawnData> mapDataDeadPawn;
+		void Load( IBufReader& buf, int32 nVersion );
+		void Save( CBufFile& buf );
 	};
 	struct SLevelMark
 	{
@@ -540,6 +544,34 @@ struct SWorldDataFrame
 	map<string, string> mapDataString;
 	map<string, int32> mapDataIntStatic;
 	map<string, string> mapDataStringStatic;
+
+	struct SLevelSnapShot
+	{
+		SLevelData levelData;
+		map<string, int32> mapDataInt;
+		map<string, string> mapDataString;
+		map<string, int32> mapDataIntStatic;
+		map<string, string> mapDataStringStatic;
+		int8 bValid;
+
+		SLevelSnapShot() : bValid( 0 ) {}
+		void Clear()
+		{
+			bValid = 0;
+			mapDataInt.clear();
+			mapDataString.clear();
+			mapDataIntStatic.clear();
+			mapDataStringStatic.clear();
+			levelData.mapDataDeadPawn.clear();
+			levelData.mapDataInt.clear();
+			levelData.mapDataString.clear();
+		}
+		void Load( IBufReader& buf, int32 nVersion );
+		void Save( CBufFile& buf );
+	};
+	SLevelSnapShot curLevelSnapShot;
+	map<string, SWorldDataFrame::SLevelSnapShot> mapClearedSnapShot;
+
 	TVector2<int32> playerEnterPos;
 	int8 nPlayerEnterDir;
 	bool bForceAllVisible;
@@ -561,6 +593,8 @@ struct SWorldData
 	SWorldDataFrame* pCheckPoint;
 	deque<SWorldDataFrame*> backupFrames;
 	int32 nCurFrameCount;
+	map<string, SWorldDataFrame::SLevelSnapShot> mapSnapShotCur;
+	map<string, SWorldDataFrame::SLevelSnapShot> mapSnapShotCheckPoint;
 	static constexpr int32 nMaxFrameCount = 10;
 
 	void Load( IBufReader& buf );
@@ -568,7 +602,7 @@ struct SWorldData
 	const char* GetCurLevel() { return curFrame.strCurLevel.c_str(); }
 	SWorldDataFrame::SLevelData& GetLevelData( const char* szLevel ) { return curFrame.mapLevelData[szLevel]; }
 	SWorldDataFrame::SLevelData& GetCurLevelData() { return curFrame.mapLevelData[curFrame.strCurLevel]; }
-	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir );
+	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot );
 	void OnReset( CPlayer* pPlayer );
 	void OnRetreat( CPlayer* pPlayer );
 	void CheckPoint( CPlayer* pPlayer );
@@ -622,7 +656,6 @@ public:
 	void Save();
 	bool TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void JumpBack( int8 nType );
-	void Fall( const char* szTargetRegion );
 	bool IsTransfer() { return m_pTransferCoroutine != NULL; }
 	CMainUI* GetMainUI() { return m_pMainUI; }
 	CMyLevel* GetCurLevel() { return m_pCurLevel; }
@@ -639,15 +672,16 @@ public:
 	void RunScenarioScript();
 
 	void CheckPoint( bool bRefresh = false, bool bIgnoreSave = false );
-	int32 EvaluateKeyInt( const char* str ) { return EvaluateKeyIntLevelData( str, m_worldData.GetCurLevelData() ); }
+	int32 EvaluateKeyInt( const char* str ) { return EvaluateKeyIntLevelData( str, GetCurLevelData() ); }
 	int32 EvaluateKeyIntLevelData( const char* str, SWorldDataFrame::SLevelData& levelData );
-	const char* EvaluateKeyString( const char* str ) { return EvaluateKeyStringLevelData( str, m_worldData.GetCurLevelData() ); }
+	const char* EvaluateKeyString( const char* str ) { return EvaluateKeyStringLevelData( str, GetCurLevelData() ); }
 	const char* EvaluateKeyStringLevelData( const char* str, SWorldDataFrame::SLevelData& levelData );
 	void SetKeyInt( const char* str, int32 n ) { SetKeyIntLevelData( str, n, m_worldData.GetCurLevelData() ); }
 	void SetKeyIntLevelData( const char* str, int32 n, SWorldDataFrame::SLevelData& levelData );
 	void SetKeyString( const char* str, const char* szValue ) { SetKeyStringLevelData( str, szValue, m_worldData.GetCurLevelData() ); }
 	void SetKeyStringLevelData( const char* str, const char* szValue, SWorldDataFrame::SLevelData& levelData );
 	void ClearKeys() { m_worldData.ClearKeys(); }
+	void ClearSnapShot() { m_bClearSnapShot = true; }
 	void Respawn() { m_worldData.Respawn(); }
 	void RespawnLevel( const char* szLevel ) { m_worldData.RespawnLevel( szLevel ); }
 	void ClearByPrefix( const char* sz ) { m_worldData.ClearByPrefix( sz ); }
@@ -677,8 +711,14 @@ public:
 	void OnPlayerDamaged();
 	void Update();
 private:
+	void RefreshSnapShot();
+	void UpdateSnapShot( const char* sz );
+	void HideAllSnapShot();
+	void RemoveAllSnapShot();
+
 	void ResetMainUI();
 	void RefreshMainUI();
+	void BeginCurLevel();
 	void EndCurLevel();
 	void TransferFunc();
 	void TransferFuncLevel2Level();
@@ -700,6 +740,7 @@ private:
 
 	CReference<CMainUI> m_pMainUI;
 	CReference<CRenderObject2D> m_pLevelFadeMask;
+	CReference<CRenderObject2D> m_pSnapShotMask;
 	CReference<CEntity> m_pMenu;
 	CReference<CEntity> m_pMenuItem[5];
 	CReference<CRenderObject2D> m_pMenuSelected;
@@ -718,7 +759,10 @@ private:
 	CReference<CMyLevel> m_pLastLevel;
 	CReference<CCutScene> m_pCurCutScene;
 	CReference<CPrefab> m_pLastLevelPrefab;
+	int32 m_nShowSnapShotFrame;
 	int32 m_nPlayerDamageFrame;
+	map<string, CReference<CMyLevel> > m_mapSnapShot;
+	set<string> m_setShowingSnapShot;
 
 	CReference<CEntity> m_pInteractionUI;
 	CReference<CPawn> m_pInteractionUIPawn;
@@ -732,9 +776,11 @@ private:
 	TVector2<int32> m_transferPos;
 	int8 m_nTransferDir;
 	int8 m_nTransferType;
+	bool m_bClearSnapShot;
 	int32 m_nTransferParam;
 	CVector2 m_transferCurCamPos;
 	CReference<CEntity> m_pTransferEft;
+	string m_strUpdatingSnapShot;
 	/*CVector2 m_transferOfs;
 	CVector2 m_camTransferBegin;
 	int32 m_nTransferAnimTotalFrames;

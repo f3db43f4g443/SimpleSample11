@@ -68,6 +68,129 @@ we'll talk on it.]====]
 T.E.M.****************T.H.R.O.W. .H.I.M. .O.U.T.************
 ......]====]
 	},
+	
+	{
+		key = "_D3_MANUAL",
+		name = "Admin Manual, Chapter about Environment Sampling",
+		content = [====[
+...
+--- This work has no risk or hazard to your health as long as operated properly.
+--- Remember to seal the location after the sampling is completed.
+--- Beware not to step into the region to be sampled. This will corrupt the sample data, rendering it invalid.
+--- Unless in emergency or having technical issues, this work should be done every day.
+......]====]
+	},
+	{
+		key = "_D3_ES_0",
+		name = "Environment Sampling Data(0)",
+		content = [====[
+--------------------------------------
+>>> This location is perserved as the contrast group. Get this sample every day to test the sampling and analysis system.
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_1",
+		name = "Environment Sampling Data(1)",
+		content = [====[
+--------------------------------------
+>>> This location is perserved as the contrast group. Get this sample every day to test the sampling and analysis system.
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_2",
+		name = "Environment Sampling Data(2)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_3",
+		name = "Environment Sampling Data(3)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_4",
+		name = "Environment Sampling Data(4)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_5",
+		name = "Environment Sampling Data(5)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_6",
+		name = "Environment Sampling Data(6)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_7",
+		name = "Environment Sampling Data(7)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_8",
+		name = "Environment Sampling Data(8)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_9",
+		name = "Environment Sampling Data(9)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+	{
+		key = "_D3_ES_10",
+		name = "Environment Sampling Data(10)",
+		content = [====[
+--------------------------------------
+>>> 
+--------------------------------------
+Result: All OK
+......]====]
+	},
+
 
 	{
 		key = "_NEED",

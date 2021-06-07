@@ -17,6 +17,7 @@ IMPLEMENT_MATERIAL_SHADER( PSDistortionAdd, "Shader/Distortion.shader", "PSDisto
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMasked, "Shader/Distortion.shader", "PSDistortionMasked", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionEffect, "Shader/Distortion.shader", "PSDistortionEffect", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionEffect1, "Shader/Distortion.shader", "PSDistortionEffect1", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDistortionEffect2, "Shader/Distortion.shader", "PSDistortionEffect2", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleLocal, "Shader/Particle.shader", "VSParticle_local", "vs_5_0" );

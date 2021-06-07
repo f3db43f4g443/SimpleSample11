@@ -190,10 +190,10 @@ void CWorldMap::SetViewArea( const CRectangle& rect )
 		int8 nTypeY = p0.y < m_viewArea.y ? -1 : ( p0.y > m_viewArea.GetBottom() ? 1 : 0 );
 		CRectangle r;
 		CRectangle texRect0;
-		auto size0 = CVector2( 16, 16 ) * m_viewArea.GetSize() / m_clipRect.GetSize();
+		auto size0 = CVector2( 32, 32 ) * m_viewArea.GetSize() / m_clipRect.GetSize();
 		if( !nTypeX && !nTypeY )
 		{
-			r0.SetSize( size0 * 2 );
+			r0.SetSize( size0 );
 			r = r0 * m_viewArea;
 			texRect0 = CRectangle( 0, 0.1875f, 0.0625f, 0.0625f );
 		}

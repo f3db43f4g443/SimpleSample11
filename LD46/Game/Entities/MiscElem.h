@@ -111,6 +111,23 @@ private:
 	CReference<CEntity> m_pEft[4];
 };
 
+class CPawnAIShelf : public CPawnAI
+{
+	friend void RegisterGameClasses_MiscElem();
+public:
+	CPawnAIShelf( const SClassCreateContext& context ) : CPawnAI( context ) { SET_BASEOBJECT_ID( CPawnAIShelf ); }
+
+	virtual void OnPreview() override;
+	virtual void OnInit() override;
+	virtual void OnUpdate() override;
+	virtual int32 Signal( int32 i ) override;
+private:
+	CReference<CLevelSpawnHelper> m_pSpawnHelper;
+	CString m_strScript;
+
+	CReference<CPickUp> m_pPickUp;
+};
+
 class CPawnAIAutoDoor : public CPawnAI
 {
 	friend void RegisterGameClasses_MiscElem();

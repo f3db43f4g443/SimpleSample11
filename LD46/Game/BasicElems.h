@@ -347,6 +347,7 @@ public:
 	virtual void CreateIconData( CPrefabNode* pNode, const char* szCondition0, TArray<SMapIconData>& arrData ) const;
 	bool ChangeState( int32 nNewState, bool bInit = false );
 	CLevelSpawnHelper* GetSpawnHelper() { return m_pSpawnHelper; }
+	void SetSpawnHelper( CLevelSpawnHelper* p ) { m_pSpawnHelper = p; }
 	void AutoCreateSpawnHelper();
 	void SetTracerEffectDisabled( bool bDisabled );
 
@@ -511,6 +512,7 @@ public:
 	void Init();
 	bool IsEnabled();
 	bool IsHidden() { return m_bHidden; }
+	bool IsEnablePreview() { return m_bEnablePreview; }
 	void SetEnabled( bool bEnabled ) { m_bDisabled = !bEnabled; }
 	int8 GetEnterDir() { return m_nEnterDir; }
 	bool CheckMount( class CPlayer* pPlayer );
@@ -528,6 +530,7 @@ private:
 	bool m_bUseMountRenderOrder;
 	bool m_bShowPawnOnMount;
 	bool m_bNeedLevelComplete;
+	bool m_bEnablePreview;
 	int8 m_nEnterDir;
 	int8 m_nCostEquipType;
 	int32 m_nOfsX, m_nOfsY;
@@ -571,7 +574,7 @@ public:
 	void UnEquip( CPlayerEquipment* pEquipment, int32 nPickupState = -1 );
 	CPlayerEquipment* GetEquipment( int8 n ) { return m_pCurEquipment[n]; }
 	const char* GetEquipmentName( int8 n );
-	void Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide, bool bUseMountRenderOrder );
+	void Mount( CPawn* pPawn, CPlayerEquipment* pMount, const char* szState, bool bAnimPlayerOriented, bool bMountHide, bool bUseMountRenderOrder, bool bMountEnablePreview );
 	void UnMount( const char* szAction = "", int8 nActionDirType = 0, int8 nMoveType = 0 );
 	void ForceUnMount();
 	CPawn* GetCurMountingPawn() { return m_pCurMountingPawn; }
@@ -650,6 +653,7 @@ protected:
 	bool m_bMountAnimPlayerOriented;
 	bool m_bUseMountRenderOrder;
 	bool m_bForceUnMount;
+	bool m_bMountEnablePreview;
 	int8 m_nDirBeforeMounting;
 	int8 m_nActionEftFrame;
 

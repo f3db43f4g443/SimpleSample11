@@ -111,3 +111,27 @@ void PSDistortionEffect1( in float4 inPos : SV_Position,
 	outColor.xyz = c0 + dst0.xyz * c1;
 	outColor.w = 1;
 }
+
+float g_totalTime;
+void PSDistortionEffect2( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
+	in float4 inInstData[2] : ExtraInstData0,
+	out float4 outColor : SV_Target )
+{
+	float3 mul = inInstData[0].xyz;
+	float3 add = inInstData[1].xyz;
+	float2 distortion = float2( inInstData[0].w, -inInstData[1].w );
+	float t = abs( frac( tex.y / 16 + g_totalTime ) * 8 - 4 );
+	float t0 = t * 0.25f;
+	float3 mul1 = mul;
+	mul = sqrt( mul );
+	mul = step( t0, mul ) * mul * 0.3 + ( step( t0, mul1 ) ) * 0.7;
+
+	float2 texTarget = inPos.xy;
+	texTarget += distortion;
+	texTarget *= g_invViewportSize;
+
+	float4 dst0 = g_texTarget0.Sample( g_samplerPointClamp, texTarget );
+	outColor.xyz = add + dst0.xyz * mul;
+	outColor.w = 1;
+}

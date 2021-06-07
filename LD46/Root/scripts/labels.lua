@@ -12,6 +12,7 @@ g_labels = {
 	{
 		day = 3,
 		items = {
+			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 0, 7 }, { 6, 7 } } },
 		}
 	},
 	{
@@ -82,6 +83,17 @@ function GetLabelKey( name )
 	return 0
 end
 
+function GetLabelCounter( name )
+	local labels = g_labels[CurDay()]
+	local i = labels.itemtbl[name]
+	if i then
+		local item = labels.items[i]
+		if not item.counter then return 0 end
+		return EvaluateKeyInt( item.counter )
+	end
+	return 0
+end
+
 function SetLabelKey( name, value )
 	local labels = g_labels[CurDay()]
 	local i = labels.itemtbl[name]
@@ -94,6 +106,16 @@ function SetLabelKey( name, value )
 		else
 			GetMasterLevel():GetMainUI():SetLabel( i - 1, -1, -1 )
 		end
+	end
+end
+
+function SetLabelCounter( name, value )
+	local labels = g_labels[CurDay()]
+	local i = labels.itemtbl[name]
+	if i then
+		local item = labels.items[i]
+		if not item.counter then return end
+		SetKeyInt( item.counter, value )
 	end
 end
 

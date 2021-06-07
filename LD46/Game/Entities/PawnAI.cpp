@@ -1516,6 +1516,12 @@ private:
 void CPawnAI_Crow::OnInit()
 {
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	if( pPawn->GetLevel() && pPawn->GetLevel()->IsSnapShot() )
+	{
+		m_pHpBarImg[0]->RemoveThis();
+		for( int i = 0; i < 3; i++ )
+			m_pHpBarImg[i] = NULL;
+	}
 	m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
 	m_origPos = pPawn->GetPos();
 	m_nOrigDir = pPawn->GetCurDir();
@@ -1544,7 +1550,8 @@ void CPawnAI_Crow::OnUpdate0()
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
 	if( !pPawn->GetLevel() )
 	{
-		m_pHpBarImg[0]->bVisible = false;
+		if( m_pHpBarImg[0] )
+			m_pHpBarImg[0]->bVisible = false;
 		return;
 	}
 	int32 nHp, nMaxHp;
@@ -1559,16 +1566,19 @@ void CPawnAI_Crow::OnUpdate0()
 		nMaxHp = pPawn->GetMaxHp();
 	}
 
-	m_pHpBarImg[0]->bVisible = true;
-	auto rect = m_hpBarOrigRect;
-	rect.width = nHp * rect.width / nMaxHp;
-	static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->SetRect( rect );
-	m_pHpBarImg[0]->SetBoundDirty();
-	m_pHpBarImg[0]->SetPosition( pPawn->GetHpBarOfs() );
-	for( int i = 1; i <= 2; i++ )
+	if( m_pHpBarImg[0] )
 	{
-		m_pHpBarImg[i]->bVisible = i <= m_nBlades;
-		m_pHpBarImg[i + 2]->bVisible = i <= m_nCurBladesHpBar;
+		m_pHpBarImg[0]->bVisible = true;
+		auto rect = m_hpBarOrigRect;
+		rect.width = nHp * rect.width / nMaxHp;
+		static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->SetRect( rect );
+		m_pHpBarImg[0]->SetBoundDirty();
+		m_pHpBarImg[0]->SetPosition( pPawn->GetHpBarOfs() );
+		for( int i = 1; i <= 2; i++ )
+		{
+			m_pHpBarImg[i]->bVisible = i <= m_nBlades;
+			m_pHpBarImg[i + 2]->bVisible = i <= m_nCurBladesHpBar;
+		}
 	}
 }
 

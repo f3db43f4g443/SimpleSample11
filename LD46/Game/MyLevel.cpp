@@ -808,13 +808,16 @@ void CMyLevel::OnAddedToStage()
 
 void CMyLevel::OnRemovedFromStage()
 {
-	while( m_spawningPawns.Get_Pawn() )
-		RemovePawn( m_spawningPawns.Get_Pawn() );
-	for( int i = 0; i < m_vecPawnHits.size(); i++ )
-		RemovePawn( m_vecPawnHits[i] );
-	m_vecPawnHits.resize( 0 );
-	while( m_pPawns )
-		RemovePawn( m_pPawns );
+	if( !m_bSnapShot )
+	{
+		while( m_spawningPawns.Get_Pawn() )
+			RemovePawn( m_spawningPawns.Get_Pawn() );
+		for( int i = 0; i < m_vecPawnHits.size(); i++ )
+			RemovePawn( m_vecPawnHits[i] );
+		m_vecPawnHits.resize( 0 );
+		while( m_pPawns )
+			RemovePawn( m_pPawns );
+	}
 }
 
 void CMyLevel::OnPreview()
@@ -2287,10 +2290,15 @@ void CMyLevel::GetAllUseableGrid( vector<TVector2<int32>>& result )
 	}
 }
 
-void CMyLevel::Init( bool bPreview )
+void CMyLevel::Init( int8 nType )
 {
-	m_vecExitState.resize( m_arrNextStage.Size() );
-	InitTiles();
+	if( nType == 1 )
+		m_bSnapShot = true;
+	if( nType != 1 )
+	{
+		m_vecExitState.resize( m_arrNextStage.Size() );
+		InitTiles();
+	}
 	vector<CReference<CLevelEnvEffect> > vecEnvEft;
 	vector<CReference<CPawnLayer> > vecPawnLayers;
 	for( auto p0 = Get_ChildEntity(); p0; p0 = p0->NextChildEntity() )
@@ -2301,29 +2309,35 @@ void CMyLevel::Init( bool bPreview )
 			vecPawnLayers.push_back( pPawnLayer );
 			continue;
 		}
-		auto pEnvEft = SafeCast<CLevelEnvEffect>( p0 );
-		if( pEnvEft )
-			vecEnvEft.push_back( pEnvEft );
+		if( nType != 1 )
+		{
+			auto pEnvEft = SafeCast<CLevelEnvEffect>( p0 );
+			if( pEnvEft )
+				vecEnvEft.push_back( pEnvEft );
+		}
 	}
 
 	auto pMasterLevel = GetMasterLevel();
-	for( CLevelEnvEffect* pEnvEft : vecEnvEft )
+	if( nType != 1 )
 	{
-		if( m_pEnvEffect )
+		for( CLevelEnvEffect* pEnvEft : vecEnvEft )
 		{
-			pEnvEft->SetParentEntity( NULL );
-			continue;
-		}
-		auto szCondition = pEnvEft->GetCondition();
-		if( szCondition[0] && pMasterLevel )
-		{
-			if( !pMasterLevel->EvaluateKeyInt( szCondition ) )
+			if( m_pEnvEffect )
 			{
 				pEnvEft->SetParentEntity( NULL );
 				continue;
 			}
+			auto szCondition = pEnvEft->GetCondition();
+			if( szCondition[0] && pMasterLevel )
+			{
+				if( !pMasterLevel->EvaluateKeyInt( szCondition ) )
+				{
+					pEnvEft->SetParentEntity( NULL );
+					continue;
+				}
+			}
+			m_pEnvEffect = pEnvEft;
 		}
-		m_pEnvEffect = pEnvEft;
 	}
 
 	for( CPawnLayer* p : vecPawnLayers )
@@ -2351,7 +2365,7 @@ void CMyLevel::Init( bool bPreview )
 		auto pPawn = SafeCast<CPawn>( pChild );
 		if( pPawn )
 			vecPawnsToSpawn.push_back( pPawn );
-		else
+		else if( nType != 1 )
 			vecOthers.push_back( pChild );
 	}
 	for( int i = vecOthers.size() - 1; i >= 0; i-- )
@@ -2400,7 +2414,7 @@ void CMyLevel::Init( bool bPreview )
 	}
 	if( pMasterLevel )
 	{
-		for( auto& item : pMasterLevel->GetWorldData().GetCurLevelData().mapDataDeadPawn )
+		for( auto& item : pMasterLevel->GetCurLevelData().mapDataDeadPawn )
 		{
 			auto n = item.second.nSpawnIndex;
 			if( n >= 0 && n < m_arrSpawnPrefab.Size() )
@@ -2438,7 +2452,21 @@ void CMyLevel::Init( bool bPreview )
 	FlushSpawn();
 	InitScripts();
 
-	if( bPreview )
+	m_pPawnRoot->SortChildrenRenderOrder( [] ( CRenderObject2D* a, CRenderObject2D* b ) {
+		auto pPawn1 = static_cast<CPawn*>( a );
+		auto pPawn2 = static_cast<CPawn*>( b );
+		return pPawn1->m_nCurStateRenderOrder < pPawn2->m_nCurStateRenderOrder;
+	} );
+
+	if( nType == 1 )
+	{
+		while( Get_ChildEntity() )
+			Get_ChildEntity()->SetParentEntity( NULL );
+		RemoveAllChild();
+		m_pPawnRoot->SetParentEntity( this );
+		InitTiles();
+	}
+	else if( nType == 2 )
 	{
 		struct _STemp
 		{
@@ -2462,7 +2490,10 @@ void CMyLevel::Update()
 		{
 			if( CGame::Inst().IsKeyDown( 'R' ) )
 			{
-				pMasterLevel->JumpBack( 0 );
+				if( !m_bFailed )
+					Fail();
+				else
+					pMasterLevel->JumpBack( 0 );
 				return;
 			}
 			if( CGame::Inst().IsKeyDown( 'T' ) )
@@ -2611,6 +2642,8 @@ void CMyLevel::Update()
 			}
 		}
 
+		if( m_pActionPreviewCoroutine )
+			m_pActionPreviewCoroutine->Yield( 0 );
 		if( m_pPlayer )
 			m_pPlayer->Update1();
 		LINK_LIST_FOR_EACH_BEGIN( pPawn, m_pPawns, CPawn, Pawn )
@@ -3189,7 +3222,6 @@ void CMyLevel::UpdateActionPreviewFunc()
 		while( !IsEnd() )
 		{
 			Update();
-			m_pActionPreviewCoroutine->Yield( 0 );
 		}
 	}
 	catch( int32 i )
@@ -4138,6 +4170,124 @@ void CMainUI::FreezeEffect( int32 nLevel )
 		FailEffect();
 }
 
+void SWorldDataFrame::SLevelData::Load( IBufReader& buf, int32 nVersion )
+{
+	buf.Read( bVisited );
+	if( nVersion >= 5 )
+		buf.Read( bIgnoreGlobalClearKeys );
+	int32 n1 = buf.Read<int32>();
+	for( int i1 = 0; i1 < n1; i1++ )
+	{
+		string key1;
+		buf.Read( key1 );
+		buf.Read( mapDataInt[key1] );
+	}
+	if( nVersion )
+	{
+		n1 = buf.Read<int32>();
+		for( int i1 = 0; i1 < n1; i1++ )
+		{
+			string key1;
+			buf.Read( key1 );
+			buf.Read( mapDataString[key1] );
+		}
+	}
+	n1 = buf.Read<int32>();
+	for( int i1 = 0; i1 < n1; i1++ )
+	{
+		string key1;
+		buf.Read( key1 );
+		buf.Read( mapDataDeadPawn[key1] );
+	}
+}
+
+void SWorldDataFrame::SLevelData::Save( CBufFile& buf )
+{
+	buf.Write( bVisited );
+	buf.Write( bIgnoreGlobalClearKeys );
+	buf.Write( mapDataInt.size() );
+	for( auto& item1 : mapDataInt )
+	{
+		buf.Write( item1.first );
+		buf.Write( item1.second );
+	}
+	buf.Write( mapDataString.size() );
+	for( auto& item1 : mapDataString )
+	{
+		buf.Write( item1.first );
+		buf.Write( item1.second );
+	}
+	buf.Write( mapDataDeadPawn.size() );
+	for( auto& item1 : mapDataDeadPawn )
+	{
+		buf.Write( item1.first );
+		buf.Write( item1.second );
+	}
+}
+
+void SWorldDataFrame::SLevelSnapShot::Load( IBufReader& buf, int32 nVersion )
+{
+	levelData.Load( buf, nVersion );
+	int32 n;
+	buf.Read( n );
+	for( int i = 0; i < n; i++ )
+	{
+		string key;
+		buf.Read( key );
+		buf.Read( mapDataInt[key] );
+	}
+	buf.Read( n );
+	for( int i = 0; i < n; i++ )
+	{
+		string key;
+		buf.Read( key );
+		buf.Read( mapDataString[key] );
+	}
+	buf.Read( n );
+	for( int i = 0; i < n; i++ )
+	{
+		string key;
+		buf.Read( key );
+		buf.Read( mapDataIntStatic[key] );
+	}
+	buf.Read( n );
+	for( int i = 0; i < n; i++ )
+	{
+		string key;
+		buf.Read( key );
+		buf.Read( mapDataStringStatic[key] );
+	}
+}
+
+void SWorldDataFrame::SLevelSnapShot::Save( CBufFile & buf )
+{
+	levelData.Save( buf );
+	buf.Write( mapDataInt.size() );
+	for( auto& item : mapDataInt )
+	{
+		buf.Write( item.first );
+		buf.Write( item.second );
+	}
+	buf.Write( mapDataString.size() );
+	for( auto& item : mapDataString )
+	{
+		buf.Write( item.first );
+		buf.Write( item.second );
+	}
+	buf.Write( mapDataIntStatic.size() );
+	for( auto& item : mapDataIntStatic )
+	{
+		buf.Write( item.first );
+		buf.Write( item.second );
+	}
+	buf.Write( mapDataStringStatic.size() );
+	for( auto& item : mapDataStringStatic )
+	{
+		buf.Write( item.first );
+		buf.Write( item.second );
+	}
+}
+
 void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 {
 	buf.Read( strCurLevel );
@@ -4154,33 +4304,7 @@ void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 		string key;
 		buf.Read( key );
 		auto& item = mapLevelData[key];
-		buf.Read( item.bVisited );
-		if( nVersion >= 5 )
-			buf.Read( item.bIgnoreGlobalClearKeys );
-		int32 n1 = buf.Read<int32>();
-		for( int i1 = 0; i1 < n1; i1++ )
-		{
-			string key1;
-			buf.Read( key1 );
-			buf.Read( item.mapDataInt[key1] );
-		}
-		if( nVersion )
-		{
-			n1 = buf.Read<int32>();
-			for( int i1 = 0; i1 < n1; i1++ )
-			{
-				string key1;
-				buf.Read( key1 );
-				buf.Read( item.mapDataString[key1] );
-			}
-		}
-		n1 = buf.Read<int32>();
-		for( int i1 = 0; i1 < n1; i1++ )
-		{
-			string key1;
-			buf.Read( key1 );
-			buf.Read( item.mapDataDeadPawn[key1] );
-		}
+		item.Load( buf, nVersion );
 	}
 	buf.Read( n );
 	for( int i = 0; i < n; i++ )
@@ -4268,26 +4392,7 @@ void SWorldDataFrame::Save( CBufFile& buf )
 	for( auto& item : mapLevelData )
 	{
 		buf.Write( item.first );
-		buf.Write( item.second.bVisited );
-		buf.Write( item.second.bIgnoreGlobalClearKeys );
-		buf.Write( item.second.mapDataInt.size() );
-		for( auto& item1 : item.second.mapDataInt )
-		{
-			buf.Write( item1.first );
-			buf.Write( item1.second );
-		}
-		buf.Write( item.second.mapDataString.size() );
-		for( auto& item1 : item.second.mapDataString )
-		{
-			buf.Write( item1.first );
-			buf.Write( item1.second );
-		}
-		buf.Write( item.second.mapDataDeadPawn.size() );
-		for( auto& item1 : item.second.mapDataDeadPawn )
-		{
-			buf.Write( item1.first );
-			buf.Write( item1.second );
-		}
+		item.second.Save( buf );
 	}
 	buf.Write( mapDataInt.size() );
 	for( auto& item : mapDataInt )
@@ -4345,21 +4450,77 @@ void SWorldData::Load( IBufReader& buf )
 		auto pFrame = new SWorldDataFrame;
 		pFrame->Load( buf, nVersion );
 		backupFrames.push_back( pFrame );
+		if( nVersion >= 7 )
+		{
+			buf.Read( pFrame->curLevelSnapShot.bValid );
+			if( pFrame->curLevelSnapShot.bValid )
+				pFrame->curLevelSnapShot.Load( buf, nVersion );
+
+			int32 n;
+			buf.Read( n );
+			for( int i = 0; i < n; i++ )
+			{
+				string key;
+				buf.Read( key );
+				auto& item = pFrame->mapClearedSnapShot[key];
+				item.bValid = true;
+				item.Load( buf, nVersion );
+			}
+		}
 	}
 	if( buf.Read<int8>() )
 	{
 		pCheckPoint = new SWorldDataFrame;
 		pCheckPoint->Load( buf, nVersion );
 	}
+	if( nVersion >= 7 )
+	{
+		int32 n;
+		buf.Read( n );
+		for( int i = 0; i < n; i++ )
+		{
+			string key;
+			buf.Read( key );
+			auto& item = mapSnapShotCur[key];
+			item.bValid = true;
+			item.Load( buf, nVersion );
+		}
+		buf.Read( n );
+		for( int i = 0; i < n; i++ )
+		{
+			string key;
+			buf.Read( key );
+			auto& item = mapSnapShotCheckPoint[key];
+			item.bValid = true;
+			item.Load( buf, nVersion );
+		}
+	}
 }
 
 void SWorldData::Save( CBufFile& buf )
 {
-	int32 nVersion = 6;
+	int32 nVersion = 7;
 	buf.Write( nVersion );
 	buf.Write( nCurFrameCount );
 	for( int i = 0; i < nCurFrameCount; i++ )
-		backupFrames[i]->Save( buf );
+	{
+		auto pFrame = backupFrames[i];
+		pFrame->Save( buf );
+
+		if( nVersion >= 7 )
+		{
+			buf.Write( pFrame->curLevelSnapShot.bValid );
+			if( pFrame->curLevelSnapShot.bValid )
+				pFrame->curLevelSnapShot.Save( buf );
+
+			buf.Write( pFrame->mapClearedSnapShot.size() );
+			for( auto& item : pFrame->mapClearedSnapShot )
+			{
+				buf.Write( item.first );
+				item.second.Save( buf );
+			}
+		}
+	}
 	if( pCheckPoint )
 	{
 		buf.Write<int8>( 1 );
@@ -4367,10 +4528,45 @@ void SWorldData::Save( CBufFile& buf )
 	}
 	else
 		buf.Write<int8>( 0 );
+	if( nVersion >= 7 )
+	{
+		buf.Write( mapSnapShotCur.size() );
+		for( auto& item : mapSnapShotCur )
+		{
+			buf.Write( item.first );
+			item.second.Save( buf );
+		}
+		buf.Write( mapSnapShotCheckPoint.size() );
+		for( auto& item : mapSnapShotCheckPoint )
+		{
+			buf.Write( item.first );
+			item.second.Save( buf );
+		}
+	}
 }
 
-void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir )
+void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot )
 {
+	if( bClearSnapShot )
+	{
+		curFrame.mapClearedSnapShot = mapSnapShotCur;
+		mapSnapShotCur.clear();
+	}
+	else
+	{
+		curFrame.mapClearedSnapShot.clear();
+		if( curFrame.strCurLevel.length() )
+		{
+			auto& snapshot = mapSnapShotCur[curFrame.strCurLevel];
+			snapshot.bValid = 1;
+			snapshot.levelData = curFrame.mapLevelData[curFrame.strCurLevel];
+			snapshot.mapDataInt = curFrame.mapDataInt;
+			snapshot.mapDataIntStatic = curFrame.mapDataIntStatic;
+			snapshot.mapDataString = curFrame.mapDataString;
+			snapshot.mapDataStringStatic = curFrame.mapDataStringStatic;
+		}
+	}
+
 	curFrame.strLastLevel = curFrame.strCurLevel;
 	curFrame.strCurLevel = szCurLevel;
 	curFrame.playerEnterPos = playerPos;
@@ -4378,6 +4574,12 @@ void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const T
 	curFrame.playerData.Clear();
 	GetCurLevelData().bVisited = true;
 	pPlayer->SaveData( curFrame.playerData );
+
+	auto itr = mapSnapShotCur.find( szCurLevel );
+	if( itr != mapSnapShotCur.end() )
+		curFrame.curLevelSnapShot = itr->second;
+	else
+		curFrame.curLevelSnapShot.Clear();
 
 	SWorldDataFrame* p = NULL;
 	if( nCurFrameCount >= nMaxFrameCount )
@@ -4413,8 +4615,26 @@ void SWorldData::OnReset( CPlayer* pPlayer )
 void SWorldData::OnRetreat( CPlayer* pPlayer )
 {
 	if( nCurFrameCount > 1 || pCheckPoint && nCurFrameCount )
+	{
 		nCurFrameCount--;
-	return OnReset( pPlayer );
+		if( !nCurFrameCount )
+		{
+			mapSnapShotCur = mapSnapShotCheckPoint;
+		}
+		else if( curFrame.mapClearedSnapShot.size() )
+		{
+			mapSnapShotCur = curFrame.mapClearedSnapShot;
+		}
+		else
+		{
+			auto& snapShot = backupFrames[nCurFrameCount - 1]->curLevelSnapShot;
+			if( !snapShot.bValid )
+				mapSnapShotCur.erase( curFrame.strLastLevel );
+			else
+				mapSnapShotCur[curFrame.strLastLevel] = snapShot;
+		}
+	}
+	OnReset( pPlayer );
 }
 
 void SWorldData::CheckPoint( CPlayer* pPlayer )
@@ -4437,6 +4657,7 @@ void SWorldData::CheckPoint( CPlayer* pPlayer )
 	}
 	nCurFrameCount = 0;
 	curFrame.vecScenarioRecords.clear();
+	mapSnapShotCheckPoint = mapSnapShotCur;
 }
 
 void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer )
@@ -4444,6 +4665,7 @@ void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer )
 	if( !pCheckPoint )
 		return OnReset( pPlayer );
 	nCurFrameCount = 0;
+	mapSnapShotCur = mapSnapShotCheckPoint;
 	curFrame = *pCheckPoint;
 	curFrame.playerData.ResetCurPos();
 	pPlayer->LoadData( curFrame.playerData );
@@ -4578,15 +4800,14 @@ void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVect
 	if( pLevel )
 	{
 		m_pCurLevelPrefab = pLevelPrefab;
-		m_worldData.OnEnterLevel( pLevelPrefab->GetName(), m_pPlayer, playerPos, nPlayerDir );
+		m_worldData.OnEnterLevel( pLevelPrefab->GetName(), m_pPlayer, playerPos, nPlayerDir, false );
 		m_pCurLevel = pLevel;
 		pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
 		pLevel->Init();
 		if( pLevel->GetEnvEffect() )
 			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 		pLevel->AddPawn( m_pPlayer, playerPos, nPlayerDir );
-		ResetMainUI();
-		pLevel->Begin();
+		BeginCurLevel();
 	}
 	else
 	{
@@ -4658,7 +4879,10 @@ void CMasterLevel::JumpBack( int8 nType )
 	else if( nType == 1 )
 		m_worldData.OnRetreat( m_pPlayer );
 	else
+	{
 		m_worldData.OnRestoreToCheckpoint( m_pPlayer );
+		RemoveAllSnapShot();
+	}
 	RefreshMainUI();
 
 	if( !m_pCurLevelPrefab || m_worldData.curFrame.strCurLevel != m_pCurLevelPrefab->GetName() )
@@ -4670,55 +4894,14 @@ void CMasterLevel::JumpBack( int8 nType )
 	if( pLevel->GetEnvEffect() )
 		pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 	pLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	ResetMainUI();
-	pLevel->Begin();
-}
-
-void CMasterLevel::Fall( const char* szTargetRegion )
-{
-	auto& worldCfg = GetStage()->GetWorld()->GetWorldCfg();
-	TVector2<int32> regionOfs = m_pPlayer->GetMoveTo();
-	bool b = false;
-	for( int i = 0; i < worldCfg.arrRegionData.Size(); i++ )
-	{
-		if( worldCfg.arrRegionData[i].strName == m_pCurLevel->m_strRegion )
-		{
-			auto arrLevelData = worldCfg.arrRegionData[i].arrLevelData;
-			for( int iLevel = 0; iLevel < arrLevelData.Size(); i++ )
-			{
-				if( arrLevelData[iLevel].pLevel == m_pCurLevelPrefab->GetName() )
-				{
-					auto displayOfs = arrLevelData[iLevel].displayOfs / LEVEL_GRID_SIZE;
-					regionOfs = regionOfs + TVector2<int32>( floor( displayOfs.x + 0.5f ), floor( displayOfs.y + 0.5f ) );
-					b = true;
-					break;
-				}
-			}
-			break;
-		}
-	}
-	if( !b )
-		return;
-
-	for( int i = 0; i < worldCfg.arrRegionData.Size(); i++ )
-	{
-		if( worldCfg.arrRegionData[i].strName == szTargetRegion )
-		{
-			auto arrLevelData = worldCfg.arrRegionData[i].arrLevelData;
-			for( int iLevel = 0; iLevel < arrLevelData.Size(); i++ )
-			{
-				auto displayOfs = arrLevelData[iLevel].displayOfs / LEVEL_GRID_SIZE;
-				auto d = regionOfs - TVector2<int32>( floor( displayOfs.x + 0.5f ), floor( displayOfs.y + 0.5f ) );
-
-			}
-			return;
-		}
-	}
+	BeginCurLevel();
 }
 
 SWorldDataFrame::SLevelData& CMasterLevel::GetCurLevelData()
 {
-	return m_worldData.curFrame.mapLevelData[m_pCurLevelPrefab->GetName()];
+	if( m_strUpdatingSnapShot.length() )
+		return m_worldData.mapSnapShotCur[m_strUpdatingSnapShot.c_str()].levelData;
+	return m_worldData.GetCurLevelData();
 }
 
 void CMasterLevel::BeginScenario()
@@ -4813,15 +4996,17 @@ int32 CMasterLevel::EvaluateKeyIntLevelData( const char* str, SWorldDataFrame::S
 	else if( str[0] == '%' )
 	{
 		str++;
-		auto itr = m_worldData.curFrame.mapDataIntStatic.find( str );
-		if( itr == m_worldData.curFrame.mapDataIntStatic.end() )
+		auto& data = m_strUpdatingSnapShot.length() ? m_worldData.mapSnapShotCur[m_strUpdatingSnapShot.c_str()].mapDataIntStatic : m_worldData.curFrame.mapDataIntStatic;
+		auto itr = data.find( str );
+		if( itr == data.end() )
 			return 0;
 		return itr->second;
 	}
 	else
 	{
-		auto itr = m_worldData.curFrame.mapDataInt.find( str );
-		if( itr == m_worldData.curFrame.mapDataInt.end() )
+		auto& data = m_strUpdatingSnapShot.length() ? m_worldData.mapSnapShotCur[m_strUpdatingSnapShot.c_str()].mapDataInt : m_worldData.curFrame.mapDataInt;
+		auto itr = data.find( str );
+		if( itr == data.end() )
 			return 0;
 		return itr->second;
 	}
@@ -4853,15 +5038,17 @@ const char* CMasterLevel::EvaluateKeyStringLevelData( const char* str, SWorldDat
 	else if( str[0] == '%' )
 	{
 		str++;
-		auto itr = m_worldData.curFrame.mapDataStringStatic.find( str );
-		if( itr == m_worldData.curFrame.mapDataStringStatic.end() )
+		auto& data = m_strUpdatingSnapShot.length() ? m_worldData.mapSnapShotCur[m_strUpdatingSnapShot.c_str()].mapDataStringStatic : m_worldData.curFrame.mapDataStringStatic;
+		auto itr = data.find( str );
+		if( itr == data.end() )
 			return "";
 		return itr->second.c_str();
 	}
 	else
 	{
-		auto itr = m_worldData.curFrame.mapDataString.find( str );
-		if( itr == m_worldData.curFrame.mapDataString.end() )
+		auto& data = m_strUpdatingSnapShot.length() ? m_worldData.mapSnapShotCur[m_strUpdatingSnapShot.c_str()].mapDataString : m_worldData.curFrame.mapDataString;
+		auto itr = data.find( str );
+		if( itr == data.end() )
 			return "";
 		return itr->second.c_str();
 	}
@@ -4869,6 +5056,8 @@ const char* CMasterLevel::EvaluateKeyStringLevelData( const char* str, SWorldDat
 
 void CMasterLevel::SetKeyIntLevelData( const char* str, int32 n, SWorldDataFrame::SLevelData& levelData )
 {
+	if( m_strUpdatingSnapShot.length() )
+		return;
 	if( str[0] == '$' )
 	{
 		str++;
@@ -4885,6 +5074,8 @@ void CMasterLevel::SetKeyIntLevelData( const char* str, int32 n, SWorldDataFrame
 
 void CMasterLevel::SetKeyStringLevelData( const char* str, const char* szValue, SWorldDataFrame::SLevelData& levelData )
 {
+	if( m_strUpdatingSnapShot.length() )
+		return;
 	if( str[0] == '$' )
 	{
 		str++;
@@ -5182,9 +5373,13 @@ void CMasterLevel::Update()
 		m_pMainUI->UpdateEffect();
 	for( ; k > 0; k-- )
 	{
+		int32 nShowSnapShotFrame = 0;
 		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+		auto pParams1 = static_cast<CImage2D*>( m_pSnapShotMask.GetPtr() )->GetParam();
 		if( m_pTransferCoroutine )
 		{
+			m_pLevelFadeMask->bVisible = true;
+			m_pSnapShotMask->bVisible = false;
 			m_pTransferCoroutine->Resume();
 			if( m_pTransferCoroutine->GetState() == ICoroutine::eState_Stopped )
 			{
@@ -5197,19 +5392,44 @@ void CMasterLevel::Update()
 			auto nFrame = CGlobalCfg::Inst().playerDamagedMask.size() - m_nPlayerDamageFrame;
 			m_nPlayerDamageFrame--;
 			auto& maskParam = CGlobalCfg::Inst().playerDamagedMask[nFrame];
-			pParams[0] = maskParam.first;
-			pParams[1] = maskParam.second;
+			m_pLevelFadeMask->bVisible = false;
+			m_pSnapShotMask->bVisible = true;
+			pParams1[0] = maskParam.first;
+			pParams1[1] = maskParam.second;
+		}
+		else if( m_pInterferenceStripEffect )
+		{
+			m_pLevelFadeMask->bVisible = true;
+			m_pSnapShotMask->bVisible = false;
+			pParams[0] = CVector4( 0, 0, 0, 0 );
+			pParams[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
+		}
+		else if( !IsScenario() )
+		{
+			auto& cfg = CGlobalCfg::Inst().showSnapShotMask;
+			nShowSnapShotFrame = m_nShowSnapShotFrame;
+			auto& maskParam = cfg[nShowSnapShotFrame];
+			m_pLevelFadeMask->bVisible = false;
+			m_pSnapShotMask->bVisible = true;
+			pParams1[0] = maskParam.first;
+			pParams1[1] = maskParam.second;
+			nShowSnapShotFrame++;
+			if( nShowSnapShotFrame >= cfg.size() )
+				nShowSnapShotFrame = 0;
 		}
 		else
 		{
+			m_pLevelFadeMask->bVisible = true;
+			m_pSnapShotMask->bVisible = false;
 			pParams[0] = CVector4( 0, 0, 0, 0 );
-			pParams[1] = m_pInterferenceStripEffect ? CVector4( 0.07f, 0.07f, 0.07f, 0 ) : CVector4( 0, 0, 0, 0 );
+			pParams[1] = CVector4( 0, 0, 0, 0 );
 		}
+		m_nShowSnapShotFrame = nShowSnapShotFrame;
 
 		if( m_pCurLevel && !m_pCurLevel->IsEnd() )
 			m_pCurLevel->Update();
 		m_pMainUI->Update();
-		if( m_pScenarioScript )
+		if( m_pScenarioScript && !m_pMenu->bVisible )
 		{
 			if( !m_pScenarioScript->Resume( 0, 0 ) )
 			{
@@ -5272,7 +5492,12 @@ void CMasterLevel::Update()
 						{
 							m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( sz );
 							auto p = TVector2<int32>( ofs.x + ( m_pPlayer->GetCurDir() ? 1 : -1 ), ofs.y - 1 );
-							m_worldData.OnEnterLevel( sz, m_pPlayer, p, m_pPlayer->GetCurDir() );
+							m_worldData.OnEnterLevel( sz, m_pPlayer, p, m_pPlayer->GetCurDir(), m_bClearSnapShot );
+							if( m_bClearSnapShot )
+							{
+								m_bClearSnapShot = false;
+								RemoveAllSnapShot();
+							}
 							CheckPoint( false, true );
 							m_worldData.pCheckPoint->playerEnterPos = p;
 							Save();
@@ -5353,6 +5578,78 @@ void CMasterLevel::Update()
 	}
 }
 
+void CMasterLevel::RefreshSnapShot()
+{
+	auto& itr = m_mapSnapShot.find( GetCurLevelName() );
+	if( itr != m_mapSnapShot.end() )
+	{
+		if( itr->second->GetStage() )
+			itr->second->SetParentEntity( NULL );
+		m_mapSnapShot.erase( itr );
+	}
+	auto pCurLevel = m_pCurLevel;
+	auto worldCfg = GetStage()->GetWorld()->GetWorldCfg();
+	auto pLevelData = worldCfg.GetLevelData( GetCurLevelName() );
+	if( !pLevelData )
+		return;
+	for( int i = 0; i < pLevelData->arrShowSnapShot.Size(); i++ )
+	{
+		auto sz = pLevelData->arrShowSnapShot[i].c_str();
+		auto& pSnapShot = m_mapSnapShot[sz];
+		UpdateSnapShot( sz );
+		if( m_mapSnapShot.find( sz ) != m_mapSnapShot.end() )
+			m_setShowingSnapShot.insert( sz );
+	}
+}
+
+void CMasterLevel::UpdateSnapShot( const char* sz )
+{
+	auto& pSnapShot = m_mapSnapShot[sz];
+	if( !pSnapShot )
+	{
+		auto itr = m_worldData.mapSnapShotCur.find( sz );
+		if( itr != m_worldData.mapSnapShotCur.end() )
+		{
+			CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( sz );
+			pSnapShot = SafeCast<CMyLevel>( pPrefab->GetRoot()->CreateInstance() );
+			pSnapShot->SetParentAfterEntity( m_pSnapShotMask );
+			auto pCurLevel = m_pCurLevel;
+			m_pCurLevel = pSnapShot;
+			m_strUpdatingSnapShot = sz;
+			pSnapShot->Init( 1 );
+			m_pCurLevel = pCurLevel;
+			m_strUpdatingSnapShot = "";
+		}
+		else
+		{
+			m_mapSnapShot.erase( sz );
+			return;
+		}
+	}
+	pSnapShot->SetParentAfterEntity( m_pSnapShotMask );
+	auto worldCfg = GetStage()->GetWorld()->GetWorldCfg();
+	pSnapShot->SetPosition( worldCfg.GetLevelDisplayOfs( sz ) - worldCfg.GetLevelDisplayOfs( GetCurLevelName() ) );
+}
+
+void CMasterLevel::HideAllSnapShot()
+{
+	for( auto& item : m_setShowingSnapShot )
+	{
+		m_mapSnapShot[item]->SetParentEntity( NULL );
+	}
+	m_setShowingSnapShot.clear();
+}
+
+void CMasterLevel::RemoveAllSnapShot()
+{
+	for( auto& item : m_mapSnapShot )
+	{
+		item.second->SetParentEntity( NULL );
+	}
+	m_mapSnapShot.clear();
+	m_setShowingSnapShot.clear();
+}
+
 void CMasterLevel::ResetMainUI()
 {
 	if( !m_pCurLevel )
@@ -5367,8 +5664,16 @@ void CMasterLevel::RefreshMainUI()
 	CLuaMgr::Inst().Run( "OnRefreshMainUI()" );
 }
 
+void CMasterLevel::BeginCurLevel()
+{
+	ResetMainUI();
+	m_pCurLevel->Begin();
+	RefreshSnapShot();
+}
+
 void CMasterLevel::EndCurLevel()
 {
+	HideAllSnapShot();
 	if( m_pInteractionUI )
 	{
 		m_strInteractionUI = "";
@@ -5402,7 +5707,12 @@ void CMasterLevel::TransferFunc()
 		m_pLastLevelPrefab = m_pCurLevelPrefab;
 		m_pCurLevelPrefab = pTransferTo;
 
-		m_worldData.OnEnterLevel( pTransferTo->GetName(), m_pPlayer, m_transferPos, m_nTransferDir );
+		m_worldData.OnEnterLevel( pTransferTo->GetName(), m_pPlayer, m_transferPos, m_nTransferDir, m_bClearSnapShot );
+		if( m_bClearSnapShot )
+		{
+			m_bClearSnapShot = false;
+			RemoveAllSnapShot();
+		}
 		Save();
 		m_pLastLevel = m_pCurLevel;
 		m_pCurLevel = pLevel;
@@ -5537,8 +5847,7 @@ void CMasterLevel::TransferFuncLevel2Level()
 	pParams[1] = CVector4( 0, 0, 0, 0 );
 	m_pLastLevel->SetParentEntity( NULL );
 	m_pLastLevel = NULL;
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Level0()
@@ -5585,8 +5894,7 @@ void CMasterLevel::TransferFuncLevel2Level0()
 	ASSERT( !m_pLastLevel );
 	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Level1()
@@ -5714,8 +6022,7 @@ void CMasterLevel::TransferFuncLevel2Level1()
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	pParams[0] = CVector4( 0, 0, 0, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Level2()
@@ -5825,8 +6132,7 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	pParams[0] = CVector4( 0, 0, 0, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Level3()
@@ -5934,8 +6240,7 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	pParams[0] = CVector4( 0, 0, 0, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
@@ -6114,8 +6419,7 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 		m_pCurLevel->AddPawn( pPawn, pPawn->GetPos() - d, pPawn->GetCurDir() );
 	pParams[0] = CVector4( 0, 0, 0, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncCut2Level()
@@ -6158,8 +6462,7 @@ void CMasterLevel::TransferFuncCut2Level()
 	ASSERT( !m_pLastLevel );
 	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	ResetMainUI();
-	m_pCurLevel->Begin();
+	BeginCurLevel();
 }
 
 void CMasterLevel::TransferFuncLevel2Cut()
@@ -6307,6 +6610,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( SpawnPreset1 )
 		REGISTER_LUA_CFUNCTION( RemovePawn )
 		REGISTER_LUA_CFUNCTION( IsFailed )
+		REGISTER_LUA_CFUNCTION( IsSnapShot )
 		REGISTER_LUA_CFUNCTION( Fail )
 		REGISTER_LUA_CFUNCTION( Freeze )
 		REGISTER_LUA_CFUNCTION( GetPawnByName )
@@ -6366,6 +6670,7 @@ void RegisterGameClasses_Level()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMainUI, main_ui )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLevelFadeMask, mask )
+		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotMask, mask0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenu, menu )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[0], menu/t1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[1], menu/t2 )
@@ -6386,6 +6691,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( SetKeyInt )
 		REGISTER_LUA_CFUNCTION( SetKeyString )
 		REGISTER_LUA_CFUNCTION( ClearKeys )
+		REGISTER_LUA_CFUNCTION( ClearSnapShot )
 		REGISTER_LUA_CFUNCTION( Respawn )
 		REGISTER_LUA_CFUNCTION( RespawnLevel )
 		REGISTER_LUA_CFUNCTION( ClearByPrefix )
