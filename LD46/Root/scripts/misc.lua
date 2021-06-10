@@ -311,10 +311,31 @@ function Scenario_SelfRoom_4_5()
  Delay( 120 )
 end
 
-function Day3_Progress( nNode )
+function Day3_Progress( nNode, pawn )
  local nProgress = EvaluateKeyInt( "day3_progress" ) + 1
  SetKeyInt( "day3_progress", nProgress )
  GetMasterLevel():RemoveLevelMark( "mark_" .. tostring( nNode ) )
+ local player = GetPlayer()
+  
+ local Func = function( time, t1 )
+  t1 = t1 or 1
+  local p = GetPlayer()
+  local src = { ( p:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, p:GetPosY() * LEVEL_GRID_SIZE_Y }
+  local dst1 = { src[1] - 32, src[2] + 256 }
+  local dst2 = { src[1] + 32 , src[2] + 256 }
+  local dst3 = { src[1], src[2] + 48 }
+  local l1 = CreateLighningEft( src, dst1 )
+  local l2 = CreateLighningEft( dst1, dst2 )
+  local l3 = CreateLighningEft( dst2, dst3 )
+  GetMasterLevel():InterferenceStripEffect( 1, t1 )
+  if time > 0 then
+   Delay( time )
+   l1:SetParentEntity( nil )
+   l2:SetParentEntity( nil )
+   l3:SetParentEntity( nil )
+   GetMasterLevel():InterferenceStripEffect( 0, 0 )
+  end
+ end
  WaitFor( RunScenarioAndWait( function()
   WaitFor( ScenarioDialogue( 1, "Admin logging in..........OK.", dtx_color_2, 60, 6 ) )
   WaitFor( ScenarioDialogue( 1, "Visiting permission node " .. tostring( nNode ) .. "...", dtx_color_2, 60, 6 ) )
@@ -327,26 +348,6 @@ function Day3_Progress( nNode )
    WaitFor( ScenarioDialogue( 1, "YOU HAVE COMPLETED THE DEMO", dtx_color_h, -1 ) )
    TransferTo( "data/cutscene/end.pf" )
    return
-  end
-  
-  local Func = function( time, t1 )
-   t1 = t1 or 1
-   local p = GetPlayer()
-   local src = { ( p:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, p:GetPosY() * LEVEL_GRID_SIZE_Y }
-   local dst1 = { src[1] - 32, src[2] + 256 }
-   local dst2 = { src[1] + 32 , src[2] + 256 }
-   local dst3 = { src[1], src[2] + 48 }
-   local l1 = CreateLighningEft( src, dst1 )
-   local l2 = CreateLighningEft( dst1, dst2 )
-   local l3 = CreateLighningEft( dst2, dst3 )
-   GetMasterLevel():InterferenceStripEffect( 1, t1 )
-   if time > 0 then
-    Delay( time )
-    l1:SetParentEntity( nil )
-    l2:SetParentEntity( nil )
-    l3:SetParentEntity( nil )
-    GetMasterLevel():InterferenceStripEffect( 0, 0 )
-   end
   end
 
   if nProgress == 1 then
@@ -425,8 +426,112 @@ function Day3_Progress( nNode )
    WaitFor( ScenarioDialogue( 0, "...It's nearly done. Just let me get this done OK?" , dtx_color_1, -1 ) )
   end
  end ) )
+ 
+ Func( 0, 30 )
+ GetMasterLevel():BlackOut( 10, 0 )
+ player:SetHp( player:GetMaxHp() )
+ GetMasterLevel():Respawn()
+ GetMasterLevel():PushPlayerData()
+ SetKeyInt( "hub_dest", nNode + 1 )
+ local n = tonumber( pawn:GetTag( "target1" ) )
+ GetMasterLevel():TransferBy( n, -2 )
 end
 
+function Day3_unknown_btn_1()
+ local Delay_Down = function( b )
+  while EvaluateKeyInt( "$btn" ) == 0 do
+   coroutine.yield()
+  end
+  if not b then SetKeyInt( "$btn", 0 ) end
+ end
+ local Delay_Up = function()
+  while EvaluateKeyInt( "$btn" ) == 1 do
+   coroutine.yield()
+  end
+ end
+ local proj = GetCurLevel():FindChildEntity("proj")
+ local player = GetPlayer()
+ if GetLabelKey( "_COIN_1" ) == 0 then
+  Delay_Down() HeadText( "Mom?", htx_color_0 )
+  Delay_Down() HeadText( "You're back too late.", htx_color_h )
+  Delay_Down() HeadText( "Where did you go?", htx_color_h )
+  Delay_Down() HeadText( "...Nowhere.", htx_color_0 )
+  Delay_Down() HeadText( "I need some money.", htx_color_0 )
+  Delay_Down() HeadText( "...No.", htx_color_h )
+  Delay_Down() HeadText( "We have no money left.", htx_color_h )
+  Delay_Down() HeadText( "Didn't father send money back?", htx_color_0 )
+  Delay_Down() HeadText( "..........", htx_color_h )
+  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "...NO.", htx_color_h )
+  Delay_Down() HeadText( "Stop talking about him.", htx_color_h )
+  Delay_Down() HeadText( "..........", htx_color_0 )
+  Delay_Down() HeadText( "Stay home. Don't go out.", htx_color_h )
+  Delay_Down() HeadText( "It's too late.", htx_color_h )
+  Delay_Down() Signal( proj, -1 )
+  Delay_Down( true ) HeadText( "..........", htx_color_0 )
+  Delay_Up() SetKeyInt( "$d2", 1 )
+ else
+  Delay_Down() HeadText( "..........", htx_color_h )
+  Delay_Down() HeadText( "Where did you get it?", htx_color_h )
+  Delay_Down() HeadText( "You went into fighting again?", htx_color_h )
+  Delay_Down() HeadText( "...Yes. What's wrong?", htx_color_0 )
+  Delay_Down() HeadText( "...You're ruining yourself...", htx_color_h )
+  Delay_Down() HeadText( "...You're killing yourself...", htx_color_h )
+  Delay_Down() HeadText( "...Just like my father?", htx_color_0 )
+  Delay_Down() HeadText( "I told you NOT to mention him.", htx_color_h )
+  Delay_Down() HeadText( "Yes I will.", htx_color_0 )
+  Delay_Down() HeadText( "He will be proud of me.", htx_color_0 )
+  Delay_Down() HeadText( "When he comes back...", htx_color_0 )
+  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "STOP IT.", htx_color_h )
+  Delay_Down() HeadText( "He......", htx_color_h )
+  Delay_Down() HeadText( "..........", htx_color_0 )
+  Delay_Down() HeadText( "He's......", htx_color_h )
+  Delay_Down() HeadText( "HE'LL NEVER BE BACK ANY MORE.", htx_color_h )
+  Delay_Down() Signal( proj, -1 ) SetKeyInt( "$d1", 1 )
+  while player:GetToX() ~= 10 or player:GetToY() ~= 4 do coroutine.yield() end
+  HeadText( "" )
+  RunScenario( function()
+   proj:Follow( player )
+   Delay( 80 )
+   WaitFor( ScenarioDialogue( 1, "...Buy some flour. No alcohol.", dtx_color_h, -1, 2 ) )
+   Delay( 120 )
+   WaitFor( ScenarioDialogue( 1, "......Please.", dtx_color_h, -1, 6 ) )
+  end )
+ end
+end
+
+function Day3_unknown_btn_2()
+ local Delay_Down = function( b )
+  while EvaluateKeyInt( "$btn" ) == 0 do
+   coroutine.yield()
+  end
+  if not b then SetKeyInt( "$btn", 0 ) end
+ end
+ local Delay_Up = function()
+  while EvaluateKeyInt( "$btn" ) == 1 do
+   coroutine.yield()
+  end
+ end
+ local proj = GetCurLevel():FindChildEntity("proj")
+ local player = GetPlayer()
+ if GetLabelKey( "_COIN_1" ) == 0 then
+  Delay_Down() HeadText( "Good morning.", htx_color_h )
+  Delay_Down() HeadText( "You are awake.", htx_color_h )
+  Delay_Down() HeadText( "......", htx_color_0 )
+  Delay_Down() HeadText( "Where's the breakfast?", htx_color_0 )
+  Delay_Down() HeadText( ".........", htx_color_h )
+  Delay_Down() HeadText( "It's too late.", htx_color_h )
+  Delay_Down() HeadText( "Go to school now or you'll be late.", htx_color_h )
+  Delay_Down() HeadText( "NO.", htx_color_0 )
+  Delay_Down() HeadText( "Why?", htx_color_0 )
+  Delay_Down() HeadText( "You've been absent from school for over 2 months.", htx_color_h )
+  Delay_Down() HeadText( "Go now. You will find the answer.", htx_color_h )
+  Delay_Down() HeadText( "You will see what you've been wanting.", htx_color_h )
+  Delay_Down() HeadText( "......You and your...father.", htx_color_h )
+  Delay_Down() Signal( proj, -1 )
+  Delay_Down( true ) HeadText( "..........", htx_color_0 )
+  Delay_Up() SetKeyInt( "$d2", 1 )
+ end
+end
 
 function LibrarySystem_OnUpdate1()
  if g_LibrarySystem_OnAlert_tip_cd then

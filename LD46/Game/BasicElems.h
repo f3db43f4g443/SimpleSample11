@@ -265,6 +265,7 @@ public:
 	bool IsDynamic() { return m_bIsDynamic; }
 	bool IsAutoBlockStage();
 	bool HasTag( const char* sz );
+	const char* GetTag( const char* sz );
 	int8 GetCurDir() { return m_nCurDir; }
 	int32 GetCurForm() { return m_nCurForm; }
 	int8 GetInitDir() const { return m_nInitDir; }

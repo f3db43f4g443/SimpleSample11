@@ -8,6 +8,8 @@ class IBufReader
 {
 public:
 	IBufReader() : m_nBufferLen( 0 ), m_nCurPos( 0 ) {}
+	IBufReader( const IBufReader& a ) : m_nBufferLen( a.m_nBufferLen ), m_nCurPos( a.m_nCurPos ) {}
+	IBufReader& operator = ( const IBufReader& a ) { m_nBufferLen = a.m_nBufferLen; m_nCurPos = a.m_nCurPos; return *this; }
 	virtual const void* GetBuffer() const = 0;
 
 	uint32 Read( void* pBuf, uint32 nMaxLen );
@@ -95,6 +97,9 @@ inline bool IBufReader::CheckedRead( CString& t )
 class CBufFile : public IBufReader
 {
 public:
+	CBufFile() {}
+	CBufFile( const CBufFile& a ) : IBufReader( a ), m_tempBuffer( a.m_tempBuffer ) {}
+	CBufFile& operator = ( const CBufFile& a ) { *(IBufReader*)this = *(IBufReader*)&a; m_tempBuffer = a.m_tempBuffer; return *this; }
 	void Clear() { m_nBufferLen = m_nCurPos = 0; }
 	void Write( const void* pBuf, uint32 nBufLen );
 
@@ -170,12 +175,14 @@ class CBufReader : public IBufReader
 {
 public:
 	CBufReader( const void* pBuf, uint32 nBufLen ) : m_pBuf( ( const char* )pBuf ) { m_nBufferLen = nBufLen; }
+	CBufReader( const CBufReader& a ) : IBufReader( a ), m_pBuf( a.m_pBuf ) {}
 	CBufReader( IBufReader& buf )
 	{
 		buf.Read( m_nBufferLen );
 		m_pBuf = ( const char* )buf.GetCurBuffer();
 		buf.Read( NULL, m_nBufferLen );
 	}
+	CBufReader& operator = ( const CBufReader& a ) { *( IBufReader* )this = *(IBufReader*)&a; m_pBuf = a.m_pBuf; return *this; }
 
 	const void* GetBuffer() const { return m_pBuf; }
 private:

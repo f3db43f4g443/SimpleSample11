@@ -576,6 +576,7 @@ struct SWorldDataFrame
 	int8 nPlayerEnterDir;
 	bool bForceAllVisible;
 	CBufFile playerData;
+	vector<CBufFile> vecPlayerDataStack;
 	set<string> unlockedRegionMaps;
 	map<string, SLevelMark> mapLevelMarks;
 	string strTracer;
@@ -602,7 +603,7 @@ struct SWorldData
 	const char* GetCurLevel() { return curFrame.strCurLevel.c_str(); }
 	SWorldDataFrame::SLevelData& GetLevelData( const char* szLevel ) { return curFrame.mapLevelData[szLevel]; }
 	SWorldDataFrame::SLevelData& GetCurLevelData() { return curFrame.mapLevelData[curFrame.strCurLevel]; }
-	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot );
+	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot, int8 nPlayerDataOpr = 0 );
 	void OnReset( CPlayer* pPlayer );
 	void OnRetreat( CPlayer* pPlayer );
 	void CheckPoint( CPlayer* pPlayer );
@@ -686,7 +687,10 @@ public:
 	void RespawnLevel( const char* szLevel ) { m_worldData.RespawnLevel( szLevel ); }
 	void ClearByPrefix( const char* sz ) { m_worldData.ClearByPrefix( sz ); }
 	void SetLevelIgnoreGlobalClearKeys( const char* szLevel, bool b ) { m_worldData.SetLevelIgnoreGlobalClearKeys( szLevel, b ); }
+	void PushPlayerData() { m_nTransferPlayerDataOpr = 1; }
+	void PopPlayerData() { m_nTransferPlayerDataOpr = -1; }
 	void TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
+	void TransferBy( int32 nNxtStage, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void UnlockRegionMap( const char* szRegion ) { m_worldData.UnlockRegionMap( szRegion ); }
 	void ShowWorldMap( bool bShow, int8 nType = 0 );
@@ -722,7 +726,7 @@ private:
 	void EndCurLevel();
 	void TransferFunc();
 	void TransferFuncLevel2Level();
-	void TransferFuncLevel2Level0();
+	void TransferFuncLevel2Level0( bool bFade );
 	void TransferFuncLevel2Level1();
 	void TransferFuncLevel2Level2();
 	void TransferFuncLevel2Level3();
@@ -777,6 +781,7 @@ private:
 	int8 m_nTransferDir;
 	int8 m_nTransferType;
 	bool m_bClearSnapShot;
+	int8 m_nTransferPlayerDataOpr;
 	int32 m_nTransferParam;
 	CVector2 m_transferCurCamPos;
 	CReference<CEntity> m_pTransferEft;

@@ -1,4 +1,4 @@
-g_test = true
+g_test = false
 
 VK_ESCAPE = 27
 VK_RETURN = 13

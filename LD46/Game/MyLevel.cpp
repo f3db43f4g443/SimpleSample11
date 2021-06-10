@@ -4377,6 +4377,13 @@ void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 			buf.Read( vecScenarioRecords[i].str );
 		}
 	}
+	if( nVersion >= 8 )
+	{
+		buf.Read( n );
+		vecPlayerDataStack.resize( n );
+		for( int i = 0; i < n; i++ )
+			buf.Read( vecPlayerDataStack[i] );
+	}
 }
 
 void SWorldDataFrame::Save( CBufFile& buf )
@@ -4439,6 +4446,11 @@ void SWorldDataFrame::Save( CBufFile& buf )
 		buf.Write( item.color );
 		buf.Write( item.str );
 	}
+	buf.Write( vecPlayerDataStack.size() );
+	for( auto& item : vecPlayerDataStack )
+	{
+		buf.Write( item );
+	}
 }
 
 void SWorldData::Load( IBufReader& buf )
@@ -4499,7 +4511,7 @@ void SWorldData::Load( IBufReader& buf )
 
 void SWorldData::Save( CBufFile& buf )
 {
-	int32 nVersion = 7;
+	int32 nVersion = 8;
 	buf.Write( nVersion );
 	buf.Write( nCurFrameCount );
 	for( int i = 0; i < nCurFrameCount; i++ )
@@ -4545,7 +4557,7 @@ void SWorldData::Save( CBufFile& buf )
 	}
 }
 
-void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot )
+void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot, int8 nPlayerDataOpr )
 {
 	if( bClearSnapShot )
 	{
@@ -4571,9 +4583,16 @@ void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const T
 	curFrame.strCurLevel = szCurLevel;
 	curFrame.playerEnterPos = playerPos;
 	curFrame.nPlayerEnterDir = nPlayerDir;
-	curFrame.playerData.Clear();
 	GetCurLevelData().bVisited = true;
+	if( nPlayerDataOpr == -1 )
+	{
+		pPlayer->LoadData( curFrame.vecPlayerDataStack.back() );
+		curFrame.vecPlayerDataStack.pop_back();
+	}
+	curFrame.playerData.Clear();
 	pPlayer->SaveData( curFrame.playerData );
+	if( nPlayerDataOpr == 1 )
+		curFrame.vecPlayerDataStack.push_back( curFrame.playerData );
 
 	auto itr = mapSnapShotCur.find( szCurLevel );
 	if( itr != mapSnapShotCur.end() )
@@ -5100,6 +5119,13 @@ void CMasterLevel::TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& pl
 	m_nScriptTransferParam = nTransferParam;
 }
 
+void CMasterLevel::TransferBy( int32 nNxtStage, int8 nTransferType, int32 nTransferParam )
+{
+	auto& nxtStage = m_pCurLevel->GetNextLevelData( nNxtStage );
+	TransferTo1( nxtStage.pNxtStage, m_pPlayer->GetMoveTo() -
+		TVector2<int32>( nxtStage.nOfsX, nxtStage.nOfsY ), m_pPlayer->GetCurDir(), nTransferType, nTransferParam );
+}
+
 void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType, int32 nTransferParam )
 {
 	m_pScriptTransferTo = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
@@ -5570,6 +5596,7 @@ void CMasterLevel::Update()
 				ShowLogUI( true );
 		}
 		CGame::Inst().ClearInputEvent();
+		m_nTransferPlayerDataOpr = 0;
 	}
 	if( m_pCurLevel && !m_pCurLevel->IsFreeze() )
 	{
@@ -5707,7 +5734,8 @@ void CMasterLevel::TransferFunc()
 		m_pLastLevelPrefab = m_pCurLevelPrefab;
 		m_pCurLevelPrefab = pTransferTo;
 
-		m_worldData.OnEnterLevel( pTransferTo->GetName(), m_pPlayer, m_transferPos, m_nTransferDir, m_bClearSnapShot );
+		m_worldData.OnEnterLevel( pTransferTo->GetName(), m_pPlayer, m_transferPos, m_nTransferDir, m_bClearSnapShot, m_nTransferPlayerDataOpr );
+		m_nTransferPlayerDataOpr = 0;
 		if( m_bClearSnapShot )
 		{
 			m_bClearSnapShot = false;
@@ -5730,7 +5758,9 @@ void CMasterLevel::TransferFunc()
 			else if( m_nTransferType == 5 )
 				TransferFuncLevel2Level4_5( true );
 			else if( m_nTransferType == -1 )
-				TransferFuncLevel2Level0();
+				TransferFuncLevel2Level0( true );
+			else if( m_nTransferType == -2 )
+				TransferFuncLevel2Level0( false );
 			else
 				TransferFuncLevel2Level();
 		}
@@ -5850,7 +5880,7 @@ void CMasterLevel::TransferFuncLevel2Level()
 	BeginCurLevel();
 }
 
-void CMasterLevel::TransferFuncLevel2Level0()
+void CMasterLevel::TransferFuncLevel2Level0( bool bFade )
 {
 	m_pLastLevel->RemovePawn( m_pPlayer );
 	m_pLastLevel->SetParentEntity( NULL );
@@ -5860,38 +5890,40 @@ void CMasterLevel::TransferFuncLevel2Level0()
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
-	int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
-	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
-	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
-
-	m_transferCurCamPos = m_pCurLevel->GetCamPos();
-	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
-	for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
+	if( bFade )
 	{
-		m_pTransferCoroutine->Yield( 0 );
-		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
-		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
-		if( nFrame < maskParams.size() )
-		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
-		}
-		else
-		{
-			float a = Min( 1.0f, t * 1.05f );
-			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
-		}
+		pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+		int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
+		int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 		if( m_pCurLevel->GetEnvEffect() )
-			m_pCurLevel->GetEnvEffect()->SetFade( t );
+			m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+
+		m_transferCurCamPos = m_pCurLevel->GetCamPos();
+		auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
+		for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
+		{
+			m_pTransferCoroutine->Yield( 0 );
+			int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
+			float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
+			if( nFrame < maskParams.size() )
+			{
+				pParams[0] = maskParams[nFrame].first;
+				pParams[1] = maskParams[nFrame].second;
+			}
+			else
+			{
+				float a = Min( 1.0f, t * 1.05f );
+				float b = Max( 0.0f, t * 1.05f - 0.05f );
+				pParams[0] = CVector4( b, a, a, 0 );
+				pParams[1] = CVector4( 0, 0, 0, 0 );
+			}
+			if( m_pCurLevel->GetEnvEffect() )
+				m_pCurLevel->GetEnvEffect()->SetFade( t );
+		}
 	}
 	pParams[0] = CVector4( 1, 1, 1, 0 );
 	pParams[1] = CVector4( 0, 0, 0, 0 );
-	ASSERT( !m_pLastLevel );
 	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	BeginCurLevel();
@@ -6696,6 +6728,9 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( RespawnLevel )
 		REGISTER_LUA_CFUNCTION( ClearByPrefix )
 		REGISTER_LUA_CFUNCTION( SetLevelIgnoreGlobalClearKeys )
+		REGISTER_LUA_CFUNCTION( PushPlayerData )
+		REGISTER_LUA_CFUNCTION( PopPlayerData )
+		REGISTER_LUA_CFUNCTION( TransferBy )
 		REGISTER_LUA_CFUNCTION( ScriptTransferTo )
 		REGISTER_LUA_CFUNCTION( UnlockRegionMap )
 		REGISTER_LUA_CFUNCTION( ShowWorldMap )

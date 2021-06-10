@@ -475,12 +475,39 @@ bool CPawn::IsAutoBlockStage()
 
 bool CPawn::HasTag( const char* sz )
 {
+	int32 l = strlen( sz );
 	for( int i = 0; i < m_arrTags.Size(); i++ )
 	{
-		if( m_arrTags[i] == sz )
-			return true;
+		auto str = m_arrTags[i].c_str();
+		auto c = strchr( m_arrTags[i].c_str(), '=' );
+		if( c )
+		{
+			if( l == c - str && strncmp( str, sz, l ) == 0 )
+				return true;
+		}
+		else
+		{
+			if( m_arrTags[i] == sz )
+				return true;
+		}
 	}
 	return false;
+}
+
+const char* CPawn::GetTag( const char* sz )
+{
+	int32 l = strlen( sz );
+	for( int i = 0; i < m_arrTags.Size(); i++ )
+	{
+		auto str = m_arrTags[i].c_str();
+		auto c = strchr( str, '=' );
+		if( c )
+		{
+			if( l == c - str && strncmp( str, sz, l ) == 0 )
+				return c + 1;
+		}
+	}
+	return "";
 }
 
 int32 CPawn::GetStateIndexByName( const char* szName ) const
@@ -3284,6 +3311,8 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_LUA_CFUNCTION( IsPosHidden )
 		REGISTER_LUA_CFUNCTION( IsToHidden )
 		REGISTER_LUA_CFUNCTION( IsEnemy )
+		REGISTER_LUA_CFUNCTION( HasTag )
+		REGISTER_LUA_CFUNCTION( GetTag )
 		REGISTER_LUA_CFUNCTION( GetCurDir )
 		REGISTER_LUA_CFUNCTION( GetCurStateIndex )
 		REGISTER_LUA_CFUNCTION( SetInitState )

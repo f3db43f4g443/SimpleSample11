@@ -794,6 +794,8 @@ void CWorldCfgEditor::RefreshExtLevel( int32 nRegion )
 
 void CWorldCfgEditor::RefreshSnapShot()
 {
+	vector<int8> vecTemp;
+	TVector2<int32> ofs[7] = { { 0, 0 }, { 2, 0 }, { -2, 0 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
 	for( int i = 0; i < m_pData->arrRegionData.Size(); i++ )
 	{
 		TRectangle<int32> regionSize( 0, 0, 0, 0 );
@@ -805,8 +807,12 @@ void CWorldCfgEditor::RefreshSnapShot()
 			auto pLevel = levelData[j].pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
 			auto size = pLevel->GetSize();
 			auto bound1 = TRectangle<int32>( levelData[j].displayOfs.x / LEVEL_GRID_SIZE_X, levelData[j].displayOfs.y / LEVEL_GRID_SIZE_Y, size.x, size.y );
+			bound1.x -= 2;
+			bound1.y -= 1;
+			bound1.width += 4;
+			bound1.height += 2;
 			regionSize = j == 0 ? bound1 : regionSize + bound1;
-			nTotalAreaSize += ( size.x * size.y + 1 ) / 2;
+			nTotalAreaSize += ( bound1.width * bound1.height + 1 ) / 2;
 		}
 
 		struct SNode
@@ -824,8 +830,15 @@ void CWorldCfgEditor::RefreshSnapShot()
 			auto& data = levelData[j];
 			auto pLevel = data.pLevel->GetRoot()->GetStaticDataSafe<CMyLevel>();
 			auto size = pLevel->GetSize();
-			auto bound1 = TRectangle<int32>( levelData[j].displayOfs.x / LEVEL_GRID_SIZE_X, levelData[j].displayOfs.y / LEVEL_GRID_SIZE_Y, size.x, size.y );
+			auto bound0 = TRectangle<int32>( levelData[j].displayOfs.x / LEVEL_GRID_SIZE_X, levelData[j].displayOfs.y / LEVEL_GRID_SIZE_Y, size.x, size.y );
+			auto bound1 = bound0;
+			bound1.x -= 2;
+			bound1.y -= 1;
+			bound1.width += 4;
+			bound1.height += 2;
+			vecTemp.resize( bound1.width * bound1.height );
 			set<string> setNames;
+
 			for( int x = 0; x < size.x; x++ )
 			{
 				for( int y = 0; y < size.y; y++ )
@@ -835,25 +848,35 @@ void CWorldCfgEditor::RefreshSnapShot()
 					auto pGridData = pLevel->GetGridData( TVector2<int32>( x, y ) );
 					if( !pGridData->nTile )
 						continue;
-					auto pNode = &vecNodes[iNode++];
-					pNode->j = j;
-					SNode*& pHead = vecMap[x + bound1.x - regionSize.x + ( y + bound1.y - regionSize.y ) * regionSize.width];
-
-					for( SNode* pNode = pHead; pNode; pNode = pNode->NextNode() )
+					for( int k = 0; k < ELEM_COUNT( ofs ); k++ )
 					{
-						auto& data1 = levelData[pNode->j];
-						if( setNames.find( data1.pLevel.c_str() ) != setNames.end() )
+						auto p = TVector2<int32>( x, y ) + ofs[k];
+						auto& b = vecTemp[p.x + 2 + ( p.y * 1 ) * bound1.width];
+						if( b )
 							continue;
-						setNames.insert( data1.pLevel.c_str() );
-						data1.arrShowSnapShot.Resize( data1.arrShowSnapShot.Size() + 1 );
-						data1.arrShowSnapShot[data1.arrShowSnapShot.Size() - 1] = data.pLevel.c_str();
-						data.arrShowSnapShot.Resize( data.arrShowSnapShot.Size() + 1 );
-						data.arrShowSnapShot[data.arrShowSnapShot.Size() - 1] = data1.pLevel.c_str();
-					}
+						b = 1;
 
-					pNode->InsertTo_Node( pHead );
+						auto pNode = &vecNodes[iNode++];
+						pNode->j = j;
+						SNode*& pHead = vecMap[p.x + bound0.x - regionSize.x + ( p.y + bound0.y - regionSize.y ) * regionSize.width];
+
+						for( SNode* pNode = pHead; pNode; pNode = pNode->NextNode() )
+						{
+							auto& data1 = levelData[pNode->j];
+							if( setNames.find( data1.pLevel.c_str() ) != setNames.end() )
+								continue;
+							setNames.insert( data1.pLevel.c_str() );
+							data1.arrShowSnapShot.Resize( data1.arrShowSnapShot.Size() + 1 );
+							data1.arrShowSnapShot[data1.arrShowSnapShot.Size() - 1] = data.pLevel.c_str();
+							data.arrShowSnapShot.Resize( data.arrShowSnapShot.Size() + 1 );
+							data.arrShowSnapShot[data.arrShowSnapShot.Size() - 1] = data1.pLevel.c_str();
+						}
+
+						pNode->InsertTo_Node( pHead );
+					}
 				}
 			}
+			vecTemp.resize( 0 );
 		}
 	}
 }

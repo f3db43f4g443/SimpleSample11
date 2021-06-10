@@ -13,6 +13,10 @@ g_labels = {
 		day = 3,
 		items = {
 			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 0, 7 }, { 6, 7 } } },
+			{ name = "_COIN_1", key = "%_COIN_1", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_2", key = "%_COIN_2", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_3", key = "%_COIN_3", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_COIN_4", key = "%_COIN_4", value = { { 0, 6 }, { 7, 7 } } },
 		}
 	},
 	{

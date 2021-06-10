@@ -847,7 +847,8 @@ int32 CConsole::Signal( int32 i )
 	{
 		m_pExtra = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strExtraScript );
 		m_pExtra->PushLua( i );
-		bool bRunning = m_pExtra->Resume( 1, 1 );
+		m_pExtra->PushLua( this );
+		bool bRunning = m_pExtra->Resume( 2, 1 );
 		bool bResult = m_pExtra->PopLuaValue<bool>();
 		if( !bRunning )
 		{
@@ -868,7 +869,8 @@ void CConsole::RunDefault()
 	if( m_strDefaultScript.length() )
 	{
 		m_pDefault = CLuaMgr::GetCurLuaState()->CreateCoroutine( m_strDefaultScript );
-		if( !m_pDefault->Resume( 0, 0 ) )
+		m_pDefault->PushLua( this );
+		if( !m_pDefault->Resume( 1, 0 ) )
 			m_pDefault = NULL;
 	}
 }
@@ -913,7 +915,7 @@ void CAlarm::Update()
 	if( !m_bTriggered )
 	{
 		auto pPlayer = GetLevel()->GetPlayer();
-		if( pPlayer && pPlayer->GetPos() == GetPos() )
+		if( pPlayer && pPlayer->GetMoveTo() == GetMoveTo() )
 		{
 			m_bTriggered = true;
 			m_p[0]->bVisible = false;
@@ -1783,6 +1785,7 @@ int32 CProjector::Signal( int32 i )
 {
 	bool b0 = IsActivated();
 	m_bSetTarget = false;
+	m_pPawn = NULL;
 	m_nFixedTarget = i;
 	bool b1 = IsActivated();
 	if( b1 && !b0 )
