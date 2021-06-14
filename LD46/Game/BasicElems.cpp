@@ -1658,7 +1658,16 @@ CPlayer* CPlayer::InitActionPreviewLevel( CMyLevel* pLevel, const TVector2<int32
 int32 CPlayer::Damage( int32 nDamage, int8 nDamageType, TVector2<int32> damageOfs, CPawn* pSource )
 {
 	if( m_bIsRealPlayer && !IsActionPreview() )
+	{
 		GetStage()->GetMasterLevel()->OnPlayerDamaged();
+		if( m_strScriptDamaged )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strScriptDamaged );
+			pLuaState->PushLua( this );
+			pLuaState->Call( 1, 0 );
+		}
+	}
 	return CPawn::Damage( nDamage, nDamageType, damageOfs, pSource );
 }
 
@@ -3397,6 +3406,9 @@ void RegisterGameClasses_BasicElems()
 	REGISTER_CLASS_BEGIN( CPlayer )
 		REGISTER_BASE_CLASS( CPawn )
 		REGISTER_MEMBER( m_bIsRealPlayer )
+		REGISTER_MEMBER_BEGIN( m_strScriptDamaged )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER( m_inputTable )
 		REGISTER_MEMBER( m_stateInputTable )
 		REGISTER_MEMBER( m_actionEftOfs )

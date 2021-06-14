@@ -251,6 +251,52 @@ void CGlobalCfg::Load()
 			nItems += nFrame;
 		}
 	}
+	{
+		int32 nItems = 0;
+		CVector4 param[2];
+		CVector4 param0[2];
+		CVector4 param1[2];
+		int32 nFrame0 = -1;
+		for( auto pItem = doc.RootElement()->FirstChildElement( "battle_effect_mask" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			int32 nFrame = XmlGetAttr( pItem, "t", 0 );
+			param1[0].x = XmlGetAttr( pItem, "x0", 0.0f );
+			param1[0].y = XmlGetAttr( pItem, "y0", 0.0f );
+			param1[0].z = XmlGetAttr( pItem, "z0", 0.0f );
+			param1[0].w = XmlGetAttr( pItem, "w0", 0.0f );
+			param1[1].x = XmlGetAttr( pItem, "x1", 0.0f );
+			param1[1].y = XmlGetAttr( pItem, "y1", 0.0f );
+			param1[1].z = XmlGetAttr( pItem, "z1", 0.0f );
+			param1[1].w = XmlGetAttr( pItem, "w1", 0.0f );
+
+			if( nFrame0 < 0 )
+			{
+				nFrame0 = nFrame;
+				param0[0] = param1[0];
+				param0[1] = param1[1];
+			}
+			else
+			{
+				battleEffectMask.resize( nItems + nFrame );
+				for( int i = 0; i < nFrame; i++ )
+				{
+					float t = ( i + 1.0f ) / nFrame;
+					battleEffectMask[nItems + i].first = param[0] + ( param1[0] - param[0] ) * t;
+					battleEffectMask[nItems + i].second = param[1] + ( param1[1] - param[1] ) * t;
+				}
+				nItems += nFrame;
+			}
+			param[0] = param1[0];
+			param[1] = param1[1];
+		}
+		battleEffectMask.resize( nItems + nFrame0 );
+		for( int i = 0; i < nFrame0; i++ )
+		{
+			float t = ( i + 1.0f ) / nFrame0;
+			battleEffectMask[nItems + i].first = param[0] + ( param0[0] - param[0] ) * t;
+			battleEffectMask[nItems + i].second = param[1] + ( param0[1] - param[1] ) * t;
+		}
+	}
 
 	if( szLuaStart[0] )
 	{

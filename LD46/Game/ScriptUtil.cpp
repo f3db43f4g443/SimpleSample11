@@ -87,9 +87,20 @@ float GetY( CRenderObject2D* p )
 	return p->y;
 }
 
+float GetScale( CRenderObject2D* p )
+{
+	return p->s;
+}
+
 void SetPosition( CRenderObject2D* p, float x, float y )
 {
 	p->SetPosition( CVector2( x, y ) );
+}
+
+void SetScale( CRenderObject2D* p, float s )
+{
+	p->s = s;
+	p->SetTransformDirty();
 }
 
 void PlayerPickUp( const char* szName, CPlayer* pPlayer = NULL )
@@ -250,7 +261,9 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( IsInputDown )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetX )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetY )
+	REGISTER_LUA_CFUNCTION_GLOBAL( GetScale )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetPosition )
+	REGISTER_LUA_CFUNCTION_GLOBAL( SetScale )
 	REGISTER_LUA_CFUNCTION_GLOBAL( PlayerPickUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandInt )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandFloat )

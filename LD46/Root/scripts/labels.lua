@@ -2,6 +2,7 @@ g_labels = {
 	{
 		day = 1,
 		items = {
+			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 	{
@@ -12,7 +13,8 @@ g_labels = {
 	{
 		day = 3,
 		items = {
-			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 0, 7 }, { 6, 7 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 2, 6 }, { 6, 7 } } },
 			{ name = "_COIN_1", key = "%_COIN_1", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_2", key = "%_COIN_2", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_3", key = "%_COIN_3", value = { { 0, 6 }, { 7, 7 } } },
@@ -22,6 +24,7 @@ g_labels = {
 	{
 		day = 4,
 		items = {
+			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 			{ name = "_DISINFECTANT", key = "%_DISINFECTANT", value = { { 0, 7 }, { 6, 7 } } },
 			{ name = "_HANDLE", key = "%_HANDLE", value = { { 1, 7 }, { 7, 7 } } },
 			{ name = "_TAPE", key = "%_TAPE", value = { { 2, 7 }, { 2, 7 }, { 2, 7 }, { 7, 7 } } },
@@ -34,6 +37,7 @@ g_labels = {
 	{
 		day = 5,
 		items = {
+			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 			{ name = "_FOOD", key = "%_FOOD", value = { { 0, 7 } } },
 			{ name = "_COIN_1", key = "%_COIN_1", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_2", key = "%_COIN_2", value = { { 0, 6 }, { 7, 7 } } },
@@ -45,11 +49,13 @@ g_labels = {
 	{
 		day = 6,
 		items = {
+			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 	{
 		day = 7,
 		items = {
+			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 }
@@ -70,7 +76,9 @@ function RefreshLabel( name )
 		local item = labels.items[i]
 		local res = item.value[EvaluateKeyInt( item.key )]
 		if res then
-			GetMasterLevel():GetMainUI():SetLabel( i - 1, res[1], res[2] )
+			local nCounter = 0
+			if item.counter then nCounter = EvaluateKeyInt( item.counter ) end
+			GetMasterLevel():GetMainUI():SetLabel( i - 1, res[1], res[2], nCounter )
 		else
 			GetMasterLevel():GetMainUI():SetLabel( i - 1, -1, -1 )
 		end
@@ -106,7 +114,9 @@ function SetLabelKey( name, value )
 		SetKeyInt( item.key, value )
 		local res = item.value[value]
 		if res then
-			GetMasterLevel():GetMainUI():SetLabel( i - 1, res[1], res[2] )
+			local nCounter = 0
+			if item.counter then nCounter = EvaluateKeyInt( item.counter ) end
+			GetMasterLevel():GetMainUI():SetLabel( i - 1, res[1], res[2], nCounter )
 		else
 			GetMasterLevel():GetMainUI():SetLabel( i - 1, -1, -1 )
 		end
@@ -120,6 +130,7 @@ function SetLabelCounter( name, value )
 		local item = labels.items[i]
 		if not item.counter then return end
 		SetKeyInt( item.counter, value )
+		GetMasterLevel():GetMainUI():SetLabelCounter( i - 1, value )
 	end
 end
 
@@ -131,7 +142,9 @@ function RefreshAllLabels()
 	for k, v in ipairs( labels ) do
 		local res = v.value[EvaluateKeyInt( v.key )]
 		if res then
-			GetMasterLevel():GetMainUI():SetLabel( k - 1, res[1], res[2] )
+			local nCounter = 0
+			if v.counter then nCounter = EvaluateKeyInt( v.counter ) end
+			GetMasterLevel():GetMainUI():SetLabel( k - 1, res[1], res[2], nCounter )
 		end
 	end
 end

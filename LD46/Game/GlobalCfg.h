@@ -16,6 +16,7 @@ public:
 
 	CReference<CPrefab> pFailLightningEffectPrefab;
 	CReference<CDrawableGroup> pFallEftDrawable;
+	CReference<CPrefab> pBattleEftPrefab;
 	CReference<CPrefab> pInterferenceStripEftPrefab;
 	CReference<CPrefab> pTracerSpawnEftPrefab;
 	CReference<CPrefab> pCommonLinkPrefab;
@@ -84,6 +85,7 @@ public:
 	} MainUIData;
 	vector<pair<CVector4, CVector4> > playerDamagedMask;
 	vector<pair<CVector4, CVector4> > showSnapShotMask;
+	vector<pair<CVector4, CVector4> > battleEffectMask;
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGlobalCfg );
 };

@@ -284,6 +284,8 @@ public:
 	CPawn* SpawnPawn1( const char* szPrefab, int32 x, int32 y, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	CPawn* SpawnPreset( const char* szName );
 	CPawn* SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir, const char* szInitState = NULL );
+	int32 GetPresetSpawnX( const char* szName );
+	int32 GetPresetSpawnY( const char* szName );
 	bool AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator = NULL, int32 nForm = 0 );
 	bool AddPawn1( CPawn* pPawn, int32 nState, int32 nStateTick, const TVector2<int32>& pos, const TVector2<int32>& moveTo, int8 nDir );
 	void RemovePawn( CPawn* pPawn );
@@ -363,6 +365,7 @@ private:
 	void InitScripts();
 	void UpdateActionPreviewFunc();
 	int32 m_nWidth, m_nHeight;
+	int32 m_nDepth;
 	CString m_strRegion;
 	CReference<CEntity> m_pPawnRoot;
 	CVector2 m_camPos;
@@ -452,7 +455,8 @@ public:
 	void ShowFailEft( bool b );
 	void ShowFreezeEft( int32 nLevel );
 	void ClearLabels();
-	void SetLabel( int32 nIndex, int32 x, int32 y );
+	void SetLabel( int32 nIndex, int32 x, int32 y, int32 nCounter = 0 );
+	void SetLabelCounter( int32 nIndex, int32 nCounter );
 
 	void Update();
 	void UpdateEffect();
@@ -471,6 +475,7 @@ private:
 	CReference<CEntity> m_pFailTips[3];
 	CReference<CEntity> m_pIcons[ePlayerEquipment_Count];
 	CReference<CEntity> m_pLabelsRoot;
+	CReference<CEntity> m_pLabelsCounter;
 	CReference<CEntity> m_pAmmoCount;
 
 	CRectangle m_origRect;
@@ -488,6 +493,7 @@ private:
 	vector<SInputItem> m_vecInputItems;
 	float m_fLabelX;
 	vector<CReference<CRenderObject2D> > m_vecLabels;
+	vector<CReference<CEntity> > m_vecLabelCounters;
 	bool m_bScenario;
 	int8 m_nLastScenarioText;
 	int32 m_nScenarioTextFinishDelay;
@@ -715,6 +721,7 @@ public:
 	void OnPlayerDamaged();
 	void Update();
 private:
+	void UpdateBattleEffect();
 	void RefreshSnapShot();
 	void UpdateSnapShot( const char* sz );
 	void HideAllSnapShot();
@@ -744,7 +751,9 @@ private:
 
 	CReference<CMainUI> m_pMainUI;
 	CReference<CRenderObject2D> m_pLevelFadeMask;
+	CReference<CEntity> m_pSnapShotRoot;
 	CReference<CRenderObject2D> m_pSnapShotMask;
+	CReference<CRenderObject2D> m_pBattleEffect;
 	CReference<CEntity> m_pMenu;
 	CReference<CEntity> m_pMenuItem[5];
 	CReference<CRenderObject2D> m_pMenuSelected;
@@ -764,6 +773,7 @@ private:
 	CReference<CCutScene> m_pCurCutScene;
 	CReference<CPrefab> m_pLastLevelPrefab;
 	int32 m_nShowSnapShotFrame;
+	int32 m_nBattleEffectFrame;
 	int32 m_nPlayerDamageFrame;
 	map<string, CReference<CMyLevel> > m_mapSnapShot;
 	set<string> m_setShowingSnapShot;

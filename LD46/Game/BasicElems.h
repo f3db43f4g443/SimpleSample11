@@ -625,6 +625,7 @@ protected:
 
 	CPlayerEquipment* GetStateSource( int8 nType );
 	bool m_bIsRealPlayer;
+	CString m_strScriptDamaged;
 	TArray<SInputTableItem> m_inputTable;
 	TArray<SStateInputTableItem> m_stateInputTable;
 	CVector2 m_actionEftOfs[ACTION_EFT_FRAMES * 2];

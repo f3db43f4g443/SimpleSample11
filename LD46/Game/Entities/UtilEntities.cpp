@@ -1879,6 +1879,8 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER( m_params )
 		REGISTER_MEMBER( m_nType )
 		REGISTER_MEMBER( m_bEnabled )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( SetEnabled )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSimpleTile )

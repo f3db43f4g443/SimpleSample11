@@ -1583,10 +1583,6 @@ void CSmoke::UpdateImages()
 		m_params[i * 2] = CVector4( m_origParam[0].x, m_origParam[0].y, m_origParam[0].z, m_items[i].ofs.x );
 		m_params[i * 2 + 1] = CVector4( m_origParam[1].x, m_origParam[1].y, m_origParam[1].z, m_items[i].ofs.y );
 	}
-
-
-
-
 }
 
 void CBalloon::Update()

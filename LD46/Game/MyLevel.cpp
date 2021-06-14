@@ -862,6 +862,8 @@ int32 CMyLevel::CheckGrid( int32 x, int32 y )
 
 CMasterLevel* CMyLevel::GetMasterLevel()
 {
+	if( IsSnapShot() )
+		return SafeCast<CMasterLevel>( GetParentEntity()->GetParentEntity() );
 	return SafeCast<CMasterLevel>( GetParentEntity() );
 }
 
@@ -1116,6 +1118,30 @@ CPawn* CMyLevel::SpawnPreset1( const char* szName, int32 x, int32 y, int8 nDir, 
 		}
 	}
 	return NULL;
+}
+
+int32 CMyLevel::GetPresetSpawnX( const char* szName )
+{
+	for( auto& pSpawner : m_vecSpawner )
+	{
+		if( pSpawner && pSpawner->m_nSpawnType >= 2 && pSpawner->GetName() == szName )
+		{
+			return floor( pSpawner->x / LEVEL_GRID_SIZE_X + 0.5f );
+		}
+	}
+	return -1;
+}
+
+int32 CMyLevel::GetPresetSpawnY( const char* szName )
+{
+	for( auto& pSpawner : m_vecSpawner )
+	{
+		if( pSpawner && pSpawner->m_nSpawnType >= 2 && pSpawner->GetName() == szName )
+		{
+			return floor( pSpawner->y / LEVEL_GRID_SIZE_Y + 0.5f );
+		}
+	}
+	return -1;
 }
 
 bool CMyLevel::AddPawn( CPawn* pPawn, const TVector2<int32>& pos, int8 nDir, CPawn* pCreator, int32 nForm )
@@ -3247,6 +3273,7 @@ void CMainUI::OnAddedToStage()
 		m_pFailTips[i]->bVisible = false;
 	m_fLabelX = m_pLabelsRoot->x;
 	m_pLabelsRoot->SetRenderObject( NULL );
+	m_pLabelsCounter->SetParentEntity( NULL );
 }
 
 void CMainUI::Reset( const CVector2& inputOrig, const CVector2& iconOrig, bool bClearAllEfts )
@@ -3477,14 +3504,17 @@ void CMainUI::ClearLabels()
 {
 	m_pLabelsRoot->RemoveAllChild();
 	m_vecLabels.resize( 0 );
+	m_vecLabelCounters.resize( 0 );
 }
 
-void CMainUI::SetLabel( int32 nIndex, int32 x, int32 y )
+void CMainUI::SetLabel( int32 nIndex, int32 x, int32 y, int32 nCounter )
 {
 	if( x >= 0 )
 	{
 		if( nIndex >= m_vecLabels.size() )
 			m_vecLabels.resize( nIndex + 1 );
+		if( nIndex >= m_vecLabelCounters.size() )
+			m_vecLabelCounters.resize( nIndex + 1 );
 		if( !m_vecLabels[nIndex] )
 		{
 			auto pImg = static_cast<CImage2D*>( static_cast<CDrawableGroup*>( m_pLabelsRoot->GetResource() )->CreateInstance() );
@@ -3494,13 +3524,69 @@ void CMainUI::SetLabel( int32 nIndex, int32 x, int32 y )
 		}
 		auto pImg = static_cast<CImage2D*>( m_vecLabels[nIndex].GetPtr() );
 		pImg->SetTexRect( CRectangle( x, y, 1, 1 ) / 8 );
+		if( nCounter )
+		{
+			if( !m_vecLabelCounters[nIndex] )
+			{
+				auto p = SafeCast<CEntity>( m_pLabelsCounter->GetInstanceOwnerNode()->CreateInstance() );
+				m_vecLabelCounters[nIndex] = p;
+				p->SetPosition( CVector2( -1 - ( nIndex / 8 ), -1 - ( nIndex % 8 ) ) * 32 );
+				p->SetParentBeforeEntity( m_vecLabels[nIndex] );
+			}
+			char buf[64];
+			sprintf( buf, "%d", nCounter );
+			SafeCast<CSimpleText>( m_vecLabelCounters[nIndex].GetPtr() )->Set( buf );
+		}
+		else
+		{
+			if( m_vecLabelCounters[nIndex] )
+			{
+				m_vecLabelCounters[nIndex]->SetParentEntity( NULL );
+				m_vecLabelCounters[nIndex] = NULL;
+			}
+		}
 	}
 	else
 	{
 		if( nIndex < m_vecLabels.size() && m_vecLabels[nIndex] )
 		{
-			m_vecLabels[nIndex]->RemoveThis();
-			m_vecLabels[nIndex] = NULL;
+			if( m_vecLabels[nIndex] )
+			{
+				m_vecLabels[nIndex]->RemoveThis();
+				m_vecLabels[nIndex] = NULL;
+			}
+			if( m_vecLabelCounters[nIndex] )
+			{
+				m_vecLabelCounters[nIndex]->SetParentEntity( NULL );
+				m_vecLabelCounters[nIndex] = NULL;
+			}
+		}
+	}
+}
+
+void CMainUI::SetLabelCounter( int32 nIndex, int32 nCounter )
+{
+	if( nIndex >= m_vecLabels.size() || !m_vecLabels[nIndex] )
+		return;
+	if( nCounter )
+	{
+		if( !m_vecLabelCounters[nIndex] )
+		{
+			auto p = SafeCast<CEntity>( m_pLabelsCounter->GetInstanceOwnerNode()->CreateInstance() );
+			m_vecLabelCounters[nIndex] = p;
+			p->SetPosition( CVector2( -1 - ( nIndex / 8 ), -1 - ( nIndex % 8 ) ) * 32 );
+			p->SetParentBeforeEntity( m_vecLabels[nIndex] );
+		}
+		char buf[64];
+		sprintf( buf, "%d", nCounter );
+		SafeCast<CSimpleText>( m_vecLabelCounters[nIndex].GetPtr() )->Set( buf );
+	}
+	else
+	{
+		if( m_vecLabelCounters[nIndex] )
+		{
+			m_vecLabelCounters[nIndex]->SetParentEntity( NULL );
+			m_vecLabelCounters[nIndex] = NULL;
 		}
 	}
 }
@@ -5362,7 +5448,10 @@ void CMasterLevel::InterferenceStripEffect( int8 nType, float fSpeed )
 		auto view = GetStage()->GetCamera().GetViewArea();
 		CRectangle lvRect( 0, 0, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
 		pEft->Init( view, lvRect, fSpeed );
+		m_pLevelFadeMask->bVisible = true;
+		m_pSnapShotMask->bVisible = false;
 		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
+		pParams[0] = CVector4( 0, 0, 0, 0 );
 		pParams[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
 	}
 }
@@ -5439,9 +5528,12 @@ void CMasterLevel::Update()
 			m_pSnapShotMask->bVisible = true;
 			pParams1[0] = maskParam.first;
 			pParams1[1] = maskParam.second;
-			nShowSnapShotFrame++;
-			if( nShowSnapShotFrame >= cfg.size() )
-				nShowSnapShotFrame = 0;
+			if( m_pCurLevel && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFreeze() )
+			{
+				nShowSnapShotFrame++;
+				if( nShowSnapShotFrame >= cfg.size() )
+					nShowSnapShotFrame = 0;
+			}
 		}
 		else
 		{
@@ -5452,9 +5544,21 @@ void CMasterLevel::Update()
 		}
 		m_nShowSnapShotFrame = nShowSnapShotFrame;
 
+		m_pBattleEffect->bVisible = false;
+		if( m_pCurLevel )
+		{
+			m_pBattleEffect->bVisible = m_pCurLevel->IsBegin() && !m_pCurLevel->IsComplete() && !m_pCurLevel->IsEnd();
+			if( !m_pCurLevel->IsFreeze() && !m_pCurLevel->IsFailed() )
+			{
+				if( m_pBattleEffect->bVisible )
+					UpdateBattleEffect();
+			}
+		}
+
 		if( m_pCurLevel && !m_pCurLevel->IsEnd() )
 			m_pCurLevel->Update();
 		m_pMainUI->Update();
+
 		if( m_pScenarioScript && !m_pMenu->bVisible )
 		{
 			if( !m_pScenarioScript->Resume( 0, 0 ) )
@@ -5598,11 +5702,32 @@ void CMasterLevel::Update()
 		CGame::Inst().ClearInputEvent();
 		m_nTransferPlayerDataOpr = 0;
 	}
-	if( m_pCurLevel && !m_pCurLevel->IsFreeze() )
+	if( m_pCurLevel )
 	{
-		if( m_pInterferenceStripEffect )
-			SafeCast<CInterferenceStripEffect>( m_pInterferenceStripEffect.GetPtr() )->Update();
+		if(!m_pCurLevel->IsFreeze() )
+		{
+			if( m_pInterferenceStripEffect )
+				SafeCast<CInterferenceStripEffect>( m_pInterferenceStripEffect.GetPtr() )->Update();
+		}
 	}
+}
+
+void CMasterLevel::UpdateBattleEffect()
+{
+	auto pParams = static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->GetParam();
+	auto& cfg = CGlobalCfg::Inst().battleEffectMask;
+	auto& maskParam = cfg[m_nBattleEffectFrame];
+	pParams[0] = maskParam.first;
+	pParams[1] = maskParam.second;
+	if( m_pCurLevel && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFreeze() )
+	{
+		m_nBattleEffectFrame++;
+		if( m_nBattleEffectFrame >= cfg.size() )
+			m_nBattleEffectFrame = 0;
+	}
+	CRectangle lvRect( m_pCurLevel->x, m_pCurLevel->y, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
+	lvRect.SetSize( lvRect.GetSize() + CVector2( 64, 64 ) );
+	static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->SetRect( lvRect );
 }
 
 void CMasterLevel::RefreshSnapShot()
@@ -5627,6 +5752,12 @@ void CMasterLevel::RefreshSnapShot()
 		if( m_mapSnapShot.find( sz ) != m_mapSnapShot.end() )
 			m_setShowingSnapShot.insert( sz );
 	}
+
+	m_pSnapShotRoot->SortChildrenRenderOrder( [] ( CRenderObject2D* a, CRenderObject2D* b ) {
+		auto p1 = static_cast<CMyLevel*>( a );
+		auto p2 = static_cast<CMyLevel*>( b );
+		return p1->m_nDepth > p2->m_nDepth;
+	} );
 }
 
 void CMasterLevel::UpdateSnapShot( const char* sz )
@@ -5639,9 +5770,9 @@ void CMasterLevel::UpdateSnapShot( const char* sz )
 		{
 			CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( sz );
 			pSnapShot = SafeCast<CMyLevel>( pPrefab->GetRoot()->CreateInstance() );
-			pSnapShot->SetParentAfterEntity( m_pSnapShotMask );
 			auto pCurLevel = m_pCurLevel;
 			m_pCurLevel = pSnapShot;
+			pSnapShot->SetParentEntity( m_pSnapShotRoot );
 			m_strUpdatingSnapShot = sz;
 			pSnapShot->Init( 1 );
 			m_pCurLevel = pCurLevel;
@@ -5653,7 +5784,7 @@ void CMasterLevel::UpdateSnapShot( const char* sz )
 			return;
 		}
 	}
-	pSnapShot->SetParentAfterEntity( m_pSnapShotMask );
+	pSnapShot->SetParentEntity( m_pSnapShotRoot );
 	auto worldCfg = GetStage()->GetWorld()->GetWorldCfg();
 	pSnapShot->SetPosition( worldCfg.GetLevelDisplayOfs( sz ) - worldCfg.GetLevelDisplayOfs( GetCurLevelName() ) );
 }
@@ -6614,6 +6745,7 @@ void RegisterGameClasses_Level()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
+		REGISTER_MEMBER( m_nDepth )
 		REGISTER_MEMBER( m_strRegion )
 		REGISTER_MEMBER( m_camPos )
 		REGISTER_MEMBER( m_arrTileData )
@@ -6640,6 +6772,8 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( SpawnPawn1 )
 		REGISTER_LUA_CFUNCTION( SpawnPreset )
 		REGISTER_LUA_CFUNCTION( SpawnPreset1 )
+		REGISTER_LUA_CFUNCTION( GetPresetSpawnX )
+		REGISTER_LUA_CFUNCTION( GetPresetSpawnY )
 		REGISTER_LUA_CFUNCTION( RemovePawn )
 		REGISTER_LUA_CFUNCTION( IsFailed )
 		REGISTER_LUA_CFUNCTION( IsSnapShot )
@@ -6688,6 +6822,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[1], icon_1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[2], icon_2 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLabelsRoot, labels )
+		REGISTER_MEMBER_TAGGED_PTR( m_pLabelsCounter, label_counter )
 		REGISTER_MEMBER_TAGGED_PTR( m_pAmmoCount, icon_1/ammo )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( ScenarioText )
@@ -6696,13 +6831,16 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( ShowFreezeEft )
 		REGISTER_LUA_CFUNCTION( ClearLabels )
 		REGISTER_LUA_CFUNCTION( SetLabel )
+		REGISTER_LUA_CFUNCTION( SetLabelCounter )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMasterLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMainUI, main_ui )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLevelFadeMask, mask )
+		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotRoot, sn )
 		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotMask, mask0 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pBattleEffect, battle_eft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenu, menu )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[0], menu/t1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[1], menu/t2 )

@@ -851,7 +851,7 @@ void CWorldCfgEditor::RefreshSnapShot()
 					for( int k = 0; k < ELEM_COUNT( ofs ); k++ )
 					{
 						auto p = TVector2<int32>( x, y ) + ofs[k];
-						auto& b = vecTemp[p.x + 2 + ( p.y * 1 ) * bound1.width];
+						auto& b = vecTemp[p.x + 2 + ( p.y + 1 ) * bound1.width];
 						if( b )
 							continue;
 						b = 1;

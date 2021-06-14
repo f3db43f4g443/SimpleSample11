@@ -343,13 +343,6 @@ function Day3_Progress( nNode, pawn )
   WaitFor( ScenarioDialogue( 1, "Permission Tokens: " .. tostring( nProgress ) .. ".", dtx_color_2, 60 ) )
   WaitFor( ScenarioDialogue( 1, tostring( 3 - nProgress ) .. " permission tokens left.", dtx_color_2, -1 ) )
 
-  if g_test then
-   Delay( 60 )
-   WaitFor( ScenarioDialogue( 1, "YOU HAVE COMPLETED THE DEMO", dtx_color_h, -1 ) )
-   TransferTo( "data/cutscene/end.pf" )
-   return
-  end
-
   if nProgress == 1 then
    WaitFor( ScenarioDialogue( 0, "I must send a report now...", dtx_color_1, -1 ) )
    Delay( 60 )
@@ -530,6 +523,10 @@ function Day3_unknown_btn_2()
   Delay_Down() Signal( proj, -1 )
   Delay_Down( true ) HeadText( "..........", htx_color_0 )
   Delay_Up() SetKeyInt( "$d2", 1 )
+ else
+  Delay_Down()
+  GetMasterLevel():BlackOut( 40, 0 )
+  GetCurLevel():GetPawnByName( "d" ):PlayState( "stand1" )
  end
 end
 
