@@ -210,6 +210,14 @@ struct SInputTableItem
 	CString strCharge;
 	bool bInverse;
 	int8 nActionGroup;
+
+	struct SInputItr
+	{
+		SInputItr( const SInputTableItem& item ) : sz( item.strInput.c_str() ), l( 0 ) {}
+		const char* sz;
+		int32 l;
+		int32 Next();
+	};
 };
 
 struct SStateInputTableItem
@@ -615,7 +623,8 @@ protected:
 	virtual bool CheckAction( int32 nGroup ) override;
 	virtual bool CheckCanFinish() override;
 	bool HandleInput( int32 nActionGroup );
-	bool CheckInputTableItem( SInputTableItem& item );
+	int32 CheckInputTableItem( SInputTableItem& item );
+	const char* CheckInputTableItem1( SInputTableItem& item, int32& len );
 	bool ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource );
 	void FlushInput( int32 nMatchLen, int8 nChargeKey, int8 nType );
 	virtual bool StateCost( int8 nType, int32 nCount ) override;
@@ -663,7 +672,7 @@ protected:
 	vector<SInputTableItem*> m_vecActionPreviewInputItem[ePlayerStateSource_Count];
 	int32 m_nActionPreviewIndex;
 	CString m_strActionPreviewCharge;
-	CString m_strDelayedChargeInput;
+	string m_strDelayedChargeInput;
 	/*int8 m_nMoveXInput;
 	int8 m_nMoveYInput;
 	int8 m_nAttackInput;*/
@@ -707,7 +716,8 @@ public:
 	virtual void Update() override;
 	CPlayerEquipment* GetEquipment() { return m_pEquipment; }
 	bool IsPickUpReady();
-	void PickUp( CPlayer* pPlayer );
+	bool PickUp( CPlayer* pPlayer );
+	bool PickUp1( CPlayer* pPlayer );
 	void PreDrop( CPlayerEquipment* pEquipment, int32 nDropState ) { m_pEquipment = pEquipment; SetInitState( nDropState ); m_bDropped = true; }
 protected:
 	virtual int32 GetDefaultState() override;

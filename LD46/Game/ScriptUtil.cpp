@@ -116,7 +116,7 @@ void PlayerPickUp( const char* szName, CPlayer* pPlayer = NULL )
 		pEquipment->Init();
 	if( !pPlayer )
 		pPlayer = GetPlayer();
-	pPickUp->PickUp( pPlayer );
+	pPickUp->PickUp1( pPlayer );
 }
 
 int32 RandInt( int32 nMin, int32 nMax )

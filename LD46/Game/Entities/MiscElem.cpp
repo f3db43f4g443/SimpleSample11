@@ -414,8 +414,9 @@ int32 CPawnAIShelf::Signal( int32 i )
 	auto pPlayer = pPawn->GetLevel()->GetPlayer();
 	if( m_pPickUp )
 	{
+		if( !m_pPickUp->PickUp1( pPlayer ) )
+			return 1;
 		m_pPickUp->SetParentEntity( NULL );
-		m_pPickUp->PickUp( pPlayer );
 		m_pPickUp = NULL;
 	}
 	m_pSpawnHelper = NULL;
@@ -713,6 +714,13 @@ int32 CHitButton::Signal( int32 i )
 		ChangeState( m_arrTransferStates[m_nCur], false );
 		if( m_strRepairedKey.length() )
 			GetStage()->GetMasterLevel()->SetKeyInt( m_strRepairedKey, 1 );
+		if( m_strStateChangeScript.c_str() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strStateChangeScript );
+			pLuaState->PushLua( m_nCur );
+			pLuaState->Call( 1, 0 );
+		}
 		return 1;
 	}
 	return 0;

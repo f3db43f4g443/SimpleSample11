@@ -80,10 +80,23 @@ void CActionPreview::Update()
 					{
 						if( l == 1 && !bChargeKey )
 							break;
-						auto str = l == 0 ? v[j]->strInput : m_pPreviewPlayer->m_strActionPreviewCharge;
-						for( int k = 0; k < str.length(); k++ )
+						const char* sz;
+						int32 len;
+						if( l == 0 )
 						{
-							auto c = str[k];
+							SInputTableItem::SInputItr itr( *v[j] );
+							itr.Next();
+							sz = itr.sz;
+							len = itr.l;
+						}
+						else
+						{
+							sz = m_pPreviewPlayer->m_strActionPreviewCharge.c_str();
+							len = m_pPreviewPlayer->m_strActionPreviewCharge.length();
+						}
+						for( int k = 0; k < len; k++ )
+						{
+							auto c = sz[k];
 							int32 nTex;
 							if( c == '6' )
 								nTex = nCurDir ? 4 : 0;
@@ -354,10 +367,23 @@ void CActionPreview::AddRecord( SInputTableItem* pItem )
 		{
 			if( l == 1 && !bChargeKey )
 				break;
-			auto str = l == 0 ? pItem->strInput : m_pPreviewPlayer->m_strActionPreviewCharge;
-			for( int k = 0; k < str.length(); k++ )
+			const char* sz;
+			int32 len;
+			if( l == 0 )
 			{
-				auto c = str[k];
+				SInputTableItem::SInputItr itr( *pItem );
+				itr.Next();
+				sz = itr.sz;
+				len = itr.l;
+			}
+			else
+			{
+				sz = m_pPreviewPlayer->m_strActionPreviewCharge.c_str();
+				len = m_pPreviewPlayer->m_strActionPreviewCharge.length();
+			}
+			for( int k = 0; k < len; k++ )
+			{
+				auto c = sz[k];
 				int32 nTex;
 				if( c == '6' )
 					nTex = nCurDir ? 4 : 0;

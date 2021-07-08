@@ -21,6 +21,15 @@ void CLevelSpawnHelper::OnPreview()
 	}
 }
 
+int32 SInputTableItem::SInputItr::Next()
+{
+	sz += l;
+	while( *sz == '|' )
+		sz++;
+	for( l = 0; sz[l] != '|' && sz[l]; l++ );
+	return l;
+}
+
 void CPawn::OnPreview()
 {
 	if( m_arrSubStates.Size() )
@@ -1032,10 +1041,13 @@ void CPawn::Update0()
 		}
 		else
 		{
-			auto pImage = static_cast<CImage2D*>( GetRenderObject() );
-			pImage->SetRect( m_curStateRect );
-			pImage->SetBoundDirty();
-			pImage->SetTexRect( texRect );
+			auto pImage = SafeCast<CImage2D>( GetRenderObject() );
+			if( pImage )
+			{
+				pImage->SetRect( m_curStateRect );
+				pImage->SetBoundDirty();
+				pImage->SetTexRect( texRect );
+			}
 		}
 	}
 	else
@@ -2017,10 +2029,13 @@ bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 						{
 							if( strDelayedChargeInput.length() && nReason == ePawnStateTransitReason_JumpTo )
 							{
-								if( item.strInput == strDelayedChargeInput )
+								for( SInputTableItem::SInputItr itr( item ); itr.Next(); )
 								{
-									ExecuteInputtableItem( item, m_nCurStateSource );
-									return true;
+									if( itr.l == strDelayedChargeInput.length() && 0 == strncmp( strDelayedChargeInput.c_str(), itr.sz, itr.l ) )
+									{
+										ExecuteInputtableItem( item, m_nCurStateSource );
+										return true;
+									}
 								}
 							}
 							else
@@ -2031,19 +2046,23 @@ bool CPlayer::ControllingPawnCheckStateInput( int32 nReason )
 							if( CheckAction( m_nCurActionGroup ) )
 								return true;
 						}
-						else if( CheckInputTableItem( item ) )
+						else
 						{
-							int32 nMatchLen = item.strInput.length();
-							int32 nChargeKey = 0;
-							if( nMatchLen && item.strInput[nMatchLen - 1] == '#' )
-								nChargeKey = m_nChargeKeyDown;
-							if( ExecuteInputtableItem( item, m_nCurStateSource ) )
+							int32 nMatchLen;
+							auto szInput = CheckInputTableItem1( item, nMatchLen );
+							if( szInput )
 							{
-								FlushInput( nMatchLen, nChargeKey, 1 );
-								return true;
+								int32 nChargeKey = 0;
+								if( nMatchLen && szInput[nMatchLen - 1] == '#' )
+									nChargeKey = m_nChargeKeyDown;
+								if( ExecuteInputtableItem( item, m_nCurStateSource ) )
+								{
+									FlushInput( nMatchLen, nChargeKey, 1 );
+									return true;
+								}
+								else
+									return false;
 							}
-							else
-								return false;
 						}
 					}
 				}
@@ -2214,10 +2233,13 @@ bool CPlayer::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 						{
 							if( strDelayedChargeInput.length() && nReason == ePawnStateTransitReason_JumpTo )
 							{
-								if( item.strInput == strDelayedChargeInput )
+								for( SInputTableItem::SInputItr itr( item ); itr.Next(); )
 								{
-									ExecuteInputtableItem( item, m_nCurStateSource );
-									return true;
+									if( itr.l == strDelayedChargeInput.length() && 0 == strncmp( strDelayedChargeInput.c_str(), itr.sz, itr.l ) )
+									{
+										ExecuteInputtableItem( item, m_nCurStateSource );
+										return true;
+									}
 								}
 							}
 							else
@@ -2228,20 +2250,24 @@ bool CPlayer::TransitTo( const char* szToName, int32 nTo, int32 nReason )
 							if( CheckAction( m_nCurActionGroup ) )
 								return true;
 						}
-						else if( CheckInputTableItem( item ) )
+						else
 						{
-							int32 nMatchLen = item.strInput.length();
-							int32 nChargeKey = 0;
-							if( nMatchLen && item.strInput[nMatchLen - 1] == '#' )
-								nChargeKey = m_nChargeKeyDown;
-							if( ExecuteInputtableItem( item, m_nCurStateSource ) )
+							int32 nMatchLen;
+							auto szInput = CheckInputTableItem1( item, nMatchLen );
+							if( szInput )
 							{
-								m_nActionEftFrame = ACTION_EFT_FRAMES;
-								FlushInput( nMatchLen, nChargeKey, 1 );
-								return true;
+								int32 nChargeKey = 0;
+								if( nMatchLen && szInput[nMatchLen - 1] == '#' )
+									nChargeKey = m_nChargeKeyDown;
+								if( ExecuteInputtableItem( item, m_nCurStateSource ) )
+								{
+									m_nActionEftFrame = ACTION_EFT_FRAMES;
+									FlushInput( nMatchLen, nChargeKey, 1 );
+									return true;
+								}
+								else
+									goto forcebreak;
 							}
-							else
-								goto forcebreak;
 						}
 					}
 				}
@@ -2515,12 +2541,16 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				continue;
 			if( IsActionPreview() )
 				ActionPreviewAddInputItem( m_nCurStateSource, &item );
-			else if( CheckInputTableItem( item ) )
+			else
 			{
-				bool b = ExecuteInputtableItem( item, -1 );
-				ASSERT( b );
-				FlushInput( item.strInput.length(), 0, 0 );
-				return true;
+				auto len = CheckInputTableItem( item );
+				if( len )
+				{
+					bool b = ExecuteInputtableItem( item, -1 );
+					ASSERT( b );
+					FlushInput( len, 0, 0 );
+					return true;
+				}
 			}
 		}
 		if( IsActionPreview() )
@@ -2538,12 +2568,16 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				continue;
 			if( IsActionPreview() )
 				ActionPreviewAddInputItem( ePlayerStateSource_Mount, &item );
-			else if( CheckInputTableItem( item ) )
+			else
 			{
-				bool b = ExecuteInputtableItem( item, ePlayerStateSource_Mount );
-				ASSERT( b );
-				FlushInput( item.strInput.length(), 0, 0 );
-				return true;
+				auto len = CheckInputTableItem( item );
+				if( len )
+				{
+					bool b = ExecuteInputtableItem( item, ePlayerStateSource_Mount );
+					ASSERT( b );
+					FlushInput( len, 0, 0 );
+					return true;
+				}
 			}
 		}
 		if( IsActionPreview() )
@@ -2566,12 +2600,17 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				continue;
 			if( IsActionPreview() )
 				ActionPreviewAddInputItem( ePlayerEquipment_Large + 1, &item );
-			else if( CheckInputTableItem( item ) )
+
+			else
 			{
-				bool b = ExecuteInputtableItem( item, ePlayerEquipment_Large + 1 );
-				ASSERT( b );
-				FlushInput( item.strInput.length(), 0, 0 );
-				return true;
+				auto len = CheckInputTableItem( item );
+				if( len )
+				{
+					bool b = ExecuteInputtableItem( item, ePlayerEquipment_Large + 1 );
+					ASSERT( b );
+					FlushInput( len, 0, 0 );
+					return true;
+				}
 			}
 		}
 		if( !IsActionPreview() && m_parsedInputSequence.size() && m_parsedInputSequence.back() == -4 )
@@ -2615,12 +2654,17 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 					continue;
 				if( IsActionPreview() )
 					ActionPreviewAddInputItem( i + 1, &item );
-				else if( CheckInputTableItem( item ) )
+
+				else
 				{
-					bool b = ExecuteInputtableItem( item, i + 1 );
-					ASSERT( b );
-					FlushInput( item.strInput.length(), 0, 0 );
-					return true;
+					auto len = CheckInputTableItem( item );
+					if( len )
+					{
+						bool b = ExecuteInputtableItem( item, i + 1 );
+						ASSERT( b );
+						FlushInput( len, 0, 0 );
+						return true;
+					}
 				}
 			}
 		}
@@ -2632,12 +2676,16 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 			continue;
 		if( IsActionPreview() )
 			ActionPreviewAddInputItem( 0, &item );
-		else if( CheckInputTableItem( item ) )
+		else
 		{
-			bool b = ExecuteInputtableItem( item, 0 );
-			ASSERT( b );
-			FlushInput( item.strInput.length(), 0, 0 );
-			return true;
+			auto len = CheckInputTableItem( item );
+			if( len )
+			{
+				bool b = ExecuteInputtableItem( item, 0 );
+				ASSERT( b );
+				FlushInput( len, 0, 0 );
+				return true;
+			}
 		}
 	}
 	if( IsActionPreview() )
@@ -2685,48 +2733,68 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 	return false;
 }
 
-bool CPlayer::CheckInputTableItem( SInputTableItem& item )
+int32 CPlayer::CheckInputTableItem( SInputTableItem& item )
 {
-	int32 l = item.strInput.length();
-	if( l && item.strInput[l - 1] == '#' )
+	int32 l = 0;
+	CheckInputTableItem1( item, l );
+	return l;
+}
+
+const char* CPlayer::CheckInputTableItem1( SInputTableItem& item, int32& len )
+{
+	for( SInputTableItem::SInputItr itr( item ); itr.Next(); )
 	{
-		if( !m_nChargeKeyDown )
-			return false;
-		l--;
-	}
-	if( m_parsedInputSequence.size() < l )
-		return false;
-	auto nCurDir = m_pControllingPawn ? m_pControllingPawn->GetCurDir() : m_nCurDir;
-	for( int j = 0; j < l; j++ )
-	{
-		auto nInput = m_parsedInputSequence[j + m_parsedInputSequence.size() - l];
-		auto chInput = item.strInput[j];
-		auto nInput1 = 0;
-		if( chInput >= '1' && chInput <= '9' )
+		auto sz = itr.sz;
+		int32 l = itr.l;
+		if( l && sz[l - 1] == '#' )
 		{
-			int8 nForward = nCurDir == 0 ? 1 : 4;
-			int8 nBack = nCurDir == 0 ? 4 : 1;
-			if( chInput == '3' || chInput == '6' || chInput == '9' )
-				nInput1 |= nForward;
-			if( chInput == '1' || chInput == '4' || chInput == '7' )
-				nInput1 |= nBack;
-			if( chInput == '7' || chInput == '8' || chInput == '9' )
-				nInput1 |= 2;
-			if( chInput == '1' || chInput == '2' || chInput == '3' )
-				nInput1 |= 8;
+			if( !m_nChargeKeyDown )
+				continue;
+			l--;
 		}
-		else if( chInput == 'A' )
-			nInput1 = -1;
-		else if( chInput == 'B' )
-			nInput1 = -2;
-		else if( chInput == 'C' )
-			nInput1 = -3;
-		else if( chInput == 'D' )
-			nInput1 = -4;
-		if( nInput != nInput1 )
-			return false;
+		if( m_parsedInputSequence.size() < l )
+			continue;
+		auto nCurDir = m_pControllingPawn ? m_pControllingPawn->GetCurDir() : m_nCurDir;
+		bool bOK = true;
+		for( int j = 0; j < l; j++ )
+		{
+			auto nInput = m_parsedInputSequence[j + m_parsedInputSequence.size() - l];
+			auto chInput = sz[j];
+			auto nInput1 = 0;
+			if( chInput >= '1' && chInput <= '9' )
+			{
+				int8 nForward = nCurDir == 0 ? 1 : 4;
+				int8 nBack = nCurDir == 0 ? 4 : 1;
+				if( chInput == '3' || chInput == '6' || chInput == '9' )
+					nInput1 |= nForward;
+				if( chInput == '1' || chInput == '4' || chInput == '7' )
+					nInput1 |= nBack;
+				if( chInput == '7' || chInput == '8' || chInput == '9' )
+					nInput1 |= 2;
+				if( chInput == '1' || chInput == '2' || chInput == '3' )
+					nInput1 |= 8;
+			}
+			else if( chInput == 'A' )
+				nInput1 = -1;
+			else if( chInput == 'B' )
+				nInput1 = -2;
+			else if( chInput == 'C' )
+				nInput1 = -3;
+			else if( chInput == 'D' )
+				nInput1 = -4;
+			if( nInput != nInput1 )
+			{
+				bOK = false;
+				break;
+			}
+		}
+		if( bOK )
+		{
+			len = itr.l;
+			return sz;
+		}
 	}
-	return true;
+	return NULL;
 }
 
 bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
@@ -2904,10 +2972,15 @@ bool CPlayer::ActionPreviewWaitInput( bool bJumpTo )
 	}
 	if( pItem )
 	{
-		if( !bJumpTo && pItem->strInput.length() && pItem->strInput[pItem->strInput.length() - 1] == '#' )
+		if( !bJumpTo && pItem->strInput.length() )
 		{
-			m_strDelayedChargeInput = pItem->strInput;
-			return true;
+			SInputTableItem::SInputItr itr( *pItem );
+			auto l = itr.Next();
+			if( l && itr.sz[l - 1] == '#' )
+			{
+				m_strDelayedChargeInput.assign( itr.sz, itr.sz + itr.l );
+				return true;
+			}
 		}
 		ExecuteInputtableItem( *pItem, m_nActionPreviewType );
 		return true;
@@ -3082,7 +3155,7 @@ bool CPickUp::IsPickUpReady()
 	return 0 == strncmp( "stand", GetCurState().strName.c_str(), 5 );
 }
 
-void CPickUp::PickUp( CPlayer* pPlayer )
+bool CPickUp::PickUp( CPlayer* pPlayer )
 {
 	if( GetLevel() )
 	{
@@ -3094,7 +3167,7 @@ void CPickUp::PickUp( CPlayer* pPlayer )
 			pLuaState->Call( 1, 1 );
 			int32 nResult = pLuaState->PopLuaValue<int32>();
 			if( nResult )
-				return;
+				return false;
 		}
 	}
 	if( m_pEquipment )
@@ -3109,6 +3182,28 @@ void CPickUp::PickUp( CPlayer* pPlayer )
 		m_strKillScript = "";
 		GetLevel()->RemovePawn( this );
 	}
+	return true;
+}
+
+bool CPickUp::PickUp1( CPlayer * pPlayer )
+{
+	if( m_strScript.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( m_strScript );
+		pLuaState->PushLua( this );
+		pLuaState->Call( 1, 1 );
+		int32 nResult = pLuaState->PopLuaValue<int32>();
+		if( nResult )
+			return false;
+	}
+	if( m_pEquipment )
+	{
+		m_pEquipment->PrePickedUp( this );
+		pPlayer->Equip( m_pEquipment );
+		m_pEquipment = NULL;
+	}
+	return true;
 }
 
 int32 CPickUp::GetDefaultState()

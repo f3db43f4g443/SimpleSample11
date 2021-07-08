@@ -32,6 +32,8 @@ CString::CString( const CString& str ) :m_ptr( str.m_ptr )
 
 CString::~CString()
 {
+	if( !m_ptr )
+		return;
 	map<string, int>::_Nodeptr ptr = map<string, int>::_Nodeptr( m_ptr );
 	if( !--( ptr->_Myval.second ) )
 	{

@@ -2425,7 +2425,15 @@ void CMyLevel::Init( int8 nType )
 		{
 			if( !pMasterLevel->EvaluateKeyInt( pSpawnHelper->m_strSpawnCondition ) )
 			{
-				pSpawnHelper->SetParentEntity( NULL );
+				if( pSpawnHelper->m_nSpawnType != 2 )
+				{
+					pSpawnHelper->SetParentEntity( NULL );
+					continue;
+				}
+			}
+			else if( pSpawnHelper->m_nSpawnType == 2 )
+			{
+				HandleSpawn( pSpawnHelper );
 				continue;
 			}
 		}
@@ -4982,7 +4990,11 @@ void CMasterLevel::JumpBack( int8 nType )
 	if( nType == 0 )
 		m_worldData.OnReset( m_pPlayer );
 	else if( nType == 1 )
+	{
 		m_worldData.OnRetreat( m_pPlayer );
+		if( !m_worldData.nCurFrameCount )
+			RemoveAllSnapShot();
+	}
 	else
 	{
 		m_worldData.OnRestoreToCheckpoint( m_pPlayer );

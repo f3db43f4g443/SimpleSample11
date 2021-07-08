@@ -516,7 +516,7 @@ function Day3_unknown_btn_2()
   Delay_Down() HeadText( "Go to school now or you'll be late.", htx_color_h )
   Delay_Down() HeadText( "NO.", htx_color_0 )
   Delay_Down() HeadText( "Why?", htx_color_0 )
-  Delay_Down() HeadText( "You've been absent from school for over 2 months.", htx_color_h )
+  Delay_Down() HeadText( "You've been absent from school for several months.", htx_color_h )
   Delay_Down() HeadText( "Go now. You will find the answer.", htx_color_h )
   Delay_Down() HeadText( "You will see what you've been wanting.", htx_color_h )
   Delay_Down() HeadText( "......You and your...father.", htx_color_h )
@@ -528,6 +528,42 @@ function Day3_unknown_btn_2()
   GetMasterLevel():BlackOut( 40, 0 )
   GetCurLevel():GetPawnByName( "d" ):PlayState( "stand1" )
  end
+end
+
+function Day3_unknown_el_door_open()
+ if EvaluateKeyInt( "day3_unknown_3_el_repaired" ) > 0 or GetCurLevel():IsSnapShot() then return true end
+ local player = GetPlayer()
+ if player:GetEquipment( 3 ) then return false end
+ return true
+end
+
+function Day3_unknown_el_target_complete( x )
+ if EvaluateKeyInt( "$target" ) > 0 then return end
+ SetKeyInt( "$target", 1 )
+ local n = EvaluateKeyInt( "day3_unknown_3_quest_1" )
+ SetKeyInt( "day3_unknown_3_quest_1", n + 1 )
+ SetKeyInt( "day3_unknown_3_block", 1 )
+end
+
+function Day3_unknown_el_block_path()
+ local player = GetPlayer()
+ while player:GetToX() == 8 and player:GetToY() == 4 or player:GetToX() == 10 and player:GetToY() == 4 do coroutine.yield() end
+ RunScenario( function()
+  Delay( 60 )
+  PlaySoundEffect( "alert1" )
+  GetMasterLevel():BlackOut( 40, 0 )
+  for i = 1, 7, 1 do GetCurLevel():SpawnPreset( tostring( i ) ) end
+  Delay( 60 )
+  
+  local n = EvaluateKeyInt( "day3_unknown_3_quest_1" )
+  if n == 2 then WaitFor( ScenarioDialogue( 1, "...Sorry, this way is being blocked.", dtx_color_h, -1 ), 60 )
+  elseif n == 3 then WaitFor( ScenarioDialogue( 1, "Excuse me sir, your ID please.", dtx_color_h, -1 ), 60 )
+  elseif n == 4 then WaitFor( ScenarioDialogue( 1, "You should not walk around at this time.", dtx_color_h, -1 ), 60 )
+  end
+  SetKeyInt( "$blocked", 1 )
+  SetKeyInt( "day3_unknown_3_block", 0 )
+  Delay( 60 )
+ end )
 end
 
 function LibrarySystem_OnUpdate1()
