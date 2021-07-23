@@ -530,6 +530,39 @@ function Day3_unknown_btn_2()
  end
 end
 
+function Day3_unknown_btn_4()
+ local Delay_Down = function( b )
+  while EvaluateKeyInt( "$btn" ) == 0 do
+   coroutine.yield()
+  end
+  if not b then SetKeyInt( "$btn", 0 ) end
+ end
+ local Delay_Up = function()
+  while EvaluateKeyInt( "$btn" ) == 1 do
+   coroutine.yield()
+  end
+ end
+ local player = GetPlayer()
+ Delay_Down() HeadText( "Mom...", htx_color_0 )
+ Delay_Down() HeadText( "I've had enough...", htx_color_0 )
+ Delay_Down() HeadText( "I can't stay here anymore...", htx_color_0 )
+ Delay_Down() HeadText( "I can't live like this...", htx_color_0 )
+ Delay_Down() HeadText( "Like a rat slowly drowning in a sewer...", htx_color_0 )
+ Delay_Down() HeadText( "I'm going to the police...", htx_color_0 )
+ Delay_Down() HeadText( "I'll give myself up...", htx_color_0 )
+ Delay_Down() HeadText( "I'll give everything up...", htx_color_0 )
+ Delay_Down() HeadText( "I'm already done...", htx_color_0 )
+ Delay_Down() HeadText( "Nothing can help...", htx_color_0 )
+ Delay_Down() HeadText( "I'll end my life there...", htx_color_0 )
+ Delay_Down() HeadText( "I won't miss here...", htx_color_0 )
+ Delay_Down() HeadText( "I won't miss anything...", htx_color_0 )
+ Delay_Down() HeadText( "Don't worry about me...", htx_color_0 )
+ Delay_Down() HeadText( "Goodbye...", htx_color_0 )
+ Delay_Down() HeadText( "..........", htx_color_0 )
+ Delay_Down( true )
+ Delay_Up() GetMasterLevel():BlackOut( 40 ) SetKeyInt( "$d1", 1 )
+end
+
 function Day3_unknown_el_door_open()
  if EvaluateKeyInt( "day3_unknown_3_el_repaired" ) > 0 or GetCurLevel():IsSnapShot() then return true end
  local player = GetPlayer()
@@ -547,7 +580,7 @@ end
 
 function Day3_unknown_el_block_path()
  local player = GetPlayer()
- while player:GetToX() == 8 and player:GetToY() == 4 or player:GetToX() == 10 and player:GetToY() == 4 do coroutine.yield() end
+ while not( player:GetToX() == 8 and player:GetToY() == 4 or player:GetToX() == 10 and player:GetToY() == 4 ) do coroutine.yield() end
  RunScenario( function()
   Delay( 60 )
   PlaySoundEffect( "alert1" )

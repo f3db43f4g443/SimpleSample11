@@ -31,22 +31,29 @@ CSoundTrack::CSoundTrack( IDirectSound* pDSound, CSound* pSound )
 	pDSound->DuplicateSoundBuffer( pSound->m_pBuffer, m_pBuffer.AssignPtr() );
 }
 
-void CSoundTrack::Play( uint32 nFlag )
+void CSoundTrack::Play( uint32 nFlag, bool bReset )
 {
 	CReference<CSoundTrack> pTemp = this;
 	Stop();
 
+	m_nPlayFlag = nFlag;
 	m_pBuffer->SetCurrentPosition( 0 );
-	bool bLoop = nFlag & ESoundPlay_Loop;
-	m_pBuffer->Play( 0, 0, bLoop ? DSBPLAY_LOOPING : 0 );
-	m_bIsPlaying = true;
-	if( !bLoop )
-		static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( m_pSound->GetDesc().nTotalTime, &m_onTimeout );
-	if( nFlag & ESoundPlay_KeepRef )
+	if( !bReset )
 	{
-		m_bIsKeepingRef = true;
-		AddRef();
+		bool bLoop = nFlag & ESoundPlay_Loop;
+		m_pBuffer->Play( 0, 0, bLoop ? DSBPLAY_LOOPING : 0 );
+		m_bIsPlaying = true;
+		m_nPlayTimeStamp = static_cast<CRenderSystem*>( IRenderSystem::Inst() )->GetTimeStamp();
+		if( !bLoop )
+			static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( m_pSound->GetDesc().nTotalTime, &m_onTimeout );
+		if( nFlag & ESoundPlay_KeepRef )
+		{
+			m_bIsKeepingRef = true;
+			AddRef();
+		}
 	}
+	else
+		m_nPlayedTime = 0;
 }
 
 void CSoundTrack::Stop()
@@ -55,12 +62,31 @@ void CSoundTrack::Stop()
 		return;
 	m_bIsPlaying = false;
 	m_pBuffer->Stop();
+	m_nPlayedTime = static_cast<CRenderSystem*>( IRenderSystem::Inst() )->GetTimeStamp() - m_nPlayTimeStamp;
 	if( m_onTimeout.IsRegistered() )
 		m_onTimeout.Unregister();
 	if( m_bIsKeepingRef )
 	{
 		m_bIsKeepingRef = false;
 		Release();
+	}
+}
+
+void CSoundTrack::Resume()
+{
+	if( m_bIsPlaying )
+		return;
+	CReference<CSoundTrack> pTemp = this;
+	bool bLoop = m_nPlayFlag & ESoundPlay_Loop;
+	m_pBuffer->Play( 0, 0, bLoop ? DSBPLAY_LOOPING : 0 );
+	m_bIsPlaying = true;
+	m_nPlayTimeStamp = static_cast<CRenderSystem*>( IRenderSystem::Inst() )->GetTimeStamp() - m_nPlayedTime;
+	if( !bLoop )
+		static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( Max<int32>( 1, m_pSound->GetDesc().nTotalTime - m_nPlayedTime ), &m_onTimeout );
+	if( m_nPlayFlag & ESoundPlay_KeepRef )
+	{
+		m_bIsKeepingRef = true;
+		AddRef();
 	}
 }
 
@@ -75,6 +101,20 @@ void CSoundTrack::FadeOut( float fTime )
 	static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( 33, &m_onTick );
 }
 
+void CSoundTrack::SetVolume( float fVolume )
+{
+	m_fVolume = fVolume;
+	int32 volume = log10( m_fVolume ) * 10 * 100;
+	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
+}
+
+void CSoundTrack::SetVolumeDB( float fVolume )
+{
+	m_fVolume = exp( fVolume / 10 );
+	int32 volume = fVolume * 100;
+	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
+}
+
 void CSoundTrack::OnTick()
 {
 	float fTime = 33.0f / 1000;
@@ -87,8 +127,8 @@ void CSoundTrack::OnTick()
 		return;
 	}
 
-	LONG volume = log10( m_fVolume ) * 10 * 100;
-	HRESULT hr = m_pBuffer->SetVolume( volume );
+	int32 volume = log10( m_fVolume ) * 10 * 100;
+	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
 	static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( 33, &m_onTick );
 }
 

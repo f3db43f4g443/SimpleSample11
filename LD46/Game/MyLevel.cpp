@@ -2198,7 +2198,7 @@ void CMyLevel::EndNoise()
 {
 	if( m_pNoise )
 	{
-		m_pNoise->Stop();
+		m_pNoise->FadeOut( 0.05f );
 		m_pNoise = NULL;
 	}
 }
@@ -4390,6 +4390,11 @@ void SWorldDataFrame::Load( IBufReader& buf, int32 nVersion )
 	buf.Read( nPlayerEnterDir );
 	buf.Read( bForceAllVisible );
 	buf.Read( playerData );
+	if( nVersion >= 9 )
+	{
+		buf.Read( strGlobalBGM );
+		buf.Read( nGlobalBGMPriority );
+	}
 
 	int32 n;
 	buf.Read( n );
@@ -4488,6 +4493,8 @@ void SWorldDataFrame::Save( CBufFile& buf )
 	buf.Write( nPlayerEnterDir );
 	buf.Write( bForceAllVisible );
 	buf.Write( playerData );
+	buf.Write( strGlobalBGM );
+	buf.Write( nGlobalBGMPriority );
 
 	buf.Write( mapLevelData.size() );
 	for( auto& item : mapLevelData )
@@ -4605,7 +4612,7 @@ void SWorldData::Load( IBufReader& buf )
 
 void SWorldData::Save( CBufFile& buf )
 {
-	int32 nVersion = 8;
+	int32 nVersion = 9;
 	buf.Write( nVersion );
 	buf.Write( nCurFrameCount );
 	for( int i = 0; i < nCurFrameCount; i++ )
@@ -4613,18 +4620,15 @@ void SWorldData::Save( CBufFile& buf )
 		auto pFrame = backupFrames[i];
 		pFrame->Save( buf );
 
-		if( nVersion >= 7 )
-		{
-			buf.Write( pFrame->curLevelSnapShot.bValid );
-			if( pFrame->curLevelSnapShot.bValid )
-				pFrame->curLevelSnapShot.Save( buf );
+		buf.Write( pFrame->curLevelSnapShot.bValid );
+		if( pFrame->curLevelSnapShot.bValid )
+			pFrame->curLevelSnapShot.Save( buf );
 
-			buf.Write( pFrame->mapClearedSnapShot.size() );
-			for( auto& item : pFrame->mapClearedSnapShot )
-			{
-				buf.Write( item.first );
-				item.second.Save( buf );
-			}
+		buf.Write( pFrame->mapClearedSnapShot.size() );
+		for( auto& item : pFrame->mapClearedSnapShot )
+		{
+			buf.Write( item.first );
+			item.second.Save( buf );
 		}
 	}
 	if( pCheckPoint )
@@ -4634,20 +4638,18 @@ void SWorldData::Save( CBufFile& buf )
 	}
 	else
 		buf.Write<int8>( 0 );
-	if( nVersion >= 7 )
+
+	buf.Write( mapSnapShotCur.size() );
+	for( auto& item : mapSnapShotCur )
 	{
-		buf.Write( mapSnapShotCur.size() );
-		for( auto& item : mapSnapShotCur )
-		{
-			buf.Write( item.first );
-			item.second.Save( buf );
-		}
-		buf.Write( mapSnapShotCheckPoint.size() );
-		for( auto& item : mapSnapShotCheckPoint )
-		{
-			buf.Write( item.first );
-			item.second.Save( buf );
-		}
+		buf.Write( item.first );
+		item.second.Save( buf );
+	}
+	buf.Write( mapSnapShotCheckPoint.size() );
+	for( auto& item : mapSnapShotCheckPoint )
+	{
+		buf.Write( item.first );
+		item.second.Save( buf );
 	}
 }
 
@@ -4752,16 +4754,18 @@ void SWorldData::OnRetreat( CPlayer* pPlayer )
 
 void SWorldData::CheckPoint( CPlayer* pPlayer )
 {
-	if( !pCheckPoint )
-		pCheckPoint = new SWorldDataFrame;
+	auto pCheckPoint0 = pCheckPoint;
+	pCheckPoint = new SWorldDataFrame;
 	*pCheckPoint = curFrame;
 	pCheckPoint->playerEnterPos = pPlayer->GetPos();
 	pCheckPoint->nPlayerEnterDir = pPlayer->GetCurDir();
 	pCheckPoint->playerData.Clear();
 	pPlayer->SaveData( pCheckPoint->playerData );
-	for( int iFrame = nCurFrameCount - 1; iFrame >= 0; iFrame-- )
+	for( int iFrame = nCurFrameCount - 1; iFrame >= -1; iFrame-- )
 	{
-		auto p = backupFrames[iFrame];
+		auto p = iFrame == -1 ? pCheckPoint0 : backupFrames[iFrame];
+		if( !p )
+			break;
 		auto n = Min<int32>( p->vecScenarioRecords.size(), MAX_SCENARIO_RECORDS - pCheckPoint->vecScenarioRecords.size() );
 		for( int i = p->vecScenarioRecords.size() - 1; i >= (int32)p->vecScenarioRecords.size() - n; i-- )
 			pCheckPoint->vecScenarioRecords.push_front( p->vecScenarioRecords[i] );
@@ -4771,6 +4775,8 @@ void SWorldData::CheckPoint( CPlayer* pPlayer )
 	nCurFrameCount = 0;
 	curFrame.vecScenarioRecords.clear();
 	mapSnapShotCheckPoint = mapSnapShotCur;
+	if( pCheckPoint0 )
+		delete pCheckPoint0;
 }
 
 void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer )
@@ -5468,6 +5474,14 @@ void CMasterLevel::InterferenceStripEffect( int8 nType, float fSpeed )
 	}
 }
 
+void CMasterLevel::SetGlobalBGM( const char* sz, int32 nPriority )
+{
+	auto& data = m_worldData.curFrame;
+	data.strGlobalBGM = sz;
+	data.nGlobalBGMPriority = nPriority;
+	CheckBGM();
+}
+
 CVector2 CMasterLevel::GetCamPos()
 {
 	if( m_pTransferCoroutine )
@@ -5722,6 +5736,147 @@ void CMasterLevel::Update()
 				SafeCast<CInterferenceStripEffect>( m_pInterferenceStripEffect.GetPtr() )->Update();
 		}
 	}
+	UpdateBGM();
+}
+
+void CMasterLevel::CheckBGM()
+{
+	string strNewBGM;
+	if( m_pCurCutScene )
+		strNewBGM = "";
+	else if( m_pLastLevel )
+	{
+		strNewBGM = GetCurBGM();
+		if( strNewBGM != m_strBGM )
+			strNewBGM = "";
+	}
+	else
+		strNewBGM = GetCurBGM();
+	if( strNewBGM == m_strBGM )
+		return;
+
+	if( strNewBGM.length() && m_strFadeOutBGM == strNewBGM )
+	{
+		swap( m_fBGMFadeIn, m_fBGMFadeOut );
+		swap( m_pBGMSoundTrack, m_pBGMSoundTrackFadeOut );
+	}
+	else
+	{
+		if( m_strBGM.length() )
+		{
+			if( m_pBGMSoundTrackFadeOut )
+			{
+				m_pBGMSoundTrackFadeOut->FadeOut( 0.1f );
+				m_pBGMSoundTrackFadeOut = NULL;
+			}
+			m_pBGMSoundTrackFadeOut = m_pBGMSoundTrack;
+			m_fBGMFadeOut = m_fBGMFadeIn;
+		}
+		if( strNewBGM.length() )
+		{
+			CreateBGM( m_pBGMSoundTrack, strNewBGM.c_str() );
+			m_fBGMFadeIn = 0;
+			m_fBGMFadeInSpeed = 0.5f;
+		}
+		else
+			m_pBGMSoundTrack = NULL;
+	}
+	m_strBGM = strNewBGM;
+}
+
+void CMasterLevel::UpdateBGM()
+{
+	float fFadeOutSpeed = 0.5f;
+	float fFadeInSpeed = m_fBGMFadeInSpeed;
+	bool bMuteCurBGM = false;
+	float fTargetVolume = 1.0f;
+
+	if( m_nBlackOutFrame1 )
+	{
+		if( !m_pSpecialEftSoundTrack )
+		{
+			m_pSpecialEftSoundTrack = CGlobalCfg::Inst().pBlackOutSound->CreateSoundTrack();
+			m_pSpecialEftSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop );
+		}
+	}
+	else
+	{
+		if( m_pSpecialEftSoundTrack )
+		{
+			m_pSpecialEftSoundTrack->FadeOut( 0.05f );
+			m_pSpecialEftSoundTrack = NULL;
+		}
+	}
+
+	if( m_nBlackOutFrame1 || m_pCurLevel && ( m_pCurLevel->IsFailed() || m_pCurLevel->IsBegin() && m_pCurLevel->IsFreeze() ) )
+	{
+		fFadeOutSpeed = 20.0f;
+		m_fBGMFadeInSpeed = fFadeInSpeed = 20.0f;
+		bMuteCurBGM = true;
+	}
+	else if( IsScenario() )
+	{
+		fFadeOutSpeed = 1.0f;
+		m_fBGMFadeInSpeed = fFadeInSpeed = 0.25f;
+		bMuteCurBGM = true;
+	}
+	if( m_pCurLevel && m_pCurLevel->m_pNoise )
+	{
+		fFadeOutSpeed = Max( fFadeOutSpeed, 20.0f );
+		fFadeInSpeed = Max( fFadeInSpeed, 20.0f );
+		fTargetVolume = 0.03f;
+	}
+
+	if( m_pBGMSoundTrackFadeOut )
+	{
+		m_fBGMFadeOut -= fFadeOutSpeed * 1.0f / 60.0f;
+		if( m_fBGMFadeOut <= 0 )
+		{
+			m_fBGMFadeOut = 0;
+			m_pBGMSoundTrackFadeOut->Stop();
+			m_pBGMSoundTrackFadeOut = NULL;
+		}
+		else
+			m_pBGMSoundTrackFadeOut->SetVolumeDB( ( m_fBGMFadeOut - 1 ) * 40 );
+	}
+	if( m_pBGMSoundTrack )
+	{
+		if( bMuteCurBGM )
+		{
+			m_fBGMFadeIn = Max( 0.0f, m_fBGMFadeIn - fFadeOutSpeed * 1.0f / 60.0f );
+			m_pBGMSoundTrack->SetVolumeDB( ( m_fBGMFadeIn - 1 ) * 40 );
+			if( m_fBGMFadeIn <= 0 )
+				m_pBGMSoundTrack->Stop();
+		}
+		else
+		{
+			if( m_fBGMFadeIn == 0 )
+				m_pBGMSoundTrack->Resume();
+			if( m_fBGMFadeIn < fTargetVolume )
+				m_fBGMFadeIn = Min( fTargetVolume, m_fBGMFadeIn + fFadeInSpeed * 1.0f / 60.0f );
+			else
+				m_fBGMFadeIn = Max( fTargetVolume, m_fBGMFadeIn - fFadeOutSpeed * 1.0f / 60.0f );
+			m_pBGMSoundTrack->SetVolumeDB( ( m_fBGMFadeIn - 1 ) * 40 );
+			if( m_fBGMFadeIn >= fTargetVolume )
+				m_fBGMFadeInSpeed = 0.5f;
+		}
+	}
+}
+
+const char* CMasterLevel::GetCurBGM()
+{
+	auto& data = m_worldData.curFrame;
+	const char* szBGM = data.strGlobalBGM.c_str();
+	int32 n = data.strGlobalBGM.length() ? data.nGlobalBGMPriority : 0x80000000;
+	if( m_pCurLevel && m_pCurLevel->m_strBGM.length() )
+	{
+		if( m_pCurLevel->m_nBGMPriority >= n )
+		{
+			n = m_pCurLevel->m_nBGMPriority;
+			szBGM = m_pCurLevel->m_strBGM.c_str();
+		}
+	}
+	return szBGM;
 }
 
 void CMasterLevel::UpdateBattleEffect()
@@ -5759,8 +5914,8 @@ void CMasterLevel::RefreshSnapShot()
 	for( int i = 0; i < pLevelData->arrShowSnapShot.Size(); i++ )
 	{
 		auto sz = pLevelData->arrShowSnapShot[i].c_str();
-		auto& pSnapShot = m_mapSnapShot[sz];
-		UpdateSnapShot( sz );
+		if( !UpdateSnapShot( sz ) )
+			continue;
 		if( m_mapSnapShot.find( sz ) != m_mapSnapShot.end() )
 			m_setShowingSnapShot.insert( sz );
 	}
@@ -5772,7 +5927,7 @@ void CMasterLevel::RefreshSnapShot()
 	} );
 }
 
-void CMasterLevel::UpdateSnapShot( const char* sz )
+bool CMasterLevel::UpdateSnapShot( const char* sz )
 {
 	auto& pSnapShot = m_mapSnapShot[sz];
 	if( !pSnapShot )
@@ -5781,6 +5936,23 @@ void CMasterLevel::UpdateSnapShot( const char* sz )
 		if( itr != m_worldData.mapSnapShotCur.end() )
 		{
 			CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( sz );
+			if( pPrefab->GetRoot()->GetStaticDataSafe<CMyLevel>()->m_nDepth > m_pCurLevel->m_nDepth )
+			{
+				bool bFound = false;
+				for( int i = 0; i < m_pCurLevel->m_arrNextStage.Size(); i++ )
+				{
+					if( m_pCurLevel->m_arrNextStage[i].pNxtStage == pPrefab.GetPtr() )
+					{
+						bFound = true;
+						break;
+					}
+				}
+				if( !bFound )
+				{
+					m_mapSnapShot.erase( sz );
+					return false;
+				}
+			}
 			pSnapShot = SafeCast<CMyLevel>( pPrefab->GetRoot()->CreateInstance() );
 			auto pCurLevel = m_pCurLevel;
 			m_pCurLevel = pSnapShot;
@@ -5793,12 +5965,28 @@ void CMasterLevel::UpdateSnapShot( const char* sz )
 		else
 		{
 			m_mapSnapShot.erase( sz );
-			return;
+			return false;
 		}
+	}
+	if( pSnapShot->m_nDepth > m_pCurLevel->m_nDepth )
+	{
+		bool bFound = false;
+		for( int i = 0; i < m_pCurLevel->m_arrNextStage.Size(); i++ )
+		{
+			if( m_pCurLevel->m_arrNextStage[i].pNxtStage == pSnapShot->GetInstanceOwner() )
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if( !bFound )
+			return false;
 	}
 	pSnapShot->SetParentEntity( m_pSnapShotRoot );
 	auto worldCfg = GetStage()->GetWorld()->GetWorldCfg();
 	pSnapShot->SetPosition( worldCfg.GetLevelDisplayOfs( sz ) - worldCfg.GetLevelDisplayOfs( GetCurLevelName() ) );
+	pSnapShot->y -= ( m_pCurLevel->m_nDepth - pSnapShot->m_nDepth ) * 8;
+	return true;
 }
 
 void CMasterLevel::HideAllSnapShot()
@@ -5839,6 +6027,7 @@ void CMasterLevel::BeginCurLevel()
 	ResetMainUI();
 	m_pCurLevel->Begin();
 	RefreshSnapShot();
+	CheckBGM();
 }
 
 void CMasterLevel::EndCurLevel()
@@ -5887,6 +6076,7 @@ void CMasterLevel::TransferFunc()
 		Save();
 		m_pLastLevel = m_pCurLevel;
 		m_pCurLevel = pLevel;
+		CheckBGM();
 
 		if( !m_pCurCutScene )
 		{
@@ -5922,6 +6112,7 @@ void CMasterLevel::TransferFunc()
 			EndCurLevel();
 			m_pCurLevel->SetRenderParentAfter( m_pLevelFadeMask );
 			m_pCurCutScene = pCutScene;
+			CheckBGM();
 			TransferFuncLevel2Cut();
 		}
 		else
@@ -6777,6 +6968,8 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_BEGIN( m_strDestroyScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_strBGM )
+		REGISTER_MEMBER( m_nBGMPriority )
 
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( CheckGrid )
@@ -6894,5 +7087,6 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( GetInteractionUI )
 		REGISTER_LUA_CFUNCTION( BlackOut )
 		REGISTER_LUA_CFUNCTION( InterferenceStripEffect )
+		REGISTER_LUA_CFUNCTION( SetGlobalBGM )
 	REGISTER_CLASS_END()
 }

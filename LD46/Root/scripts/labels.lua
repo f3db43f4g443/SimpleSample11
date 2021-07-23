@@ -2,33 +2,33 @@ g_labels = {
 	{
 		day = 1,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 	{
 		day = 2,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 	{
 		day = 3,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
-			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 2, 6 }, { 6, 7 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_SAMPLE", key = "%_SAMPLE", counter = "%_SAMPLE_COUNTER", value = { { 2, 6 }, { 6, 7 }, { 7, 7 } } },
 			{ name = "_ELEVATOR_CARD", key = "%_ELEVATOR_CARD", value = { { 5, 6 }, { 7, 7 } } },
 			{ name = "_DISINFECTANT", key = "%_DISINFECTANT", value = { { 6, 7 }, { 7, 7 } } },
 			{ name = "_COIN_1", key = "%_COIN_1", counter = "%_COIN_1_COUNTER", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_2", key = "%_COIN_2", counter = "%_COIN_2_COUNTER", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_3", key = "%_COIN_3", counter = "%_COIN_3_COUNTER", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_4", key = "%_COIN_4", counter = "%_COIN_4_COUNTER", value = { { 0, 6 }, { 7, 7 } } },
-			{ name = "_MONEY", key = "%_MONEY", value = { { 0, 6 }, { 7, 7 } } },
+			{ name = "_MONEY", key = "%_MONEY", value = { { 6, 6 }, { 7, 7 } } },
 		}
 	},
 	{
 		day = 4,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 			{ name = "_DISINFECTANT", key = "%_DISINFECTANT_DAY4", value = { { 0, 7 }, { 6, 7 } } },
 			{ name = "_HANDLE", key = "%_HANDLE", value = { { 1, 7 }, { 7, 7 } } },
 			{ name = "_TAPE", key = "%_TAPE", value = { { 2, 7 }, { 2, 7 }, { 2, 7 }, { 7, 7 } } },
@@ -41,7 +41,7 @@ g_labels = {
 	{
 		day = 5,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 			{ name = "_FOOD", key = "%_FOOD", value = { { 0, 7 } } },
 			{ name = "_COIN_1", key = "%_COIN_1_DAY5", value = { { 0, 6 }, { 7, 7 } } },
 			{ name = "_COIN_2", key = "%_COIN_2_DAY5", value = { { 0, 6 }, { 7, 7 } } },
@@ -53,13 +53,13 @@ g_labels = {
 	{
 		day = 6,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 	{
 		day = 7,
 		items = {
-			{ name = "_UNDAMAGED", key = "%_UNDAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
 		}
 	},
 }

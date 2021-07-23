@@ -9,7 +9,7 @@
     <common_link>data/misc/common_link.pf</common_link>
   </prefabs>
 
-  <sound>
+  <sound blackout="sound/blackout.wav" >
     <item name="typing" path="sound/typing.wav" />
     <item name="typing_system" path="sound/typing_system.wav" />
     <item name="typing_system_warning" path="sound/typing_system_warning.wav" />
@@ -31,6 +31,7 @@
     <item name="fall" path="sound/fall.mp3" />
     <item name="glass" path="sound/glass.sf" />
     <item name="glass_break" path="sound/glass_break.mp3" />
+    <item name="hoo" path="sound/hoo.sf" />
     <item name="hit_blood" path="sound/hit_blood.mp3" />
     <item name="hit_wooden" path="sound/hit_wooden.mp3" />
     <item name="drag_wooden" path="sound/drag_wooden.sf" />
@@ -47,6 +48,7 @@
     <item name="alert1" path="sound/alert1.mp3" />
     <item name="water" path="sound/water.mp3" />
     <item name="water_drop" path="sound/water_drop.sf" />
+    <item name="thunder" path="sound/thunder.mp3" />
     <item name="metal_drag" path="sound/metal_drag.sf" />
     <item name="metal_hit" path="sound/metal_hit.sf" />
     <item name="metal_hit_s" path="sound/metal_hit_s.mp3" />
@@ -67,6 +69,9 @@
     <item name="pan_drop" path="sound/pan_drop.mp3" />
     <item name="release" path="sound/release.mp3" />
     <item name="xxxx" path="sound/xxxx.mp3" />
+    
+    <item name="bgm_0" path="music/0.mp3" />
+    <item name="bgm_1" path="music/0.mp3" />
   </sound>
   
   <level_transfer cam_speed="5" fadeout="45">

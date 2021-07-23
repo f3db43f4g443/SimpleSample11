@@ -377,6 +377,8 @@ private:
 	CString m_strInitScript;
 	CString m_strBeginScript;
 	CString m_strDestroyScript;
+	CString m_strBGM;
+	int32 m_nBGMPriority;
 
 	bool m_bBegin;
 	bool m_bEnd;
@@ -582,6 +584,8 @@ struct SWorldDataFrame
 	int8 nPlayerEnterDir;
 	bool bForceAllVisible;
 	CBufFile playerData;
+	string strGlobalBGM;
+	int32 nGlobalBGMPriority;
 	vector<CBufFile> vecPlayerDataStack;
 	set<string> unlockedRegionMaps;
 	map<string, SLevelMark> mapLevelMarks;
@@ -716,14 +720,18 @@ public:
 	void BlackOut( int32 nFrame1, int32 nFrame2 );
 	bool IsBlackOut() { return m_nBlackOutFrame1 > 0; }
 	void InterferenceStripEffect( int8 nType, float fSpeed );
+	void SetGlobalBGM( const char* sz, int32 nPriority );
 
 	CVector2 GetCamPos();
 	void OnPlayerDamaged();
 	void Update();
 private:
+	void CheckBGM();
+	void UpdateBGM();
+	const char* GetCurBGM();
 	void UpdateBattleEffect();
 	void RefreshSnapShot();
-	void UpdateSnapShot( const char* sz );
+	bool UpdateSnapShot( const char* sz );
 	void HideAllSnapShot();
 	void RemoveAllSnapShot();
 
@@ -760,6 +768,7 @@ private:
 	CReference<CEntity> m_pWorldMap;
 	CReference<CEntity> m_pActionPreview;
 	CReference<CEntity> m_pLogUI;
+	TResourceRef<CSoundFile> m_pBlackOutSound;
 	int8 m_nMenuPage;
 	int8 m_nEnabledPageCount;
 	int8 m_nMenuPageItemIndex;
@@ -802,6 +811,15 @@ private:
 	int32 m_nTransferAnimFrames;
 	int32 m_nTransferFadeOutTotalFrames;
 	int32 m_nTransferFadeOutFrames;*/
+
+	string m_strBGM;
+	string m_strFadeOutBGM;
+	CReference<ISoundTrack> m_pBGMSoundTrack;
+	CReference<ISoundTrack> m_pBGMSoundTrackFadeOut;
+	float m_fBGMFadeOut;
+	float m_fBGMFadeIn;
+	float m_fBGMFadeInSpeed;
+	CReference<ISoundTrack> m_pSpecialEftSoundTrack;
 
 	CReference<CLuaState> m_pScenarioScript;
 	CReference<CPrefab> m_pScriptTransferTo;

@@ -22,3 +22,4 @@ private:
 
 void PlaySoundEffect( const char* szName );
 ISoundTrack* PlaySoundLoop( const char* szName );
+void CreateBGM( CReference<ISoundTrack>& result, const char* szName );

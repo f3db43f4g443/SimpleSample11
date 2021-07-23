@@ -1317,31 +1317,30 @@ int32 CPawnAI_Pig::CheckStateTransits1( int8& nCurDir, bool bFinished )
 		if( nDamageDir >= 0 )
 		{
 			auto n = nCurStateIndex;
+			auto n0 = nDamageDir & 1;
+			auto n1 = nDamageDir >> 1;
 			if( n >= eState_Move0 && n < eState_Bounce_Hit_Back + 3 )
 				n = ( n - eState_Move0 ) % 3;
 			else
-				n = -1;
-
-			auto n0 = nDamageDir & 1;
-			auto n1 = nDamageDir >> 1;
-			if( n0 == nCurDir )
 			{
-				if( n1 != n || nCurStateIndex - n == eState_Bounce_Hit )
-				{
-					if( pPawn->GetMoveTo() != pPawn->GetPos() )
-						pPawn->GetLevel()->PawnMoveEnd( pPawn );
-					return eState_Bounce_Hit_Back + n1;
-				}
+				if( pPawn->GetMoveTo() != pPawn->GetPos() )
+					pPawn->GetLevel()->PawnMoveEnd( pPawn );
+				nCurDir = n0;
+				return eState_Bounce_Hit + n1;
 			}
-			else
+
+			int32 dirs[] = { 0, 3, 1, 2, 5, 4 };
+			int32 x1 = dirs[n * 2 + nCurDir];
+			int32 x2 = dirs[nDamageDir];
+			if( x1 != x2 || nCurStateIndex - n == eState_Bounce_Hit )
 			{
-				if( n1 != ( n > 0 ? 3 - n : n ) )
-				{
-					if( pPawn->GetMoveTo() != pPawn->GetPos() )
-						pPawn->GetLevel()->PawnMoveEnd( pPawn );
-					nCurDir = 1 - nCurDir;
+				int32 d = ( x2 + 6 - x1 ) % 6;
+				if( pPawn->GetMoveTo() != pPawn->GetPos() )
+					pPawn->GetLevel()->PawnMoveEnd( pPawn );
+				nCurDir = n0;
+				if( d >= 2 && d <= 4 )
 					return eState_Bounce_Hit + n1;
-				}
+				return eState_Bounce_Hit_Back + n1;
 			}
 		}
 	}

@@ -42,9 +42,12 @@ enum
 class ISoundTrack : public CReferenceObject
 {
 public:
-	virtual void Play( uint32 nFlag ) = 0;
+	virtual void Play( uint32 nFlag, bool bReset = false ) = 0;
 	virtual void Stop() = 0;
+	virtual void Resume() = 0;
 	virtual void FadeOut( float fTime ) = 0;
+	virtual void SetVolume( float fVolume ) = 0;
+	virtual void SetVolumeDB( float fVolume ) = 0;
 };
 
 class CSoundFile : public CResource

@@ -1687,6 +1687,8 @@ CPrefab* CLevelToolsView::NewLevelFromTemplate( CPrefab* pTemplate, const char* 
 	pLevelData->m_arrGridData.Resize( nWidth * nHeight );
 	for( int i = 0; i < pLevelData->m_arrGridData.Size(); i++ )
 		pLevelData->m_arrGridData[i].bBlocked = true;
+	pLevelData->m_strBeginScript = pTemplateData->m_strBeginScript;
+	pLevelData->m_nBGMPriority = pTemplateData->m_nBGMPriority;
 
 	auto p1 = new CPrefabNode( pPrefab );
 	p1->SetName( "1" );

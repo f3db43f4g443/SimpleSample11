@@ -1,4 +1,5 @@
 InitPlayerData()
+GetMasterLevel():SetGlobalBGM( "bgm_0" )
 
 --SetKeyInt( "day", 7 )
 --SetCurTime( 2 )

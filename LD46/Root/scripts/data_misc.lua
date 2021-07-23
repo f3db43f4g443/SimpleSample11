@@ -475,7 +475,9 @@ for i = 1, #g_libassist_dialogues, 1 do
 end
 
 function Day3_Sampling( n )
-	UnlockDoc( "_D3_ES_" .. tostring( n ) )
+	SetKeyInt( "%doc_unlocked_D3_ES_" .. tostring( n ), 1 )
+	UnlockDoc( "_D3_ES", true )
+	if GetLabelKey( "_SAMPLE" ) >= 2 then return end
 	SetLabelKey( "_SAMPLE", 1 )
 	local n = GetLabelCounter( "_SAMPLE" )
 	n = n + 1

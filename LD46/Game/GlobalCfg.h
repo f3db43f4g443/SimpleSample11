@@ -22,6 +22,7 @@ public:
 	CReference<CPrefab> pCommonLinkPrefab;
 
 	map<string, CReference<CSoundFile> > mapSoundEffect;
+	CReference<CSoundFile> pBlackOutSound;
 
 	struct
 	{

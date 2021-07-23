@@ -53,3 +53,13 @@ ISoundTrack* PlaySoundLoop( const char* szName )
 	pSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop );
 	return pSoundTrack;
 }
+
+void CreateBGM( CReference<ISoundTrack>& result, const char * szName )
+{
+	auto itr = CGlobalCfg::Inst().mapSoundEffect.find( szName );
+	if( itr == CGlobalCfg::Inst().mapSoundEffect.end() )
+		return;
+	auto pSoundTrack = itr->second->CreateSoundTrack();
+	result = pSoundTrack;
+	pSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop, true );
+}

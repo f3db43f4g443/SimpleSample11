@@ -140,6 +140,14 @@ function SetCurTime( i )
 	SetKeyInt( "time", i )
 end
 
+function SecretFound()
+	SetKeyInt( "%secret_" .. tostring( CurDay() ) )
+end
+
+function IsSecretFound( i )
+	return EvaluateKeyInt( "%secret_" .. tostring( i ) )
+end
+
 function CurCharacter()
 	if CurDay() == 3 or CurDay() == 4 or CurDay() == 7 then return 1 end
 	return 0

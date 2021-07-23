@@ -41,6 +41,7 @@ void CGlobalCfg::Load()
 		auto szPath = XmlGetAttr( pItem, "path", "" );
 		mapSoundEffect[szName] = CResourceManager::Inst()->CreateResource<CSoundFile>( szPath );
 	}
+	pBlackOutSound = CResourceManager::Inst()->CreateResource<CSoundFile>( XmlGetAttr( pSoundEfts, "blackout", "" ) );
 
 	auto pTransfer = doc.RootElement()->FirstChildElement( "level_transfer" );
 	lvTransferData.fTransferCamSpeed = XmlGetAttr( pTransfer, "cam_speed", 5.0f );
