@@ -36,6 +36,10 @@ g_labels = {
 			{ name = "_BOOK_2", key = "%_BOOK_2", value = { { 4, 7 }, { 7, 7 } } },
 			{ name = "_BOOK_3", key = "%_BOOK_3", value = { { 5, 7 }, { 7, 7 } } },
 			{ name = "_SPRAY_1", key = "%_SPRAY_1", value = { { 1, 6 }, { 7, 7 } } },
+			{ name = "_SECRET_ITEM_1", key = "%_SECRET_ITEM_1", value = { { 0, 5 }, { 7, 7 } } },
+			{ name = "_SECRET_ITEM_2", key = "%_SECRET_ITEM_2", value = { { 1, 5 }, { 7, 7 } } },
+			{ name = "_SECRET_ITEM_3", key = "%_SECRET_ITEM_3", value = { { 2, 5 }, { 7, 7 } } },
+			{ name = "_SECRET_ITEM_4", key = "%_SECRET_ITEM_4", value = { { 3, 5 }, { 7, 7 } } },
 		}
 	},
 	{

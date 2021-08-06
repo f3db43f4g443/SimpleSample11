@@ -24,8 +24,24 @@ void CLevelSpawnHelper::OnPreview()
 int32 SInputTableItem::SInputItr::Next()
 {
 	sz += l;
-	while( *sz == '|' )
-		sz++;
+	for( bool b = true; b; )
+	{
+		while( *sz == '|' || *sz == '?' )
+			sz++;
+		b = false;
+		for( int i = 0; sz[i] != '|' && sz[i]; i++ )
+		{
+			if( sz[i] == '?' )
+			{
+				szCondition = sz;
+				lCondition = i;
+				sz = sz + lCondition;
+				b = true;
+				break;
+			}
+		}
+	}
+
 	for( l = 0; sz[l] != '|' && sz[l]; l++ );
 	return l;
 }
@@ -59,6 +75,32 @@ void CPawn::OnPreview()
 		pTracerEffect->OnPreview();
 	if( m_pAI )
 		m_pAI->OnPreview();
+}
+
+void CPawn::LoadData( IBufReader& buf )
+{
+	int32 nVersionData = 0;
+	buf.Read( nVersionData );
+	buf.Read( m_pos );
+	buf.Read( m_nCurDir );
+	buf.Read( m_nHp );
+	buf.Read( m_bUseInitState );
+	buf.Read( m_bUseDefaultState );
+	buf.Read( m_nInitState );
+	buf.Read( m_nDefaultState );
+}
+
+void CPawn::SaveData( CBufFile& buf )
+{
+	int32 nVersionData = 0;
+	buf.Write( nVersionData );
+	buf.Write( m_pos );
+	buf.Write( m_nCurDir );
+	buf.Write( m_nHp );
+	buf.Write( m_bUseInitState );
+	buf.Write( m_bUseDefaultState );
+	buf.Write( m_nInitState );
+	buf.Write( m_nDefaultState );
 }
 
 void CPawn::Init()
@@ -626,6 +668,7 @@ bool CPawn::HandleHit( SPawnStateEvent& evt )
 		if( pHitDesc )
 		{
 			CReference<CPawn> pHit = SafeCast<CPawn>( pHitDesc->pHit->GetRoot()->CreateInstance() );
+			pHit->strCreatedFrom = pHitDesc->pHit;
 			if( pHitDesc->strInitState.length() )
 			{
 				auto nIndex = pHit->GetStateIndexByName( pHitDesc->strInitState );
@@ -2744,6 +2787,14 @@ const char* CPlayer::CheckInputTableItem1( SInputTableItem& item, int32& len )
 {
 	for( SInputTableItem::SInputItr itr( item ); itr.Next(); )
 	{
+		if( itr.lCondition )
+		{
+			char* sz = (char*)alloca( itr.lCondition + 1 );
+			memcpy( sz, itr.szCondition, itr.lCondition );
+			sz[itr.lCondition] = 0;
+			if( !GetLevel()->GetMasterLevel()->EvaluateKeyInt( sz ) )
+				continue;
+		}
 		auto sz = itr.sz;
 		int32 l = itr.l;
 		if( l && sz[l - 1] == '#' )
@@ -3119,6 +3170,24 @@ void CPickUp::OnPreview()
 	CPawnHit::OnPreview();
 	if( m_pEquipment )
 		m_pEquipment->OnPreview();
+}
+
+void CPickUp::LoadData( IBufReader& buf )
+{
+	CPawn::LoadData( buf );
+	m_bDropped = false;
+	m_bUseInitState = false;
+	if( m_pEquipment )
+		m_pEquipment->LoadData( buf );
+}
+
+void CPickUp::SaveData( CBufFile& buf )
+{
+	m_bDropped = false;
+	m_bUseInitState = false;
+	CPawn::SaveData( buf );
+	if( m_pEquipment )
+		m_pEquipment->SaveData( buf );
 }
 
 void CPickUp::Init()

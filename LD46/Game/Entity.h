@@ -77,6 +77,8 @@ public:
 	void SetPickable( bool bPickable ) { m_bPickable = bPickable; }
 	uint32 GetTraverseIndex() { return m_nTraverseIndex; }
 	void SetTraverseIndex( uint32 nIndex ) { m_nTraverseIndex = nIndex; }
+	bool Pick( float ofsX, float ofsY );
+	CRectangle GetHitBound( float fAlign );
 
 	uint32 BeforeHitTest( uint32 nTraverseIndex = 0 );
 

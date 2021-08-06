@@ -213,9 +213,11 @@ struct SInputTableItem
 
 	struct SInputItr
 	{
-		SInputItr( const SInputTableItem& item ) : sz( item.strInput.c_str() ), l( 0 ) {}
+		SInputItr( const SInputTableItem& item ) : sz( item.strInput.c_str() ),  szCondition( NULL ), l( 0 ), lCondition( 0 ) {}
 		const char* sz;
+		const char* szCondition;
 		int32 l;
+		int32 lCondition;
 		int32 Next();
 	};
 };
@@ -240,6 +242,8 @@ public:
 
 	virtual bool IsPreview() override { return true; }
 	virtual void OnPreview() override;
+	virtual void LoadData( IBufReader& buf );
+	virtual void SaveData( CBufFile& buf );
 	virtual void Init();
 	virtual void Update();
 	virtual void Update1();
@@ -565,8 +569,8 @@ public:
 	virtual void OnRemovedFromStage() override;
 	virtual void OnPreview() override;
 	void Reset( int8 nFlag );
-	void LoadData( IBufReader& buf );
-	void SaveData( CBufFile& buf );
+	virtual void LoadData( IBufReader& buf ) override;
+	virtual void SaveData( CBufFile& buf ) override;
 	virtual void Init() override;
 	virtual void Update() override;
 	void UpdateInputOnly();
@@ -712,6 +716,8 @@ class CPickUp : public CPawnHit
 public:
 	CPickUp( const SClassCreateContext& context ) : CPawnHit( context ) { SET_BASEOBJECT_ID( CPickUp ); }
 	virtual void OnPreview() override;
+	virtual void LoadData( IBufReader& buf ) override;
+	virtual void SaveData( CBufFile& buf ) override;
 	virtual void Init() override;
 	virtual void Update() override;
 	CPlayerEquipment* GetEquipment() { return m_pEquipment; }

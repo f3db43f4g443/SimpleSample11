@@ -54,6 +54,7 @@ public:
 		vector<SParamItem> vecStealthHiddenParams;
 		vector<SParamItem> vecStealthAlertHiddenParams;
 		vector<SParamItem> vecStealthDetectHiddenParams;
+		vector<SParamItem> vecAlertEffectParams;
 		SParamItem NextLevelParamMin;
 		SParamItem NextLevelParamMax;
 		int32 nNextLevelParamCount;

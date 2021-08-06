@@ -167,6 +167,11 @@ void CGlobalCfg::Load()
 			lvIndicatorData.vecStealthDetectHiddenParams.resize( lvIndicatorData.vecStealthDetectHiddenParams.size() + 1 );
 			ReadFunc( pItem, lvIndicatorData.vecStealthDetectHiddenParams.back() );
 		}
+		for( auto pItem = pIndicator->FirstChildElement( "alert_eft" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+		{
+			lvIndicatorData.vecAlertEffectParams.resize( lvIndicatorData.vecAlertEffectParams.size() + 1 );
+			ReadFunc( pItem, lvIndicatorData.vecAlertEffectParams.back() );
+		}
 
 		auto pNextLevelCfg = pIndicator->FirstChildElement( "next_level" );
 		ReadFunc( pNextLevelCfg->FirstChildElement( "min" ), lvIndicatorData.NextLevelParamMin );

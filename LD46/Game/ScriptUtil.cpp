@@ -103,6 +103,11 @@ void SetScale( CRenderObject2D* p, float s )
 	p->SetTransformDirty();
 }
 
+void SetZOrder( CRenderObject2D* p, int32 n )
+{
+	p->SetZOrder( n );
+}
+
 void PlayerPickUp( const char* szName, CPlayer* pPlayer = NULL )
 {
 	auto pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( szName );
@@ -264,6 +269,7 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetScale )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetPosition )
 	REGISTER_LUA_CFUNCTION_GLOBAL( SetScale )
+	REGISTER_LUA_CFUNCTION_GLOBAL( SetZOrder )
 	REGISTER_LUA_CFUNCTION_GLOBAL( PlayerPickUp )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandInt )
 	REGISTER_LUA_CFUNCTION_GLOBAL( RandFloat )

@@ -1197,6 +1197,7 @@ void CLevelEnvTool::OnImportOK( const char* szText )
 			pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
 			pData->m_gridSize = pObj->m_gridSize;
 			pData->m_arrEnvDescs = pObj->m_arrEnvDescs;
+			pData->m_fScenarioFade = pObj->m_fScenarioFade;
 			for( int i = 0; i < pData->m_arrEnvMap.Size(); i++ )
 			{
 				if( pData->m_arrEnvMap[i] > pData->m_arrEnvDescs.Size() )

@@ -101,6 +101,36 @@ void CEntity::SetRenderObject( CRenderObject2D* pRenderObject )
 	}
 }
 
+bool CEntity::Pick( float ofsX, float ofsY )
+{
+	auto pHit = Get_HitProxy();
+	if( !pHit )
+		return NULL;
+	SHitProxyCircle hitProxy;
+	hitProxy.center = CVector2( ofsX, ofsY );
+	hitProxy.fRadius = 0.01f;
+	CMatrix2D transform;
+	transform.Identity();
+	return SHitProxy::HitTest( &hitProxy, pHit, transform, transform );
+}
+
+CRectangle CEntity::GetHitBound( float fAlign )
+{
+	auto pHit = Get_HitProxy();
+	if( !pHit )
+		return CRectangle( 0, 0, 0, 0 );
+
+	CRectangle rect;
+	CMatrix2D transform;
+	transform.Identity();
+	pHit->CalcBound( transform, rect );
+
+	rect = CRectangle( floor( rect.x / fAlign ), floor( rect.y / fAlign ), ceil( ( rect.x + rect.width ) / fAlign ), ceil( ( rect.y + rect.height ) / fAlign ) );
+	rect.width -= rect.x;
+	rect.height -= rect.y;
+	return rect;
+}
+
 uint32 CEntity::BeforeHitTest( uint32 nTraverseIndex )
 {
 	CRenderObject2D* pRenderObject = m_pRenderChildren;

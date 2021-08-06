@@ -113,6 +113,7 @@ public:
 	void Clear();
 	void Fill( int8 n, const TVector2<int32>& p );
 	void SetFade( float fFade ) { m_fFade = fFade; }
+	void ScenarioFade( bool b ) { m_bScenarioFade = b; }
 	const char* GetCondition() const { return m_strCondition; }
 private:
 	TArray<SLevelEnvDesc> m_arrEnvDescs;
@@ -120,6 +121,7 @@ private:
 	int32 m_nWidth, m_nHeight;
 	CVector2 m_gridSize;
 	CVector2 m_gridOfs;
+	float m_fScenarioFade;
 	CString m_strCondition;
 
 	struct SElem
@@ -133,6 +135,7 @@ private:
 	vector<SElem> m_elems;
 	CElement2D m_dummyElem;
 	float m_fFade;
+	bool m_bScenarioFade;
 };
 
 struct SLevelNextStageData
@@ -236,7 +239,7 @@ public:
 	struct SGrid
 	{
 		SGrid() : bCanEnter( true ), bBlockSight( false ), nNextStage( 0 ), nHitEft( 0 ), nMissEft( 0 ), nHitBlockedEft( 0 ), nHitBashEft( 0 ), nMissBashEft( 0 ),
-			nBlockEft( 0 ), bStealthAlert( false ), bStealthDetect( false ), pMounts( NULL ) {}
+			nBlockEft( 0 ), bStealthAlert( false ), bStealthDetect( false ), nAlertEft( 0 ), pMounts( NULL ) {}
 		bool bCanEnter;
 		bool bBlockSight;
 		int8 nHitEft;
@@ -247,6 +250,7 @@ public:
 		int8 nBlockEft;
 		bool bStealthAlert;
 		bool bStealthDetect;
+		int8 nAlertEft;
 		int32 nNextStage;
 		TVector2<int32> blockOfs;
 		CReference<CPawn> pPawn0;
@@ -260,7 +264,7 @@ public:
 		&m_vecGrid[p.x + p.y * m_nWidth] : NULL; }
 	const SLevelGridData* GetGridData( const TVector2<int32>& p ) const { return p.x >= 0 && p.y >= 0 && p.x < m_nWidth && p.y < m_nHeight ?
 		&m_arrGridData[p.x + p.y * m_nWidth] : NULL; }
-	int32 CheckGrid( int32 x, int32 y );
+	int32 CheckGrid( int32 x, int32 y, CPawn* pPawn, int8 nForceCheckType );
 	const char* GetRegionName() { return m_strRegion; }
 	const CVector2& GetCamPos() { return m_camPos; }
 	CPlayer* GetPlayer() { return m_pPlayer; }
@@ -296,6 +300,7 @@ public:
 	void PawnMoveBreak( CPawn* pPawn );
 	void PawnDeath( CPawn* pPawn );
 	bool PawnTransform( CPawn* pPawn, int32 nForm, const TVector2<int32>& ofs, bool bBlockEft = true );
+	bool IsPawnInTile( CPawn* pPawn, int32 nTile );
 	CPickUp* FindPickUp( const TVector2<int32>& p, int32 w, int32 h );
 	CPlayerMount* FindMount( const TVector2<int32>& ofs );
 	CPawn* FindUseablePawn( const TVector2<int32>& p, int8 nDir, int32 w, int32 h );
@@ -346,7 +351,7 @@ public:
 	int32 UpdateActionPreview();
 	void ActionPreviewPause();
 	void OnCheckPoint();
-	bool OnPlayerTryToLeave();
+	bool OnPlayerTryToLeave( const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType, int32 nTransferParam );
 
 	void RegisterBegin( CTrigger* pTrigger );
 	void RegisterUpdate( CTrigger* pTrigger ) { m_trigger.Register( 0, pTrigger ); }
@@ -498,6 +503,7 @@ private:
 	vector<CReference<CEntity> > m_vecLabelCounters;
 	bool m_bScenario;
 	int8 m_nLastScenarioText;
+	bool m_bResetFreezeEft;
 	int32 m_nScenarioTextFinishDelay;
 	int32 m_nHeadTextTime;
 	int32 m_nRecordEftFrames;
@@ -584,6 +590,7 @@ struct SWorldDataFrame
 	int8 nPlayerEnterDir;
 	bool bForceAllVisible;
 	CBufFile playerData;
+	CBufFile pawnData;
 	string strGlobalBGM;
 	int32 nGlobalBGMPriority;
 	vector<CBufFile> vecPlayerDataStack;
@@ -613,11 +620,11 @@ struct SWorldData
 	const char* GetCurLevel() { return curFrame.strCurLevel.c_str(); }
 	SWorldDataFrame::SLevelData& GetLevelData( const char* szLevel ) { return curFrame.mapLevelData[szLevel]; }
 	SWorldDataFrame::SLevelData& GetCurLevelData() { return curFrame.mapLevelData[curFrame.strCurLevel]; }
-	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, bool bClearSnapShot, int8 nPlayerDataOpr = 0 );
-	void OnReset( CPlayer* pPlayer );
-	void OnRetreat( CPlayer* pPlayer );
+	void OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const TVector2<int32>& playerPos, int8 nPlayerDir, vector<CReference<CPawn> >* pVecPawns, bool bClearSnapShot, int8 nPlayerDataOpr = 0 );
+	void OnReset( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
+	void OnRetreat( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
 	void CheckPoint( CPlayer* pPlayer );
-	void OnRestoreToCheckpoint( CPlayer* pPlayer );
+	void OnRestoreToCheckpoint( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
 	void ClearKeys();
 	void Respawn();
 	void RespawnLevel( const char* szLevel );
@@ -740,6 +747,7 @@ private:
 	void BeginCurLevel();
 	void EndCurLevel();
 	void TransferFunc();
+	void TransferFuncEnterLevel( vector<CReference<CPawn> >* pTransferPawn = NULL );
 	void TransferFuncLevel2Level();
 	void TransferFuncLevel2Level0( bool bFade );
 	void TransferFuncLevel2Level1();

@@ -98,7 +98,7 @@ function Scenario_SelfRoom_4_1()
  WaitFor( ScenarioDialogue( 1, "Such things sometimes DO happen...like your predecessor did.", dtx_color_h, -1 ) )
  WaitFor( ScenarioDialogue( 0, "......No no no......", dtx_color_1, -1, 3 ) )
  WaitFor( ScenarioDialogue( 1, "It is not a mistake or something...Just a common event.", dtx_color_h, 200 ) )
- WaitFor( ScenarioDialogue( 1, "...An event we need some procedures to handle.", dtx_color_h, -1 ) )
+ WaitFor( ScenarioDialogue( 1, "...An event that requires some procedures to handle.", dtx_color_h, -1 ) )
  WaitFor( ScenarioDialogue( 0, "......No what......", dtx_color_1, -1, 3 ) )
  WaitFor( ScenarioDialogue( 1, "You don't need to know more. Let's just go to the procedure.", dtx_color_h, 200 ) )
  WaitFor( ScenarioDialogue( 1, "I'm not saying you're mad definitely...You still can prove your sanity.", dtx_color_h, 200 ) )
@@ -776,7 +776,7 @@ function Day4_Password( nSig )
      WaitFor( ScenarioDialogue( 1, ">>>CODE 1: Please input your first name.", dtx_color_5, -1 ) )
      WaitFor( ScenarioDialogue( 0, "..................." , dtx_color_1, 60, 6 ) )
      WaitFor( ScenarioDialogue( 0, ".........Are you motherfuckers regarding me as a fool?" , dtx_color_1, -1 ) )
-     WaitFor( ScenarioDialogue( 1, ">>>Please complete this code before lunchtime ends.", dtx_color_5, -1 ) )
+     WaitFor( ScenarioDialogue( 1, ">>>Please complete all the codes before lunchtime ends.", dtx_color_5, -1 ) )
 
      local player = GetPlayer()
      WaitFor( ScenarioDialogue( 0, "..................." , dtx_color_1, 60, 6 ) )
@@ -790,10 +790,21 @@ function Day4_Password( nSig )
      while GetMasterLevel():GetInteractionUI() do
       coroutine.yield()
      end
+     GetPlayer():PlayState( "leave" )
+	 
+     GetCurLevel():GetPawnByName( "sofa" ):SetLocked( true )
+	 Delay( 60 )
      WaitFor( ScenarioDialogue( 0, "........................", dtx_color_1, -1, 3 ) )
+	 Delay( 60 )
      GetMasterLevel():BlackOut( 10, 0 )
      WaitFor( ScenarioDialogue( 0, "........................", dtx_color_1, 60, 3 ) )
+	 Delay( 30 )
      GetMasterLevel():BlackOut( 10, 0 )
+     WaitFor( ScenarioDialogue( 0, "........................", dtx_color_1, 60, 3 ) )
+	 Delay( 15 )
+     GetMasterLevel():BlackOut( 10, 0 )
+     WaitFor( ScenarioDialogue( 0, "........................", dtx_color_1, 60, 3 ) )
+     GetMasterLevel():BlackOut( 30, 0 )
      player:PlayState( "move_x" )
      WaitFor( ScenarioDialogue( 0, ".................", dtx_color_1, 30 ) )
      GetMasterLevel():BlackOut( 10, 0 )
@@ -807,7 +818,7 @@ function Day4_Password( nSig )
       GetMasterLevel():BlackOut( 10, 0 )
      end
      WaitFor( ScenarioDialogue( 0, "I'm mad.", dtx_color_1, 10 ) )
-     player:PlayStateTurnBack( "move_up" )
+     player:PlayState( "move_up" )
      GetMasterLevel():BlackOut( 10, 0 )
      for i = 1, 5, 1 do
       Delay( 20 )
@@ -820,21 +831,25 @@ function Day4_Password( nSig )
       Delay( 12 )
       GetMasterLevel():BlackOut( 10, 2 )
      end
-     player:PlayStateTurnBack( "move_down" )
+     player:PlayState( "move_down" )
      for i = 1, 10, 1 do
       Delay( 7 )
       GetMasterLevel():BlackOut( 5, 2 )
      end
      WaitFor( ScenarioDialogue( 0, "FUCKING MAD.", dtx_color_1, 5 ) )
+     Delay( 20 )
      GetMasterLevel():BlackOut( 5, 0 )
      for i0 = 1, 5, 1 do
       player:PlayStateTurnBack( "move_x" )
       for i = 1, 4, 1 do
        Delay( 8 )
+	   ScenarioDialogue( 0, "FUCKING MAD.", dtx_color_1, 5 )
        GetMasterLevel():BlackOut( 5, 3 )
       end
      end
-
+	 
+     Delay( 10 )
+     GetMasterLevel():BlackOut( 45, 0 )
      for i0 = 1, 3, 1 do
       player:PlayStateTurnBack( "break" )
       for i = 1, 10, 1 do
@@ -847,30 +862,38 @@ function Day4_Password( nSig )
      for i0 = 1, 15, 1 do
       player:PlayStateTurnBack( "break" )
       for i = 1, 7, 1 do
-       Delay( 10 )
-       GetMasterLevel():BlackOut( 3, 7 )
+       Delay( 3 )
+       GetMasterLevel():BlackOut( 3, 11 - i )
+       Delay( 11 - i )
       end
      end
-     Delay( 5 )
+     player:PlayStateTurnBack( "break" )
+     Delay( 15 )
      GetMasterLevel():BlackOut( 180, 0 )
 	 
      Delay( 180 )
      WaitFor( ScenarioDialogue( 0, "......NO......", dtx_color_1, -1 ) )
      Delay( 30 )
-     GetMasterLevel():BlackOut( 10, 0 )
-     Delay( 30 )
-     GetMasterLevel():BlackOut( 10, 0 )
-     Delay( 30 )
+	 for i = 1, 4, 1 do
+      GetMasterLevel():BlackOut( 10, 0 )
+      Delay( 30 )
+	 end
      WaitFor( ScenarioDialogue( 0, "......No, I'm not......", dtx_color_1, -1 ) )
      Delay( 45 )
-     GetMasterLevel():BlackOut( 10, 0 )
-     Delay( 45 )
+	 for i = 1, 2, 1 do
+      GetMasterLevel():BlackOut( 10, 0 )
+      Delay( 45 )
+	 end
      WaitFor( ScenarioDialogue( 0, "......I remembered something......", dtx_color_1, -1 ) )
      Delay( 60 )
-     GetMasterLevel():BlackOut( 10, 0 )
-     Delay( 60 )
-     WaitFor( ScenarioDialogue( 0, "......I think I remembered it......", dtx_color_1, -1 ) )
+	 for i = 1, 2, 1 do
+      GetMasterLevel():BlackOut( 10, 0 )
+      Delay( 60 )
+	 end
+     WaitFor( ScenarioDialogue( 0, "......I think I remember it......", dtx_color_1, -1 ) )
      Delay( 120 )
+     GetCurLevel():GetPawnByName( "sofa" ):SetLocked( false )
+	 SetKeyInt( "day4_secret_entry", 1 )
      SetKeyInt( "$passed", 1 )
      GetMasterLevel():CheckPoint()
      GetMasterLevel():BlackOut( 120, 60 )
@@ -920,12 +943,13 @@ function Day4_Password( nSig )
      WaitFor( ScenarioDialogue( 0, "...Want my fucking repentance?", dtx_color_1, 60 ) )
      WaitFor( ScenarioDialogue( 0, "...Fuck off.", dtx_color_1, 60 ) )
 	 
-     ScenarioDialogue( 0, "Steal..Theft..No, 4 letters......", dtx_color_1, 1 )
+     ScenarioDialogue( 0, "Steal..Theft..Robbery...No, 4 letters......", dtx_color_1, 1 )
      local pwdUI = GetMasterLevel():ShowInteractionUI( m, "data/interaction/password.pf" )
      pwdUI:SetPassword( EvaluateKeyString( "day4_pwd" ) )
      while GetMasterLevel():GetInteractionUI() do
       coroutine.yield()
      end
+     GetPlayer():PlayState( "leave" )
 	 
      WaitFor( ScenarioDialogue( 0, "...Must be some fucking lawyer's term.", dtx_color_1, 60, 3 ) )
      WaitFor( ScenarioDialogue( 0, "..........Fuck it.", dtx_color_1, 60, 3 ) )
@@ -951,6 +975,7 @@ function Day4_Password( nSig )
      while GetMasterLevel():GetInteractionUI() do
       coroutine.yield()
      end
+     GetPlayer():PlayState( "leave" )
 	 
      WaitFor( ScenarioDialogue( 0, ".........", dtx_color_1, 60, 6 ) )
      WaitFor( ScenarioDialogue( 0, "...MASTER.", dtx_color_1, 60, 3 ) )
@@ -1007,10 +1032,30 @@ function Day4_Password( nSig )
    end
   elseif nSig == 2 then
   elseif nSig == 3 then
-   GetPlayer():PlayState( "leave" )
   end
   nSig = coroutine.yield( 1 )
  end
+end
+
+function Day4_Secret_Scene_1()
+ Delay( 60 )
+ local nLoad = 0
+ for i = 1, 4, 1 do
+  if EvaluateKeyInt( "%day4_secret_texture_" .. tostring( i ) ) == 0 then
+   nLoad = i
+   break
+  end
+ end
+ if nLoad > 0 then
+  local tbl = { htx_color_5, htx_color_sys, htx_color_2, htx_color_1 }
+  HeadText( "Loading assets...", tbl[nLoad] )
+  Delay( 300 )
+  while true do
+   HeadText( "Error: Texture block damaged. Trying to restore...", tbl[nLoad] )
+   Delay( 300 )
+  end
+ end
+ while true do Delay( 1 ) end
 end
 
 function Scenario_Houndman()
@@ -1448,7 +1493,7 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
  local FuncLoop = function( name, ... )
   if not GetPlayer():IsHidden() or ai:IsSeePlayer() then
    HeadText( "...What's that?", dtx_color_6b, 240 )
-   SetKeyInt( "4f_center_room_2a_d1", 0 )
+   SetKeyInt( "4f_center_room_2a_d1", 1 )
    context.bFin = true
    return false
   end
@@ -2053,27 +2098,27 @@ function Day4_4_3f_btn()
  local player = GetPlayer()
  local pawn = nil
  
- Delay_Down() HeadText( "[bzbbrbrrr rbrbzrrbzrrbbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
  Delay_Down() HeadText( "Stop moving.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
  Delay_Down() HeadText( "Where are you going?", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
  Delay_Down() HeadText( "Where do you think you can escape?", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
  Delay_Down() HeadText( "Stop doing this. It's useless.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "You know there is no way o[brbr rbrzbbbb].", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "You know there is no way o^31^31^31^31^31^31^31.", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "I control this p[bbrzrbrz]", htx_color_h )
- Delay_Down() HeadText( "[brbrzbbrzrbrzbbbb]", htx_color_h )
- Delay_Down() HeadText( "You know you can't[brbr rbrzbbbb].", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "I control this p^31^31^31^31^31^31^31^31", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31 ^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "You know you can't^31^31^31^31^31^31.", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() HeadText( "No shi[brbrz brrrrbzbzrrbb brzrbrzbbbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "No shi^31^31 ^31^31^31^31^31 ^31^31^31^31^31^31", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() HeadText( "Don't make me[brbzbbrz brrrrzrbbrbb brzrbrzbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "Don't make me^31  ^31   ^31^31^31^31 ^31  ^31^31^31^31^31^31 ^31 ^31^31^31", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() HeadText( "[brbrzbbr zrbrzbrbrbrbzbbrzbzbz zbzbrbzbrrrbzrb bbbb]", htx_color_h )
+ Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31 ^31^31^31^31^31^31^31 ^31^31^31^31 ^31   ^31^31    ^31  ^31   ^31 ^31^31^31^31^31^31^31 ^31^31^31 ^31^31^31 ^31^31^31^31^31^31^31", htx_color_h )
  Delay_Down() HeadText( "......", htx_color_h )
  Delay_Down() HeadText( "..........", htx_color_h )
  Delay_Down() HeadText( "....................", htx_color_h )

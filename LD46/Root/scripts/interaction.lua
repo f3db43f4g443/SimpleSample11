@@ -6,17 +6,530 @@ function Interaction_Common()
  end
 end
 
-function Interaction_Video( ui )
+function Interaction_Day4_Secret_2_1( ui )
+ if EvaluateKeyInt( "%day4_secret_texture_1" ) > 0 then return end
+ local b = EvaluateKeyInt( "$scr_close" ) > 0
+ ui:FindChildEntity( "b1" ):SetVisible( not b )
+ ui:FindChildEntity( "b2" ):SetVisible( b )
+ ui:FindChildEntity( "b1/x" ):SetVisible( EvaluateKeyInt( "$scr_bug" ) > 0 )
+ local img1 = ui:FindChildEntity( "x" )
+ local x1 = 1
+ local y1 = -3
+ SetPosition( img1, x1 * 64, y1 * 64 )
+ local bEgg = EvaluateKeyInt( "$egg" ) > 0
+ img1:FindChildEntity( "egg" ):SetVisible( bEgg )
+ if GetLabelKey( "_SECRET_ITEM_1" ) == 1 then
+  SetLabelKey( "_SECRET_ITEM_1", 2 )
+  bEgg = true
+  SetKeyInt( "$egg", 1 )
+  local egg = img1:FindChildEntity( "egg" )
+  egg:SetVisible( true )
+  SetPosition( egg, 0, 240 )
+  for i = 1, 60, 1 do
+   Delay( 1 )
+   SetPosition( egg, 0, 240 - i * 4 )
+  end
+ end
+
+ local cursor = ui:FindChildEntity( "cursor" )
+ local cursorX = 0
+ local cursorY = 0
+ local frame = ui:FindChildEntity( "a/1" )
+
+ while not IsKeyDown( VK_ESCAPE ) do
+  coroutine.yield()
+  if IsInput( 0 ) then
+   cursorX = math.min( 256, cursorX + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 1 ) then
+   cursorY = math.min( 256, cursorY + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 2 ) then
+   cursorX = math.max( -256, cursorX - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 3 ) then
+   cursorY = math.max( -256, cursorY - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  
+  local xFrame = math.max( -4, math.min( 4, math.floor( cursorX / 64 ) ) )
+  local yFrame = math.max( -4, math.min( 4, math.floor( cursorY / 64 ) ) )
+  SetPosition( frame, xFrame * 64, yFrame * 64 )
+
+  if IsKeyDown( string.byte( "Q" ) ) then
+   if x1 > -4 then
+    for i = 1, 32, 1 do
+	 Delay( 1 )
+     SetPosition( img1, x1 * 64 - 2 * i, y1 * 64 )
+	end
+    x1 = x1 - 1
+   end
+  end
+  if IsKeyDown( string.byte( "E" ) ) then
+   if x1 < 4 then
+    for i = 1, 32, 1 do
+	 Delay( 1 )
+     SetPosition( img1, x1 * 64 + 2 * i, y1 * 64 )
+	end
+    x1 = x1 + 1
+   end
+  end
+  if IsInputDown( 5 ) then
+   if y1 > -4 then
+    for i = 1, 32, 1 do
+	 Delay( 1 )
+     SetPosition( img1, x1 * 64, y1 * 64 - 2 * i )
+	end
+    y1 = y1 - 1
+   end
+  end
+  if IsInputDown( 7 ) then
+   if y1 < 4 then
+    for i = 1, 32, 1 do
+	 Delay( 1 )
+     SetPosition( img1, x1 * 64, y1 * 64 + 2 * i )
+	end
+    y1 = y1 + 1
+   end
+  end
+
+  if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) then
+   PlaySoundEffect( "btn" )
+   for i = 1, 8, 1 do
+    frame:FindChildEntity( "1" ):SetVisible( false )
+	Delay( 4 )
+    frame:FindChildEntity( "1" ):SetVisible( true )
+	Delay( 2 )
+   end
+
+   local bOK = b and bEgg and x1 == -1 and y1 == 0 and xFrame == -1 and yFrame == 0
+   if bOK then
+    HeadText( "[Zoe987Hv9zx72nIuw11P.IMG restored]", htx_color_5, 240 )
+	SetKeyInt( "%day4_secret_texture_1", 1 )
+	PlaySoundEffect( "activate" )
+   else
+    HeadText( "[~TEMP0000.IMG captured - Moved to recycle]", htx_color_6, 240 )
+	PlaySoundEffect( "error" )
+   end
+   return
+  end
+ end
+
+end
+
+function Interaction_Day4_Secret_2_2( ui )
+ if EvaluateKeyInt( "%day4_secret_texture_2" ) > 0 then return end
+
+ local img1 = ui:FindChildEntity( "b1" )
+ local img2 = ui:FindChildEntity( "b2/x1" )
+ local img3 = ui:FindChildEntity( "b2/x2" )
+ local yOfs = 4
+ SetPosition( img1, 0, yOfs * 32 )
+ SetImgTexRect( img2, { 0.5625, 0.625 + 0.015625 * 0.25 * yOfs, 0.03125, 0.015625 } )
+ SetImgTexRect( img3, { 0.59375, 0.625 + 0.015625 * 0.25 * yOfs, 0.03125, 0.015625 } )
+
+ local bGem = EvaluateKeyInt( "$gem" ) > 0
+ ui:FindChildEntity( "b2/1" ):SetVisible( bGem )
+ ui:FindChildEntity( "b2/2" ):SetVisible( bGem )
+ img2:SetVisible( bGem )
+ img3:SetVisible( bGem )
+ if GetLabelKey( "_SECRET_ITEM_2" ) == 1 then
+  SetLabelKey( "_SECRET_ITEM_2", 2 )
+  bGem = true
+  SetKeyInt( "$gem", 1 )
+  local gem1 = ui:FindChildEntity( "b2/1" )
+  local gem2 = ui:FindChildEntity( "b2/2" )
+  gem1:SetVisible( true )
+  gem2:SetVisible( true )
+  SetPosition( gem1, -120, 0 )
+  SetPosition( gem2, -240, 0 )
+  for i = 1, 60, 1 do
+   Delay( 1 )
+   SetPosition( gem1, -120 + i * 2, 0 )
+   SetPosition( gem2, -240 + i * 4, 0 )
+  end
+  img2:SetVisible( true )
+  img3:SetVisible( true )
+ end
+
+ local cursor = ui:FindChildEntity( "cursor" )
+ local cursorX = 0
+ local cursorY = 0
+ local frame = ui:FindChildEntity( "a/1" )
+
+ while not IsKeyDown( VK_ESCAPE ) do
+  coroutine.yield()
+  if IsInput( 0 ) then
+   cursorX = math.min( 256, cursorX + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 1 ) then
+   cursorY = math.min( 256, cursorY + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 2 ) then
+   cursorX = math.max( -256, cursorX - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 3 ) then
+   cursorY = math.max( -256, cursorY - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  
+  local xFrame = math.max( -4, math.min( 4, math.floor( cursorX / 64 ) ) )
+  local yFrame = math.max( -4, math.min( 4, math.floor( cursorY / 64 ) ) )
+  SetPosition( frame, xFrame * 64, yFrame * 64 )
+
+  if IsInputDown( 5 ) then
+   if yOfs < 28 then
+    for i = 1, 8, 1 do
+	 Delay( 1 )
+     SetPosition( img1, 0, yOfs * 32 + 4 * i )
+     SetImgTexRect( img2, { 0.5625, 0.625 + 0.015625 * 0.25 * ( yOfs + i / 8 ), 0.03125, 0.015625 } )
+     SetImgTexRect( img3, { 0.59375, 0.625 + 0.015625 * 0.25 * ( yOfs + i / 8 ), 0.03125, 0.015625 } )
+	end
+    yOfs = yOfs + 1
+   end
+  end
+  if IsInputDown( 7 ) then
+   if yOfs > 0 then
+    for i = 1, 8, 1 do
+	 Delay( 1 )
+     SetPosition( img1, 0, yOfs * 32 - 4 * i )
+     SetImgTexRect( img2, { 0.5625, 0.625 + 0.015625 * 0.25 * ( yOfs - i / 8 ), 0.03125, 0.015625 } )
+     SetImgTexRect( img3, { 0.59375, 0.625 + 0.015625 * 0.25 * ( yOfs - i / 8 ), 0.03125, 0.015625 } )
+	end
+    yOfs = yOfs - 1
+   end
+  end
+
+  if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) then
+   PlaySoundEffect( "btn" )
+   for i = 1, 8, 1 do
+    frame:FindChildEntity( "1" ):SetVisible( false )
+	Delay( 4 )
+    frame:FindChildEntity( "1" ):SetVisible( true )
+	Delay( 2 )
+   end
+
+   local bOK = bGem and yOfs == 16 and xFrame == -2 and yFrame == -1
+   if bOK then
+    HeadText( "[v7dsv8vydz9d2bf9b9JU.IMG restored]", htx_color_sys, 240 )
+	SetKeyInt( "%day4_secret_texture_2", 1 )
+	PlaySoundEffect( "activate" )
+   else
+    HeadText( "[~TEMP0000.IMG captured - Moved to recycle]", htx_color_6, 240 )
+	PlaySoundEffect( "error" )
+   end
+   return
+  end
+ end
+
+end
+
+function Interaction_Day4_Secret_2_3( ui )
+ if EvaluateKeyInt( "%day4_secret_texture_3" ) > 0 then return end
+
+ local tbl = {}
+ local tblOrder = { 4, 2, 6, 5, 3, 1 }
+ local tblBound = {}
+ local tblX = {}
+ local tblY = {}
+ for i = 1, 6, 1 do
+  tbl[i] = ui:FindChildEntity( "b2/" .. tostring( i ) )
+  tblBound[i] = tbl[i]:GetHitBound( 32 )
+  tblBound[i][3] = tblBound[i][3] + tblBound[i][1]
+  tblBound[i][4] = tblBound[i][4] + tblBound[i][2]
+  tblX[i] = math.floor( GetX( tbl[i] ) / 32 + 0.5 )
+  tblY[i] = math.floor( GetY( tbl[i] ) / 32 + 0.5 )
+ end
+ local bound0 = { -12, -10, 12, 10 }
+
+ local bShell = EvaluateKeyInt( "$shell" ) > 0
+ tbl[1]:SetVisible( bShell )
+ if GetLabelKey( "_SECRET_ITEM_3" ) == 1 then
+  SetLabelKey( "_SECRET_ITEM_3", 2 )
+  bShell = true
+  SetKeyInt( "$shell", 1 )
+  tbl[1]:SetVisible( true )
+  SetPosition( tbl[1], tblX[1] * 32, tblY[1] * 32 + 120 )
+  for i = 1, 60, 1 do
+   Delay( 1 )
+   SetPosition( tbl[1], tblX[1] * 32, tblY[1] * 32 + 120 - i * 2 )
+  end
+ end
+ if not bShell then
+  tblOrder = { 3, 1, 5, 4, 2 }
+  for i = 1, 5, 1 do
+   tbl[i] = tbl[i + 1]
+   tblBound[i] = tblBound[i + 1]
+   tblX[i] = tblX[i + 1]
+   tblY[i] = tblY[i + 1]
+  end
+  tbl[6] = nil
+  tblBound[6] = nil
+  tblX[6] = nil
+  tblY[6] = nil
+ end
+ local nSelect = 0
+ local function FuncSort()
+  for i = 1, #tbl, 1 do
+   SetZOrder( tbl[tblOrder[i]], i )
+  end
+ end
+
+ local cursor = ui:FindChildEntity( "cursor" )
+ local cursorX = 0
+ local cursorY = 0
+ local frame = ui:FindChildEntity( "a/1" )
+
+ while not IsKeyDown( VK_ESCAPE ) do
+  coroutine.yield()
+  if nSelect == 0 then
+   if IsInput( 0 ) then
+    cursorX = math.min( 256, cursorX + 4 )
+    SetPosition( cursor, cursorX, cursorY )
+   end
+   if IsInput( 1 ) then
+    cursorY = math.min( 256, cursorY + 4 )
+    SetPosition( cursor, cursorX, cursorY )
+   end
+   if IsInput( 2 ) then
+    cursorX = math.max( -256, cursorX - 4 )
+    SetPosition( cursor, cursorX, cursorY )
+   end
+   if IsInput( 3 ) then
+    cursorY = math.max( -256, cursorY - 4 )
+    SetPosition( cursor, cursorX, cursorY )
+   end
+  
+   local xFrame = math.max( -4, math.min( 4, math.floor( cursorX / 64 ) ) )
+   local yFrame = math.max( -4, math.min( 4, math.floor( cursorY / 64 ) ) )
+   SetPosition( frame, xFrame * 64, yFrame * 64 )
+
+   if IsInputDown( 5 ) then
+    for i = #tbl, 1, -1 do
+	 local n = tblOrder[i]
+	 if tbl[n]:Pick( cursorX - GetX( tbl[n] ), cursorY - GetY( tbl[n] ) ) then
+	  if i == 1 then
+	   local tmp = tblOrder[1]
+	   for j = 1, #tbl - 1, 1 do
+	    tblOrder[j] = tblOrder[j + 1]
+	   end
+	   tblOrder[#tbl] = tmp
+	  else
+	   local tmp = tblOrder[i]
+	   tblOrder[i] = tblOrder[i - 1]
+	   tblOrder[i - 1] = tmp
+	  end
+	  FuncSort()
+	  break
+	 end
+	end
+   end
+   if IsInputDown( 7 ) then
+    for i = #tbl, 1, -1 do
+	 local n = tblOrder[i]
+	 if tbl[n]:Pick( cursorX - GetX( tbl[n] ), cursorY - GetY( tbl[n] ) ) then
+	  if i == #tbl then
+	   local tmp = tblOrder[#tbl]
+	   for j = #tbl, 2, -1 do
+	    tblOrder[j] = tblOrder[j - 1]
+	   end
+	   tblOrder[1] = tmp
+	  else
+	   local tmp = tblOrder[i]
+	   tblOrder[i] = tblOrder[i + 1]
+	   tblOrder[i + 1] = tmp
+	  end
+	  FuncSort()
+	  break
+	 end
+	end
+   end
+
+   if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) then
+    PlaySoundEffect( "btn" )
+    for i = 1, 8, 1 do
+     frame:FindChildEntity( "1" ):SetVisible( false )
+	 Delay( 4 )
+     frame:FindChildEntity( "1" ):SetVisible( true )
+	 Delay( 2 )
+    end
+
+    local bOK = bShell
+	if bOK then
+	 if tblOrder[1] ~= 1 or tblOrder[2] ~= 2 or tblOrder[3] ~= 3 then bOK = false
+	 elseif not ( tblOrder[4] == 4 and tblOrder[5] == 5 or tblOrder[4] == 4 and tblOrder[6] == 5
+	  or tblOrder[5] == 4 and tblOrder[6] == 5 ) then bOK = false
+	 end
+	end
+	if bOK then
+	 local x0 = xFrame * 2 - 2
+	 local y0 = yFrame * 2
+	 for i = 1, #tbl, 1 do
+	  if tblX[i] ~= x0 or tblY[i] ~= y0 then
+	   bOK = false
+	   break
+	  end
+	 end
+	end
+
+    if bOK then
+     HeadText( "[IQc79cI7p0Ew16YsUn3I.IMG restored]", htx_color_2, 240 )
+	 SetKeyInt( "%day4_secret_texture_3", 1 )
+	 PlaySoundEffect( "activate" )
+    else
+     HeadText( "[~TEMP0000.IMG captured - Moved to recycle]", htx_color_6, 240 )
+	 PlaySoundEffect( "error" )
+    end
+    return
+   end
+  
+   if IsInputDown( 4 ) then
+    for i = #tbl, 1, -1 do
+	 local n = tblOrder[i]
+	 if tbl[n]:Pick( cursorX - GetX( tbl[n] ), cursorY - GetY( tbl[n] ) ) then
+	  nSelect = n
+	  cursor:SetVisible( false )
+	  for j = i, #tbl - 1, 1 do
+	   tblOrder[j] = tblOrder[j + 1]
+	  end
+	  tblOrder[#tbl] = n
+	  FuncSort()
+	  break
+	 end
+	end
+   end
+
+  else
+   if IsInputDown( 0 ) then
+    if tblX[nSelect] + tblBound[nSelect][3] < bound0[3] then
+	 tblX[nSelect] = tblX[nSelect] + 1
+     SetPosition( tbl[nSelect], tblX[nSelect] * 32, tblY[nSelect] * 32 )
+	else
+	 PlaySoundEffect( "bzzz0" )
+	end
+   end
+   if IsInputDown( 1 ) then
+    if tblY[nSelect] + tblBound[nSelect][4] < bound0[4] then
+	 tblY[nSelect] = tblY[nSelect] + 1
+     SetPosition( tbl[nSelect], tblX[nSelect] * 32, tblY[nSelect] * 32 )
+	else
+	 PlaySoundEffect( "bzzz0" )
+	end
+   end
+   if IsInputDown( 2 ) then
+    if tblX[nSelect] + tblBound[nSelect][1] > bound0[1] then
+	 tblX[nSelect] = tblX[nSelect] - 1
+     SetPosition( tbl[nSelect], tblX[nSelect] * 32, tblY[nSelect] * 32 )
+	else
+	 PlaySoundEffect( "bzzz0" )
+	end
+   end
+   if IsInputDown( 3 ) then
+    if tblY[nSelect] + tblBound[nSelect][2] > bound0[2] then
+	 tblY[nSelect] = tblY[nSelect] - 1
+     SetPosition( tbl[nSelect], tblX[nSelect] * 32, tblY[nSelect] * 32 )
+	else
+	 PlaySoundEffect( "bzzz0" )
+	end
+   end
+   
+   if IsInputDown( 4 ) then
+	nSelect = 0
+	cursor:SetVisible( true )
+   end
+  end
+
+ end
+
+end
+
+function Interaction_Day4_Secret_2_4( ui )
+ if EvaluateKeyInt( "%day4_secret_texture_4" ) > 0 then return end
+ local cursor = ui:FindChildEntity( "cursor" )
+ local cursorX = 0
+ local cursorY = 0
+ local frame = ui:FindChildEntity( "a/1" )
+
+ while not IsKeyDown( VK_ESCAPE ) do
+  coroutine.yield()
+  if IsInput( 0 ) then
+   cursorX = math.min( 256, cursorX + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 1 ) then
+   cursorY = math.min( 256, cursorY + 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 2 ) then
+   cursorX = math.max( -320, cursorX - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  if IsInput( 3 ) then
+   cursorY = math.max( -320, cursorY - 4 )
+   SetPosition( cursor, cursorX, cursorY )
+  end
+  
+  local xFrame = math.max( -5, math.min( 4, math.floor( cursorX / 64 ) ) )
+  local yFrame = math.max( -5, math.min( 4, math.floor( cursorY / 64 ) ) )
+  SetPosition( frame, xFrame * 64, yFrame * 64 )
+  if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) then
+   PlaySoundEffect( "btn" )
+   for i = 1, 8, 1 do
+    frame:FindChildEntity( "1" ):SetVisible( false )
+	Delay( 4 )
+    frame:FindChildEntity( "1" ):SetVisible( true )
+	Delay( 2 )
+   end
+
+   local bOK = EvaluateKeyInt( "$scr_close" ) == 0 and EvaluateKeyInt( "$scr_bug" ) > 0 and xFrame == 0 and yFrame == 1
+   if bOK then
+    HeadText( "[R8sds8V1oq198vz0mUbL.IMG restored]", htx_color_1, 240 )
+	SetKeyInt( "$scr_bug", 0 )
+	SetKeyInt( "%day4_secret_texture_4", 1 )
+    GetCurLevel():GetPawnByName( "pipe" ):FindChildEntity( "1" ):SetVisible( false )
+	PlaySoundEffect( "activate" )
+   else
+    HeadText( "[~TEMP0000.IMG captured - Moved to recycle]", htx_color_6, 240 )
+	PlaySoundEffect( "error" )
+   end
+   return
+  end
+ end
+
+end
+
+function Interaction_Video( ui, pawn )
  local selected = ui:FindChildEntity( "selected" )
  local texts = {}
  local nSelected = 0
  local unlocked = {}
+
+ local autoplay = pawn:GetTag( "autoplay" )
+ local nAutoplay = nil
+ if #autoplay > 0 then
+  nAutoplay = g_videos[autoplay]
+  if not nAutoplay then nAutoplay = tonumber( autoplay ) end
+  if nAutoplay and g_videos[nAutoplay] and EvaluateKeyInt( "%video_autoplay_" .. autoplay ) > 0 then
+   if not FEVT( "%video_unlocked_" .. autoplay ) then nAutoplay = nil end
+  else
+   nAutoplay = nil
+  end
+ end
+
  for i = 1, 5, 1 do
   texts[i] = ui:FindChildEntity( "text_" .. tostring( i ) )
   unlocked[i] = EvaluateKeyInt( "%video_unlocked_" .. tostring( i ) ) > 0
   if unlocked[i] then
    local item = g_videos[i]
-   texts[i]:Set( item.strName, 0 )
+   local strName = item.strName
+   if type( strName ) == "function" then strName = strName() end
+   texts[i]:Set( strName, 0 )
    if nSelected == 0 then
     nSelected = i
    end
@@ -28,44 +541,90 @@ function Interaction_Video( ui )
   selected:SetVisible( false )
  end
  coroutine.yield()
+ local selectX = GetX( selected )
+ local selectY = GetY( selected )
 
- while true do
-  if IsKeyDown( VK_ESCAPE ) then return end
-  if nSelected > 0 then
-   if IsInputDown( 1 ) then
-    for i = 1, 5, 1 do
-     nSelected = nSelected + 1
-     if nSelected > 5 then
-      nSelected = 1
-     end
-     if unlocked[nSelected] then
-      break
-     end
-    end
-   end
-   if IsInputDown( 3 ) then
-    for i = 1, 5, 1 do
-     nSelected = nSelected - 1
-     if nSelected < 1 then
-      nSelected = 5
-     end
-     if unlocked[nSelected] then
-      break
-     end
-    end
-   end
-   SetPosition( selected, 0, 288 - nSelected * 96 )
-  end
-
-  if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) or IsInputDown( 4 ) then
+ if nAutoplay then
+  nSelected = nAutoplay
+  SetPosition( selected, selectX, 288 - nSelected * 96 + selectY )
+ else
+  while true do
+   if IsKeyDown( VK_ESCAPE ) then return end
    if nSelected > 0 then
-    local item = g_videos[nSelected]
-    RunScenario( item.funcScenario )
+    if IsInputDown( 1 ) then
+	 local nSelected0 = nSelected
+     for i = 1, 5, 1 do
+      nSelected = nSelected + 1
+      if nSelected > 5 then
+       nSelected = 1
+      end
+      if unlocked[nSelected] then
+       break
+      end
+     end
+     PlaySoundEffect( nSelected0 == nSelected and "btn_error" or "btn" )
+    end
+    if IsInputDown( 3 ) then
+	 local nSelected0 = nSelected
+     for i = 1, 5, 1 do
+      nSelected = nSelected - 1
+      if nSelected < 1 then
+       nSelected = 5
+      end
+      if unlocked[nSelected] then
+       break
+      end
+     end
+     PlaySoundEffect( nSelected0 == nSelected and "btn_error" or "btn" )
+    end
+    SetPosition( selected, selectX, 288 - nSelected * 96 + selectY )
    end
-   return
+
+   if IsKeyDown( VK_RETURN ) or IsKeyDown( string.byte( " " ) ) or IsInputDown( 4 ) then
+    break
+   end
+   coroutine.yield()
   end
-  coroutine.yield()
  end
+
+ if nSelected > 0 then
+  local item = g_videos[nSelected]
+  PlaySoundEffect( "btn" )
+  for i = 1, 10, 1 do
+   selected:SetVisible( false )
+   Delay( 4 )
+   selected:SetVisible( true )
+   Delay( 4 )
+  end
+  Delay( 40 )
+  LevelRegisterUpdate( function()
+   for i = 1, 10, 1 do
+    GetMasterLevel():GetMainUI():ShowFreezeEft( i )
+    Delay( 3 )
+   end
+   GetMasterLevel():BlackOut( 10, 0 )
+   local player = GetPlayer()
+   SetKeyString( "_video_ret_level", GetMasterLevel():GetCurLevelName() )
+   SetKeyInt( "_video_ret_x", player:GetPosX() )
+   SetKeyInt( "_video_ret_y", player:GetPosY() )
+   SetKeyInt( "_video_ret_dir", player:GetCurDir() )
+   GetMasterLevel():PushPlayerData()
+   TransferTo( item.strDest, item.nDestX, item.nDestY, item.nDestDir, -2 )
+  end )
+ end
+end
+
+function ReturnFromVideo()
+ GetMasterLevel():PopPlayerData()
+ local strDest = EvaluateKeyString( "_video_ret_level" )
+ local nDestX = EvaluateKeyInt( "_video_ret_x" )
+ local nDestY = EvaluateKeyInt( "_video_ret_y" )
+ local nDestDir = EvaluateKeyInt( "_video_ret_dir" )
+ SetKeyString( "_video_ret_level", "" )
+ SetKeyInt( "_video_ret_x", 0 )
+ SetKeyInt( "_video_ret_y", 0 )
+ SetKeyInt( "_video_ret_dir", 0 )
+ TransferTo( strDest, nDestX, nDestY, nDestDir, -2 )
 end
 
 function Interaction_Bookshelf( ui, pawn )
@@ -161,7 +720,7 @@ function Interaction_Bookshelf( ui, pawn )
  local bOpen = false
  local nSelectedRow = 0
  local nSelectedBook = 0
- local handleRect = { 256, 32, 304, 96 }
+ local handleRect = { 256, -32, 304, 96 }
  local tapeRect = { { -288, 160, 288, 200 }, { -288, -96, 288, -56 }, { -288, -352, 288, -312 } }
 
  coroutine.yield()
@@ -468,10 +1027,10 @@ function Interaction_Cinema_Seat( ui, pawn )
 	  local x1 = grids[j1][1]
 	  local y1 = grids[j1][2]
 	  local b = true
-	  for k = 1, #npcData, 1 do
+	  for k = 1, nNpc, 1 do
 	   local data1 = npcData[k]
-	   if data1[1] == x1 and data1[2] == y1 or data[3] == 5 and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 + 1
-	    or data1[3] == 5 and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 - 1 then
+	   if data1[1] == x1 and data1[2] == y1 or data[3] == 5 and k ~= i and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 + 1
+	    or data1[3] == 5 and k ~= i and ( data1[1] == x1 + 1 or data1[1] == x1 - 1 ) and data1[2] == y1 - 1 then
 	    b = false
 		break
 	   end

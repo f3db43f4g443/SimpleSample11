@@ -54,6 +54,7 @@ public:
 		{
 			if( m_pUpdate )
 			{
+				CReference<CLuaState> p = m_pUpdate;
 				m_pUpdate->PushLua( pPawn );
 				if( !m_pUpdate->Resume( 1, 0 ) )
 					m_pUpdate = NULL;
@@ -1521,7 +1522,8 @@ void CPawnAI_Crow::OnInit()
 		for( int i = 0; i < 3; i++ )
 			m_pHpBarImg[i] = NULL;
 	}
-	m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
+	if( m_pHpBarImg[0] )
+		m_hpBarOrigRect = static_cast<CImage2D*>( m_pHpBarImg[0].GetPtr() )->GetElem().rect;
 	m_origPos = pPawn->GetPos();
 	m_nOrigDir = pPawn->GetCurDir();
 	if( pPawn->GetCurStateIndex() == eState_Stand_1 )
@@ -1850,11 +1852,11 @@ int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
 	if( nCurDir == 1 )
 		d1.x = -d1.x;
 
+	auto p0 = pPawn->GetPos();
+	auto p1 = pPlayer->GetMoveTo();
+	TVector2<int32> ofs( nCurDir == 0 ? 2 : -2, 0 );
 	if( m_nBlades )
 	{
-		auto p0 = pPawn->GetPos();
-		auto p1 = pPlayer->GetMoveTo();
-		TVector2<int32> ofs( nCurDir == 0 ? 2 : -2, 0 );
 		if( d1.x == 4 && d1.y == 0 || m_nBlades >= 2 && d1.x == 3 && ( d1.y == 1 || d1.y == -1 ) )
 		{
 			if( pPawn->GetLevel()->IsGridMoveable( p0 + ofs, pPawn ) )
@@ -1885,10 +1887,10 @@ int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
 	}
 
 	d = pPlayer->GetCurStateDest() - pPawn->GetPos();
-	d1 = d;
+	auto d2 = d;
 	if( nCurDir == 1 )
-		d1.x = -d1.x;
-	if( d1.y == 0 && d1.x == 2 || m_nBlades == 2 && d1.x == 1 && ( d1.y == 1 || d1.y == -1 ) )
+		d2.x = -d2.x;
+	if( d2.y == 0 && d2.x == 2 || m_nBlades == 2 && d2.x == 1 && ( d2.y == 1 || d2.y == -1 ) )
 	{
 		if( pPawn->GetLevel()->IsGridMoveable( pPawn->GetPos() + TVector2<int32>( nCurDir == 0 ? -2 : 2, 0 ), pPawn ) )
 			return eState_Move_Back;
@@ -1908,7 +1910,7 @@ int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
 		}
 	}
 	
-	if( d1.x < 0 )
+	if( d2.x < 0 )
 	{
 		if( nPrevState >= 0 )
 			return eState_Turn_0;
@@ -1917,6 +1919,25 @@ int32 CPawnAI_Crow::ActionFunc( int8& nCurDir, int32 nPrevState )
 	}
 	if( nPrevState >= 0  )
 		return m_nBlades + eState_Recover_0;
+
+	if( m_nBlades == 2 && d1.y == 0 && d1.x > 2 )
+	{
+		bool b = true;
+		for( auto p = p0 + ofs; p != p1; p = p + ofs )
+		{
+			if( pPawn->GetLevel()->CheckGrid( p.x, p.y, pPawn, 2 ) < 2 )
+			{
+				b = false;
+				break;
+			}
+		}
+		if( b )
+		{
+			m_nDrawBladeCDLeft = 0;
+			return eState_Throw_Blade_0;
+		}
+	}
+
 	return -1;
 }
 
