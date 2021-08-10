@@ -502,6 +502,43 @@ void CPrefabNode::SaveOtherExtraData( CBufFile & extraData )
 	}
 }
 
+void CPrefabNode::ExtractResourceExtraData( IBufReader& bufIn, CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
+{
+	if( m_pResource->GetResourceType() == eEngineResType_Prefab )
+	{
+		auto pPrefab = static_cast<CPrefab*>( m_pResource.GetPtr() );
+		auto p = pPrefab->GetRoot();
+		SPatchContext contextIn( p );
+		SPatchContext contextOut( p );
+		while( 1 )
+		{
+			string str;
+			bufIn.Read( str );
+			if( !str.length() )
+				break;
+			auto& buf = contextIn.mapPatches[str];
+			buf.Clear();
+			bufIn.Read( buf );
+		}
+
+		p->ExtractPatchData( m_pPatchedNode, contextIn, contextOut, funcNodeHandler, funcDataHandler );
+
+		if( contextOut.mapPatches.size() )
+		{
+			for( auto& item : contextOut.mapPatches )
+			{
+				bufOut.Write( item.first );
+				bufOut.Write( item.second );
+			}
+			bufOut.Write( string() );
+		}
+	}
+	else
+	{
+		bufOut.Write( bufIn.GetBuffer(), bufIn.GetBufLen() );
+	}
+}
+
 void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeNameSpace* pNameSpace )
 {
 	bool bPatch = false;
@@ -639,6 +676,181 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeN
 
 	for( int i = vecChildren.size() - 1; i >= 0; i-- )
 		vecChildren[i].first->Diff( vecChildren[i].second, context, pNameSpace );
+}
+
+void CPrefabNode::ExtractPatchData( CPrefabNode* pPatchedNode, SPatchContext& contextIn, SPatchContext& contextOut, function<void( CPrefabNode*, int8 )> funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
+{
+	funcNodeHandler( pPatchedNode, 2 );
+	CBufFile* pPatchIn = NULL;
+	CBufFile* pPatchOut = NULL;
+	{
+		string str;
+		GetPathString( contextIn.pRoot, str );
+		auto itr = contextIn.mapPatches.find( str );
+		if( itr != contextIn.mapPatches.end() )
+		{
+			pPatchIn = &itr->second;
+			if( pPatchIn->GetBuffer() != pPatchIn->GetCurBuffer() )
+				pPatchIn = NULL;
+		}
+		if( pPatchIn )
+			pPatchOut = &contextIn.mapPatches[str];
+	}
+	
+	if( pPatchIn )
+	{
+		{
+			CBufFile tmpBufIn;
+			pPatchIn->Read( tmpBufIn );
+			if( tmpBufIn.GetBufLen() )
+			{
+				CBufFile tmpBufOut;
+				auto pClassData = m_obj.GetClassData();
+				if( pClassData )
+					pClassData->ExtractData( true, tmpBufIn, tmpBufOut, funcDataHandler );
+				pPatchOut->Write( tmpBufOut );
+			}
+			else
+				pPatchOut->Write( tmpBufIn );
+		}
+
+		int8 nPatchFlag = 0;
+		{
+			pPatchIn->Read( nPatchFlag );
+			pPatchOut->Write( nPatchFlag );
+			if( !!( nPatchFlag & 1 ) )
+				pPatchOut->Write( pPatchIn->Read<float>() ); //x
+			if( !!( nPatchFlag & 2 ) )
+				pPatchOut->Write( pPatchIn->Read<float>() ); //y
+			if( !!( nPatchFlag & 4 ) )
+				pPatchOut->Write( pPatchIn->Read<float>() ); //r
+			if( !!( nPatchFlag & 8 ) )
+				pPatchOut->Write( pPatchIn->Read<float>() ); //s
+		}
+
+		bool bLoadedRes = false;
+		if( !!( nPatchFlag & 16 ) )
+		{
+			CBufReader tmpBufIn( *pPatchIn );
+			CBufFile tmpBufOut;
+			auto nType = tmpBufIn.Read<uint8>();
+			tmpBufOut.Write( nType );
+			if( nType == m_nType )
+			{
+				if( m_nType == 0 )
+				{
+					string strResName;
+					tmpBufIn.Read( strResName );
+					tmpBufOut.Write( strResName );
+					CResource* pResource = LoadResource( strResName.c_str() );
+					VERIFY( pResource == pPatchedNode->GetResource() );
+					if( pResource )
+					{
+						pPatchedNode->ExtractResourceExtraData( tmpBufIn, tmpBufOut, funcNodeHandler, funcDataHandler );
+						bLoadedRes = true;
+					}
+				}
+				else
+					tmpBufOut.Write( tmpBufIn.GetCurBuffer(), tmpBufIn.GetBytesLeft() );
+			}
+			pPatchOut->Write( tmpBufOut );
+		}
+		else if( !!( nPatchFlag & 32 ) )
+		{
+			CBufReader tmpBufIn( *pPatchIn );
+			CBufFile tmpBufOut;
+			auto pRes = GetResource();
+			if( pRes && pRes->GetResourceType() == eEngineResType_Prefab )
+			{
+				CPrefabNode* p = m_pPatchedNode;
+				if( !p )
+					p = static_cast<CPrefab*>( pRes )->GetRoot();
+
+				SPatchContext contextIn( p );
+				SPatchContext contextOut( p );
+				while( 1 )
+				{
+					string str;
+					tmpBufIn.Read( str );
+					if( !str.length() )
+						break;
+					auto& buf = contextIn.mapPatches[str];
+					buf.Clear();
+					tmpBufIn.Read( buf );
+				}
+				p->ExtractPatchData( pPatchedNode->m_pPatchedNode, contextIn, contextOut, funcNodeHandler, funcDataHandler );
+
+				if( contextOut.mapPatches.size() )
+				{
+					for( auto& item : contextOut.mapPatches )
+					{
+						tmpBufOut.Write( item.first );
+						tmpBufOut.Write( item.second );
+					}
+					tmpBufOut.Write( string() );
+				}
+			}
+			pPatchOut->Write( tmpBufOut );
+		}
+		if( nPatchFlag & 64 )
+		{
+			pPatchOut->Write( pPatchIn->Read<int32>() ); //namespaceID
+		}
+	}
+
+	int32 nExtraNodes = 0;
+	vector<pair<CPrefabNode*, CPrefabNode*> > vecChildren;
+	vector<pair<int32, CPrefabNode*> > vecExtraNodes;
+
+	auto pChild = Get_RenderChild();
+	auto pChild1 = pPatchedNode->Get_RenderChild();
+	for( ; pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		for( ;; pChild1 = pChild1->NextRenderChild() )
+		{
+			if( pChild1 == pPatchedNode->m_pRenderObject )
+				continue;
+			CPrefabNode* pNode1 = static_cast<CPrefabNode*>( pChild1 );
+			if( !pNode1->m_bIsInstance )
+			{
+				vecExtraNodes.push_back( pair<int32, CPrefabNode*>( vecChildren.size(), pNode1 ) );
+				continue;
+			}
+			break;
+		}
+		vecChildren.push_back( pair<CPrefabNode*, CPrefabNode*>( static_cast<CPrefabNode*>( pChild ), static_cast<CPrefabNode*>( pChild1 ) ) );
+		pChild1 = pChild1->NextRenderChild();
+	}
+	for( ; pChild1; pChild1 = pChild1->NextRenderChild() )
+	{
+		if( pChild1 == pPatchedNode->m_pRenderObject )
+			continue;
+		vecExtraNodes.push_back( pair<int32, CPrefabNode*>( vecChildren.size(), static_cast<CPrefabNode*>( pChild1 ) ) );
+	}
+
+	if( pPatchIn )
+	{
+		pPatchIn->Read( nExtraNodes );
+		pPatchOut->Write( nExtraNodes );
+		VERIFY( nExtraNodes == vecExtraNodes.size() );
+
+		for( int i = vecExtraNodes.size() - 1; i >= 0; i-- )
+		{
+			vecExtraNodes[i].first = vecChildren.size() - vecExtraNodes[i].first;
+			int32 nIndex;
+			pPatchIn->Read( nIndex );
+			pPatchOut->Write( nIndex );
+			VERIFY( nIndex == vecExtraNodes[i].first );
+			vecExtraNodes[i].second->ExtractData( *pPatchIn, *pPatchOut, funcNodeHandler, funcDataHandler );
+		}
+	}
+
+	for( int i = vecChildren.size() - 1; i >= 0; i-- )
+		vecChildren[i].first->ExtractPatchData( vecChildren[i].second, contextIn, contextOut, funcNodeHandler, funcDataHandler );
+
+	funcNodeHandler( pPatchedNode, -2 );
 }
 
 void CPrefabNode::UpdateNameSpace( SNameSpaceUpdateContext* pContext )
@@ -1996,6 +2208,60 @@ void CPrefabNode::FormatNamespaceString( void* pt, int32 n, string& result )
 	result = ss.str();
 }
 
+void CPrefabNode::ExtractData( IBufReader& bufIn, CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
+{
+	funcNodeHandler( this, 1 );
+
+	bufOut.Write( bufIn.Read<float>() ); //m_nType
+
+	string strName;
+	bufIn.Read( strName );
+	bufOut.Write( strName );
+	bufOut.Write( bufIn.Read<float>() ); //x
+	bufOut.Write( bufIn.Read<float>() ); //y
+	bufOut.Write( bufIn.Read<float>() ); //r
+	bufOut.Write( bufIn.Read<float>() ); //s
+	bufOut.Write( bufIn.Read<int32>() ); //z
+	string strResourceName;
+	if( !m_nType )
+	{
+		bufIn.Read( strResourceName );
+		bufOut.Write( strResourceName );
+	}
+	CBufReader extraDataIn( bufIn );
+	if( !m_nType )
+	{
+		CBufFile extraDataOut;
+		CResource* pResource = LoadResource( strResourceName.c_str() );
+		if( pResource )
+			ExtractResourceExtraData( extraDataIn, extraDataOut, funcNodeHandler, funcDataHandler );
+		bufOut.Write( extraDataOut );
+	}
+	else
+		bufOut.Write( extraDataIn );
+	CObjectPrototype::ExtractData( bufIn, bufOut, funcDataHandler );
+	
+	vector<CPrefabNode*> vecChildren;
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		if( pNode )
+			vecChildren.push_back( pNode );
+	}
+	uint32 nChildren;
+	bufIn.Read( nChildren );
+	VERIFY( nChildren == vecChildren.size() );
+	bufOut.Write( nChildren );
+	for( int i = nChildren - 1; i >= 0; i-- )
+	{
+		vecChildren[i]->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
+	}
+
+	funcNodeHandler( this, -1 );
+}
+
 CPrefabNode* CPrefab::GetNode( const char* szName )
 {
 	if( !szName || !szName[0] )
@@ -2064,6 +2330,16 @@ void CPrefab::Save( CBufFile& buf )
 		buf.Write( item.first );
 		item.second->Save( buf, &item.second->GetNameSpace() );
 	}
+}
+
+void CPrefab::ExtractData( CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
+{
+	vector<char> content;
+	GetFileContent( content, GetName(), false );
+	CBufReader bufIn( &content[0], content.size() );
+	m_pRoot->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
+	for( auto& item : m_mapNodes )
+		item.second->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
 }
 
 int32 CPrefabNodeNameSpace::FindIDByNode( CPrefabNode * pNode )

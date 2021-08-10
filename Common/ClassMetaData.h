@@ -26,6 +26,7 @@ struct SEnumMetaData
 
 	void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 	void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext );
+	void ExtractData( IBufReader& bufIn, CBufFile& bufOut );
 	bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
 	void PatchData( uint8* pObj1, IBufReader& buf, void* pContext );
 };
@@ -157,6 +158,7 @@ struct SClassMetaData
 		int32 GetArg( const char* szKey );
 		void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 		void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext );
+		bool ExtractData( bool bDiffMode, SClassMetaData* pOwner, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler );
 		bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
 		void PatchData( uint8* pObj1, IBufReader& buf, void* pContext );
 	};
@@ -250,6 +252,7 @@ struct SClassMetaData
 		
 		void PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData );
 		void UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData, void* pContext );
+		bool ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler );
 		bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
 		void PatchData( uint8* pObj1, IBufReader& buf, void* pContext );
 	};
@@ -287,6 +290,8 @@ struct SClassMetaData
 		CreateFunc( pObj );
 		return pObj;
 	}
+	bool ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler );
+
 	bool DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf );
 	void PatchData( uint8* pObj1, IBufReader& buf, void* pContext );
 	uint8* NewObjFromPatch( uint8* pObj0, IBufReader& buf, void* pContext )
@@ -547,6 +552,8 @@ public:
 	uint8* CreateObjectPatched( IBufReader& patch, void* pContext );
 	void Load( IBufReader& buf, bool bWithMetaData, void* pContext );
 	void Save( CBufFile& buf, bool bWithMetaData );
+
+	static bool ExtractData( IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& handler );
 private:
 	SClassMetaData* m_pBaseClass;
 	SClassMetaData* m_pClassMetaData;

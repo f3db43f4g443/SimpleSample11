@@ -332,6 +332,202 @@ void CPrefabEditor::OnInited()
 	m_pViewport->GetRoot()->AddChild( pImage2D );
 }
 
+#define EXPORT_TEXT_PATH "EditorRes/Temp/export_text/"
+#define EXPORT_TEXT_BLOCK_BEGIN "__\x04\x03\x02\x01\n"
+#define EXPORT_TEXT_BLOCK_END "\n\x01\x02\x03\x04__\n"
+
+void CPrefabEditor::ExportAllText()
+{
+	function<void( const char* )> FuncFolders;
+	vector<string> vecPrefab;
+	FuncFolders = [&vecPrefab, &FuncFolders] ( const char* szPath ) {
+		string strFind = szPath;
+		strFind += "*.pf";
+		FindFiles( strFind.c_str(), [&vecPrefab, szPath] ( const char* szFileName )
+		{
+			string strFullPath = szPath;
+			strFullPath += szFileName;
+			vecPrefab.push_back( strFullPath );
+			return true;
+		}, true, false );
+
+		strFind = szPath;
+		strFind += "*";
+		FindFiles( strFind.c_str(), [&FuncFolders, szPath] ( const char* szFileName )
+		{
+			string strFullPath = szPath;
+			strFullPath += szFileName;
+			strFullPath += "/";
+			FuncFolders( strFullPath.c_str() );
+			return true;
+		}, false, true );
+	};
+	FuncFolders( "" );
+
+	CBufFile bufManifest;
+	string strText;
+	int32 nFileIndex = 0;
+	int32 nFileLines = 0;
+
+	SExportTextPrefabContext context;
+	CReference<CPrefab> pPrefab;
+	function<void( CPrefabNode*, int8 )> funcNodeHandler = [&context] ( CPrefabNode* pNode, int8 nOpr )
+	{
+		if( nOpr > 0 )
+		{
+			string str;
+			for( int i = 0; i < context.vecNodeString.size(); i++ )
+				str += '-';
+			str += nOpr == 1 ? '+' : '|';
+			str += pNode->GetName();
+			str += '\n';
+			context.vecNodeString.push_back( str );
+		}
+		else
+		{
+			context.vecNodeString.pop_back();
+			context.nLastNodeStringDepth = Min<int32>( context.vecNodeString.size(), context.nLastNodeStringDepth );
+		}
+	};
+	auto pStringClassData = CClassMetaDataMgr::Inst().GetClassData<CString>();
+	function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )> funcDataHandler =
+		[=, &context] ( SClassMetaData* pClassMetaData, SClassMetaData::SMemberData* pMemberData, int32 nArrIndex, IBufReader& bufIn, CBufFile& bufOut ) {
+		if( pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
+			&& pMemberData->pTypeData == pStringClassData
+			&& pMemberData->GetArg( "text" ) && nArrIndex >= 0 )
+		{
+			CBufReader tempBuf( bufIn.GetCurBuffer(), bufIn.GetBytesLeft() );
+			CString tempStr = "";
+			pStringClassData->UnpackData( (uint8*)&tempStr, tempBuf, true, NULL );
+			for( int i = context.nLastNodeStringDepth; i < context.vecNodeString.size(); i++ )
+			{
+				context.strTextBlock += context.vecNodeString[i];
+				context.nTotalLines++;
+			}
+			context.nLastNodeStringDepth = context.vecNodeString.size();
+
+			for( int i = 0; i < context.vecNodeString.size(); i++ )
+				context.strTextBlock += ' ';
+			context.strTextBlock += ':';
+			context.strTextBlock += pMemberData->strName;
+			if( !!( pMemberData->nFlag & 2 ) )
+			{
+				context.strTextBlock += '[';
+				char buf[32];
+				itoa( nArrIndex, buf, 10 );
+				context.strTextBlock += buf;
+				context.strTextBlock += "]";
+			}
+			context.strTextBlock += '\n';
+			context.nTotalLines++;
+
+			context.strTextBlock += EXPORT_TEXT_BLOCK_BEGIN;
+			context.strTextBlock += tempStr.c_str();
+			context.strTextBlock += EXPORT_TEXT_BLOCK_END;
+			context.nTotalLines += 3;
+			const char* sz = tempStr.c_str();
+			for( sz = strchr( sz, '\n' ); sz; sz = strchr( sz, '\n' ) )
+				context.nTotalLines++;
+		}
+		return false;
+	};
+
+	for( auto& item : vecPrefab )
+	{
+		pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( item.c_str() );
+		if( !pPrefab )
+			continue;
+
+		CBufFile tmpBuf;
+		pPrefab->ExtractData( tmpBuf, funcNodeHandler, funcDataHandler );
+		if( !context.strTextBlock.length() )
+			continue;
+
+		bufManifest.Write( item );
+		strText += "//////file=";
+		strText += item;
+		strText += '\n';
+		strText += context.strTextBlock;
+		nFileLines += context.nTotalLines + 1;
+		if( nFileLines > 5000 )
+		{
+			stringstream ss;
+			ss << EXPORT_TEXT_PATH << nFileIndex;
+			SaveFile( ss.str().c_str(), strText.c_str(), strText.length() + 1 );
+			bufManifest.Write( "***" );
+			nFileLines = 0;
+			strText = "";
+			nFileIndex++;
+		}
+
+		context.Reset();
+	}
+	string strManifest = EXPORT_TEXT_PATH;
+	strManifest += "manifest";
+	SaveFile( strManifest.c_str(), bufManifest.GetBuffer(), bufManifest.GetBufLen() );
+}
+
+void CPrefabEditor::ImportAllText()
+{
+	string strManifest = EXPORT_TEXT_PATH;
+	strManifest += "manifest";
+	vector<char> vec;
+	GetFileContent( vec, strManifest.c_str(), false );
+	CBufReader buf( &vec[0], vec.size() );
+
+	SImportTextPrefabContext context;
+	function<void( CPrefabNode*, int8 )> funcNodeHandler = [] ( CPrefabNode*, int8 ) {};
+	auto pStringClassData = CClassMetaDataMgr::Inst().GetClassData<CString>();
+	function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )> funcDataHandler =
+		[=, &context] ( SClassMetaData* pClassMetaData, SClassMetaData::SMemberData* pMemberData, int32 nArrIndex, IBufReader& bufIn, CBufFile& bufOut ) {
+		if( pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
+			&& pMemberData->pTypeData == pStringClassData
+			&& pMemberData->GetArg( "text" ) && nArrIndex >= 0 )
+		{
+			CString strTemp;
+			pStringClassData->UnpackData( (uint8*)&strTemp, bufIn, true, NULL );
+			strTemp = context.Next();
+			pStringClassData->PackData( (uint8*)&strTemp, bufOut, true );
+			return true;
+		}
+		return false;
+	};
+
+	string strFileName;
+	int32 nFileIndex = 0;
+	vector<char> vec1;
+	const char* szText = NULL;
+	map<string, CBufFile> mapData;
+	for( ;; )
+	{
+		if( !buf.Read( strFileName ) )
+			break;
+		if( strFileName[0] == '*' )
+		{
+			nFileIndex++;
+			szText = NULL;
+			continue;
+		}
+
+		CReference<CPrefab> pPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( strFileName.c_str() );
+		if( !szText )
+		{
+			stringstream ss;
+			ss << EXPORT_TEXT_PATH << nFileIndex;
+			GetFileContent( vec1, ss.str().c_str(), false );
+			szText = &vec1[0];
+		}
+
+		context.Init( szText );
+		pPrefab->ExtractData( mapData[strFileName], funcNodeHandler, funcDataHandler );
+		szText = context.szText;
+	}
+	for( auto& item : mapData )
+	{
+		SaveFile( item.first.c_str(), item.second.GetBuffer(), item.second.GetBufLen() );
+	}
+}
+
 void CPrefabEditor::RefreshPreview()
 {
 	if( !m_pRes )
@@ -1869,4 +2065,16 @@ void CPrefabEditor::DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeView
 			break;
 		}
 	}
+}
+
+const char* CPrefabEditor::SImportTextPrefabContext::Next()
+{
+	int32 nBeginLen = strlen( EXPORT_TEXT_BLOCK_BEGIN );
+	int32 nEndLen = strlen( EXPORT_TEXT_BLOCK_END );
+	szText = strstr( szText, EXPORT_TEXT_BLOCK_BEGIN );
+	szText += nBeginLen;
+	auto szEnd = strstr( szText, EXPORT_TEXT_BLOCK_END );
+	strCur.assign( szText, szEnd );
+	szText = szEnd + nEndLen;
+	return strCur.c_str();
 }

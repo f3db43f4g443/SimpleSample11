@@ -48,6 +48,7 @@ public:
 	virtual void LoadXml( TiXmlElement* pRoot ) override;
 	virtual CUIElement* CreateObject() override { return new CUILabel; }
 
+	void AddImage( int32 nIndex, const char* szDrawable, const CRectangle& rect, const CRectangle& texRect, uint32 nFlag );
 	void ShowImageList( int32 nIndex );
 	void SetImageListVisible( int32 nIndex, bool bVisible );
 	const wchar_t* GetText() { return m_pTextObject->GetText(); }

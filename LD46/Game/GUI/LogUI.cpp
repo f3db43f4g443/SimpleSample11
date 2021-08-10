@@ -63,6 +63,7 @@ void CLogUI::Refresh( bool bInit )
 		else
 		{
 			int32 nShowBegin = Min( bInit ? m_nSelectedIndex : m_nShowBeginIndex, Max<int32>( 0, m_vecDocuments.size() - ELEM_COUNT( m_pDocTitleText ) ) );
+			nShowBegin = Max( Min( nShowBegin, m_nSelectedIndex ), m_nSelectedIndex - (int32)ELEM_COUNT( m_pDocTitleText ) + 1 );
 			int32 nShowEnd = Min( m_vecDocuments.size(), nShowBegin + ELEM_COUNT( m_pDocTitleText ) );
 			for( int i = nShowBegin; i < nShowEnd; i++ )
 			{

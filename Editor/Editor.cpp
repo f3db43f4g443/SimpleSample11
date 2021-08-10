@@ -40,6 +40,8 @@ void CEditor::Start()
 	CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/fileexplorer.xml" )->GetElement()->Clone( pFileEditor );
 	m_pUIMgr->AddChild( pFileEditor );
 
+	m_pDefaultToolResource = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/tool_default.xml" );
+
 	for( auto& item : m_mapRegisteredEditors )
 	{
 		auto pEditor = item.second.pEditor;
@@ -47,6 +49,7 @@ void CEditor::Start()
 		pEditor->bVisible = false;
 		m_pUIMgr->AddChild( pEditor );
 	}
+	PostInit();
 }
 
 void CEditor::Stop()
@@ -68,6 +71,12 @@ void CEditor::Update()
 		pObj->UpdateAnim( dTotalTime - dLastTime );
 	}
 	m_pUIMgr->OnUpdate();
+}
+
+void CEditor::PostInit()
+{
+	RegisterToolDefault( 0, [] () { CPrefabEditor::ExportAllText(); } );
+	RegisterToolDefault( 1, [] () { CPrefabEditor::ImportAllText(); } );
 }
 
 void CEditor::OnResize( const CVector2& size )
@@ -111,6 +120,16 @@ void CEditor::OnKey( uint32 nChar, bool bKeyDown, bool bAltDown )
 void CEditor::OnChar( uint32 nChar )
 {
 	m_pUIMgr->HandleChar( nChar );
+}
+
+void CEditor::RegisterToolDefault( int32 nIcon, function<void()> funcHandler )
+{
+	auto pIcon = static_cast<CUILabel*>( m_pDefaultToolResource->GetElement()->Clone() );
+	pIcon->AddImage( 0, "EditorRes/Drawables/icons.xml", CRectangle( 0, 0, 32, 32 ),
+		CRectangle( nIcon % 16, nIcon / 16, 0.0625, 0.0625 ), 0 );
+	auto pHandler = new CFunctionTrigger( funcHandler );
+	pHandler->bAutoDelete = true;
+	pIcon->Register( CUIElement::eEvent_Action, pHandler );
 }
 
 void CEditor::SetEditor( CResourceEditor* pElem )

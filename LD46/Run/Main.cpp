@@ -10,6 +10,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	SRand::Inst().nSeed = (uint32)GetLocalTime();
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	SDeviceCreateContext context;
+	context.szWindowName = L"P0";
 	context.resolution = CVector2( 1152, 720 );
 	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->CreateDevice( context );

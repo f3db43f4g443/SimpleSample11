@@ -442,7 +442,7 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	DXUTInit( true, false, NULL );
 	DXUTSetCursorSettings( true, true );
 	DXUTSetHotkeyHandling( false, false, false );
-	DXUTCreateWindow( L"SimpleSample11" );
+	DXUTCreateWindow( context.szWindowName ? context.szWindowName : L"Game" );
 
 	// Only require 10-level hardware, change to D3D_FEATURE_LEVEL_11_0 to require 11-class hardware
 	// Switch to D3D_FEATURE_LEVEL_9_x for 10level9 hardware

@@ -1384,7 +1384,7 @@ TVector2<int32> CPawnAI_Pig::HandleStealthDetect()
 	m_vecAlert.resize( 0 );
 	m_vecDetect.resize( 0 );
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
-	if( pPawn->IsKilled() )
+	if( pPawn->GetCurStateIndex() > 0 )
 		return TVector2<int32>( -1, -1 );
 	auto pLevel = pPawn->GetLevel();
 	auto levelSize = pLevel->GetSize();

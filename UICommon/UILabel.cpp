@@ -147,6 +147,11 @@ void CImageList::CopyData( CImageList* pImageList )
 	}
 }
 
+void CUILabel::AddImage( int32 nIndex, const char* szDrawable, const CRectangle& rect, const CRectangle& texRect, uint32 nFlag )
+{
+	m_vecImageLists[nIndex]->AddImage( CImageList::GetUIDrawable( szDrawable ), rect, texRect, nFlag );
+}
+
 void CUILabel::ShowImageList( int32 nIndex )
 {
 	if( nIndex >= m_vecImageLists.size() )

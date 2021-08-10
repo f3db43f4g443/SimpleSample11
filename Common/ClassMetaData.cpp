@@ -39,6 +39,13 @@ void SEnumMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaData
 	}
 }
 
+void SEnumMetaData::ExtractData( IBufReader & bufIn, CBufFile & bufOut )
+{
+	string strName;
+	bufIn.Read( strName );
+	bufOut.Write( strName );
+}
+
 bool SEnumMetaData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile & buf )
 {
 	auto n0 = *(uint32*)pObj0;
@@ -310,6 +317,78 @@ void SClassMetaData::SMemberData::UnpackData( uint8* pObj, IBufReader& buf, bool
 	}
 }
 
+bool SClassMetaData::SMemberData::ExtractData( bool bDiffMode, SClassMetaData* pOwner, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler )
+{
+	int32 nCount = 1;
+	auto nDataSize = GetDataSize();
+	if( !!( nFlag & 2 ) )
+	{
+		if( bDiffMode )
+		{
+			bool bNewArray = false;
+			bufIn.Read( bNewArray );
+			bufOut.Write( bNewArray );
+			if( bNewArray )
+				return ExtractData( false, pOwner, bufIn, bufOut, handler );
+		}
+		else
+		{
+			if( handler( pOwner, this, -1, bufIn, bufOut ) )
+				return true;
+			bufIn.Read( nCount );
+			bufOut.Write( nCount );
+			if( !nCount )
+				return false;
+		}
+	}
+	bool b = false;
+	bool bArrIndex = bDiffMode && !!( nFlag & 2 );
+	for( int i = 0; bArrIndex ? true : i < nCount; i++ )
+	{
+		int32 i1 = i;
+		if( bArrIndex )
+		{
+			bufIn.Read( i1 );
+			bufOut.Write( i1 );
+			if( i1 < 0 )
+				break;
+		}
+		if( handler( pOwner, this, i1, bufIn, bufOut ) )
+		{
+			b = true;
+			continue;
+		}
+
+		if( nType == eTypeTaggedPtr )
+		{
+		}
+		else if( nType == eTypeObjRef )
+		{
+			bufOut.Write( bufIn.Read<int32>() );
+		}
+		else if( nType == eTypeCustomTaggedPtr )
+		{
+			b = CClassMetaDataMgr::Inst().GetClassData<CString>()->ExtractData( bDiffMode, bufIn, bufOut, handler ) || b;
+		}
+		else if( nType == eTypeClass )
+		{
+			if( pTypeData )
+				b = pTypeData->ExtractData( bDiffMode, bufIn, bufOut, handler ) || b;
+		}
+		else if( nType == eTypeEnum )
+		{
+			if( pEnumData )
+				pEnumData->ExtractData( bufIn, bufOut );
+		}
+		else
+		{
+			bufOut.Write( bufIn.GetCurBuffer(), nDataSize );
+			bufIn.Read( NULL, nDataSize );
+		}
+	}
+	return b;
+}
+
 bool SClassMetaData::SMemberData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile& buf )
 {
 	auto p0 = pObj0;
@@ -394,58 +473,12 @@ bool SClassMetaData::SMemberData::DiffData( uint8* pObj0, uint8* pObj1, CBufFile
 void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf, void* pContext )
 {
 	auto nDataSize = GetDataSize();
+	int8 bNewArray = false;
+	int32 nCount = 1;
 	if( !!( nFlag & 2 ) )
 	{
-		int8 bNewArray = false;
 		buf.Read( bNewArray );
-		if( !bNewArray )
-		{
-			pObj1 += nOffset;
-			int32 nCount = *(uint32*)pObj1;
-			pObj1 = *(uint8**)( pObj1 + sizeof( uint32 ) );
-
-			for( int i = 0;; i++ )
-			{
-				uint32 i1 = buf.Read<uint32>();
-				if( i1 >= nCount )
-					break;
-
-				if( nType == eTypeTaggedPtr )
-				{
-				}
-				else if( nType == eTypeObjRef )
-				{
-					auto p1 = ( TObjRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
-					buf.Read( p1->_n );
-					p1->_pt = pContext;
-					/*auto& pObj1 = *(uint8**)pObj;
-					bool bObj = buf.Read<uint8>();
-					if( pTypeData && bObj )
-						pObj1 = pTypeData->NewObjFromData( buf, bWithMetaData );
-					else
-						pObj1 = 0;*/
-				}
-				else if( nType == eTypeCustomTaggedPtr )
-				{
-					auto p1 = ( TCustomTaggedRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
-					CClassMetaDataMgr::Inst().GetClassData<CString>()->PatchData( (uint8*)(CString*)p1, buf, pContext );
-				}
-				else if( nType == eTypeClass )
-				{
-					if( pTypeData )
-						pTypeData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
-				}
-				else if( nType == eTypeEnum )
-				{
-					if( pEnumData )
-						pEnumData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
-				}
-				else
-					buf.Read( pObj1 + nDataSize * i1, nDataSize );
-			}
-			return;
-		}
-		else
+		if( bNewArray )
 		{
 			auto pArray = pObj1 + nOffset;
 			int32 nCount = *(uint32*)pArray;
@@ -456,10 +489,60 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf, void
 				delete pObj0;
 				pObj0 = NULL;
 			}
+			UnpackData( pObj1, buf, true, pContext );
+			return;
 		}
+		pObj1 += nOffset;
+		nCount = *(uint32*)pObj1;
+		pObj1 = *(uint8**)( pObj1 + sizeof( uint32 ) );
 	}
 
-	UnpackData( pObj1, buf, true, pContext );
+	for( int i = 0;; i++ )
+	{
+		uint32 i1 = 0;
+		if( !!( nFlag & 2 ) )
+		{
+			buf.Read( i1 );
+			if( i1 >= nCount )
+				break;
+		}
+
+		if( nType == eTypeTaggedPtr )
+		{
+		}
+		else if( nType == eTypeObjRef )
+		{
+			auto p1 = ( TObjRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
+			buf.Read( p1->_n );
+			p1->_pt = pContext;
+			/*auto& pObj1 = *(uint8**)pObj;
+			bool bObj = buf.Read<uint8>();
+			if( pTypeData && bObj )
+			pObj1 = pTypeData->NewObjFromData( buf, bWithMetaData );
+			else
+			pObj1 = 0;*/
+		}
+		else if( nType == eTypeCustomTaggedPtr )
+		{
+			auto p1 = ( TCustomTaggedRef<CReferenceObject>* )( pObj1 + nDataSize * i1 );
+			CClassMetaDataMgr::Inst().GetClassData<CString>()->PatchData( (uint8*)(CString*)p1, buf, pContext );
+		}
+		else if( nType == eTypeClass )
+		{
+			if( pTypeData )
+				pTypeData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
+		}
+		else if( nType == eTypeEnum )
+		{
+			if( pEnumData )
+				pEnumData->PatchData( pObj1 + nDataSize * i1, buf, pContext );
+		}
+		else
+			buf.Read( pObj1 + nDataSize * i1, nDataSize );
+		if( !( nFlag & 2 ) )
+			break;
+	}
+	return;
 }
 
 void SClassMetaData::SBaseClassData::PackData( uint8* pObj, CBufFile& buf, bool bWithMetaData )
@@ -472,6 +555,11 @@ void SClassMetaData::SBaseClassData::UnpackData( uint8* pObj, IBufReader& buf, b
 {
 	pObj += nOffset;
 	pBaseClass->UnpackData( pObj, buf, bWithMetaData, pContext );
+}
+
+bool SClassMetaData::SBaseClassData::ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler )
+{
+	return pBaseClass->ExtractData( bDiffMode, bufIn, bufOut, handler );
 }
 
 bool SClassMetaData::SBaseClassData::DiffData( uint8 * pObj0, uint8 * pObj1, CBufFile & buf )
@@ -614,6 +702,99 @@ void SClassMetaData::UnpackData( uint8* pObj, IBufReader& buf, bool bWithMetaDat
 			}
 		}
 	}
+}
+
+bool SClassMetaData::ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SMemberData*, int32, IBufReader&, CBufFile& )>& handler )
+{
+	bool b = false;
+	CBufReader tempExtraDataIn( bufIn );
+	CBufReader tmp = tempExtraDataIn;
+	CBufFile tempExtraDataOut;
+	if( handler( this, NULL, 0, tempExtraDataIn, tempExtraDataOut ) )
+	{
+		b = true;
+		bufOut.Write( tempExtraDataOut );
+	}
+	else
+		bufOut.Write( tmp );
+
+	uint32 nMemberData = bufIn.Read<uint32>();
+	int32 nMemberDataPos = bufOut.GetBufLen();
+	int32 nOutMemberData = 0;
+	bufOut.Write( nOutMemberData );
+	for( int i = 0; i < nMemberData; i++ )
+	{
+		string strName;
+		bool bArray = false;
+		bufIn.Read( strName );
+		if( strName.length() && strName.back() == '#' )
+		{
+			strName.pop_back();
+			bArray = true;
+		}
+		uint32 nType = bufIn.Read<uint32>();
+		string strTypeName;
+		if( nType >= SMemberData::eTypeClass )
+		{
+			bufIn.Read( strTypeName );
+		}
+		CBufReader tempBufIn( bufIn );
+		CBufFile tempBufOut;
+
+		if( this )
+		{
+			auto itr = mapMemberDataIndex.find( strName );
+			if( itr == mapMemberDataIndex.end() )
+				continue;
+			auto& item = vecMemberData[itr->second];
+			if( item.nType != nType )
+				continue;
+			if( !!( item.nFlag & 2 ) != bArray )
+				continue;
+			if( item.nType >= SMemberData::eTypeClass )
+			{
+				if( strTypeName != item.strTypeName )
+					continue;
+			}
+			b = item.ExtractData( bDiffMode, this, tempBufIn, tempBufOut, handler ) || b;
+		}
+		nOutMemberData++;
+		bufOut.Write( strName );
+		bufOut.Write( nType );
+		if( nType >= SMemberData::eTypeClass )
+		{
+			bufOut.Write( strTypeName );
+		}
+		bufOut.Write( tempBufOut );
+	}
+	*(int32*)( (uint8*)bufOut.GetBuffer() + nMemberDataPos ) = nOutMemberData;
+
+	uint32 nBaseClassData = bufIn.Read<uint32>();
+	int32 nBaseClassDataPos = bufOut.GetBufLen();
+	int32 nOutBaseClassData = 0;
+	bufOut.Write( nOutBaseClassData );
+	for( int i = 0; i < nBaseClassData; i++ )
+	{
+		string strName;
+		bufIn.Read( strName );
+		CBufReader tempBufIn( bufIn );
+		CBufFile tempBufOut;
+
+		if( this )
+		{
+			auto itr = mapBaseClassDataIndex.find( strName );
+			if( itr == mapBaseClassDataIndex.end() )
+				continue;
+			auto& item = vecBaseClassData[itr->second];
+			b = item.ExtractData( bDiffMode, tempBufIn, tempBufOut, handler ) || b;
+		}
+		nOutBaseClassData++;
+		bufOut.Write( strName );
+		bufOut.Write( tempBufOut );
+	}
+	*(int32*)( (uint8*)bufOut.GetBuffer() + nBaseClassDataPos ) = nOutBaseClassData;
+
+	return b;
 }
 
 bool SClassMetaData::DiffData( uint8 * pObj0, uint8 * pObj1, CBufFile & buf )
@@ -1142,4 +1323,13 @@ void CObjectPrototype::Save( CBufFile& buf, bool bWithMetaData )
 		strClassName = m_pClassMetaData->strClassName;
 	buf.Write( strClassName );
 	m_pClassMetaData->PackData( m_pObj, buf, bWithMetaData );
+}
+
+bool CObjectPrototype::ExtractData( IBufReader& bufIn, CBufFile& bufOut, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& handler )
+{
+	string strClassName;
+	bufIn.Read( strClassName );
+	bufOut.Write( strClassName );
+	SClassMetaData* pData = CClassMetaDataMgr::Inst().GetClassData( strClassName.c_str() );
+	return pData->ExtractData( false, bufIn, bufOut, handler );
 }

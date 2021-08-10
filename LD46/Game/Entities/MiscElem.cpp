@@ -2823,6 +2823,8 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_nEftFrames )
 		REGISTER_MEMBER( m_eftParam )
 		REGISTER_MEMBER( m_invalidParam )
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetCurFloor )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CProjector )

@@ -445,6 +445,7 @@ public:
 	virtual void OnInit( CMyLevel* pLevel ) override;
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
 	virtual int32 Signal( int32 i ) override;
+	int32 GetCurFloor() { return m_nCurFloor; }
 private:
 	void OnCurFloorChanged();
 	int32 m_nRedirect;

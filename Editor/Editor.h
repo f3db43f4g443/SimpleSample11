@@ -2,6 +2,7 @@
 #include "Game.h"
 #include "Common/Camera2D.h"
 #include "UICommon/UIManager.h"
+#include "UICommon/UIFactory.h"
 
 class CEditor : public IGame
 {
@@ -11,6 +12,7 @@ public:
 	virtual void Stop() override;
 	virtual void Update() override;
 	
+	void PostInit();
 	virtual void OnResize( const CVector2& size ) override;
 	virtual void OnMouseDown( const CVector2& pos ) override;
 	virtual void OnMouseUp( const CVector2& pos ) override;
@@ -32,6 +34,7 @@ public:
 		item.strPath = szPath;
 		item.strDesc = szDesc;
 	}
+	void RegisterToolDefault( int32 nIcon, function<void()> funcHandler );
 
 	CUIManager* GetUIMgr() { return m_pUIMgr; }
 	void SetEditor( CResourceEditor* pElem );
@@ -56,6 +59,8 @@ protected:
 	CCamera2D m_camera;
 
 	TClassTrigger<CEditor> m_beforeRender;
+
+	CReference<CUIResource> m_pDefaultToolResource;
 
 	map<string, SRegisteredEditor> m_mapRegisteredEditors;
 };

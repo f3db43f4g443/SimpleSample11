@@ -179,6 +179,9 @@ public:
 	void Load( IBufReader& buf, CPrefabNodeNameSpace* pNameSpace );
 	void Save( CBufFile& buf, CPrefabNodeNameSpace* pNameSpace );
 	static void FormatNamespaceString( void* pt, int32 n, string& result );
+
+	void ExtractData( IBufReader& bufIn, CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler,
+		function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler );
 protected:
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	void GetPathString( CPrefabNode* pRoot, string& str );
@@ -189,7 +192,11 @@ protected:
 	void LoadOtherExtraData( IBufReader& extraData );
 	void SaveResourceExtraData( CResource* pResource, CBufFile& extraData, CPrefabNodeNameSpace* pNameSpace );
 	void SaveOtherExtraData( CBufFile& extraData );
+	void ExtractResourceExtraData( IBufReader& bufIn, CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler,
+		function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler );
 	void Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeNameSpace* pNameSpace );
+	void ExtractPatchData( CPrefabNode* pPatchedNode, SPatchContext& contextIn, SPatchContext& contextOut, function<void( CPrefabNode*, int8 )> funcNodeHandler,
+		function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler );
 
 	void UpdateDirty()
 	{
@@ -301,6 +308,8 @@ public:
 	CPrefabNode* GetRoot() { return m_pRoot; }
 	CPrefabNode* GetNode( const char* szName );
 	void* GetNameSpaceKey();
+	void ExtractData( CBufFile& bufOut, function<void( CPrefabNode*, int8 )>& funcNodeHandler,
+		function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler );
 
 	void SetNode( CPrefabNode* pNode, const char* szName = NULL );
 	map<CString, CReference<CPrefabNode> >& GetAllExtraNodes() { return m_mapNodes; }

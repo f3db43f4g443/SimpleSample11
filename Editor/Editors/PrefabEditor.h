@@ -68,6 +68,9 @@ public:
 		TClassTrigger<CNodeData> m_onResourceRefreshEnd;
 	};
 
+	static void ExportAllText();
+	static void ImportAllText();
+
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CPrefabEditor )
 protected:
 	virtual void OnInited() override;
@@ -113,6 +116,33 @@ private:
 
 	void CreatePatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 	void DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
+
+	struct SExportTextPrefabContext
+	{
+		SExportTextPrefabContext() : nTotalLines( 0 ), nLastNodeStringDepth( 0 ) {}
+		void Reset()
+		{
+			strTextBlock = "";
+			nTotalLines = 0;
+			vecNodeString.resize( 0 );
+			nLastNodeStringDepth = 0;
+		}
+		string strTextBlock;
+		int32 nTotalLines;
+		vector<string> vecNodeString;
+		int32 nLastNodeStringDepth;
+	};
+	struct SImportTextPrefabContext
+	{
+		const char* szText;
+		string strCur;
+		void Init( const char* sz )
+		{
+			szText = sz;
+			strCur = "";
+		}
+		const char* Next();
+	};
 
 	CReference<CUITreeView> m_pSceneView;
 	CReference<CUIScrollView> m_pItemView;
