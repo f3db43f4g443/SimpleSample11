@@ -291,7 +291,7 @@ public:
 	void SetDefaultState( int32 nState ) { m_bUseDefaultState = true; m_nDefaultState = nState; }
 	bool IsIgnoreBlockedExit() { return m_bIgnoreBlockedExit; }
 	bool IsNextStageBlock() { return m_bNextStageBlock; }
-	bool IsValidStateIndex( int32 i ) { return i >= 0 && i < m_arrSubStates.Size(); }
+	bool IsValidStateIndex( int32 i ) { return i >= 0 && i < (int32)m_arrSubStates.Size(); }
 	int8 GetArmorType() { return m_nArmorType; }
 	int32 GetHp() { return m_nHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
@@ -639,6 +639,7 @@ protected:
 	CPlayerEquipment* GetStateSource( int8 nType );
 	bool m_bIsRealPlayer;
 	CString m_strScriptDamaged;
+	CString m_strScriptInputOverflow;
 	TArray<SInputTableItem> m_inputTable;
 	TArray<SStateInputTableItem> m_stateInputTable;
 	CVector2 m_actionEftOfs[ACTION_EFT_FRAMES * 2];

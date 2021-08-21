@@ -85,10 +85,10 @@ function ScenarioDialogue( n, sz, type, nFinishDelay, nSpeed )
 	end
 end
 
-function HeadText( sz, type, time )
+function HeadText( sz, type, time, bImportant )
 	time = time or 0
 	type = type or htx_color_0
-	GetMasterLevel():GetMainUI():HeadText( sz, type[1], time, type[2], type[3] )
+	GetMasterLevel():GetMainUI():HeadText( sz, type[1], time, type[2], type[3], bImportant )
 end
 
 function EvaluateKeyInt( sz )
@@ -157,8 +157,12 @@ function IsSnapShot()
 	return GetCurLevel():IsSnapShot()
 end
 
-function TransferTo( sz, x, y, dir, type )
-	GetMasterLevel():ScriptTransferTo( sz, x, y, dir, type )
+function TransferTo( sz, x, y, dir, type, param )
+	GetMasterLevel():ScriptTransferTo( sz, x, y, dir, type, param )
+end
+
+function TransferOpr( func )
+	GetMasterLevel():ScriptTransferOprFunc( func )
 end
 
 function CreateLighningEft( src, dst, fStrength, fTurbulence, nDuration )

@@ -115,6 +115,7 @@ public:
 	void SetFade( float fFade ) { m_fFade = fFade; }
 	void ScenarioFade( bool b ) { m_bScenarioFade = b; }
 	const char* GetCondition() const { return m_strCondition; }
+	void CopyState( CLevelEnvEffect* p1 ) { m_fFade = p1->m_fFade; m_bScenarioFade = p1->m_bScenarioFade; }
 private:
 	TArray<SLevelEnvDesc> m_arrEnvDescs;
 	TArray<int8> m_arrEnvMap;
@@ -277,6 +278,7 @@ public:
 	class CMasterLevel* GetMasterLevel();
 	CEntity* GetPawnRoot() { return m_pPawnRoot; }
 	CLevelEnvEffect* GetEnvEffect() { return m_pEnvEffect; }
+	void SetEnvEffect( const char* sz );
 
 	void Begin();
 	void End();
@@ -334,6 +336,7 @@ public:
 	void BlockExit( int32 n );
 	bool IsExitBlocked( int32 n );
 	bool IsGridBlockedExit( SGrid* pGrid, bool bIgnoreComplete = false );
+	int32 GetGridExit( int32 x, int32 y );
 	SLevelNextStageData& GetNextLevelData( int32 n ) { return m_arrNextStage[n]; }
 	int32 GetNextLevelCount() { return m_arrNextStage.Size(); }
 	int32 FindNextLevelIndex( const char* szLevelName );
@@ -401,6 +404,7 @@ private:
 	CReference<CPlayer> m_pPlayer;
 	CReference<CLevelIndicatorLayer> m_pIndicatorLayer;
 	CReference<CLevelEnvEffect> m_pEnvEffect;
+	map<string, CReference<CLevelEnvEffect> > m_mapEnvEffects;
 	struct SExitState
 	{
 		SExitState() : nRedirect( -1 ), bBlocked( false ) {}
@@ -458,7 +462,7 @@ public:
 	bool IsScenario() { return m_bScenario; }
 	void ScenarioText( int8 n, const char* sz, const CVector4& color, int32 nFinishDelay = 0, int32 nSpeed = 1, const char* szSound = "", int32 nSoundInterval = 1 );
 	bool IsScenarioTextFinished();
-	void HeadText( const char* sz, const CVector4& color, int32 nTime = 0, const char* szSound = "", int32 nSoundInterval = 1 );
+	void HeadText( const char* sz, const CVector4& color, int32 nTime = 0, const char* szSound = "", int32 nSoundInterval = 1, bool bImportant = false );
 	void ShowFailEft( bool b );
 	void ShowFreezeEft( int32 nLevel );
 	void ClearLabels();
@@ -709,6 +713,7 @@ public:
 	void TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void TransferBy( int32 nNxtStage, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void ScriptTransferTo( const char* szName, int32 nPlayerX, int32 nPlayerY, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
+	void ScriptTransferOprFunc();
 	void UnlockRegionMap( const char* szRegion ) { m_worldData.UnlockRegionMap( szRegion ); }
 	void ShowWorldMap( bool bShow, int8 nType = 0 );
 	void AddLevelMark( const char* szKey, const char* szLevel, int32 x, int32 y );
@@ -836,4 +841,5 @@ private:
 	int32 m_nScriptTransferPlayerDir;
 	int8 m_nScriptTransferType;
 	int32 m_nScriptTransferParam;
+	CReference<CLuaState> m_pScriptTransferOpr;
 };

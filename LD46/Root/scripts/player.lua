@@ -31,3 +31,35 @@ function InitPlayerData()
  myName1 = string.char( myName1:byte( 1, 1 ) + n, myName1:byte( 2, 2 ) + n, myName1:byte( 3, 3 ) + n, myName1:byte( 4, 4 ) + n )
  SetKeyString( "%myname_str_1", myName1 )
 end
+
+function OnPlayerInputOverflow()
+ local a1 = 0
+ local a2 = 0
+ local a3 = 0
+ if CurDay() == 1 then
+  a1 = GetLabelKey( "_BUG_1" )
+  a2 = GetLabelKey( "_BUG_2" )
+  a3 = GetLabelKey( "_BUG_3" )
+ end
+ TransferTo( "", 0, 0, 0, -1, 1 )
+ if CurDay() > 1 then return end
+ TransferOpr( function()
+  LevelRegisterUpdate( function()
+   for i = 12, 0, -1 do
+    GetMasterLevel():GetMainUI():ShowFreezeEft( i )
+    Delay( 4 )
+   end
+  end )
+  SetLabelKey( "_BUG_1", 1 )
+  SetLabelKey( "_BUG_2", a2 )
+  SetLabelKey( "_BUG_3", a3 )
+  if a1 == 0 then
+   FEVT( "$sc1" )
+   HeadText( "Sorry that was a bug." )
+   a1 = 1
+   if a1 > 0 and a2 > 0 and a3 > 0 then
+    SecretFound()
+   end
+  end
+ end )
+end

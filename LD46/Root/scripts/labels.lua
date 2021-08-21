@@ -3,6 +3,9 @@ g_labels = {
 		day = 1,
 		items = {
 			{ name = "_DAMAGED", key = "%_DAMAGED", value = { [0] = { 3, 6 }, { 4, 6 } } },
+			{ name = "_BUG_1", key = "%_BUG_1", value = { { 7, 6 }, { 7, 7 } } },
+			{ name = "_BUG_2", key = "%_BUG_2", value = { { 7, 6 }, { 7, 7 } } },
+			{ name = "_BUG_3", key = "%_BUG_3", value = { { 7, 6 }, { 7, 7 } } },
 		}
 	},
 	{

@@ -1684,36 +1684,70 @@ void CElevator::OnUpdate1( CMyLevel* pLevel )
 
 int32 CElevator::Signal( int32 i )
 {
+	if( m_nCurFloor >= m_nFloorCount || m_nCurFloor < 0 )
+	{
+		OnFloorInvalid();
+		return 0;
+	}
 	if( i >= 0 )
 	{
 		if( i >= m_nFloorCount || i == m_nCurFloor )
+		{
+			OnFloorInvalid();
 			return 0;
+		}
 		m_nCurFloor = i;
 	}
 	else if( i == -1 )
 	{
 		if( !m_nCurFloor )
+		{
+			OnFloorInvalid();
 			return 0;
+		}
 		m_nCurFloor--;
 	}
 	else if( i == -2 )
 	{
 		if( m_nCurFloor >= m_nFloorCount - 1 )
+		{
+			OnFloorInvalid();
 			return 0;
+		}
 		m_nCurFloor++;
 	}
 	else if( i == -3 )
 		return m_nCurFloor;
 	else
+	{
+		OnFloorInvalid();
 		return 0;
+	}
 	OnCurFloorChanged();
 	return 1;
+}
+
+void CElevator::ForceSetCurFloor( int32 i )
+{
+	m_nCurFloor = i;
+	OnCurFloorChanged();
 }
 
 void CElevator::OnCurFloorChanged()
 {
 	m_pLevel->Redirect( m_nRedirect, m_nCurFloor + m_nFloorBegin );
 	m_nEftFramesLeft = m_nEftFrames;
+}
+
+void CElevator::OnFloorInvalid()
+{
+	if( m_strScriptInvalid.length() )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( m_strScriptInvalid );
+		pLuaState->PushLua( this );
+		pLuaState->Call( 1, 0 );
+	}
 }
 
 void CProjector::OnUpdate1( CMyLevel* pLevel )
@@ -2145,7 +2179,19 @@ void CTutorialFollowing::OnPlayerChangeState( SPawnState& state, int32 nStateSou
 		Succeed();
 	}
 	else
+	{
+		if( m_strBeforeFailScript.length() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strBeforeFailScript );
+			pLuaState->PushLua( this );
+			pLuaState->Call( 1, 1 );
+			bool bResult = pLuaState->PopLuaValue<bool>();
+			if( bResult )
+				return;
+		}
 		Fail( m_curPos );
+	}
 }
 
 void CTutorialFollowing::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
@@ -2823,8 +2869,12 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_nEftFrames )
 		REGISTER_MEMBER( m_eftParam )
 		REGISTER_MEMBER( m_invalidParam )
+		REGISTER_MEMBER_BEGIN( m_strScriptInvalid )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetCurFloor )
+		REGISTER_LUA_CFUNCTION( ForceSetCurFloor )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CProjector )
@@ -2884,6 +2934,9 @@ void RegisterGameClasses_MiscElem()
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strFailedScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strBeforeFailScript )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strControlResetScript )

@@ -123,6 +123,7 @@ public:
 	}
 	~CPrefabNode() { SetResource( NULL ); }
 	CPrefab* GetPrefab() { return m_pPrefab; }
+	void Invalidate();
 	void AddRef1();
 	void Release1();
 	CResource* GetResource() { return m_pResource; }
@@ -313,7 +314,7 @@ public:
 
 	void SetNode( CPrefabNode* pNode, const char* szName = NULL );
 	map<CString, CReference<CPrefabNode> >& GetAllExtraNodes() { return m_mapNodes; }
-	void ClearExtraNode() { m_mapNodes.clear(); }
+	void ClearExtraNode();
 private:
 	CReference<CPrefabNode> m_pRoot;
 	map<CString, CReference<CPrefabNode> > m_mapNodes;

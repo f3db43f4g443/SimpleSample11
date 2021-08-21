@@ -939,6 +939,30 @@ CMasterLevel* CMyLevel::GetMasterLevel()
 	return SafeCast<CMasterLevel>( GetParentEntity() );
 }
 
+void CMyLevel::SetEnvEffect( const char * sz )
+{
+	if( IsSnapShot() )
+		return;
+	CLevelEnvEffect* p = m_mapEnvEffects[sz];
+	if( p != m_pEnvEffect )
+	{
+		if( p && GetMasterLevel() )
+		{
+			if( m_pEnvEffect )
+				p->SetParentBeforeEntity( m_pEnvEffect );
+			else
+				p->SetParentBeforeEntity( GetMasterLevel()->GetMainUI() );
+		}
+		if( m_pEnvEffect )
+			m_pEnvEffect->SetParentEntity( NULL );
+		if( p && m_pEnvEffect )
+		{
+			p->CopyState( m_pEnvEffect );
+		}
+		m_pEnvEffect = p;
+	}
+}
+
 void CMyLevel::Begin()
 {
 	if( GetMasterLevel() )
@@ -2330,6 +2354,14 @@ bool CMyLevel::IsGridBlockedExit( SGrid* pGrid, bool bIgnoreComplete )
 	return m_vecExitState[nNextStage].bBlocked;
 }
 
+int32 CMyLevel::GetGridExit( int32 x, int32 y )
+{
+	auto pGrid = GetGrid( TVector2<int32>( x, y ) );
+	if( !pGrid )
+		return 0;
+	return pGrid->nNextStage;
+}
+
 int32 CMyLevel::FindNextLevelIndex( const char* szLevelName )
 {
 	for( int i = 0; i < m_arrNextStage.Size(); i++ )
@@ -2432,7 +2464,10 @@ void CMyLevel::Init( int8 nType )
 		{
 			auto pEnvEft = SafeCast<CLevelEnvEffect>( p0 );
 			if( pEnvEft )
+			{
 				vecEnvEft.push_back( pEnvEft );
+				m_mapEnvEffects[pEnvEft->GetName().c_str()] = pEnvEft;
+			}
 		}
 	}
 
@@ -3566,14 +3601,15 @@ bool CMainUI::IsScenarioTextFinished()
 	return pText->IsFinished();
 }
 
-void CMainUI::HeadText( const char* sz, const CVector4& color, int32 nTime, const char* szSound, int32 nSoundInterval )
+void CMainUI::HeadText( const char* sz, const CVector4& color, int32 nTime, const char* szSound, int32 nSoundInterval, bool bImportant )
 {
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
 	pText->SetParam( color );
 	pText->Set( sz, 2 );
 	pText->SetTypeSound( szSound, nSoundInterval );
 	m_nHeadTextTime = nTime;
-	GetStage()->GetMasterLevel()->GetWorldData().OnScenarioText( 2, sz, color );
+	if( bImportant )
+		GetStage()->GetMasterLevel()->GetWorldData().OnScenarioText( 2, sz, color );
 }
 
 void CMainUI::ShowFailEft( bool b )
@@ -3707,6 +3743,7 @@ void CMainUI::Update()
 	UpdatePos();
 	UpdateIcons();
 	UpdateEffect();
+	UpdateInputItem( 0 );
 
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
 	if( m_nHeadTextTime )
@@ -3821,6 +3858,8 @@ void CMainUI::Render( CRenderContext2D& context )
 	{
 		for( auto& elem : item.vecElems )
 		{
+			if( elem.rect.width <= 0 )
+				break;
 			elem.worldMat = globalTransform;
 			elem.SetDrawable( pDrawables[nPass] );
 			context.AddElement( &elem, nGroup );
@@ -3863,13 +3902,64 @@ void CMainUI::UpdateInputItem( int32 nItem )
 		if( pPlayer && pPlayer->GetStage() )
 			p0.x = pPlayer->GetMoveTo().x * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - x;
 	}
+	auto viewArea = GetStage()->GetCamera().GetViewArea();
+	int32 nGlitch = 0;
+	int32 nElem = 0;
 	for( int i = 0; i < item.vec.size(); i++ )
 	{
-		auto& elem = item.vecElems[i];
-		elem.rect = CRectangle( p0.x - ( item.vec.size() - i ) * 16, p0.y - nItem * 16, 16, 16 ).Offset( param.ofs );
-		elem.texRect = CRectangle( item.vec[i] % 16 * 0.0625f, item.vec[i] / 16 * 0.0625f, 0.0625f, 0.0625f );
+		auto rect = CRectangle( p0.x - ( item.vec.size() - i ) * 16, p0.y - nItem * 16, 16, 16 ).Offset( param.ofs );
+		if( nItem == 0 )
+			rect.x += item.vec.size() * 8;
+		if( nItem == 0 && rect.GetRight() <= -viewArea.width / 2 || rect.x >= viewArea.width / 2 )
+		{
+			nGlitch++;
+			continue;
+		}
+		auto& elem = item.vecElems[nElem++];
+		elem.rect = rect;
+	}
+	if( !nGlitch )
+	{
+		for( int i = 0; i < item.vec.size(); i++ )
+		{
+			auto& elem = item.vecElems[i];
+
+			elem.texRect = CRectangle( item.vec[i] % 16 * 0.0625f, item.vec[i] / 16 * 0.0625f, 0.0625f, 0.0625f );
+			elem.nInstDataSize = sizeof( CVector4 ) * 2;
+			elem.pInstData = param.params + ( item.nMatchLen >= 0 && item.vec.size() - i > item.nMatchLen ? 2 : 0 );
+		}
+		return;
+	}
+
+	int8* result = (int8*)alloca( item.vec.size() );
+	for( int i = 0; i < item.vec.size(); i++ )
+	{
+		if( i >= nElem )
+			result[i] = 0;
+		else if( i < nGlitch )
+			result[i] = 1;
+		else
+			result[i] = 2;
+	}
+	SRand::Inst<eRand_Render>().Shuffle( result, item.vec.size() );
+	nElem = 0;
+	for( int i = 0; i < item.vec.size(); i++ )
+	{
+		if( result[i] == 0 )
+			continue;
+		auto& elem = item.vecElems[nElem++];
+		if( result[i] == 1 )
+			elem.texRect = CRectangle( 0.75f, 0.0625f, 0.0625f, 0.0625f );
+		else
+			elem.texRect = CRectangle( item.vec[i] % 16 * 0.0625f, item.vec[i] / 16 * 0.0625f, 0.0625f, 0.0625f );
+
 		elem.nInstDataSize = sizeof( CVector4 ) * 2;
 		elem.pInstData = param.params + ( item.nMatchLen >= 0 && item.vec.size() - i > item.nMatchLen ? 2 : 0 );
+	}
+	for( ; nElem < item.vec.size(); nElem++ )
+	{
+		auto& elem = item.vecElems[nElem++];
+		elem.rect = CRectangle( 0, 0, 0, 0 );
 	}
 }
 
@@ -5392,6 +5482,7 @@ void CMasterLevel::TransferTo1( CPrefab* pLevelPrefab, const TVector2<int32>& pl
 	m_nScriptTransferPlayerDir = nPlayerDir;
 	m_nScriptTransferType = nTransferType;
 	m_nScriptTransferParam = nTransferParam;
+	m_pScriptTransferOpr = NULL;
 }
 
 void CMasterLevel::TransferBy( int32 nNxtStage, int8 nTransferType, int32 nTransferParam )
@@ -5409,6 +5500,14 @@ void CMasterLevel::ScriptTransferTo( const char* szName, int32 nPlayerX, int32 n
 	m_nScriptTransferPlayerDir = nPlayerDir;
 	m_nScriptTransferType = nTransferType;
 	m_nScriptTransferParam = nTransferParam;
+	m_pScriptTransferOpr = NULL;
+}
+
+void CMasterLevel::ScriptTransferOprFunc()
+{
+	auto pCoroutine = CLuaMgr::GetCurLuaState()->CreateCoroutineAuto();
+	ASSERT( pCoroutine );
+	m_pScriptTransferOpr = pCoroutine;
 }
 
 void CMasterLevel::ShowWorldMap( bool bShow, int8 nType )
@@ -5785,7 +5884,7 @@ void CMasterLevel::Update()
 		else if( m_nScriptTransferType == -1 )
 		{
 			m_nScriptTransferType = 0;
-			JumpBack( 2 );
+			JumpBack( m_nScriptTransferParam == 1 ? 0 : 2 );
 		}
 		else if( !m_pTransferCoroutine && !m_pScenarioScript && m_pCurCutScene )
 		{
@@ -6176,6 +6275,11 @@ void CMasterLevel::RefreshMainUI()
 void CMasterLevel::BeginCurLevel()
 {
 	ResetMainUI();
+	if( m_pScriptTransferOpr )
+	{
+		m_pScriptTransferOpr->Resume( 0, 0 );
+		m_pScriptTransferOpr = NULL;
+	}
 	m_pCurLevel->Begin();
 	RefreshSnapShot();
 	CheckBGM();
@@ -7143,6 +7247,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( RemovePawn )
 		REGISTER_LUA_CFUNCTION( IsFailed )
 		REGISTER_LUA_CFUNCTION( IsSnapShot )
+		REGISTER_LUA_CFUNCTION( SetEnvEffect )
 		REGISTER_LUA_CFUNCTION( Fail )
 		REGISTER_LUA_CFUNCTION( Freeze )
 		REGISTER_LUA_CFUNCTION( GetPawnByName )
@@ -7162,6 +7267,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( BeginNoise )
 		REGISTER_LUA_CFUNCTION( EndNoise )
 		REGISTER_LUA_CFUNCTION( IsExitBlocked )
+		REGISTER_LUA_CFUNCTION( GetGridExit )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CCutScene )
@@ -7237,6 +7343,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( PopPlayerData )
 		REGISTER_LUA_CFUNCTION( TransferBy )
 		REGISTER_LUA_CFUNCTION( ScriptTransferTo )
+		REGISTER_LUA_CFUNCTION( ScriptTransferOprFunc )
 		REGISTER_LUA_CFUNCTION( UnlockRegionMap )
 		REGISTER_LUA_CFUNCTION( ShowWorldMap )
 		REGISTER_LUA_CFUNCTION( ShowDoc )

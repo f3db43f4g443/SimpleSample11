@@ -56,7 +56,10 @@ void CWorldCfgEditor::Refresh()
 			if( lvl.pLevelPreview )
 				lvl.pLevelPreview->RemoveThis();
 			if( lvl.pClonedLevelData )
+			{
+				lvl.pClonedLevelData->Invalidate();
 				lvl.pClonedLevelData->RemoveThis();
+			}
 		}
 		if( reg.pRoot )
 			reg.pRoot->RemoveThis();

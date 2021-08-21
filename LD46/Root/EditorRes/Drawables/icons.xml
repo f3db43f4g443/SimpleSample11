@@ -1,8 +1,8 @@
-﻿<root texWidth="256" texHeight="256">
-  <blend type="opaque" />
+﻿<root texWidth="512" texHeight="512">
+  <blend type="transparent" />
   <material max_insts="2048" vertex_shader="Default2DUIVertexShader" pixel_shader="g_COneTexturePixelShader">
     <shader_resources>
-      <item name="Texture0" filename="EditorRes/Textures/icons.png|nomip" />
+      <item name="Texture0" filename="EditorRes/Textures/icon.png|nomip" />
     </shader_resources>
     <samplers>
       <item name="LinearSampler" />

@@ -7,6 +7,14 @@
 #include "Common/FileUtil.h"
 #include "Common/Utf8Util.h"
 
+void CFileExplorer::AddTool( CUIElement* pElem )
+{
+	auto size = pElem->GetSize();
+	m_pToolsPanel->AddChild( pElem );
+	pElem->SetPosition( CVector2( 4, m_nToolY + 4 ) );
+	m_nToolY += size.GetBottom() + 8;
+}
+
 void CFileExplorer::OnInited()
 {
 	CFileView::OnInited();
@@ -23,7 +31,7 @@ void CFileExplorer::OnInited()
 	}
 	m_pNewFileType = CDropDownBox::Create( &vecFileTypeItems[0], vecFileTypeItems.size() );
 	m_pNewFileType->Replace( GetChildByName( "new_filetype" ) );
-	m_pToolsPanel = GetChildByName<CUITextBox>( "new_filename" );
+	m_pToolsPanel = GetChildByName<CUIElement>( "tools" );
 
 	m_onNew.Set( this, &CFileExplorer::OnNew );
 	m_onOpen.Set( this, &CFileExplorer::OnOpen );
@@ -36,14 +44,6 @@ void CFileExplorer::OnInited()
 
 	m_nToolY = 0;
 	Refresh();
-}
-
-void CFileExplorer::AddTool( CUIElement* pElem )
-{
-	auto size = pElem->GetSize();
-	m_pToolsPanel->AddChild( pElem );
-	pElem->SetPosition( CVector2( 4, m_nToolY + 4 ) );
-	m_nToolY += size.y + 8;
 }
 
 void CFileExplorer::OnOpen()

@@ -1,3 +1,31 @@
+function Day1_Following_Bug()
+ if CurDay() > 1 or GetLabelKey( "_BUG_3" ) > 0 then return false end
+ local player = GetPlayer()
+ if GetCurLevel():GetGridExit( player:GetCurStateDestX(), player:GetCurStateDestY() ) <= 0 then return false end
+ 
+ local a1 = GetLabelKey( "_BUG_1" )
+ local a2 = GetLabelKey( "_BUG_2" )
+ local a3 = 1
+ TransferTo( "", 0, 0, 0, -1, 1 )
+ TransferOpr( function()
+  FEVT( "$sc1" )
+  LevelRegisterUpdate( function()
+   for i = 12, 0, -1 do
+    GetMasterLevel():GetMainUI():ShowFreezeEft( i )
+    Delay( 3 )
+   end
+  end )
+  HeadText( "It will be fixed. For now please just follow my instruction." )
+  SetLabelKey( "_BUG_1", a1 )
+  SetLabelKey( "_BUG_2", a2 )
+  SetLabelKey( "_BUG_3", a3 )
+  if a1 > 0 and a2 > 0 and a3 > 0 then
+   SecretFound()
+  end
+ end )
+ return true
+end
+
 function Scenario_SelfRoom_3()
  local bed = GetCurLevel():GetPawnByName( "bed_wake_up" )
  WaitFor( ScenarioDialogue( 1, "Good morning, " .. GetPlayerName(), dtx_color_0, 60 ) )
@@ -445,40 +473,40 @@ function Day3_unknown_btn_1()
  local proj = GetCurLevel():FindChildEntity("proj")
  local player = GetPlayer()
  if GetLabelKey( "_COIN_1" ) == 0 then
-  Delay_Down() HeadText( "Mom?", htx_color_0 )
-  Delay_Down() HeadText( "You're back too late.", htx_color_h )
-  Delay_Down() HeadText( "Where did you go?", htx_color_h )
-  Delay_Down() HeadText( "...Nowhere.", htx_color_0 )
-  Delay_Down() HeadText( "I need some money.", htx_color_0 )
-  Delay_Down() HeadText( "...No.", htx_color_h )
-  Delay_Down() HeadText( "We have no money left.", htx_color_h )
-  Delay_Down() HeadText( "Didn't father send money back?", htx_color_0 )
-  Delay_Down() HeadText( "..........", htx_color_h )
-  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "...NO.", htx_color_h )
-  Delay_Down() HeadText( "Stop talking about him.", htx_color_h )
-  Delay_Down() HeadText( "..........", htx_color_0 )
-  Delay_Down() HeadText( "Stay home. Don't go out.", htx_color_h )
-  Delay_Down() HeadText( "It's too late.", htx_color_h )
+  Delay_Down() HeadText( "Mom?", htx_color_0, 0, true )
+  Delay_Down() HeadText( "You're back too late.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Where did you go?", htx_color_h, 0, true )
+  Delay_Down() HeadText( "...Nowhere.", htx_color_0, 0, true )
+  Delay_Down() HeadText( "I need some money.", htx_color_0, 0, true )
+  Delay_Down() HeadText( "...No.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "We have no money left.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Didn't father send money back?", htx_color_0, 0, true )
+  Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "...NO.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Stop talking about him.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "..........", htx_color_0, 0, true )
+  Delay_Down() HeadText( "Stay home. Don't go out.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "It's too late.", htx_color_h, 0, true )
   Delay_Down() Signal( proj, -1 )
-  Delay_Down( true ) HeadText( "..........", htx_color_0 )
+  Delay_Down( true ) HeadText( "..........", htx_color_0, 0, true )
   Delay_Up() SetKeyInt( "$d2", 1 )
  else
-  Delay_Down() HeadText( "..........", htx_color_h )
-  Delay_Down() HeadText( "Where did you get it?", htx_color_h )
-  Delay_Down() HeadText( "You went into fighting again?", htx_color_h )
-  Delay_Down() HeadText( "...Yes. What's wrong?", htx_color_0 )
-  Delay_Down() HeadText( "...You're ruining yourself...", htx_color_h )
-  Delay_Down() HeadText( "...You're killing yourself...", htx_color_h )
-  Delay_Down() HeadText( "...Just like my father?", htx_color_0 )
-  Delay_Down() HeadText( "I told you NOT to mention him.", htx_color_h )
-  Delay_Down() HeadText( "Yes I will.", htx_color_0 )
-  Delay_Down() HeadText( "He will be proud of me.", htx_color_0 )
-  Delay_Down() HeadText( "When he comes back...", htx_color_0 )
-  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "STOP IT.", htx_color_h )
-  Delay_Down() HeadText( "He......", htx_color_h )
-  Delay_Down() HeadText( "..........", htx_color_0 )
-  Delay_Down() HeadText( "He's......", htx_color_h )
-  Delay_Down() HeadText( "HE'LL NEVER BE BACK ANY MORE.", htx_color_h )
+  Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Where did you get it?", htx_color_h, 0, true )
+  Delay_Down() HeadText( "You went into fighting again?", htx_color_h, 0, true )
+  Delay_Down() HeadText( "...Yes. What's wrong?", htx_color_0, 0, true )
+  Delay_Down() HeadText( "...You're ruining yourself...", htx_color_h, 0, true )
+  Delay_Down() HeadText( "...You're killing yourself...", htx_color_h, 0, true )
+  Delay_Down() HeadText( "...Just like my father?", htx_color_0, 0, true )
+  Delay_Down() HeadText( "I told you NOT to mention him.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Yes I will.", htx_color_0, 0, true )
+  Delay_Down() HeadText( "He will be proud of me.", htx_color_0, 0, true )
+  Delay_Down() HeadText( "When he comes back...", htx_color_0, 0, true )
+  Delay_Down() PlaySoundEffect( "sfx_1" ) GetMasterLevel():BlackOut( 20, 0 ) HeadText( "STOP IT.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "He......", htx_color_h, 0, true )
+  Delay_Down() HeadText( "..........", htx_color_0, 0, true )
+  Delay_Down() HeadText( "He's......", htx_color_h, 0, true )
+  Delay_Down() HeadText( "HE'LL NEVER BE BACK ANY MORE.", htx_color_h, 0, true )
   Delay_Down() Signal( proj, -1 ) SetKeyInt( "$d1", 1 )
   while player:GetToX() ~= 10 or player:GetToY() ~= 4 do coroutine.yield() end
   HeadText( "" )
@@ -507,21 +535,21 @@ function Day3_unknown_btn_2()
  local proj = GetCurLevel():FindChildEntity("proj")
  local player = GetPlayer()
  if GetLabelKey( "_COIN_1" ) == 0 then
-  Delay_Down() HeadText( "Good morning.", htx_color_h )
-  Delay_Down() HeadText( "You are awake.", htx_color_h )
-  Delay_Down() HeadText( "......", htx_color_0 )
-  Delay_Down() HeadText( "Where's the breakfast?", htx_color_0 )
-  Delay_Down() HeadText( ".........", htx_color_h )
-  Delay_Down() HeadText( "It's too late.", htx_color_h )
-  Delay_Down() HeadText( "Go to school now or you'll be late.", htx_color_h )
-  Delay_Down() HeadText( "NO.", htx_color_0 )
-  Delay_Down() HeadText( "Why?", htx_color_0 )
-  Delay_Down() HeadText( "You've been absent from school for several months.", htx_color_h )
-  Delay_Down() HeadText( "Go now. You will find the answer.", htx_color_h )
-  Delay_Down() HeadText( "You will see what you've been wanting.", htx_color_h )
-  Delay_Down() HeadText( "......You and your...father.", htx_color_h )
+  Delay_Down() HeadText( "Good morning.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "You are awake.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "......", htx_color_0, 0, true )
+  Delay_Down() HeadText( "Where's the breakfast?", htx_color_0, 0, true )
+  Delay_Down() HeadText( ".........", htx_color_h, 0, true )
+  Delay_Down() HeadText( "It's too late.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Go to school now or you'll be late.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "NO.", htx_color_0, 0, true )
+  Delay_Down() HeadText( "Why?", htx_color_0, 0, true )
+  Delay_Down() HeadText( "You've been absent from school for several months.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "Go now. You will find the answer.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "You will see what you've been wanting.", htx_color_h, 0, true )
+  Delay_Down() HeadText( "......You and your...father.", htx_color_h, 0, true )
   Delay_Down() Signal( proj, -1 )
-  Delay_Down( true ) HeadText( "..........", htx_color_0 )
+  Delay_Down( true ) HeadText( "..........", htx_color_0, 0, true )
   Delay_Up() SetKeyInt( "$d2", 1 )
  else
   Delay_Down()
@@ -543,22 +571,22 @@ function Day3_unknown_btn_4()
   end
  end
  local player = GetPlayer()
- Delay_Down() HeadText( "Mom...", htx_color_0 )
- Delay_Down() HeadText( "I've had enough...", htx_color_0 )
- Delay_Down() HeadText( "I can't stay here anymore...", htx_color_0 )
- Delay_Down() HeadText( "I can't live like this...", htx_color_0 )
- Delay_Down() HeadText( "Like a rat slowly drowning in a sewer...", htx_color_0 )
- Delay_Down() HeadText( "I'm going to the police...", htx_color_0 )
- Delay_Down() HeadText( "I'll give myself up...", htx_color_0 )
- Delay_Down() HeadText( "I'll give everything up...", htx_color_0 )
- Delay_Down() HeadText( "I'm already done...", htx_color_0 )
- Delay_Down() HeadText( "Nothing can help...", htx_color_0 )
- Delay_Down() HeadText( "I'll end my life there...", htx_color_0 )
- Delay_Down() HeadText( "I won't miss here...", htx_color_0 )
- Delay_Down() HeadText( "I won't miss anything...", htx_color_0 )
- Delay_Down() HeadText( "Don't worry about me...", htx_color_0 )
- Delay_Down() HeadText( "Goodbye...", htx_color_0 )
- Delay_Down() HeadText( "..........", htx_color_0 )
+ Delay_Down() HeadText( "Mom...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I've had enough...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I can't stay here anymore...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I can't live like this...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "Like a rat slowly drowning in a sewer...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I'm going to the police...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I'll give myself up...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I'll give everything up...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I'm already done...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "Nothing can help...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I'll end my life there...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I won't miss here...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "I won't miss anything...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "Don't worry about me...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "Goodbye...", htx_color_0, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_0, 0, true )
  Delay_Down( true )
  Delay_Up() GetMasterLevel():BlackOut( 40 ) SetKeyInt( "$d1", 1 )
 end
@@ -1067,14 +1095,12 @@ function Day4_End_1()
  Delay( 10 )
  PlaySoundEffect( "bzzz0" )
  GetMasterLevel():BlackOut( 10, 0 )
- PlaySoundEffect( "bzzz1" )
  WaitFor( ScenarioDialogue( 0, "v093q2(*Y*Fpo)P(SDUF]{SDF] (SDDSF9 (*&(*)*&#&*!^31^31^31^31^31^31^31^31^31", dtx_color_5, -1 ), 60 )
  for i = 1, 3, 1 do
   Delay( 10 )
   PlaySoundEffect( "bzzz0" )
   GetMasterLevel():BlackOut( 10, 0 )
  end
- PlaySoundEffect( "bzzz1" )
  WaitFor( ScenarioDialogue( 0, "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", dtx_color_5, -1 ), 120 )
  for i = 1, 3, 1 do
   Delay( 5 )
@@ -1172,6 +1198,131 @@ function Day4_End_2()
 end
 
 function Day4_Secret_Scene_1()
+ Delay( 1 )
+ local player = GetPlayer()
+ local screen = GetCurLevel():GetPawnByName( "tv" ):FindChildEntity( "screen" )
+ local start = screen:FindChildEntity( "start" )
+ local typing = screen:FindChildEntity( "typing" )
+ local red = screen:FindChildEntity( "red" )
+
+ local text = { '"TIME HAS PASSED SINCE EVERYTHING BACK TO ORDER AFTER THE REVOLUTION..."',
+  '"THE ORDER NEVER RETURNED TO THIS LAND..."',
+  '"EVIL IS STILL HIDING BENEATH THE EARTH...FLOATING IN THE AIR...LOOMING IN THE SUNLIGHT..."',
+  '"MADNESS IS WAITING FOR THE DAY WHEN THE SEAL IS BROKEN..."',
+  '"ON THAT DAY YOU WAS STAYING AT HOME THE WHOLE DAYTIME..."',
+  '"THE NIGHT FINALLY CAME DOWN...YOU REALIZED YOUR FOOD IS RUNNING OUT..."',
+  '"WHAT A HORRIBLE NIGHT TO HAVE A CURSE..."', }
+ local chars = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" }
+
+ if EvaluateKeyInt( "unknown_d4_video_secret_room_progress" ) > 0 then
+  screen:SetVisible( true )
+  screen:FindChildEntity( "a" ):SetVisible( false )
+  start:SetVisible( false )
+  typing:SetVisible( false )
+  red:SetVisible( true )
+  goto ai_end
+ end
+
+ while EvaluateKeyInt( "$sofa" ) == 0 do Delay( 1 ) end
+ screen:SetVisible( true )
+ start:SetVisible( false )
+ typing:SetVisible( false )
+ red:SetVisible( false )
+ Delay( 50 )
+ screen:FindChildEntity( "a" ):SetVisible( false )
+ start:SetVisible( true )
+ while EvaluateKeyInt( "$press_a" ) == 0 do Delay( 1 ) end
+ SetKeyInt( "$press_a", 0 )
+ start:SetVisible( false )
+ typing:SetVisible( true )
+
+ for i = 1, #text, 1 do
+  HeadText( text[i], htx_color_5 )
+  local str = ""
+  local n = 0
+  while EvaluateKeyInt( "$press_a" ) == 0 do
+   if #str < 25 then
+    if n == 0 then
+     str = str .. chars[RandInt( 1, 17 )]
+	 typing:Set( str )
+     n = 3
+    end
+    n = n - 1
+   end
+   Delay( 1 )
+  end
+  SetKeyInt( "$press_a", 0 )
+ end
+ typing:SetVisible( false )
+ red:SetVisible( true )
+
+ player:PlayState( "s1", 1 )
+ while EvaluateKeyInt( "$sofa" ) == 1 do Delay( 1 ) end
+ SetKeyInt( "unknown_d4_video_secret_room_progress", 1 )
+::ai_end::
+ for i = 1, 4, 1 do
+  local p = GetCurLevel():GetPawnByName( tostring( i ) )
+  if p then p:SetLocked( false ) end
+ end
+ Signal( GetCurLevel():GetPawnByName( "ai_2" ), 0 )
+end
+
+function Day4_Secret_Scene_2()
+ while EvaluateKeyInt( "$sofa" ) == 0 do Delay( 1 ) end
+ Delay( 40 )
+ HeadText( '"WHAT ARE YOU GOING TO DO?"', htx_color_5 )
+ while EvaluateKeyInt( "$press_a" ) == 0 and EvaluateKeyInt( "$press_b" ) == 0 and EvaluateKeyInt( "$press_c" ) == 0
+  and EvaluateKeyInt( "$sofa" ) == 1 do Delay( 1 ) end
+ SetKeyInt( "$press_a", 0 ) SetKeyInt( "$press_b", 0 ) SetKeyInt( "$press_c", 0 )
+ if EvaluateKeyInt( "$sofa" ) == 0 then return end
+ 
+ local light_switch = { desc = "LIGHT SWITCH", opr = function()
+  PlaySoundEffect( "btn" )
+  SetKeyInt( "$light", 1 - EvaluateKeyInt( "$light" ) )
+ end }
+ local door_switch = { desc = "DOOR SWITCH", opr = function()
+  SetKeyInt( "$d0", 1 - EvaluateKeyInt( "$d0" ) )
+ end }
+
+ local states = {
+  {
+   { desc = "???", opr = function() end },
+   light_switch,
+   door_switch
+  }
+
+ }
+
+ local curState = states[1]
+ while true do
+  local strDesc = '"'
+  local prefix = { "A -- ", "B -- ", "C -- " }
+  local key = { "$press_a", "$press_b", "$press_c" }
+  for i = 1, 3, 1 do
+   if curState[i].desc then
+    strDesc = strDesc .. prefix[i] .. curState[i].desc .. "   "
+   end
+  end
+  strDesc = strDesc .. 'D -- LEAVE"'
+  HeadText( strDesc, htx_color_5 )
+
+  while true do
+   if EvaluateKeyInt( "$sofa" ) == 0 then HeadText( "" ) return end
+   for i = 1, 3, 1 do
+    if EvaluateKeyInt( key[i] ) > 0 then
+	 SetKeyInt( key[i], 0 )
+	 local ret = curState[i].opr()
+	 if ret then curState = states[ret] end
+	 break
+	end
+   end
+   Delay( 1 )
+  end
+
+ end
+end
+
+function Day4_Secret_Scene_Err()
  Delay( 60 )
  local nLoad = 0
  for i = 1, 4, 1 do
@@ -1417,37 +1568,37 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
  local coCheckStateTransits1 = coroutine.create( function( nCurState, nCurDir, bFinished )
   -------------------  nCurState, nCurDir, bFinished = Delay( 20 )
   Delay( 20 )
-  HeadText( "Fuck, fuck...", htx_color_6b )
+  HeadText( "Fuck, fuck...", htx_color_6b, 0, true )
   Delay( 180, 1, 1 )
   PlaySoundEffect( "door_hit" )
   Delay( 60 )
-  HeadText( "Stop it idiot.", htx_color_6b )
+  HeadText( "Stop it idiot.", htx_color_6b, 0, true )
   Delay( 120, 0, 0 )
   PlaySoundEffect( "door_hit" )
   Delay( 60 )
-  HeadText( "Useless.", htx_color_6b )
+  HeadText( "Useless.", htx_color_6b, 0, true )
   Delay( 120 )
   Delay( 60, 2, 1 )
   PlaySoundEffect( "door_hit" )
   Delay( 60 )
-  HeadText( "...Fuck it went wrong again.", htx_color_6b )
+  HeadText( "...Fuck it went wrong again.", htx_color_6b, 0, true )
   Delay( 60 )
   PlaySoundEffect( "door_hit" )
   Delay( 60 )
-  HeadText( "Reset it mecha jackass. Don't you have eyes?", htx_color_6b )
+  HeadText( "Reset it mecha-jackass. Are you fucking blind?", htx_color_6b, 0, true )
   for i = 1, 4, 1 do
    Delay( 20, 0, ( i - 1 ) % 2 )
   end
   Delay( 90 )
-  HeadText( "Did your creator plug into the wrong hole?", htx_color_6b )
+  HeadText( "Did your creator plug into the wrong hole?", htx_color_6b, 0, true )
   Delay( 150 )
   HeadText( "..........", htx_color_6b )
   Delay( 90 )
   Delay( 60, 2, 1 )
-  HeadText( "Hi Kucha. Please reset.", htx_color_6b )
+  HeadText( "Hi Kucha. Please reset.", htx_color_6b, 0, true )
   local function ResetSecurity()
    Delay( 90 )
-   HeadText( "Security system reseting...", htx_color_sys, 120 )
+   HeadText( "Security system reseting...", htx_color_sys, 120, true )
    Delay( 90 )
    Signal( GetCurLevel():FindChildEntity( "tutorial_follow" ), 0 )
    Signal( GetCurLevel():FindChildEntity( "tutorial_follow" ), 2 )
@@ -1464,92 +1615,92 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
   end )
 
   Delay( 60 )
-  HeadText( "Fuck you. Are't you going to rest for a fucking while?", htx_color_6b )
+  HeadText( "Fuck you. Are't you going to rest for a fucking while?", htx_color_6b, 0, true )
   Delay( 120, 0, 0 )
-  HeadText( "...What the fuck did you say?", htx_color_6b )
+  HeadText( "...What the fuck did you say?", htx_color_6b, 0, true )
   Delay( 120, 3, 0 )
-  HeadText( "...Stop fucking me. Go fuck Lawyer " .. NAME_LAWYER .. ".", htx_color_6b )
+  HeadText( "...Stop fucking me. Go fuck Lawyer " .. NAME_LAWYER .. ".", htx_color_6b, 0, true )
   Delay( 120, 3, 0 )
-  HeadText( "He's the one who fucked us all.", htx_color_6b )
+  HeadText( "He's the one who fucked us all.", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "He told us to do as he said.", htx_color_6b )
+  HeadText( "He told us to do as he said.", htx_color_6b, 0, true )
   Delay( 90 )
-  HeadText( "He made our sentences.", htx_color_6b )
+  HeadText( "He made our sentences.", htx_color_6b, 0, true )
   Delay( 80 )
-  HeadText( "He packed us together to be sent here.", htx_color_6b )
+  HeadText( "He packed us together to be sent here.", htx_color_6b, 0, true )
   Delay( 80 )
-  HeadText( "Why don't you go fuck his guts out of his asshole for us?", htx_color_6b )
+  HeadText( "Why don't you go fuck his guts out of his asshole for us?", htx_color_6b, 0, true )
   Delay( 150 )
-  HeadText( "......What?", htx_color_6b )
+  HeadText( "......What?", htx_color_6b, 0, true )
   bKnock = false
   Delay( 150 )
-  HeadText( "......Say it again?", htx_color_6b )
+  HeadText( "......Say it again?", htx_color_6b, 0, true )
   SetKeyInt( "4f_center_room_2a_d1", 0 )
   Delay( 120, 1, 0 )
   for i = 1, 2, 1 do
    LevelRegisterUpdate1( function() GetCurLevel():SpawnPawn1( "data/enemies/enemy_attack_0.pf", pawn:GetToX(), pawn:GetToY(), 1 ) end )
    Delay( 60, 4, 0 )
   end
-  HeadText( "...Oh fuck...", htx_color_6b )
+  HeadText( "...Oh fuck...", htx_color_6b, 0, true )
   Delay( 120 )
   for i = 1, 4, 1 do
    LevelRegisterUpdate1( function() GetCurLevel():SpawnPawn1( "data/enemies/enemy_attack_0.pf", pawn:GetToX(), pawn:GetToY(), 1 ) end )
    Delay( 50, 4, 0 )
   end
   Delay( 40, 1, 1 )
-  HeadText( "...Damn it...", htx_color_6b )
+  HeadText( "...Damn it...", htx_color_6b, 0, true )
   Delay( 60 )
 
   if GetCurLevel():FindChildEntity( "tutorial_follow" ):IsAnythingAbnormal() then
-   HeadText( "...Screw this...What's fucking wrong with it today?", htx_color_6b )
+   HeadText( "...Screw this...What's fucking wrong with it today?", htx_color_6b, 0, true )
    Delay( 120 )
-   HeadText( "...Kucha, reset.", htx_color_6b )
+   HeadText( "...Kucha, reset.", htx_color_6b, 0, true )
    LevelRegisterUpdate1( ResetSecurity )
    Delay( 240 )
   else
    Delay( 40 )
-   HeadText( "...This machine better not get me in trouble.", htx_color_6b )
+   HeadText( "...This machine better not get me in trouble.", htx_color_6b, 0, true )
    Delay( 120 )
   end
 
   Delay( 40, 0, 0 )
-  HeadText( "...Come in, motherfucker. Get inside.", htx_color_6b )
+  HeadText( "...Come in, motherfucker. Get inside.", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "Don't just stand there. Get in and enjoy yourself.", htx_color_6b )
+  HeadText( "Don't just stand there. Get in and enjoy yourself.", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "We can watch some cute videos together.", htx_color_6b )
+  HeadText( "We can watch some cute videos together.", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "Or what about your favorite colletion?", htx_color_6b )
+  HeadText( "Or what about your favorite colletion?", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "..........", htx_color_6b )
+  HeadText( "..........", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "...Dare you not.", htx_color_6b )
+  HeadText( "...Dare you not.", htx_color_6b, 0, true )
   Delay( 140 )
-  HeadText( "...Ok. So where were we? Did you remember?", htx_color_6b )
+  HeadText( "...Ok. So where were we? Did you remember?", htx_color_6b, 0, true )
   Delay( 100 )
-  HeadText( "...Yes, that's it. I know it. You are fucking right.", htx_color_6b )
+  HeadText( "...Yes, that's it. I know it. You are fucking right.", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "...Yes yes yes. Don't remind me. I really fucking know it.", htx_color_6b )
+  HeadText( "...Yes yes yes. Don't remind me. I really fucking know it.", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "...Very good. That's the very fucking point. I loved her.", htx_color_6b )
+  HeadText( "...Very good. That's the very fucking point. I loved her.", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "...While her parents didn't. Isn't it fucking fair?", htx_color_6b )
+  HeadText( "...While her parents didn't. Isn't it fucking fair?", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "...Yes yes. Sick enough to love her.", htx_color_6b )
+  HeadText( "...Yes yes. Sick enough to love her.", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "Sick enough to protect her from being used as a body shield.", htx_color_6b )
+  HeadText( "Sick enough to protect her from being used as a body shield.", htx_color_6b, 0, true )
   Delay( 120 )
-  HeadText( "I'm a fucking pervert. A fucking sex freak. Any questions?", htx_color_6b )
+  HeadText( "I'm a fucking pervert. A fucking sex freak. Any questions?", htx_color_6b, 0, true )
   Delay( 150 )
-  HeadText( "...Then fuck off. We have nothing to say anymore.", htx_color_6b )
+  HeadText( "...Then fuck off. We have nothing to say anymore.", htx_color_6b, 0, true )
   Delay( 100 )
   SetKeyInt( "4f_center_room_2a_d1", 1 )
-  HeadText( "...Fuck you. I'm not listening. Question time is over.", htx_color_6b )
+  HeadText( "...Fuck you. I'm not listening. Question time is over.", htx_color_6b, 0, true )
   Delay( 60 )
   PlaySoundEffect( "door_hit" )
   Delay( 30 )
   Delay( 60, 2, 1 )
-  HeadText( "...I'm watching TV. I'm not listening to your bullshit.", htx_color_6b )
+  HeadText( "...I'm watching TV. I'm not listening to your bullshit.", htx_color_6b, 0, true )
   Delay( 60 )
   GetCurLevel():GetPawnByName( "tv" ):FindChildEntity( "screen" ):SetVisible( true )
   GetCurLevel():BeginNoise( "noise_tv" )
@@ -1557,69 +1708,69 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
   PlaySoundEffect( "door_hit" )
 
   Delay( 60 )
-  HeadText( "...I'm NOT LISTENING. Whatever you say.", htx_color_6b )
+  HeadText( "...I'm NOT LISTENING. Whatever you say.", htx_color_6b, 0, true )
   Delay( 90 )
-  HeadText( '"UPCOMING: Mystery of the origin of Yellow August"', htx_color_5 )
+  HeadText( '"UPCOMING: Mystery of the origin of Yellow August"', htx_color_5, 0, true )
   Delay( 110 )
-  HeadText( '"FROM -- AUTO RECOMMENDATION"', htx_color_5 )
+  HeadText( '"FROM -- AUTO RECOMMENDATION"', htx_color_5, 0, true )
   Delay( 80 )
   PlaySoundEffect( "door_hit" )
   Delay( 30 )
-  HeadText( "...I'm NOT FUCKING LISTENING.", htx_color_6b )
+  HeadText( "...I'm NOT FUCKING LISTENING.", htx_color_6b, 0, true )
   Delay( 60 )
-  HeadText( '"...As the most decisive event in the second half of the last century..."', htx_color_5 )
+  HeadText( '"...As the most decisive event in the second half of the last century..."', htx_color_5, 0, true )
   Delay( 200 )
-  HeadText( '"...The whole country is burning...Prisons are overflowing..."', htx_color_5 )
+  HeadText( '"...The whole country is burning..^31^31Prisons are overflowing...^31^31^31"', htx_color_5, 0, true )
   Delay( 200 )
-  HeadText( "[Lots of noise and glitch]", htx_color_5 )
+  HeadText( "[Lots of noise and glitch]", htx_color_5, 0, true )
   Delay( 90 )
-  HeadText( "..........", htx_color_6b )
+  HeadText( "..........", htx_color_6b, 0, true )
   Delay( 60 )
-  HeadText( '"...About the trigger for the crisis there are many controversies..."', htx_color_5 )
+  HeadText( '"...About the trigger for the crisis there are many controversies^31^31"', htx_color_5, 0, true )
   Delay( 200 )
-  HeadText( "[Glitch again]", htx_color_5 )
+  HeadText( "^31^31^31^31^31^31^31^31", htx_color_5, 0, true )
   Delay( 90 )
   HeadText( '"...He said he witnessed..."', htx_color_5 )
   Delay( 100 )
-  HeadText( "[More and more glitch]", htx_color_5 )
+  HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_5, 0, true )
   Delay( 60 )
-  HeadText( '"...I was among the protest and was surrounded by people..."', htx_color_5 )
+  HeadText( '"^31^31^31^31as among the protest and was surrounded by people..^31^31^31^31"', htx_color_5, 0, true )
   Delay( 150 )
-  HeadText( '"...the parade stopped. I saw they formed two walls..."', htx_color_5 )
+  HeadText( '"^31^31^31parade stopp^31^31^31^31 saw they formed two walls^31^31^31^31^31^31"', htx_color_5, 0, true )
   Delay( 150 )
-  HeadText( "...NOT FUCKING LISTENING.", htx_color_6b )
+  HeadText( "...NOT FUCKING LISTENING.", htx_color_6b, 0, true )
   Delay( 60 )
-  HeadText( '"...Someone was arrested. The girl was sitting there crying..."', htx_color_5 )
+  HeadText( '"...Someone was arr^31sted^31^31^31^31^31^31e girl was sit^31ing th^31re cryin^31^31^31^31^31^31^31^31^31"', htx_color_5, 0, true )
   Delay( 150 )
-  HeadText( '"...I walked away quickly. Soon I heard screaming..."', htx_color_5 )
+  HeadText( '"^31^31^31^31^31 wa^31^31ed aw^31^31 q^31ickl^31^31^31^31^31^31So^31n I h^31ar^31^31^31^31^31^31eaming^31^31^31^31^31^31"', htx_color_5, 0, true )
   Delay( 150 )
-  HeadText( "[The rest became totally illegible]", htx_color_5 )
+  HeadText( "[The rest became totally illegible]", htx_color_5, 0, true )
   Delay( 90 )
   
   if GetCurLevel():FindChildEntity( "tutorial_follow" ):IsAnythingAbnormal() then
-   HeadText( "NOT......What the hell is this piece of scrap doing?", htx_color_6b )
+   HeadText( "NOT......What the hell is this piece of scrap doing?", htx_color_6b, 0, true )
    Delay( 100 )
-   HeadText( "...Kucha, SHUTDOWN.", htx_color_6b )
+   HeadText( "...Kucha, SHUTDOWN.", htx_color_6b, 0, true )
    Delay( 100 )
-   HeadText( "ERROR: inadequate permissions.", htx_color_1 )
+   HeadText( "ERROR: inadequate permissions.", htx_color_1, 0, true )
    Delay( 100 )
-   HeadText( "THEN FUCKING RESET.", htx_color_6b )
+   HeadText( "THEN FUCKING RESET.", htx_color_6b, 0, true )
    Delay( 100 )
-   HeadText( "...Reset, I mean.", htx_color_6b )
+   HeadText( "...Reset, I mean.", htx_color_6b, 0, true )
    LevelRegisterUpdate1( ResetSecurity )
    Delay( 240 )
-   HeadText( "...Enough. I've had fucking enough.", htx_color_6b )
+   HeadText( "...Enough. I've had fucking enough.", htx_color_6b, 0, true )
   else
-   HeadText( "NOT...Enough.", htx_color_6b )
+   HeadText( "NOT...Enough.", htx_color_6b, 0, true )
    Delay( 120 )
-   HeadText( "I've had enough.", htx_color_6b )
+   HeadText( "I've had enough.", htx_color_6b, 0, true )
   end
   Delay( 45 )
   GetCurLevel():GetPawnByName( "tv" ):FindChildEntity( "screen" ):SetVisible( false )
   GetCurLevel():EndNoise( "noise_tv" )
   Delay( 45 )
   Delay( 120, 3, 0 )
-  HeadText( "...Fucking gone finally.", htx_color_6b )
+  HeadText( "...Fucking gone finally.", htx_color_6b, 0, true )
 
   context.bFin = true
  end )
@@ -2232,31 +2383,31 @@ function Day4_4_3f_btn()
  local player = GetPlayer()
  local pawn = nil
  
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() HeadText( "Stop moving.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "Where are you going?", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "Where do you think you can escape?", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() HeadText( "Stop doing this. It's useless.", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "You know there is no way o^31^31^31^31^31^31^31.", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h ) Delay( 20 ) PlaySoundEffect( "electric1" )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "I control this p^31^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31^31^31^31^31^31 ^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "You know you can't^31^31^31^31^31^31.", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "No shi^31^31 ^31^31^31^31^31 ^31^31^31^31^31^31", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "Don't make me^31  ^31   ^31^31^31^31 ^31  ^31^31^31^31^31^31 ^31 ^31^31^31", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() PlaySoundEffect( "bzzz1" ) HeadText( "^31 ^31^31^31^31^31^31^31 ^31^31^31^31 ^31   ^31^31    ^31  ^31   ^31 ^31^31^31^31^31^31^31 ^31^31^31 ^31^31^31 ^31^31^31^31^31^31^31", htx_color_h )
- Delay_Down() HeadText( "......", htx_color_h )
- Delay_Down() HeadText( "..........", htx_color_h )
- Delay_Down() HeadText( "....................", htx_color_h )
- Delay_Down() HeadText( "..............................................................................................................................................................................................", htx_color_h )
+ Delay_Down() HeadText( "^31^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "Stop moving.", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Where are you going?", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "^31^31^31^31^31^31^31^31^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Where do you think you can escape?", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "Stop doing this. It's useless.", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "You know there is no way o^31^31^31^31^31^31^31.", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true ) Delay( 20 ) PlaySoundEffect( "electric1" )
+ Delay_Down() HeadText( "I control this p^31^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "^31^31^31^31^31^31 ^31^31^31^31 ^31^31^31^31^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "You know you can't^31^31^31^31^31^31.", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+ Delay_Down() HeadText( "No shi^31^31 ^31^31^31^31^31 ^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+ Delay_Down() HeadText( "Don't make me^31  ^31   ^31^31^31^31 ^31  ^31^31^31^31^31^31 ^31 ^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+ Delay_Down() HeadText( "^31 ^31^31^31^31^31^31^31 ^31^31^31^31 ^31   ^31^31    ^31  ^31   ^31 ^31^31^31^31^31^31^31 ^31^31^31 ^31^31^31 ^31^31^31^31^31^31^31", htx_color_h, 0, true )
+ Delay_Down() HeadText( "......", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..........", htx_color_h, 0, true )
+ Delay_Down() HeadText( "....................", htx_color_h, 0, true )
+ Delay_Down() HeadText( "..............................................................................................................................................................................................", htx_color_h, 0, true )
  Delay_Down() PlaySoundEffect( "alert" )
  
  Delay_Down() GetMasterLevel():BlackOut( 60, 45 ) Delay( 30 ) SetKeyInt( "$door", 1 )
@@ -2478,7 +2629,7 @@ function Day4_4_3f_dining()
 end
 
 function Day4_4_2f_final()
- HeadText( "What are you doing here?.", htx_color_h )
+ HeadText( "What are you doing here?.", htx_color_h, 0, true )
  local player = GetPlayer()
  while player:GetPosX() ~= 7 or player:GetPosY() ~= 9 do coroutine.yield() end
  
@@ -2524,13 +2675,13 @@ function Day4_4_2f_final()
    if bBreak then break end
   end
   if i == 2 then
-   HeadText( "Go back. Stop making trouble everywhere.", htx_color_h )
+   HeadText( "Go back. Stop making trouble everywhere.", htx_color_h, 0, true )
   elseif i == 3 then
-   HeadText( "Stop this. The final warning.", htx_color_h )
+   HeadText( "Stop this. The final warning.", htx_color_h, 0, true )
   elseif i == 4 then
-   HeadText( "I said stop this. Are you fucking listening?", htx_color_h )
+   HeadText( "I said stop this. Are you fucking listening?", htx_color_h, 0, true )
   elseif i == 5 then
-   HeadText( "Are you still fucking sane?", htx_color_h )
+   HeadText( "Are you still fucking sane?", htx_color_h, 0, true )
   end
  end
  
@@ -2556,7 +2707,7 @@ function Day4_4_2f_final()
   tbl1[i] = GetCurLevel():SpawnPreset1( "bot", x, y, 0 )
  end
 
- HeadText( "Get the fuck sobered up. Look at what you've done.", htx_color_h )
+ HeadText( "Get the fuck sobered up. Look at what you've done.", htx_color_h, 0, true )
  dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
  l = CreateLighningEft( src, dst )
  GetMasterLevel():InterferenceStripEffect( 1, 100 )
@@ -2568,9 +2719,9 @@ function Day4_4_2f_final()
  GetMasterLevel():InterferenceStripEffect( 0, 0 )
  l:SetParentEntity( nil )
  
- HeadText( "How to get the fuck out...", htx_color_0 )
+ HeadText( "How to get the fuck out...", htx_color_0, 0, true )
  while player:GetToX() ~= 6 or player:GetToY() ~= 10 do coroutine.yield( 1 ) end
- HeadText( "WAKE UP.", htx_color_h )
+ HeadText( "WAKE UP.", htx_color_h, 0, true )
  dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
  l = CreateLighningEft( src, dst )
  GetMasterLevel():InterferenceStripEffect( 1, 100 )
@@ -2591,13 +2742,13 @@ function Day4_4_2f_final()
  GetMasterLevel():InterferenceStripEffect( 0, 0 )
  l:SetParentEntity( nil )
  
- HeadText( "ERROR: Evacuating sewer system severely damaged.", htx_color_1 )
+ HeadText( "ERROR: Evacuating sewer system severely damaged.", htx_color_1, 0, true )
  Delay( 300 )
- HeadText( "What's fucking wrong with you?", htx_color_h )
+ HeadText( "What's fucking wrong with you?", htx_color_h, 0, true )
  Delay( 240 )
- HeadText( "Did you take in some..that shit?", htx_color_h )
+ HeadText( "Did you take in some..that shit?", htx_color_h, 0, true )
  Delay( 240 )
- HeadText( "I'm getting regret having brought you in.", htx_color_h )
+ HeadText( "I'm getting regret having brought you in.", htx_color_h, 0, true )
  Delay( 240 )
  
  dst = { ( player:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, ( player:GetPosY() + 1 ) * LEVEL_GRID_SIZE_Y }
@@ -2611,27 +2762,4 @@ function Day4_4_2f_final()
  SetKeyInt( "day", 4 )
  SetCurTime( 5 )
  TransferTo( "stages/4f_0.pf", 8, 2, 0, -1 )
-end
-
-function Day5_Get_Neural_Pulse()
- if CurDay() ~= 5 then return end
- RunScenario( function()
-  local p = GetPlayer()
-  local pos0 = { ( p:GetPosX() + 1 ) * LEVEL_GRID_SIZE_X, p:GetPosY() * LEVEL_GRID_SIZE_Y + 48 }
-  local dst = { { pos0[1] - 256, pos0[2] }, { pos0[1] + 256, pos0[2] }, { pos0[1] - 128, pos0[2] + 224 },
-  { pos0[1] + 128, pos0[2] + 224 }, { pos0[1] + 128, pos0[2] - 224 }, { pos0[1] - 128, pos0[2] - 224 } }
-  local l = {}
-  for i = 1, 6, 1 do
-   l[i] = CreateLighningEft( pos0, dst[i] )
-  end
-  GetMasterLevel():InterferenceStripEffect( 1, 2 )
-  Delay( 80 )
-  for i = 1, 6, 1 do
-   l[i]:SetParentEntity( nil )
-  end
-  GetMasterLevel():BlackOut( 40, 40 )
-  GetMasterLevel():InterferenceStripEffect( 0, 0 )
-  PlayerPickUp( "data/pickups/neural_pulse.pf" )
-  GetPlayer():PlayState( "leave" )
- end )
 end

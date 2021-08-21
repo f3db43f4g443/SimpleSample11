@@ -14,6 +14,8 @@
     <item name="typing_system" path="sound/typing_system.wav" />
     <item name="typing_system_warning" path="sound/typing_system_warning.wav" />
     <item name="typing_system_error" path="sound/typing_system_error.wav" />
+    <item name="typing_bzzz" path="sound/typing_bzzz.sf" />
+    <item name="typing_special" path="sound/typing_special.wav" />
     <item name="activate" path="sound/tip_activate.wav" />
     <item name="deactivate" path="sound/tip_deactivate.wav" />
     <item name="tip1" path="sound/tip_1.mp3" />

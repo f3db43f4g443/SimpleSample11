@@ -204,6 +204,10 @@ protected:
 	int32 m_nTextAppearTime;
 	CReference<CEntity> m_pEft;
 	CReference<CRenderObject2D> m_pEnter;
+	CString m_strSpecialSound1;
+	CString m_strSpecialSound2;
+	int32 m_nSpecial1Interval;
+	int32 m_nSpecial2Interval;
 
 	bool m_bFinished;
 	CRectangle m_origRect;

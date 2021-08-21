@@ -174,7 +174,7 @@ void CPrefabEditor::NewFile( const char* szFileName )
 		m_pSelectedPrefab->RemoveThis();
 		m_pSelectedPrefab = NULL;
 	}
-	m_mapClonedPrefabs.clear();
+	ClearClonedPrefabs();
 
 	m_pRes = CResourceManager::Inst()->CreateResource<CPrefab>( szFileName, true );
 	auto pNode = new CPrefabNode( m_pRes );
@@ -195,7 +195,7 @@ void CPrefabEditor::Refresh()
 		m_pSelectedPrefab->RemoveThis();
 		m_pSelectedPrefab = NULL;
 	}
-	m_mapClonedPrefabs.clear();
+	ClearClonedPrefabs();
 
 	if( m_pRes )
 	{
@@ -214,6 +214,15 @@ CPrefabNode* CPrefabEditor::GetRootNode( const char* szName )
 	auto itr = m_mapClonedPrefabs.find( szName );
 	ASSERT( itr != m_mapClonedPrefabs.end() );
 	return itr->second;
+}
+
+void CPrefabEditor::ClearClonedPrefabs()
+{
+	for( auto& item : m_mapClonedPrefabs )
+	{
+		item.second->Invalidate();
+	}
+	m_mapClonedPrefabs.clear();
 }
 
 void CPrefabEditor::RefreshItemView()
@@ -365,7 +374,7 @@ void CPrefabEditor::ExportAllText()
 	FuncFolders( "" );
 
 	CBufFile bufManifest;
-	string strText;
+	string strText = "\xef\xbb\xbf";
 	int32 nFileIndex = 0;
 	int32 nFileLines = 0;
 
@@ -392,7 +401,7 @@ void CPrefabEditor::ExportAllText()
 	auto pStringClassData = CClassMetaDataMgr::Inst().GetClassData<CString>();
 	function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )> funcDataHandler =
 		[=, &context] ( SClassMetaData* pClassMetaData, SClassMetaData::SMemberData* pMemberData, int32 nArrIndex, IBufReader& bufIn, CBufFile& bufOut ) {
-		if( pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
+		if( pMemberData && pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
 			&& pMemberData->pTypeData == pStringClassData
 			&& pMemberData->GetArg( "text" ) && nArrIndex >= 0 )
 		{
@@ -427,7 +436,10 @@ void CPrefabEditor::ExportAllText()
 			context.nTotalLines += 3;
 			const char* sz = tempStr.c_str();
 			for( sz = strchr( sz, '\n' ); sz; sz = strchr( sz, '\n' ) )
+			{
+				sz++;
 				context.nTotalLines++;
+			}
 		}
 		return false;
 	};
@@ -456,11 +468,17 @@ void CPrefabEditor::ExportAllText()
 			SaveFile( ss.str().c_str(), strText.c_str(), strText.length() + 1 );
 			bufManifest.Write( "***" );
 			nFileLines = 0;
-			strText = "";
+			strText = "\xef\xbb\xbf";
 			nFileIndex++;
 		}
 
 		context.Reset();
+	}
+	if( strText.length() )
+	{
+		stringstream ss;
+		ss << EXPORT_TEXT_PATH << nFileIndex;
+		SaveFile( ss.str().c_str(), strText.c_str(), strText.length() + 1 );
 	}
 	string strManifest = EXPORT_TEXT_PATH;
 	strManifest += "manifest";
@@ -480,11 +498,11 @@ void CPrefabEditor::ImportAllText()
 	auto pStringClassData = CClassMetaDataMgr::Inst().GetClassData<CString>();
 	function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )> funcDataHandler =
 		[=, &context] ( SClassMetaData* pClassMetaData, SClassMetaData::SMemberData* pMemberData, int32 nArrIndex, IBufReader& bufIn, CBufFile& bufOut ) {
-		if( pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
+		if( pMemberData && pMemberData->nType == SClassMetaData::SMemberData::eTypeClass
 			&& pMemberData->pTypeData == pStringClassData
 			&& pMemberData->GetArg( "text" ) && nArrIndex >= 0 )
 		{
-			CString strTemp;
+			CString strTemp = "";
 			pStringClassData->UnpackData( (uint8*)&strTemp, bufIn, true, NULL );
 			strTemp = context.Next();
 			pStringClassData->PackData( (uint8*)&strTemp, bufOut, true );
@@ -514,7 +532,7 @@ void CPrefabEditor::ImportAllText()
 		{
 			stringstream ss;
 			ss << EXPORT_TEXT_PATH << nFileIndex;
-			GetFileContent( vec1, ss.str().c_str(), false );
+			GetFileContent( vec1, ss.str().c_str(), true );
 			szText = &vec1[0];
 		}
 
@@ -583,8 +601,8 @@ void CPrefabEditor::NewNode()
 	}
 	m_pCurNode->AddChild( pNode );
 	auto pContent = CPrefabNodeTreeFolder::Create( this, m_pSceneView, m_pCurNodeItem, pNode );
-	SelectNode( pNode, pContent );
 	pNode->OnEditorMove( m_pSelectedPrefab );
+	SelectNode( pNode, pContent );
 }
 
 void CPrefabEditor::DeleteNode()
@@ -617,12 +635,12 @@ void CPrefabEditor::Paste()
 		return;
 	CPrefabNode* pNode = m_pClipBoard->Clone( m_pRes.GetPtr(), &m_pRes->GetRoot()->GetNameSpace() );
 	m_pCurNode->AddChild( pNode );
+	pNode->OnEditorMove( m_pSelectedPrefab );
 
 	SelectNode( NULL, NULL );
 	m_pSceneView->ClearContent();
 	RefreshSceneView( m_pSelectedPrefab, NULL );
 	SelectNode( m_pSelectedPrefab, static_cast<CUITreeView::CTreeViewContent*>( m_pSceneView->Get_Content() ) );
-	pNode->OnEditorMove( m_pSelectedPrefab );
 }
 
 void CPrefabEditor::NewItem()

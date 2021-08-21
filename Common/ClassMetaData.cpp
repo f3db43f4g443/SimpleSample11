@@ -496,6 +496,8 @@ void SClassMetaData::SMemberData::PatchData( uint8* pObj1, IBufReader& buf, void
 		nCount = *(uint32*)pObj1;
 		pObj1 = *(uint8**)( pObj1 + sizeof( uint32 ) );
 	}
+	else
+		pObj1 += nOffset;
 
 	for( int i = 0;; i++ )
 	{
@@ -727,6 +729,7 @@ bool SClassMetaData::ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& b
 		string strName;
 		bool bArray = false;
 		bufIn.Read( strName );
+		string strName0 = strName;
 		if( strName.length() && strName.back() == '#' )
 		{
 			strName.pop_back();
@@ -759,7 +762,7 @@ bool SClassMetaData::ExtractData( bool bDiffMode, IBufReader& bufIn, CBufFile& b
 			b = item.ExtractData( bDiffMode, this, tempBufIn, tempBufOut, handler ) || b;
 		}
 		nOutMemberData++;
-		bufOut.Write( strName );
+		bufOut.Write( strName0 );
 		bufOut.Write( nType );
 		if( nType >= SMemberData::eTypeClass )
 		{

@@ -1,0 +1,13 @@
+﻿<root>
+  <sound name="sound/typing_bzzz_1.wav" />
+  <sound name="sound/typing_bzzz_2.wav" />
+  <sound name="sound/typing_bzzz_3.wav" />
+  <sound name="sound/typing_bzzz_4.wav" />
+  <sound name="sound/typing_bzzz_5.wav" />
+  <sound name="sound/typing_bzzz_6.wav" />
+  <sound name="sound/typing_bzzz_7.wav" />
+  <sound name="sound/typing_bzzz_8.wav" />
+  <sound name="sound/typing_bzzz_9.wav" />
+  <sound name="sound/typing_bzzz_a.wav" />
+  <sound name="sound/typing_bzzz_b.wav" />
+</root>

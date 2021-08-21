@@ -125,11 +125,15 @@ void CEditor::OnChar( uint32 nChar )
 void CEditor::RegisterToolDefault( int32 nIcon, function<void()> funcHandler )
 {
 	auto pIcon = static_cast<CUILabel*>( m_pDefaultToolResource->GetElement()->Clone() );
-	pIcon->AddImage( 0, "EditorRes/Drawables/icons.xml", CRectangle( 0, 0, 32, 32 ),
-		CRectangle( nIcon % 16, nIcon / 16, 0.0625, 0.0625 ), 0 );
+	for( int32 i = 0; i < 4; i++ )
+	{
+		pIcon->AddImage( i, "EditorRes/Drawables/icons.xml", CRectangle( 0, 0, 32, 32 ),
+			CRectangle( nIcon % 16, nIcon / 16, 1, 1 ) * 32, 0 );
+	}
 	auto pHandler = new CFunctionTrigger( funcHandler );
 	pHandler->bAutoDelete = true;
 	pIcon->Register( CUIElement::eEvent_Action, pHandler );
+	CFileExplorer::Inst()->AddTool( pIcon );
 }
 
 void CEditor::SetEditor( CResourceEditor* pElem )

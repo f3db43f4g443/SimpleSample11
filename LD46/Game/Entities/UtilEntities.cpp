@@ -569,7 +569,7 @@ void CSimpleText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 
 			int32 nRow = nIndex / 8;
 			int32 nColumn = nIndex - nRow * 8;
-			texRect = CRectangle( m_initTexRect.x + nColumn * 0.125f, m_initTexRect.y + nRow * 0.125f, m_initTexRect.width, m_initTexRect.height );
+			texRect = CRectangle( m_initTexRect.x + nColumn * m_initTexRect.width, m_initTexRect.y + nRow * m_initTexRect.height, m_initTexRect.width, m_initTexRect.height );
 		}
 		else
 		{
@@ -998,7 +998,28 @@ void CTypeText::Update()
 			AddElem( i, t );
 	}
 
-	if( m_pSound )
+	int8 nSoundType = 0;
+	if( nCur < m_elems.size() )
+	{
+		int8 nChar = m_elems[nCur].nChar;
+		if( nChar < 16 )
+			nSoundType = 1;
+		else if( nChar == 31 )
+			nSoundType = 2;
+	}
+	if( nSoundType == 1 && m_strSpecialSound1.length() )
+	{
+		int32 nSoundCD = Max( 1, m_nSpecial1Interval ) * m_nTypeInterval;
+		if( m_nTick % nSoundCD == 0 )
+			PlaySoundEffect( m_strSpecialSound1 );
+	}
+	else if( nSoundType == 2 && m_strSpecialSound2.length() )
+	{
+		int32 nSoundCD = Max( 1, m_nSpecial2Interval ) * m_nTypeInterval;
+		if( m_nTick % nSoundCD == 0 )
+			PlaySoundEffect( m_strSpecialSound2 );
+	}
+	else if( m_pSound )
 	{
 		int32 nSoundCD = Max( 1, m_nSoundTextInterval ) * m_nTypeInterval;
 		if( m_nTick % nSoundCD == 0 )
@@ -1911,6 +1932,10 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER( m_nTypeInterval )
 		REGISTER_MEMBER( m_nEftFadeTime )
 		REGISTER_MEMBER( m_nTextAppearTime )
+		REGISTER_MEMBER( m_strSpecialSound1 )
+		REGISTER_MEMBER( m_strSpecialSound2 )
+		REGISTER_MEMBER( m_nSpecial1Interval )
+		REGISTER_MEMBER( m_nSpecial2Interval )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft, eft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEnter, enter )
 	REGISTER_CLASS_END()

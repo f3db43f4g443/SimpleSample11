@@ -2236,6 +2236,18 @@ vector<int8>& CPlayer::ParseInputSequence()
 			m_parsedInputSequence.push_back( -1 - i );
 		bFinish = true;
 	}
+
+	int32 nMaxInput = 99;
+	if( m_parsedInputSequence.size() > nMaxInput )
+	{
+		if( m_strScriptInputOverflow.length() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strScriptInputOverflow );
+			pLuaState->PushLua( this );
+			pLuaState->Call( 1, 0 );
+		}
+	}
 	return m_parsedInputSequence;
 }
 
@@ -2590,7 +2602,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				if( len )
 				{
 					bool b = ExecuteInputtableItem( item, -1 );
-					ASSERT( b );
+					if( !b )
+						break;
 					FlushInput( len, 0, 0 );
 					return true;
 				}
@@ -2617,7 +2630,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				if( len )
 				{
 					bool b = ExecuteInputtableItem( item, ePlayerStateSource_Mount );
-					ASSERT( b );
+					if( !b )
+						break;
 					FlushInput( len, 0, 0 );
 					return true;
 				}
@@ -2650,7 +2664,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 				if( len )
 				{
 					bool b = ExecuteInputtableItem( item, ePlayerEquipment_Large + 1 );
-					ASSERT( b );
+					if( !b )
+						break;
 					FlushInput( len, 0, 0 );
 					return true;
 				}
@@ -2679,8 +2694,6 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 			if( ActionPreviewWaitInput( false ) )
 				return true;
 		}
-		//m_nCurState = 0;
-		//ChangeState( m_pCurEquipment[ePlayerEquipment_Large]->m_arrSubStates[0], ePlayerEquipment_Large + 1, false );
 		FlushInput( 0, 0, 0 );
 		return false;
 	}
@@ -2704,7 +2717,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 					if( len )
 					{
 						bool b = ExecuteInputtableItem( item, i + 1 );
-						ASSERT( b );
+						if( !b )
+							break;
 						FlushInput( len, 0, 0 );
 						return true;
 					}
@@ -2725,7 +2739,8 @@ bool CPlayer::HandleInput( int32 nActionGroup )
 			if( len )
 			{
 				bool b = ExecuteInputtableItem( item, 0 );
-				ASSERT( b );
+				if( !b )
+					break;
 				FlushInput( len, 0, 0 );
 				return true;
 			}
@@ -2850,6 +2865,15 @@ const char* CPlayer::CheckInputTableItem1( SInputTableItem& item, int32& len )
 
 bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 {
+	CString strStateName = item.strStateName;
+	if( strStateName.length() && strStateName.c_str()[0] == ':' )
+	{
+		auto pLuaState = CLuaMgr::GetCurLuaState();
+		pLuaState->Load( strStateName.c_str() + 1 );
+		pLuaState->PushLua( this );
+		pLuaState->Call( 1, 0 );
+		strStateName = "";
+	}
 	if( item.nStateIndex < 0 )
 		return false;
 
@@ -2893,7 +2917,7 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 		auto nDir = m_pControllingPawn->GetCurDir();
 		if( item.bInverse )
 			nDir = 1 - nDir;
-		m_pControllingPawn->StateTransit( item.strStateName, item.nStateIndex, nDir );
+		m_pControllingPawn->StateTransit( strStateName, item.nStateIndex, nDir );
 	}
 	else
 	{
@@ -2902,12 +2926,12 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 		if( nStateSource )
 		{
 			auto pStateSource = GetStateSource( nStateSource );
-			if( item.strStateName.length() )
+			if( strStateName.length() )
 			{
 				for( int k = 0; k < pStateSource->m_arrSubStates.Size(); k++ )
 				{
 					auto& state = pStateSource->m_arrSubStates[k];
-					if( state.strName == item.strStateName )
+					if( state.strName == strStateName )
 					{
 						m_nCurState = k;
 						ChangeState( state, nStateSource, false );
@@ -2920,7 +2944,7 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 					for( int k = 0; k < m_arrSubStates.Size(); k++ )
 					{
 						auto& state = m_arrSubStates[k];
-						if( state.strName == item.strStateName )
+						if( state.strName == strStateName )
 						{
 							CPawn::ChangeState( k );
 							m_nChargeKeyDown = nChargeKeyDown;
@@ -2934,7 +2958,7 @@ bool CPlayer::ExecuteInputtableItem( SInputTableItem& item, int32 nStateSource )
 			ChangeState( state, nStateSource, false );
 		}
 		else
-			TransitTo( item.strStateName, item.nStateIndex, -1 );
+			TransitTo( strStateName, item.nStateIndex, -1 );
 	}
 	m_nChargeKeyDown = nChargeKeyDown;
 	return true;
@@ -3571,6 +3595,9 @@ void RegisterGameClasses_BasicElems()
 		REGISTER_BASE_CLASS( CPawn )
 		REGISTER_MEMBER( m_bIsRealPlayer )
 		REGISTER_MEMBER_BEGIN( m_strScriptDamaged )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER_BEGIN( m_strScriptInputOverflow )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
 		REGISTER_MEMBER( m_inputTable )

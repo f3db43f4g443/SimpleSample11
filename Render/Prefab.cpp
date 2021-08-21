@@ -97,6 +97,30 @@ void CPrefabBaseNode::DebugDraw( class CUIViewport* pViewport, IRenderSystem* pR
 	}
 }
 
+void CPrefabNode::Invalidate()
+{
+	if( m_pPatchedNode )
+		m_pPatchedNode->Invalidate();
+	for( CRenderObject2D* pChild = Get_RenderChild(); pChild; pChild = pChild->NextRenderChild() )
+	{
+		if( pChild == m_pRenderObject )
+			continue;
+		CPrefabNode* pNode = static_cast<CPrefabNode*>( pChild );
+		if( pNode )
+			pNode->Invalidate();
+	}
+	if( m_pPrefab )
+	{
+		if( m_onResourceRefreshBegin.IsRegistered() )
+			m_onResourceRefreshBegin.Unregister();
+		if( m_onResourceRefreshEnd.IsRegistered() )
+			m_onResourceRefreshEnd.Unregister();
+		if( m_pResource )
+			m_pPrefab->RemoveDependency( m_pResource );
+		m_pPrefab = NULL;
+	}
+}
+
 void CPrefabNode::AddRef1()
 {
 	m_pPrefab->AddRef();
@@ -678,23 +702,23 @@ void CPrefabNode::Diff( CPrefabNode* pNode, SPatchContext& context, CPrefabNodeN
 		vecChildren[i].first->Diff( vecChildren[i].second, context, pNameSpace );
 }
 
-void CPrefabNode::ExtractPatchData( CPrefabNode* pPatchedNode, SPatchContext& contextIn, SPatchContext& contextOut, function<void( CPrefabNode*, int8 )> funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
+void CPrefabNode::ExtractPatchData( CPrefabNode* pPatchedNode, SPatchContext& cIn, SPatchContext& cOut, function<void( CPrefabNode*, int8 )> funcNodeHandler, function<bool( SClassMetaData*, SClassMetaData::SMemberData*, int32, IBufReader&, CBufFile& )>& funcDataHandler )
 {
 	funcNodeHandler( pPatchedNode, 2 );
 	CBufFile* pPatchIn = NULL;
 	CBufFile* pPatchOut = NULL;
 	{
 		string str;
-		GetPathString( contextIn.pRoot, str );
-		auto itr = contextIn.mapPatches.find( str );
-		if( itr != contextIn.mapPatches.end() )
+		GetPathString( cIn.pRoot, str );
+		auto itr = cIn.mapPatches.find( str );
+		if( itr != cIn.mapPatches.end() )
 		{
 			pPatchIn = &itr->second;
 			if( pPatchIn->GetBuffer() != pPatchIn->GetCurBuffer() )
 				pPatchIn = NULL;
 		}
 		if( pPatchIn )
-			pPatchOut = &contextIn.mapPatches[str];
+			pPatchOut = &cOut.mapPatches[str];
 	}
 	
 	if( pPatchIn )
@@ -848,7 +872,7 @@ void CPrefabNode::ExtractPatchData( CPrefabNode* pPatchedNode, SPatchContext& co
 	}
 
 	for( int i = vecChildren.size() - 1; i >= 0; i-- )
-		vecChildren[i].first->ExtractPatchData( vecChildren[i].second, contextIn, contextOut, funcNodeHandler, funcDataHandler );
+		vecChildren[i].first->ExtractPatchData( vecChildren[i].second, cIn, cOut, funcNodeHandler, funcDataHandler );
 
 	funcNodeHandler( pPatchedNode, -2 );
 }
@@ -2212,7 +2236,7 @@ void CPrefabNode::ExtractData( IBufReader& bufIn, CBufFile& bufOut, function<voi
 {
 	funcNodeHandler( this, 1 );
 
-	bufOut.Write( bufIn.Read<float>() ); //m_nType
+	bufOut.Write( bufIn.Read<uint8>() ); //m_nType
 
 	string strName;
 	bufIn.Read( strName );
@@ -2280,9 +2304,24 @@ void* CPrefab::GetNameSpaceKey()
 void CPrefab::SetNode( CPrefabNode* pNode, const char* szName )
 {
 	if( szName && szName[0] )
+	{
+		if( m_mapNodes[szName] )
+			m_mapNodes[szName]->Invalidate();
 		m_mapNodes[szName] = pNode;
+	}
 	else
+	{
+		if( m_pRoot )
+			m_pRoot->Invalidate();
 		m_pRoot = pNode;
+	}
+}
+
+void CPrefab::ClearExtraNode()
+{
+	for( auto item : m_mapNodes )
+		item.second->Invalidate();
+	m_mapNodes.clear();
 }
 
 void CPrefab::Create()
@@ -2338,8 +2377,17 @@ void CPrefab::ExtractData( CBufFile& bufOut, function<void( CPrefabNode*, int8 )
 	GetFileContent( content, GetName(), false );
 	CBufReader bufIn( &content[0], content.size() );
 	m_pRoot->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
-	for( auto& item : m_mapNodes )
-		item.second->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
+	int32 nExtraNodes = 0;
+	if( bufIn.CheckedRead( nExtraNodes ) )
+		bufOut.Write( nExtraNodes );
+	VERIFY( nExtraNodes == m_mapNodes.size() );
+	for( int i = 0; i < nExtraNodes; i++ )
+	{
+		CString key( "" );
+		bufIn.Read( key );
+		bufOut.Write( key );
+		m_mapNodes[key]->ExtractData( bufIn, bufOut, funcNodeHandler, funcDataHandler );
+	}
 }
 
 int32 CPrefabNodeNameSpace::FindIDByNode( CPrefabNode * pNode )

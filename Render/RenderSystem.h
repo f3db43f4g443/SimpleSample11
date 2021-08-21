@@ -22,6 +22,7 @@ struct SViewport
 
 struct SDeviceCreateContext
 {
+	SDeviceCreateContext() : szWindowName( NULL ) {}
 	const wchar_t* szWindowName;
 	CVector2 resolution;
 };

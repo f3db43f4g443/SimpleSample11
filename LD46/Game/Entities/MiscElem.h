@@ -446,13 +446,16 @@ public:
 	virtual void OnUpdate1( CMyLevel* pLevel ) override;
 	virtual int32 Signal( int32 i ) override;
 	int32 GetCurFloor() { return m_nCurFloor; }
+	void ForceSetCurFloor( int32 i );
 private:
 	void OnCurFloorChanged();
+	void OnFloorInvalid();
 	int32 m_nRedirect;
 	int32 m_nFloorBegin, m_nFloorCount;
 	int32 m_nEftFrames;
 	CVector4 m_eftParam;
 	CVector4 m_invalidParam;
+	CString m_strScriptInvalid;
 
 	CRectangle m_origTexRect;
 	CVector4 m_param0;
@@ -537,6 +540,7 @@ private:
 	CString m_strStepScript;
 	CString m_strFinishedScript;
 	CString m_strFailedScript;
+	CString m_strBeforeFailScript;
 	CString m_strControlResetScript;
 	TResourceRef<CPrefab> m_pPrefab;
 	TResourceRef<CPrefab> m_pFailEffect;

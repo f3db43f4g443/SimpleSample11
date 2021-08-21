@@ -64,6 +64,7 @@ protected:
 template <>
 inline uint32 IBufReader::Read( string& t )
 {
+	t = "";
 	uint32 nPos = m_nCurPos;
 	const char* pBuffer = ( const char* )GetBuffer();
 	char cBuf;
@@ -165,6 +166,13 @@ inline void CBufFile::Write( const CString& t )
 }
 
 template <>
+inline void CBufFile::Write( const IBufReader& t )
+{
+	Write( t.GetBufLen() );
+	Write( t.GetBuffer(), t.GetBufLen() );
+}
+
+template <>
 inline void CBufFile::Write( const CBufFile& t )
 {
 	Write( t.GetBufLen() );
@@ -188,5 +196,12 @@ public:
 private:
 	const char* m_pBuf;
 };
+
+template <>
+inline void CBufFile::Write( const CBufReader& t )
+{
+	Write( t.GetBufLen() );
+	Write( t.GetBuffer(), t.GetBufLen() );
+}
 
 #define DEFINE_PACKAGE_EXTRA_BUFFER( t, buf ) CBufReader buf( (t) + 1, (t)->l - sizeof( *(t) ) + 2 );

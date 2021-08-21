@@ -19,6 +19,6 @@
   <template type="EditorRes/UI/button.xml" name="btn_tools" x="0" y="775" rectX="0" rectY="0" rectWidth="100" rectHeight="20" text="Tools..." >
   </template>
 
-  <template type="EditorRes/UI/panel.xml" name="tools" x="160" y="0" rectX="0" rectY="0" rectWidth="40" rectHeight="800" >
+  <template type="EditorRes/UI/panel.xml" name="tools" x="160" y="0" z="1" rectX="0" rectY="0" rectWidth="40" rectHeight="800" >
   </template>
 </root>

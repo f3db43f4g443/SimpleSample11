@@ -6,10 +6,9 @@ class CFileExplorer : public CFileView
 {
 public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CFileExplorer )
+	void AddTool( CUIElement* pElem );
 protected:
 	virtual void OnInited() override;
-
-	void AddTool( CUIElement* pElem );
 private:
 	void OnOpen();
 	void OnNew();
