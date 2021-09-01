@@ -1,6 +1,10 @@
 ﻿<root type="element" x="1000" y="0" >
   <template type="EditorRes/UI/button.xml" name="import" x="50" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import" >
   </template>
+  <template type="EditorRes/UI/button.xml" name="import1" x="130" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import1" >
+  </template>
+  <template type="EditorRes/UI/button.xml" name="import2" x="210" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import2" >
+  </template>
 
   <template type="EditorRes/UI/button.xml" name="layer_script" rectX="0" rectY="80" rectWidth="40" rectHeight="20" text="" >
   </template>

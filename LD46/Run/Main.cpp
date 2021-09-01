@@ -11,7 +11,10 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	SDeviceCreateContext context;
 	context.szWindowName = L"P0";
-	context.resolution = CVector2( 1152, 720 );
+	int nFullWidth = GetSystemMetrics( SM_CXSCREEN );
+	int nFullHeight = GetSystemMetrics( SM_CYSCREEN );
+	context.resolution = CVector2( nFullWidth, nFullHeight );
+	context.bFullWindow = true;
 	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->CreateDevice( context );
 

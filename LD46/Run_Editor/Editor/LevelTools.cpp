@@ -8,6 +8,7 @@
 #include "Common/FileUtil.h"
 #include "Common/xml.h"
 #include "Common/Utf8Util.h"
+#include "Editor/Editors/ObjectDataEdit.h"
 
 void CLevelTool::OnSetVisible( bool b )
 {
@@ -63,19 +64,29 @@ void CTileTool::OnDebugDraw( IRenderSystem* pRenderSystem, class CUIViewport* pV
 	TVector2<int32> p( floor( mousePos.x / LEVEL_GRID_SIZE_X ), floor( mousePos.y / LEVEL_GRID_SIZE_Y ) );
 	auto pObj = GetLevelData();
 	CVector2 ofs[4] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
+
 	{
 		CVector2 a( 0, 0 );
 		auto b = CVector2( pObj->m_nWidth, pObj->m_nHeight ) * LEVEL_GRID_SIZE;
+		if( m_nCurSelectedOpr == 3 )
+		{
+			auto r = pObj->GetMainAreaSize();
+			a = CVector2( r.x, r.y );
+			b = CVector2( r.width, r.height );
+		}
 		if( m_nDragType > 0 )
 		{
 			a = CVector2( m_newSize.x, m_newSize.y ) * LEVEL_GRID_SIZE;
 			b = CVector2( m_newSize.width, m_newSize.height ) * LEVEL_GRID_SIZE;
 		}
+		CVector4 color1( 0.25f, 0.25f, 0.25f, 0.25f );
+		if( m_nCurSelectedOpr == 3 )
+			color1 = CVector4( 0.2f, 0.3f, 0.4f, 0.25f );
 		for( int j = 0; j < 4; j++ )
 		{
 			auto pt1 = a + b * ofs[j];
 			auto pt2 = a + b * ofs[( j + 1 ) % 4];
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.25f, 0.25f, 0.25f, 0.25f ) );
+			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color1 );
 		}
 
 		{
@@ -147,18 +158,29 @@ bool CTileTool::OnViewportStartDrag( class CUIViewport* pViewport, const CVector
 		return false;
 	}
 
+	CVector2 a( 0, 0 );
 	auto b = CVector2( pObj->m_nWidth, pObj->m_nHeight ) * LEVEL_GRID_SIZE;
-	CRectangle r[4] = { { -32, b.y * 0.5f - 16, 32, 32 },
-	{ b.x * 0.5f - 16, -32, 32, 32 },
-	{ b.x, b.y * 0.5f - 16, 32, 32 },
-	{ b.x * 0.5f - 16, b.y, 32, 32 } };
+	if( m_nCurSelectedOpr == 3 )
+	{
+		auto r = pObj->GetMainAreaSize();
+		a = CVector2( r.x, r.y );
+		b = CVector2( r.GetRight(), r.GetBottom() );
+	}
+	CRectangle r[4] = { { a.x - 32, ( a.y + b.y ) * 0.5f - 16, 32, 32 },
+	{ ( a.x + b.x ) * 0.5f - 16, a.y - 32, 32, 32 },
+	{ b.x, ( a.y + b.y ) * 0.5f - 16, 32, 32 },
+	{ ( a.x + b.x ) * 0.5f - 16, b.y, 32, 32 } };
 	for( int i = 0; i < 4; i++ )
 	{
 		if( r[i].Contains( mousePos ) )
 		{
 			m_nDragType = i + 1;
 			m_dragPos = mousePos;
-			m_newSize = TRectangle<int32>( 0, 0, pObj->m_nWidth, pObj->m_nHeight );
+			a.x = floor( a.x / LEVEL_GRID_SIZE_X + 0.5f );
+			a.y = floor( a.y / LEVEL_GRID_SIZE_Y + 0.5f );
+			b.x = floor( b.x / LEVEL_GRID_SIZE_X + 0.5f );
+			b.y = floor( b.y / LEVEL_GRID_SIZE_Y + 0.5f );
+			m_newSize = TRectangle<int32>( a.x, a.y, b.x - a.x, b.y - a.y );
 			return true;
 		}
 	}
@@ -176,7 +198,19 @@ void CTileTool::OnViewportDragged( CUIViewport* pViewport, const CVector2& mouse
 		auto pObj = GetLevelData();
 		TVector2<int32> d( floor( ( mousePos.x - m_dragPos.x ) / LEVEL_GRID_SIZE_X + 0.5f ),
 			floor( ( mousePos.y - m_dragPos.y ) / LEVEL_GRID_SIZE_Y + 0.5f ) );
-		m_newSize = TRectangle<int32>( 0, 0, pObj->m_nWidth, pObj->m_nHeight );
+
+		if( m_nCurSelectedOpr == 3 )
+		{
+			auto r = pObj->GetMainAreaSize();
+
+			int32 x1 = floor( r.x / LEVEL_GRID_SIZE_X + 0.5f );
+			int32 y1 = floor( r.y / LEVEL_GRID_SIZE_Y + 0.5f );
+			int32 x2 = floor( r.GetRight() / LEVEL_GRID_SIZE_X + 0.5f );
+			int32 y2 = floor( r.GetBottom() / LEVEL_GRID_SIZE_Y + 0.5f );
+			m_newSize = TRectangle<int32>( x1, y1, x2 - x1, y2 - y1 );
+		}
+		else
+			m_newSize = TRectangle<int32>( 0, 0, pObj->m_nWidth, pObj->m_nHeight );
 		if( m_nDragType == 1 )
 			m_newSize.SetLeft( m_newSize.x + d.x );
 		else if( m_nDragType == 2 )
@@ -196,9 +230,23 @@ void CTileTool::OnViewportStopDrag( CUIViewport* pViewport, const CVector2& mous
 {
 	if( m_nDragType > 0 )
 	{
-		if( !!( ( m_newSize.x + m_newSize.y ) & 1 ) )
-			m_newSize.SetLeft( m_newSize.x - 1 );
-		GetView()->ResizeLevel( m_newSize );
+		if( m_nCurSelectedOpr == 3 )
+		{
+			auto pObj = GetLevelData();
+			if( m_newSize == TRectangle<int32>( 0, 0, pObj->m_nWidth, pObj->m_nHeight ) )
+				pObj->m_rectMainArea = CRectangle( 0, 0, 0, 0 );
+			else
+			{
+				pObj->m_rectMainArea = CRectangle( m_newSize.x * LEVEL_GRID_SIZE_X, m_newSize.y * LEVEL_GRID_SIZE_Y,
+					m_newSize.width * LEVEL_GRID_SIZE_X, m_newSize.height * LEVEL_GRID_SIZE_Y );
+			}
+		}
+		else
+		{
+			if( !!( ( m_newSize.x + m_newSize.y ) & 1 ) )
+				m_newSize.SetLeft( m_newSize.x - 1 );
+			GetView()->ResizeLevel( m_newSize );
+		}
 		m_nDragType = 0;
 	}
 }
@@ -222,6 +270,8 @@ void CTileTool::OnViewportKey( SUIKeyEvent* pEvent )
 	}
 	else if( n == 'E' )
 		m_nCurSelectedOpr = 2;
+	else if( n == 'R' )
+		m_nCurSelectedOpr = 3;
 	else if( n >= '0' && n <= '9' )
 	{
 		auto n1 = n - '0';
@@ -862,10 +912,18 @@ public:
 		m_onLayerScriptText.Set( this, &CLevelEnvTool::OnLayerScriptText );
 		m_pLayerScriptText->Register( eEvent_Action, &m_onLayerScriptText );
 
-		auto pImport = GetChildByName<CUIElement>( "import" );
 		m_onImport.Set( this, &CLevelEnvTool::OnImport );
+		m_onImport1.Set( this, &CLevelEnvTool::OnImport1 );
+		m_onImport2.Set( this, &CLevelEnvTool::OnImport2 );
 		m_onImportOK.Set( this, &CLevelEnvTool::OnImportOK );
+		auto pImport = GetChildByName<CUIElement>( "import" );
 		pImport->Register( eEvent_Action, &m_onImport );
+		auto pImport1 = GetChildByName<CUIElement>( "import1" );
+		pImport1->Register( eEvent_Action, &m_onImport1 );
+		auto pImport2 = GetChildByName<CUIElement>( "import2" );
+		pImport2->Register( eEvent_Action, &m_onImport2 );
+		m_pNodeView = GetChildByName<CUITreeView>( "node_view" );
+		m_onNodeObjDataChanged.Set( this, &CLevelEnvTool::OnCurNodeObjDataChanged );
 	}
 	virtual void OnSetVisible( bool bVisible ) override
 	{
@@ -905,6 +963,9 @@ public:
 		}
 		else
 		{
+			if( m_onNodeObjDataChanged.IsRegistered() )
+				m_onNodeObjDataChanged.Unregister();
+			m_pObjectData = NULL;
 			m_pEnvNode->OnEdit();
 			m_pEftPreviewNode->RemoveThis();
 			m_pEftPreviewNode = NULL;
@@ -921,14 +982,18 @@ public:
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportKey( SUIKeyEvent* pEvent );
 	void OnImport();
+	void OnImport1();
+	void OnImport2();
 	void OnImportOK( const char* szText );
 
 	void UpdateDrag( class CUIViewport* pViewport, const TVector2<int32>& p );
 private:
+	void RefreshMasks();
 	void SelectEnvNode( int32 n );
 	void OnLayerScript();
 	void OnLayerScriptEditOK( const wchar_t* sz );
 	void OnLayerScriptText();
+	void OnCurNodeObjDataChanged( int32 nAction );
 
 	int32 m_nCurSelectedValue;
 	vector<CReference<CPrefabNode> > m_vecEnvNodes;
@@ -937,14 +1002,20 @@ private:
 	CReference<CLevelEnvEffect> m_pEftPreviewNode;
 	CReference<CUIButton> m_pLayerScript;
 	CReference<CUITextBox> m_pLayerScriptText;
+	CReference<CUITreeView> m_pNodeView;
+	CReference<CObjectDataEditItem> m_pObjectData;
 	int8 m_nDragType;
 	CVector2 m_dragPos;
 	TRectangle<int32> m_newSize;
+	int8 m_nImportType;
 	TClassTrigger<CLevelEnvTool> m_onImport;
+	TClassTrigger<CLevelEnvTool> m_onImport1;
+	TClassTrigger<CLevelEnvTool> m_onImport2;
 	TClassTrigger1<CLevelEnvTool, const char*> m_onImportOK;
 	TClassTrigger<CLevelEnvTool> m_onLayerScript;
 	TClassTrigger1<CLevelEnvTool, const wchar_t*> m_onLayerScriptEditOK;
 	TClassTrigger<CLevelEnvTool> m_onLayerScriptText;
+	TClassTrigger1<CLevelEnvTool, int32> m_onNodeObjDataChanged;
 };
 
 void CLevelEnvTool::OnDebugDraw( IRenderSystem* pRenderSystem, CUIViewport* pViewport )
@@ -1133,6 +1204,12 @@ void CLevelEnvTool::OnViewportKey( SUIKeyEvent* pEvent )
 		if( n1 > GetData()->m_arrEnvDescs.Size() )
 			return;
 		m_nCurSelectedValue = n1;
+		return;
+	}
+	if( n == 'B' )
+	{
+		GetView()->ToggleBattleEffect();
+		return;
 	}
 
 	if( pEvent->nChar == 'P' )
@@ -1172,6 +1249,19 @@ void CLevelEnvTool::OnViewportKey( SUIKeyEvent* pEvent )
 
 void CLevelEnvTool::OnImport()
 {
+	m_nImportType = 0;
+	CFileSelectDialog::Inst()->Show( "pf", &m_onImportOK );
+}
+
+void CLevelEnvTool::OnImport1()
+{
+	m_nImportType = 1;
+	CFileSelectDialog::Inst()->Show( "pf", &m_onImportOK );
+}
+
+void CLevelEnvTool::OnImport2()
+{
+	m_nImportType = 2;
 	CFileSelectDialog::Inst()->Show( "pf", &m_onImportOK );
 }
 
@@ -1192,16 +1282,30 @@ void CLevelEnvTool::OnImportOK( const char* szText )
 			m_pEnvNode->SetResource( pEnvNode1->GetResource() );
 			auto pObj = (CLevelEnvEffect*)pEnvNode1->GetObjData();
 			auto pData = GetData();
-			pData->m_nWidth = Max<int32>( 1, floor( pData->m_nWidth * pData->m_gridSize.x / pObj->m_gridSize.x + 0.5f ) );
-			pData->m_nHeight = Max<int32>( 1, floor( pData->m_nHeight * pData->m_gridSize.y / pObj->m_gridSize.y + 0.5f ) );
-			pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
-			pData->m_gridSize = pObj->m_gridSize;
-			pData->m_arrEnvDescs = pObj->m_arrEnvDescs;
-			pData->m_fScenarioFade = pObj->m_fScenarioFade;
-			for( int i = 0; i < pData->m_arrEnvMap.Size(); i++ )
+
+			if( m_nImportType == 0 || m_nImportType == 1 )
 			{
-				if( pData->m_arrEnvMap[i] > pData->m_arrEnvDescs.Size() )
-					pData->m_arrEnvMap[i] = 0;
+				pData->m_nWidth = Max<int32>( 1, floor( pData->m_nWidth * pData->m_gridSize.x / pObj->m_gridSize.x + 0.5f ) );
+				pData->m_nHeight = Max<int32>( 1, floor( pData->m_nHeight * pData->m_gridSize.y / pObj->m_gridSize.y + 0.5f ) );
+				pData->m_arrEnvMap.Resize( pData->m_nWidth * pData->m_nHeight );
+				pData->m_gridSize = pObj->m_gridSize;
+				pData->m_arrEnvDescs = pObj->m_arrEnvDescs;
+				pData->m_fScenarioFade = pObj->m_fScenarioFade;
+				for( int i = 0; i < pData->m_arrEnvMap.Size(); i++ )
+				{
+					if( pData->m_arrEnvMap[i] > pData->m_arrEnvDescs.Size() )
+						pData->m_arrEnvMap[i] = 0;
+				}
+			}
+			if( m_nImportType == 0 || m_nImportType == 2 )
+			{
+				pData->m_gamma = pObj->m_gamma;
+				for( int i = 0; i < ELEM_COUNT( pData->m_colorTranspose ); i++ )
+					pData->m_colorTranspose[i] = pObj->m_colorTranspose[i];
+				pData->m_bOverrideBackColor = pObj->m_bOverrideBackColor;
+				pData->m_bCustomBattleEffectBackColor = pObj->m_bCustomBattleEffectBackColor;
+				pData->m_backColor = pObj->m_backColor;
+				pData->m_battleEffectBackColor = pObj->m_battleEffectBackColor;
 			}
 
 			m_pEftPreviewNode->RemoveThis();
@@ -1209,6 +1313,8 @@ void CLevelEnvTool::OnImportOK( const char* szText )
 			m_pEftPreviewNode = SafeCast<CLevelEnvEffect>( m_pEnvNode->CreateInstance( false ) );
 			m_pEnvNode->AddChild( m_pEftPreviewNode );
 			m_pEftPreviewNode->Init();
+			RefreshMasks();
+			m_pObjectData->RefreshData();
 		}
 	}
 }
@@ -1225,6 +1331,28 @@ void CLevelEnvTool::UpdateDrag( CUIViewport* pViewport, const TVector2<int32>& p
 	grid = m_nCurSelectedValue;
 	m_pEftPreviewNode->m_arrEnvMap[p.x + p.y * pEnvData->m_nWidth] = m_nCurSelectedValue;
 	m_pEftPreviewNode->Init();
+}
+
+void CLevelEnvTool::RefreshMasks()
+{
+	auto pEnvData = GetData();
+	CVector4 backColor( 0.08f, 0.08f, 0.08f, 0.5f );
+	if( pEnvData->IsOverrideBackColor() )
+	{
+		backColor.x = pEnvData->GetBackColor().x;
+		backColor.y = pEnvData->GetBackColor().y;
+		backColor.z = pEnvData->GetBackColor().z;
+	}
+	if( pEnvData->m_bCustomBattleEffectBackColor )
+		GetView()->SetMaskParams( backColor, pEnvData->m_battleEffectBackColor );
+	else
+		GetView()->SetMaskParams( backColor );
+
+	auto pParams = GetView()->GetColorAdjustParams();
+	
+	pParams[0] = CVector4( 1 + pEnvData->m_colorTranspose[0].x, pEnvData->m_colorTranspose[0].y, pEnvData->m_colorTranspose[0].z, pow( 2, -pEnvData->m_gamma.x ) );
+	pParams[1] = CVector4( pEnvData->m_colorTranspose[1].x, 1 + pEnvData->m_colorTranspose[1].y, pEnvData->m_colorTranspose[1].z, pow( 2, -pEnvData->m_gamma.y ) );
+	pParams[2] = CVector4( pEnvData->m_colorTranspose[2].x, pEnvData->m_colorTranspose[2].y, 1 + pEnvData->m_colorTranspose[2].z, pow( 2, -pEnvData->m_gamma.z ) );
 }
 
 void CLevelEnvTool::SelectEnvNode( int32 n )
@@ -1252,6 +1380,13 @@ void CLevelEnvTool::SelectEnvNode( int32 n )
 
 	m_pLayerScript->SetText( m_pEnvNode->GetName() );
 	m_pLayerScriptText->SetText( pData->GetCondition() );
+
+	if( m_onNodeObjDataChanged.IsRegistered() )
+		m_onNodeObjDataChanged.Unregister();
+	m_pObjectData = CObjectDataEditMgr::Inst().Create( m_pNodeView, NULL, (uint8*)pData, m_pEnvNode->GetClassData() );
+	if( m_pObjectData )
+		m_pObjectData->Register( &m_onNodeObjDataChanged );
+	RefreshMasks();
 }
 
 void CLevelEnvTool::OnLayerScript()
@@ -1278,6 +1413,19 @@ void CLevelEnvTool::OnLayerScriptText()
 		return;
 	static_cast<CLevelEnvEffect*>( m_pEnvNode->GetFinalObjData() )->m_strCondition = UnicodeToUtf8( m_pLayerScriptText->GetText() ).c_str();
 	m_pEnvNode->OnEdit();
+}
+
+void CLevelEnvTool::OnCurNodeObjDataChanged( int32 nAction )
+{
+	if( nAction != 1 )
+		return;
+
+	m_pEftPreviewNode->RemoveThis();
+	m_pEnvNode->OnEdit();
+	m_pEftPreviewNode = SafeCast<CLevelEnvEffect>( m_pEnvNode->CreateInstance( false ) );
+	m_pEnvNode->AddChild( m_pEftPreviewNode );
+	m_pEftPreviewNode->Init();
+	RefreshMasks();
 }
 
 void CLevelToolsView::OnInited()
@@ -1322,6 +1470,9 @@ void CLevelToolsView::OnInited()
 	m_vecTools.push_back( pLevelEnvTool );
 
 	static CDefaultDrawable2D* pDrawable = NULL;
+	static CDefaultDrawable2D* pDrawable1 = NULL;
+	static CDefaultDrawable2D* pDrawable2 = NULL;
+	static CDefaultDrawable2D* pDrawable3 = NULL;
 	if( !pDrawable )
 	{
 		vector<char> content;
@@ -1329,10 +1480,29 @@ void CLevelToolsView::OnInited()
 		TiXmlDocument doc;
 		doc.LoadFromBuffer( &content[0] );
 		pDrawable = new CDefaultDrawable2D;
-		pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "color_pass" ) );
+		pDrawable->LoadXml( doc.RootElement()->FirstChildElement( "back" ) );
+		pDrawable1 = new CDefaultDrawable2D;
+		pDrawable1->LoadXml( doc.RootElement()->FirstChildElement( "mask" ) );
+		pDrawable2 = new CDefaultDrawable2D;
+		pDrawable2->LoadXml( doc.RootElement()->FirstChildElement( "battle_effect" ) );
+		pDrawable3 = new CDefaultDrawable2D;
+		pDrawable3->LoadXml( doc.RootElement()->FirstChildElement( "color_adjust" ) );
 	}
-	m_pMask = new CImage2D( pDrawable, NULL, CRectangle( -2048, -2048, 4096, 4096 ), CRectangle( 0, 0, 1, 1 ) );
+	m_pBackColor = new CImage2D( pDrawable, NULL, CRectangle( -2048, -2048, 4096, 4096 ), CRectangle( 0, 0, 1, 1 ) );
+	m_pViewport->GetRoot()->AddChild( m_pBackColor );
+	m_pMask = new CImage2D( pDrawable1, NULL, CRectangle( -2048, -2048, 4096, 4096 ), CRectangle( 0, 0, 1, 1 ) );
 	m_pViewport->GetRoot()->AddChild( m_pMask );
+	m_pBattleEffect = new CImage2D( pDrawable2, NULL, CRectangle( -2048, -2048, 4096, 4096 ), CRectangle( 0, 0, 1, 1 ) );
+	m_pViewport->GetRoot()->AddChild( m_pBattleEffect );
+	m_pColorAdjust = new CImage2D( pDrawable3, NULL, CRectangle( -2048, -2048, 4096, 4096 ), CRectangle( 0, 0, 1, 1 ) );
+	m_pViewport->GetRoot()->AddChild( m_pColorAdjust );
+	m_pColorAdjust->SetZOrder( 1 );
+	static_cast<CImage2D*>( m_pBackColor.GetPtr() )->SetParam( 1, NULL, 0, 1, 0, 0, 0, 0 );
+	static_cast<CImage2D*>( m_pMask.GetPtr() )->SetParam( 2, NULL, 0, 2, 0, 0, 0, 0 );
+	static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->SetParam( 2, NULL, 0, 2, 0, 0, 0, 0 );
+	static_cast<CImage2D*>( m_pColorAdjust.GetPtr() )->SetParam( 3, NULL, 0, 3, 0, 0, 0, 0 );
+	m_pBattleEffect->bVisible = false;
+	ResetMasks();
 
 	SetVisible( false );
 }
@@ -1375,6 +1545,13 @@ void CLevelToolsView::Set( CPrefabNode* p, function<void()> FuncOK, SLevelData* 
 	m_pLevelNode->AddChildAfter( m_pTileRoot, p1 );
 	m_vecTiles.resize( pObj->m_nWidth * pObj->m_nHeight );
 	RefreshAllTiles();
+
+	CRectangle lvRect = pObj->GetMainAreaSize();
+	lvRect.SetSize( lvRect.GetSize() + CVector2( 64, 64 ) );
+	static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->SetRect( lvRect );
+	m_pBattleEffect->SetBoundDirty();
+
+	ResetMasks();
 	m_nCurTool = 0;
 	m_vecTools[m_nCurTool]->SetVisible( true );
 	m_FuncOK = FuncOK;
@@ -1485,6 +1662,7 @@ void CLevelToolsView::OnViewportKey( SUIKeyEvent* pEvent )
 		{
 			GetCurTool()->SetVisible( false );
 			m_bToolDrag = false;
+			ResetMasks();
 			m_nCurTool = nTool;
 			GetCurTool()->SetVisible( true );
 		}
@@ -1528,6 +1706,24 @@ void CLevelToolsView::OnOK()
 	m_pTileRoot = NULL;
 	GetMgr()->EndModal();
 	m_FuncOK();
+}
+
+CVector4* CLevelToolsView::GetColorAdjustParams()
+{
+	return static_cast<CImage2D*>( m_pColorAdjust.GetPtr() )->GetParam();
+}
+
+void CLevelToolsView::SetMaskParams( const CVector4& backColor, const CVector3& battleEffectColor )
+{
+	static_cast<CImage2D*>( m_pBackColor.GetPtr() )->GetParam()[0] = backColor;
+	static_cast<CImage2D*>( m_pMask.GetPtr() )->GetParam()[0] = CVector4( backColor.w, backColor.w, backColor.w, 0 );
+	static_cast<CImage2D*>( m_pMask.GetPtr() )->GetParam()[1] = backColor * CVector4( 1 - backColor.w, 1 - backColor.w, 1 - backColor.w, 0 );
+
+	auto pParams = static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->GetParam();
+	CVector4 color1( battleEffectColor.x, battleEffectColor.y, battleEffectColor.z, 0 );
+	pParams[0] = color1;
+	pParams[1] = color1 * backColor * -1;
+	pParams[1].w = 16;
 }
 
 void CLevelToolsView::ResizeLevel( const TRectangle<int32>& newSize )
@@ -1666,6 +1862,16 @@ void CLevelToolsView::RefreshAllTiles()
 			RefreshTile( x, y );
 		}
 	}
+}
+
+void CLevelToolsView::ResetMasks()
+{
+	SetMaskParams( CVector4( 0.08f, 0.08f, 0.08f, 0.5f ) );
+	auto pParams = GetColorAdjustParams();
+	pParams[0] = CVector4( 1, 0, 0, 1 );
+	pParams[1] = CVector4( 0, 1, 0, 1 );
+	pParams[2] = CVector4( 0, 0, 1, 1 );
+	m_pBattleEffect->bVisible = false;
 }
 
 CPrefab* CLevelToolsView::NewLevelFromTemplate( CPrefab* pTemplate, const char* szFileName, int32 nWidth, int32 nHeight )

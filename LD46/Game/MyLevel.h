@@ -116,7 +116,21 @@ public:
 	void ScenarioFade( bool b ) { m_bScenarioFade = b; }
 	const char* GetCondition() const { return m_strCondition; }
 	void CopyState( CLevelEnvEffect* p1 ) { m_fFade = p1->m_fFade; m_bScenarioFade = p1->m_bScenarioFade; }
+
+	float GetScenarioFade() { return m_fScenarioFade; }
+	CVector3 GetGamma() { return m_gamma; }
+	CVector3 GetColorTranspose( int32 n ) { return m_colorTranspose[n]; }
+	bool IsOverrideBackColor() { return m_bOverrideBackColor; }
+	bool IsCustomBattleEffectBackColor() { return m_bCustomBattleEffectBackColor; }
+	CVector3 GetBackColor() { return m_backColor; }
+	CVector3 GetBattleEffectBackColor() { return m_battleEffectBackColor; }
 private:
+	CVector3 m_gamma;
+	CVector3 m_colorTranspose[3];
+	bool m_bOverrideBackColor;
+	bool m_bCustomBattleEffectBackColor;
+	CVector3 m_backColor;
+	CVector3 m_battleEffectBackColor;
 	TArray<SLevelEnvDesc> m_arrEnvDescs;
 	TArray<int8> m_arrEnvMap;
 	int32 m_nWidth, m_nHeight;
@@ -266,6 +280,7 @@ public:
 	const SLevelGridData* GetGridData( const TVector2<int32>& p ) const { return p.x >= 0 && p.y >= 0 && p.x < m_nWidth && p.y < m_nHeight ?
 		&m_arrGridData[p.x + p.y * m_nWidth] : NULL; }
 	int32 CheckGrid( int32 x, int32 y, CPawn* pPawn, int8 nForceCheckType );
+	CRectangle GetMainAreaSize() const;
 	const char* GetRegionName() { return m_strRegion; }
 	const CVector2& GetCamPos() { return m_camPos; }
 	CPlayer* GetPlayer() { return m_pPlayer; }
@@ -374,6 +389,7 @@ private:
 	void UpdateActionPreviewFunc();
 	int32 m_nWidth, m_nHeight;
 	int32 m_nDepth;
+	CRectangle m_rectMainArea;
 	CString m_strRegion;
 	CReference<CEntity> m_pPawnRoot;
 	CVector2 m_camPos;
@@ -738,6 +754,9 @@ public:
 	void OnPlayerDamaged();
 	void Update();
 private:
+	int32 CalcSnapShotMaskParam( CVector4* pParams );
+	void UpdateBackground();
+	void UpdateColorAdjust( bool bJump = false );
 	void CheckBGM();
 	void UpdateBGM();
 	const char* GetCurBGM();
@@ -771,12 +790,13 @@ private:
 	};
 
 	CReference<CMainUI> m_pMainUI;
-	CReference<CRenderObject2D> m_pLevelFadeMask;
+	CReference<CRenderObject2D> m_pBackMask;
+	CReference<CEntity> m_pLevelFadeMask;
 	CReference<CEntity> m_pSnapShotRoot;
-	CReference<CRenderObject2D> m_pSnapShotMask;
 	CReference<CRenderObject2D> m_pBattleEffect;
 	CReference<CEntity> m_pMenu;
 	CReference<CEntity> m_pMenuItem[5];
+	CReference<CRenderObject2D> m_pColorAdjust;
 	CReference<CRenderObject2D> m_pMenuSelected;
 	CReference<CEntity> m_pWorldMap;
 	CReference<CEntity> m_pActionPreview;
@@ -799,6 +819,7 @@ private:
 	int32 m_nPlayerDamageFrame;
 	map<string, CReference<CMyLevel> > m_mapSnapShot;
 	set<string> m_setShowingSnapShot;
+	vector<CReference<CRenderObject2D> > m_vecBackScenarioMask;
 
 	CReference<CEntity> m_pInteractionUI;
 	CReference<CPawn> m_pInteractionUIPawn;
@@ -806,6 +827,24 @@ private:
 	bool m_bInteractionUIInit;
 	int32 m_nBlackOutFrame1, m_nBlackOutFrame2;
 	CReference<CEntity> m_pInterferenceStripEffect;
+	CVector4 m_backParam[2];
+	struct SColorAdjust
+	{
+		CVector3 gamma;
+		CVector3 colorTranspose[3];
+		bool IsZero()
+		{
+			if( gamma.x != 0 || gamma.y != 0 || gamma.z != 0 )
+				return false;
+			for( int i = 0; i < 3; i++ )
+			{
+				if( colorTranspose[i].x != 0 || colorTranspose[i].y != 0 || colorTranspose[i].z != 0 )
+					return false;
+			}
+			return true;
+		}
+	};
+	SColorAdjust m_curColorAdjust;
 
 	class ICoroutine* m_pTransferCoroutine;
 	CReference<CPrefab> m_pTransferTo;

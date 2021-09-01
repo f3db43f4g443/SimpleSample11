@@ -32,6 +32,7 @@ void CFileExplorer::OnInited()
 	m_pNewFileType = CDropDownBox::Create( &vecFileTypeItems[0], vecFileTypeItems.size() );
 	m_pNewFileType->Replace( GetChildByName( "new_filetype" ) );
 	m_pToolsPanel = GetChildByName<CUIElement>( "tools" );
+	m_pToolsPanel->bVisible = false;
 
 	m_onNew.Set( this, &CFileExplorer::OnNew );
 	m_onOpen.Set( this, &CFileExplorer::OnOpen );

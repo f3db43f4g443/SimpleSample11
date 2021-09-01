@@ -2313,51 +2313,70 @@ void CTutorialFollowing::UpdateStep()
 	m_pProjector->SetTarget( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
 	int32 nShowStep = m_nCurStep;
 	int32 i;
-	for( i = 0; i < m_nMaxShowStepCount; i++ )
+	int32 iImg = 0;
+	int32 nTotalShowStepCount = 0;
+	for( int iStep = 0; iStep < 2; iStep++ )
 	{
-		auto c = m_str[nShowStep];
-		if( c == 0 )
-			break;
-		switch( c )
+		for( i = 0; i < m_nMaxShowStepCount; i++ )
 		{
-		case '6':
-			p = TVector2<int32>( 2, 0 ) + p;
-			break;
-		case '4':
-			p = TVector2<int32>( -2, 0 ) + p;
-			break;
-		case '9':
-			p = TVector2<int32>( 1, 1 ) + p;
-			break;
-		case '7':
-			p = TVector2<int32>( -1, 1 ) + p;
-			break;
-		case '3':
-			p = TVector2<int32>( 1, -1 ) + p;
-			break;
-		case '1':
-			p = TVector2<int32>( -1, -1 ) + p;
-		default:
-			break;
+			auto c = m_str[nShowStep];
+			if( c == 0 )
+				break;
+			switch( c )
+			{
+			case '6':
+				p = TVector2<int32>( 2, 0 ) + p;
+				break;
+			case '4':
+				p = TVector2<int32>( -2, 0 ) + p;
+				break;
+			case '9':
+				p = TVector2<int32>( 1, 1 ) + p;
+				break;
+			case '7':
+				p = TVector2<int32>( -1, 1 ) + p;
+				break;
+			case '3':
+				p = TVector2<int32>( 1, -1 ) + p;
+				break;
+			case '1':
+				p = TVector2<int32>( -1, -1 ) + p;
+			default:
+				break;
+			}
+			if( iStep == 1 )
+			{
+				for( int k = ( i == 0 ? -1 : i ); k < nTotalShowStepCount; k++ )
+				{
+					if( iImg >= m_vecImgs.size() )
+						m_vecImgs.push_back( CreateImg() );
+					m_vecImgs[iImg]->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
+					m_vecImgs[iImg]->bVisible = true;
+					iImg++;
+				}
+			}
+			nShowStep++;
+			if( m_str[nShowStep] == ' ' )
+			{
+				i++;
+				break;
+			}
 		}
-		if( i >= m_vecImgs.size() )
-			m_vecImgs.push_back( CreateImg() );
-		m_vecImgs[i]->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
-		m_vecImgs[i]->bVisible = true;
-		nShowStep++;
-		if( m_str[nShowStep] == ' ' )
+		if( iStep == 0 )
 		{
-			i++;
-			break;
+			nTotalShowStepCount = nShowStep - m_nCurStep;
+			nShowStep = m_nCurStep;
+			p = m_curPos;
 		}
 	}
+
 	if( i == 0 )
 	{
 		m_nState = 2;
 		m_nEndTick = 20;
 	}
-	for( ; i < m_vecImgs.size(); i++ )
-		m_vecImgs[i]->bVisible = false;
+	for( ; iImg < m_vecImgs.size(); iImg++ )
+		m_vecImgs[iImg]->bVisible = false;
 }
 
 CRenderObject2D* CTutorialFollowing::CreateImg()

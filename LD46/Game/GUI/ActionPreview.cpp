@@ -307,6 +307,7 @@ void CActionPreview::UpdateTime()
 			if( i == 0 )
 			{
 				r.height -= 2;
+				r.SetTop( m_timeImgOrigRect.y );
 				if( r.height == 0 )
 				{
 					item.pText->SetParentEntity( NULL );

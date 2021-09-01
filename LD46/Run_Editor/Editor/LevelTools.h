@@ -45,10 +45,15 @@ public:
 	void OnOK();
 	CLevelTool* GetCurTool() { return m_vecTools[m_nCurTool]; }
 	SLevelData* GetCurWorldLevelData() { return m_pLevelData; }
+	CVector4* GetColorAdjustParams();
+	void SetMaskParams( const CVector4& backColor ) { SetMaskParams( backColor, CVector3( 1.4f, -0.3f, -0.4f ) ); }
+	void SetMaskParams( const CVector4& backColor, const CVector3& battleEffectColor );
+	void ToggleBattleEffect() { m_pBattleEffect->bVisible = !m_pBattleEffect->bVisible; }
 
 	void ResizeLevel( const TRectangle<int32>& newSize );
 	void RefreshTile( int32 x, int32 y );
 	void RefreshAllTiles();
+	void ResetMasks();
 
 	static CPrefab* NewLevelFromTemplate( CPrefab* pTemplate, const char* szFileName, int32 nWidth, int32 nHeight );
 	static CRenderObject2D* CreateLevelSimplePreview( CPrefabNode* pNode );
@@ -56,7 +61,10 @@ public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CLevelToolsView )
 private:
 	CUIViewport* m_pViewport;
+	CReference<CRenderObject2D> m_pBackColor;
 	CReference<CRenderObject2D> m_pMask;
+	CReference<CRenderObject2D> m_pBattleEffect;
+	CReference<CRenderObject2D> m_pColorAdjust;
 
 	TClassTrigger1<CLevelToolsView, SUIMouseEvent*> m_onViewportStartDrag;
 	TClassTrigger1<CLevelToolsView, SUIMouseEvent*> m_onViewportDragged;

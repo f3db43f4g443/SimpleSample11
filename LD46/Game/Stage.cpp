@@ -65,6 +65,16 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 	m_enterContext = context;
 	if( m_enterContext.pViewport )
 		m_enterContext.pViewport->Set( m_pEntityRoot, &m_camera, m_bLight );
+	auto viewSize = m_camera.GetViewArea().GetSize();
+	float fBaseCamHeight = 672;
+	float fScale[] = { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f };
+	int32 iScale;
+	for( iScale = ELEM_COUNT( fScale ) - 1; iScale > 0; iScale-- )
+	{
+		if( fBaseCamHeight * fScale[iScale] <= viewSize.y )
+			break;
+	}
+	m_camera.SetSize( viewSize.x / fScale[iScale], viewSize.y / fScale[iScale] );
 
 	m_bStarted = true;
 

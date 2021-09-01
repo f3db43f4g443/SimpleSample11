@@ -227,10 +227,10 @@ void CLevelStealthLayer::Update( CMyLevel* pLevel )
 	auto& detectHiddenData = globalData.vecStealthDetectHiddenParams[m_nTick % globalData.vecStealthDetectHiddenParams.size()];
 
 	m_elems.resize( 0 );
-	auto levelSize = pLevel->GetSize();
-	float y0 = -128.0f;
-	float y1 = levelSize.y * LEVEL_GRID_SIZE_Y + 128.0f;
-	CRectangle r0( -2048, y0, levelSize.x * LEVEL_GRID_SIZE_X + 4096, y1 - y0 );
+	auto levelMainArea = pLevel->GetMainAreaSize();
+	float y0 = levelMainArea.y - 128.0f;
+	float y1 = levelMainArea.GetBottom() + 128.0f;
+	CRectangle r0( levelMainArea.x - 2048, y0, levelMainArea.GetRight() + 4096, y1 - y0 );
 	m_localBound = r0;
 	SetBoundDirty();
 	int32 yStep = 8;
@@ -258,6 +258,7 @@ void CLevelStealthLayer::Update( CMyLevel* pLevel )
 	auto hidden2 = pPlayer->IsToHidden() ? pPlayer->GetMoveTo() : TVector2<int32>( -1, -1 );
 	int32 n = 0;
 
+	auto levelSize = pLevel->GetSize();
 	for( int j = 0; j < levelSize.y; j++ )
 	{
 		for( int i = 0; i < levelSize.x; i++ )
@@ -417,7 +418,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 		auto& nextLevelParamMax = k ? globalData.NextLevelParamMax : globalData.NextLevelBlockedParamMax;
 		for( int i = 0; i < nNextLevelParamCount[k]; i++ )
 		{
-			float t = SRand::Inst().Rand( 0.0f, 1.0f );
+			float t = ( m_nTick % 16 ) / 15.0f;
 			m_vecNxtStageParam[k][i * 2] = nextLevelParamMin.params[0] + ( nextLevelParamMax.params[0] - nextLevelParamMin.params[0] ) * t;
 			m_vecNxtStageParam[k][i * 2 + 1] = nextLevelParamMin.params[1] + ( nextLevelParamMax.params[1] - nextLevelParamMin.params[1] ) * t;
 			m_vecNxtStageOfs[k][i] = nextLevelParamMin.ofs + ( nextLevelParamMax.ofs - nextLevelParamMin.ofs ) * t;
@@ -932,6 +933,13 @@ int32 CMyLevel::CheckGrid( int32 x, int32 y, CPawn* pPawn, int8 nForceCheckType 
 	return n;
 }
 
+CRectangle CMyLevel::GetMainAreaSize() const
+{
+	if( m_rectMainArea.width > 0 && m_rectMainArea.height > 0 )
+		return m_rectMainArea;
+	return CRectangle( 0, 0, m_nWidth * LEVEL_GRID_SIZE_X, m_nHeight * LEVEL_GRID_SIZE_Y );
+}
+
 CMasterLevel* CMyLevel::GetMasterLevel()
 {
 	if( IsSnapShot() )
@@ -948,10 +956,11 @@ void CMyLevel::SetEnvEffect( const char * sz )
 	{
 		if( p && GetMasterLevel() )
 		{
+			p->SetParentEntity( this );
 			if( m_pEnvEffect )
-				p->SetParentBeforeEntity( m_pEnvEffect );
+				p->SetRenderParentBefore( m_pEnvEffect );
 			else
-				p->SetParentBeforeEntity( GetMasterLevel()->GetMainUI() );
+				p->SetRenderParentBefore( GetMasterLevel()->GetMainUI() );
 		}
 		if( m_pEnvEffect )
 			m_pEnvEffect->SetParentEntity( NULL );
@@ -3742,7 +3751,6 @@ void CMainUI::Update()
 {
 	UpdatePos();
 	UpdateIcons();
-	UpdateEffect();
 	UpdateInputItem( 0 );
 
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
@@ -3788,7 +3796,7 @@ void CMainUI::UpdateEffect()
 	{
 		if( !m_bScenario && m_nPlayerActionFrame )
 		{
-			Effect0();
+			//Effect0();
 		}
 		if( pCurLevel && pCurLevel->IsFailed() )
 		{
@@ -3880,9 +3888,9 @@ void CMainUI::UpdatePos()
 		auto pLevel = GetStage()->GetMasterLevel()->GetCurLevel();
 		if( pLevel )
 		{
-			auto levelSize = pLevel->GetSize();
+			auto levelSize = pLevel->GetMainAreaSize();
 			auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
-			CRectangle rect0( -camSize.x * 0.5f + 144, pLevel->y - y - 64, camSize.x - 288, levelSize.y * LEVEL_GRID_SIZE_Y + 128 );
+			CRectangle rect0( -camSize.x * 0.5f + 144, levelSize.y + pLevel->y - y - 64, camSize.x - 288, levelSize.GetBottom() + 128 );
 			m_pScenarioText[0]->SetPosition( CVector2( rect0.x, rect0.y ) );
 			m_pScenarioText[1]->SetPosition( CVector2( rect0.GetRight(), rect0.GetBottom()
 				- SafeCast<CTypeText>( m_pScenarioText[1].GetPtr() )->GetInitTextBound().height ) );
@@ -3899,7 +3907,7 @@ void CMainUI::UpdateInputItem( int32 nItem )
 	if( nItem == 0 )
 	{
 		auto pPlayer = GetStage()->GetWorld()->GetPlayer();
-		if( pPlayer && pPlayer->GetStage() )
+		if( pPlayer && pPlayer->GetLevel() )
 			p0.x = pPlayer->GetMoveTo().x * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - x;
 	}
 	auto viewArea = GetStage()->GetCamera().GetViewArea();
@@ -4128,9 +4136,9 @@ void CMainUI::Effect0()
 void CMainUI::Effect1()
 {
 	auto pLevel = GetStage()->GetMasterLevel()->GetCurLevel();
-	auto levelSize = pLevel->GetSize();
+	auto levelSize = pLevel->GetMainAreaSize();
 	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
-	CRectangle rect0( -camSize.x * 0.5f, pLevel->y - y - 64, camSize.x, levelSize.y * LEVEL_GRID_SIZE_Y + 128 );
+	CRectangle rect0( -camSize.x * 0.5f, levelSize.y + pLevel->y - y - 64, camSize.x, levelSize.GetBottom() + 128 );
 	auto nSize0 = m_vecPlayerActionElems.size();
 	m_vecPlayerActionElems.resize( nSize0 + 1 );
 	m_vecPlayerActionElems.back().rect = rect0;
@@ -5179,7 +5187,7 @@ void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVect
 		m_pCurLevelPrefab = pLevelPrefab;
 		m_worldData.OnEnterLevel( pLevelPrefab->GetName(), m_pPlayer, playerPos, nPlayerDir, NULL, false );
 		m_pCurLevel = pLevel;
-		pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
+		pLevel->SetParentBeforeEntity( m_pBattleEffect );
 		pLevel->Init();
 		if( pLevel->GetEnvEffect() )
 			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
@@ -5192,7 +5200,7 @@ void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVect
 		auto pCutScene = SafeCast<CCutScene>( p );
 		ASSERT( pCutScene );
 		m_pCurCutScene = pCutScene;
-		pCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
+		pCutScene->SetParentBeforeEntity( m_pBattleEffect );
 		pCutScene->Begin();
 	}
 }
@@ -5271,7 +5279,7 @@ void CMasterLevel::JumpBack( int8 nType )
 		m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_worldData.curFrame.strCurLevel.c_str() );
 	auto pLevel = SafeCast<CMyLevel>( m_pCurLevelPrefab->GetRoot()->CreateInstance() );
 	m_pCurLevel = pLevel;
-	pLevel->SetParentBeforeEntity( m_pLevelFadeMask );
+	pLevel->SetParentBeforeEntity( m_pBattleEffect );
 	pLevel->Init();
 	if( pLevel->GetEnvEffect() )
 		pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
@@ -5279,6 +5287,7 @@ void CMasterLevel::JumpBack( int8 nType )
 	for( CPawn* pPawn : vecPawns )
 		pLevel->AddPawn( pPawn, pPawn->m_pos, pPawn->m_nCurDir );
 	BeginCurLevel();
+	UpdateColorAdjust( true );
 }
 
 SWorldDataFrame::SLevelData& CMasterLevel::GetCurLevelData()
@@ -5725,8 +5734,7 @@ void CMasterLevel::InterferenceStripEffect( int8 nType, float fSpeed )
 	{
 		m_pInterferenceStripEffect->SetParentEntity( NULL );
 		m_pInterferenceStripEffect = NULL;
-		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-		pParams[1] = CVector4( 0, 0, 0, 0 );
+		CalcSnapShotMaskParam( m_backParam );
 	}
 	if( nType )
 	{
@@ -5735,13 +5743,9 @@ void CMasterLevel::InterferenceStripEffect( int8 nType, float fSpeed )
 		pEft->SetParentBeforeEntity( GetCurLevel()->m_pPawnRoot );
 
 		auto view = GetStage()->GetCamera().GetViewArea();
-		CRectangle lvRect( 0, 0, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
-		pEft->Init( view, lvRect, fSpeed );
-		m_pLevelFadeMask->bVisible = true;
-		m_pSnapShotMask->bVisible = false;
-		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-		pParams[0] = CVector4( 0, 0, 0, 0 );
-		pParams[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
+		pEft->Init( view, m_pCurLevel->GetMainAreaSize(), fSpeed );
+		m_backParam[0] = CVector4( 0, 0, 0, 0 );
+		m_backParam[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
 	}
 }
 
@@ -5781,17 +5785,11 @@ void CMasterLevel::Update()
 	}
 	if( !k && m_pCurLevel && m_pCurLevel->IsBegin() && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFailed() && !m_pCurLevel->IsFreeze() )
 		m_pPlayer->UpdateInputOnly();
-	if( !k )
-		m_pMainUI->UpdateEffect();
 	for( ; k > 0; k-- )
 	{
 		int32 nShowSnapShotFrame = 0;
-		auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-		auto pParams1 = static_cast<CImage2D*>( m_pSnapShotMask.GetPtr() )->GetParam();
 		if( m_pTransferCoroutine )
 		{
-			m_pLevelFadeMask->bVisible = true;
-			m_pSnapShotMask->bVisible = false;
 			m_pTransferCoroutine->Resume();
 			if( m_pTransferCoroutine->GetState() == ICoroutine::eState_Stopped )
 			{
@@ -5804,53 +5802,22 @@ void CMasterLevel::Update()
 			auto nFrame = CGlobalCfg::Inst().playerDamagedMask.size() - m_nPlayerDamageFrame;
 			m_nPlayerDamageFrame--;
 			auto& maskParam = CGlobalCfg::Inst().playerDamagedMask[nFrame];
-			m_pLevelFadeMask->bVisible = false;
-			m_pSnapShotMask->bVisible = true;
-			pParams1[0] = maskParam.first;
-			pParams1[1] = maskParam.second;
+			nShowSnapShotFrame = CalcSnapShotMaskParam( m_backParam );
+			m_backParam[0] = maskParam.first;
+			m_backParam[1] = m_backParam[1] + maskParam.second;
 		}
 		else if( m_pInterferenceStripEffect )
 		{
-			m_pLevelFadeMask->bVisible = true;
-			m_pSnapShotMask->bVisible = false;
-			pParams[0] = CVector4( 0, 0, 0, 0 );
-			pParams[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
-		}
-		else if( !IsScenario() )
-		{
-			auto& cfg = CGlobalCfg::Inst().showSnapShotMask;
-			nShowSnapShotFrame = m_nShowSnapShotFrame;
-			auto& maskParam = cfg[nShowSnapShotFrame];
-			m_pLevelFadeMask->bVisible = false;
-			m_pSnapShotMask->bVisible = true;
-			pParams1[0] = maskParam.first;
-			pParams1[1] = maskParam.second;
-			if( m_pCurLevel && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFreeze() )
-			{
-				nShowSnapShotFrame++;
-				if( nShowSnapShotFrame >= cfg.size() )
-					nShowSnapShotFrame = 0;
-			}
+			m_backParam[0] = CVector4( 0, 0, 0, 0 );
+			m_backParam[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
 		}
 		else
 		{
-			m_pLevelFadeMask->bVisible = true;
-			m_pSnapShotMask->bVisible = false;
-			pParams[0] = CVector4( 0, 0, 0, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			nShowSnapShotFrame = CalcSnapShotMaskParam( m_backParam );
+			if( IsScenario() )
+				m_backParam[0] = CVector4( 0, 0, 0, 0 );
 		}
 		m_nShowSnapShotFrame = nShowSnapShotFrame;
-
-		m_pBattleEffect->bVisible = false;
-		if( m_pCurLevel )
-		{
-			m_pBattleEffect->bVisible = m_pCurLevel->IsBegin() && !m_pCurLevel->IsComplete() && !m_pCurLevel->IsEnd();
-			if( !m_pCurLevel->IsFreeze() && !m_pCurLevel->IsFailed() )
-			{
-				if( m_pBattleEffect->bVisible )
-					UpdateBattleEffect();
-			}
-		}
 
 		if( m_pCurLevel && !m_pCurLevel->IsEnd() )
 			m_pCurLevel->Update();
@@ -5986,7 +5953,238 @@ void CMasterLevel::Update()
 				SafeCast<CInterferenceStripEffect>( m_pInterferenceStripEffect.GetPtr() )->Update();
 		}
 	}
+
+	m_pBattleEffect->bVisible = false;
+	if( m_pCurLevel )
+	{
+		m_pBattleEffect->bVisible = m_pCurLevel->IsBegin() && !m_pCurLevel->IsComplete() && !m_pCurLevel->IsEnd();
+		if( !m_pCurLevel->IsFreeze() && !m_pCurLevel->IsFailed() )
+		{
+			if( m_pBattleEffect->bVisible )
+				UpdateBattleEffect();
+		}
+	}
+	m_pMainUI->UpdateEffect();
+	UpdateBackground();
+	UpdateColorAdjust();
 	UpdateBGM();
+
+	/*if( m_pCurLevel && m_pCurLevel->IsBegin() )
+	{
+		static int32 n = 0;
+		static float g_trans[][5] = { { 0, 0, 0.2, 1, 90 }, { 48, 12, 0.25, 1.02, 180 }, { 96, 48, 0.15, 1.1, 120 }, { 64, 64, 0.09, 1.05, 120 },
+		{ 0, 80, 0.04, 1.03, 90 }, { -64, 64, 0, 1.05, 120 }, { -96, 48, -0.1, 1.02, 120 }, { -48, 12, -0.16, 1, 120 },
+		{ 0, 0, -0.2, 1, 90 }, { 48, -12, -0.25, 1.02, 180 }, { 96, -48, -0.15, 1.1, 120 }, { 64, -64, -0.09, 1.05, 120 },
+		{ 0, -80, -0.04, 1.03, 90 }, { -64, -64, 0, 1.05, 120 }, { -96, -48, 0.1, 1.02, 120 }, { -48, -12, 0.16, 1, 120 }, };
+		int32 t0 = 0;
+		int32 i;
+		for( i = 0; i < ELEM_COUNT( g_trans ); i++ )
+		{
+			if( n < g_trans[i][4] + t0 )
+				break;
+			t0 += g_trans[i][4];
+		}
+		if( i >= ELEM_COUNT( g_trans ) )
+		{
+			n = 0;
+			i = 0;
+			t0 = 0;
+		}
+		auto p = g_trans[i];
+		auto p1 = g_trans[( i + 1 ) % ELEM_COUNT( g_trans )];
+		auto t = ( n - t0 ) * 1.0f / p[4];
+		float x = p[0] + ( p1[0] - p[0] ) * t;
+		float y = p[1] + ( p1[1] - p[1] ) * t;
+		float r = p[2] + ( p1[2] - p[2] ) * t;
+		float s = p[3] + ( p1[3] - p[3] ) * t;
+		auto ofs0 = m_pCurLevel->GetMainAreaSize().GetCenter() * s;
+		ofs0 = ofs0 - CVector2( ofs0.x * cos( r ) - ofs0.y * sin( r ), ofs0.x * sin( r ) + ofs0.y * cos( r ) );
+		ofs0 = ofs0 + CVector2( x, y ) * 0.5f;
+		r = r * 0.15f;
+		s = ( s - 1 ) * 2.2f + 1;
+		m_pCurLevel->SetPosition( ofs0 );
+		m_pCurLevel->r = r;
+		m_pCurLevel->s = s;
+		m_pSnapShotRoot->SetPosition( ofs0 );
+		m_pSnapShotRoot->r = r;
+		m_pSnapShotRoot->s = s;
+		m_pBattleEffect->SetPosition( ofs0 );
+		m_pBattleEffect->r = r;
+		m_pBattleEffect->s = s;
+		n++;
+	}*/
+}
+
+int32 CMasterLevel::CalcSnapShotMaskParam( CVector4* pParams )
+{
+	auto& cfg = CGlobalCfg::Inst().showSnapShotMask;
+	int32 nShowSnapShotFrame = m_nShowSnapShotFrame;
+	auto& maskParam = cfg[nShowSnapShotFrame];
+	pParams[0] = maskParam.first;
+	pParams[1] = maskParam.second;
+	if( m_pCurLevel )
+	{
+		auto pEnv = m_pCurLevel->GetEnvEffect();
+		if( pEnv && pEnv->IsOverrideBackColor() )
+		{
+			auto backColor = pEnv->GetBackColor();
+			pParams[1].x = backColor.x;
+			pParams[1].y = backColor.y;
+			pParams[1].z = backColor.z;
+		}
+	}
+	if( m_pCurLevel && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFreeze() )
+	{
+		nShowSnapShotFrame++;
+		if( nShowSnapShotFrame >= cfg.size() )
+			nShowSnapShotFrame = 0;
+	}
+	return nShowSnapShotFrame;
+}
+
+void CMasterLevel::UpdateBackground()
+{
+	static_cast<CImage2D*>( m_pBackMask.GetPtr() )->GetParam()[0] = m_backParam[1];
+	auto pParam1 = static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->GetParam();
+	pParam1[0] = m_backParam[0];
+	pParam1[1] = m_backParam[1] * ( CVector4( 1, 1, 1, 0 ) - m_backParam[0] );
+	pParam1[1].w = m_backParam[1].w;
+
+	int32 iScenarioMask = 0;
+	if( m_pCurLevel && IsScenario() )
+	{
+		m_pBackMask->bVisible = false;
+		auto levelSize = m_pCurLevel->GetMainAreaSize();
+		auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+		CRectangle rect0( -camSize.x, levelSize.y + m_pCurLevel->y - y, camSize.x * 2, levelSize.GetBottom() );
+		float h0 = Max( rect0.height / 2, 128.0f );
+		rect0.SetSizeY( rect0.height - h0 * 2 );
+		h0 += 64;
+		static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->SetRect( rect0 );
+		m_pLevelFadeMask->GetRenderObject()->SetBoundDirty();
+
+		for( int k = 0; k < 2; k++ )
+		{
+			int32 h;
+			for( h = 0; h < h0; )
+			{
+				int32 h1 = SRand::Inst<eRand_Render>().Rand( 2, 8 ) * 2;
+				float t = 1 - Max( 0.0f, ( h + h1 * 0.5f ) / h0 );
+				CRectangle rect1 = rect0;
+				rect1.y = k == 0 ? rect0.GetBottom() + h : rect0.y - h - h1;
+				rect1.height = h1;
+
+				if( iScenarioMask >= m_vecBackScenarioMask.size() )
+					m_vecBackScenarioMask.push_back( static_cast<CDrawableGroup*>( m_pLevelFadeMask->GetResource() )->CreateInstance() );
+				CImage2D* p = static_cast<CImage2D*>( m_vecBackScenarioMask[iScenarioMask++].GetPtr() );
+				p->SetRect( rect1 );
+				p->GetParam()[0] = CVector4( 0, 0, 0, 0 );
+				p->GetParam()[1] = m_backParam[1] * ( CVector4( t, t, t, 1 ) );
+				if( !p->GetParent() )
+					m_pLevelFadeMask->AddChild( p );
+
+				h += h1;
+			}
+
+			CRectangle rect1 = rect0;
+			rect1.y = k == 0 ? rect0.GetBottom() + h : rect0.y - h - 2048;
+			rect1.height = 2048;
+			if( iScenarioMask >= m_vecBackScenarioMask.size() )
+				m_vecBackScenarioMask.push_back( static_cast<CDrawableGroup*>( m_pLevelFadeMask->GetResource() )->CreateInstance() );
+			CImage2D* p = static_cast<CImage2D*>( m_vecBackScenarioMask[iScenarioMask++].GetPtr() );
+			p->SetRect( rect1 );
+			p->GetParam()[0] = CVector4( 0, 0, 0, 0 );
+			p->GetParam()[1] = CVector4( 0, 0, 0, 0 );
+			if( !p->GetParent() )
+				m_pLevelFadeMask->AddChild( p );
+		}
+	}
+	else
+	{
+		m_pBackMask->bVisible = true;
+		static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->SetRect( CRectangle( -2048, -2048, 4096, 4096 ) );
+		m_pLevelFadeMask->GetRenderObject()->SetBoundDirty();
+	}
+	for( ; iScenarioMask < m_vecBackScenarioMask.size(); iScenarioMask++ )
+	{
+		if( m_vecBackScenarioMask[iScenarioMask]->GetParent() )
+			m_vecBackScenarioMask[iScenarioMask]->RemoveThis();
+	}
+
+	if( m_pBattleEffect->bVisible )
+	{
+		auto& cfg = CGlobalCfg::Inst().battleEffectMask;
+		auto pParams = static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->GetParam();
+		auto& maskParam = cfg[m_nBattleEffectFrame];
+		auto color1 = maskParam.first;
+		if( m_pCurLevel )
+		{
+			auto pEnv = m_pCurLevel->GetEnvEffect();
+			if( pEnv && pEnv->IsCustomBattleEffectBackColor() )
+			{
+				color1.x = pEnv->GetBattleEffectBackColor().x;
+				color1.y = pEnv->GetBattleEffectBackColor().y;
+				color1.z = pEnv->GetBattleEffectBackColor().z;
+			}
+		}
+		pParams[0] = color1;
+		pParams[1] = maskParam.second - color1 * m_backParam[1];
+		pParams[1].w = maskParam.second.w;
+	}
+}
+
+void CMasterLevel::UpdateColorAdjust( bool bJump )
+{
+	if( !m_pCurLevel )
+	{
+		m_pColorAdjust->bVisible = false;
+		memset( &m_curColorAdjust, 0, sizeof( m_curColorAdjust ) );
+		return;
+	}
+	SColorAdjust targetColorAdjust;
+	float fScenarioFade = 0;
+	memset( &targetColorAdjust, 0, sizeof( targetColorAdjust ) );
+	auto pEnv = m_pCurLevel->GetEnvEffect();
+	if( pEnv )
+	{
+		targetColorAdjust.gamma = pEnv->GetGamma();
+		targetColorAdjust.colorTranspose[0] = pEnv->GetColorTranspose( 0 );
+		targetColorAdjust.colorTranspose[1] = pEnv->GetColorTranspose( 1 );
+		targetColorAdjust.colorTranspose[2] = pEnv->GetColorTranspose( 2 );
+		fScenarioFade = pEnv->GetScenarioFade();
+	}
+	if( bJump )
+	{
+		memcpy( &m_curColorAdjust, &targetColorAdjust, sizeof( m_curColorAdjust ) );
+	}
+	else
+	{
+		/*m_curColorAdjust.gamma.x = Min( m_curColorAdjust.gamma.x + 0.01f, Max( m_curColorAdjust.gamma.x - 0.01f, targetColorAdjust.gamma.x ) );
+		m_curColorAdjust.gamma.y = Min( m_curColorAdjust.gamma.y + 0.01f, Max( m_curColorAdjust.gamma.y - 0.01f, targetColorAdjust.gamma.y ) );
+		m_curColorAdjust.gamma.z = Min( m_curColorAdjust.gamma.z + 0.01f, Max( m_curColorAdjust.gamma.z - 0.01f, targetColorAdjust.gamma.z ) );
+		for( int i = 0; i < 3; i++ )
+		{
+			m_curColorAdjust.colorTranspose[i].x = Min( m_curColorAdjust.colorTranspose[i].x + 0.01f, Max( m_curColorAdjust.colorTranspose[i].x - 0.01f, targetColorAdjust.colorTranspose[i].x ) );
+			m_curColorAdjust.colorTranspose[i].y = Min( m_curColorAdjust.colorTranspose[i].y + 0.01f, Max( m_curColorAdjust.colorTranspose[i].y - 0.01f, targetColorAdjust.colorTranspose[i].y ) );
+			m_curColorAdjust.colorTranspose[i].z = Min( m_curColorAdjust.colorTranspose[i].z + 0.01f, Max( m_curColorAdjust.colorTranspose[i].z - 0.01f, targetColorAdjust.colorTranspose[i].z ) );
+		}*/
+		memcpy( &m_curColorAdjust, &targetColorAdjust, sizeof( m_curColorAdjust ) );
+	}
+	if( m_curColorAdjust.IsZero() )
+	{
+		m_pColorAdjust->bVisible = false;
+		return;
+	}
+
+	float k = IsScenario() || m_pPlayer && m_pPlayer->IsHidden() ? fScenarioFade : 1;
+	m_pColorAdjust->bVisible = true;
+	auto pParams = static_cast<CImage2D*>( m_pColorAdjust.GetPtr() )->GetParam();
+	pParams[0] = CVector4( m_curColorAdjust.colorTranspose[0].x, m_curColorAdjust.colorTranspose[0].y, m_curColorAdjust.colorTranspose[0].z, 0 );
+	pParams[1] = CVector4( m_curColorAdjust.colorTranspose[1].x, m_curColorAdjust.colorTranspose[1].y, m_curColorAdjust.colorTranspose[1].z, 0 );
+	pParams[2] = CVector4( m_curColorAdjust.colorTranspose[2].x, m_curColorAdjust.colorTranspose[2].y, m_curColorAdjust.colorTranspose[2].z, 0 );
+	pParams[0] = pParams[0] * k + CVector4( 1, 0, 0, pow( 2, -m_curColorAdjust.gamma.x * k ) );
+	pParams[1] = pParams[1] * k + CVector4( 0, 1, 0, pow( 2, -m_curColorAdjust.gamma.y * k ) );
+	pParams[2] = pParams[2] * k + CVector4( 0, 0, 1, pow( 2, -m_curColorAdjust.gamma.z * k ) );
 }
 
 void CMasterLevel::CheckBGM()
@@ -6131,20 +6329,17 @@ const char* CMasterLevel::GetCurBGM()
 
 void CMasterLevel::UpdateBattleEffect()
 {
-	auto pParams = static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->GetParam();
 	auto& cfg = CGlobalCfg::Inst().battleEffectMask;
-	auto& maskParam = cfg[m_nBattleEffectFrame];
-	pParams[0] = maskParam.first;
-	pParams[1] = maskParam.second;
 	if( m_pCurLevel && !m_pCurLevel->IsEnd() && !m_pCurLevel->IsFreeze() )
 	{
 		m_nBattleEffectFrame++;
 		if( m_nBattleEffectFrame >= cfg.size() )
 			m_nBattleEffectFrame = 0;
 	}
-	CRectangle lvRect( m_pCurLevel->x, m_pCurLevel->y, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
+	CRectangle lvRect = m_pCurLevel->GetMainAreaSize().Offset( CVector2( m_pCurLevel->x, m_pCurLevel->y ) );
 	lvRect.SetSize( lvRect.GetSize() + CVector2( 64, 64 ) );
 	static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->SetRect( lvRect );
+	m_pBattleEffect->SetBoundDirty();
 }
 
 void CMasterLevel::RefreshSnapShot()
@@ -6262,7 +6457,7 @@ void CMasterLevel::ResetMainUI()
 {
 	if( !m_pCurLevel )
 		return;
-	CRectangle lvRect( 0, 0, m_pCurLevel->GetSize().x * LEVEL_GRID_SIZE_X, m_pCurLevel->GetSize().y * LEVEL_GRID_SIZE_Y );
+	CRectangle lvRect = m_pCurLevel->GetMainAreaSize();
 	lvRect = lvRect.Offset( m_pCurLevel->GetCamPos() * -1 );
 	m_pMainUI->Reset( CVector2( lvRect.GetRight() + 64, 144 ), CVector2( lvRect.x - 64, 144 ) );
 }
@@ -6371,7 +6566,7 @@ void CMasterLevel::TransferFunc()
 			m_pCurCutScene->End();
 			m_pCurCutScene->SetParentEntity( NULL );
 			m_pCurCutScene = pCutScene;
-			pCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
+			pCutScene->SetParentBeforeEntity( m_pBattleEffect );
 			pCutScene->Begin();
 		}
 	}
@@ -6400,8 +6595,9 @@ void CMasterLevel::TransferFuncLevel2Level()
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 	int32 nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
 	int32 nTransferFadeOutTotalFrames = nTransferFadeOutFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+
+	m_backParam[0] = CVector4( 0, 0, 0, 0 );
+	auto baseColor = m_backParam[1];
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
 
@@ -6420,15 +6616,15 @@ void CMasterLevel::TransferFuncLevel2Level()
 		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
 		if( nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + baseColor;
 		}
 		else
 		{
 			float a = Min( 1.0f, t * 1.05f );
 			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( b, a, a, 0 );
+			m_backParam[1] = baseColor;
 		}
 		auto p = transferOfs * ( 1 - t );
 		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
@@ -6438,11 +6634,14 @@ void CMasterLevel::TransferFuncLevel2Level()
 			m_pCurLevel->GetEnvEffect()->SetFade( t );
 	}
 	m_transferCurCamPos = m_pCurLevel->GetCamPos();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+
+	CalcSnapShotMaskParam( m_backParam );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor1 = m_backParam[1];
+	m_backParam[1] = baseColor;
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 	m_pLastLevel->RemovePawn( m_pPlayer );
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 
 	for( ; nTransferFadeOutFrames; nTransferFadeOutFrames-- )
@@ -6452,22 +6651,22 @@ void CMasterLevel::TransferFuncLevel2Level()
 		float t = ( nTransferFadeOutFrames - 1 ) * 1.0f / nTransferFadeOutTotalFrames;
 		if( nFrame >= 0 && nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + baseColor1 + ( baseColor - baseColor1 ) * t;
 		}
 		else
 		{
 			float a = t * 1.5f;
 			float b = Max( 0.0f, t * 1.5f - 0.5f );
-			pParams[0] = CVector4( a, b, b, 1 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( a, b, b, 1 );
+			m_backParam[1] = baseColor1 + ( baseColor - baseColor1 ) * t;
 		}
 		CMyLevel* pLevel = m_pLastLevel;
 		if( pLevel->GetEnvEffect() )
 			pLevel->GetEnvEffect()->SetFade( t );
 	}
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 0, 0, 0, 0 );
+	m_backParam[1] = baseColor1;
 	m_pLastLevel->SetParentEntity( NULL );
 	m_pLastLevel = NULL;
 	BeginCurLevel();
@@ -6484,10 +6683,10 @@ void CMasterLevel::TransferFuncLevel2Level0( bool bFade )
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
 	if( bFade )
 	{
-		pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+		m_backParam[0] = CVector4( 0, 0, 0, 0 );
+		auto baseColor = m_backParam[1];
 		int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
 		int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 		if( m_pCurLevel->GetEnvEffect() )
@@ -6502,23 +6701,23 @@ void CMasterLevel::TransferFuncLevel2Level0( bool bFade )
 			float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
 			if( nFrame < maskParams.size() )
 			{
-				pParams[0] = maskParams[nFrame].first;
-				pParams[1] = maskParams[nFrame].second;
+				m_backParam[0] = maskParams[nFrame].first;
+				m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 			}
 			else
 			{
 				float a = Min( 1.0f, t * 1.05f );
 				float b = Max( 0.0f, t * 1.05f - 0.05f );
-				pParams[0] = CVector4( b, a, a, 0 );
-				pParams[1] = CVector4( 0, 0, 0, 0 );
+				m_backParam[0] = CVector4( b, a, a, 0 );
+				m_backParam[1] = baseColor * ( 1 - t );
 			}
 			if( m_pCurLevel->GetEnvEffect() )
 				m_pCurLevel->GetEnvEffect()->SetFade( t );
 		}
 	}
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	m_backParam[1] = CVector4( 0, 0, 0, 0 );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	BeginCurLevel();
 }
@@ -6535,14 +6734,13 @@ void CMasterLevel::TransferFuncLevel2Level1()
 	auto camTransferBegin = m_pLastLevel->GetCamPos();
 	int32 nTransferAnimFrames = 80;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor = m_backParam[1];
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 
 	m_transferCurCamPos = camTransferBegin;
 	m_pTransferEft = new CEntity;
-	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pTransferEft->SetParentBeforeEntity( m_pBattleEffect );
 	m_pTransferEft->SetRenderObject( CGlobalCfg::Inst().pFallEftDrawable->CreateInstance() );
 	auto pImg = static_cast<CImage2D*>( m_pTransferEft->GetRenderObject() );
 	pImg->SetPosition( m_pLastLevel->GetPosition() + CVector2( m_pPlayer->GetPosX(), m_pPlayer->GetPosY() ) * LEVEL_GRID_SIZE );
@@ -6591,15 +6789,15 @@ void CMasterLevel::TransferFuncLevel2Level1()
 					float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
 					if( nFrame >= 0 && nFrame < maskParams.size() )
 					{
-						pParams[0] = maskParams[nFrame].first;
-						pParams[1] = maskParams[nFrame].second;
+						m_backParam[0] = maskParams[nFrame].first;
+						m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 					}
 					else
 					{
 						float a = t * 1.5f;
 						float b = Max( 0.0f, t * 1.5f - 0.5f );
-						pParams[0] = CVector4( a, b, b, 0 );
-						pParams[1] = CVector4( 0, 0, 0, 0 );
+						m_backParam[0] = CVector4( a, b, b, 0 );
+						m_backParam[1] = baseColor * ( 1 - t );
 					}
 					CMyLevel* pLevel = m_pLastLevel;
 					if( pLevel->GetEnvEffect() )
@@ -6608,28 +6806,29 @@ void CMasterLevel::TransferFuncLevel2Level1()
 				}
 				else
 				{
-					pParams[0] = CVector4( 0, 0, 0, 0 );
-					pParams[1] = CVector4( 0, 0, 0, 0 );
+					m_backParam[0] = CVector4( 0, 0, 0, 0 );
+					m_backParam[1] = CVector4( 0, 0, 0, 0 );
 					camTransferBegin.y += 6;
 					m_transferCurCamPos = camTransferBegin;
 				}
 			}
 			if( i >= 5 && nTransferAnimFrames )
 			{
+				CalcSnapShotMaskParam( m_backParam );
 				int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 				nTransferAnimFrames--;
 				float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
 				if( nFrame < maskParams.size() )
 				{
-					pParams[0] = maskParams[nFrame].first;
-					pParams[1] = maskParams[nFrame].second;
+					m_backParam[0] = maskParams[nFrame].first;
+					m_backParam[1] = maskParams[nFrame].second + m_backParam[1] * t;
 				}
 				else
 				{
 					float a = Min( 1.0f, t * 1.05f );
 					float b = Max( 0.0f, t * 1.05f - 0.05f );
-					pParams[0] = CVector4( b, a, a, 0 );
-					pParams[1] = CVector4( 0, 0, 0, 0 );
+					m_backParam[0] = CVector4( b, a, a, 0 );
+					m_backParam[1] = m_backParam[1] * t;
 				}
 				auto p = transferOfs * ( 1 - t );
 				p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
@@ -6645,10 +6844,9 @@ void CMasterLevel::TransferFuncLevel2Level1()
 
 	m_pTransferEft->SetParentEntity( NULL );
 	m_pTransferEft = NULL;
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	CalcSnapShotMaskParam( m_backParam );
 	BeginCurLevel();
 }
 
@@ -6664,14 +6862,13 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	auto camTransferBegin = m_pLastLevel->GetCamPos();
 	int32 nTransferAnimFrames = 80;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor = m_backParam[1];
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 
 	m_transferCurCamPos = camTransferBegin;
 	m_pTransferEft = new CEntity;
-	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pTransferEft->SetParentBeforeEntity( m_pBattleEffect );
 	m_pLastLevel->RemovePawn( m_pPlayer );
 	m_pPlayer->SetParentEntity( m_pTransferEft );
 	m_pPlayer->SetPosition( m_pLastLevel->GetPosition() + m_pPlayer->GetPosition() );
@@ -6688,15 +6885,15 @@ void CMasterLevel::TransferFuncLevel2Level2()
 		float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
 		if( nFrame >= 0 && nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 		}
 		else
 		{
 			float a = t * 1.5f;
 			float b = Max( 0.0f, t * 1.5f - 0.5f );
-			pParams[0] = CVector4( a, b, b, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( a, b, b, 0 );
+			m_backParam[1] = baseColor * ( 1 - t );
 		}
 		CMyLevel* pLevel = m_pLastLevel;
 		if( pLevel->GetEnvEffect() )
@@ -6704,8 +6901,8 @@ void CMasterLevel::TransferFuncLevel2Level2()
 		if( !( nFadeOutFrame & 1 ) )
 			pLevel->SetPosition( pLevel->GetPosition() + CVector2( 0, -2 ) );
 	}
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 0, 0, 0, 0 );
+	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	for( int i = 0; i < 30; i++ )
 	{
 		m_pTransferCoroutine->Yield( 0 );
@@ -6731,17 +6928,18 @@ void CMasterLevel::TransferFuncLevel2Level2()
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		nTransferAnimFrames--;
 		float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+		CalcSnapShotMaskParam( m_backParam );
 		if( nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + m_backParam[1] * t;
 		}
 		else
 		{
 			float a = Min( 1.0f, t * 1.05f );
 			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( b, a, a, 0 );
+			m_backParam[1] = m_backParam[1] * t;
 		}
 		auto p = transferOfs * ( 1 - t );
 		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
@@ -6756,10 +6954,9 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	m_pPlayer->SetParentEntity( NULL );
 	m_pTransferEft->SetParentEntity( NULL );
 	m_pTransferEft = NULL;
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	CalcSnapShotMaskParam( m_backParam );
 	BeginCurLevel();
 }
 
@@ -6777,14 +6974,13 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	auto camTransferBegin = m_pLastLevel->GetCamPos();
 	int32 nTransferAnimFrames = 80;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor = m_backParam[1];
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 
 	m_transferCurCamPos = camTransferBegin;
 	m_pTransferEft = new CEntity;
-	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pTransferEft->SetParentBeforeEntity( m_pBattleEffect );
 	m_pLastLevel->RemovePawn( m_pPlayer );
 	m_pPlayer->SetParentEntity( m_pTransferEft );
 	m_pPlayer->SetPosition( m_pLastLevel->GetPosition() + m_pPlayer->GetPosition() );
@@ -6801,22 +6997,22 @@ void CMasterLevel::TransferFuncLevel2Level3()
 		float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
 		if( nFrame >= 0 && nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 		}
 		else
 		{
 			float a = t * 1.5f;
 			float b = Max( 0.0f, t * 1.5f - 0.5f );
-			pParams[0] = CVector4( a, b, b, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( a, b, b, 0 );
+			m_backParam[1] = baseColor * ( 1 - t );
 		}
 		CMyLevel* pLevel = m_pLastLevel;
 		if( pLevel->GetEnvEffect() )
 			pLevel->GetEnvEffect()->SetFade( t );
 	}
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 0, 0, 0, 0 );
+	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	for( int i = 0; i < 60; i++ )
 	{
 		m_pTransferCoroutine->Yield( 0 );
@@ -6840,17 +7036,18 @@ void CMasterLevel::TransferFuncLevel2Level3()
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		nTransferAnimFrames--;
 		float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+		CalcSnapShotMaskParam( m_backParam );
 		if( nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + m_backParam[1] * t;
 		}
 		else
 		{
 			float a = Min( 1.0f, t * 1.05f );
 			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( b, a, a, 0 );
+			m_backParam[1] = m_backParam[1] * t;
 		}
 		auto p = transferOfs * ( 1 - t );
 		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
@@ -6865,10 +7062,9 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_pPlayer->SetParentEntity( NULL );
 	m_pTransferEft->SetParentEntity( NULL );
 	m_pTransferEft = NULL;
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	CalcSnapShotMaskParam( m_backParam );
 	BeginCurLevel();
 }
 
@@ -6883,14 +7079,13 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 	auto camTransferBegin = m_pLastLevel->GetCamPos();
 	int32 nTransferAnimFrames = 50;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor = m_backParam[1];
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 
 	m_transferCurCamPos = camTransferBegin;
 	m_pTransferEft = new CEntity;
-	m_pTransferEft->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pTransferEft->SetParentBeforeEntity( m_pBattleEffect );
 	vector<CReference<CPawn> > vecTransferPawn;
 	for( int y = m_pLastLevel->m_nHeight - 1; y >= 0; y-- )
 	{
@@ -6958,23 +7153,23 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 				float t = nFadeOutFrame * 1.0f / nFadeOutTotalFrames;
 				if( nFrame >= 0 && nFrame < maskParams.size() )
 				{
-					pParams[0] = maskParams[nFrame].first;
-					pParams[1] = maskParams[nFrame].second;
+					m_backParam[0] = maskParams[nFrame].first;
+					m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 				}
 				else
 				{
 					float a = t * 1.5f;
 					float b = Max( 0.0f, t * 1.5f - 0.5f );
-					pParams[0] = CVector4( a, b, b, 0 );
-					pParams[1] = CVector4( 0, 0, 0, 0 );
+					m_backParam[0] = CVector4( a, b, b, 0 );
+					m_backParam[1] = baseColor * ( 1 - t );
 				}
 				CMyLevel* pLevel = m_pLastLevel;
 				if( pLevel->GetEnvEffect() )
 					pLevel->GetEnvEffect()->SetFade( t );
 				if( !nFadeOutFrame )
 				{
-					pParams[0] = CVector4( 0, 0, 0, 0 );
-					pParams[1] = CVector4( 0, 0, 0, 0 );
+					m_backParam[0] = CVector4( 0, 0, 0, 0 );
+					m_backParam[1] = CVector4( 0, 0, 0, 0 );
 				}
 			}
 
@@ -7017,17 +7212,18 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		nTransferAnimFrames--;
 		float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
+		CalcSnapShotMaskParam( m_backParam );
 		if( nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + m_backParam[1] * t;
 		}
 		else
 		{
 			float a = Min( 1.0f, t * 1.05f );
 			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( b, a, a, 0 );
+			m_backParam[1] = m_backParam[1] * t;
 		}
 		auto p = transferOfs * ( 1 - t );
 		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
@@ -7043,11 +7239,10 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 		pPawn->SetParentEntity( NULL );
 	m_pTransferEft->SetParentEntity( NULL );
 	m_pTransferEft = NULL;
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	for( CPawn* pPawn : vecTransferPawn )
 		m_pCurLevel->AddPawn( pPawn, pPawn->GetPos(), pPawn->GetCurDir() );
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	CalcSnapShotMaskParam( m_backParam );
 	BeginCurLevel();
 }
 
@@ -7060,8 +7255,7 @@ void CMasterLevel::TransferFuncCut2Level()
 		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
 	int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
 
@@ -7072,25 +7266,25 @@ void CMasterLevel::TransferFuncCut2Level()
 		m_pTransferCoroutine->Yield( 0 );
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
+		CalcSnapShotMaskParam( m_backParam );
 		if( nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + m_backParam[1] * t;
 		}
 		else
 		{
 			float a = Min( 1.0f, t * 1.05f );
 			float b = Max( 0.0f, t * 1.05f - 0.05f );
-			pParams[0] = CVector4( b, a, a, 0 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( b, a, a, 0 );
+			m_backParam[1] = m_backParam[1] * t;
 		}
 		if( m_pCurLevel->GetEnvEffect() )
 			m_pCurLevel->GetEnvEffect()->SetFade( t );
 	}
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	CalcSnapShotMaskParam( m_backParam );
 	ASSERT( !m_pLastLevel );
-	m_pCurLevel->SetRenderParentBefore( m_pLevelFadeMask );
+	m_pCurLevel->SetRenderParentBefore( m_pBattleEffect );
 	m_pCurLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	BeginCurLevel();
 }
@@ -7099,9 +7293,8 @@ void CMasterLevel::TransferFuncLevel2Cut()
 {
 	int32 nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount * 4;
 	int32 nTransferFadeOutTotalFrames = nTransferFadeOutFrames;
-	auto pParams = static_cast<CImage2D*>( m_pLevelFadeMask.GetPtr() )->GetParam();
-	pParams[0] = CVector4( 1, 1, 1, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 1, 1, 1, 0 );
+	auto baseColor = m_backParam[1];
 
 	m_transferCurCamPos = m_pCurLevel->GetCamPos();
 	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
@@ -7112,26 +7305,26 @@ void CMasterLevel::TransferFuncLevel2Cut()
 		float t = ( nTransferFadeOutFrames - 1 ) * 1.0f / nTransferFadeOutTotalFrames;
 		if( nFrame >= 0 && nFrame < maskParams.size() )
 		{
-			pParams[0] = maskParams[nFrame].first;
-			pParams[1] = maskParams[nFrame].second;
+			m_backParam[0] = maskParams[nFrame].first;
+			m_backParam[1] = maskParams[nFrame].second + baseColor * ( 1 - t );
 		}
 		else
 		{
 			float a = t * 1.5f;
 			float b = Max( 0.0f, t * 1.5f - 0.5f );
-			pParams[0] = CVector4( a, b, b, 1 );
-			pParams[1] = CVector4( 0, 0, 0, 0 );
+			m_backParam[0] = CVector4( a, b, b, 1 );
+			m_backParam[1] = baseColor * ( 1 - t );
 		}
 		CMyLevel* pLevel = m_pCurLevel;
 		if( pLevel->GetEnvEffect() )
 			pLevel->GetEnvEffect()->SetFade( t );
 	}
 	m_transferCurCamPos = CVector2( 0, 0 );
-	pParams[0] = CVector4( 0, 0, 0, 0 );
-	pParams[1] = CVector4( 0, 0, 0, 0 );
+	m_backParam[0] = CVector4( 0, 0, 0, 0 );
+	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	m_pCurLevel->SetParentEntity( NULL );
 	m_pCurLevel = NULL;
-	m_pCurCutScene->SetParentBeforeEntity( m_pLevelFadeMask );
+	m_pCurCutScene->SetParentBeforeEntity( m_pBattleEffect );
 	m_pCurCutScene->Begin();
 }
 
@@ -7167,6 +7360,12 @@ void RegisterGameClasses_Level()
 
 	REGISTER_CLASS_BEGIN( CLevelEnvEffect )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_gamma )
+		REGISTER_MEMBER( m_colorTranspose )
+		REGISTER_MEMBER( m_bOverrideBackColor )
+		REGISTER_MEMBER( m_bCustomBattleEffectBackColor )
+		REGISTER_MEMBER( m_backColor )
+		REGISTER_MEMBER( m_battleEffectBackColor )
 		REGISTER_MEMBER( m_arrEnvDescs )
 		REGISTER_MEMBER_BEGIN( m_arrEnvMap )
 			MEMBER_ARG( editor_hide, 1 )
@@ -7214,6 +7413,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( m_nWidth )
 		REGISTER_MEMBER( m_nHeight )
 		REGISTER_MEMBER( m_nDepth )
+		REGISTER_MEMBER( m_rectMainArea )
 		REGISTER_MEMBER( m_strRegion )
 		REGISTER_MEMBER( m_camPos )
 		REGISTER_MEMBER( m_arrTileData )
@@ -7309,9 +7509,9 @@ void RegisterGameClasses_Level()
 	REGISTER_CLASS_BEGIN( CMasterLevel )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMainUI, main_ui )
+		REGISTER_MEMBER_TAGGED_PTR( m_pBackMask, mask0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLevelFadeMask, mask )
 		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotRoot, sn )
-		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotMask, mask0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBattleEffect, battle_eft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenu, menu )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[0], menu/t1 )
@@ -7319,6 +7519,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[2], menu/t3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[3], menu/t4 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[4], menu/t5 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pColorAdjust, color_adjust )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuSelected, menu/selected )
 		REGISTER_MEMBER_TAGGED_PTR( m_pWorldMap, world_map )
 		REGISTER_MEMBER_TAGGED_PTR( m_pActionPreview, action_preview )

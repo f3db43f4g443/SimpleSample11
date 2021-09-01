@@ -1,12 +1,22 @@
 ﻿<root>
-  <color_pass>
-    <blend type="transparent" />
-    <material max_insts="2048" vertex_shader="Default2DVertexShader" pixel_shader="g_COneColorPixelShader">
-      <constant_buffers>
-        <item shader_type="2">
-          <param name="vColor" type="float4" data="0,0,0,0.5" />
-        </item>
-      </constant_buffers>
+  <back>
+    <blend type="opaque" />
+    <material max_insts="1365" extra_inst_data="1" vertex_shader="Default2DVertexShader1" pixel_shader="PSInstData">
     </material>
-  </color_pass>
+  </back>
+  <mask>
+    <blend type="custom" />
+    <material max_insts="1024" extra_inst_data="2" vertex_shader="Default2DVertexShader2" pixel_shader="PSDistortion">
+    </material>
+  </mask>
+  <battle_effect>
+    <blend type="custom" />
+    <material max_insts="1024" extra_inst_data="2" vertex_shader="Default2DVertexShader2" pixel_shader="PSDistortionAdd">
+    </material>
+  </battle_effect>
+  <color_adjust>
+    <blend type="custom" />
+    <material max_insts="815" extra_inst_data="3" vertex_shader="Default2DVertexShader3" pixel_shader="PSColorAdjust">
+    </material>
+  </color_adjust>
 </root>

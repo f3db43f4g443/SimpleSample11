@@ -87,6 +87,7 @@ IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWithScrTexVertexShader2, CDefault
 IMPLEMENT_MATERIAL_SHADER( Default2DWorldToTexVertexShader, "Shader/Default2DWorldToTex.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWorldToTexVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DWorldToTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWorldToTexVertexShader2, CDefault2DVertexShaderExtraInstData<2>, "Shader/Default2DWorldToTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
+IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DWorldToTexVertexShader3, CDefault2DVertexShaderExtraInstData<3>, "Shader/Default2DWorldToTex.shader", "VSDefaultExtraInstData", "vs_5_0" );
 
 IMPLEMENT_MATERIAL_SHADER( Default2DScrTiledVertexShader, "Shader/Default2DScrTiled.shader", "VSDefault", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER_WITH_CLASS( Default2DScrTiledVertexShader1, CDefault2DVertexShaderExtraInstData<1>, "Shader/Default2DScrTiled.shader", "VSDefaultExtraInstData", "vs_5_0" );

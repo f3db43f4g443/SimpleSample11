@@ -3607,6 +3607,7 @@ HRESULT DXUTCreate3DEnvironment11( ID3D11Device* pd3d11DeviceFromApp )
         GetDXUTState().SetDXGIOutputArraySize( OutputCount );
 
         // Create the swapchain
+		pNewDeviceSettings->d3d11.sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         hr = pDXGIFactory->CreateSwapChain( pd3d11Device, &pNewDeviceSettings->d3d11.sd, &pSwapChain );
         if( FAILED( hr ) )
         {
@@ -5618,7 +5619,7 @@ void DXUTApplyDefaultDeviceSettings(DXUTDeviceSettings *modifySettings) {
     modifySettings->d3d11.Output = 0;
     modifySettings->d3d11.PresentFlags = 0;
     modifySettings->d3d11.sd.BufferCount = 2;
-    modifySettings->d3d11.sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    modifySettings->d3d11.sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     modifySettings->d3d11.sd.BufferDesc.Height = 480;
     modifySettings->d3d11.sd.BufferDesc.RefreshRate.Numerator = 60;
     modifySettings->d3d11.sd.BufferDesc.RefreshRate.Denominator = 1;

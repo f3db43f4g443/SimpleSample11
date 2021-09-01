@@ -442,11 +442,34 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	DXUTInit( true, false, NULL );
 	DXUTSetCursorSettings( true, true );
 	DXUTSetHotkeyHandling( false, false, false );
-	DXUTCreateWindow( context.szWindowName ? context.szWindowName : L"Game" );
+
+	{
+		WNDCLASS wndClass;
+		wndClass.style = CS_DBLCLKS;
+		wndClass.lpfnWndProc = DXUTStaticWndProc;
+		wndClass.cbClsExtra = 0;
+		wndClass.cbWndExtra = 0;
+		wndClass.hInstance = GetModuleHandle( NULL );
+		WCHAR szExePath[MAX_PATH];
+		GetModuleFileName( NULL, szExePath, MAX_PATH );
+		wndClass.hIcon = ExtractIcon( wndClass.hInstance, szExePath, 0 );
+		wndClass.hCursor = LoadCursor( NULL, IDC_ARROW );
+		wndClass.hbrBackground = (HBRUSH)GetStockObject( BLACK_BRUSH );
+		wndClass.lpszMenuName = NULL;
+		wndClass.lpszClassName = L"Direct3DWindowClass";
+		RegisterClass( &wndClass );
+		HWND hWnd = CreateWindow( L"Direct3DWindowClass", context.szWindowName ? context.szWindowName : L"Game",
+			context.bFullWindow ? WS_POPUP : WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+			0, 0, context.resolution.x, context.resolution.y, 0,
+			0, wndClass.hInstance, 0 );
+		DXUTSetWindow( hWnd, hWnd, hWnd );
+	}
 
 	// Only require 10-level hardware, change to D3D_FEATURE_LEVEL_11_0 to require 11-class hardware
 	// Switch to D3D_FEATURE_LEVEL_9_x for 10level9 hardware
 	DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0, true, context.resolution.x, context.resolution.y );
+	if( context.bFullWindow )
+		ShowWindow( DXUTGetHWND(), SW_MAXIMIZE );
 	InitDSound( DXUTGetHWND(), m_pDSound );
 }
 

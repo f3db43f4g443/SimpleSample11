@@ -121,6 +121,11 @@ IBlendState* CDrawable2D::LoadBlendState( const char* szBlendType )
 		pBlendState = IBlendState::Get<false, false, 0xf, EBlendInvDestColor, EBlendInvSrcColor, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>();
 		m_bOpaque = false;
 	}
+	else if( !strcmp( szBlendType, "custom" ) )
+	{
+		pBlendState = NULL;
+		m_bOpaque = false;
+	}
 	return pBlendState;
 }
 
@@ -146,6 +151,8 @@ void CDefaultDrawable2D::LoadXml( TiXmlElement* pRoot )
 	
 	auto pMaterial = pRoot->FirstChildElement( "material" );
 	m_material.LoadXml( pMaterial );
+	if( !m_pBlendState )
+		m_material1.PixelCopy( m_material );
 }
 
 void CDefaultDrawable2D::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
