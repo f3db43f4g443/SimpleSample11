@@ -106,6 +106,7 @@
     <ClInclude Include="GUI\LogUI.h">
       <Filter>GUI</Filter>
     </ClInclude>
+    <ClInclude Include="SdkInterface.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\PostProcessInvertColor.shader">

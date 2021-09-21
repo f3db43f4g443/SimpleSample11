@@ -8,6 +8,7 @@
 #include "GlobalCfg.h"
 #include "CommonUtils.h"
 #include "Common/FileUtil.h"
+#include "SdkInterface.h"
 
 void RunLuaFile( const char* szName )
 {
@@ -248,6 +249,12 @@ int32 GetCurTick()
 	return CGame::Inst().GetTimeStamp();
 }
 
+void UnlockAchievement( const char* sz )
+{
+	if( ISdkInterface::Inst() )
+		ISdkInterface::Inst()->UnlockAchievement( sz );
+}
+
 
 void RegisterGlobalLuaCFunc()
 {
@@ -289,4 +296,5 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL_RETUNWR( FindPath )
 	REGISTER_LUA_CFUNCTION_GLOBAL( ForceAllVisible )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetCurTick )
+	REGISTER_LUA_CFUNCTION_GLOBAL( UnlockAchievement )
 }

@@ -532,6 +532,7 @@ void CSimpleText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 	m_nLineCount = 0;
 
 	m_elems.resize( 0 );
+	m_extraElems.resize( 0 );
 	auto rect = m_initTextBound;
 	int32 nCurLine = 0;
 	int32 nLineLen = 0;
@@ -841,6 +842,18 @@ void CSimpleText::Render( CRenderContext2D& context )
 			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetGUIParam( elem.elem.pInstData, elem.elem.nInstDataSize );
 		context.AddElement( &elem.elem, nGroup );
 	}
+	for( auto& elem : m_extraElems )
+	{
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		if( nPass == 0 )
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetColorParam( elem.pInstData, elem.nInstDataSize );
+		else if( nPass == 1 )
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetOcclusionParam( elem.pInstData, elem.nInstDataSize );
+		else
+			static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
+		context.AddElement( &elem, nGroup );
+	}
 }
 
 void CSimpleText::Init()
@@ -932,6 +945,7 @@ void CTypeText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 	if( m_pEnter )
 		m_pEnter->bVisible = false;
 	m_elemsEft.resize( 0 );
+	RefreshFinishSymbol();
 }
 
 void CTypeText::SetTypeSound( const char* sz, int32 nTextInterval )
@@ -944,6 +958,12 @@ void CTypeText::SetTypeSound( const char* sz, int32 nTextInterval )
 			m_pSound = itr->second;
 	}
 	m_nSoundTextInterval = nTextInterval;
+}
+
+void CTypeText::SetFinishSymbolType( int8 nType )
+{
+	m_nFinishSymbolType = nType;
+	RefreshFinishSymbol();
 }
 
 void CTypeText::ForceFinish()
@@ -961,7 +981,10 @@ bool CTypeText::IsFinished()
 void CTypeText::Update()
 {
 	if( m_bFinished )
+	{
+		RefreshFinishSymbol();
 		return;
+	}
 	m_elemsEft.resize( 0 );
 	m_nShowTextCount = m_nForceFinishTick >= 0 ? m_elems.size() : Min<int32>( m_elems.size(), ( m_nTick - m_nTextAppearTime + m_nTypeInterval ) / m_nTypeInterval );
 	if( m_nForceFinishTick >= 0 )
@@ -969,8 +992,10 @@ void CTypeText::Update()
 		if( m_nEftFadeTime - m_nTick + m_nForceFinishTick <= 0 )
 		{
 			m_bFinished = true;
+			m_nFinishSymbolTick = 0;
 			if( m_pEnter )
 				m_pEnter->bVisible = true;
+			RefreshFinishSymbol();
 			return;
 		}
 	}
@@ -979,8 +1004,10 @@ void CTypeText::Update()
 	if( nCur == m_elems.size() - 1 && nTime <= 0 )
 	{
 		m_bFinished = true;
+		m_nFinishSymbolTick = 0;
 		if( m_pEnter )
 			m_pEnter->bVisible = true;
+		RefreshFinishSymbol();
 		return;
 	}
 	for( int i = nCur; i >= 0 && nTime > 0; i--, nTime -= m_nTypeInterval )
@@ -1026,6 +1053,7 @@ void CTypeText::Update()
 			m_pSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
 	}
 	m_nTick++;
+	RefreshFinishSymbol();
 }
 
 void CTypeText::SetParam( const CVector4& param )
@@ -1078,6 +1106,42 @@ void CTypeText::Render( CRenderContext2D& context )
 			static_cast<CImage2D*>( m_pEft->GetRenderObject() )->GetGUIParam( elem.pInstData, elem.nInstDataSize );
 		context.AddElement( &elem, nGroup );
 	}
+}
+
+void CTypeText::RefreshFinishSymbol()
+{
+	if( !IsFinished() || !m_nFinishSymbolType || !m_elems.size() )
+	{
+		m_extraElems.resize( 0 );
+		return;
+	}
+	if( m_nFinishSymbolTick < 15 )
+	{
+		auto rect = m_elems.back().elem.rect;
+		auto texRect = m_initTexRect;
+		rect.x += m_initTextBound.width;
+		m_extraElems.resize( 1 );
+		auto& elem = m_extraElems[0];
+		if( m_nFinishSymbolType == 1 )
+		{
+			rect.height *= 0.5f;
+			texRect.x += 15.0f / 16.0f;
+			texRect.y += 15.0f / 16.0f;
+			texRect.height *= 0.5f;
+		}
+		else
+		{
+			rect.height *= 0.5f;
+			texRect.x += 15.0f / 16.0f;
+			texRect.y += 14.0f / 16.0f;
+			texRect.height *= 0.5f;
+		}
+		elem.rect = rect;
+		elem.texRect = texRect;
+	}
+	else
+		m_extraElems.resize( 0 );
+	m_nFinishSymbolTick = ( m_nFinishSymbolTick + 1 ) % 30;
 }
 
 void CTypeText::AddElem( int32 i, float t )
@@ -1168,8 +1232,12 @@ void CLightningEffect::Render( CRenderContext2D& context )
 		return;
 	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
 
-	for( auto& elem : m_elems )
+	for( int i = 0; i < m_elems.size(); i++ )
 	{
+		auto& elem = m_elems[i];
+		int32 k = i % 3;
+		if( !!( m_nShowFlag & ( 1 << k ) ) )
+			continue;
 		elem.worldMat = globalTransform;
 		elem.SetDrawable( pDrawables[nPass] );
 		context.AddElement( &elem, nGroup );

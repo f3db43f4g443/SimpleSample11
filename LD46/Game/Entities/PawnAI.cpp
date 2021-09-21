@@ -3248,6 +3248,7 @@ void CPawnAIVortex::OnUpdate()
 	if( !m_pLuaState )
 		return;
 	auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+	auto pTempRef = m_pLuaState;
 	m_pLuaState->PushLua( this );
 	m_pLuaState->PushLua( pPawn );
 	bool b = m_pLuaState->Resume( 2, 0 );
@@ -3284,6 +3285,7 @@ void CPawnAIVortex::OnUpdate1()
 
 int32 CPawnAIVortex::Signal( int32 i )
 {
+	auto pTempRef = m_pLuaState;
 	if( m_strSignal.length() )
 	{
 		auto pLuaState = CLuaMgr::GetCurLuaState();
@@ -3347,6 +3349,7 @@ void CPawnAIVortex::SetEnabled( bool bEnabled )
 		auto pCoroutine = pLuaState->CreateCoroutine( m_strScript );
 		ASSERT( pCoroutine );
 		m_pLuaState = pCoroutine;
+		auto pTempRef = m_pLuaState;
 		m_pLuaState->PushLua( this );
 		m_pLuaState->PushLua( pPawn );
 		if( !m_pLuaState->Resume( 2, 0 ) )

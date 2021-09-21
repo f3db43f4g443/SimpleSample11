@@ -10,6 +10,7 @@
 #include "Common/DateTime.h"
 #include "MyLevel.h"
 #include "GlobalCfg.h"
+#include "SdkInterface.h"
 
 #include "Entities/EffectObject.h"
 
@@ -87,6 +88,9 @@ void CGame::Update()
 		SetCurState( &CMainGameState::Inst() );
 		m_bRestart = false;
 	}
+
+	if( ISdkInterface::Inst() )
+		ISdkInterface::Inst()->Update();
 }
 
 void CGame::SetCurState( IGameState * pGameState )
@@ -240,6 +244,13 @@ void CGame::ClearInputEvent()
 	m_char.Clear();
 	m_bIsMouseDown = m_bIsMouseUp = false;
 	m_bIsRightMouseDown = m_bIsRightMouseUp = false;
+}
+
+void CGame::ClearKeyInputEvent( int32 n )
+{
+	m_keyDown.SetBit( n, 0 );
+	m_keyUp.SetBit( n, 0 );
+	m_char.SetBit( n, 0 );
 }
 
 void Game_ShaderImplement_Dummy();

@@ -1,5 +1,15 @@
 Texture2D g_texTarget0;
 SamplerState g_samplerPointClamp;
+
+void PSRemap( in float4 inPos : SV_Position,
+	in float2 tex : TexCoord0,
+	out float4 outColor : SV_Target )
+{
+	float2 texTarget = tex;
+	float4 dst0 = g_texTarget0.Sample( g_samplerPointClamp, texTarget );
+	outColor = dst0;
+}
+
 float2 g_invViewportSize;
 
 void PSDistortion( in float4 inPos : SV_Position,

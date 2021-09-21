@@ -46,6 +46,7 @@ private:
 	void OnDstKilled();
 	int8 m_nKillType;
 	int8 m_nTargetEffectType;
+	bool m_bDeadEffect;
 	TObjRef<CEntity> m_pSrc;
 	TObjRef<CEntity> m_pDst;
 	CVector2 m_srcOfs;
@@ -455,6 +456,7 @@ private:
 	int32 m_nEftFrames;
 	CVector4 m_eftParam;
 	CVector4 m_invalidParam;
+	CString m_strScriptOpr;
 	CString m_strScriptInvalid;
 
 	CRectangle m_origTexRect;

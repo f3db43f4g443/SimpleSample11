@@ -178,6 +178,7 @@ protected:
 		CElement2D elem;
 	};
 	vector<SElem> m_elems;
+	vector<CElement2D> m_extraElems;
 	CReference<CRenderObject2D> m_pOrigRenderObject;
 	TClassTrigger<CSimpleText> m_onTick;
 };
@@ -191,6 +192,7 @@ public:
 	virtual void Set( const char* szText, int8 nAlign = 0, int32 nMaxLines = 0 ) override;
 	void SetTypeInterval( int32 n ) { m_nTypeInterval = n; }
 	void SetTypeSound( const char* sz, int32 nTextInterval );
+	void SetFinishSymbolType( int8 nType );
 	void ForceFinish();
 	bool IsFinished();
 	bool IsForceFinish() { return m_nForceFinishTick >= 0; }
@@ -198,6 +200,7 @@ public:
 	virtual void SetParam( const CVector4& param ) override;
 	virtual void Render( CRenderContext2D& context ) override;
 protected:
+	void RefreshFinishSymbol();
 	void AddElem( int32 i, float t );
 	int32 m_nTypeInterval;
 	int32 m_nEftFadeTime;
@@ -210,6 +213,8 @@ protected:
 	int32 m_nSpecial2Interval;
 
 	bool m_bFinished;
+	int8 m_nFinishSymbolType;
+	int8 m_nFinishSymbolTick;
 	CRectangle m_origRect;
 	int32 m_nTick;
 	int32 m_nForceFinishTick;
@@ -229,6 +234,7 @@ public:
 	void Set( const TVector2<int32>& target, int32 nDuration, float fStrength = 1.0f, float fTurbulence = 0.125f )
 	{ Set( &target, 1, nDuration, fStrength, fTurbulence ); }
 	void Set( const TVector2<int32>* pTargets, int32 nTargets, int32 nDuration, float fStrength = 1.0f, float fTurbulence = 0.125f );
+	void SetShowFlag( int8 nFlag ) { m_nShowFlag = nFlag; }
 	virtual void Render( CRenderContext2D& context ) override;
 	void Update();
 private:
@@ -240,6 +246,7 @@ private:
 	float m_fStrength;
 	float m_fTurbulence;
 	int32 m_nTick;
+	int8 m_nShowFlag;
 	CVector2 m_imgOfs;
 	vector<int8> m_vec;
 	vector<CElement2D> m_elems;

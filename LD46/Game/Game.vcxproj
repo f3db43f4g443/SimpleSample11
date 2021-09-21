@@ -454,6 +454,7 @@
     <ClInclude Include="Physics\HitProxy.h" />
     <ClInclude Include="Physics\HitProxyData.h" />
     <ClInclude Include="PostEffects.h" />
+    <ClInclude Include="SdkInterface.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="World.h" />

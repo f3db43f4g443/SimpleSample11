@@ -89,6 +89,8 @@ public:
 	CEntity* GetRoot() { return m_pEntityRoot; }
 	CMasterLevel* GetMasterLevel() { return m_pMasterLevel; }
 	CCamera2D& GetCamera() { return m_camera; }
+	CVector2 GetOrigCamSize() { return m_origCamSize; }
+	float GetPixelScale() { return m_fCamScale * 2; }
 
 	void AddStartPoint( CEntity* pEntity ) { m_mapStartPoints[pEntity->GetName().c_str()] = pEntity; }
 	CEntity* GetStartPoint( const char* szName )
@@ -111,6 +113,8 @@ private:
 	CReference<CEntity> m_pEntityRoot;
 	CReference<CMasterLevel> m_pMasterLevel;
 	CCamera2D m_camera;
+	CVector2 m_origCamSize;
+	float m_fCamScale;
 	map<string, CReference<CEntity> > m_mapStartPoints;
 	SStageEnterContext m_enterContext;
 

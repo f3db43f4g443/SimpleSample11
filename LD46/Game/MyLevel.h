@@ -95,18 +95,53 @@ struct SLevelEnvDesc
 	void OverlayToGrid( SLevelEnvGridDesc& grid, int32 nDist );
 };
 
+struct SLevelCamCtrlPoint
+{
+	SLevelCamCtrlPoint( const SClassCreateContext& context ) {}
+	float fWeight;
+	float fDamping;
+	CVector2 orig;
+	CVector2 g1, g2;
+	TArray<CVector3> arrPath;
+	TArray<CVector3> arrTangent;
+
+	void Offset( const CVector2& p )
+	{
+		orig = orig + p;
+		for( int i = 0; i < arrPath.Size(); i++ )
+		{
+			arrPath[i].x += p.x;
+			arrPath[i].y += p.y;
+		}
+	}
+};
+
+struct SLevelCamCtrlPointLink
+{
+	SLevelCamCtrlPointLink( const SClassCreateContext& context ) {}
+	int32 n1, n2;
+	CVector2 ofs1, ofs2;
+	float fStrength1;
+	float fStrength2;
+	
+	float l0;
+};
+
 class CLevelEnvEffect : public CEntity
 {
 	friend class CLevelToolsView;
 	friend class CLevelEnvTool;
 	friend void RegisterGameClasses_Level();
 public:
-	CLevelEnvEffect( const SClassCreateContext& context ) : CEntity( context ), m_fFade( 1 ) { SET_BASEOBJECT_ID( CLevelEnvEffect ); }
+	CLevelEnvEffect( const SClassCreateContext& context ) : CEntity( context ), m_ctrlPoint1( context ), m_ctrlPoint2( context ),
+		m_fFade( 1 ) { SET_BASEOBJECT_ID( CLevelEnvEffect ); }
 
 	virtual void OnAddedToStage() override { Init(); }
+	virtual void OnRemovedFromStage() override { m_pLevel = NULL; }
 	virtual bool IsPreview() override { return true; }
 	virtual void OnPreview() override { Init(); }
 	void Init();
+	void SetLevel( class CMyLevel* pLevel ) { m_pLevel = pLevel; }
 	virtual void UpdateRendered( double dTime ) override;
 	virtual void Render( CRenderContext2D& context ) override;
 	void Resize( const TRectangle<int32>& rect );
@@ -124,11 +159,29 @@ public:
 	bool IsCustomBattleEffectBackColor() { return m_bCustomBattleEffectBackColor; }
 	CVector3 GetBackColor() { return m_backColor; }
 	CVector3 GetBattleEffectBackColor() { return m_battleEffectBackColor; }
+
+	bool IsCtrlPointValid() { return m_bCtrlPointValid; }
+	void InitCtrlPoints();
+	void InitCtrlPointsState( float x, float y, float r, float s, bool bNoReset = false );
+	void UpdateCtrlPoints();
+	CVector4 GetCtrlPointsTrans();
+
+	void OnPlayerAction( CPlayer* pPlayer );
+	void OnPlayerMoveBegin( CPlayer* pPlayer );
+	void OnPlayerMoveEnd( CPlayer* pPlayer );
+	void OnEnemyMoveBegin( CPawn* pEnemy );
+	void OnEnemyMoveEnd( CPawn* pEnemy );
+	void OnLevelAlert( CPawn* pPawn, int32 x, int32 y );
+
+	float GetCtrlPointOrigX( int32 nIndex );
+	float GetCtrlPointOrigY( int32 nIndex );
+	void ApplyForce( int32 nIndex, int8 nType, float fForceX, float fForceY, int32 nDuration, int8 nFadeType );
 private:
 	CVector3 m_gamma;
 	CVector3 m_colorTranspose[3];
 	bool m_bOverrideBackColor;
 	bool m_bCustomBattleEffectBackColor;
+	bool m_bCtrlPointValid;
 	CVector3 m_backColor;
 	CVector3 m_battleEffectBackColor;
 	TArray<SLevelEnvDesc> m_arrEnvDescs;
@@ -138,6 +191,38 @@ private:
 	CVector2 m_gridOfs;
 	float m_fScenarioFade;
 	CString m_strCondition;
+	float m_fCtrlPointTransRemoveRot;
+	SLevelCamCtrlPoint m_ctrlPoint1, m_ctrlPoint2;
+	TArray<SLevelCamCtrlPoint> m_arrCtrlPoint;
+	TArray<SLevelCamCtrlPointLink> m_arrCtrlLink;
+	CString m_strCommonEvtScript;
+
+	CMyLevel* m_pLevel;
+	struct SCtrlPointState
+	{
+		CVector2 p;
+		CVector2 v;
+		CVector2 f1;
+		CVector2 f2;
+		int32 nCurFrame;
+		vector<CVector2> vecFrames;
+		CElement2D elemDebugDraw;
+		CVector4 debugDrawParam[2];
+		CVector2 GetCurPos() { if( vecFrames.size() ) return p + vecFrames[nCurFrame]; return p; }
+	};
+	vector<SCtrlPointState> m_vecCtrlPointStates;
+	struct SExtraForce
+	{
+		int32 nIndex;
+		int8 nType;
+		CVector2 force;
+		int32 nDuration;
+		int8 nFadeType;
+
+		int32 nTimeLeft;
+	};
+	vector<SExtraForce> m_vecExtraForces;
+	CReference<CLuaState> m_pCommonEvt;
 
 	struct SElem
 	{
@@ -151,6 +236,7 @@ private:
 	CElement2D m_dummyElem;
 	float m_fFade;
 	bool m_bScenarioFade;
+	bool m_bCtrlPointsInited;
 };
 
 struct SLevelNextStageData
@@ -314,7 +400,7 @@ public:
 	bool IsGridBlockSight( const TVector2<int32>& p );
 	bool PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForceCheckType = 0, int32 nMoveFlag = 0, bool bBlockEft = true );
 	void PawnMoveEnd( CPawn* pPawn );
-	void PawnMoveBreak( CPawn* pPawn );
+	void PawnMoveBreak( CPawn* pPawn, bool bInState = false );
 	void PawnDeath( CPawn* pPawn );
 	bool PawnTransform( CPawn* pPawn, int32 nForm, const TVector2<int32>& ofs, bool bBlockEft = true );
 	bool IsPawnInTile( CPawn* pPawn, int32 nTile );
@@ -477,7 +563,11 @@ public:
 	void EndScenario();
 	bool IsScenario() { return m_bScenario; }
 	void ScenarioText( int8 n, const char* sz, const CVector4& color, int32 nFinishDelay = 0, int32 nSpeed = 1, const char* szSound = "", int32 nSoundInterval = 1 );
+	void ScenarioWaitInput();
+	bool IsScenarioWaitInput() { return m_bScenarioWaitInput; }
+	void FinishWaitInput() { m_bScenarioWaitInput = false; }
 	bool IsScenarioTextFinished();
+	bool IsScenarioTextFinished0();
 	void HeadText( const char* sz, const CVector4& color, int32 nTime = 0, const char* szSound = "", int32 nSoundInterval = 1, bool bImportant = false );
 	void ShowFailEft( bool b );
 	void ShowFreezeEft( int32 nLevel );
@@ -508,7 +598,18 @@ private:
 	CRectangle m_origRect;
 	CVector2 m_playerInputOrig;
 	CVector2 m_iconOrig;
+	CVector2 m_pos0;
+	int8 m_nPlayerActionType;
 	int32 m_nPlayerActionFrame;
+	struct SPlayerActionItem
+	{
+		int32 nSeed;
+		float y0a, y0b;
+		float y1a[3], y1b[3];
+		CVector4 params[3][2];
+	};
+	int32 m_nPlayerActionSeed;
+	SPlayerActionItem m_playerActionItems[3];
 	vector<CElement2D> m_vecPlayerActionElems;
 	vector<CVector4> m_vecPlayerActionElemParams;
 	struct SInputItem
@@ -521,8 +622,10 @@ private:
 	float m_fLabelX;
 	vector<CReference<CRenderObject2D> > m_vecLabels;
 	vector<CReference<CEntity> > m_vecLabelCounters;
+	bool m_bDrawEffectFirst;
 	bool m_bScenario;
 	int8 m_nLastScenarioText;
+	bool m_bScenarioWaitInput;
 	bool m_bResetFreezeEft;
 	int32 m_nScenarioTextFinishDelay;
 	int32 m_nHeadTextTime;
@@ -686,7 +789,7 @@ class CMasterLevel : public CEntity
 {
 	friend void RegisterGameClasses_Level();
 public:
-	CMasterLevel( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CMasterLevel ); }
+	CMasterLevel( const SClassCreateContext& context ) : CEntity( context ), m_levelTrans( 0, 0, 0, 1 ) { SET_BASEOBJECT_ID( CMasterLevel ); }
 
 	virtual void OnAddedToStage() override;
 	void NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir );
@@ -749,14 +852,19 @@ public:
 	bool IsBlackOut() { return m_nBlackOutFrame1 > 0; }
 	void InterferenceStripEffect( int8 nType, float fSpeed );
 	void SetGlobalBGM( const char* sz, int32 nPriority );
+	void OnSetEnvEffect( CLevelEnvEffect* pEffect );
 
 	CVector2 GetCamPos();
 	void OnPlayerDamaged();
 	void Update();
 private:
 	int32 CalcSnapShotMaskParam( CVector4* pParams );
+	void UpdateMarkLayer();
 	void UpdateBackground();
 	void UpdateColorAdjust( bool bJump = false );
+	void UpdateCtrlPoints( bool bUpdate, float fWeight = 1 );
+	void UpdateLevelTrans();
+	void UpdateLevelEnvTrans( CMyLevel* pLevel );
 	void CheckBGM();
 	void UpdateBGM();
 	const char* GetCurBGM();
@@ -794,6 +902,8 @@ private:
 	CReference<CEntity> m_pLevelFadeMask;
 	CReference<CEntity> m_pSnapShotRoot;
 	CReference<CRenderObject2D> m_pBattleEffect;
+	CReference<CRenderObject2D> m_pUpsampleLayer;
+	CReference<CEntity> m_pMarkLayer;
 	CReference<CEntity> m_pMenu;
 	CReference<CEntity> m_pMenuItem[5];
 	CReference<CRenderObject2D> m_pColorAdjust;
@@ -820,11 +930,17 @@ private:
 	map<string, CReference<CMyLevel> > m_mapSnapShot;
 	set<string> m_setShowingSnapShot;
 	vector<CReference<CRenderObject2D> > m_vecBackScenarioMask;
-
+	struct SMark
+	{
+		CVector2 p;
+	};
+	vector<SMark> m_vecMarks;
+	vector<CReference<CRenderObject2D> > m_vecMarkImgs;
+	bool m_bMarkDirty;
+	bool m_bInteractionUIInit;
 	CReference<CEntity> m_pInteractionUI;
 	CReference<CPawn> m_pInteractionUIPawn;
 	string m_strInteractionUI;
-	bool m_bInteractionUIInit;
 	int32 m_nBlackOutFrame1, m_nBlackOutFrame2;
 	CReference<CEntity> m_pInterferenceStripEffect;
 	CVector4 m_backParam[2];
@@ -845,6 +961,7 @@ private:
 		}
 	};
 	SColorAdjust m_curColorAdjust;
+	CVector4 m_levelTrans;
 
 	class ICoroutine* m_pTransferCoroutine;
 	CReference<CPrefab> m_pTransferTo;

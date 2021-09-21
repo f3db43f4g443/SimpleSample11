@@ -4,6 +4,7 @@
 #include "Common/DateTime.h"
 #include "Common/Rand.h"
 #include <Windows.h>
+#include "Platform_Common.h"
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
@@ -18,9 +19,13 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 	pRenderSystem->SetRenderer( new CSimpleRenderer );
 	pRenderSystem->CreateDevice( context );
 
+	Init_PlatformSDK();
+
 	InitGame();
 	CGame::Inst().SetCurState( &CMainGameState::Inst() );
 	pRenderSystem->SetGame( &CGame::Inst() );
 	pRenderSystem->Start();
+
+	Shutdown_PlatformSDK();
 	exit( 0 );
 }

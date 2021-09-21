@@ -915,6 +915,7 @@ public:
 		m_onImport.Set( this, &CLevelEnvTool::OnImport );
 		m_onImport1.Set( this, &CLevelEnvTool::OnImport1 );
 		m_onImport2.Set( this, &CLevelEnvTool::OnImport2 );
+		m_onImport3.Set( this, &CLevelEnvTool::OnImport3 );
 		m_onImportOK.Set( this, &CLevelEnvTool::OnImportOK );
 		auto pImport = GetChildByName<CUIElement>( "import" );
 		pImport->Register( eEvent_Action, &m_onImport );
@@ -922,6 +923,8 @@ public:
 		pImport1->Register( eEvent_Action, &m_onImport1 );
 		auto pImport2 = GetChildByName<CUIElement>( "import2" );
 		pImport2->Register( eEvent_Action, &m_onImport2 );
+		auto pImport3 = GetChildByName<CUIElement>( "import3" );
+		pImport3->Register( eEvent_Action, &m_onImport3 );
 		m_pNodeView = GetChildByName<CUITreeView>( "node_view" );
 		m_onNodeObjDataChanged.Set( this, &CLevelEnvTool::OnCurNodeObjDataChanged );
 	}
@@ -984,10 +987,13 @@ public:
 	void OnImport();
 	void OnImport1();
 	void OnImport2();
+	void OnImport3();
 	void OnImportOK( const char* szText );
 
 	void UpdateDrag( class CUIViewport* pViewport, const TVector2<int32>& p );
 private:
+	void DebugDrawCtrlPoint( IRenderSystem* pRenderSystem, CUIViewport* pViewport, const SLevelCamCtrlPoint& p, int8 nType );
+	void DebugDrawCtrlLink( IRenderSystem* pRenderSystem, CUIViewport* pViewport, const SLevelCamCtrlPointLink& l, const SLevelCamCtrlPoint& p1, const SLevelCamCtrlPoint& p2 );
 	void RefreshMasks();
 	void SelectEnvNode( int32 n );
 	void OnLayerScript();
@@ -995,6 +1001,7 @@ private:
 	void OnLayerScriptText();
 	void OnCurNodeObjDataChanged( int32 nAction );
 
+	int m_nOprType;
 	int32 m_nCurSelectedValue;
 	vector<CReference<CPrefabNode> > m_vecEnvNodes;
 	int32 m_nEnvNode;
@@ -1011,6 +1018,7 @@ private:
 	TClassTrigger<CLevelEnvTool> m_onImport;
 	TClassTrigger<CLevelEnvTool> m_onImport1;
 	TClassTrigger<CLevelEnvTool> m_onImport2;
+	TClassTrigger<CLevelEnvTool> m_onImport3;
 	TClassTrigger1<CLevelEnvTool, const char*> m_onImportOK;
 	TClassTrigger<CLevelEnvTool> m_onLayerScript;
 	TClassTrigger1<CLevelEnvTool, const wchar_t*> m_onLayerScriptEditOK;
@@ -1022,87 +1030,107 @@ void CLevelEnvTool::OnDebugDraw( IRenderSystem* pRenderSystem, CUIViewport* pVie
 {
 	auto mousePos = GetView()->GetViewportMousePos();
 	auto pObj = GetData();
-	TVector2<int32> p( floor( ( mousePos.x - pObj->m_gridOfs.x ) / pObj->m_gridSize.x ),
-		floor( ( mousePos.y - pObj->m_gridOfs.y ) / pObj->m_gridSize.y ) );
-	CVector2 ofs[4] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
+	if( m_nOprType == 0 )
 	{
-		auto a = pObj->m_gridOfs;
-		auto b = CVector2( pObj->m_nWidth, pObj->m_nHeight ) * pObj->m_gridSize;
-		if( m_nDragType > 0 )
+		TVector2<int32> p( floor( ( mousePos.x - pObj->m_gridOfs.x ) / pObj->m_gridSize.x ),
+			floor( ( mousePos.y - pObj->m_gridOfs.y ) / pObj->m_gridSize.y ) );
+		CVector2 ofs[4] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0, 0 } };
 		{
-			a = a + CVector2( m_newSize.x, m_newSize.y ) * pObj->m_gridSize;
-			b = CVector2( m_newSize.width, m_newSize.height ) * pObj->m_gridSize;
-		}
-		for( int j = 0; j < 4; j++ )
-		{
-			auto pt1 = a + b * ofs[j];
-			auto pt2 = a + b * ofs[( j + 1 ) % 4];
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.4f, 1, 0.8f, 1 ) );
-		}
-		{
-			auto pt1 = a + CVector2( 0, b.y * 0.5f );
-			auto pt2 = pt1 + CVector2( -32, 0 );
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
-		}
-		{
-			auto pt1 = a + CVector2( b.x * 0.5f, 0 );
-			auto pt2 = pt1 + CVector2( 0, -32 );
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
-		}
-		{
-			auto pt1 = a + CVector2( b.x, b.y * 0.5f );
-			auto pt2 = pt1 + CVector2( 32, 0 );
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
-		}
-		{
-			auto pt1 = a + CVector2( b.x * 0.5f, b.y );
-			auto pt2 = pt1 + CVector2( 0, 32 );
-			pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
-		}
-	}
-	if( p.x < 0 || p.y < 0 || p.x >= pObj->m_nWidth || p.y >= pObj->m_nHeight )
-		return;
-
-	CVector4 colors[] = { { 1, 1, 0, 1 }, { 0, 1, 1, 1 }, { 1, 0, 1, 1 }, { 1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 } };
-	CRectangle rect( p.x * pObj->m_gridSize.x + pObj->m_gridOfs.x, p.y * pObj->m_gridSize.y + pObj->m_gridOfs.y, pObj->m_gridSize.x, pObj->m_gridSize.y );
-	CVector4 color( 0.5f, 0.5f, 0.5f, 1 );
-	if( m_nCurSelectedValue > 0 )
-		color = colors[( m_nCurSelectedValue - 1 ) % ELEM_COUNT( colors )];
-	else if( m_nCurSelectedValue < 0 )
-		color = CVector4( 0.2f, 0.2f, 0.2f, 1 );
-
-	CVector2 a( rect.x, rect.y );
-	auto b = rect.GetSize();
-	for( int j = 0; j < 4; j++ )
-	{
-		auto pt1 = a + b * ofs[j];
-		auto pt2 = a + b * ofs[( j + 1 ) % 4];
-		pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
-	}
-	color.w *= 0.5f;
-	TVector2<int32> d[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
-	for( int i = 0; i < pObj->m_nWidth; i++ )
-	{
-		for( int j = 0; j < pObj->m_nHeight; j++ )
-		{
-			auto& grid = pObj->m_arrEnvMap[i + j * pObj->m_nWidth];
-			ASSERT( m_pEftPreviewNode->m_arrEnvMap[i + j * pObj->m_nWidth] == grid );
-			if( grid != m_nCurSelectedValue )
-				continue;
-			CVector2 a( i * pObj->m_gridSize.x + pObj->m_gridOfs.x - 2, j * pObj->m_gridSize.y + pObj->m_gridOfs.y - 2 );
-			CVector2 b( pObj->m_gridSize.x + 4, pObj->m_gridSize.y + 4 );
-			for( int k = 0; k < 4; k++ )
+			auto a = pObj->m_gridOfs;
+			auto b = CVector2( pObj->m_nWidth, pObj->m_nHeight ) * pObj->m_gridSize;
+			if( m_nDragType > 0 )
 			{
-				auto x = i + d[k].x;
-				auto y = j + d[k].y;
-				if( x < 0 || y < 0 || x >= pObj->m_nWidth || y >= pObj->m_nHeight )
-					continue;
-				if( pObj->m_arrEnvMap[x + y * pObj->m_nWidth] == m_nCurSelectedValue )
-					continue;
-				auto pt1 = a + b * ofs[k];
-				auto pt2 = a + b * ofs[( k + 1 ) % 4];
+				a = a + CVector2( m_newSize.x, m_newSize.y ) * pObj->m_gridSize;
+				b = CVector2( m_newSize.width, m_newSize.height ) * pObj->m_gridSize;
+			}
+			for( int j = 0; j < 4; j++ )
+			{
+				auto pt1 = a + b * ofs[j];
+				auto pt2 = a + b * ofs[( j + 1 ) % 4];
+				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.4f, 1, 0.8f, 1 ) );
+			}
+			{
+				auto pt1 = a + CVector2( 0, b.y * 0.5f );
+				auto pt2 = pt1 + CVector2( -32, 0 );
+				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
+			}
+			{
+				auto pt1 = a + CVector2( b.x * 0.5f, 0 );
+				auto pt2 = pt1 + CVector2( 0, -32 );
+				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
+			}
+			{
+				auto pt1 = a + CVector2( b.x, b.y * 0.5f );
+				auto pt2 = pt1 + CVector2( 32, 0 );
+				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
+			}
+			{
+				auto pt1 = a + CVector2( b.x * 0.5f, b.y );
+				auto pt2 = pt1 + CVector2( 0, 32 );
+				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, CVector4( 0.8f, 0.8f, 0.2f, 1 ) );
+			}
+		}
+		if( p.x >= 0 && p.y >= 0 && p.x < pObj->m_nWidth && p.y < pObj->m_nHeight )
+		{
+			CVector4 colors[] = { { 1, 1, 0, 1 }, { 0, 1, 1, 1 }, { 1, 0, 1, 1 }, { 1, 0, 0, 1 }, { 0, 1, 0, 1 }, { 0, 0, 1, 1 } };
+			CRectangle rect( p.x * pObj->m_gridSize.x + pObj->m_gridOfs.x, p.y * pObj->m_gridSize.y + pObj->m_gridOfs.y, pObj->m_gridSize.x, pObj->m_gridSize.y );
+			CVector4 color( 0.5f, 0.5f, 0.5f, 1 );
+			if( m_nCurSelectedValue > 0 )
+				color = colors[( m_nCurSelectedValue - 1 ) % ELEM_COUNT( colors )];
+			else if( m_nCurSelectedValue < 0 )
+				color = CVector4( 0.2f, 0.2f, 0.2f, 1 );
+
+			CVector2 a( rect.x, rect.y );
+			auto b = rect.GetSize();
+			for( int j = 0; j < 4; j++ )
+			{
+				auto pt1 = a + b * ofs[j];
+				auto pt2 = a + b * ofs[( j + 1 ) % 4];
 				pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
 			}
+			color.w *= 0.5f;
+			TVector2<int32> d[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+			for( int i = 0; i < pObj->m_nWidth; i++ )
+			{
+				for( int j = 0; j < pObj->m_nHeight; j++ )
+				{
+					auto& grid = pObj->m_arrEnvMap[i + j * pObj->m_nWidth];
+					ASSERT( m_pEftPreviewNode->m_arrEnvMap[i + j * pObj->m_nWidth] == grid );
+					if( grid != m_nCurSelectedValue )
+						continue;
+					CVector2 a( i * pObj->m_gridSize.x + pObj->m_gridOfs.x - 2, j * pObj->m_gridSize.y + pObj->m_gridOfs.y - 2 );
+					CVector2 b( pObj->m_gridSize.x + 4, pObj->m_gridSize.y + 4 );
+					for( int k = 0; k < 4; k++ )
+					{
+						auto x = i + d[k].x;
+						auto y = j + d[k].y;
+						if( x < 0 || y < 0 || x >= pObj->m_nWidth || y >= pObj->m_nHeight )
+							continue;
+						if( pObj->m_arrEnvMap[x + y * pObj->m_nWidth] == m_nCurSelectedValue )
+							continue;
+						auto pt1 = a + b * ofs[k];
+						auto pt2 = a + b * ofs[( k + 1 ) % 4];
+						pViewport->DebugDrawLine( pRenderSystem, pt1, pt2, color );
+					}
+				}
+			}
+		}
+	}
+	//else if( m_nOprType == 1 )
+	{
+		DebugDrawCtrlPoint( pRenderSystem, pViewport, pObj->m_ctrlPoint1, 0 );
+		DebugDrawCtrlPoint( pRenderSystem, pViewport, pObj->m_ctrlPoint2, 0 );
+		for( int i = 0; i < pObj->m_arrCtrlPoint.Size(); i++ )
+			DebugDrawCtrlPoint( pRenderSystem, pViewport, pObj->m_arrCtrlPoint[i], 1 );
+		for( int i = 0; i < pObj->m_arrCtrlLink.Size(); i++ )
+		{
+			auto& link = pObj->m_arrCtrlLink[i];
+			if( link.n1 < -2 || link.n1 >= (int32)pObj->m_arrCtrlPoint.Size() || link.n2 < -2 || link.n2 >= (int32)pObj->m_arrCtrlPoint.Size() )
+				continue;
+			auto& p1 = link.n1 == -2 ? pObj->m_ctrlPoint1 : ( link.n1 == -1 ? pObj->m_ctrlPoint2 : pObj->m_arrCtrlPoint[link.n1] );
+			auto& p2 = link.n2 == -2 ? pObj->m_ctrlPoint1 : ( link.n2 == -1 ? pObj->m_ctrlPoint2 : pObj->m_arrCtrlPoint[link.n2] );
+
+			DebugDrawCtrlLink( pRenderSystem, pViewport, link, p1, p2 );
 		}
 	}
 }
@@ -1265,6 +1293,12 @@ void CLevelEnvTool::OnImport2()
 	CFileSelectDialog::Inst()->Show( "pf", &m_onImportOK );
 }
 
+void CLevelEnvTool::OnImport3()
+{
+	m_nImportType = 3;
+	CFileSelectDialog::Inst()->Show( "pf", &m_onImportOK );
+}
+
 void CLevelEnvTool::OnImportOK( const char* szText )
 {
 	if( szText )
@@ -1307,6 +1341,23 @@ void CLevelEnvTool::OnImportOK( const char* szText )
 				pData->m_backColor = pObj->m_backColor;
 				pData->m_battleEffectBackColor = pObj->m_battleEffectBackColor;
 			}
+			if( m_nImportType == 0 || m_nImportType == 3 )
+			{
+				auto ofs = GetLevelData()->GetCamPos() - ( (CMyLevel*)pPrefab->GetRoot()->GetObjData() )->GetCamPos();
+				pData->m_bCtrlPointValid = pObj->m_bCtrlPointValid;
+				pData->m_fCtrlPointTransRemoveRot = pObj->m_fCtrlPointTransRemoveRot;
+				pData->m_ctrlPoint1 = pObj->m_ctrlPoint1;
+				pData->m_ctrlPoint2 = pObj->m_ctrlPoint2;
+				pData->m_arrCtrlPoint = pObj->m_arrCtrlPoint;
+				pData->m_arrCtrlLink = pObj->m_arrCtrlLink;
+				pData->m_strCommonEvtScript = pObj->m_strCommonEvtScript;
+				pData->m_ctrlPoint1.Offset( ofs );
+				pData->m_ctrlPoint2.Offset( ofs );
+				for( int i = 0; i < pData->m_arrCtrlPoint.Size(); i++ )
+				{
+					pData->m_arrCtrlPoint[i].Offset( ofs );
+				}
+			}
 
 			m_pEftPreviewNode->RemoveThis();
 			m_pEnvNode->OnEdit();
@@ -1331,6 +1382,44 @@ void CLevelEnvTool::UpdateDrag( CUIViewport* pViewport, const TVector2<int32>& p
 	grid = m_nCurSelectedValue;
 	m_pEftPreviewNode->m_arrEnvMap[p.x + p.y * pEnvData->m_nWidth] = m_nCurSelectedValue;
 	m_pEftPreviewNode->Init();
+}
+
+void CLevelEnvTool::DebugDrawCtrlPoint( IRenderSystem* pRenderSystem, CUIViewport* pViewport, const SLevelCamCtrlPoint& p, int8 nType )
+{
+	CVector2 verts0[6] = { { -1, -1 }, { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 }, { 1, 1 } };
+	CVector2 verts[6];
+	for( int i = 0; i < ELEM_COUNT( verts ); i++ )
+		verts[i] = verts0[i] * 8 + p.orig;
+	pViewport->DebugDrawTriangles( pRenderSystem, 6, verts, CVector4( 0.3f, 0.5f, 0.8f, 1 ) );
+	for( int i = 0; i < p.arrPath.Size(); i++ )
+	{
+		auto p1 = p.arrPath[i];
+		auto p2 = p.arrPath[( i + 1 ) % p.arrPath.Size()];
+
+		for( int i = 0; i < ELEM_COUNT( verts ); i++ )
+			verts[i] = verts0[i] * 4 + CVector2( p1.x, p1.y );
+		pViewport->DebugDrawTriangles( pRenderSystem, 6, verts, CVector4( 0.4f, 0.8f, 0.3f, 1 ) );
+		pViewport->DebugDrawLine( pRenderSystem, CVector2( p1.x, p1.y ), CVector2( p2.x, p2.y ), CVector4( 0.4f, 0.8f, 0.3f, 0.5f ) );
+		if( i == 0 )
+			pViewport->DebugDrawLine( pRenderSystem, CVector2( p1.x, p1.y ), p.orig, CVector4( 0.3f, 0.5f, 0.8f, 0.5f ) );
+
+		if( i < p.arrTangent.Size() )
+		{
+			auto t = p.arrTangent[i];
+			pViewport->DebugDrawLine( pRenderSystem, CVector2( p1.x, p1.y ), CVector2( p1.x + t.x, p1.y + t.y ), CVector4( 0.3f, 0.8f, 0.6f, 0.4f ) );
+		}
+	}
+}
+
+void CLevelEnvTool::DebugDrawCtrlLink( IRenderSystem* pRenderSystem, CUIViewport* pViewport, const SLevelCamCtrlPointLink& l, const SLevelCamCtrlPoint& p1, const SLevelCamCtrlPoint& p2 )
+{
+	auto a = p1.orig + l.ofs1;
+	auto b = p2.orig + l.ofs2;
+	auto d1 = b - a;
+	d1.Normalize();
+	d1 = CVector2( d1.y, -d1.x ) * 2;
+	pViewport->DebugDrawLine( pRenderSystem, a + d1, b + d1, CVector4( 0.8f, 0.7f, 0.2f, 1 ) );
+	pViewport->DebugDrawLine( pRenderSystem, a - d1, b - d1, CVector4( 0.8f, 0.7f, 0.2f, 1 ) );
 }
 
 void CLevelEnvTool::RefreshMasks()

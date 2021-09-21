@@ -67,16 +67,10 @@ public:
 	{
 		struct SActionEftFrame
 		{
-			struct SImgParam
-			{
-				CVector3& v() { return *( CVector3* )this; }
-				float fOfs;
-				float fLum;
-				float fOpaque;
-			};
-			SImgParam params[6];
-			int32 nTotalHeight, nMaxImgHeight;
+			int32 nMaxImgHeight;
+			float fMul, fAdd, fOfs;
 		};
+		int32 nActionEftFramesTick;
 		vector<SActionEftFrame> vecActionEftFrames;
 		struct SPlayerInputParam
 		{
@@ -88,6 +82,8 @@ public:
 	vector<pair<CVector4, CVector4> > playerDamagedMask;
 	vector<pair<CVector4, CVector4> > showSnapShotMask;
 	vector<pair<CVector4, CVector4> > battleEffectMask;
+
+	string strEnemyDeadFailScript;
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGlobalCfg );
 };

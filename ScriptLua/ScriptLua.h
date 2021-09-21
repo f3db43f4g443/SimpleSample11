@@ -309,10 +309,36 @@ public:
 			C.Func = [pMgr, Func] ( void* p ) { return ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); }; \
 		} \
 	}; \
+	template <typename TRet, typename TThis TYPENAME_SEQ1> \
+	struct SLuaCImpl<false, TRet( TThis::* )( TN_SEQ ) const> \
+	{ \
+		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, TRet( TThis::*Func )( TN_SEQ ) const ) \
+		{ \
+			C.Func = [pMgr, Func] ( void* p ) { PushLua( p, ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ) ); return 1; }; \
+		} \
+	}; \
+	template <typename TThis TYPENAME_SEQ1> \
+	struct SLuaCImpl<true, void( TThis::* )( TN_SEQ ) const> \
+	{ \
+		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, void( TThis::*Func )( TN_SEQ ) const ) \
+		{ \
+			C.Func = [pMgr, Func] ( void* p ) { ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); return 0; }; \
+		} \
+	}; \
+	template <typename TThis TYPENAME_SEQ1> \
+	struct SLuaCImplRetUnWr<int32( TThis::* )( TN_SEQ ) const> \
+	{ \
+		static void Init( CLuaMgr* pMgr, SLuaCFunction& C, int32( TThis::*Func )( TN_SEQ ) const ) \
+		{ \
+			C.Func = [pMgr, Func] ( void* p ) { return ( FetchLua<TThis*>( p, 1 )->*Func )( FETCHLUA_SEQ1 ); }; \
+		} \
+	}; \
 	template<typename TRet TYPENAME_SEQ1> \
 	static constexpr bool is_ret_void<TRet(*)( TN_SEQ )> = is_void<TRet>::value; \
 	template<typename TRet, typename TThis TYPENAME_SEQ1> \
-	static constexpr bool is_ret_void<TRet( TThis::* )( TN_SEQ )> = is_void<TRet>::value;
+	static constexpr bool is_ret_void<TRet( TThis::* )( TN_SEQ )> = is_void<TRet>::value; \
+	template<typename TRet, typename TThis TYPENAME_SEQ1> \
+	static constexpr bool is_ret_void<TRet( TThis::* )( TN_SEQ ) const> = is_void<TRet>::value;
 
 #define LUA_MACRODEF_LUACIMPL( __n ) LUA_MACRODEF_LUACIMPL_( LUA_MACRO_TN_SEQ( __n ), LUA_MACRO_TYPENAME_TN_SEQ( __n ), LUA_MACRO_TYPENAME1_TN_SEQ( __n ), LUA_MACRO_FETCHLUA_TN_SEQ( __n )( 0 ), LUA_MACRO_FETCHLUA_TN_SEQ( __n )( 1 ) )
 

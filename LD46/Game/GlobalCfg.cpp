@@ -185,20 +185,15 @@ void CGlobalCfg::Load()
 
 	auto pGUI = doc.RootElement()->FirstChildElement( "main_ui" );
 	{
+		MainUIData.nActionEftFramesTick = XmlGetAttr( pGUI->FirstChildElement( "action_eft_frames" ), "tick", 0 );
 		for( auto pFrame = pGUI->FirstChildElement( "action_eft_frames" )->FirstChildElement(); pFrame; pFrame = pFrame->NextSiblingElement() )
 		{
 			MainUIData.vecActionEftFrames.resize( MainUIData.vecActionEftFrames.size() + 1 );
 			auto& frame = MainUIData.vecActionEftFrames.back();
-			frame.nTotalHeight = XmlGetAttr( pFrame, "total_height", 0 );
 			frame.nMaxImgHeight = XmlGetAttr( pFrame, "max_img_height", 0 );
-			int32 i = 0;
-			for( auto pParam = pFrame->FirstChildElement(); pParam && i < 6; pParam = pParam->NextSiblingElement(), i++ )
-			{
-				auto& param = frame.params[i];
-				param.fOfs = XmlGetAttr( pParam, "ofs", 0.0f );
-				param.fLum = XmlGetAttr( pParam, "lum", 0.0f );
-				param.fOpaque = XmlGetAttr( pParam, "opaque", 0.0f );
-			}
+			frame.fAdd = XmlGetAttr( pFrame, "add", 0.0f );
+			frame.fMul = XmlGetAttr( pFrame, "mul", 0.0f );
+			frame.fOfs = XmlGetAttr( pFrame, "ofs", 0.0f );
 		}
 		for( auto pItem = pGUI->FirstChildElement( "player_input_params" )->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
 		{
@@ -302,6 +297,10 @@ void CGlobalCfg::Load()
 			battleEffectMask[nItems + i].first = param[0] + ( param0[0] - param[0] ) * t;
 			battleEffectMask[nItems + i].second = param[1] + ( param0[1] - param[1] ) * t;
 		}
+	}
+	{
+		auto p = doc.RootElement()->FirstChildElement( "scripts" );
+		strEnemyDeadFailScript = XmlGetValue( p, "enemy_dead", "" );
 	}
 
 	if( szLuaStart[0] )

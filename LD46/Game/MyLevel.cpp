@@ -42,6 +42,8 @@ void CLevelEnvEffect::Init()
 {
 	SetRenderObject( NULL );
 	m_elems.resize( 0 );
+	if( !m_arrEnvMap.Size() || !m_nWidth || !m_nHeight )
+		return;
 	vector<SLevelEnvGridDesc> vecGridDescs;
 	vecGridDescs.resize( m_nWidth * m_nHeight );
 	vector<int32> vecDist;
@@ -169,6 +171,21 @@ void CLevelEnvEffect::Render( CRenderContext2D & context )
 		return;
 	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
 
+	/*auto pMasterLevel = m_pLevel->GetMasterLevel();
+	if( pMasterLevel )
+	{
+		CMatrix2D mat;
+		mat.Identity();
+		auto cam = pMasterLevel->GetCamPos();
+		auto fScale = pMasterLevel->GetStage()->GetPixelScale();
+		mat.Transform( cam.x * ( 1 - fScale ), cam.y * ( 1 - fScale ), 0, fScale );
+		for( auto& state : m_vecCtrlPointStates )
+		{
+			state.elemDebugDraw.worldMat = mat;
+			state.elemDebugDraw.SetDrawable( pDrawables[nPass] );
+			context.AddElement( &state.elemDebugDraw, nGroup );
+		}
+	}*/
 	for( auto& elem : m_elems )
 	{
 		elem.elem.worldMat = globalTransform;
@@ -209,6 +226,353 @@ void CLevelEnvEffect::Clear()
 void CLevelEnvEffect::Fill( int8 n, const TVector2<int32>& p )
 {
 	FloodFill( &m_arrEnvMap[0], m_nWidth, m_nHeight, p.x, p.y, n );
+}
+
+void CLevelEnvEffect::InitCtrlPoints()
+{
+	if( !m_bCtrlPointValid )
+		return;
+	if( m_bCtrlPointsInited )
+		return;
+	m_bCtrlPointsInited = true;
+	m_vecCtrlPointStates.resize( m_arrCtrlPoint.Size() + 2 );
+	for( int iPoint = 0; iPoint < m_vecCtrlPointStates.size(); iPoint++ )
+	{
+		auto& state = m_vecCtrlPointStates[iPoint];
+		auto& data = iPoint < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[iPoint] : ( iPoint == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
+
+		float t0 = 0;
+		auto nSize = data.arrPath.Size();
+		for( int i = 0; i < nSize; i++ )
+		{
+			auto p0 = data.arrPath[i];
+			auto p3 = data.arrPath[( i + 1 ) % nSize];
+			if( i == 0 )
+				p0.z = 0;
+			auto p1 = p0 + data.arrTangent[i];
+			auto p2 = p3 - data.arrTangent[( i + 1 ) % nSize];
+			float t1 = p3.z;
+			float s = 0;
+			int32 iFrame = state.vecFrames.size();
+			int32 nFrames1 = ceil( t1 );
+			state.vecFrames.resize( nFrames1 );
+			for( ; iFrame < nFrames1; iFrame++ )
+			{
+				auto& item = state.vecFrames[iFrame];
+				float t = iFrame;
+				float sx2, sx3;
+				
+				float a = -p0.z + 3 * p1.z - 3 * p2.z + p3.z;
+				float b = 3 * p0.z - 6 * p1.z + 3 * p2.z;
+				float c = -3 * p0.z + 3 * p1.z;
+				float d = p0.z;
+
+				for( ;; )
+				{
+					sx2 = s * s;
+					sx3 = s * sx2;
+					float dt = t - ( a * sx3 + b * sx2 + c * s + d );
+					if( abs( dt ) < 0.001f )
+						break;
+					float dtds = 3 * a * sx2 + 2 * b * s + c;
+					float ds = dt / dtds;
+					s += ds;
+				}
+
+				float invs = 1 - s;
+				float invsx2 = invs * invs;
+				float invsx3 = invsx2 * invs;
+				CVector4 coefs( invsx3, 3 * s * invsx2, 3 * sx2 * invs, sx3 );
+				item.x = coefs.Dot( CVector4( p0.x, p1.x, p2.x, p3.x ) );
+				item.y = coefs.Dot( CVector4( p0.y, p1.y, p2.y, p3.y ) );
+				item = item - data.orig;
+			}
+		}
+
+		state.p = data.orig;
+		state.v = CVector2( 0, 0 );
+		state.f1 = CVector2( 0, 0 );
+		state.f2 = CVector2( 0, 0 );
+		state.nCurFrame = 0;
+	}
+
+	for( int iLink = 0; iLink < m_arrCtrlLink.Size(); iLink++ )
+	{
+		auto& link = m_arrCtrlLink[iLink];
+		if( link.n1 < -2 || link.n1 >= (int32)m_arrCtrlPoint.Size() || link.n2 < -2 || link.n2 >= (int32)m_arrCtrlPoint.Size() )
+			continue;
+		auto& pointData1 = link.n1 == -2 ? m_ctrlPoint1 : ( link.n1 == -1 ? m_ctrlPoint2 : m_arrCtrlPoint[link.n1] );
+		auto& pointData2 = link.n2 == -2 ? m_ctrlPoint1 : ( link.n2 == -1 ? m_ctrlPoint2 : m_arrCtrlPoint[link.n2] );
+		link.l0 = ( pointData2.orig + link.ofs2 - pointData1.orig - link.ofs1 ).Length();
+	}
+}
+
+void CLevelEnvEffect::InitCtrlPointsState( float x, float y, float r, float s, bool bNoReset )
+{
+	if( !m_bCtrlPointValid )
+		return;
+	InitCtrlPoints();
+	if( !bNoReset )
+	{
+		for( int iPoint = 0; iPoint < m_vecCtrlPointStates.size(); iPoint++ )
+		{
+			auto& data = iPoint < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[iPoint] : ( iPoint == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
+			auto& state = m_vecCtrlPointStates[iPoint];
+			state.p = data.orig;
+			state.v = CVector2( 0, 0 );
+			state.f1 = CVector2( 0, 0 );
+			state.f2 = CVector2( 0, 0 );
+			state.nCurFrame = 0;
+		}
+		if( m_pCommonEvt )
+			m_pCommonEvt = NULL;
+	}
+
+	CMatrix2D trans;
+	trans.Transform( x, y, r, s );
+	for( int32 k = 0; k < 2; k++ )
+	{
+		auto& data = k == 0 ? m_ctrlPoint1 : m_ctrlPoint2;
+		if( data.fWeight > 0 )
+		{
+			auto& state = m_vecCtrlPointStates[m_vecCtrlPointStates.size() - 2 + k];
+			state.p = trans.MulVector2Pos( data.orig );
+			if( state.vecFrames.size() )
+				state.p = state.p - state.vecFrames[state.nCurFrame];
+		}
+	}
+	if( !m_pCommonEvt && m_strCommonEvtScript.length() )
+	{
+		auto pCoroutine = CLuaState::GetCurLuaState()->CreateCoroutine( m_strCommonEvtScript );
+		ASSERT( pCoroutine );
+		m_pCommonEvt = pCoroutine;
+		m_pCommonEvt->PushLua( this );
+		m_pCommonEvt->PushLua( m_pLevel );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::UpdateCtrlPoints()
+{
+	if( !m_bCtrlPointValid )
+		return;
+	InitCtrlPoints();
+	float dTime = 1.0f / 60;
+	for( int iPoint = 0; iPoint < m_vecCtrlPointStates.size(); iPoint++ )
+	{
+		auto& data = iPoint < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[iPoint] : ( iPoint == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
+		auto& state = m_vecCtrlPointStates[iPoint];
+
+		if( state.vecFrames.size() )
+		{
+			state.nCurFrame++;
+			if( state.nCurFrame >= state.vecFrames.size() )
+				state.nCurFrame = 0;
+		}
+	}
+
+	for( auto& item : m_vecExtraForces )
+	{
+		auto& data = item.nIndex < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[item.nIndex] : ( item.nIndex == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
+		auto& state = m_vecCtrlPointStates[item.nIndex];
+		float t = 1.0f;
+		if( item.nFadeType == 1 )
+			t = item.nTimeLeft * 1.0f / item.nDuration;
+		else if( item.nFadeType == 2 )
+		{
+			t = item.nTimeLeft * 1.0f / item.nDuration;
+			t = t * t;
+		}
+		auto force = item.force * t;
+		if( data.fWeight > 0 )
+		{
+			if( item.nType )
+				state.f2 = state.f2 + force;
+			else
+				state.f1 = state.f1 + force;
+		}
+		item.nTimeLeft--;
+	}
+	for( int i = m_vecExtraForces.size() - 1; i >= 0; i-- )
+	{
+		if( m_vecExtraForces[i].nTimeLeft <= 0 )
+		{
+			m_vecExtraForces[i] = m_vecExtraForces.back();
+			m_vecExtraForces.resize( m_vecExtraForces.size() - 1 );
+		}
+	}
+
+	for( int i = 0; i < m_arrCtrlLink.Size(); i++ )
+	{
+		auto& link = m_arrCtrlLink[i];
+		auto& point1 = m_vecCtrlPointStates[link.n1 < 0 ? link.n1 + m_vecCtrlPointStates.size() : link.n1];
+		auto& point2 = m_vecCtrlPointStates[link.n2 < 0 ? link.n2 + m_vecCtrlPointStates.size() : link.n2];
+		auto p1 = point1.GetCurPos() + link.ofs1;
+		auto p2 = point2.GetCurPos() + link.ofs2;
+		auto d = p2 - p1;
+		auto d1 = d;
+		d1.Normalize();
+		d = d - d1 * link.l0;
+
+		point1.f1 = point1.f1 + d * link.fStrength1;
+		point1.f2 = point1.f2 + d * link.fStrength2;
+		point2.f1 = point2.f1 - d * link.fStrength1;
+		point2.f2 = point2.f2 - d * link.fStrength2;
+	}
+
+	for( int iPoint = 0; iPoint < m_vecCtrlPointStates.size(); iPoint++ )
+	{
+		auto& data = iPoint < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[iPoint] : ( iPoint == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
+		auto& state = m_vecCtrlPointStates[iPoint];
+		state.p = state.p + data.g1 * dTime;
+		auto v1 = state.v + data.g2 * dTime;
+		if( data.fWeight )
+		{
+			state.p = state.p + state.f1 * ( dTime / data.fWeight );
+			v1 = v1 + state.f2 * ( dTime / data.fWeight );
+		}
+		if( data.fDamping )
+		{
+			v1 = v1 * exp( -data.fDamping * dTime );
+		}
+		state.p = state.p + ( state.v + v1 ) * 0.5f * dTime;
+		state.v = v1;
+		state.f1 = CVector2( 0, 0 );
+		state.f2 = CVector2( 0, 0 );
+
+		auto pos = state.GetCurPos();
+		state.elemDebugDraw.rect = CRectangle( pos.x - 4, pos.y - 4, 8, 8 );
+		state.elemDebugDraw.nInstDataSize = sizeof( state.debugDrawParam );
+		state.elemDebugDraw.pInstData = state.debugDrawParam;
+		state.debugDrawParam[0] = CVector4( 0, 0, 0, 0 );
+		state.debugDrawParam[1] = CVector4( 0, 0.1, 0.5, 0 );
+	}
+}
+
+CVector4 CLevelEnvEffect::GetCtrlPointsTrans()
+{
+	InitCtrlPoints();
+	auto p1 = m_ctrlPoint1.orig;
+	auto p2 = m_ctrlPoint2.orig;
+	p1 = ( p1 + p2 ) * 0.5f;
+	auto q1 = m_vecCtrlPointStates[m_vecCtrlPointStates.size() - 2].GetCurPos();
+	auto q2 = m_vecCtrlPointStates[m_vecCtrlPointStates.size() - 1].GetCurPos();
+	q1 = ( q1 + q2 ) * 0.5f;
+
+	auto d = q2 - q1;
+	auto e = p2 - p1;
+	e = e * 1.0f / e.Length2();
+	e.y = -e.y;
+	CVector2 de( d.x * e.x - d.y * e.y, d.x * e.y + d.y * e.x );
+
+	float r = atan2( de.y, de.x );
+	float s = de.Length();
+	auto ofs0 = p1 * -1;
+	ofs0 = CVector2( ofs0.x * de.x - ofs0.y * de.y, ofs0.x * de.y + ofs0.y * de.x );
+	if( m_fCtrlPointTransRemoveRot != 0 )
+	{
+		float cs = cos( -r * m_fCtrlPointTransRemoveRot );
+		float sn = sin( -r * m_fCtrlPointTransRemoveRot );
+		r = r * ( 1 - m_fCtrlPointTransRemoveRot );
+		ofs0 = CVector2( ofs0.x * cs - ofs0.y * sn, ofs0.x * sn + ofs0.y * cs );
+	}
+	ofs0 = ofs0 + q1;
+	return CVector4( ofs0.x, ofs0.y, r, s );
+}
+
+void CLevelEnvEffect::OnPlayerAction( CPlayer* pPlayer )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "player_action" );
+		m_pCommonEvt->PushLua( pPlayer );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::OnPlayerMoveBegin( CPlayer* pPlayer )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "player_move_begin" );
+		m_pCommonEvt->PushLua( pPlayer );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::OnPlayerMoveEnd( CPlayer* pPlayer )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "player_move_end" );
+		m_pCommonEvt->PushLua( pPlayer );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::OnEnemyMoveBegin( CPawn* pEnemy )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "enemy_move_begin" );
+		m_pCommonEvt->PushLua( pEnemy );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::OnEnemyMoveEnd( CPawn* pEnemy )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "enemy_move_end" );
+		m_pCommonEvt->PushLua( pEnemy );
+		if( !m_pCommonEvt->Resume( 2, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+void CLevelEnvEffect::OnLevelAlert( CPawn* pPawn, int32 x, int32 y )
+{
+	if( m_pCommonEvt )
+	{
+		m_pCommonEvt->PushLua( "alert" );
+		m_pCommonEvt->PushLua( pPawn );
+		m_pCommonEvt->PushLua( x );
+		m_pCommonEvt->PushLua( y );
+		if( !m_pCommonEvt->Resume( 4, 0 ) )
+			m_pCommonEvt = NULL;
+	}
+}
+
+float CLevelEnvEffect::GetCtrlPointOrigX( int32 nIndex )
+{
+	auto& data = nIndex == -2 ? m_ctrlPoint1 : ( nIndex == -1 ? m_ctrlPoint2 : m_arrCtrlPoint[nIndex] );
+	return data.orig.x;
+}
+
+float CLevelEnvEffect::GetCtrlPointOrigY( int32 nIndex )
+{
+	auto& data = nIndex == -2 ? m_ctrlPoint1 : ( nIndex == -1 ? m_ctrlPoint2 : m_arrCtrlPoint[nIndex] );
+	return data.orig.y;
+}
+
+void CLevelEnvEffect::ApplyForce( int32 nIndex, int8 nType, float fForceX, float fForceY, int32 nDuration, int8 nFadeType )
+{
+	m_vecExtraForces.resize( m_vecExtraForces.size() + 1 );
+	auto& item = m_vecExtraForces.back();
+	if( nIndex < 0 )
+		nIndex += m_arrCtrlPoint.Size() + 2;
+	item.nIndex = nIndex;
+	item.nType = nType;
+	item.force.x = fForceX;
+	item.force.y = fForceY;
+	item.nDuration = item.nTimeLeft = nDuration;
+	item.nFadeType = nFadeType;
 }
 
 
@@ -418,7 +782,7 @@ void CLevelIndicatorLayer::Update( CMyLevel* pLevel )
 		auto& nextLevelParamMax = k ? globalData.NextLevelParamMax : globalData.NextLevelBlockedParamMax;
 		for( int i = 0; i < nNextLevelParamCount[k]; i++ )
 		{
-			float t = ( m_nTick % 16 ) / 15.0f;
+			float t = abs( m_nTick % 128 - 64.0f ) / 64.0f;
 			m_vecNxtStageParam[k][i * 2] = nextLevelParamMin.params[0] + ( nextLevelParamMax.params[0] - nextLevelParamMin.params[0] ) * t;
 			m_vecNxtStageParam[k][i * 2 + 1] = nextLevelParamMin.params[1] + ( nextLevelParamMax.params[1] - nextLevelParamMin.params[1] ) * t;
 			m_vecNxtStageOfs[k][i] = nextLevelParamMin.ofs + ( nextLevelParamMax.ofs - nextLevelParamMin.ofs ) * t;
@@ -849,6 +1213,8 @@ void CMyLevel::OnAddedToStage()
 
 void CMyLevel::OnRemovedFromStage()
 {
+	if( m_pEnvEffect )
+		m_pEnvEffect->SetParentEntity( NULL );
 	if( !m_bSnapShot )
 	{
 		while( m_spawningPawns.Get_Pawn() )
@@ -947,7 +1313,7 @@ CMasterLevel* CMyLevel::GetMasterLevel()
 	return SafeCast<CMasterLevel>( GetParentEntity() );
 }
 
-void CMyLevel::SetEnvEffect( const char * sz )
+void CMyLevel::SetEnvEffect( const char* sz )
 {
 	if( IsSnapShot() )
 		return;
@@ -956,11 +1322,10 @@ void CMyLevel::SetEnvEffect( const char * sz )
 	{
 		if( p && GetMasterLevel() )
 		{
-			p->SetParentEntity( this );
 			if( m_pEnvEffect )
-				p->SetRenderParentBefore( m_pEnvEffect );
+				p->SetParentBeforeEntity( m_pEnvEffect );
 			else
-				p->SetRenderParentBefore( GetMasterLevel()->GetMainUI() );
+				p->SetParentBeforeEntity( GetMasterLevel()->GetMainUI() );
 		}
 		if( m_pEnvEffect )
 			m_pEnvEffect->SetParentEntity( NULL );
@@ -969,6 +1334,8 @@ void CMyLevel::SetEnvEffect( const char * sz )
 			p->CopyState( m_pEnvEffect );
 		}
 		m_pEnvEffect = p;
+		if( m_pEnvEffect && GetMasterLevel() )
+			GetMasterLevel()->OnSetEnvEffect( m_pEnvEffect );
 	}
 }
 
@@ -1586,6 +1953,14 @@ bool CMyLevel::PawnMoveTo( CPawn* pPawn, const TVector2<int32>& ofs, int8 nForce
 			}
 		}
 	}
+
+	if( GetEnvEffect() )
+	{
+		if( pPawn == m_pPlayer )
+			GetEnvEffect()->OnPlayerMoveBegin( m_pPlayer );
+		else if( pPawn->IsEnemy() )
+			GetEnvEffect()->OnEnemyMoveBegin( pPawn );
+	}
 	return true;
 }
 
@@ -1655,9 +2030,17 @@ void CMyLevel::PawnMoveEnd( CPawn* pPawn )
 	pPawn->m_bPosHidden = pPawn->m_bMoveToHidden;
 	if( pPawn1 )
 		pPawn1->m_pos = pPawn1->m_moveTo;
+
+	if( GetEnvEffect() )
+	{
+		if( pPawn == m_pPlayer )
+			GetEnvEffect()->OnPlayerMoveEnd( m_pPlayer );
+		else if( pPawn->IsEnemy() )
+			GetEnvEffect()->OnEnemyMoveEnd( pPawn );
+	}
 }
 
-void CMyLevel::PawnMoveBreak( CPawn* pPawn )
+void CMyLevel::PawnMoveBreak( CPawn* pPawn, bool bInState )
 {
 	auto pPawnHit = SafeCast<CPawnHit>( pPawn );
 	CPawn* pPawn1 = NULL;
@@ -1731,6 +2114,14 @@ void CMyLevel::PawnMoveBreak( CPawn* pPawn )
 		pPawn->m_moveTo = pPawn->m_pos;
 		pPawn->m_bMoveToHidden = pPawn->m_bPosHidden;
 	}
+
+	if( bInState && GetEnvEffect() )
+	{
+		if( pPawn == m_pPlayer )
+			GetEnvEffect()->OnPlayerMoveEnd( m_pPlayer );
+		else if( pPawn->IsEnemy() )
+			GetEnvEffect()->OnEnemyMoveEnd( pPawn );
+	}
 }
 
 void CMyLevel::PawnDeath( CPawn* pPawn )
@@ -1757,7 +2148,11 @@ void CMyLevel::PawnDeath( CPawn* pPawn )
 		auto ofs = p[1] - p[0];
 		auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
 		pLightning->Set( p1, 0, 1.0f, 2.0f );
-
+		
+		if( GetMasterLevel() )
+		{
+			CLuaState::GetCurLuaState()->Run( CGlobalCfg::Inst().strEnemyDeadFailScript.c_str() );
+		}
 		Fail();
 	}
 	else
@@ -2038,6 +2433,11 @@ void CMyLevel::OnPlayerChangeState( SPawnState& state, int32 nStateSource, int8 
 
 void CMyLevel::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nType )
 {
+	if( nMatchLen )
+	{
+		if( GetEnvEffect() )
+			GetEnvEffect()->OnPlayerAction( m_pPlayer );
+	}
 	for( CLevelScript* pScript : m_vecScripts )
 		pScript->OnPlayerAction( vecInput, nMatchLen, nType );
 }
@@ -2252,6 +2652,8 @@ void CMyLevel::Alert( CPawn* pTriggeredPawn, const TVector2<int32>& p )
 		if( pGrid )
 			pGrid->nAlertEft = CGlobalCfg::Inst().lvIndicatorData.vecAlertEffectParams.size();
 	}
+	if( GetEnvEffect() )
+		GetEnvEffect()->OnLevelAlert( pTriggeredPawn, p.x, p.y );
 	for( CLevelScript* pScript : m_vecScripts )
 		pScript->OnAlert( pTriggeredPawn, p );
 }
@@ -2485,6 +2887,7 @@ void CMyLevel::Init( int8 nType )
 	{
 		for( CLevelEnvEffect* pEnvEft : vecEnvEft )
 		{
+			pEnvEft->SetLevel( this );
 			if( m_pEnvEffect )
 			{
 				pEnvEft->SetParentEntity( NULL );
@@ -3416,7 +3819,7 @@ void CCutScene::Begin()
 
 void CMainUI::OnAddedToStage()
 {
-	auto size = GetStage()->GetCamera().GetViewArea().GetSize();
+	auto size = GetStage()->GetOrigCamSize();
 	m_localBound = CRectangle( -size.x * 0.5f, -size.y * 0.5f, size.x, size.y );
 	auto pRenderObject = static_cast<CImage2D*>( GetRenderObject() );
 	m_origRect = pRenderObject->GetElem().rect;
@@ -3446,6 +3849,7 @@ void CMainUI::Reset( const CVector2& inputOrig, const CVector2& iconOrig, bool b
 	}
 	if( bClearAllEfts )
 	{
+		m_nPlayerActionFrame = 0;
 		m_nRecordEftFrames = 0;
 		EndScenario();
 		m_nHeadTextTime = 0;
@@ -3560,7 +3964,12 @@ void CMainUI::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nCha
 	if( IsScenario() )
 		return;
 	if( nType != 2 )
-		m_nPlayerActionFrame = CGlobalCfg::Inst().MainUIData.vecActionEftFrames.size();
+	{
+		if( nMatchLen )
+			m_nPlayerActionFrame = -1;
+		else
+			m_nPlayerActionFrame = CGlobalCfg::Inst().MainUIData.vecActionEftFrames.size() - 1;
+	}
 	RefreshPlayerInput( vecInput, nMatchLen, nChargeKey, nType );
 
 	for( int i = m_vecInputItems.size() - 1; i >= 1; i-- )
@@ -3582,6 +3991,7 @@ void CMainUI::BeginScenario()
 void CMainUI::EndScenario()
 {
 	m_bScenario = false;
+	m_bScenarioWaitInput = false;
 	for( int i = 0; i < 2; i++ )
 		SafeCast<CTypeText>( m_pScenarioText[i].GetPtr() )->Set( "" );
 }
@@ -3594,10 +4004,21 @@ void CMainUI::ScenarioText( int8 n, const char* sz, const CVector4& color, int32
 	pText->SetParam( color );
 	pText->SetTypeInterval( nSpeed );
 	pText->Set( sz, n & 1 );
+	pText->SetFinishSymbolType( nFinishDelay ? 1 : 0 );
 	pText->SetTypeSound( szSound, nSoundInterval );
 	m_nLastScenarioText = n;
 	m_nScenarioTextFinishDelay = nFinishDelay;
 	GetStage()->GetMasterLevel()->GetWorldData().OnScenarioText( n, sz, color );
+}
+
+void CMainUI::ScenarioWaitInput()
+{
+	m_bScenarioWaitInput = true;
+	if( m_nLastScenarioText >= 0 )
+	{
+		auto pText = SafeCast<CTypeText>( m_pScenarioText[m_nLastScenarioText].GetPtr() );
+		pText->SetFinishSymbolType( 2 );
+	}
 }
 
 bool CMainUI::IsScenarioTextFinished()
@@ -3606,6 +4027,14 @@ bool CMainUI::IsScenarioTextFinished()
 		return true;
 	if( m_nScenarioTextFinishDelay )
 		return false;
+	auto pText = SafeCast<CTypeText>( m_pScenarioText[m_nLastScenarioText].GetPtr() );
+	return pText->IsFinished();
+}
+
+bool CMainUI::IsScenarioTextFinished0()
+{
+	if( !m_bScenario || m_nLastScenarioText < 0 )
+		return true;
 	auto pText = SafeCast<CTypeText>( m_pScenarioText[m_nLastScenarioText].GetPtr() );
 	return pText->IsFinished();
 }
@@ -3774,13 +4203,22 @@ void CMainUI::Update()
 			if( !pText->IsFinished() && !pText->IsForceFinish() )
 				pText->ForceFinish();
 			else
+			{
 				m_nScenarioTextFinishDelay = 0;
+				pText->SetFinishSymbolType( 0 );
+				m_bScenarioWaitInput = false;
+			}
 		}
 		else if( m_nScenarioTextFinishDelay > 0 )
 		{
 			auto pText = SafeCast<CTypeText>( m_pScenarioText[m_nLastScenarioText].GetPtr() );
 			if( pText->IsFinished() )
 				m_nScenarioTextFinishDelay--;
+			if( !m_nScenarioTextFinishDelay )
+			{
+				if( !m_bScenarioWaitInput )
+					pText->SetFinishSymbolType( 0 );
+			}
 		}
 	}
 }
@@ -3790,18 +4228,23 @@ void CMainUI::UpdateEffect()
 	m_vecPlayerActionElems.resize( 0 );
 	m_vecPlayerActionElemParams.resize( 0 );
 	auto pCurLevel = GetStage()->GetMasterLevel()->GetCurLevel();
+	m_bDrawEffectFirst = false;
 	if( GetStage()->GetMasterLevel()->IsBlackOut() )
+	{
+		m_bDrawEffectFirst = true;
 		FailEffect( 1 );
+	}
 	else
 	{
 		if( !m_bScenario && m_nPlayerActionFrame )
 		{
-			//Effect0();
+			Effect0();
 		}
 		if( pCurLevel && pCurLevel->IsFailed() )
 		{
 			RecordEffect();
 			FailEffect();
+			m_bDrawEffectFirst = true;
 		}
 		else
 		{
@@ -3817,7 +4260,10 @@ void CMainUI::UpdateEffect()
 	if( m_bScenario )
 	{
 		if( pCurLevel )
+		{
+			m_bDrawEffectFirst = true;
 			Effect1();
+		}
 	}
 	for( int i = 0; i < m_vecPlayerActionElems.size(); i++ )
 	{
@@ -3856,11 +4302,14 @@ void CMainUI::Render( CRenderContext2D& context )
 		return;
 	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
 
-	for( auto& elem : m_vecPlayerActionElems )
+	if( m_bDrawEffectFirst )
 	{
-		elem.worldMat = globalTransform;
-		elem.SetDrawable( pDrawables[nPass] );
-		context.AddElement( &elem, nGroup );
+		for( auto& elem : m_vecPlayerActionElems )
+		{
+			elem.worldMat = globalTransform;
+			elem.SetDrawable( pDrawables[nPass] );
+			context.AddElement( &elem, nGroup );
+		}
 	}
 	for( auto& item : m_vecInputItems )
 	{
@@ -3873,24 +4322,36 @@ void CMainUI::Render( CRenderContext2D& context )
 			context.AddElement( &elem, nGroup );
 		}
 	}
+	if( !m_bDrawEffectFirst )
+	{
+		for( auto& elem : m_vecPlayerActionElems )
+		{
+			elem.worldMat = globalTransform;
+			elem.SetDrawable( pDrawables[nPass] );
+			context.AddElement( &elem, nGroup );
+		}
+	}
 }
 
 void CMainUI::UpdatePos()
 {
 	auto p = GetStage()->GetMasterLevel()->GetCamPos();
+	auto p0 = p;
 	auto pPlayer = GetStage()->GetWorld()->GetPlayer();
 	if( !m_bScenario && pPlayer && pPlayer->GetLevel() )
 		p.y = pPlayer->GetMoveTo().y * LEVEL_GRID_SIZE_Y + pPlayer->GetLevel()->y;
 	p.y += m_playerInputOrig.y;
-	SetPosition( p );
+	m_pos0 = p;
+	SetPosition( ( p - p0 ) * GetStage()->GetPixelScale() + p0 );
+	s = GetStage()->GetPixelScale();
 	if( m_bScenario )
 	{
 		auto pLevel = GetStage()->GetMasterLevel()->GetCurLevel();
 		if( pLevel )
 		{
 			auto levelSize = pLevel->GetMainAreaSize();
-			auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
-			CRectangle rect0( -camSize.x * 0.5f + 144, levelSize.y + pLevel->y - y - 64, camSize.x - 288, levelSize.GetBottom() + 128 );
+			auto camSize = GetStage()->GetOrigCamSize();
+			CRectangle rect0( -camSize.x * 0.5f + 144, levelSize.y + pLevel->y - m_pos0.y - 64, camSize.x - 288, levelSize.GetBottom() + 128 );
 			m_pScenarioText[0]->SetPosition( CVector2( rect0.x, rect0.y ) );
 			m_pScenarioText[1]->SetPosition( CVector2( rect0.GetRight(), rect0.GetBottom()
 				- SafeCast<CTypeText>( m_pScenarioText[1].GetPtr() )->GetInitTextBound().height ) );
@@ -3910,7 +4371,7 @@ void CMainUI::UpdateInputItem( int32 nItem )
 		if( pPlayer && pPlayer->GetLevel() )
 			p0.x = pPlayer->GetMoveTo().x * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - x;
 	}
-	auto viewArea = GetStage()->GetCamera().GetViewArea();
+	auto viewArea = GetStage()->GetOrigCamSize();
 	int32 nGlitch = 0;
 	int32 nElem = 0;
 	for( int i = 0; i < item.vec.size(); i++ )
@@ -3918,7 +4379,7 @@ void CMainUI::UpdateInputItem( int32 nItem )
 		auto rect = CRectangle( p0.x - ( item.vec.size() - i ) * 16, p0.y - nItem * 16, 16, 16 ).Offset( param.ofs );
 		if( nItem == 0 )
 			rect.x += item.vec.size() * 8;
-		if( nItem == 0 && rect.GetRight() <= -viewArea.width / 2 || rect.x >= viewArea.width / 2 )
+		if( nItem == 0 && rect.GetRight() <= -viewArea.x / 2 || rect.x >= viewArea.x / 2 )
 		{
 			nGlitch++;
 			continue;
@@ -4025,111 +4486,169 @@ void CMainUI::UpdateIcons()
 void CMainUI::Effect0()
 {
 	auto& vecFrameCfg = CGlobalCfg::Inst().MainUIData.vecActionEftFrames;
-	int32 nFrame = vecFrameCfg.size() - m_nPlayerActionFrame;
-	m_nPlayerActionFrame--;
+	if( m_nPlayerActionFrame == -1 || m_nPlayerActionFrame == -1 == vecFrameCfg.size() )
+	{
+		int32 yRange[2][3][2] = { { { 0, 8 }, { -135, -5 }, { -150, -140 } }, { { -100, -90 }, { -85, 45 }, { 55, 75 } } };
+
+		SRand::Inst<eRand_Render>().Rand();
+		m_nPlayerActionSeed = SRand::Inst<eRand_Render>().nSeed;
+
+		for( int i = 0; i < 3; i++ )
+			m_playerActionItems[i].y0a = SRand::Inst<eRand_Render>().Rand( yRange[m_nPlayerActionType][i][0], yRange[m_nPlayerActionType][i][1] ) * 2;
+		for( int i = 0; i < 3; i++ )
+		{
+			m_playerActionItems[i].y0b = m_playerActionItems[i].y0a + 4;
+			m_playerActionItems[i].y1b[0] = m_playerActionItems[i].y0b + SRand::Inst<eRand_Render>().Rand( -2, 3 ) * 2;
+		}
+
+		for( int i = 0; i < 3; i++ )
+		{
+			m_playerActionItems[i].y1b[1] = SRand::Inst<eRand_Render>().Rand( yRange[m_nPlayerActionType][i][0], yRange[m_nPlayerActionType][i][1] ) * 2;
+			m_playerActionItems[i].y1b[2] = SRand::Inst<eRand_Render>().Rand( yRange[m_nPlayerActionType][i][0], yRange[m_nPlayerActionType][i][1] ) * 2;
+		}
+		CVector3 colors[3] = { { 0.4f, 0.4f, 0.3f }, { 0.3f, 0, 0 }, { 0.25f, 0.25f, 0.25f } };
+		for( int i = 0; i < 3; i++ )
+		{
+			for( int j = 0; j < 3; j++ )
+			{
+				m_playerActionItems[i].y1a[j] = m_playerActionItems[i].y1b[j] - SRand::Inst<eRand_Render>().Rand( 32, 38 ) * 2;
+			}
+			CVector3 color0( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ), SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ), SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) );
+			for( int j = 0; j < 3; j++ )
+			{
+				auto color = colors[i] + color0 * 0.2f;
+				if( j == 0 )
+					color = color * ( 1.0f / Max( color.x, Max( color.y, color.z ) ) );
+				color0 = color0 * ( 1.0f / ( Max( color0.x, Max( color0.y, color0.z ) ) + 0.1f ) );
+				m_playerActionItems[i].params[j][0] = CVector4( color0.x, color0.y, color0.z, 0 ) * -0.5f;
+				m_playerActionItems[i].params[j][1] = CVector4( color.x, color.y, color.z, 0 ) * 0.5f;
+				m_playerActionItems[i].params[j][0].w = SRand::Inst<eRand_Render>().Rand( 16, 20 ) * 2;
+				color0 = CVector3( color0.y, color0.z, color0.x );
+			}
+		}
+		m_nPlayerActionType = 1 - m_nPlayerActionType;
+	}
+
+	auto nPlayerActionFrame = Min<uint32>( m_nPlayerActionFrame, vecFrameCfg.size() );
+	int32 nFrame = vecFrameCfg.size() - nPlayerActionFrame;
+	float t = nPlayerActionFrame * 1.0f / vecFrameCfg.size();
+	float t1 = t * t;
+	t = 1 - t;
+	t = t * t;
+	t = 1 - t;
+	if( m_nPlayerActionFrame > 0 )
+		m_nPlayerActionFrame--;
+	else if( m_nPlayerActionFrame < 0 )
+	{
+		m_nPlayerActionFrame--;
+		m_nPlayerActionFrame = Max( m_nPlayerActionFrame, -30 );
+	}
 
 	auto& frameData = vecFrameCfg[nFrame];
-	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
-	CRectangle rect0( -camSize.x * 0.5f, -frameData.nTotalHeight, camSize.x, frameData.nTotalHeight );
-	auto nSize0 = m_vecPlayerActionElems.size();
-	m_vecPlayerActionElems.resize( nSize0 + 1 );
-	m_vecPlayerActionElems.back().rect = rect0;
+	auto camSize = GetStage()->GetOrigCamSize();
+	SRand rnd;
+	rnd.nSeed = m_nPlayerActionSeed;
+	float fEftGlobalOfs = ( abs( ( CGame::Inst().GetTimeStamp() & 127 ) - 64 ) - 32 ) * 0.25f;
+	for( int j = 0; j < 3; j++ )
+	{
+		for( int i = 0; i < 3; i++ )
+		{
+			auto& item = m_playerActionItems[i];
+			float ya = item.y1a[j] + ( item.y0a - item.y1a[j] ) * ( j == 0 ? t : t1 ) + fEftGlobalOfs;
+			float yb = item.y1b[j] + ( item.y0b - item.y1b[j] ) * ( j == 0 ? t : t1 ) + fEftGlobalOfs;
+			ya = floor( ya * 0.5f + 0.5f ) * 2;
+			yb = floor( yb * 0.5f + 0.5f ) * 2;
+			CRectangle rect0( -camSize.x * 0.5f, ya, camSize.x, yb - ya );
+			if( j == 1 )
+				rect0.y += 2;
+			else if( j == 2 )
+				rect0.y -= 2;
 
-	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto& elem = m_vecPlayerActionElems[i];
-		if( elem.rect.height > frameData.nMaxImgHeight )
-		{
-			int32 h = SRand::Inst().Rand<int32>( 1, elem.rect.height / 4 ) * 2;
-			int32 h1 = elem.rect.height - h;
-			if( SRand::Inst<eRand_Render>().Rand( 0, 2 ) )
-				swap( h, h1 );
-			auto rect1 = elem.rect;
-			elem.rect.height = h;
-			rect1.SetTop( elem.rect.GetBottom() );
-			m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
-			auto& elem1 = m_vecPlayerActionElems.back();
-			elem1.rect = rect1;
-			i--;
-		}
-	}
-	m_vecPlayerActionElemParams.resize( m_vecPlayerActionElems.size() * 2 );
-	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto t = 1.0f - ( m_vecPlayerActionElems[i].rect.GetCenterY() - rect0.y ) / rect0.height;
-		auto v1 = frameData.params[0].v() * ( ( 1 - t ) * ( 1 - t ) ) + frameData.params[1].v() * ( 2 * t * ( 1 - t ) ) + frameData.params[2].v() * ( t * t );
-		auto v2 = frameData.params[3].v() * ( ( 1 - t ) * ( 1 - t ) ) + frameData.params[4].v() * ( 2 * t * ( 1 - t ) ) + frameData.params[5].v() * ( t * t );
-		auto v = v1 + ( v2 - v1 ) * CVector3( SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ),
-			SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ), SRand::Inst<eRand_Render>().Rand( 0.0f, 1.0f ) );
-		float fOfs = floor( v.x * 0.5f + 0.5f ) * 2;
-		float fLum = Max( 0.0f, v.y );
-		CVector3 add;
-		int32 k = SRand::Inst<eRand_Render>().Rand( 0, 5 );
-		if( k == 0 )
-		{
-			if( fLum >= 2 )
-				add = CVector3( fLum - 2, 1, 1 );
-			else
-				add = CVector3( 0, fLum * 0.5f, fLum * 0.5f );
-			add = add * 0.35f + CVector3( fLum, fLum, fLum ) * 0.25f;
-		}
-		else if( k == 1 )
-		{
-			if( fLum >= 1 )
-				add = CVector3( 1, ( fLum - 1 ) * 0.5f, ( fLum - 1 ) * 0.5f );
-			else
-				add = CVector3( fLum, 0, 0 );
-		}
-		else
-			add = CVector3( fLum / 3, fLum / 3, fLum / 3 );
-		CVector3 mul = CVector3( 1, 1, 1 ) - add * v.z;
-		add = add * CVector3( 0.75f, 0.73f, 0.5f );
-		m_vecPlayerActionElemParams[i * 2] = CVector4( mul.x, mul.y, mul.z, fOfs );
-		m_vecPlayerActionElemParams[i * 2 + 1] = CVector4( add.x, add.y, add.z, 0 );
-	}
+			auto nSize0 = m_vecPlayerActionElems.size();
+			m_vecPlayerActionElems.resize( nSize0 + 1 );
+			m_vecPlayerActionElems.back().rect = rect0;
 
-	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto& elem = m_vecPlayerActionElems[i];
-		elem.texRect.y = SRand::Inst<eRand_Render>().Rand<int32>( m_origRect.height / 4, floor( ( m_origRect.height - elem.rect.height ) * 0.5f ) ) * 2;
-	}
-	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto& elem = m_vecPlayerActionElems[i];
-		float w = SRand::Inst().Rand( m_origRect.width / 2, m_origRect.width );
-		w = floor( w * 0.5f + 0.5f ) * 2;
-		if( elem.rect.width > w )
-		{
-			auto w1 = elem.rect.width - w;
-			if( SRand::Inst<eRand_Render>().Rand( 0, 2 ) )
-				swap( w, w1 );
-			auto rect1 = elem.rect;
-			auto tex1 = elem.texRect;
-			elem.rect.width = w;
-			rect1.SetLeft( elem.rect.GetRight() );
-			auto pInstData = elem.pInstData;
-			m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
-			m_vecPlayerActionElemParams.resize( m_vecPlayerActionElemParams.size() + 2 );
-			auto& elem1 = m_vecPlayerActionElems.back();
-			elem1.rect = rect1;
-			elem1.texRect = tex1;
-			elem1.nInstDataSize = sizeof( CVector4 ) * 2;
-			elem1.pInstData = pInstData;
-			m_vecPlayerActionElemParams[m_vecPlayerActionElemParams.size() - 2] = m_vecPlayerActionElemParams[i * 2];
-			m_vecPlayerActionElemParams[m_vecPlayerActionElemParams.size() - 1] = m_vecPlayerActionElemParams[i * 2 + 1];
-			i--;
+			for( int iElem = nSize0; iElem < m_vecPlayerActionElems.size(); iElem++ )
+			{
+				auto& elem = m_vecPlayerActionElems[iElem];
+				if( elem.rect.height > frameData.nMaxImgHeight )
+				{
+					int32 h = rnd.Rand<int32>( 1, elem.rect.height / 4 ) * 2;
+					int32 h1 = elem.rect.height - h;
+					if( rnd.Rand( 0, 2 ) )
+						swap( h, h1 );
+					auto rect1 = elem.rect;
+					elem.rect.height = h;
+					rect1.SetTop( elem.rect.GetBottom() );
+					m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+					auto& elem1 = m_vecPlayerActionElems.back();
+					elem1.rect = rect1;
+					iElem--;
+				}
+			}
+
+			auto param1 = item.params[j][0] * frameData.fMul;
+			auto param2 = item.params[j][1] * frameData.fAdd;
+			param1.w = item.params[j][0].w * frameData.fOfs;
+			m_vecPlayerActionElemParams.resize( m_vecPlayerActionElems.size() * 2 );
+			for( int iElem = nSize0; iElem < m_vecPlayerActionElems.size(); iElem++ )
+			{
+				auto& elem = m_vecPlayerActionElems[iElem];
+				auto t1 = 1.0f - abs( elem.rect.GetCenterY() - rect0.GetCenterY() ) / rect0.height * 2;
+				if( m_nPlayerActionFrame < 0 )
+				{
+					float k = ( 30 + m_nPlayerActionFrame ) / 30.0f;
+					t1 *= k * k;
+				}
+				m_vecPlayerActionElemParams[iElem * 2] = param1 * t1 + CVector4( 1, 1, 1, 0 );
+				m_vecPlayerActionElemParams[iElem * 2 + 1] = param2 * t1;
+				m_vecPlayerActionElemParams[iElem * 2].w = floor( m_vecPlayerActionElemParams[iElem * 2].w * 0.5f + 0.5f ) * 2;
+			}
+
+			for( int iElem = nSize0; iElem < m_vecPlayerActionElems.size(); iElem++ )
+			{
+				auto& elem = m_vecPlayerActionElems[iElem];
+				elem.texRect.y = rnd.Rand<int32>( m_origRect.height / 4, floor( ( m_origRect.height - elem.rect.height ) * 0.5f ) ) * 2;
+			}
+			for( int iElem = nSize0; iElem < m_vecPlayerActionElems.size(); iElem++ )
+			{
+				auto& elem = m_vecPlayerActionElems[iElem];
+				float w = rnd.Rand( m_origRect.width / 2, m_origRect.width );
+				w = floor( w * 0.5f + 0.5f ) * 2;
+				if( elem.rect.width > w )
+				{
+					auto w1 = elem.rect.width - w;
+					if( rnd.Rand( 0, 2 ) )
+						swap( w, w1 );
+					auto rect1 = elem.rect;
+					auto tex1 = elem.texRect;
+					elem.rect.width = w;
+					rect1.SetLeft( elem.rect.GetRight() );
+					auto pInstData = elem.pInstData;
+					m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
+					m_vecPlayerActionElemParams.resize( m_vecPlayerActionElemParams.size() + 2 );
+					auto& elem1 = m_vecPlayerActionElems.back();
+					elem1.rect = rect1;
+					elem1.texRect = tex1;
+					elem1.nInstDataSize = sizeof( CVector4 ) * 2;
+					elem1.pInstData = pInstData;
+					m_vecPlayerActionElemParams[m_vecPlayerActionElemParams.size() - 2] = m_vecPlayerActionElemParams[iElem * 2];
+					m_vecPlayerActionElemParams[m_vecPlayerActionElemParams.size() - 1] = m_vecPlayerActionElemParams[iElem * 2 + 1];
+					iElem--;
+				}
+			}
+
+			int32 nTexScale = 1;
+			for( int iElem = nSize0; iElem < m_vecPlayerActionElems.size(); iElem++ )
+			{
+				auto& elem = m_vecPlayerActionElems[iElem];
+				elem.texRect = CRectangle( rnd.Rand<int32>( 0, floor( ( m_origRect.width - elem.rect.width / nTexScale ) * 0.5f ) ) * 2,
+					elem.texRect.y, elem.rect.width / nTexScale, elem.rect.height );
+				elem.texRect = CRectangle( elem.texRect.x / m_origRect.width, elem.texRect.y / m_origRect.height,
+					elem.texRect.width / m_origRect.width, elem.texRect.height / m_origRect.height );
+			}
+
 		}
-	}
-	int32 nTexScale = nFrame * 2 + 1;
-	while( nTexScale & ( nTexScale - 1 ) )
-		nTexScale = nTexScale & ( nTexScale - 1 );
-	for( int i = nSize0; i < m_vecPlayerActionElems.size(); i++ )
-	{
-		auto& elem = m_vecPlayerActionElems[i];
-		elem.texRect = CRectangle( SRand::Inst<eRand_Render>().Rand<int32>( 0, floor( ( m_origRect.width - elem.rect.width / nTexScale ) * 0.5f ) ) * 2,
-			elem.texRect.y, elem.rect.width / nTexScale, elem.rect.height );
-		elem.texRect = CRectangle( elem.texRect.x / m_origRect.width, elem.texRect.y / m_origRect.height,
-			elem.texRect.width / m_origRect.width, elem.texRect.height / m_origRect.height );
 	}
 }
 
@@ -4137,8 +4656,8 @@ void CMainUI::Effect1()
 {
 	auto pLevel = GetStage()->GetMasterLevel()->GetCurLevel();
 	auto levelSize = pLevel->GetMainAreaSize();
-	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
-	CRectangle rect0( -camSize.x * 0.5f, levelSize.y + pLevel->y - y - 64, camSize.x, levelSize.GetBottom() + 128 );
+	auto camSize = GetStage()->GetOrigCamSize();
+	CRectangle rect0( -camSize.x * 0.5f, levelSize.y + pLevel->y - m_pos0.y - 64, camSize.x, levelSize.GetBottom() + 128 );
 	auto nSize0 = m_vecPlayerActionElems.size();
 	m_vecPlayerActionElems.resize( nSize0 + 1 );
 	m_vecPlayerActionElems.back().rect = rect0;
@@ -4235,7 +4754,7 @@ void CMainUI::Effect1()
 
 void CMainUI::RecordEffect()
 {
-	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+	auto camSize = GetStage()->GetOrigCamSize();
 	CRectangle r0( -camSize.x * 0.5f + 64, -16, 20, 30 );
 	auto& worldData = GetStage()->GetMasterLevel()->GetWorldData();
 	if( worldData.pCheckPoint )
@@ -4262,7 +4781,7 @@ void CMainUI::RecordEffect()
 
 void CMainUI::FailEffect( int8 nType0 )
 {
-	auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+	auto camSize = GetStage()->GetOrigCamSize();
 	CRectangle r0( -camSize.x * 0.5f, -28, camSize.x, 28 );
 
 	static SRand rand0_1 = SRand::Inst<eRand_Render>();
@@ -4400,8 +4919,9 @@ void CMainUI::FailEffect( int8 nType0 )
 
 void CMainUI::FreezeEffect( int32 nLevel )
 {
-	auto r0 = GetStage()->GetCamera().GetViewArea();
-	r0 = r0.Offset( globalTransform.GetPosition() * -1 );
+	auto camSize = GetStage()->GetOrigCamSize();
+	CRectangle r0( -camSize.x * 0.5f, -camSize.y * 0.5f, camSize.x, camSize.y );
+	r0 = r0.Offset( m_pos0 * -1 );
 
 	static SRand rd0 = SRand::Inst<eRand_Render>();
 	if( m_bResetFreezeEft )
@@ -5174,6 +5694,7 @@ void CMasterLevel::OnAddedToStage()
 	m_pWorldMap->bVisible = false;
 	m_pActionPreview->bVisible = false;
 	m_pLogUI->bVisible = false;
+	m_pMarkLayer->SetRenderObject( NULL );
 }
 
 void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir )
@@ -5190,7 +5711,10 @@ void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVect
 		pLevel->SetParentBeforeEntity( m_pBattleEffect );
 		pLevel->Init();
 		if( pLevel->GetEnvEffect() )
-			pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+		{
+			pLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+			OnSetEnvEffect( pLevel->GetEnvEffect() );
+		}
 		pLevel->AddPawn( m_pPlayer, playerPos, nPlayerDir );
 		BeginCurLevel();
 	}
@@ -5200,7 +5724,8 @@ void CMasterLevel::NewGame( CPlayer* pPlayer, CPrefab* pLevelPrefab, const TVect
 		auto pCutScene = SafeCast<CCutScene>( p );
 		ASSERT( pCutScene );
 		m_pCurCutScene = pCutScene;
-		pCutScene->SetParentBeforeEntity( m_pBattleEffect );
+		m_pCurCutScene->s = GetStage()->GetPixelScale();
+		pCutScene->SetParentBeforeEntity( m_pMainUI );
 		pCutScene->Begin();
 	}
 }
@@ -5274,6 +5799,7 @@ void CMasterLevel::JumpBack( int8 nType )
 		RemoveAllSnapShot();
 	}
 	RefreshMainUI();
+	m_levelTrans = CVector4( 0, 0, 0, 1 );
 
 	if( !m_pCurLevelPrefab || m_worldData.curFrame.strCurLevel != m_pCurLevelPrefab->GetName() )
 		m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_worldData.curFrame.strCurLevel.c_str() );
@@ -5282,7 +5808,10 @@ void CMasterLevel::JumpBack( int8 nType )
 	pLevel->SetParentBeforeEntity( m_pBattleEffect );
 	pLevel->Init();
 	if( pLevel->GetEnvEffect() )
-		pLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		pLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		OnSetEnvEffect( pLevel->GetEnvEffect() );
+	}
 	pLevel->AddPawn( m_pPlayer, m_worldData.curFrame.playerEnterPos, m_worldData.curFrame.nPlayerEnterDir );
 	for( CPawn* pPawn : vecPawns )
 		pLevel->AddPawn( pPawn, pPawn->m_pos, pPawn->m_nCurDir );
@@ -5539,6 +6068,7 @@ void CMasterLevel::ShowWorldMap( bool bShow, int8 nType )
 			ShowMenu( true, eMenuPage_Map );
 		pWorldMap->bVisible = true;
 		pWorldMap->SetPosition( GetCamPos() );
+		pWorldMap->s = GetStage()->GetPixelScale();
 		m_pCurLevel->Freeze();
 	}
 	else
@@ -5554,6 +6084,7 @@ void CMasterLevel::AddLevelMark( const char* szKey, const char* szLevel, int32 x
 	auto& mark = m_worldData.curFrame.mapLevelMarks[szKey];
 	mark.strLevelName = szLevel;
 	mark.ofs = TVector2<int32>( x, y );
+	m_bMarkDirty = true;
 }
 
 bool CMasterLevel::HasLevelMark( const char* szKey )
@@ -5564,6 +6095,7 @@ bool CMasterLevel::HasLevelMark( const char* szKey )
 void CMasterLevel::RemoveLevelMark( const char* szKey )
 {
 	m_worldData.curFrame.mapLevelMarks.erase( szKey );
+	m_bMarkDirty = true;
 }
 
 void CMasterLevel::ShowActionPreview( bool bShow )
@@ -5576,6 +6108,7 @@ void CMasterLevel::ShowActionPreview( bool bShow )
 		ShowMenu( true, eMenuPage_ActionPreview );
 		pActionPreview->bVisible = true;
 		pActionPreview->SetPosition( GetCamPos() );
+		pActionPreview->s = GetStage()->GetPixelScale();
 		m_pCurLevel->Freeze();
 	}
 	else
@@ -5597,6 +6130,7 @@ void CMasterLevel::ShowLogUI( bool bShow, int8 nPage, int32 nIndex )
 		ShowMenu( true, eMenuPage_Log );
 		pLogUI->bVisible = true;
 		pLogUI->SetPosition( GetCamPos() );
+		pLogUI->s = GetStage()->GetPixelScale();
 		m_pCurLevel->Freeze();
 	}
 	else
@@ -5613,6 +6147,7 @@ void CMasterLevel::ShowMenu( bool bShow, int8 nCurPage )
 	{
 		m_pMenu->bVisible = true;
 		m_pMenu->SetPosition( GetCamPos() );
+		m_pMenu->s = GetStage()->GetPixelScale();
 		m_nEnabledPageCount = 0;
 		m_nMenuPage = nCurPage;
 		m_nMenuPageItemIndex = -1;
@@ -5712,6 +6247,7 @@ CEntity* CMasterLevel::GotoInteractionUI( const char* szName )
 		p->SetZOrder( 1 );
 		p->SetParentEntity( this );
 		p->SetPosition( GetCamPos() );
+		p->s = GetStage()->GetPixelScale();
 		p->Init( m_pInteractionUIPawn );
 	}
 	else
@@ -5742,7 +6278,9 @@ void CMasterLevel::InterferenceStripEffect( int8 nType, float fSpeed )
 		m_pInterferenceStripEffect = pEft;
 		pEft->SetParentBeforeEntity( GetCurLevel()->m_pPawnRoot );
 
-		auto view = GetStage()->GetCamera().GetViewArea();
+		auto camSize = GetStage()->GetOrigCamSize();
+		CRectangle view( -camSize.x * 0.5f, -camSize.y * 0.5f, camSize.x, camSize.y );
+		view = view.Offset( GetCamPos() );
 		pEft->Init( view, m_pCurLevel->GetMainAreaSize(), fSpeed );
 		m_backParam[0] = CVector4( 0, 0, 0, 0 );
 		m_backParam[1] = CVector4( 0.07f, 0.07f, 0.07f, 0 );
@@ -5755,6 +6293,11 @@ void CMasterLevel::SetGlobalBGM( const char* sz, int32 nPriority )
 	data.strGlobalBGM = sz;
 	data.nGlobalBGMPriority = nPriority;
 	CheckBGM();
+}
+
+void CMasterLevel::OnSetEnvEffect( CLevelEnvEffect* pEffect )
+{
+	pEffect->InitCtrlPointsState( m_pCurLevel->x, m_pCurLevel->y, m_pCurLevel->r, m_pCurLevel->s );
 }
 
 CVector2 CMasterLevel::GetCamPos()
@@ -5774,6 +6317,7 @@ void CMasterLevel::OnPlayerDamaged()
 void CMasterLevel::Update()
 {
 	int32 k = 1;
+	bool bUpdated = k > 0;
 	if( m_nBlackOutFrame1 )
 		m_nBlackOutFrame1--;
 	if( m_nBlackOutFrame1 )
@@ -5819,6 +6363,19 @@ void CMasterLevel::Update()
 		}
 		m_nShowSnapShotFrame = nShowSnapShotFrame;
 
+		if( IsScenario() )
+		{
+			if( m_pMainUI->IsScenarioWaitInput() && m_pMainUI->IsScenarioTextFinished0() && CGame::Inst().IsAnyInputDown() )
+			{
+				m_pMainUI->FinishWaitInput();
+				if( !m_pScenarioScript->Resume( 0, 0 ) )
+				{
+					m_pScenarioScript = NULL;
+					EndScenario();
+				}
+				ForceEndScenario();
+			}
+		}
 		if( m_pCurLevel && !m_pCurLevel->IsEnd() )
 			m_pCurLevel->Update();
 		m_pMainUI->Update();
@@ -5837,6 +6394,7 @@ void CMasterLevel::Update()
 			p->SetZOrder( 1 );
 			p->SetParentEntity( this );
 			p->SetPosition( GetCamPos() );
+			p->s = GetStage()->GetPixelScale();
 			p->Init( m_pInteractionUIPawn );
 			m_pCurLevel->Freeze();
 			m_bInteractionUIInit = false;
@@ -5942,7 +6500,7 @@ void CMasterLevel::Update()
 	{
 		if( m_pCurLevel->GetEnvEffect() )
 		{
-			if( IsScenario() || m_pPlayer && m_pPlayer->IsHidden() )
+			if( IsScenario() )
 				m_pCurLevel->GetEnvEffect()->ScenarioFade( true );
 			else
 				m_pCurLevel->GetEnvEffect()->ScenarioFade( false );
@@ -5965,54 +6523,23 @@ void CMasterLevel::Update()
 		}
 	}
 	m_pMainUI->UpdateEffect();
+	if( IsBlackOut() && m_pTransferCoroutine )
+	{
+		m_backParam[0] = CVector4( 0, 0, 0, 0 );
+		m_backParam[1] = CVector4( 0, 0, 0, 0 );
+	}
+
+	UpdateMarkLayer();
 	UpdateBackground();
 	UpdateColorAdjust();
-	UpdateBGM();
-
-	/*if( m_pCurLevel && m_pCurLevel->IsBegin() )
+	if( m_pCurLevel && m_pCurLevel->IsBegin() )
 	{
-		static int32 n = 0;
-		static float g_trans[][5] = { { 0, 0, 0.2, 1, 90 }, { 48, 12, 0.25, 1.02, 180 }, { 96, 48, 0.15, 1.1, 120 }, { 64, 64, 0.09, 1.05, 120 },
-		{ 0, 80, 0.04, 1.03, 90 }, { -64, 64, 0, 1.05, 120 }, { -96, 48, -0.1, 1.02, 120 }, { -48, 12, -0.16, 1, 120 },
-		{ 0, 0, -0.2, 1, 90 }, { 48, -12, -0.25, 1.02, 180 }, { 96, -48, -0.15, 1.1, 120 }, { 64, -64, -0.09, 1.05, 120 },
-		{ 0, -80, -0.04, 1.03, 90 }, { -64, -64, 0, 1.05, 120 }, { -96, -48, 0.1, 1.02, 120 }, { -48, -12, 0.16, 1, 120 }, };
-		int32 t0 = 0;
-		int32 i;
-		for( i = 0; i < ELEM_COUNT( g_trans ); i++ )
-		{
-			if( n < g_trans[i][4] + t0 )
-				break;
-			t0 += g_trans[i][4];
-		}
-		if( i >= ELEM_COUNT( g_trans ) )
-		{
-			n = 0;
-			i = 0;
-			t0 = 0;
-		}
-		auto p = g_trans[i];
-		auto p1 = g_trans[( i + 1 ) % ELEM_COUNT( g_trans )];
-		auto t = ( n - t0 ) * 1.0f / p[4];
-		float x = p[0] + ( p1[0] - p[0] ) * t;
-		float y = p[1] + ( p1[1] - p[1] ) * t;
-		float r = p[2] + ( p1[2] - p[2] ) * t;
-		float s = p[3] + ( p1[3] - p[3] ) * t;
-		auto ofs0 = m_pCurLevel->GetMainAreaSize().GetCenter() * s;
-		ofs0 = ofs0 - CVector2( ofs0.x * cos( r ) - ofs0.y * sin( r ), ofs0.x * sin( r ) + ofs0.y * cos( r ) );
-		ofs0 = ofs0 + CVector2( x, y ) * 0.5f;
-		r = r * 0.15f;
-		s = ( s - 1 ) * 2.2f + 1;
-		m_pCurLevel->SetPosition( ofs0 );
-		m_pCurLevel->r = r;
-		m_pCurLevel->s = s;
-		m_pSnapShotRoot->SetPosition( ofs0 );
-		m_pSnapShotRoot->r = r;
-		m_pSnapShotRoot->s = s;
-		m_pBattleEffect->SetPosition( ofs0 );
-		m_pBattleEffect->r = r;
-		m_pBattleEffect->s = s;
-		n++;
-	}*/
+		if( bUpdated && !m_pCurLevel->IsFreeze() && !m_pCurLevel->IsFailed() )
+			UpdateCtrlPoints( true );
+		else
+			UpdateLevelTrans();
+	}
+	UpdateBGM();
 }
 
 int32 CMasterLevel::CalcSnapShotMaskParam( CVector4* pParams )
@@ -6022,7 +6549,7 @@ int32 CMasterLevel::CalcSnapShotMaskParam( CVector4* pParams )
 	auto& maskParam = cfg[nShowSnapShotFrame];
 	pParams[0] = maskParam.first;
 	pParams[1] = maskParam.second;
-	if( m_pCurLevel )
+	if( m_pCurLevel && !( m_pPlayer && m_pPlayer->IsHidden() ) )
 	{
 		auto pEnv = m_pCurLevel->GetEnvEffect();
 		if( pEnv && pEnv->IsOverrideBackColor() )
@@ -6042,6 +6569,129 @@ int32 CMasterLevel::CalcSnapShotMaskParam( CVector4* pParams )
 	return nShowSnapShotFrame;
 }
 
+void CMasterLevel::UpdateMarkLayer()
+{
+	if( !m_pCurLevel || !m_pCurLevel->IsBegin() || IsScenario() )
+	{
+		m_pMarkLayer->bVisible = false;
+		return;
+	}
+
+	m_pMarkLayer->bVisible = true;
+
+	if( m_bMarkDirty )
+	{
+		m_bMarkDirty = false;
+		auto& worldCfg = GetStage()->GetWorld()->GetWorldCfg();
+		auto& levelMarks = m_worldData.curFrame.mapLevelMarks;
+		auto curRegionName = GetStage()->GetMasterLevel()->GetCurLevel()->GetRegionName();
+		int32 nCurRegion = 0;
+		m_vecMarks.resize( 0 );
+
+		for( int i = 0; i < worldCfg.arrRegionData.Size(); i++ )
+		{
+			if( worldCfg.arrRegionData[i].strName == curRegionName )
+			{
+				nCurRegion = i;
+				break;
+			}
+		}
+		auto displayOfs = worldCfg.GetLevelData( m_pCurLevelPrefab->GetName() )->displayOfs;
+
+		auto& regionData = worldCfg.arrRegionData[nCurRegion];
+		for( auto& item : levelMarks )
+		{
+			auto& levelData = m_worldData.GetLevelData( item.second.strLevelName.c_str() );
+			auto index = GetStage()->GetWorld()->GetWorldCfgLevelIndex( item.second.strLevelName.c_str() );
+
+			if( index.x == nCurRegion )
+			{
+				auto p = CVector2( item.second.ofs.x + 1, item.second.ofs.y + 0.5f ) * LEVEL_GRID_SIZE
+					+ regionData.arrLevelData[index.y].displayOfs - displayOfs;
+				SMark mark;
+				mark.p = p;
+				m_vecMarks.push_back( mark );
+			}
+		}
+	}
+
+	int32 iImg = 0;
+	auto pDrawable = static_cast<CDrawableGroup*>( m_pMarkLayer->GetResource() );
+	auto center = GetCamPos();
+	auto size = GetStage()->GetOrigCamSize() * GetStage()->GetPixelScale();
+	for( auto& item : m_vecMarks )
+	{
+		auto p = item.p;
+		auto cs = cos( m_levelTrans.z );
+		auto sn = sin( m_levelTrans.z );
+		p = CVector2( p.x * cs - p.y * sn, p.x * sn + p.y * cs ) * m_levelTrans.w + CVector2( m_levelTrans.x, m_levelTrans.y );
+		p = ( p - center ) * GetStage()->GetPixelScale() + center;
+		float k = Max( abs( p.x - center.x ) / ( size.x * 0.5f ), abs( p.y - center.y ) / ( size.y * 0.5f ) );
+		CVector4 color( 0.65f, 0.2f, 0.6f, 0.25f );
+		if( k > 1 )
+		{
+			p = ( p - center ) / k + center;
+			color = CVector4( 0.1f, 0.4f, 0.15f, 0.75f ) + CVector4( 0.55f, 0, 0.5f, 0 ) * ( 1.0f / k );
+		}
+
+		if( k > 1 )
+		{
+			float l = 32 + ( 96 / Max( 1.0f, k ) );
+			l = floor( l * 0.5f + 0.5f ) * 2;
+			for( int k = 0; k < 2; k++ )
+			{
+				if( iImg >= m_vecMarkImgs.size() )
+				{
+					auto pImg = pDrawable->CreateInstance();
+					m_pMarkLayer->AddChild( pImg );
+					m_vecMarkImgs.push_back( pImg );
+				}
+				auto pImg = static_cast<CImage2D*>( m_vecMarkImgs[iImg].GetPtr() );
+				iImg++;
+				pImg->bVisible = true;
+				CRectangle r;
+				if( k == 0 )
+					r = CRectangle( p.x - l * GetStage()->GetPixelScale(), p.y - GetStage()->GetPixelScale(), l * 2 * GetStage()->GetPixelScale(), 2 * GetStage()->GetPixelScale() );
+				else
+					r = CRectangle( p.x - GetStage()->GetPixelScale(), p.y - l * GetStage()->GetPixelScale(), 2 * GetStage()->GetPixelScale(), l * 2 * GetStage()->GetPixelScale() );
+				pImg->SetRect( r );
+				pImg->SetBoundDirty();
+				pImg->GetParam()[0] = color;
+			}
+		}
+		else
+		{
+			for( int k = 0; k < 4; k++ )
+			{
+				if( iImg >= m_vecMarkImgs.size() )
+				{
+					auto pImg = pDrawable->CreateInstance();
+					m_pMarkLayer->AddChild( pImg );
+					m_vecMarkImgs.push_back( pImg );
+				}
+				auto pImg = static_cast<CImage2D*>( m_vecMarkImgs[iImg].GetPtr() );
+				iImg++;
+				pImg->bVisible = true;
+				CRectangle r;
+				if( k == 0 )
+					r = CRectangle( -32, -2, 16, 4 ) * GetStage()->GetPixelScale();
+				else if( k == 1 )
+					r = CRectangle( 16, -2, 16, 4 ) * GetStage()->GetPixelScale();
+				else if( k == 2 )
+					r = CRectangle( -2, -32, 4, 16 ) * GetStage()->GetPixelScale();
+				else
+					r = CRectangle( -2, 16, 4, 16 ) * GetStage()->GetPixelScale();
+				r = r.Offset( p );
+				pImg->SetRect( r );
+				pImg->SetBoundDirty();
+				pImg->GetParam()[0] = color;
+			}
+		}
+	}
+	for( ; iImg < m_vecMarkImgs.size(); iImg++ )
+		m_vecMarkImgs[iImg]->bVisible = false;
+}
+
 void CMasterLevel::UpdateBackground()
 {
 	static_cast<CImage2D*>( m_pBackMask.GetPtr() )->GetParam()[0] = m_backParam[1];
@@ -6055,9 +6705,9 @@ void CMasterLevel::UpdateBackground()
 	{
 		m_pBackMask->bVisible = false;
 		auto levelSize = m_pCurLevel->GetMainAreaSize();
-		auto camSize = GetStage()->GetCamera().GetViewArea().GetSize();
+		auto camSize = GetStage()->GetOrigCamSize();
 		CRectangle rect0( -camSize.x, levelSize.y + m_pCurLevel->y - y, camSize.x * 2, levelSize.GetBottom() );
-		float h0 = Max( rect0.height / 2, 128.0f );
+		float h0 = Min( rect0.height / 2, 128.0f );
 		rect0.SetSizeY( rect0.height - h0 * 2 );
 		h0 += 64;
 		static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->SetRect( rect0 );
@@ -6117,7 +6767,7 @@ void CMasterLevel::UpdateBackground()
 		auto pParams = static_cast<CImage2D*>( m_pBattleEffect.GetPtr() )->GetParam();
 		auto& maskParam = cfg[m_nBattleEffectFrame];
 		auto color1 = maskParam.first;
-		if( m_pCurLevel )
+		if( m_pCurLevel && !( m_pPlayer && m_pPlayer->IsHidden() ) )
 		{
 			auto pEnv = m_pCurLevel->GetEnvEffect();
 			if( pEnv && pEnv->IsCustomBattleEffectBackColor() )
@@ -6135,7 +6785,7 @@ void CMasterLevel::UpdateBackground()
 
 void CMasterLevel::UpdateColorAdjust( bool bJump )
 {
-	if( !m_pCurLevel )
+	if( !m_pCurLevel && !m_pLastLevel )
 	{
 		m_pColorAdjust->bVisible = false;
 		memset( &m_curColorAdjust, 0, sizeof( m_curColorAdjust ) );
@@ -6144,7 +6794,7 @@ void CMasterLevel::UpdateColorAdjust( bool bJump )
 	SColorAdjust targetColorAdjust;
 	float fScenarioFade = 0;
 	memset( &targetColorAdjust, 0, sizeof( targetColorAdjust ) );
-	auto pEnv = m_pCurLevel->GetEnvEffect();
+	auto pEnv = ( m_pCurLevel ? m_pCurLevel : m_pLastLevel )->GetEnvEffect();
 	if( pEnv )
 	{
 		targetColorAdjust.gamma = pEnv->GetGamma();
@@ -6176,7 +6826,7 @@ void CMasterLevel::UpdateColorAdjust( bool bJump )
 		return;
 	}
 
-	float k = IsScenario() || m_pPlayer && m_pPlayer->IsHidden() ? fScenarioFade : 1;
+	float k = IsScenario() ? fScenarioFade : 1;
 	m_pColorAdjust->bVisible = true;
 	auto pParams = static_cast<CImage2D*>( m_pColorAdjust.GetPtr() )->GetParam();
 	pParams[0] = CVector4( m_curColorAdjust.colorTranspose[0].x, m_curColorAdjust.colorTranspose[0].y, m_curColorAdjust.colorTranspose[0].z, 0 );
@@ -6185,6 +6835,79 @@ void CMasterLevel::UpdateColorAdjust( bool bJump )
 	pParams[0] = pParams[0] * k + CVector4( 1, 0, 0, pow( 2, -m_curColorAdjust.gamma.x * k ) );
 	pParams[1] = pParams[1] * k + CVector4( 0, 1, 0, pow( 2, -m_curColorAdjust.gamma.y * k ) );
 	pParams[2] = pParams[2] * k + CVector4( 0, 0, 1, pow( 2, -m_curColorAdjust.gamma.z * k ) );
+}
+
+void CMasterLevel::UpdateCtrlPoints( bool bUpdate, float fWeight )
+{
+	auto pEnv = m_pCurLevel ? m_pCurLevel->GetEnvEffect() : NULL;
+	if( pEnv && pEnv->IsCtrlPointValid() && !IsScenario() )
+	{
+		if( bUpdate )
+			pEnv->UpdateCtrlPoints();
+		auto trans1 = m_pCurLevel->GetEnvEffect()->GetCtrlPointsTrans();
+		m_levelTrans = ( trans1 - m_levelTrans ) * fWeight + m_levelTrans;
+	}
+	else
+	{
+		if( IsScenario() )
+		{
+			auto d = m_levelTrans - CVector4( 0, 0, 0, 1 );
+			auto d1 = d * CVector4( 0.002f, 0.002f, 1, 0.5f );
+			float l = d1.Length();
+			float l1 = l * 0.99f - 0.01f;
+			l1 = Max( 0.0f, l1 + ( l - l1 ) * ( 1 - fWeight ) );
+			if( l1 > 0 )
+				m_levelTrans = d * ( l1 / l ) + CVector4( 0, 0, 0, 1 );
+			else
+				m_levelTrans = CVector4( 0, 0, 0, 1 );
+		}
+		else
+			m_levelTrans = ( CVector4( 0, 0, 0, 1 ) - m_levelTrans ) * fWeight + m_levelTrans;
+		if( pEnv )
+			pEnv->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w, true );
+	}
+
+	UpdateLevelTrans();
+}
+
+void CMasterLevel::UpdateLevelTrans()
+{
+	auto p = static_cast<CImage2D*>( m_pUpsampleLayer.GetPtr() );
+	CRectangle rect( 0, 0, 0, 0 );
+	auto pCam = GetCamPos();
+	rect.SetCenter( pCam );
+	rect.SetSize( GetStage()->GetOrigCamSize() * GetStage()->GetPixelScale() * GetStage()->GetPixelScale() );
+	p->SetRect( rect );
+	p->SetTexRect( CRectangle( 0, 0, 1, 1 ) );
+	p->SetBoundDirty();
+	auto pt1 = pCam * ( GetStage()->GetPixelScale() - 1 );
+	auto cs = cos( m_levelTrans.z );
+	auto sn = sin( m_levelTrans.z );
+	pt1 = CVector2( pt1.x * cs - pt1.y * sn, pt1.x * sn + pt1.y * cs ) * m_levelTrans.w
+		+ CVector2( m_levelTrans.x, m_levelTrans.y ) * GetStage()->GetPixelScale() - pt1;
+	p->SetPosition( pt1 );
+	p->r = m_levelTrans.z;
+	p->s = m_levelTrans.w;
+
+	if( m_pCurLevel )
+		UpdateLevelEnvTrans( m_pCurLevel );
+	if( m_pLastLevel )
+		UpdateLevelEnvTrans( m_pLastLevel );
+}
+
+void CMasterLevel::UpdateLevelEnvTrans( CMyLevel* pLevel )
+{
+	auto pEnv = pLevel->GetEnvEffect();
+	if( pEnv )
+	{
+		auto p = pLevel->GetPosition();
+		auto cs = cos( m_levelTrans.z );
+		auto sn = sin( m_levelTrans.z );
+		p = CVector2( p.x * cs - p.y * sn, p.x * sn + p.y * cs ) * m_levelTrans.w + CVector2( m_levelTrans.x, m_levelTrans.y );
+		pEnv->SetPosition( ( p - GetCamPos() ) * GetStage()->GetPixelScale() + GetCamPos() );
+		pEnv->r = m_levelTrans.z;
+		pEnv->s = m_levelTrans.w * GetStage()->GetPixelScale();
+	}
 }
 
 void CMasterLevel::CheckBGM()
@@ -6478,6 +7201,7 @@ void CMasterLevel::BeginCurLevel()
 	m_pCurLevel->Begin();
 	RefreshSnapShot();
 	CheckBGM();
+	m_bMarkDirty = true;
 }
 
 void CMasterLevel::EndCurLevel()
@@ -6585,12 +7309,19 @@ void CMasterLevel::TransferFuncLevel2Level()
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
 	auto d = m_pPlayer->GetPos() - m_transferPos;
 	auto transferOfs = CVector2( d.x, d.y ) * LEVEL_GRID_SIZE;
-	m_pCurLevel->SetPosition( transferOfs );
-	auto camTransferBegin = m_pLastLevel->GetCamPos();
-	auto dVisualTransfer = transferOfs + m_pCurLevel->GetCamPos() - camTransferBegin;
+	m_pLastLevel->SetPosition( transferOfs * -1 );
+	float cs = cos( m_levelTrans.z );
+	float sn = sin( m_levelTrans.z );
+	m_levelTrans = m_levelTrans + CVector4( transferOfs.x * cs - transferOfs.y * sn, transferOfs.x * sn + transferOfs.y * cs, 0, 0 ) * m_levelTrans.w;
+	auto camTransferOfs = m_pCurLevel->GetCamPos() - m_pLastLevel->GetCamPos();
+	m_levelTrans.x += camTransferOfs.x;
+	m_levelTrans.y += camTransferOfs.y;
+	m_transferCurCamPos = m_pCurLevel->GetCamPos();
+
+	auto dVisualTransfer = transferOfs + camTransferOfs;
 	int32 nTransferAnimFrames = ceil( ( dVisualTransfer.Length() * 0.5f + 128 ) / CGlobalCfg::Inst().lvTransferData.fTransferCamSpeed );
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 	int32 nTransferFadeOutFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
@@ -6599,18 +7330,15 @@ void CMasterLevel::TransferFuncLevel2Level()
 	m_backParam[0] = CVector4( 0, 0, 0, 0 );
 	auto baseColor = m_backParam[1];
 	if( m_pCurLevel->GetEnvEffect() )
+	{
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w );
+	}
 
 	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
 	for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
 	{
-		if( nTransferAnimFrames )
-		{
-			float t = 1 - nTransferAnimFrames * 1.0f / nTransferAnimTotalFrames;
-			auto p = camTransferBegin + ( m_pCurLevel->GetCamPos() - camTransferBegin ) * t;
-			m_transferCurCamPos = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
-		}
-
+		UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 		m_pTransferCoroutine->Yield( 0 );
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
@@ -6626,14 +7354,9 @@ void CMasterLevel::TransferFuncLevel2Level()
 			m_backParam[0] = CVector4( b, a, a, 0 );
 			m_backParam[1] = baseColor;
 		}
-		auto p = transferOfs * ( 1 - t );
-		p = CVector2( floor( p.x * 0.5f + 0.5f ), floor( p.y * 0.5f + 0.5f ) ) * 2;
-		m_pCurLevel->SetPosition( p );
-		m_pLastLevel->SetPosition( p - transferOfs );
 		if( m_pCurLevel->GetEnvEffect() )
 			m_pCurLevel->GetEnvEffect()->SetFade( t );
 	}
-	m_transferCurCamPos = m_pCurLevel->GetCamPos();
 
 	CalcSnapShotMaskParam( m_backParam );
 	m_backParam[0] = CVector4( 1, 1, 1, 0 );
@@ -6646,6 +7369,7 @@ void CMasterLevel::TransferFuncLevel2Level()
 
 	for( ; nTransferFadeOutFrames; nTransferFadeOutFrames-- )
 	{
+		UpdateCtrlPoints( true );
 		m_pTransferCoroutine->Yield( 0 );
 		int32 nFrame = maskParams.size() - nTransferFadeOutFrames;
 		float t = ( nTransferFadeOutFrames - 1 ) * 1.0f / nTransferFadeOutTotalFrames;
@@ -6681,8 +7405,12 @@ void CMasterLevel::TransferFuncLevel2Level0( bool bFade )
 
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
+	m_levelTrans = CVector4( 0, 0, 0, 1 );
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( 0, 0, 0, 1 );
+	}
 	if( bFade )
 	{
 		m_backParam[0] = CVector4( 0, 0, 0, 0 );
@@ -6696,6 +7424,7 @@ void CMasterLevel::TransferFuncLevel2Level0( bool bFade )
 		auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
 		for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
 		{
+			UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 			m_pTransferCoroutine->Yield( 0 );
 			int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 			float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
@@ -6771,7 +7500,10 @@ void CMasterLevel::TransferFuncLevel2Level1()
 			m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 			m_pCurLevel->Init();
 			if( m_pCurLevel->GetEnvEffect() )
-				m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+			{
+				m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+				m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w );
+			}
 
 			if( m_pCurLevel->GetEnvEffect() )
 				m_pCurLevel->GetEnvEffect()->SetFade( 0 );
@@ -6779,6 +7511,10 @@ void CMasterLevel::TransferFuncLevel2Level1()
 
 		for( int k = 0; k < nFrames[i]; k++ )
 		{
+			if( i >= 5 )
+				UpdateCtrlPoints( true, 1.0f / Max( nTransferAnimFrames, 1 ) );
+			else
+				UpdateLevelTrans();
 			m_pTransferCoroutine->Yield( 0 );
 			if( i >= 2 && i < 5 )
 			{
@@ -6878,6 +7614,7 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	int32 nFadeOutFrame = nFadeOutTotalFrames;
 	while( nFadeOutFrame )
 	{
+		UpdateCtrlPoints( true, 0.25f );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		int32 nFrame = maskParams.size() - nFadeOutFrame;
@@ -6905,6 +7642,7 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	for( int i = 0; i < 30; i++ )
 	{
+		UpdateCtrlPoints( true, 0.25f );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		camTransferBegin.y += 2;
@@ -6917,12 +7655,16 @@ void CMasterLevel::TransferFuncLevel2Level2()
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w );
+	}
 
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
 	while( nTransferAnimFrames )
 	{
+		UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
@@ -6990,6 +7732,7 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	int32 nFadeOutFrame = nFadeOutTotalFrames;
 	while( nFadeOutFrame )
 	{
+		UpdateCtrlPoints( true, 0.25f );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		int32 nFrame = maskParams.size() - nFadeOutFrame;
@@ -7015,6 +7758,7 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	for( int i = 0; i < 60; i++ )
 	{
+		UpdateCtrlPoints( true, 0.25f );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 	}
@@ -7025,12 +7769,16 @@ void CMasterLevel::TransferFuncLevel2Level3()
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w );
+	}
 
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
 	while( nTransferAnimFrames )
 	{
+		UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
@@ -7146,6 +7894,7 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 		{
 			if( nFadeOutFrame )
 			{
+				UpdateCtrlPoints( true, 0.25f );
 				m_pTransferCoroutine->Yield( 0 );
 				m_pPlayer->UpdateAnimOnly();
 				int32 nFrame = maskParams.size() - nFadeOutFrame;
@@ -7190,6 +7939,7 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 				break;
 
 			m_pTransferEft->SetPosition( CVector2( 0, floor( ( s0 - s1 ) * 0.5f + 0.5f ) * ( bUp ? 2 : -2 ) ) );
+			UpdateCtrlPoints( true, 0.25f );
 			m_pTransferCoroutine->Yield( 0 );
 			m_pPlayer->UpdateAnimOnly();
 		}
@@ -7201,12 +7951,16 @@ void CMasterLevel::TransferFuncLevel2Level4_5( int8 bUp )
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( m_levelTrans.x, m_levelTrans.y, m_levelTrans.z, m_levelTrans.w );
+	}
 
 	if( m_pCurLevel->GetEnvEffect() )
 		m_pCurLevel->GetEnvEffect()->SetFade( 0 );
 	while( nTransferAnimFrames )
 	{
+		UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 		m_pTransferCoroutine->Yield( 0 );
 		m_pPlayer->UpdateAnimOnly();
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
@@ -7251,8 +8005,12 @@ void CMasterLevel::TransferFuncCut2Level()
 	TransferFuncEnterLevel();
 	m_pCurLevel->SetParentAfterEntity( m_pLevelFadeMask );
 	m_pCurLevel->Init();
+	m_levelTrans = CVector4( 0, 0, 0, 1 );
 	if( m_pCurLevel->GetEnvEffect() )
-		m_pCurLevel->GetEnvEffect()->SetRenderParentBefore( m_pMainUI );
+	{
+		m_pCurLevel->GetEnvEffect()->SetParentBeforeEntity( m_pMainUI );
+		m_pCurLevel->GetEnvEffect()->InitCtrlPointsState( 0, 0, 0, 1 );
+	}
 	int32 nTransferAnimFrames = CGlobalCfg::Inst().lvTransferData.nTransferFadeOutFrameCount;
 	int32 nTransferAnimTotalFrames = nTransferAnimFrames;
 	m_backParam[0] = m_backParam[1] = CVector4( 0, 0, 0, 0 );
@@ -7263,6 +8021,7 @@ void CMasterLevel::TransferFuncCut2Level()
 	auto& maskParams = CGlobalCfg::Inst().lvTransferData.vecTransferMaskParams;
 	for( ; nTransferAnimFrames > 0; nTransferAnimFrames-- )
 	{
+		UpdateCtrlPoints( true, 1.0f / nTransferAnimFrames );
 		m_pTransferCoroutine->Yield( 0 );
 		int32 nFrame = nTransferAnimTotalFrames - nTransferAnimFrames;
 		float t = 1 - ( nTransferAnimFrames - 1 ) * 1.0f / nTransferAnimTotalFrames;
@@ -7324,7 +8083,8 @@ void CMasterLevel::TransferFuncLevel2Cut()
 	m_backParam[1] = CVector4( 0, 0, 0, 0 );
 	m_pCurLevel->SetParentEntity( NULL );
 	m_pCurLevel = NULL;
-	m_pCurCutScene->SetParentBeforeEntity( m_pBattleEffect );
+	m_pCurCutScene->s = GetStage()->GetPixelScale();
+	m_pCurCutScene->SetParentBeforeEntity( m_pMainUI );
 	m_pCurCutScene->Begin();
 }
 
@@ -7358,13 +8118,32 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( arrJamStrength )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( SLevelCamCtrlPoint )
+		REGISTER_MEMBER( fWeight )
+		REGISTER_MEMBER( fDamping )
+		REGISTER_MEMBER( orig )
+		REGISTER_MEMBER( g1 )
+		REGISTER_MEMBER( g2 )
+		REGISTER_MEMBER( arrPath )
+		REGISTER_MEMBER( arrTangent )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SLevelCamCtrlPointLink )
+		REGISTER_MEMBER( n1 )
+		REGISTER_MEMBER( n2 )
+		REGISTER_MEMBER( ofs1 )
+		REGISTER_MEMBER( ofs2 )
+		REGISTER_MEMBER( fStrength1 )
+		REGISTER_MEMBER( fStrength2 )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CLevelEnvEffect )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_gamma )
 		REGISTER_MEMBER( m_colorTranspose )
 		REGISTER_MEMBER( m_bOverrideBackColor )
-		REGISTER_MEMBER( m_bCustomBattleEffectBackColor )
 		REGISTER_MEMBER( m_backColor )
+		REGISTER_MEMBER( m_bCustomBattleEffectBackColor )
 		REGISTER_MEMBER( m_battleEffectBackColor )
 		REGISTER_MEMBER( m_arrEnvDescs )
 		REGISTER_MEMBER_BEGIN( m_arrEnvMap )
@@ -7378,6 +8157,20 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_BEGIN( m_strCondition )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_bCtrlPointValid )
+		REGISTER_MEMBER( m_fCtrlPointTransRemoveRot )
+		REGISTER_MEMBER( m_ctrlPoint1 )
+		REGISTER_MEMBER( m_ctrlPoint2 )
+		REGISTER_MEMBER( m_arrCtrlPoint )
+		REGISTER_MEMBER( m_arrCtrlLink )
+		REGISTER_MEMBER_BEGIN( m_strCommonEvtScript )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
+
+		DEFINE_LUA_REF_OBJECT()
+		REGISTER_LUA_CFUNCTION( GetCtrlPointOrigX )
+		REGISTER_LUA_CFUNCTION( GetCtrlPointOrigY )
+		REGISTER_LUA_CFUNCTION( ApplyForce )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SLevelNextStageData )
@@ -7438,6 +8231,7 @@ void RegisterGameClasses_Level()
 
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( CheckGrid )
+		REGISTER_LUA_CFUNCTION( GetMainAreaSize )
 		REGISTER_LUA_CFUNCTION( SpawnPawn )
 		REGISTER_LUA_CFUNCTION( SpawnPawn1 )
 		REGISTER_LUA_CFUNCTION( SpawnPreset )
@@ -7447,6 +8241,7 @@ void RegisterGameClasses_Level()
 		REGISTER_LUA_CFUNCTION( RemovePawn )
 		REGISTER_LUA_CFUNCTION( IsFailed )
 		REGISTER_LUA_CFUNCTION( IsSnapShot )
+		REGISTER_LUA_CFUNCTION( GetEnvEffect )
 		REGISTER_LUA_CFUNCTION( SetEnvEffect )
 		REGISTER_LUA_CFUNCTION( Fail )
 		REGISTER_LUA_CFUNCTION( Freeze )
@@ -7499,6 +8294,9 @@ void RegisterGameClasses_Level()
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( ScenarioText )
 		REGISTER_LUA_CFUNCTION( IsScenarioTextFinished )
+		REGISTER_LUA_CFUNCTION( ScenarioWaitInput )
+		REGISTER_LUA_CFUNCTION( IsScenarioWaitInput )
+		REGISTER_LUA_CFUNCTION( FinishWaitInput )
 		REGISTER_LUA_CFUNCTION( HeadText )
 		REGISTER_LUA_CFUNCTION( ShowFreezeEft )
 		REGISTER_LUA_CFUNCTION( ClearLabels )
@@ -7513,6 +8311,8 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pLevelFadeMask, mask )
 		REGISTER_MEMBER_TAGGED_PTR( m_pSnapShotRoot, sn )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBattleEffect, battle_eft )
+		REGISTER_MEMBER_TAGGED_PTR( m_pUpsampleLayer, upsample_layer )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMarkLayer, mark_layer )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenu, menu )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[0], menu/t1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[1], menu/t2 )

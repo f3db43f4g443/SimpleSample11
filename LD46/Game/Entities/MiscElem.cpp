@@ -178,9 +178,11 @@ void CCommonLink::Begin()
 	}
 	else
 		m_pDst->RegisterEntityEvent( eEntityEvent_RemovedFromStage, &m_onDstKilled );
-	m_pSound = PlaySoundLoop( "electric1" );
 	if( m_bSrcKilled && m_bDstKilled )
 		m_pSrc = m_pDst = NULL;
+	bool bDeadEffect = m_bDeadEffect && ( m_bSrcKilled || m_bDstKilled );
+	if( !bDeadEffect )
+		m_pSound = PlaySoundLoop( "electric1" );
 	if( m_pSrc && m_pDst )
 	{
 		if( m_nTargetEffectType == 2 )
@@ -241,7 +243,17 @@ void CCommonLink::Update()
 		pLightning->SetPosition( p[0] );
 		auto ofs = p[1] - p[0];
 		auto p1 = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
-		pLightning->Set( p1, m_nEftLife, m_fEftStrength );
+		bool bDeadEffect = m_bDeadEffect && ( m_bSrcKilled || m_bDstKilled );
+		if( bDeadEffect )
+		{
+			if( m_pSound )
+			{
+				m_pSound->FadeOut( 0.5f );
+				m_pSound = NULL;
+			}
+			pLightning->SetShowFlag( 3 );
+		}
+		pLightning->Set( p1, m_nEftLife * ( bDeadEffect ? 0.5f : 1.0f ), m_fEftStrength );
 		m_nTick = m_nEftInterval;
 	}
 	m_nTick--;
@@ -1706,6 +1718,14 @@ int32 CElevator::Signal( int32 i )
 			return 0;
 		}
 		m_nCurFloor--;
+		if( m_strScriptOpr.length() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strScriptOpr );
+			pLuaState->PushLua( this );
+			pLuaState->PushLua( -1 );
+			pLuaState->Call( 2, 0 );
+		}
 	}
 	else if( i == -2 )
 	{
@@ -1715,6 +1735,14 @@ int32 CElevator::Signal( int32 i )
 			return 0;
 		}
 		m_nCurFloor++;
+		if( m_strScriptOpr.length() )
+		{
+			auto pLuaState = CLuaMgr::GetCurLuaState();
+			pLuaState->Load( m_strScriptOpr );
+			pLuaState->PushLua( this );
+			pLuaState->PushLua( -2 );
+			pLuaState->Call( 2, 0 );
+		}
 	}
 	else if( i == -3 )
 		return m_nCurFloor;
@@ -2090,6 +2118,7 @@ void CTutorialFollowing::OnUpdate1( CMyLevel* pLevel )
 					auto pLightning = SafeCast<CLightningEffect>( m_pFailEffect->GetRoot()->CreateInstance() );
 					pLightning->SetParentEntity( this );
 					pLightning->SetPosition( m_pProjector->GetProjSrc() );
+					pLightning->SetShowFlag( 3 );
 					auto ofs = CVector2( m_curPos.x + 1, m_curPos.y + 0.5f ) * LEVEL_GRID_SIZE - pLightning->GetPosition();
 					auto p = TVector2<int32>( floor( ofs.x / 8 + 0.5f ), floor( ofs.y / 8 + 0.5f ) );
 					pLightning->Set( p, 60 );
@@ -2351,6 +2380,10 @@ void CTutorialFollowing::UpdateStep()
 					if( iImg >= m_vecImgs.size() )
 						m_vecImgs.push_back( CreateImg() );
 					m_vecImgs[iImg]->SetPosition( CVector2( p.x, p.y ) * LEVEL_GRID_SIZE );
+					auto pImage = static_cast<CImage2D*>( static_cast<CEntity*>( m_vecImgs[iImg].GetPtr() )->GetRenderObject() );
+					auto texRect = pImage->GetElem().texRect;
+					texRect.y = i == 0 ? 0.0625f : 0.09375f;
+					pImage->SetTexRect( texRect );
 					m_vecImgs[iImg]->bVisible = true;
 					iImg++;
 				}
@@ -2689,6 +2722,7 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nKillType )
 		REGISTER_MEMBER( m_nTargetEffectType )
+		REGISTER_MEMBER( m_bDeadEffect )
 		REGISTER_MEMBER( m_pSrc )
 		REGISTER_MEMBER( m_pDst )
 		REGISTER_MEMBER( m_srcOfs )
@@ -2888,6 +2922,9 @@ void RegisterGameClasses_MiscElem()
 		REGISTER_MEMBER( m_nEftFrames )
 		REGISTER_MEMBER( m_eftParam )
 		REGISTER_MEMBER( m_invalidParam )
+		REGISTER_MEMBER_BEGIN( m_strScriptOpr )
+			MEMBER_ARG( text, 1 )
+		REGISTER_MEMBER_END()
 		REGISTER_MEMBER_BEGIN( m_strScriptInvalid )
 			MEMBER_ARG( text, 1 )
 		REGISTER_MEMBER_END()

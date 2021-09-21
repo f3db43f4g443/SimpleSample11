@@ -74,7 +74,9 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 		if( fBaseCamHeight * fScale[iScale] <= viewSize.y )
 			break;
 	}
-	m_camera.SetSize( viewSize.x / fScale[iScale], viewSize.y / fScale[iScale] );
+	m_origCamSize = CVector2( viewSize.x / fScale[iScale], viewSize.y / fScale[iScale] );
+	m_fCamScale = fScale[iScale];
+	m_camera.SetSize( m_origCamSize.x, m_origCamSize.y );
 
 	m_bStarted = true;
 
@@ -369,6 +371,7 @@ void CStage::Update()
 		m_pMasterLevel->Update();
 		auto camPos = m_pMasterLevel->GetCamPos();
 		m_camera.SetPosition( camPos.x, camPos.y );
+		m_camera.SetSize( m_origCamSize.x * GetPixelScale(), m_origCamSize.y * GetPixelScale() );
 	}
 	
 	PROFILE_BEGIN( UpdateDirty2 )

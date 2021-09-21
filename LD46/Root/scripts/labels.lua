@@ -119,6 +119,7 @@ end
 
 function SetLabelKey( name, value )
 	local labels = g_labels[CurDay()]
+	if not labels then return end
 	local i = labels.itemtbl[name]
 	if i then
 		local item = labels.items[i]

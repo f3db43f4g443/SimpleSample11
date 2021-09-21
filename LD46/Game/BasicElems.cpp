@@ -177,7 +177,7 @@ void CPawn::Update()
 							if( evt.nParams[0] == 0 )
 								GetLevel()->PawnMoveEnd( this );
 							else if( evt.nParams[0] == 1 )
-								GetLevel()->PawnMoveBreak( this );
+								GetLevel()->PawnMoveBreak( this, true );
 						}
 						else if( evt.eType == ePawnStateEventType_Hit )
 						{
@@ -1025,7 +1025,7 @@ int32 CPawn::GetDefaultState()
 
 bool CPawn::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 {
-	if( !bInit )
+	if( !bInit && GetLevel() )
 	{
 		if( m_arrForms.Size() && state.nForm != m_nCurForm )
 		{
@@ -1035,7 +1035,7 @@ bool CPawn::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 	}
 	else
 		ASSERT( !m_arrForms.Size() || state.nForm == m_nCurForm );
-	if( !bInit )
+	if( !bInit && GetLevel() )
 		GetLevel()->PawnMoveBreak( this );
 	m_nCurStateTick = 0;
 	m_curStateBeginPos = CVector2( m_pos.x, m_pos.y ) * LEVEL_GRID_SIZE;
@@ -2432,7 +2432,7 @@ bool CPlayer::EnumAllCommonTransits( function<bool( SPawnStateTransit1&, int32 )
 
 bool CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 {
-	if( !bInit )
+	if( !bInit && GetLevel() )
 	{
 		if( m_arrForms.Size() && state.nForm != m_nCurForm )
 		{
@@ -2442,7 +2442,7 @@ bool CPlayer::ChangeState( SPawnState& state, int32 nStateSource, bool bInit )
 	}
 	else
 		ASSERT( !m_arrForms.Size() || state.nForm == m_nCurForm );
-	if( !bInit )
+	if( !bInit && GetLevel() )
 		GetLevel()->PawnMoveBreak( this );
 	if( m_pCurUsingPawn )
 	{

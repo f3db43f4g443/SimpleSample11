@@ -85,6 +85,13 @@ function ScenarioDialogue( n, sz, type, nFinishDelay, nSpeed )
 	end
 end
 
+function ScenarioWaitInput()
+	GetMasterLevel():GetMainUI():ScenarioWaitInput()
+	return function()
+		return not GetMasterLevel():GetMainUI():IsScenarioWaitInput()
+	end
+end
+
 function HeadText( sz, type, time, bImportant )
 	time = time or 0
 	type = type or htx_color_0
@@ -141,11 +148,11 @@ function SetCurTime( i )
 end
 
 function SecretFound()
-	SetKeyInt( "%secret_" .. tostring( CurDay() ) )
+	SetKeyInt( "%secret_" .. tostring( CurDay() ), 1 )
 end
 
 function IsSecretFound( i )
-	return EvaluateKeyInt( "%secret_" .. tostring( i ) )
+	return EvaluateKeyInt( "%secret_" .. tostring( i ) ) > 0
 end
 
 function CurCharacter()
@@ -177,6 +184,7 @@ RunLuaFile( "scripts/player.lua" )
 RunLuaFile( "scripts/labels.lua" )
 RunLuaFile( "scripts/docs.lua" )
 RunLuaFile( "scripts/ai.lua" )
+RunLuaFile( "scripts/env.lua" )
 RunLuaFile( "scripts/interaction.lua" )
 RunLuaFile( "scripts/data_misc.lua" )
 RunLuaFile( "scripts/misc.lua" )

@@ -5,6 +5,8 @@
   </template>
   <template type="EditorRes/UI/button.xml" name="import2" x="210" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import2" >
   </template>
+  <template type="EditorRes/UI/button.xml" name="import3" x="290" y="40" rectX="0" rectY="0" rectWidth="50" rectHeight="20" text="Import3" >
+  </template>
 
   <template type="EditorRes/UI/button.xml" name="layer_script" rectX="0" rectY="80" rectWidth="40" rectHeight="20" text="" >
   </template>

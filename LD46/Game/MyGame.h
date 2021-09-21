@@ -61,6 +61,7 @@ public:
 	bool IsInputHolding( int32 n );
 	bool IsAnyInputDown();
 	void ClearInputEvent();
+	void ClearKeyInputEvent( int32 n );
 
 	void Register( uint32 nTime, CTrigger* pTrigger ) { m_trigger.Register( nTime, pTrigger ); }
 

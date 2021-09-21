@@ -12,6 +12,7 @@ IMPLEMENT_MATERIAL_SHADER( PSActionEffect, "Shader/Effect.shader", "PSActionEffe
 IMPLEMENT_MATERIAL_SHADER( PSTextureInstDataClip, "Shader/Effect.shader", "PSTextureInstDataClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSTextureColorRange, "Shader/Effect.shader", "PSTextureColorRange", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSChargeEffect, "Shader/Effect.shader", "PSChargeEffect", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSRemap, "Shader/Distortion.shader", "PSRemap", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortion, "Shader/Distortion.shader", "PSDistortion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionAdd, "Shader/Distortion.shader", "PSDistortionAdd", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSDistortionMasked, "Shader/Distortion.shader", "PSDistortionMasked", "ps_5_0" );
