@@ -43,11 +43,22 @@ class ISoundTrack : public CReferenceObject
 {
 public:
 	virtual void Play( uint32 nFlag, bool bReset = false ) = 0;
+	virtual bool IsPlaying() = 0;
 	virtual void Stop() = 0;
 	virtual void Resume() = 0;
 	virtual void FadeOut( float fTime ) = 0;
 	virtual void SetVolume( float fVolume ) = 0;
 	virtual void SetVolumeDB( float fVolume ) = 0;
+	virtual void RefreshVolume() = 0;
+	virtual void SetChannel( class ISoundTrackChannel* pChannel ) = 0;
+};
+
+class ISoundTrackChannel
+{
+public:
+	virtual void AddSoundTrack( ISoundTrack* pSoundTrack ) = 0;
+	virtual void RemoveSoundTrack( ISoundTrack* pSoundTrack ) = 0;
+	virtual float GetVolume() = 0;
 };
 
 class CSoundFile : public CResource

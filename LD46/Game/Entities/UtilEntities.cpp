@@ -542,7 +542,7 @@ void CSimpleText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 	for( const char* c = szText; ; c++ )
 	{
 		char ch = *c;
-		if( !ch || ch == ( m_nTexLayoutType == 0 ? '`' : '\n' ) || m_nMaxLineLen && nLineLen >= m_nMaxLineLen )
+		if( !ch || ch == '\n' || m_nMaxLineLen && nLineLen >= m_nMaxLineLen )
 		{
 			if( nAlign )
 			{
@@ -558,7 +558,7 @@ void CSimpleText::Set( const char* szText, int8 nAlign, int32 nMaxLines )
 			nCurLine++;
 			if( nMaxLines > 0 && nCurLine >= nMaxLines )
 				break;
-			if( ch == ( m_nTexLayoutType == 0 ? '`' : '\n' ) )
+			if( ch == '\n' )
 				continue;
 		}
 		CRectangle texRect;
@@ -920,6 +920,7 @@ int32* CSimpleText::GetTextTbl()
 			indices[')'] = k++;
 			indices['*'] = k++;
 			indices['\''] = k++;
+			indices['?'] = k++;
 		}
 	};
 	static SSimpleTextTable g_tbl;
@@ -1050,7 +1051,11 @@ void CTypeText::Update()
 	{
 		int32 nSoundCD = Max( 1, m_nSoundTextInterval ) * m_nTypeInterval;
 		if( m_nTick % nSoundCD == 0 )
-			m_pSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+		{
+			auto p = m_pSound->CreateSoundTrack();
+			p->SetChannel( &CSoundChannel::SfxChannel() );
+			p->Play( ESoundPlay_KeepRef );
+		}
 	}
 	m_nTick++;
 	RefreshFinishSymbol();

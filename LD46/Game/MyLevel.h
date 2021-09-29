@@ -581,6 +581,7 @@ public:
 private:
 	void UpdatePos();
 	void UpdateInputItem( int32 nItem );
+	void OnNewInputItemAdded();
 	void UpdateIcons();
 	void Effect0();
 	void Effect1();
@@ -589,7 +590,7 @@ private:
 	void FreezeEffect( int32 nLevel );
 	CReference<CEntity> m_pHeadText;
 	CReference<CEntity> m_pScenarioText[2];
-	CReference<CEntity> m_pFailTips[3];
+	CReference<CEntity> m_pFailTips[4];
 	CReference<CEntity> m_pIcons[ePlayerEquipment_Count];
 	CReference<CEntity> m_pLabelsRoot;
 	CReference<CEntity> m_pLabelsCounter;
@@ -619,6 +620,8 @@ private:
 		int32 nMatchLen;
 	};
 	vector<SInputItem> m_vecInputItems;
+	float m_fNewInputX;
+	float m_fNewInputXSpeed;
 	float m_fLabelX;
 	vector<CReference<CRenderObject2D> > m_vecLabels;
 	vector<CReference<CEntity> > m_vecLabelCounters;
@@ -734,6 +737,7 @@ struct SWorldData
 	SWorldDataFrame* pCheckPoint;
 	deque<SWorldDataFrame*> backupFrames;
 	int32 nCurFrameCount;
+	int32 nValidFrameCount;
 	map<string, SWorldDataFrame::SLevelSnapShot> mapSnapShotCur;
 	map<string, SWorldDataFrame::SLevelSnapShot> mapSnapShotCheckPoint;
 	static constexpr int32 nMaxFrameCount = 10;
@@ -748,6 +752,7 @@ struct SWorldData
 	void OnRetreat( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
 	void CheckPoint( CPlayer* pPlayer );
 	void OnRestoreToCheckpoint( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
+	void OnRecover( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns );
 	void ClearKeys();
 	void Respawn();
 	void RespawnLevel( const char* szLevel );
@@ -798,6 +803,7 @@ public:
 	bool TransferTo( CPrefab* pLevelPrefab, const TVector2<int32>& playerPos, int8 nPlayerDir, int8 nTransferType = 0, int32 nTransferParam = 0 );
 	void JumpBack( int8 nType );
 	bool IsTransfer() { return m_pTransferCoroutine != NULL; }
+	bool CanRecover();
 	CMainUI* GetMainUI() { return m_pMainUI; }
 	CMyLevel* GetCurLevel() { return m_pCurLevel; }
 	CCutScene* GetCurCutScene() { return m_pCurCutScene; }
@@ -841,6 +847,7 @@ public:
 	void ShowActionPreview( bool bShow );
 	void ShowLogUI( bool bShow, int8 nPage = -1, int32 nIndex = 0 );
 	void ShowDoc( int32 nIndex ) { ShowLogUI( true, 0, nIndex ); }
+	void ShowSystemUI( bool bShow );
 	void ShowMenu( bool bShow, int8 nCurPage );
 	void SwitchMenuPage( int8 nPage );
 	bool IsMenuShow() { return m_pMenu->bVisible; }
@@ -893,7 +900,7 @@ private:
 		eMenuPage_ActionPreview,
 		eMenuPage_Map,
 		eMenuPage_Log,
-		eMenuPage_3,
+		eMenuPage_System,
 		eMenuPage_4
 	};
 
@@ -911,6 +918,7 @@ private:
 	CReference<CEntity> m_pWorldMap;
 	CReference<CEntity> m_pActionPreview;
 	CReference<CEntity> m_pLogUI;
+	CReference<CEntity> m_pSystemUI;
 	TResourceRef<CSoundFile> m_pBlackOutSound;
 	int8 m_nMenuPage;
 	int8 m_nEnabledPageCount;

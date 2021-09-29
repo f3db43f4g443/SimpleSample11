@@ -3,11 +3,13 @@
 #include "MyGame.h"
 #include "Common/FileUtil.h"
 #include "Common/Rand.h"
+#include "SdkInterface.h"
+#include "GlobalCfg.h"
 
 void CStartMenu::Init()
 {
 	SetRenderObject( NULL );
-	const char* szMenuText[] = { "CONTINUE", "NEW GAME", "QUIT" };
+	const char* szMenuText[] = { "CONTINUE", "NEW GAME", "WALKTHROUGH", "QUIT" };
 	for( int i = 0; i < ELEM_COUNT( m_pMenuItem ); i++ )
 	{
 		bool bValid = true;
@@ -53,7 +55,12 @@ int8 CStartMenu::Update()
 	if( CGame::Inst().IsKeyDown( VK_RETURN ) || CGame::Inst().IsKeyDown( ' ' ) )
 	{
 		int8 nResult = OnSelect();
-		if( nResult )
+		if( nResult == eStartMenuResult_Walkthrough )
+		{
+			if( ISdkInterface::Inst() )
+				ISdkInterface::Inst()->OpenExplorer( CGlobalCfg::Inst().strWalkthrough.c_str() );
+		}
+		else if( nResult )
 		{
 			m_pBackLevel->End();
 			return nResult;
@@ -110,6 +117,8 @@ int8 CStartMenu::OnSelect()
 		return eStartMenuResult_Continue;
 	else if( m_vecValidMenuItem[m_nCurSelectedItem] == 1 )
 		return eStartMenuResult_NewGame;
+	else if( m_vecValidMenuItem[m_nCurSelectedItem] == 2 )
+		return eStartMenuResult_Walkthrough;
 	return eStartMenuResult_Quit;
 }
 
@@ -243,5 +252,6 @@ void RegisterGameClasses_Menu()
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[0], 0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[1], 1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[2], 2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pMenuItem[3], 3 )
 	REGISTER_CLASS_END()
 }

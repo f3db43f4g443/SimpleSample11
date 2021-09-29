@@ -8,6 +8,7 @@ enum
 	eStartMenuResult_None,
 	eStartMenuResult_Continue,
 	eStartMenuResult_NewGame,
+	eStartMenuResult_Walkthrough,
 	eStartMenuResult_Quit,
 };
 
@@ -24,7 +25,7 @@ private:
 	void UpdateEffect();
 	TResourceRef<CPrefab> m_pBackLevelPrefab;
 	CVector4 m_textSelected, m_textUnSelected;
-	CReference<CSimpleText> m_pMenuItem[3];
+	CReference<CSimpleText> m_pMenuItem[4];
 
 	CReference<CMyLevel> m_pBackLevel;
 	int32 m_nCurSelectedItem;

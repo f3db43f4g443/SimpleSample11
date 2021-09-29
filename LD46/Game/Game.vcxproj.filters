@@ -53,6 +53,9 @@
     <ClCompile Include="GUI\LogUI.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
+    <ClCompile Include="GUI\SystemUI.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Entity.h" />
@@ -107,6 +110,9 @@
       <Filter>GUI</Filter>
     </ClInclude>
     <ClInclude Include="SdkInterface.h" />
+    <ClInclude Include="GUI\SystemUI.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shader\PostProcessInvertColor.shader">

@@ -1,6 +1,6 @@
 ﻿<root>
   <world cfg_path="stages/world.w" entry="data/cutscene/day1.pf" entry_x="6" entry_y="0" entry_dir="0"
-         lua_start="scripts/0.lua" lua_world_init="scripts/world.lua"  />
+         lua_start="scripts/0.lua" lua_world_init="scripts/world.lua" walkthrough="https://www.youtube.com/playlist?list=PL28oubjbjn8KuiFV1nC1MoV60PK-fgZ2j"  />
   <prefabs>
     <fail_lightning_eft>data/misc/lightning.pf</fail_lightning_eft>
     <fall_eft>data/misc/misc_elem.mtl</fall_eft>
@@ -418,12 +418,12 @@
       <frame max_img_height="40" mul="0.01" add="0" ofs="0" />
     </action_eft_frames>
     <player_input_params>
-      <item x="0.45" y="0.65" z="0.5" w="1" ofs_x="60" ofs_y="-84" />
-      <item x="0.5" y="0.38" z="0.04" w="1" ofs_x="2" ofs_y="-52" />
-      <item x="0.45" y="0.29" z="0.038" w="1" ofs_x="4" ofs_y="-54" />
-      <item x="0.41" y="0.21" z="0.033" w="1" ofs_x="6" ofs_y="-58" />
-      <item x="0.37" y="0.15" z="0.03" w="1" ofs_x="8" ofs_y="-64" />
-      <item x="0.3" y="0.1" z="0.025" w="1" ofs_x="10" ofs_y="-72" />
+      <item x="0.45" y="0.65" z="0.5" w="1" ofs_x="-36" ofs_y="-68" />
+      <item x="0.65" y="0.53" z="0.19" w="1" ofs_x="2" ofs_y="-52" />
+      <item x="0.56" y="0.40" z="0.148" w="1" ofs_x="4" ofs_y="-54" />
+      <item x="0.47" y="0.27" z="0.093" w="1" ofs_x="6" ofs_y="-58" />
+      <item x="0.39" y="0.17" z="0.05" w="1" ofs_x="8" ofs_y="-64" />
+      <item x="0.31" y="0.11" z="0.035" w="1" ofs_x="10" ofs_y="-72" />
       <item x="0.22" y="0.02" z="0.02" w="0.5" ofs_x="12" ofs_y="-82" />
       <item x="0.12" y="0.0" z="0.0" w="0" ofs_x="14" ofs_y="-94" />
     </player_input_params>

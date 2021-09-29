@@ -35,12 +35,24 @@ CLuaTrigger* CLuaTrigger::CreateAuto( int8 nParamType )
 	return p;
 }
 
+
+void SetMusicGlobalVolume( float f )
+{
+	CSoundChannel::MusicChannel().SetVolume( f );
+}
+
+void SetSfxGlobalVolume( float f )
+{
+	CSoundChannel::SfxChannel().SetVolume( f );
+}
+
 void PlaySoundEffect( const char* szName )
 {
 	auto itr = CGlobalCfg::Inst().mapSoundEffect.find( szName );
 	if( itr == CGlobalCfg::Inst().mapSoundEffect.end() )
 		return;
 	auto pSoundTrack = itr->second->CreateSoundTrack();
+	pSoundTrack->SetChannel( &CSoundChannel::SfxChannel() );
 	pSoundTrack->Play( ESoundPlay_KeepRef );
 }
 
@@ -50,6 +62,7 @@ ISoundTrack* PlaySoundLoop( const char* szName )
 	if( itr == CGlobalCfg::Inst().mapSoundEffect.end() )
 		return NULL;
 	auto pSoundTrack = itr->second->CreateSoundTrack();
+	pSoundTrack->SetChannel( &CSoundChannel::SfxChannel() );
 	pSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop );
 	return pSoundTrack;
 }
@@ -61,5 +74,6 @@ void CreateBGM( CReference<ISoundTrack>& result, const char * szName )
 		return;
 	auto pSoundTrack = itr->second->CreateSoundTrack();
 	result = pSoundTrack;
+	pSoundTrack->SetChannel( &CSoundChannel::MusicChannel() );
 	pSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop, true );
 }

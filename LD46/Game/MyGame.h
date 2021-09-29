@@ -19,6 +19,16 @@ enum
 	eInput_D,
 };
 
+struct SUserSetting
+{
+	SUserSetting() : nMusicVolume( 0 ), nSfxVolume( 10 ) {}
+	int32 nMusicVolume;
+	int32 nSfxVolume;
+
+	void Load( IBufReader& buf );
+	void Save( CBufFile& buf );
+};
+
 class CGame : public IGame
 {
 public:
@@ -63,12 +73,21 @@ public:
 	void ClearInputEvent();
 	void ClearKeyInputEvent( int32 n );
 
+	int32 GetMusicVolume();
+	int32 GetSfxVolume();
+	void SetMusicVolume( int32 n );
+	void SetSfxVolume( int32 n );
+
+	void QuitToMainMenu();
+	void Exit();
+
 	void Register( uint32 nTime, CTrigger* pTrigger ) { m_trigger.Register( nTime, pTrigger ); }
 
 	void BeforeRender() { if( m_pCurGameState ) m_pCurGameState->BeforeRender(); }
 
 	DECLARE_GLOBAL_INST_REFERENCE( CGame )
 private:
+	void SaveUserSetting();
 	bool m_bStarted;
 	bool m_bRestart;
 	IGameState* m_pCurGameState;
@@ -88,6 +107,8 @@ private:
 	bool m_bIsRightMouseDown;
 	bool m_bIsRightMouseUp;
 	CVector2 m_screenRes;
+
+	SUserSetting m_userSetting;
 
 	TClassTrigger<CGame> m_beforeRender;
 

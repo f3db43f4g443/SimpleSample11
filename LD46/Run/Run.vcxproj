@@ -975,6 +975,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Platform_Common.cpp" />
     <ClCompile Include="Platform_Default.cpp" />
     <ClCompile Include="Platform_Steam.cpp" />
   </ItemGroup>

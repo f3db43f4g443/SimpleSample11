@@ -22,10 +22,11 @@ struct SViewport
 
 struct SDeviceCreateContext
 {
-	SDeviceCreateContext() : szWindowName( NULL ), bFullWindow( false ) {}
+	SDeviceCreateContext() : szWindowName( NULL ), bFullWindow( false ), bVSync( true ) {}
 	const wchar_t* szWindowName;
 	CVector2 resolution;
 	bool bFullWindow;
+	bool bVSync;
 };
 
 class IGame;

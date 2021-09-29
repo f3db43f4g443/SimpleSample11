@@ -12,6 +12,7 @@
 #include "GUI/WorldMap.h"
 #include "GUI/ActionPreview.h"
 #include "GUI/LogUI.h"
+#include "GUI/SystemUI.h"
 #include "Common/FileUtil.h"
 #include "Entities/InteractionUI.h"
 #include "CommonUtils.h"
@@ -3077,7 +3078,7 @@ void CMyLevel::Update()
 			}
 			if( CGame::Inst().IsKeyDown( 'Y' ) )
 			{
-				pMasterLevel->JumpBack( 2 );
+				pMasterLevel->JumpBack( pMasterLevel->CanRecover() ? 3 : 2 );
 				return;
 			}
 			if( m_bFailed && CGame::Inst().IsAnyInputDown() )
@@ -3825,7 +3826,7 @@ void CMainUI::OnAddedToStage()
 	m_origRect = pRenderObject->GetElem().rect;
 	SetRenderObject( NULL );
 	m_vecInputItems.resize( CGlobalCfg::Inst().MainUIData.vecPlayerInputParams.size() );
-	for( int i = 0; i < 3; i++ )
+	for( int i = 0; i < 4; i++ )
 		m_pFailTips[i]->bVisible = false;
 	m_fLabelX = m_pLabelsRoot->x;
 	m_pLabelsRoot->SetRenderObject( NULL );
@@ -3947,6 +3948,7 @@ void CMainUI::RefreshPlayerInput( vector<int8>& vecInput, int32 nMatchLen, int8 
 
 void CMainUI::InsertDefaultFinishAction()
 {
+	OnNewInputItemAdded();
 	m_nPlayerActionFrame = CGlobalCfg::Inst().MainUIData.vecActionEftFrames.size();
 	for( int i = m_vecInputItems.size() - 1; i >= 2; i-- )
 		m_vecInputItems[i] = m_vecInputItems[i - 1];
@@ -3971,6 +3973,7 @@ void CMainUI::OnPlayerAction( vector<int8>& vecInput, int32 nMatchLen, int8 nCha
 			m_nPlayerActionFrame = CGlobalCfg::Inst().MainUIData.vecActionEftFrames.size() - 1;
 	}
 	RefreshPlayerInput( vecInput, nMatchLen, nChargeKey, nType );
+	OnNewInputItemAdded();
 
 	for( int i = m_vecInputItems.size() - 1; i >= 1; i-- )
 		m_vecInputItems[i] = m_vecInputItems[i - 1];
@@ -4054,18 +4057,22 @@ void CMainUI::ShowFailEft( bool b )
 {
 	if( !b )
 	{
-		for( int i = 0; i < 3; i++ )
+		for( int i = 0; i < 4; i++ )
 			m_pFailTips[i]->bVisible = false;
 		return;
 	}
-	auto& worldData = GetStage()->GetMasterLevel()->GetWorldData();
-	bool bFailTips[3] = { worldData.nCurFrameCount > 0, worldData.nCurFrameCount > 1, worldData.pCheckPoint != NULL };
-	if( bFailTips[2] && !bFailTips[0] )
+	auto pMasterLevel = GetStage()->GetMasterLevel();
+	auto& worldData = pMasterLevel->GetWorldData();
+	bool bFailTips[4] = { worldData.nCurFrameCount > 0, worldData.nCurFrameCount > 1,
+		worldData.pCheckPoint != NULL, pMasterLevel->CanRecover() };
+	if( worldData.pCheckPoint != NULL && !bFailTips[0] )
 		swap( bFailTips[2], bFailTips[0] );
 	if( bFailTips[2] && !bFailTips[1] )
 		swap( bFailTips[2], bFailTips[1] );
+	if( bFailTips[3] )
+		bFailTips[2] = false;
 	CVector2 p( -64, -16 );
-	for( int i = 0; i < 3; i++ )
+	for( int i = 0; i < 4; i++ )
 	{
 		if( !bFailTips[i] )
 		{
@@ -4181,6 +4188,12 @@ void CMainUI::Update()
 	UpdatePos();
 	UpdateIcons();
 	UpdateInputItem( 0 );
+	if( m_fNewInputX < m_playerInputOrig.x )
+	{
+		m_fNewInputX = Min( m_fNewInputX + m_fNewInputXSpeed, m_playerInputOrig.x );
+		m_fNewInputXSpeed += 2;
+	}
+	UpdateInputItem( 1 );
 
 	auto pText = SafeCast<CTypeText>( m_pHeadText.GetPtr() );
 	if( m_nHeadTextTime )
@@ -4238,7 +4251,7 @@ void CMainUI::UpdateEffect()
 	{
 		if( !m_bScenario && m_nPlayerActionFrame )
 		{
-			Effect0();
+			//Effect0();
 		}
 		if( pCurLevel && pCurLevel->IsFailed() )
 		{
@@ -4371,6 +4384,10 @@ void CMainUI::UpdateInputItem( int32 nItem )
 		if( pPlayer && pPlayer->GetLevel() )
 			p0.x = pPlayer->GetMoveTo().x * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - x;
 	}
+	else if( nItem == 1 )
+	{
+		p0.x = m_fNewInputX;
+	}
 	auto viewArea = GetStage()->GetOrigCamSize();
 	int32 nGlitch = 0;
 	int32 nElem = 0;
@@ -4430,6 +4447,19 @@ void CMainUI::UpdateInputItem( int32 nItem )
 		auto& elem = item.vecElems[nElem++];
 		elem.rect = CRectangle( 0, 0, 0, 0 );
 	}
+}
+
+void CMainUI::OnNewInputItemAdded()
+{
+	m_fNewInputX = m_playerInputOrig.x;
+	auto pPlayer = GetStage()->GetWorld()->GetPlayer();
+	if( pPlayer && pPlayer->GetLevel() )
+	{
+		m_fNewInputX = pPlayer->GetMoveTo().x * LEVEL_GRID_SIZE_X + pPlayer->GetLevel()->x - x + m_vecInputItems[0].vec.size() * 8;
+		auto& param = CGlobalCfg::Inst().MainUIData.vecPlayerInputParams[0];
+		m_fNewInputX += param.ofs.x;
+	}
+	m_fNewInputXSpeed = 0;
 }
 
 void CMainUI::UpdateIcons()
@@ -4767,14 +4797,22 @@ void CMainUI::RecordEffect()
 		m_vecPlayerActionElemParams.push_back( CVector4( 0.4f, 0.1f, 0.35f, 4 ) );
 		r0.x += 40;
 	}
-	for( int i = 0; i < worldData.nCurFrameCount; i++ )
+	for( int i = 0; i < worldData.nValidFrameCount; i++ )
 	{
 		m_vecPlayerActionElems.resize( m_vecPlayerActionElems.size() + 1 );
 		auto& elem = m_vecPlayerActionElems.back();
 		elem.rect = r0;
 		elem.texRect = CRectangle( 0, 0.25f, 0.0625f, 0.0625f );
-		m_vecPlayerActionElemParams.push_back( CVector4( 0.5f, 0.5f, 0.5f, 4 ) );
-		m_vecPlayerActionElemParams.push_back( CVector4( 0.4f, 0.45f, 0.17f, 4 ) );
+		if( i < worldData.nCurFrameCount )
+		{
+			m_vecPlayerActionElemParams.push_back( CVector4( 0.5f, 0.5f, 0.5f, 4 ) );
+			m_vecPlayerActionElemParams.push_back( CVector4( 0.4f, 0.45f, 0.17f, 4 ) );
+		}
+		else
+		{
+			m_vecPlayerActionElemParams.push_back( CVector4( 0.75f, 0.75f, 0.75f, 4 ) );
+			m_vecPlayerActionElemParams.push_back( CVector4( 0.18f, 0.2f, 0.19f, 4 ) );
+		}
 		r0.x += 40;
 	}
 }
@@ -5287,6 +5325,7 @@ void SWorldData::Load( IBufReader& buf )
 {
 	int32 nVersion = buf.Read<int32>();
 	buf.Read( nCurFrameCount );
+	nValidFrameCount = nCurFrameCount;
 	for( int i = 0; i < nCurFrameCount; i++ )
 	{
 		auto pFrame = new SWorldDataFrame;
@@ -5460,6 +5499,7 @@ void SWorldData::OnEnterLevel( const char* szCurLevel, CPlayer* pPlayer, const T
 			backupFrames.push_back( new SWorldDataFrame );
 		p = backupFrames[nCurFrameCount++];
 	}
+	nValidFrameCount = nCurFrameCount;
 	*p = curFrame;
 	curFrame.vecScenarioRecords.clear();
 }
@@ -5538,7 +5578,7 @@ void SWorldData::CheckPoint( CPlayer* pPlayer )
 		if( pCheckPoint->vecScenarioRecords.size() >= MAX_SCENARIO_RECORDS )
 			break;
 	}
-	nCurFrameCount = 0;
+	nValidFrameCount = nCurFrameCount = 0;
 	curFrame.vecScenarioRecords.clear();
 	mapSnapShotCheckPoint = mapSnapShotCur;
 	if( pCheckPoint0 )
@@ -5575,6 +5615,12 @@ void SWorldData::OnRestoreToCheckpoint( CPlayer* pPlayer, vector<CReference<CPaw
 	}
 
 	curFrame.vecScenarioRecords.clear();
+}
+
+void SWorldData::OnRecover( CPlayer* pPlayer, vector<CReference<CPawn> >& vecPawns )
+{
+	nCurFrameCount = nValidFrameCount;
+	OnReset( pPlayer, vecPawns );
 }
 
 void SWorldData::ClearKeys()
@@ -5694,6 +5740,7 @@ void CMasterLevel::OnAddedToStage()
 	m_pWorldMap->bVisible = false;
 	m_pActionPreview->bVisible = false;
 	m_pLogUI->bVisible = false;
+	m_pSystemUI->bVisible = false;
 	m_pMarkLayer->SetRenderObject( NULL );
 }
 
@@ -5793,9 +5840,14 @@ void CMasterLevel::JumpBack( int8 nType )
 		if( !m_worldData.nCurFrameCount )
 			RemoveAllSnapShot();
 	}
-	else
+	else if( nType == 2 )
 	{
 		m_worldData.OnRestoreToCheckpoint( m_pPlayer, vecPawns );
+		RemoveAllSnapShot();
+	}
+	else
+	{
+		m_worldData.OnRecover( m_pPlayer, vecPawns );
 		RemoveAllSnapShot();
 	}
 	RefreshMainUI();
@@ -5817,6 +5869,11 @@ void CMasterLevel::JumpBack( int8 nType )
 		pLevel->AddPawn( pPawn, pPawn->m_pos, pPawn->m_nCurDir );
 	BeginCurLevel();
 	UpdateColorAdjust( true );
+}
+
+bool CMasterLevel::CanRecover()
+{
+	return m_worldData.nValidFrameCount != m_worldData.nCurFrameCount;
 }
 
 SWorldDataFrame::SLevelData& CMasterLevel::GetCurLevelData()
@@ -6141,6 +6198,28 @@ void CMasterLevel::ShowLogUI( bool bShow, int8 nPage, int32 nIndex )
 	}
 }
 
+void CMasterLevel::ShowSystemUI( bool bShow )
+{
+	auto pSystemUI = SafeCast<CSystemUI>( m_pSystemUI.GetPtr() );
+	if( bShow )
+	{
+		pSystemUI->bVisible = true;
+		pSystemUI->Show();
+		ShowMenu( true, eMenuPage_System );
+		pSystemUI->bVisible = true;
+		pSystemUI->SetPosition( GetCamPos() );
+		pSystemUI->s = GetStage()->GetPixelScale();
+		m_pCurLevel->Freeze();
+	}
+	else
+	{
+		ShowMenu( false, 0 );
+		pSystemUI->bVisible = false;
+		m_pCurLevel->UnFreeze();
+	}
+
+}
+
 void CMasterLevel::ShowMenu( bool bShow, int8 nCurPage )
 {
 	if( bShow )
@@ -6151,7 +6230,7 @@ void CMasterLevel::ShowMenu( bool bShow, int8 nCurPage )
 		m_nEnabledPageCount = 0;
 		m_nMenuPage = nCurPage;
 		m_nMenuPageItemIndex = -1;
-		const char* szMenuItemName[] = { "Action", "Map", "Log", "4", "5" };
+		const char* szMenuItemName[] = { "Action", "Map", "Log", "System", "5" };
 		for( int i = 0; i < 5; i++ )
 		{
 			if( IsMenuPageEnabled( i ) )
@@ -6182,6 +6261,8 @@ void CMasterLevel::SwitchMenuPage( int8 nPage )
 		ShowWorldMap( false );
 	else if( m_nMenuPage == eMenuPage_Log )
 		ShowLogUI( false );
+	else if( m_nMenuPage == eMenuPage_System )
+		ShowSystemUI( false );
 	if( nPage < 0 )
 	{
 		ShowMenu( false, 0 );
@@ -6194,6 +6275,8 @@ void CMasterLevel::SwitchMenuPage( int8 nPage )
 		ShowWorldMap( true );
 	else if( m_nMenuPage == eMenuPage_Log )
 		ShowLogUI( true );
+	else if( m_nMenuPage == eMenuPage_System )
+		ShowSystemUI( true );
 }
 
 bool CMasterLevel::IsMenuPageEnabled( int8 nPage )
@@ -6203,6 +6286,8 @@ bool CMasterLevel::IsMenuPageEnabled( int8 nPage )
 	if( nPage == eMenuPage_Map )
 		return SafeCast<CWorldMapUI>( m_pWorldMap.GetPtr() )->IsEnabled();
 	if( nPage == eMenuPage_Log )
+		return true;
+	if( nPage == eMenuPage_System )
 		return true;
 	return false;
 }
@@ -6448,6 +6533,11 @@ void CMasterLevel::Update()
 				if( CGame::Inst().IsKeyDown( 'B' ) )
 					ShowLogUI( false );
 			}
+			else if( m_pSystemUI->bVisible )
+			{
+				auto pSystemUI = SafeCast<CSystemUI>( m_pSystemUI.GetPtr() );
+				pSystemUI->Update();
+			}
 			if( m_pMenu->bVisible )
 			{
 				if( CGame::Inst().IsKeyDown( VK_ESCAPE ) )
@@ -6490,7 +6580,7 @@ void CMasterLevel::Update()
 				}
 			}
 			else if( CGame::Inst().IsKeyDown( VK_ESCAPE ) )
-				ShowLogUI( true );
+				ShowSystemUI( true );
 		}
 		CGame::Inst().ClearInputEvent();
 		m_nTransferPlayerDataOpr = 0;
@@ -6527,6 +6617,13 @@ void CMasterLevel::Update()
 	{
 		m_backParam[0] = CVector4( 0, 0, 0, 0 );
 		m_backParam[1] = CVector4( 0, 0, 0, 0 );
+		if( m_pCurLevel && m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->bVisible = false;
+	}
+	else
+	{
+		if( m_pCurLevel && m_pCurLevel->GetEnvEffect() )
+			m_pCurLevel->GetEnvEffect()->bVisible = true;
 	}
 
 	UpdateMarkLayer();
@@ -6752,7 +6849,7 @@ void CMasterLevel::UpdateBackground()
 	else
 	{
 		m_pBackMask->bVisible = true;
-		static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->SetRect( CRectangle( -2048, -2048, 4096, 4096 ) );
+		static_cast<CImage2D*>( m_pLevelFadeMask->GetRenderObject() )->SetRect( CRectangle( -4096, -4096, 8192, 8192 ) );
 		m_pLevelFadeMask->GetRenderObject()->SetBoundDirty();
 	}
 	for( ; iScenarioMask < m_vecBackScenarioMask.size(); iScenarioMask++ )
@@ -6967,6 +7064,7 @@ void CMasterLevel::UpdateBGM()
 		if( !m_pSpecialEftSoundTrack )
 		{
 			m_pSpecialEftSoundTrack = CGlobalCfg::Inst().pBlackOutSound->CreateSoundTrack();
+			m_pSpecialEftSoundTrack->SetChannel( &CSoundChannel::SfxChannel() );
 			m_pSpecialEftSoundTrack->Play( ESoundPlay_KeepRef | ESoundPlay_Loop );
 		}
 	}
@@ -8285,6 +8383,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[0], tips_0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[1], tips_1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[2], tips_2 )
+		REGISTER_MEMBER_TAGGED_PTR( m_pFailTips[3], tips_3 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[0], icon_0 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[1], icon_1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pIcons[2], icon_2 )
@@ -8324,6 +8423,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pWorldMap, world_map )
 		REGISTER_MEMBER_TAGGED_PTR( m_pActionPreview, action_preview )
 		REGISTER_MEMBER_TAGGED_PTR( m_pLogUI, log )
+		REGISTER_MEMBER_TAGGED_PTR( m_pSystemUI, system )
 		DEFINE_LUA_REF_OBJECT()
 		REGISTER_LUA_CFUNCTION( GetMainUI )
 		REGISTER_LUA_CFUNCTION( GetCurLevelName )

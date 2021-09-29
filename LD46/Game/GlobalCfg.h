@@ -13,6 +13,7 @@ public:
 	TVector2<int32> playerEnterPos;
 	int8 nPlayerEnterDir;
 	string strWorldInitScript;
+	string strWalkthrough;
 
 	CReference<CPrefab> pFailLightningEffectPrefab;
 	CReference<CDrawableGroup> pFallEftDrawable;

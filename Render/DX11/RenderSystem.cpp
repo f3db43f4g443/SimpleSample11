@@ -420,6 +420,7 @@ void CRenderSystem::CreateDevice( const SDeviceCreateContext& context )
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 
+	m_createContext = context;
 	// DXUT will create and use the best device (either D3D9 or D3D11) 
 	// that is available on the system depending on which D3D callbacks are set below
 
@@ -622,6 +623,9 @@ bool CALLBACK CRenderSystem::ModifyDeviceSettings( DXUTDeviceSettings* pDeviceSe
 #endif
 	}
 
+	CRenderSystem* pThis = (CRenderSystem*)pUserContext;
+	if( pThis->m_createContext.bVSync )
+		pDeviceSettings->d3d11.SyncInterval = 1;
 	return true;
 }
 

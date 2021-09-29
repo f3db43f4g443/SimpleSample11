@@ -11,8 +11,25 @@
 #include "MyLevel.h"
 #include "GlobalCfg.h"
 #include "SdkInterface.h"
+#include "CommonUtils.h"
 
 #include "Entities/EffectObject.h"
+
+void SUserSetting::Load( IBufReader& buf )
+{
+	int32 nVersion;
+	buf.Read( nVersion );
+	buf.Read( nMusicVolume );
+	buf.Read( nSfxVolume );
+}
+
+void SUserSetting::Save( CBufFile& buf )
+{
+	int32 nVersion = 0;
+	buf.Write( nVersion );
+	buf.Write( nMusicVolume );
+	buf.Write( nSfxVolume );
+}
 
 CGame::CGame()
 	: m_bStarted( false )
@@ -38,6 +55,16 @@ CGame::CGame()
 
 void CGame::Start()
 {
+	vector<char> content;
+	GetFileContent( content, "save/user", false );
+	if( content.size() )
+	{
+		CBufReader buf( &content[0], content.size() );
+		m_userSetting.Load( buf );
+	}
+	SetMusicGlobalVolume( m_userSetting.nMusicVolume == 0 ? 0 : exp( ( m_userSetting.nMusicVolume - 10 ) * 1.2f ) );
+	SetSfxGlobalVolume( m_userSetting.nSfxVolume == 0 ? 0 : exp( ( m_userSetting.nSfxVolume - 10 ) * 1.2f ) );
+
 	m_screenRes = IRenderSystem::Inst()->GetScreenRes();
 	CScene2DManager::GetGlobalInst()->Register( CScene2DManager::eEvent_BeforeRender, &m_beforeRender );
 
@@ -253,6 +280,47 @@ void CGame::ClearKeyInputEvent( int32 n )
 	m_char.SetBit( n, 0 );
 }
 
+int32 CGame::GetMusicVolume()
+{
+	return m_userSetting.nMusicVolume;
+}
+
+int32 CGame::GetSfxVolume()
+{
+	return m_userSetting.nSfxVolume;
+}
+
+void CGame::SetMusicVolume( int32 n )
+{
+	SetMusicGlobalVolume( n == 0 ? 0 : exp( ( n - 10 ) * 1.2f ) );
+	m_userSetting.nMusicVolume = n;
+	SaveUserSetting();
+}
+
+void CGame::SetSfxVolume( int32 n )
+{
+	SetSfxGlobalVolume( n == 0 ? 0 : exp( ( n - 10 ) * 1.2f ) );
+	m_userSetting.nSfxVolume = n;
+	SaveUserSetting();
+}
+
+void CGame::QuitToMainMenu()
+{
+	RestartLater();
+}
+
+void CGame::Exit()
+{
+	exit( 0 );
+}
+
+void CGame::SaveUserSetting()
+{
+	CBufFile buf;
+	m_userSetting.Save( buf );
+	SaveFile( "save/user", buf.GetBuffer(), buf.GetBufLen() );
+}
+
 void Game_ShaderImplement_Dummy();
 
 void RegisterGameClasses_World();
@@ -267,6 +335,7 @@ void RegisterGameClasses_Menu();
 void RegisterGameClasses_WorldMap();
 void RegisterGameClasses_ActionPreview();
 void RegisterGameClasses_LogUI();
+void RegisterGameClasses_SystemUI();
 void RegisterGlobalLuaCFunc();
 void RegisterGameClasses()
 {
@@ -333,6 +402,7 @@ void RegisterGameClasses()
 	RegisterGameClasses_WorldMap();
 	RegisterGameClasses_ActionPreview();
 	RegisterGameClasses_LogUI();
+	RegisterGameClasses_SystemUI();
 	RegisterGlobalLuaCFunc();
 }
 

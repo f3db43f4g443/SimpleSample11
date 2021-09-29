@@ -19,6 +19,7 @@ void CGlobalCfg::Load()
 	nPlayerEnterDir = XmlGetAttr( pWorld, "entry_dir", 0 );
 	const char* szLuaStart = XmlGetAttr( pWorld, "lua_start", "" );
 	const char* szLuaWorldInit = XmlGetAttr( pWorld, "lua_world_init", "" );
+	strWalkthrough = XmlGetAttr( pWorld, "walkthrough", "" );
 
 	auto pPrefabs = doc.RootElement()->FirstChildElement( "prefabs" );
 	{

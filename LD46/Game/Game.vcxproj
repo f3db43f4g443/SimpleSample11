@@ -415,6 +415,7 @@
     <ClCompile Include="GUI\LogUI.cpp" />
     <ClCompile Include="GUI\Menu.cpp" />
     <ClCompile Include="GUI\StageDirector.cpp" />
+    <ClCompile Include="GUI\SystemUI.cpp" />
     <ClCompile Include="GUI\WorldMap.cpp" />
     <ClCompile Include="MyGame.cpp" />
     <ClCompile Include="MyLevel.cpp" />
@@ -448,6 +449,7 @@
     <ClInclude Include="GUI\LogUI.h" />
     <ClInclude Include="GUI\Menu.h" />
     <ClInclude Include="GUI\StageDirector.h" />
+    <ClInclude Include="GUI\SystemUI.h" />
     <ClInclude Include="GUI\WorldMap.h" />
     <ClInclude Include="MyGame.h" />
     <ClInclude Include="MyLevel.h" />

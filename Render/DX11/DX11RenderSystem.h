@@ -98,6 +98,7 @@ private:
 	static void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext* pd3dImmediateContext, double fTime,
 		float fElapsedTime, void* pUserContext );
 private:
+	SDeviceCreateContext m_createContext;
 	ID3D11Device* m_pd3dDevice;
 	ID3D11DeviceContext* m_pDeviceContext;
 	IDirectSound* m_pDSound;

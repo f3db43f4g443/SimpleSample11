@@ -18,11 +18,14 @@ public:
 	CSoundTrack( IDirectSound* pDSound, CSound* pSound );
 
 	virtual void Play( uint32 nFlag, bool bReset = false ) override;
+	virtual bool IsPlaying() override { return m_bIsPlaying; }
 	virtual void Stop() override;
 	virtual void Resume() override;
 	virtual void FadeOut( float fTime ) override;
 	virtual void SetVolume( float fVolume ) override;
 	virtual void SetVolumeDB( float fVolume ) override;
+	virtual void RefreshVolume() override;
+	virtual void SetChannel( class ISoundTrackChannel* pChannel ) override;
 private:
 	void OnTimeout();
 	void OnTick();
@@ -36,6 +39,7 @@ private:
 	uint32 m_nPlayFlag;
 	int32 m_nPlayTimeStamp;
 	int32 m_nPlayedTime;
+	ISoundTrackChannel* m_pChannel;
 	TClassTrigger<CSoundTrack> m_onTimeout;
 	TClassTrigger<CSoundTrack> m_onTick;
 };

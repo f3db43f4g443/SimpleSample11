@@ -600,6 +600,7 @@ end
 
 function Day3_unknown_el_target_complete( x )
  if EvaluateKeyInt( "$target" ) > 0 then return end
+ GetMasterLevel():RemoveLevelMark( "m" .. tostring( x ) )
  SetKeyInt( "$target", 1 )
  local n = EvaluateKeyInt( "day3_unknown_3_quest_1" )
  SetKeyInt( "day3_unknown_3_quest_1", n + 1 )
@@ -1381,7 +1382,7 @@ function Scenario_Houndman()
  Delay( 60 )
  pawn:PlayState( "stand" )
  SetKeyInt( "__houndman", 1 )
- HeadText( "Shit shit shit..", htx_color_0, 120 )
+ WaitFor( ScenarioDialogue( 0, "Shit shit shit..", dtx_color_1, 120 ), ScenarioWaitInput() )
 end
 
 function Scenario_Houndman_End()
@@ -1468,8 +1469,9 @@ function Scenario_Day4_2_1()
  WaitFor( ScenarioDialogue( 1, "I never give anything to such an asshole like you.", dtx_color_6a, 60 ) )
  WaitFor( ScenarioDialogue( 1, "Where the fuck did you steal it?", dtx_color_6a, 90 ) )
  WaitFor( ScenarioDialogue( 1, "I stole that piece of shit?", dtx_color_6b, 60 ) )
- WaitFor( ScenarioDialogue( 1, "You are fucking calling me the thief, you crook?", dtx_color_6b, 60 ) )
- WaitFor( ScenarioDialogue( 1, "Who the fuck will give a shit to that crap?", dtx_color_6b, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "You are fucking calling me the thief, you blind crook?", dtx_color_6b, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "Who will give a shit to that crap?", dtx_color_6b, 60 ) )
+ WaitFor( ScenarioDialogue( 1, "Anyone not as fucking blind as you?", dtx_color_6b, 60 ) )
  WaitFor( ScenarioDialogue( 1, "That shit for my disinfectant? and then call me the thief?", dtx_color_6b, 120 ) )
  WaitFor( ScenarioDialogue( 1, "I've never fucking GIVEN it. It is MINE.", dtx_color_6a, 60 ) )
  WaitFor( ScenarioDialogue( 1, "Hand it over. Now. You fucking thief.", dtx_color_6a, 90 ) )
@@ -1585,7 +1587,7 @@ function Day4_2_1_AISpecialFunc( ai, pawn )
   Delay( 60 )
   PlaySoundEffect( "door_hit" )
   Delay( 60 )
-  HeadText( "Reset it mecha-jackass. Are you fucking blind?", htx_color_6b, 0, true )
+  HeadText( "Reset it mecha-jackass. Are you fucking blind too?", htx_color_6b, 0, true )
   for i = 1, 4, 1 do
    Delay( 20, 0, ( i - 1 ) % 2 )
   end
@@ -2331,23 +2333,23 @@ function Day4_4_Unknown_Toilet()
  local Sofa_End = function() Delay_Up() GetCurLevel():EndNoise( "noise_tv" ) end
  
  Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 2 )
- Sofa_Begin() HeadText( "We are useless.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 3 )
+ Sofa_Begin() HeadText( "This is a tragedy.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 3 )
  Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 4 )
- Sofa_Begin() HeadText( "We are worthless.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 5 )
+ Sofa_Begin() HeadText( "This is a catastrophe.", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 5 )
  Sofa_Begin() HeadText( "..........", htx_color_h ) Sofa_End() Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 6 )
- Sofa_Begin() HeadText( "We are hopeless.", htx_color_h ) Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 7 )
- Sofa_Begin() HeadText( "We must repent.", htx_color_h ) Sofa_End()
+ Sofa_Begin() HeadText( "This is our fault.", htx_color_h ) Sofa_End() GetMasterLevel():BlackOut( 10, 0 ) Flood( 7 )
+ Sofa_Begin() HeadText( "We are all to blame for this.", htx_color_h ) Sofa_End()
  GetMasterLevel():BlackOut( 30, 10 ) tv:FindChildEntity( "broken" ):SetVisible( true ) PlaySoundEffect( "glass_break" ) Delay( 5 )
  while true do if not GetCurLevel():SpawnPreset( "g" ) then break end end
 
- Sofa_Begin() HeadText( "We must reform.", htx_color_h ) Sofa_End()
+ Sofa_Begin() HeadText( "We must fix this.", htx_color_h ) Sofa_End()
  GetMasterLevel():BlackOut( 30, 10 ) Delay( 5 )
  for i = 1, 8, 1 do
   GetCurLevel():RemovePawn( GetCurLevel():GetPawnByName( "npc" .. tostring( i ) ) )
  end
  while true do if not GetCurLevel():SpawnPreset( "s" ) then break end end
 
- Sofa_Begin() HeadText( "We must reconstruct.", htx_color_h ) Sofa_End()
+ Sofa_Begin() HeadText( "We must reconstruct this world.", htx_color_h ) Sofa_End()
  GetMasterLevel():BlackOut( 30, 10 ) Delay( 5 )
  for i = 1, 8, 1 do
   GetCurLevel():RemovePawn( GetCurLevel():GetPawnByName( "sofa" .. tostring( i ) ) )

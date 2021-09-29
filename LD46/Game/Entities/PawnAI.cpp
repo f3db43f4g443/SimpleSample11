@@ -1216,6 +1216,8 @@ public:
 	virtual void HandleAlert( class CPawn* pTrigger, const TVector2<int32>& p ) override
 	{
 		auto pPawn = SafeCast<CPawn>( GetParentEntity() );
+		if( pPawn->GetCurStateIndex() > 0 )
+			return;
 		CPlayer* pPlayer = pPawn->GetLevel()->GetPlayer();
 		if( !pPlayer->IsHidden() )
 			return;
@@ -1251,8 +1253,13 @@ int32 CPawnAI_Pig::CheckAction( int8& nCurDir )
 	int8 nType1 = 0;
 	if( pPlayer->IsHidden() )
 	{
-		CheckSeePlayer( pPlayer );
-		nType1 = m_bLastSeePlayerPosValid == 1 ? 1 : 2;
+		if( !m_vecDetect.size() )
+			nType1 = 2;
+		else
+		{
+			CheckSeePlayer( pPlayer );
+			nType1 = m_bLastSeePlayerPosValid == 1 ? 1 : 2;
+		}
 	}
 	else
 	{

@@ -23,6 +23,7 @@ CSound::CSound( IDirectSound* pDSound, const void* pData, uint32 nSize, const SW
 CSoundTrack::CSoundTrack( IDirectSound* pDSound, CSound* pSound )
 	: m_onTimeout( this, &CSoundTrack::OnTimeout )
 	, m_onTick( this, &CSoundTrack::OnTick )
+	, m_pChannel( NULL )
 	, m_fVolume( 1 )
 {
 	m_bIsPlaying = false;
@@ -51,9 +52,12 @@ void CSoundTrack::Play( uint32 nFlag, bool bReset )
 			m_bIsKeepingRef = true;
 			AddRef();
 		}
+		if( m_pChannel )
+			m_pChannel->AddSoundTrack( this );
 	}
 	else
 		m_nPlayedTime = 0;
+	RefreshVolume();
 }
 
 void CSoundTrack::Stop()
@@ -61,6 +65,8 @@ void CSoundTrack::Stop()
 	if( !m_bIsPlaying )
 		return;
 	m_bIsPlaying = false;
+	if( m_pChannel )
+		m_pChannel->RemoveSoundTrack( this );
 	m_pBuffer->Stop();
 	m_nPlayedTime = static_cast<CRenderSystem*>( IRenderSystem::Inst() )->GetTimeStamp() - m_nPlayTimeStamp;
 	if( m_onTimeout.IsRegistered() )
@@ -88,6 +94,8 @@ void CSoundTrack::Resume()
 		m_bIsKeepingRef = true;
 		AddRef();
 	}
+	if( m_pChannel )
+		m_pChannel->AddSoundTrack( this );
 }
 
 void CSoundTrack::FadeOut( float fTime )
@@ -104,15 +112,34 @@ void CSoundTrack::FadeOut( float fTime )
 void CSoundTrack::SetVolume( float fVolume )
 {
 	m_fVolume = fVolume;
-	int32 volume = log10( m_fVolume ) * 10 * 100;
+	if( m_pChannel )
+		fVolume *= m_pChannel->GetVolume();
+	int32 volume = log10( fVolume ) * 10 * 100;
 	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
 }
 
 void CSoundTrack::SetVolumeDB( float fVolume )
 {
 	m_fVolume = exp( fVolume / 10 );
+	if( m_pChannel )
+		fVolume += log10( m_pChannel->GetVolume() ) * 10;
 	int32 volume = fVolume * 100;
 	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
+}
+
+void CSoundTrack::RefreshVolume()
+{
+	SetVolume( m_fVolume );
+}
+
+void CSoundTrack::SetChannel( ISoundTrackChannel* pChannel )
+{
+	m_pChannel = pChannel;
+	if( m_bIsPlaying )
+	{
+		pChannel->AddSoundTrack( this );
+		RefreshVolume();
+	}
 }
 
 void CSoundTrack::OnTick()
@@ -127,14 +154,15 @@ void CSoundTrack::OnTick()
 		return;
 	}
 
-	int32 volume = log10( m_fVolume ) * 10 * 100;
-	HRESULT hr = m_pBuffer->SetVolume( Max( DSBVOLUME_MIN, Min( DSBVOLUME_MAX, volume ) ) );
+	RefreshVolume();
 	static_cast<CRenderSystem*>( IRenderSystem::Inst() )->Register( 33, &m_onTick );
 }
 
 void CSoundTrack::OnTimeout()
 {
 	m_bIsPlaying = false;
+	if( m_pChannel )
+		m_pChannel->RemoveSoundTrack( this );
 	if( m_bIsKeepingRef )
 	{
 		m_bIsKeepingRef = false;

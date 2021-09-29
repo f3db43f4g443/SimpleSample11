@@ -1608,7 +1608,7 @@ void CPlayer::Update()
 	{
 		if( !!( nKeyUp & m_nChargeKeyDown ) )
 			m_nChargeKeyDown = 0;
-		if( m_nActionEftFrame )
+		/*if( m_nActionEftFrame )
 		{
 			m_nActionEftFrame--;
 			m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = true;
@@ -1636,7 +1636,7 @@ void CPlayer::Update()
 				pImg1->GetParam()[0] = m_actionEftParam[i * ACTION_EFT_FRAMES + m_nActionEftFrame];
 			}
 		}
-		else
+		else*/
 			m_pCurEft[0]->bVisible = m_pCurEft[1]->bVisible = false;
 	}
 }
