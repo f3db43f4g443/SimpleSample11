@@ -114,6 +114,22 @@ FORCE_INLINE TVector2<T> TMatrix2D<T>::MulTVector2DirNoScale(const TVector2<T>& 
 }
 
 template <typename T>
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulTVector2Pos( const TVector2<T>& vec ) const
+{
+	float l2 = m00 * m00 + m10 * m10;
+	TVector2<T> vec2( vec.x - m02, vec.y - m12 );
+	return TVector2<T>( vec2.Dot( TVector2<T>( m00, m10 ) ), vec2.Dot( TVector2<T>( m01, m11 ) ) ) / l2;
+}
+
+template <typename T>
+FORCE_INLINE TVector2<T> TMatrix2D<T>::MulTVector2Dir( const TVector2<T>& vec ) const
+{
+	float l2 = m00 * m00 + m10 * m10;
+	TVector2<T> vec2( vec.x, vec.y );
+	return TVector2<T>( vec2.Dot( TVector2<T>( m00, m10 ) ), vec2.Dot( TVector2<T>( m01, m11 ) ) ) / l2;
+}
+
+template <typename T>
 FORCE_INLINE TVector2<T> TMatrix2D<T>::GetPosition() const
 {
 	return TVector2<T>(m02, m12);

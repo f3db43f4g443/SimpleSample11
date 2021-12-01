@@ -1712,6 +1712,15 @@ CRenderObject2D* CPrefabNode::CreateInstance( vector<CRenderObject2D*>& vecInst,
 			pPrefabNode->m_pInstanceOwner = m_pPrefab;
 			pPrefabNode->m_pInstanceOwnerNode = this;
 		}
+		else if( pRenderObject )
+		{
+			auto p = SafeCast<CPrefabBaseNode>( pRenderObject );
+			if( p )
+			{
+				p->m_pInstanceOwner = m_pPrefab;
+				p->m_pInstanceOwnerNode = this;
+			}
+		}
 	}
 	return pRenderObject;
 }
@@ -1741,6 +1750,44 @@ void CPrefabNode::DebugDrawPreview( CUIViewport* pViewport, IRenderSystem* pRend
 {
 	if( m_pPreviewNode )
 		m_pPreviewNode->DebugDraw( pViewport, pRenderSystem );
+}
+
+CPrefabNode* CPrefabNode::GetPatchedNodeOwner()
+{
+	auto pNode = this;
+	for( ;; )
+	{
+		if( pNode->m_pPatchedNodeParent )
+			return pNode->m_pPatchedNodeParent;
+		if( !pNode->GetParent() || !SafeCast<CPrefabBaseNode>( pNode->GetParent() ) )
+			break;
+		pNode = (CPrefabNode*)pNode->GetParent();
+	}
+	return NULL;
+}
+
+void CPrefabNode::PatchedNodeForceCalcTransform()
+{
+	CPrefabNode* pParent = m_pPatchedNodeParent;
+	if( !pParent )
+	{
+		auto p = SafeCast<CPrefabBaseNode>( GetParent() );
+		if( p )
+			pParent = (CPrefabNode*)p;
+	}
+	if( pParent )
+		pParent->PatchedNodeForceCalcTransform();
+	if( GetTransformIndex() != INVALID_16BITID && pParent )
+		globalTransform = pParent->GetTransform( GetTransformIndex() );
+	else
+	{
+		CMatrix2D mat;
+		mat.Transform( x, y, r, s );
+		if( pParent != NULL )
+			globalTransform = pParent->globalTransform * mat;
+		else
+			globalTransform = mat;
+	}
 }
 
 void CPrefabNode::OnEditorActive( bool bActive )

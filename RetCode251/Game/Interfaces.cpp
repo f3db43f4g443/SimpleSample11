@@ -1,0 +1,18 @@
+#include "stdafx.h"
+#include "Interfaces.h"
+#include "Common/ClassMetaData.h"
+
+
+void RegisterGameClasses_Interfaces()
+{
+	REGISTER_INTERFACE_BEGIN( ILevelObjLayer )
+	REGISTER_INTERFACE_END()
+	REGISTER_INTERFACE_BEGIN( IEditorTiled )
+	REGISTER_INTERFACE_END()
+	REGISTER_INTERFACE_BEGIN( IAttackEft )
+	REGISTER_INTERFACE_END()
+	REGISTER_INTERFACE_BEGIN( IGrabbable )
+	REGISTER_INTERFACE_END()
+	REGISTER_INTERFACE_BEGIN( IBotModule )
+	REGISTER_INTERFACE_END()
+}

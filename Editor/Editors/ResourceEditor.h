@@ -82,35 +82,62 @@ protected:
 	{
 		CreateViewport();
 		m_onViewportStartDrag.Set( this, &TResourceEditor::OnViewportStartDrag );
-		m_pViewport->Register( eEvent_StartDrag, &m_onViewportStartDrag );
 		m_onViewportDragged.Set( this, &TResourceEditor::OnViewportDragged );
-		m_pViewport->Register( eEvent_Dragged, &m_onViewportDragged );
 		m_onViewportStopDrag.Set( this, &TResourceEditor::OnViewportStopDrag );
-		m_pViewport->Register( eEvent_StopDrag, &m_onViewportStopDrag );
 		m_onViewportMouseUp.Set( this, &TResourceEditor::OnViewportMouseUp );
-		m_pViewport->Register( eEvent_MouseUp, &m_onViewportMouseUp );
 		m_onViewportMouseWheel.Set( this, &TResourceEditor::OnViewportMouseWheel );
-		m_pViewport->Register( eEvent_MouseWheel, &m_onViewportMouseWheel );
 		m_onDebugDraw.Set( this, &TResourceEditor::OnDebugDraw );
-		m_pViewport->Register( eEvent_Action, &m_onDebugDraw );
 		m_onViewportKey.Set( this, &TResourceEditor::OnViewportKey );
-		m_pViewport->Register( eEvent_Key, &m_onViewportKey );
 		m_onViewportChar.Set( this, &TResourceEditor::OnViewportChar );
-		m_pViewport->Register( eEvent_Char, &m_onViewportChar );
+		if( m_pViewport )
+			RegisterViewportEvts();
 		
 		m_camOfs = CVector2( 0, 0 );
 		OnInitViewport();
 	}
 
+	void RegisterViewportEvts()
+	{
+		m_pViewport->Register( eEvent_StartDrag, &m_onViewportStartDrag );
+		m_pViewport->Register( eEvent_Dragged, &m_onViewportDragged );
+		m_pViewport->Register( eEvent_StopDrag, &m_onViewportStopDrag );
+		m_pViewport->Register( eEvent_MouseUp, &m_onViewportMouseUp );
+		m_pViewport->Register( eEvent_MouseWheel, &m_onViewportMouseWheel );
+		m_pViewport->Register( eEvent_Action, &m_onDebugDraw );
+		m_pViewport->Register( eEvent_Key, &m_onViewportKey );
+		m_pViewport->Register( eEvent_Char, &m_onViewportChar );
+	}
+
+	void UnRegisterViewportEvts()
+	{
+		if( m_onViewportStartDrag.IsRegistered() )
+			m_onViewportStartDrag.Unregister();
+		if( m_onViewportDragged.IsRegistered() )
+			m_onViewportDragged.Unregister();
+		if( m_onViewportStopDrag.IsRegistered() )
+			m_onViewportStopDrag.Unregister();
+		if( m_onViewportMouseUp.IsRegistered() )
+			m_onViewportMouseUp.Unregister();
+		if( m_onViewportMouseWheel.IsRegistered() )
+			m_onViewportMouseWheel.Unregister();
+		if( m_onDebugDraw.IsRegistered() )
+			m_onDebugDraw.Unregister();
+		if( m_onViewportKey.IsRegistered() )
+			m_onViewportKey.Unregister();
+		if( m_onViewportChar.IsRegistered() )
+			m_onViewportChar.Unregister();
+	}
+
 	virtual void CreateViewport()
 	{
 		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
-		m_pViewport->SetLight( IsLighted() );
+		if( m_pViewport )
+			m_pViewport->SetLight( IsLighted() );
 	}
 
 	virtual void OnInitViewport()
 	{
-		if( m_pViewport->GetRoot() )
+		if( m_pViewport && m_pViewport->GetRoot() )
 		{
 			CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ), CVector3( 1, 1, 1 ), 8, 256 );
 			m_pViewport->GetRoot()->AddChild( pDirectionalLight );

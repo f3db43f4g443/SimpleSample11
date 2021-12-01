@@ -139,6 +139,8 @@ public:
 	void OnEdit() { m_bTaggedNodePtrInfoDirty = true; m_obj.SetDirty(); }
 	void OnEditorMove( CPrefabNode* pRoot );
 	void DebugDrawPreview( class CUIViewport* pViewport, IRenderSystem* pRenderSystem );
+	CPrefabNode* GetPatchedNodeOwner();
+	void PatchedNodeForceCalcTransform();
 
 	void OnEditorActive( bool bActive );
 

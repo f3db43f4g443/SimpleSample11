@@ -13,6 +13,8 @@ public:
 	virtual void Render( CRenderContext2D& context ) override;
 	virtual void Flush( CRenderContext2D& context ) override;
 
+	void RenderToTexture( CReference<ITexture>& outTex );
+
 	CRenderObject2D* GetRoot() { return m_pExternalRoot ? m_pExternalRoot : m_pRoot; }
 	CCamera2D& GetCamera() { return m_pExternalCamera? *m_pExternalCamera : m_camera; }
 	ITexture* GetTexture();
@@ -26,8 +28,8 @@ public:
 	void SetCustomRender( const CVector2& customRes );
 	void RegisterOnPostProcess( CTrigger* pTrigger ) { m_customRender.RegisterOnPostProcess( pTrigger ); }
 
-	void DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& begin, const CVector2& end, const CVector4& color );
-	void DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color );
+	void DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& begin, const CVector2& end, const CVector4& color, float z = 0 );
+	void DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color, float z = 0 );
 
 	CVector2 GetScenePos( const CVector2& mousePos );
 	virtual CUIElement* CreateObject() { return new CUIViewport; }

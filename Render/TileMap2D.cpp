@@ -50,7 +50,7 @@ CTileMap2D::CTileMap2D( CDrawable2D* pDrawable, CDrawable2D* pOcclusionDrawable,
 	m_localBound = CRectangle( baseOffset.x, baseOffset.y, tileSize.x * nWidth, tileSize.y * nHeight );
 }
 
-void CTileMap2D::Resize( const TRectangle<int32>& rect )
+void CTileMap2D::Resize( const TRectangle<int32>& rect, int32 nTile )
 {
 	vector<uint32> editData( m_editData );
 	vector<STile> tiles( m_tiles );
@@ -71,7 +71,10 @@ void CTileMap2D::Resize( const TRectangle<int32>& rect )
 		{
 			int32 x = Max( 0, Min( rect0.width, i - rect0.x ) );
 			int32 y = Max( 0, Min( rect0.height, j - rect0.y ) );
-			m_editData[i + j * ( m_nWidth + 1 )] = editData[x + y * ( nPreWidth + 1 )];
+			if( nTile >= 0 && nTile < m_pInfo->editInfos.size() && ( x != i - rect0.x || y != j - rect0.y ) )
+				m_editData[i + j * ( m_nWidth + 1 )] = nTile;
+			else
+				m_editData[i + j * ( m_nWidth + 1 )] = editData[x + y * ( nPreWidth + 1 )];
 		}
 	}
 
@@ -458,7 +461,7 @@ void CTileMap2D::Render( CRenderContext2D& context )
 
 	CMatrix2D mat = globalTransform;
 	mat = mat.Inverse();
-	CRectangle localRect = context.rectScene * mat;
+	CRectangle localRect = context.rectBound * mat;
 	CRectangle tileRect = localRect.Offset( m_baseOffset * -1 );
 	int32 nLeft = floor( tileRect.x / m_tileSize.x );
 	int32 nTop = floor( tileRect.y / m_tileSize.y );

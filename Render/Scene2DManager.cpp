@@ -126,6 +126,8 @@ void CScene2DManager::Render( CRenderContext2D& context, CCamera2D* pCamera, CRe
 	}
 	else
 		context.rectViewport = CRectangle( 0, 0, context.screenRes.x, context.screenRes.y );
+	context.fCameraRotation = pCamera->GetRotation();
+	context.rectBound = context.rectScene.RotateByCenter( context.fCameraRotation );
 	context.targetSize = context.rectViewport.GetSize();
 	context.renderGroup = pRenderGroup;
 	context.Render( pRoot );
@@ -181,7 +183,8 @@ void CScene2DManager::_flush( CRenderContext2D& context, uint32 nGroup, CCamera2
 		else
 			context.rectViewport = camViewport;
 	}
-
+	context.fCameraRotation = pCamera->GetRotation();
+	context.rectBound = context.rectScene.RotateByCenter( context.fCameraRotation );
 
 	SViewport viewport = {
 		context.rectViewport.x,

@@ -38,6 +38,7 @@ public:
 	void Register( CPostProcess* pPostProcess ) { m_vecPasses.push_back( pPostProcess ); }
 	void RegisterOnPostProcess( CTrigger* pTrigger ) { m_onPostProcess.Register( 0, pTrigger ); }
 
+	bool PreProcess( IRenderSystem* pSystem );
 	void Process( IRenderSystem* pSystem, CReference<ITexture>& pTarget, IRenderTarget* pFinalTarget );
 	IRenderSystem* GetRenderSystem() { return m_pSystem; }
 	CReference<ITexture>& GetTarget() { return m_pTarget; }

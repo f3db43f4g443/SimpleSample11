@@ -2,12 +2,19 @@
 #include "PostProcess.h"
 #include <algorithm>
 
+bool CPostProcessPass::PreProcess( IRenderSystem* pSystem )
+{
+	m_onPostProcess.Trigger( 0, this );
+	if( m_vecPasses.size() )
+		return true;
+	return false;
+}
+
 void CPostProcessPass::Process( IRenderSystem* pSystem, CReference<ITexture>& pTarget, IRenderTarget* pFinalTarget )
 {
 	m_pSystem = pSystem;
 	m_pTarget = pTarget;
 	pTarget = NULL;
-	m_onPostProcess.Trigger( 0, this );
 	struct SLess
 	{
 		bool operator () ( CPostProcess* pLeft, CPostProcess* pRight )

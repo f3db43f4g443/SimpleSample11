@@ -49,6 +49,8 @@ void CCanvas::Render( CRenderContext2D& context )
 	CRenderContext2D context1( context );
 	context1.rectScene = m_cam.GetViewArea();
 	context1.rectViewport = m_cam.GetViewport();
+	context1.fCameraRotation = m_cam.GetRotation();
+	context1.rectBound = context1.rectScene.RotateByCenter( context.fCameraRotation );
 	context1.renderGroup = &m_renderGroup;
 	context1.eRenderPass = m_eRenderPass;
 	

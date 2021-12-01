@@ -72,6 +72,8 @@ public:
 
 	CRectangle rectScene;
 	CRectangle rectViewport;
+	float fCameraRotation;
+	CRectangle rectBound;
 
 	CMatrix mat;
 	CElement2D* pCurElement;

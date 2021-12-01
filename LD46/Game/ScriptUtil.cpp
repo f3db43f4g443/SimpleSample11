@@ -255,6 +255,11 @@ void UnlockAchievement( const char* sz )
 		ISdkInterface::Inst()->UnlockAchievement( sz );
 }
 
+void ExitGame()
+{
+	exit( 0 );
+}
+
 
 void RegisterGlobalLuaCFunc()
 {
@@ -297,4 +302,5 @@ void RegisterGlobalLuaCFunc()
 	REGISTER_LUA_CFUNCTION_GLOBAL( ForceAllVisible )
 	REGISTER_LUA_CFUNCTION_GLOBAL( GetCurTick )
 	REGISTER_LUA_CFUNCTION_GLOBAL( UnlockAchievement )
+	REGISTER_LUA_CFUNCTION_GLOBAL( ExitGame )
 }

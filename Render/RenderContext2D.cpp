@@ -64,7 +64,7 @@ void CRenderContext2D::Render( CRenderObject2D* pObject, bool bTest )
 	if( bTest )
 	{
 		CRectangle objRect = pObject->globalAABB;
-		CRectangle rect = rectScene * objRect;
+		CRectangle rect = rectBound * objRect;
 		if( rect.width <= 0 || rect.height <= 0 )
 			return;
 		else if( rect == objRect )
@@ -96,13 +96,23 @@ void CRenderContext2D::Render( CRenderObject2D* pObject, bool bTest )
 
 void CRenderContext2D::FlushElements( uint32 nGroup )
 {
+	CMatrix2D mat0;
+	mat0.Translate( -rectScene.GetCenterX(), -rectScene.GetCenterY() );
+	CMatrix2D mat1;
+	mat1.Rotate( -fCameraRotation );
+	mat0 = mat1 * mat0;
+	CMatrix m( mat0.m00, mat0.m01, 0, mat0.m02,
+		mat0.m10, mat0.m11, 0, mat0.m12,
+		0, 0, 1, 0,
+		0, 0, 0, 1 );
 	mat.Identity();
 	mat.m00 = 2.0f / rectScene.width;
 	mat.m11 = bInverseY? -2.0f / rectScene.height: 2.0f / rectScene.height;
 	mat.m22 = 1.0f / nElemCount[nGroup];
-	mat.m03 = -rectScene.GetCenterX() * mat.m00;
-	mat.m13 = -rectScene.GetCenterY() * mat.m11;
+	mat.m03 = 0;
+	mat.m13 = 0;
 	mat.m23 = 0.5f / nElemCount[nGroup];
+	mat = mat * m;
 	
 	pRenderSystem->SetBlendState( IBlendState::Get<>() );
 	pRenderSystem->SetDepthStencilState( IDepthStencilState::Get<true, EComparisonLessEqual>() );

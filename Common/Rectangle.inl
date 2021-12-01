@@ -171,6 +171,50 @@ FORCE_INLINE bool TRectangle<T>::Contains( const TRectangle<T>& rect ) const { r
 template <typename T>
 FORCE_INLINE TRectangle<T> TRectangle<T>::Offset( const TVector2<T>& ofs ) const { return TRectangle<T>( x + ofs.x, y + ofs.y, width, height ); }
 template <typename T>
+FORCE_INLINE TRectangle<T> TRectangle<T>::Rotate( T r )
+{
+	TRectangle<T> rect = *this;
+	auto size = rect.GetSize();
+	auto cs = cos( r );
+	auto sn = sin( r );
+
+	float xMin = rect.x;
+	float yMin = rect.y;
+	float xMax = rect.GetRight();
+	float yMax = rect.GetBottom();
+
+	TVector2<T> p[] = { { xMin * cs - yMin * sn, xMin * sn + yMin * cs },
+	{ xMin * cs - yMax * sn, xMin * sn + yMax * cs },
+	{ xMax * cs - yMin * sn, xMax * sn + yMin * cs },
+	{ xMax * cs - yMax * sn, xMax * sn + yMax * cs } };
+	xMin = p[0].x;
+	yMin = p[0].y;
+	xMax = p[0].x;
+	yMax = p[0].y;
+	for( int i = 1; i < 4; i++ )
+	{
+		xMin = Min( xMin, p[i].x );
+		yMin = Min( yMin, p[i].y );
+		xMax = Max( xMax, p[i].x );
+		yMax = Max( yMax, p[i].y );
+	}
+	return CRectangle( xMin, yMin, xMax - xMin, yMax - yMin );
+}
+template <typename T>
+FORCE_INLINE TRectangle<T> TRectangle<T>::RotateByCenter( T r )
+{
+	TRectangle<T> rect = *this;
+	auto size = rect.GetSize();
+	auto cs = cos( r );
+	auto sn = sin( r );
+	TVector2<T> size1( size.x * cs - size.y * sn, size.x * sn + size.y * cs );
+	TVector2<T> size2( size.x * cs + size.y * sn, size.x * sn - size.y * cs );
+
+	rect.SetSizeX( Max( abs( size1.x ), abs( size2.x ) ) );
+	rect.SetSizeY( Max( abs( size1.y ), abs( size2.y ) ) );
+	return rect;
+}
+template <typename T>
 FORCE_INLINE TRectangle<T> TRectangle<T>::Scale( T s ) { TRectangle<T> rect = *this; rect.SetSizeX( width * s ); rect.SetSizeY( height * s ); return rect; }
 template <typename T>
 FORCE_INLINE TRectangle<T> TRectangle<T>::Scale( const TVector2<T>& s ) { TRectangle<T> rect = *this; rect.SetSizeX( width * s.x ); rect.SetSizeY( height * s.y ); return rect; }

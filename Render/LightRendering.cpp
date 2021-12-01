@@ -63,6 +63,12 @@ void CPointLightObject::Render( CRenderContext2D& context )
 {
 	if( context.eRenderPass != eRenderPass_Occlusion )
 		return;
+	auto p = CVector2( globalTransform.m02, globalTransform.m12 );
+	auto cs = cos( -context.fCameraRotation );
+	auto sn = sin( -context.fCameraRotation );
+	p = p - context.rectScene.GetCenter();
+	p = CVector2( p.x * cs - p.y * sn, p.x * sn + p.y * cs );
+	p = p + context.rectScene.GetCenter();
 	m_light.Pos = context.rectScene.GetTexCoord( CVector2( globalTransform.m02, globalTransform.m12 ) );
 	m_light.AttenuationIntensity = AttenuationIntensity;
 	float fScale = CVector2( globalTransform.m00, globalTransform.m10 ).Length();

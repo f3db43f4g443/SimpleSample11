@@ -338,15 +338,27 @@ void CFootprintMgr::Update( float fElapsedTime, IRenderSystem* pRenderSystem )
 	context.screenRes = context.lightMapRes = CVector2( FOOTPRINT_RENDER_TARGET_SIZE, FOOTPRINT_RENDER_TARGET_SIZE );
 	context.dTime = pRenderSystem->GetElapsedTime();
 	context.rectScene = context.rectViewport = CRectangle( 0, 0, FOOTPRINT_RENDER_TARGET_SIZE, FOOTPRINT_RENDER_TARGET_SIZE );
+	context.fCameraRotation = 0;
+	context.rectBound = context.rectScene;
 	
 	CMatrix& mat = context.mat;
+	CMatrix2D mat0;
+	mat0.Translate( -context.rectScene.GetCenterX(), -context.rectScene.GetCenterY() );
+	CMatrix2D mat1;
+	mat1.Rotate( -context.fCameraRotation );
+	mat0 = mat1 * mat0;
+	CMatrix m( mat0.m00, mat0.m01, 0, mat0.m02,
+		mat0.m10, mat0.m11, 0, mat0.m12,
+		0, 0, 1, 0,
+		0, 0, 0, 1 );
 	mat.Identity();
 	mat.m00 = 2.0f / context.rectScene.width;
 	mat.m11 = 2.0f / context.rectScene.height;
-	mat.m22 = 0.0f;
-	mat.m03 = -context.rectScene.GetCenterX() * mat.m00;
-	mat.m13 = -context.rectScene.GetCenterY() * mat.m11;
+	mat.m22 = 0;
+	mat.m03 = 0;
+	mat.m13 = 0;
 	mat.m23 = 0.5f;
+	mat = mat * m;
 	
 	struct SLess
 	{

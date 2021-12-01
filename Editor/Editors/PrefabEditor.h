@@ -21,7 +21,10 @@ class CPrefabEditor : public TResourceEditor<CPrefab>
 	friend class CPrefabListItem;
 	friend class CPrefabNodeTreeFolder;
 public:
-	CPrefabEditor() : m_strSelectedPrefab( "" ) {}
+	CPrefabEditor( bool bQuickNodeEdit = false ) : m_bQuickNodeEdit( bQuickNodeEdit ), m_strSelectedPrefab( "" ) {}
+	void InitQuickNodeEdit( CPrefab* pPrefab, CPrefabNode* pNode, CPrefabNode* pEditRoot, CUIViewport* pViewport );
+	virtual void OnSetVisible( bool bVisible ) override;
+
 	virtual void NewFile( const char* szFileName ) override;
 	virtual void Refresh() override;
 	CPrefabNode* GetPrefabNode() { return m_pSelectedPrefab; }
@@ -118,6 +121,12 @@ private:
 	void CreatePatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 	void DestroyPatchNode( CPrefabNode* pNode, CUITreeView::CTreeViewContent* pCurNodeItem );
 
+	CReference<CPrefabNode>& Clipboard()
+	{
+		static CReference<CPrefabNode> g_clipboard;
+		return g_clipboard;
+	}
+
 	struct SExportTextPrefabContext
 	{
 		SExportTextPrefabContext() : nTotalLines( 0 ), nLastNodeStringDepth( 0 ) {}
@@ -144,12 +153,14 @@ private:
 		}
 		const char* Next();
 	};
+	bool m_bQuickNodeEdit;
 
 	CReference<CUITreeView> m_pSceneView;
 	CReference<CUIScrollView> m_pItemView;
 	CReference<CUITreeView> m_pNodeView;
 	CString m_strSelectedPrefab;
 	CReference<CPrefabNode> m_pSelectedPrefab;
+	CReference<CPrefabNode> m_pEditRoot;
 	map<CString, CReference<CPrefabNode> > m_mapClonedPrefabs;
 	CReference<CUITextBox> m_pItemName;
 
@@ -167,8 +178,6 @@ private:
 	CReference<CCommonEdit> m_pZOrder;
 	CReference<CNodeData> m_pNodeData;
 	CReference<CObjectDataEditItem> m_pObjectData;
-
-	CReference<CPrefabNode> m_pClipBoard;
 
 	uint8 m_nNodeDebugDrawType;
 	uint8 m_nDragType;

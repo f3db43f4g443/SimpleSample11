@@ -2642,6 +2642,7 @@ function Day4_4_2f_final()
  GetMasterLevel():InterferenceStripEffect( 0, 0 )
  SetKeyInt( "$n0", 6 )
  GetMasterLevel():ShowInteractionUI( nil, "data/interaction/scenario1.pf" )
+ player:SetHp( player:GetMaxHp() )
 
  GetMasterLevel():BlackOut( 30, 10 )
  PlaySoundEffect( "bzzz0" )
@@ -2669,6 +2670,7 @@ function Day4_4_2f_final()
      GetMasterLevel():BlackOut( 30, 0 )
      GetCurLevel():RemovePawn( b )
      tbl1[i] = GetCurLevel():SpawnPreset1( "a" .. tostring( i ), x, y, 0 )
+     player:SetHp( player:GetMaxHp() )
      tblBox[i1] = nil
 	 bBreak = true
 	 break

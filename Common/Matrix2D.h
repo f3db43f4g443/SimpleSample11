@@ -28,6 +28,8 @@ public:
 	TVector2<T> MulVector2Dir(const TVector2<T>& vec) const;
 	TVector2<T> MulTVector2PosNoScale(const TVector2<T>& vec) const;
 	TVector2<T> MulTVector2DirNoScale( const TVector2<T>& vec ) const;
+	TVector2<T> MulTVector2Pos( const TVector2<T>& vec ) const;
+	TVector2<T> MulTVector2Dir( const TVector2<T>& vec ) const;
 
 	TVector2<T> GetPosition() const;
 	void SetPosition( TVector2<T> pos );

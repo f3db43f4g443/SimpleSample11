@@ -228,30 +228,26 @@ void CGame::OnChar( uint32 nChar )
 
 bool CGame::IsInput( int32 n )
 {
-	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
-	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
-	return IsKey( tbl[n][0] ) || IsKey( tbl[n][1] );
+	int8 tbl[] = { 'D', 'W', 'A', 'S', 'J', 'K', 'U', 'I' };
+	return IsKey( tbl[n] );
 }
 
 bool CGame::IsInputDown( int32 n )
 {
-	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
-	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
-	return IsKeyDown( tbl[n][0] ) || IsKeyDown( tbl[n][1] );
+	int8 tbl[] = { 'D', 'W', 'A', 'S', 'J', 'K', 'U', 'I' };
+	return IsKeyDown( tbl[n] );
 }
 
 bool CGame::IsInputUp( int32 n )
 {
-	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
-	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
-	return IsKeyUp( tbl[n][0] ) || IsKeyUp( tbl[n][1] );
+	int8 tbl[] = { 'D', 'W', 'A', 'S', 'J', 'K', 'U', 'I' };
+	return IsKeyUp( tbl[n] );
 }
 
 bool CGame::IsInputHolding( int32 n )
 {
-	int8 tbl[][2] = { { VK_RIGHT, 'D' }, { VK_UP, 'W' }, { VK_LEFT, 'A' }, { VK_DOWN, 'S' },
-	{ 'J', 'Z' }, { 'K', 'X' }, { 'U', 'C' }, { 'I', 'V' }, };
-	return IsKeyHolding( tbl[n][0] ) || IsKeyHolding( tbl[n][1] );
+	int8 tbl[] = { 'D', 'W', 'A', 'S', 'J', 'K', 'U', 'I' };
+	return IsKeyHolding( tbl[n] );
 }
 
 bool CGame::IsAnyInputDown()

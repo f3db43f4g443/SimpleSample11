@@ -45,6 +45,8 @@ public:
 	bool Contains( const TVector2<T>& ptr ) const;
 	bool Contains( const TRectangle<T>& rect ) const;
 	TRectangle Offset( const TVector2<T>& ofs ) const;
+	TRectangle Rotate( T r );
+	TRectangle RotateByCenter( T r );
 	TRectangle Scale( T s );
 	TRectangle Scale( const TVector2<T>& s );
 

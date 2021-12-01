@@ -1561,14 +1561,38 @@ void CPlayer::Update()
 			{
 				bool bInput = false;
 				bool bDown = false;
-				if( CGame::Inst().IsInputUp( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
-				if( CGame::Inst().IsInputUp( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
-				if( CGame::Inst().IsInputUp( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
-				if( CGame::Inst().IsInputUp( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
-				if( CGame::Inst().IsInputDown( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
-				if( CGame::Inst().IsInputDown( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
-				if( CGame::Inst().IsInputDown( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
-				if( CGame::Inst().IsInputDown( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
+				if( CGame::Inst().IsInputUp( eInput_Up ) || CGame::Inst().IsKeyUp( 'Q' ) || CGame::Inst().IsKeyUp( 'E' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2;
+				}
+				if( CGame::Inst().IsInputUp( eInput_Down ) || CGame::Inst().IsKeyUp( 'Z' ) || CGame::Inst().IsKeyUp( 'C' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8;
+				}
+				if( CGame::Inst().IsInputUp( eInput_Right ) || CGame::Inst().IsKeyUp( 'E' ) || CGame::Inst().IsKeyUp( 'C' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1;
+				}
+				if( CGame::Inst().IsInputUp( eInput_Left ) || CGame::Inst().IsKeyUp( 'Q' ) || CGame::Inst().IsKeyUp( 'Z' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4;
+				}
+				if( CGame::Inst().IsInputDown( eInput_Up ) || CGame::Inst().IsKeyDown( 'Q' ) || CGame::Inst().IsKeyDown( 'E' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true;
+				}
+				if( CGame::Inst().IsInputDown( eInput_Down ) || CGame::Inst().IsKeyDown( 'Z' ) || CGame::Inst().IsKeyDown( 'C' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true;
+				}
+				if( CGame::Inst().IsInputDown( eInput_Right ) || CGame::Inst().IsKeyDown( 'E' ) || CGame::Inst().IsKeyDown( 'C' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true;
+				}
+				if( CGame::Inst().IsInputDown( eInput_Left ) || CGame::Inst().IsKeyDown( 'Q' ) || CGame::Inst().IsKeyDown( 'Z' ) )
+				{
+					m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true;
+				}
 				if( CGame::Inst().IsInputUp( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
 				if( CGame::Inst().IsInputUp( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
 				if( CGame::Inst().IsInputUp( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }
@@ -1650,14 +1674,38 @@ void CPlayer::UpdateInputOnly()
 		{
 			bool bInput = false;
 			bool bDown = false;
-			if( CGame::Inst().IsInputUp( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1; }
-			if( CGame::Inst().IsInputUp( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2; }
-			if( CGame::Inst().IsInputUp( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4; }
-			if( CGame::Inst().IsInputUp( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8; }
-			if( CGame::Inst().IsInputDown( eInput_Right ) ) { m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Up ) ) { m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Left ) ) { m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true; }
-			if( CGame::Inst().IsInputDown( eInput_Down ) ) { m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true; }
+			if( CGame::Inst().IsInputUp( eInput_Up ) || CGame::Inst().IsKeyUp( 'Q' ) || CGame::Inst().IsKeyUp( 'E' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Up_Up ); bInput = true; nKeyUp |= 2;
+			}
+			if( CGame::Inst().IsInputUp( eInput_Down ) || CGame::Inst().IsKeyUp( 'Z' ) || CGame::Inst().IsKeyUp( 'C' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Down_Up ); bInput = true; nKeyUp |= 8;
+			}
+			if( CGame::Inst().IsInputUp( eInput_Right ) || CGame::Inst().IsKeyUp( 'E' ) || CGame::Inst().IsKeyUp( 'C' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Right_Up ); bInput = true; nKeyUp |= 1;
+			}
+			if( CGame::Inst().IsInputUp( eInput_Left ) || CGame::Inst().IsKeyUp( 'Q' ) || CGame::Inst().IsKeyUp( 'Z' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Left_Up ); bInput = true; nKeyUp |= 4;
+			}
+			if( CGame::Inst().IsInputDown( eInput_Up ) || CGame::Inst().IsKeyDown( 'Q' ) || CGame::Inst().IsKeyDown( 'E' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Up_Down ); bInput = true; bDown = true;
+			}
+			if( CGame::Inst().IsInputDown( eInput_Down ) || CGame::Inst().IsKeyDown( 'Z' ) || CGame::Inst().IsKeyDown( 'C' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Down_Down ); bInput = true; bDown = true;
+			}
+			if( CGame::Inst().IsInputDown( eInput_Right ) || CGame::Inst().IsKeyDown( 'E' ) || CGame::Inst().IsKeyDown( 'C' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Right_Down ); bInput = true; bDown = true;
+			}
+			if( CGame::Inst().IsInputDown( eInput_Left ) || CGame::Inst().IsKeyDown( 'Q' ) || CGame::Inst().IsKeyDown( 'Z' ) )
+			{
+				m_vecInputQueues.push_back( ePlayerInput_Left_Down ); bInput = true; bDown = true;
+			}
 			if( CGame::Inst().IsInputUp( eInput_A ) ) { m_vecInputQueues.push_back( ePlayerInput_A_Up ); bInput = true; nKeyUp |= 16; }
 			if( CGame::Inst().IsInputUp( eInput_B ) ) { m_vecInputQueues.push_back( ePlayerInput_B_Up ); bInput = true; nKeyUp |= 32; }
 			if( CGame::Inst().IsInputUp( eInput_C ) ) { m_vecInputQueues.push_back( ePlayerInput_C_Up ); bInput = true; nKeyUp |= 64; }

@@ -74,21 +74,28 @@ void CUIViewport::Render( CRenderContext2D& context )
 		}
 		if( m_pExternalGUICamera )
 			m_pExternalGUICamera->SetSize( GetCamera().GetViewArea().width, GetCamera().GetViewArea().height );
+		auto origViewport = GetCamera().GetViewport();
+		if( m_bCustomRender )
+			GetCamera().SetViewport( 0, 0, m_customRes.x, m_customRes.y );
 
 		m_pRenderer->OnRender( context.pRenderSystem );
 
 		if( m_bCustomRender )
 		{
+			GetCamera().SetViewport( origViewport );
 			auto pPostProcessPass = &m_customRender;
-			auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
-			sizeDependentPool.AllocRenderTarget( m_pCustomTarget, ETextureType::Tex2D,
-				m_texSize.x, m_texSize.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
-			CReference<ITexture> pTempTarget;
-			m_pRenderer->FetchSubRendererTexture( pTempTarget.AssignPtr() );
-			pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
-			pPostProcessPass->SetFinalViewport( TRectangle<int32>( 0, 0, m_texSize.x, m_texSize.y ) );
-			pPostProcessPass->Process( context.pRenderSystem, pTempTarget, m_pCustomTarget->GetRenderTarget() );
-			sizeDependentPool.Release( pTempTarget );
+			if( pPostProcessPass->PreProcess( context.pRenderSystem ) )
+			{
+				auto& sizeDependentPool = *m_pRenderer->GetRenderTargetPool();
+				sizeDependentPool.AllocRenderTarget( m_pCustomTarget, ETextureType::Tex2D,
+					m_texSize.x, m_texSize.y, 1, 1, EFormat::EFormatR8G8B8A8UNorm, NULL, false, true );
+				CReference<ITexture> pTempTarget;
+				m_pRenderer->FetchSubRendererTexture( pTempTarget.AssignPtr() );
+				pPostProcessPass->SetRenderTargetPool( &sizeDependentPool );
+				pPostProcessPass->SetFinalViewport( TRectangle<int32>( 0, 0, m_texSize.x, m_texSize.y ) );
+				pPostProcessPass->Process( context.pRenderSystem, pTempTarget, m_pCustomTarget->GetRenderTarget() );
+				sizeDependentPool.Release( pTempTarget );
+			}
 		}
 
 		GetCamera().SetViewArea( origRect );
@@ -109,7 +116,7 @@ void CUIViewport::Flush( CRenderContext2D& context )
 	srcRect.height += clipRect.height - dstRect.height;
 	dstRect = clipRect;
 
-	if( m_bCustomRender )
+	if( m_bCustomRender && m_pCustomTarget )
 	{
 		CopyToRenderTarget( context.pRenderSystem, NULL, m_pCustomTarget, dstRect, srcRect,
 			GetMgr()->GetSize().GetSize(), m_texSize, m_elem.depth * context.mat.m22 + context.mat.m23, m_pBlend );
@@ -126,16 +133,28 @@ void CUIViewport::Flush( CRenderContext2D& context )
 	m_elem.OnFlushed();
 }
 
-void CUIViewport::DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& begin, const CVector2& end, const CVector4& color )
+void CUIViewport::RenderToTexture( CReference<ITexture>& outTex )
+{
+	CRenderContext2D context;
+	context.pRenderSystem = IRenderSystem::Inst();
+	Render( context );
+
+	if( m_bCustomRender && m_pCustomTarget )
+		outTex = m_pCustomTarget;
+	else
+		m_pRenderer->FetchSubRendererTexture( outTex.AssignPtr() );
+}
+
+void CUIViewport::DebugDrawLine( IRenderSystem* pRenderSystem, const CVector2& begin, const CVector2& end, const CVector4& color, float z )
 {
 	const CRectangle& rect = GetCamera().GetViewArea();
 	CVector2 pt1 = ( begin - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 	CVector2 pt2 = ( end - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-	IRenderer::DebugDrawLine( pRenderSystem, pt1, pt2, color, 0.0f,
+	IRenderer::DebugDrawLine( pRenderSystem, pt1, pt2, color, z,
 		IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
 }
 
-void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color )
+void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert, CVector2* pVert, const CVector4& color, float z )
 {
 	const CRectangle& rect = GetCamera().GetViewArea();
 	for( int i = 0; i + 2 < nVert; i += 3 )
@@ -143,7 +162,7 @@ void CUIViewport::DebugDrawTriangles( IRenderSystem* pRenderSystem, uint32 nVert
 		CVector2 pt1 = ( pVert[i] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt2 = ( pVert[i + 1] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
 		CVector2 pt3 = ( pVert[i + 2] - rect.GetCenter() ) * CVector2( 2.0f / rect.width, 2.0f / rect.height );
-		IRenderer::DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color, 0.0f,
+		IRenderer::DebugDrawTriangle( pRenderSystem, pt1, pt2, pt3, color, z,
 			IBlendState::Get<false, false, 0xf, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd, EBlendOne, EBlendInvSrcAlpha, EBlendOpAdd>() );
 	}
 }
