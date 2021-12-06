@@ -10,7 +10,7 @@ class CBullet : public CCharacter
 	friend void RegisterGameClasses_Bullet();
 public:
 	CBullet( const SClassCreateContext& context )
-		: CCharacter( context ), m_pContext( NULL ), m_bKilled( false ) { SET_BASEOBJECT_ID( CBullet ); }
+		: CCharacter( context ), m_pContext( NULL ) { SET_BASEOBJECT_ID( CBullet ); }
 	void SetBulletVelocity( const CVector2& velocity ) { m_vel = velocity; }
 	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
 	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
@@ -60,7 +60,7 @@ protected:
 	CReference<CEntity> m_pCreator;
 	SBulletContext* m_pContext;
 	bool m_bAttached;
-	bool m_bKilled;
+	bool m_bKilled1;
 	float m_fCurTrailLen;
 	CVector2 m_pos0;
 	CRectangle m_origImgRect;

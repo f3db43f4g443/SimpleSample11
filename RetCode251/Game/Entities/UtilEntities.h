@@ -11,11 +11,18 @@ public:
 	virtual void SetTexRect( const CRectangle& rect ) = 0;
 };
 
+enum
+{
+	eImageCommonEffect_Phantom,
+};
+
 class IImageEffectTarget
 {
 public:
 	virtual bool GetParam( CVector4& param ) = 0;
 	virtual void SetParam( const CVector4& param ) = 0;
+
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) = 0;
 };
 
 class CTexRectRandomModifier : public CEntity
@@ -65,6 +72,7 @@ public:
 	void Set( const CRectangle& r, const CRectangle& r0 );
 	virtual bool GetParam( CVector4& param ) override;
 	virtual void SetParam( const CVector4& param ) override;
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override {}
 private:
 	void Init();
 	int8 m_nAlignX, m_nAlignY;
@@ -81,12 +89,70 @@ public:
 	void Resize( const CRectangle& rect );
 	virtual bool GetParam( CVector4& param ) override;
 	virtual void SetParam( const CVector4& param ) override;
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override {}
 	const CRectangle& GetInitSize() { return m_rect0; }
 	const CRectangle& GetCurSize() { return m_curSize; }
 private:
 	CRectangle m_rect0;
 
 	CRectangle m_curSize;
+};
+
+class CImagePhantomEffect : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CImagePhantomEffect( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CImagePhantomEffect::OnTick ) { SET_BASEOBJECT_ID( CImagePhantomEffect ); }
+	virtual void OnRemovedFromStage() override;
+	void Init( CRenderObject2D* pTargetImg );
+	void Init1( CImagePhantomEffect* pEft1 );
+	void SetParam( const CVector4& param ) { m_param = param; }
+	void Update( CRenderObject2D* pTargetImg );
+	void Stop();
+	bool IsActive() { return m_bActive; }
+	virtual void Render( CRenderContext2D& context ) override;
+private:
+	void OnTick();
+	int32 m_nImgCD;
+	int32 m_nImgLife;
+	CVector4 m_param0, m_param1;
+
+	bool m_bInit;
+	bool m_bActive;
+	CRectangle m_origRect;
+	CRectangle m_origTexRect;
+	CRectangle m_targetOrigRect;
+	CRectangle m_targetOrigTexRect;
+
+	CVector4 m_param;
+	int32 m_nImgCDLeft;
+	int32 m_nImgLifeLeft;
+	int32 m_nImgBegin, m_nImgEnd;
+	vector<CElement2D> m_elems;
+	vector<CVector4> m_params;
+	TClassTrigger<CImagePhantomEffect> m_onTick;
+};
+
+class CCommonImageEffect : public CEntity, public IImageEffectTarget
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CCommonImageEffect( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CCommonImageEffect::OnTick ) { SET_BASEOBJECT_ID( CCommonImageEffect ); }
+	virtual bool IsPreview() { return false; }
+	virtual void OnPreview();
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	virtual bool GetParam( CVector4& param ) override;
+	virtual void SetParam( const CVector4& param ) override;
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override;
+private:
+	void OnTick();
+
+	int32 m_nPhantomImgCD;
+	int32 m_nPhantomImgLife;
+	CVector4 m_phantomParam0, m_phantomParam1;
+	CReference<CImagePhantomEffect> m_pPhantomEffect;
+	TClassTrigger<CCommonImageEffect> m_onTick;
 };
 
 class CImageEffect : public CEntity
@@ -118,6 +184,7 @@ public:
 	void Set( int32 x, int32 y, int32 nTex );
 	virtual bool GetParam( CVector4& param ) override;
 	virtual void SetParam( const CVector4& param ) override;
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override {}
 	virtual void Render( CRenderContext2D& context ) override;
 	const CVector2& GetSize() { return m_size; }
 private:
@@ -143,6 +210,7 @@ public:
 	void SetMaxLineLen( int32 nLen ) { m_nMaxLineLen = nLen; }
 	virtual bool GetParam( CVector4& param ) override;
 	virtual void SetParam( const CVector4& param ) override;
+	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override {}
 	const CRectangle& GetTextRect() const { return m_textRect; }
 	int32 GetLineCount() const { return m_nLineCount; }
 	const CRectangle& GetInitTextBound() { Init(); return m_initTextBound; }

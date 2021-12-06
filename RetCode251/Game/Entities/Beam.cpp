@@ -35,7 +35,7 @@ void CBeam::OnTickAfterHitTest()
 		auto pHit = m_pHit[k];
 		if( !pHit )
 			pHit = m_pHit[0];
-		GetLevel()->MultiSweepTest( pHit->Get_HitProxy(), trans, ofs, vecHitEntities, &vecResult );
+		GetLevel()->MultiSweepTest( pHit->Get_HitProxy(), trans, ofs, 0, vecHitEntities, &vecResult );
 		for( int i = 0; i < vecHitEntities.size(); i++ )
 		{
 			auto n = CheckHit( vecHitEntities[i] );
@@ -85,7 +85,7 @@ int8 CBeam::CheckHit( CEntity * pEntity )
 	if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 		return 1;
 	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-	if( pCharacter && !pCharacter->IsIgnoreBullet() )
+	if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
 		return -1;
 	return 0;
 }

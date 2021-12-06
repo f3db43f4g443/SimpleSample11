@@ -35,8 +35,8 @@ public:
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 
-	virtual bool CanHit( CEntity* pEntity ) override { return pEntity != m_p1; }
-	virtual bool CanHit1( CEntity* pEntity, SRaycastResult& result, bool bCast ) override { return pEntity != m_p1; }
+	virtual bool CanHit( CEntity* pEntity ) override { return pEntity != m_p1 && __super::CanHit( pEntity ); }
+	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) override { return pEntity != m_p1 && __super::CheckImpact( pEntity, result, bCast ); }
 protected:
 	virtual void Init() override;
 	bool HandlePenetration( CEntity** pTestEntities, int32 nTestEntities, const CVector2& gravity );

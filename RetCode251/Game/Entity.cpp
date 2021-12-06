@@ -12,6 +12,15 @@ CEntity::~CEntity()
 		m_pChildrenEntity->SetParentEntity( NULL );
 }
 
+bool CEntity::HasAnyCollision()
+{
+	for( int i = 0; i < ELEM_COUNT( m_bHitChannel ); i++ )
+	{
+		if( m_bHitChannel[i] )
+			return true;
+	}
+}
+
 CMatrix2D CEntity::GetGlobalTransform()
 {
 	ForceUpdateTransform();

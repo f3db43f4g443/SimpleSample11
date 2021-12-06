@@ -120,7 +120,7 @@ void CBotTypeA::OnTickAfterHitTest()
 	SRaycastResult res[3];
 	auto dPos = HandleCommonMove();
 	m_moveData.TryMove1( this, nTestEntities, pTestEntities, dPos, m_vel, m_fFrac, &gravity, res );
-	pLevel->GetHitTestMgr().Update( this );
+	PostMove( nTestEntities, pTestEntities );
 	UpdateModules( m_bActivate && m_bActivateOK && !m_bForceDeactivate );
 }
 
@@ -128,7 +128,7 @@ void CBotTypeA::Init()
 {
 	__super::Init();
 	m_p1->bVisible = false;
-	m_p1->m_bHasHitFilter = true;
+	m_p1->m_bHasHitFilter = m_p1->m_bParentHitFilter = true;
 }
 
 bool CBotTypeA::HandlePenetration( CEntity ** pTestEntities, int32 nTestEntities, const CVector2& gravity )
@@ -137,8 +137,8 @@ bool CBotTypeA::HandlePenetration( CEntity ** pTestEntities, int32 nTestEntities
 	{
 		if( !m_p1->Get_HitProxy() )
 		{
-			Crush();
-			return false;
+			//Crush();
+			//return false;
 		}
 		m_bForceDeactivate = true;
 	}
@@ -207,7 +207,7 @@ void CBotTypeALeap::OnTickAfterHitTest()
 		SRaycastResult result;
 		if( m_bIsLeaping )
 		{
-			auto pLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, nTestEntities, pTestEntities, mats, ofs, &gravity, &result ) );
+			auto pLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, nTestEntities, pTestEntities, mats, ofs, MOVE_SIDE_THRESHOLD, &gravity, &result ) );
 			if( pLandedEntity && m_vel.Dot( result.normal ) < 1.0f && result.normal.Dot( gravity ) < -0.5f )
 			{
 				m_vel = gravity * m_vel.Dot( gravity );
@@ -216,7 +216,7 @@ void CBotTypeALeap::OnTickAfterHitTest()
 		}
 		else if( !m_nKickCounter && !m_nLeapCDLeft && pPlayer && m_rectDetect.Contains( g.MulTVector2Pos( pPlayer->GetPosition() ) ) )
 		{
-			auto pLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, nTestEntities, pTestEntities, mats, ofs, &gravity, &result ) );
+			auto pLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, nTestEntities, pTestEntities, mats, ofs, MOVE_SIDE_THRESHOLD, &gravity, &result ) );
 			if( pLandedEntity && m_vel.Dot( result.normal ) < 1.0f && result.normal.Dot( gravity ) < -0.5f )
 			{
 				CVector2 tangent( -gravity.y, gravity.x );
@@ -230,8 +230,7 @@ void CBotTypeALeap::OnTickAfterHitTest()
 	}
 	else
 		m_bIsLeaping = false;
-
-	pLevel->GetHitTestMgr().Update( this );
+	PostMove( nTestEntities, pTestEntities );
 
 	if( m_bIsLeaping )
 	{

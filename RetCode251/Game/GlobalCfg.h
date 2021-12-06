@@ -6,6 +6,7 @@ class CGlobalCfg
 {
 public:
 	vector<int32> vecLevelExp;
+	vector<CVector4> vecAttackLevelColor;
 
 	void Load();
 	int32 GetLevelByExp( int32 nExp );

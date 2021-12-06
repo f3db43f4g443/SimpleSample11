@@ -18,7 +18,6 @@ public:
 
 		eType_Count,
 	};
-	void SetKickType( int8 nType ) { m_nKickType = nType; }
 	void OnHit( CEntity* pEntity );
 	void Extent( int32 nTime ) { m_nExtentTime = nTime; }
 	void Morph( CEntity* pEntity );
@@ -29,8 +28,10 @@ protected:
 private:
 	void UpdateImage();
 	void OnFirstHit();
-	float m_fDamage0[eType_Count];
-	float m_fHitForce[eType_Count];
+	int8 m_nKickType;
+	float m_fDamage0;
+	float m_fHitForce;
+	int32 m_nKickEffectTime;
 	int32 m_nDeathTime;
 	int32 m_nHitFrames;
 	CRectangle m_hitBegin, m_hitDelta;
@@ -41,7 +42,6 @@ private:
 	int32 m_nTick;
 	int32 m_nDeathTime0;
 	bool m_bHit;
-	int8 m_nKickType;
 	int32 m_nExtentTime;
 	CRectangle m_hitRect0;
 	CRectangle m_hitRect1;

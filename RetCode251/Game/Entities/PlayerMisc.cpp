@@ -63,7 +63,7 @@ void CKick::OnTickAfterHitTest()
 		m_hitRect.height = m_hitBegin.height + m_hitDelta.height * m_nTick;
 		m_hitRect0 = m_hitRect1 = m_nTick == 0 ? m_hitRect : m_hitRect + m_hitRect0;
 
-		HitTest( m_hitRect, g, m_fDamage0[m_nKickType] );
+		HitTest( m_hitRect, g, m_fDamage0 );
 		m_nTick++;
 	}
 	else
@@ -73,7 +73,7 @@ void CKick::OnTickAfterHitTest()
 			auto lastLocalPos = g.MulTVector2PosNoScale( m_lastGlobalPos );
 			auto hitRect = m_hitRect + m_hitRect.Offset( lastLocalPos );
 			m_hitRect1 = m_hitRect1.Offset( lastLocalPos ) + m_hitRect;
-			HitTest( hitRect, g, m_fDamage0[m_nKickType] );
+			HitTest( hitRect, g, m_fDamage0 );
 			auto imgRect = m_origImgRect;
 			imgRect.x += m_hitRect1.x - m_hitRect0.x;
 			imgRect.width += m_hitRect1.width - m_hitRect0.width;
@@ -91,10 +91,10 @@ void CKick::OnTickAfterHitTest()
 				{
 					auto p = SafeCast<CCharacter>( item.first.GetPtr() );
 					SDamageContext damageContext;
-					damageContext.fDamage1 = m_fHitForce[m_nKickType];
-					damageContext.nType = eDamageHitType_Kick_End;
+					damageContext.fDamage1 = m_nKickEffectTime;
+					damageContext.nType = eDamageHitType_Kick_End + 1 + m_nKickType;
 					damageContext.hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
-					damageContext.hitDir = item.second.hitDir;
+					damageContext.hitDir = item.second.hitDir * m_fHitForce;
 					damageContext.pSource = this;
 					p->Damage( damageContext );
 				}
@@ -131,7 +131,7 @@ void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 			continue;
 
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsIgnoreBullet() )
+		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
 		{
 			if( m_pOwner && pEntity->IsOwner( m_pOwner ) )
 				continue;
@@ -140,11 +140,12 @@ void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 
 			CCharacter::SDamageContext context;
 			context.nDamage = 0;
-			context.fDamage1 = fDmg;
+			context.fDamage1 = 0;
 			context.nType = eDamageHitType_Kick_Begin;
 			context.nSourceType = 2;
 			context.hitPos = res.hitPoint1;
-			context.hitDir = g.MulVector2Dir( CVector2( 1, 0 ) );
+			auto hitDir = g.MulVector2Dir( CVector2( 1, 0 ) );
+			context.hitDir = hitDir * fDmg;
 			context.nHitType = -1;
 			context.pSource = this;
 			if( pCharacter->Damage( context ) )
@@ -157,7 +158,7 @@ void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 					auto& hit = m_hit[pEntity];
 					hit.n = 1;
 					hit.hitPos = pCharacter->GetGlobalTransform().MulTVector2Pos( context.hitPos );
-					hit.hitDir = context.hitDir;
+					hit.hitDir = hitDir;
 				}
 			}
 		}
@@ -194,8 +195,10 @@ void RegisterGameClasses_PlayerMisc()
 {
 	REGISTER_CLASS_BEGIN( CKick )
 		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_nKickType )
 		REGISTER_MEMBER( m_fDamage0 )
 		REGISTER_MEMBER( m_fHitForce )
+		REGISTER_MEMBER( m_nKickEffectTime )
 		REGISTER_MEMBER( m_nDeathTime )
 		REGISTER_MEMBER( m_nHitFrames )
 		REGISTER_MEMBER( m_hitBegin )

@@ -146,6 +146,235 @@ void CHUDImageList::SetParam( const CVector4& param )
 	}
 }
 
+void CImagePhantomEffect::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+void CImagePhantomEffect::Init( CRenderObject2D* pTargetImg )
+{
+	if( m_bInit )
+		return;
+	m_bInit = true;
+	auto pImage0 = static_cast<CImage2D*>( GetRenderObject() );
+	m_origRect = pImage0->GetElem().rect;
+	m_origTexRect = pImage0->GetElem().texRect;
+	auto pImage1 = static_cast<CImage2D*>( pTargetImg );
+	m_targetOrigRect = pImage1->GetElem().rect;
+	m_targetOrigTexRect = pImage1->GetElem().texRect;
+	int32 nMaxImgs = ( m_nImgLife + m_nImgCD - 1 ) / m_nImgCD;
+	m_elems.resize( nMaxImgs );
+	m_params.resize( nMaxImgs );
+	for( int i = 0; i < nMaxImgs; i++ )
+	{
+		m_elems[i].nInstDataSize = sizeof( CVector4 );
+		m_elems[i].pInstData = &m_params[i];
+	}
+	SetRenderObject( NULL );
+}
+
+void CImagePhantomEffect::Init1( CImagePhantomEffect* pEft1 )
+{
+	m_origRect = pEft1->m_origRect;
+	m_origTexRect = pEft1->m_origTexRect;
+	m_targetOrigRect = pEft1->m_targetOrigRect;
+	m_targetOrigTexRect = pEft1->m_targetOrigTexRect;
+	int32 nMaxImgs = ( m_nImgLife + m_nImgCD - 1 ) / m_nImgCD;
+	m_elems.resize( nMaxImgs );
+	m_params.resize( nMaxImgs );
+	for( int i = 0; i < nMaxImgs; i++ )
+	{
+		m_elems[i].nInstDataSize = sizeof( CVector4 );
+		m_elems[i].pInstData = &m_params[i];
+	}
+	SetRenderObject( NULL );
+}
+
+void CImagePhantomEffect::Update( CRenderObject2D* pTargetImg )
+{
+	m_bActive = true;
+	if( m_nImgEnd > m_nImgBegin && m_nImgLifeLeft )
+	{
+		m_nImgLifeLeft--;
+		if( !m_nImgLifeLeft )
+		{
+			m_nImgBegin++;
+			if( m_nImgBegin >= m_elems.size() )
+			{
+				m_nImgBegin -= m_elems.size();
+				m_nImgEnd -= m_elems.size();
+			}
+			m_nImgLifeLeft = m_nImgCD;
+		}
+	}
+	if( pTargetImg && !m_nImgCDLeft )
+	{
+		if( m_nImgEnd == m_nImgBegin )
+			m_nImgLifeLeft = m_nImgLife;
+		auto& elem = m_elems[m_nImgEnd % m_elems.size()];
+		m_nImgEnd++;
+		pTargetImg->ForceUpdateTransform();
+		elem.worldMat = pTargetImg->globalTransform;
+		auto rect = static_cast<CImage2D*>( pTargetImg )->GetElem().rect;
+		auto texRect = static_cast<CImage2D*>( pTargetImg )->GetElem().texRect;
+		rect.x = ( rect.x - m_targetOrigRect.x ) * ( m_origRect.width / m_targetOrigRect.width ) + m_origRect.x;
+		rect.y = ( rect.y - m_targetOrigRect.y ) * ( m_origRect.height / m_targetOrigRect.height ) + m_origRect.y;
+		rect.width *= m_origRect.width / m_targetOrigRect.width;
+		rect.height *= m_origRect.height / m_targetOrigRect.height;
+		texRect.x = ( texRect.x - m_targetOrigTexRect.x ) * ( m_origTexRect.width / m_targetOrigTexRect.width ) + m_origTexRect.x;
+		texRect.y = ( texRect.y - m_targetOrigTexRect.y ) * ( m_origTexRect.height / m_targetOrigTexRect.height ) + m_origTexRect.y;
+		texRect.width *= m_origTexRect.width / m_targetOrigTexRect.width;
+		texRect.height *= m_origTexRect.height / m_targetOrigTexRect.height;
+		elem.rect = rect;
+		elem.texRect = texRect;
+		m_nImgCDLeft = m_nImgCD;
+		auto r = m_localBound;
+		r = r.width > 0 ? r + rect * elem.worldMat : rect * elem.worldMat;
+		SetLocalBound( r );
+	}
+	int32 i1 = m_nImgBegin;
+	for( int i = m_nImgBegin; i < m_nImgEnd; i++ )
+	{
+		int32 nSpawnedTime = ( m_nImgEnd - i ) * m_nImgCD - m_nImgCDLeft;
+		auto t = nSpawnedTime * 1.0f /  m_nImgLife;
+		m_params[i1] = ( m_param0 + ( m_param1 - m_param0 ) * t ) * m_param;
+		i1++;
+		if( i1 >= m_elems.size() )
+			i1 = 0;
+	}
+	m_nImgCDLeft--;
+}
+
+void CImagePhantomEffect::Stop()
+{
+	GetStage()->RegisterStageEvent( eStageEvent_PostUpdate, &m_onTick );
+}
+
+void CImagePhantomEffect::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+	int32 i1 = m_nImgBegin;
+	for( int i = m_nImgBegin; i < m_nImgEnd; i++ )
+	{
+		auto& elem = m_elems[i1];
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+		i1++;
+		if( i1 >= m_elems.size() )
+			i1 = 0;
+	}
+}
+
+void CImagePhantomEffect::OnTick()
+{
+	Update( NULL );
+	if( m_nImgBegin == m_nImgEnd )
+	{
+		SetParentEntity( NULL );
+		return;
+	}
+}
+
+void CCommonImageEffect::OnPreview()
+{
+	if( m_pPhantomEffect )
+	{
+		m_pPhantomEffect->RemoveThis();
+		m_pPhantomEffect = NULL;
+	}
+}
+
+void CCommonImageEffect::OnAddedToStage()
+{
+	if( m_pPhantomEffect )
+	{
+		m_pPhantomEffect->Init( GetRenderObject() );
+		m_pPhantomEffect->SetParentEntity( NULL );
+	}
+}
+
+void CCommonImageEffect::OnRemovedFromStage()
+{
+	if( m_onTick.IsRegistered() )
+		m_onTick.Unregister();
+}
+
+bool CCommonImageEffect::GetParam( CVector4& param )
+{
+	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
+	if( !pImg->GetParamCount() )
+		return false;
+	param = pImg->GetParam()[0];
+	return true;
+}
+
+void CCommonImageEffect::SetParam( const CVector4 & param )
+{
+	auto p = static_cast<CImage2D*>( GetRenderObject() );
+	if( p->GetParamCount() )
+		*p->GetParam() = param;
+}
+
+void CCommonImageEffect::SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param )
+{
+	if( nEft == eImageCommonEffect_Phantom )
+	{
+		if( m_pPhantomEffect )
+		{
+			if( bEnabled )
+			{
+				m_pPhantomEffect->SetParentAfterEntity( CMyLevel::GetEntityRootInLevel( this ) );
+				m_pPhantomEffect->SetParam( param );
+				if( !m_onTick.IsRegistered() )
+					SafeCast<CCharacter>( GetParentEntity() )->RegisterTickAfterHitTest( &m_onTick );;
+			}
+			else
+			{
+				if( m_onTick.IsRegistered() )
+					m_onTick.Unregister();
+				if( m_pPhantomEffect->IsActive() )
+				{
+					auto p1 = SafeCast<CImagePhantomEffect>( m_pPhantomEffect->GetInstanceOwnerNode()->CreateInstance() );
+					m_pPhantomEffect->Stop();
+					p1->Init1( m_pPhantomEffect );
+					m_pPhantomEffect = p1;
+				}
+			}
+		}
+	}
+}
+
+void CCommonImageEffect::OnTick()
+{
+	m_pPhantomEffect->Update( GetRenderObject() );
+}
+
 void CImageEffect::OnAddedToStage()
 {
 	if( m_bEnabled )
@@ -1106,6 +1335,20 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER( m_params )
 		REGISTER_MEMBER( m_nType )
 		REGISTER_MEMBER( m_bEnabled )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CImagePhantomEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_nImgCD )
+		REGISTER_MEMBER( m_nImgLife )
+		REGISTER_MEMBER( m_param0 )
+		REGISTER_MEMBER( m_param1 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CCommonImageEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_BASE_CLASS( IImageEffectTarget )
+		REGISTER_MEMBER_TAGGED_PTR( m_pPhantomEffect, eft )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CSimpleTile )

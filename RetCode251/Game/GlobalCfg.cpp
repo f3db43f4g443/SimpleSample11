@@ -16,6 +16,13 @@ void CGlobalCfg::Load()
 	{
 		vecLevelExp.push_back( XmlGetAttr( pItem, "exp", 0 ) );
 	}
+
+	auto pAttackLevelColor = doc.RootElement()->FirstChildElement( "attack_level_color" );
+	for( auto pItem = pAttackLevelColor->FirstChildElement(); pItem; pItem = pItem->NextSiblingElement() )
+	{
+		vecAttackLevelColor.push_back( CVector4( XmlGetAttr( pItem, "x", 0.0f ), XmlGetAttr( pItem, "y", 0.0f ),
+			XmlGetAttr( pItem, "z", 0.0f ) , XmlGetAttr( pItem, "w", 0.0f ) ) );
+	}
 }
 
 int32 CGlobalCfg::GetLevelByExp( int32 nExp )

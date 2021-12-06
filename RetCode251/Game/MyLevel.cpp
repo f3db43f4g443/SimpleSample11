@@ -854,10 +854,10 @@ void CMyLevel::MultiRaycast( const CVector2& begin, const CVector2& end, vector<
 	}
 }
 
-CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, EEntityHitType hitType, SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, SRaycastResult * pResult, bool bIgnoreInverseNormal )
 {
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
+	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
@@ -872,14 +872,14 @@ CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, co
 	return NULL;
 }
 
-CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
 {
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
+	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
-		if( !hitTypeFilter[pEntity->GetHitType()] )
+		if( !hitTypeFilter[pEntity->GetHitType()] && !pEntity->GetHitChannnel()[hitType] )
 			continue;
 		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
 			continue;
@@ -890,29 +890,30 @@ CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, co
 	return NULL;
 }
 
-CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CVector2 & sweepOfs, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, SRaycastResult * pResult, bool bIgnoreInverseNormal )
 {
 	SHitProxy* pHitProxy = pEntity->Get_HitProxy();
 	if( !pHitProxy )
 		return NULL;
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, result );
+	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	CEntity* p = NULL;
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
 		pEntity1->AddRef();
 	}
+	auto hitTypeFilter = pEntity->GetHitChannnel();
 	for( int i = 0; i < result.size(); i++ )
 	{
 		if( result[i].pHitProxy == pEntity )
 			continue;
 		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
-		if( !hitTypeFilter[pEntity1->GetHitType()] )
+		if( !hitTypeFilter[pEntity1->GetHitType()] && !pEntity1->GetHitChannnel()[pEntity->GetHitType()] )
 			continue;
 		if( bIgnoreInverseNormal && result[i].normal.Dot( sweepOfs ) >= 0 )
 			continue;
-		if( !pEntity1->CanHit1( pEntity, result[i], false ) || !pEntity->CanHit1( pEntity1, result[i], true ) )
+		if( !pEntity1->CheckImpact( pEntity, result[i], false ) || !pEntity->CheckImpact( pEntity1, result[i], true ) )
 			continue;
 		if( pResult )
 			*pResult = result[i];
@@ -927,10 +928,10 @@ CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const C
 	return p;
 }
 
-void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )
+void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )
 {
 	vector<SRaycastResult> tempResult;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, tempResult, true );
+	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, tempResult, true );
 	for( int i = 0; i < tempResult.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( tempResult[i].pHitProxy );
@@ -1235,6 +1236,8 @@ void CMyLevel::Update()
 	{
 		if( pCharacter == m_pPlayer )
 			continue;
+		if( pCharacter->IsKilled() )
+			continue;
 		DEFINE_TEMP_REF( pCharacter );
 		pCharacter->OnTickBeforeHitTest();
 		if( pCharacter->GetStage() )
@@ -1255,12 +1258,21 @@ void CMyLevel::Update()
 	{
 		if( pCharacter == m_pPlayer )
 			continue;
+		if( pCharacter->IsKilled() )
+			continue;
 		DEFINE_TEMP_REF( pCharacter );
 		pCharacter->OnTickAfterHitTest();
 		if( pCharacter->GetStage() )
 			pCharacter->Trigger( 1 );
 	}
-	LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters, CCharacter, Character );
+	LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters, CCharacter, Character )
+	for( auto pCharacter = m_pCharacters; pCharacter; )
+	{
+		auto pNxt = pCharacter->NextCharacter();
+		if( pCharacter->IsKilled() )
+			pCharacter->SetParentEntity( NULL );
+		pCharacter = pNxt;
+	}
 }
 
 CMyLevel* CMyLevel::GetEntityLevel( CEntity* pEntity )
@@ -1273,6 +1285,19 @@ CMyLevel* CMyLevel::GetEntityLevel( CEntity* pEntity )
 		if( pLevel )
 			return pLevel;
 		pParent = pParent->GetParentEntity();
+	}
+	return NULL;
+}
+
+CEntity* CMyLevel::GetEntityRootInLevel( CEntity * pEntity )
+{
+	auto p = pEntity;
+	while( p )
+	{
+		auto pParent = p->GetParentEntity();
+		if( SafeCast<CMyLevel>( pParent ) )
+			return p;
+		p = pParent;
 	}
 	return NULL;
 }

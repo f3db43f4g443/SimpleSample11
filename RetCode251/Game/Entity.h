@@ -42,9 +42,9 @@ class CEntity : public CPrefabBaseNode, public CHitProxy
 	friend void RegisterGameClasses();
 public:
 	CEntity() : m_pCurStage( NULL ), m_eHitType( eEntityHitType_WorldStatic ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bHasHitFilter( false ), m_bParentHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
 	CEntity( const SClassCreateContext& context ) : CHitProxy( context ), m_pCurStage( NULL ), m_pParent( NULL ), m_bIsChangingStage( false )
-		, m_pChildrenEntity( NULL ), m_bHasHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
+		, m_pChildrenEntity( NULL ), m_bHasHitFilter( false ), m_bParentHitFilter( false ), m_nTraverseIndex( -1 ), nPublicFlag( 0 ) { SET_BASEOBJECT_ID( CEntity ); }
 	~CEntity();
 
 	CStage* GetStage() { return m_pCurStage; }
@@ -52,7 +52,10 @@ public:
 
 	virtual bool AddToStageHitTest() { return false; }
 	EEntityHitType GetHitType() { return m_eHitType; }
+	bool* GetHitChannnel() { return m_bHitChannel; }
+	bool* GetPlatformChannel() { return m_bPlatformChannel; }
 	void SetHitType( EEntityHitType eHitType ) { m_eHitType = eHitType; }
+	bool HasAnyCollision();
 	virtual CMatrix2D GetGlobalTransform() override;
 
 	CEntity* GetParentEntity() { return m_pParent; }
@@ -80,8 +83,8 @@ public:
 	uint32 BeforeHitTest( uint32 nTraverseIndex = 0 );
 
 	bool HasHitFilter() { return m_bHasHitFilter; }
-	virtual bool CanHit( CEntity* pEntity ) { return true; }
-	virtual bool CanHit1( CEntity* pEntity, SRaycastResult& result, bool bCast ) { return true; }
+	virtual bool CanHit( CEntity* pEntity ) { return m_bParentHitFilter ? GetParentEntity()->CanHit( pEntity ) : true; }
+	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) { return m_bParentHitFilter ? GetParentEntity()->CheckImpact( pEntity, result, bCast ) : true; }
 	void SetTransparent( bool bTransparent );
 	void SetTransparentRec( bool bTransparent );
 	
@@ -112,10 +115,13 @@ private:
 	bool m_bIsChangingStage;
 public:
 	bool m_bHasHitFilter;
+	bool m_bParentHitFilter;
 	uint8 nPublicFlag;
 private:
 	uint32 m_nTraverseIndex;
 	EEntityHitType m_eHitType;
+	bool m_bHitChannel[eEntityHitType_Count];
+	bool m_bPlatformChannel[eEntityHitType_Count];
 	CRectangle m_boundForEditor;
 
 	LINK_LIST_REF( CEntity, ChildEntity );

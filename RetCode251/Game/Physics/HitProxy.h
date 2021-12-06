@@ -28,16 +28,18 @@ struct SHitTestResult
 {
 	CVector2 hitPoint1, hitPoint2;
 	CVector2 normal;
+	int32 nUser;
 };
 
 class CHitProxy;
 struct SRaycastResult
 {
-	SRaycastResult() : pHitProxy( NULL ) {}
+	SRaycastResult() : pHitProxy( NULL ), nUser( 0 ) {}
 	CHitProxy* pHitProxy;
 	CVector2 hitPoint;
 	CVector2 normal;
 	float fDist;
+	int32 nUser;
 };
 
 struct SHitProxy
@@ -47,7 +49,7 @@ struct SHitProxy
 
 	static bool HitTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, SHitTestResult* pResult = NULL );
 	bool Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult = NULL );
-	static bool SweepTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, SRaycastResult* pResult = NULL );
+	static bool SweepTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL );
 	static bool Contain( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB );
 
 	void CalcBound( const CMatrix2D& trans, CRectangle& newBound );
@@ -153,7 +155,7 @@ public:
 	bool HitTest( CHitProxy* pOther, SHitTestResult* pResult = NULL );
 	bool HitTest( SHitProxy* pProxy1, const CMatrix2D& transform, SHitTestResult* pResult = NULL );
 	bool Raycast( const CVector2& begin, const CVector2& end, SRaycastResult* pResult = NULL );
-	bool SweepTest( SHitProxy* pProxy1, const CMatrix2D& transform, const CVector2& sweepOfs, SRaycastResult* pResult = NULL );
+	bool SweepTest( SHitProxy* pProxy1, const CMatrix2D& transform, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL );
 	virtual CMatrix2D GetGlobalTransform() = 0;
 
 	bool bIgnoreFlag;
@@ -198,7 +200,7 @@ public:
 	void CalcBound( SHitProxy* pProxy, const CMatrix2D& transform );
 	void HitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CHitProxy*>& vecResult, vector<SHitTestResult>* pResult = NULL );
 	void Raycast( const CVector2& begin, const CVector2& end, vector<SRaycastResult>& vecResult );
-	void SweepTest( SHitProxy* pProxy, const CMatrix2D& transform, const CVector2& sweepOfs, vector<SRaycastResult>& vecResult, bool bSort = true );
+	void SweepTest( SHitProxy* pProxy, const CMatrix2D& transform, const CVector2& sweepOfs, float fSideThreshold, vector<SRaycastResult>& vecResult, bool bSort = true );
 private:
 	void Update( CHitProxy* pHitProxy, vector<CHitProxy*>* pVecOverlaps, bool bUpdateLastPos = false );
 	void UpdateBound( SHitProxy* pProxy, const TRectangle<int32>& newRect, vector<CHitProxy*>* pOverlaps = NULL, bool bInsertGrids = true );

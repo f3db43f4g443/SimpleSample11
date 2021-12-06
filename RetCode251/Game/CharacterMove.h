@@ -6,14 +6,14 @@ using namespace std;
 class CCharacterMoveUtil
 {
 public:
-	static float Stretch( CCharacter* pCharacter, uint8 nDir, float fMaxDeltaLen, bool bHitChannel[eEntityHitType_Count] = NULL );
-	static float StretchEx( CCharacter* pCharacter, uint8 nDir, float fMinLen, float fMaxLen, float fMoveDist, bool bHitChannel[eEntityHitType_Count] = NULL );
+	static float Stretch( CCharacter* pCharacter, uint8 nDir, float fMaxDeltaLen );
+	static float StretchEx( CCharacter* pCharacter, uint8 nDir, float fMinLen, float fMaxLen, float fMoveDist );
 };
 
+#define MOVE_SIDE_THRESHOLD 1.0f
 struct SCharacterMovementData
 {
-	SCharacterMovementData() : bSleep( false )
-	{ memset( bHitChannel, 0, sizeof( bHitChannel ) ); memset( bPlatformChannel, 0, sizeof( bPlatformChannel ) ); bHitChannel[eEntityHitType_WorldStatic] = true; }
+	SCharacterMovementData() : bSleep( false ) {}
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, SRaycastResult* pHit = NULL );
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, CVector2& velocity, SRaycastResult* pHit = NULL, float fFrac = 0 );
 	void TryMove1( CCharacter* pCharacter, int32 nTested, CEntity** pTested, const CVector2& ofs, CVector2& velocity, float fFrac,
@@ -22,15 +22,13 @@ struct SCharacterMovementData
 	bool ResolvePenetration( CCharacter* pCharacter, CVector2* pVel = NULL, float fFrac = 0, CEntity* pLandedEntity = NULL, CVector2* pLandedOfs = NULL, const CVector2* pGravityDir = NULL,
 		CEntity** pTested = NULL, int32 nTested = 0 );
 	bool ResolvePenetration( CCharacter* pCharacter, const CVector2& dir, float fCos );
-	bool HasAnyCollision();
 
 	CVector2 HitVel( const CVector2& vel, const CVector2& v0, const CVector2& norm, float fFrac );
-	CEntity* DoSweepTest( CCharacter* pChar, const CMatrix2D& trans, const CVector2& sweepOfs, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, CEntity* pTested = NULL );
-	CEntity* DoSweepTest1( CCharacter* pChar, int32 nTested, CEntity** pTested, CMatrix2D* matTested, const CVector2& sweepOfs, CVector2* pGravityDir = NULL, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
+	CEntity* DoSweepTest( CCharacter* pChar, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, CEntity* pTested = NULL );
+	CEntity* DoSweepTest1( CCharacter* pChar, int32 nTested, CEntity** pTested, CMatrix2D* matTested, const CVector2& sweepOfs, float fSideThreshold,
+		CVector2* pGravityDir = NULL, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
 
 	bool bSleep;
-	bool bHitChannel[eEntityHitType_Count];
-	bool bPlatformChannel[eEntityHitType_Count];
 	set<CReference<CEntity> > setOpenPlatforms;
 };
 
@@ -201,7 +199,7 @@ protected:
 
 struct SCharacterPhysicsFlyData : public SCharacterMovementData
 {
-	SCharacterPhysicsFlyData( const SClassCreateContext& context ) : bHit( false ){ bHitChannel[eEntityHitType_WorldStatic] = bHitChannel[eEntityHitType_Platform] = bHitChannel[eEntityHitType_System] = false; }
+	SCharacterPhysicsFlyData( const SClassCreateContext& context ) : bHit( false ) {}
 	void UpdateMove( CCharacter* pCharacter, const CVector2& moveTarget );
 
 	float fMaxAcc;

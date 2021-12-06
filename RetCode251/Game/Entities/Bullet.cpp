@@ -49,7 +49,7 @@ void CBullet::Kill()
 		return;
 	}
 
-	m_bKilled = true;
+	m_bKilled1 = true;
 	if( m_nDeathFrameEnd > m_nDeathFrameBegin )
 		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nDeathFrameBegin, m_nDeathFrameEnd, m_fDeathFramesPerSec );
 	else
@@ -79,7 +79,7 @@ void CBullet::OnTickBeforeHitTest()
 void CBullet::OnTickAfterHitTest()
 {
 	CCharacter::OnTickAfterHitTest();
-	if( !m_bKilled && !m_bAttached )
+	if( !m_bKilled1 && !m_bAttached )
 	{
 		CVector2 newVelocity = m_vel + m_acc * GetLevel()->GetElapsedTimePerTick();
 		m_pos0 = GetGlobalTransform().GetPosition();
@@ -96,7 +96,7 @@ void CBullet::OnTickAfterHitTest()
 		if( !m_nLife )
 			Kill();
 	}
-	if( m_bKilled )
+	if( m_bKilled1 )
 	{
 		m_fDeathTime -= GetLevel()->GetElapsedTimePerTick();
 		if( m_fDeathTime <= 0 )
@@ -126,7 +126,7 @@ void CBullet::UpdateCommon()
 			continue;
 
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsIgnoreBullet() )
+		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
 		{
 			CReference<CEntity> pTempRef = pEntity;
 			auto pPlayer = GetLevel()->GetPlayer();
@@ -182,7 +182,7 @@ void CBullet::UpdateTrail()
 	SHitProxyPolygon hit( rect );
 	static vector<CReference<CEntity> > vecHitEntities;
 	static vector<SRaycastResult> vecResult;
-	GetLevel()->MultiSweepTest( &hit, trans, pos - m_pos0, vecHitEntities, &vecResult );
+	GetLevel()->MultiSweepTest( &hit, trans, pos - m_pos0, 0, vecHitEntities, &vecResult );
 
 	for( int i = 0; i < vecHitEntities.size(); i++ )
 	{
@@ -192,7 +192,7 @@ void CBullet::UpdateTrail()
 		auto& result = vecResult[i];
 
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsIgnoreBullet() )
+		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
 		{
 			CReference<CEntity> pTempRef = pEntity;
 

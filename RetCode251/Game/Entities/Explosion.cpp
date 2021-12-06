@@ -119,7 +119,7 @@ void CExplosion::OnTickAfterHitTest()
 			continue;
 
 		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsIgnoreBullet() )
+		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
 		{
 			if( !m_bHitCreator && m_pOwner && pEntity->IsOwner( m_pOwner ) )
 				continue;

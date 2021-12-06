@@ -14,13 +14,16 @@ class CCommonMoveableObject : public CCharacter
 {
 	friend void RegisterGameClasses_CharacterMisc();
 public:
-	CCommonMoveableObject( const SClassCreateContext& context );
+	CCommonMoveableObject( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CCommonMoveableObject ); }
 	virtual bool Damage( SDamageContext& context ) override;
+	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
+	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast );
 protected:
+	void SetImpactLevel( int32 nLevel, int32 nTick );
 	CVector2 HandleCommonMove();
-	int8 m_nHitLevel;
-	int8 m_nPlatformLevel;
+	void PostMove();
+	void PostMove( int32 nTestEntities, CEntity** pTestEntities );
 	float m_fWeight;
 	float m_fGravity;
 	float m_fFrac;
@@ -29,6 +32,8 @@ protected:
 
 	CVector2 m_vel;
 	int32 m_nKickCounter;
+	int32 m_nImpactLevel;
+	int32 m_nImpactTick;
 	SCharacterMovementData m_moveData;
 };
 

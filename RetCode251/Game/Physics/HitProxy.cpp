@@ -27,7 +27,7 @@ bool HitTestCircles( SHitProxyCircle* a, SHitProxyCircle* b, const CMatrix2D& tr
 	return true;
 }
 
-bool SweepTestCircles( SHitProxyCircle* a, SHitProxyCircle* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, SRaycastResult* pResult = NULL )
+bool SweepTestCircles( SHitProxyCircle* a, SHitProxyCircle* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL )
 {
 	CVector2 centerA = transA.MulVector2Pos( a->center );
 
@@ -142,7 +142,7 @@ bool HitTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const CMa
 	}
 }
 
-bool SweepTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, SRaycastResult* pResult = NULL )
+bool SweepTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL )
 {
 	CVector2 worldCenter = transA.MulVector2Pos( a->center );
 	CVector2 center = transB.MulTVector2PosNoScale( worldCenter );
@@ -452,7 +452,7 @@ bool HitTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2D&
 	return _HitTestPolygons( vertices1, vertices2, nVertices1, nVertices2, pResult );
 }
 
-bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, SRaycastResult* pResult = NULL )
+bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL )
 {
 	uint32 nVertices1 = a->nVertices;
 	uint32 nVertices2 = b->nVertices;
@@ -504,6 +504,8 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 
 	bool bar = false;
 	float foo = 0;
+	bool bOKAndNeedCheckThreshold = false;
+	float fMin = FLT_MAX, fMax = -FLT_MAX;
 
 	for( int i1 = 0, i2 = 0;; )
 	{
@@ -546,6 +548,11 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 		else
 			break;
 
+
+		float f0 = dir.x * p0.y - dir.y * p0.x;
+		fMin = Min( fMin, f0 );
+		fMax = Max( fMax, f0 );
+		CVector2 p1 = p0 + edge;
 		CVector2 norm( edge.y, -edge.x );
 		norm.Normalize();
 		float s = p0.Dot( norm );
@@ -562,69 +569,67 @@ bool SweepTestPolygons( SHitProxyPolygon* a, SHitProxyPolygon* b, const CMatrix2
 			}
 		}
 
-		CVector2 p1 = p0 + edge;
-		if( s <= 0 && fMaxDist > 0 )
+		if( !bOKAndNeedCheckThreshold )
 		{
-			float f0 = dir.x * p0.y - dir.y * p0.x;
-			float f1 = dir.x * p1.y - dir.y * p1.x;
-			bool bIntersect;
-
-			if( f0 == 0 && f1 == 0 )
-				bIntersect = false;
-			else if( f0 == 0 )
+			if( s <= 0 && fMaxDist > 0 )
 			{
-				if( !bar )
-				{
-					bar = true;
-					foo = f1;
+				float f1 = dir.x * p1.y - dir.y * p1.x;
+				bool bIntersect;
+
+				if( f0 == 0 && f1 == 0 )
 					bIntersect = false;
+				else if( f0 == 0 )
+				{
+					if( !bar )
+					{
+						bar = true;
+						foo = f1;
+						bIntersect = false;
+					}
+					else
+						bIntersect = ( foo < 0 ) != ( f1 < 0 );
+				}
+				else if( f1 == 0 )
+				{
+					if( !bar )
+					{
+						bar = true;
+						foo = f0;
+						bIntersect = false;
+					}
+					else
+						bIntersect = ( f0 < 0 ) != ( foo < 0 );
 				}
 				else
-					bIntersect = foo * f1 < 0;
-			}
-			else if( f1 == 0 )
-			{
-				if( !bar )
+					bIntersect = ( f0 < 0 ) != ( f1 < 0 );
+
+				if( bIntersect )
 				{
-					bar = true;
-					foo = f0;
-					bIntersect = false;
+					float s1 = ( p0 + sweepOfs ).Dot( norm );
+					if( s1 <= 0 )
+						return false;
+					if( pResult )
+					{
+						CVector2 ofs = sweepOfs * ( -s / ( s1 - s ) );
+						pResult->normal = norm * -1;
+						pResult->fDist = ofs.Length();
+						pResult->hitPoint = vertices1[l1] + ofs;
+					}
+					if( fSideThreshold )
+						bOKAndNeedCheckThreshold = true;
+					else
+						return true;
 				}
-				else
-					bIntersect = f0 * foo < 0;
-			}
-			else
-				bIntersect = f0 * f1 < 0;
-
-			if( bIntersect )
-			{
-				float s1 = ( p0 + sweepOfs ).Dot( norm );
-				if( s1 <= 0 )
-					return false;
-				if( pResult )
-				{
-					CVector2 ofs = sweepOfs * ( -s / ( s1 - s ) );
-					pResult->normal = norm * -1;
-					pResult->fDist = ofs.Length();
-					pResult->hitPoint = vertices1[l1] + ofs;
-				}
-
-				/*float k = ( p0.y * p1.x - p0.x * p1.y ) / ( dir.x * ( p0.y - p1.y ) - dir.y * ( p0.x - p1.x ) );
-				if( k < 0 || k > fMaxDist )
-					return false;
-
-				if( pResult )
-				{
-					pResult->normal = edge;
-					pResult->hitPoint = trans.MulVector2Pos( p0 + dir * k );
-					pResult->fDist = k;
-				}*/
-				return true;
 			}
 		}
 
-		p0 = p0 + edge;
+		p0 = p1;
 		edge0 = edge;
+	}
+	if( bOKAndNeedCheckThreshold )
+	{
+		if( fMin < -fSideThreshold && fMax > fSideThreshold )
+			return true;
 	}
 
 	if( sMin > 0 )
@@ -1009,20 +1014,20 @@ bool SHitProxy::Raycast( const CVector2& begin, const CVector2& end, const CMatr
 		return static_cast<SHitProxyEdge*>( this )->Raycast( begin, end, trans, pResult );
 }
 
-bool SHitProxy::SweepTest( SHitProxy * a, SHitProxy * b, const CMatrix2D & transA, const CMatrix2D & transB, const CVector2 & sweepOfs, SRaycastResult * pResult )
+bool SHitProxy::SweepTest( SHitProxy * a, SHitProxy * b, const CMatrix2D & transA, const CMatrix2D & transB, const CVector2 & sweepOfs, float fSideThreshold, SRaycastResult* pResult )
 {
 	if( a->nType == eHitProxyType_Circle )
 	{
 		if( b->nType == eHitProxyType_Circle )
-			return SweepTestCircles( static_cast<SHitProxyCircle*>( a ), static_cast<SHitProxyCircle*>( b ), transA, transB, sweepOfs, pResult );
+			return SweepTestCircles( static_cast<SHitProxyCircle*>( a ), static_cast<SHitProxyCircle*>( b ), transA, transB, sweepOfs, fSideThreshold, pResult );
 		else if( b->nType == eHitProxyType_Polygon )
-			return SweepTestCircleAndPolygon( static_cast<SHitProxyCircle*>( a ), static_cast<SHitProxyPolygon*>( b ), transA, transB, sweepOfs, pResult );
+			return SweepTestCircleAndPolygon( static_cast<SHitProxyCircle*>( a ), static_cast<SHitProxyPolygon*>( b ), transA, transB, sweepOfs, fSideThreshold, pResult );
 	}
 	else if( a->nType == eHitProxyType_Polygon )
 	{
 		if( b->nType == eHitProxyType_Circle )
 		{
-			bool bResult = SweepTestCircleAndPolygon( static_cast<SHitProxyCircle*>( b ), static_cast<SHitProxyPolygon*>( a ), transB, transA, sweepOfs * -1, pResult );
+			bool bResult = SweepTestCircleAndPolygon( static_cast<SHitProxyCircle*>( b ), static_cast<SHitProxyPolygon*>( a ), transB, transA, sweepOfs * -1, fSideThreshold, pResult );
 			if( bResult && pResult )
 			{
 				pResult->normal = pResult->normal * -1;
@@ -1032,7 +1037,7 @@ bool SHitProxy::SweepTest( SHitProxy * a, SHitProxy * b, const CMatrix2D & trans
 			return bResult;
 		}
 		else if( b->nType == eHitProxyType_Polygon )
-			return SweepTestPolygons( static_cast<SHitProxyPolygon*>( a ), static_cast<SHitProxyPolygon*>( b ), transA, transB, sweepOfs, pResult );
+			return SweepTestPolygons( static_cast<SHitProxyPolygon*>( a ), static_cast<SHitProxyPolygon*>( b ), transA, transB, sweepOfs, fSideThreshold, pResult );
 	}
 	return false;
 }
@@ -1413,14 +1418,14 @@ bool CHitProxy::Raycast( const CVector2& begin, const CVector2& end, SRaycastRes
 	return fDist >= 0;
 }
 
-bool CHitProxy::SweepTest( SHitProxy * pProxy1, const CMatrix2D & transform, const CVector2 & sweepOfs, SRaycastResult * pResult )
+bool CHitProxy::SweepTest( SHitProxy* pProxy1, const CMatrix2D& transform, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult * pResult )
 {
 	float fDist = -1;
 	SRaycastResult result;
 	result.pHitProxy = this;
 	for( SHitProxy* pProxy = m_pHitProxies; pProxy; pProxy = pProxy->NextHitProxy() )
 	{
-		if( SHitProxy::SweepTest( pProxy1, pProxy, transform, GetGlobalTransform(), sweepOfs, pResult ? &result : NULL ) )
+		if( SHitProxy::SweepTest( pProxy1, pProxy, transform, GetGlobalTransform(), sweepOfs, fSideThreshold, pResult ? &result : NULL ) )
 		{
 			if( !pResult )
 				return true;
@@ -1684,7 +1689,7 @@ void CHitTestMgr::Update()
 	for( CHitProxy* pHitProxy = m_pHitProxy; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
 	{
 		if( pHitProxy->m_bDirty )
-			Update( pHitProxy, &vecOverlaps );
+			Update( pHitProxy, &vecOverlaps, true );
 		else
 		{
 			if( !pHitProxy->m_bLastPosValid )
@@ -1703,7 +1708,7 @@ void CHitTestMgr::Update()
 	}
 	for( CHitProxy* pHitProxy = m_pHitProxyBulletMode; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
 	{
-		Update( pHitProxy, &vecOverlaps );
+		Update( pHitProxy, &vecOverlaps, true );
 	}
 }
 
@@ -1927,7 +1932,7 @@ void CHitTestMgr::Raycast( const CVector2& begin, const CVector2& end, vector<SR
 	std::sort( vecResult.begin(), vecResult.end(), SLess() );
 }
 
-void CHitTestMgr::SweepTest( SHitProxy* pProxy, const CMatrix2D & transform, const CVector2 & sweepOfs, vector<SRaycastResult>& vecResult, bool bSort )
+void CHitTestMgr::SweepTest( SHitProxy* pProxy, const CMatrix2D & transform, const CVector2 & sweepOfs, float fSideThreshold, vector<SRaycastResult>& vecResult, bool bSort )
 {
 	CRectangle rect;
 	pProxy->CalcBound( transform, rect );
@@ -2044,7 +2049,7 @@ void CHitTestMgr::SweepTest( SHitProxy* pProxy, const CMatrix2D & transform, con
 	{
 		CHitProxy* pHitProxy1 = vecOverlaps[i];
 		SRaycastResult result;
-		if( pHitProxy1->SweepTest( pProxy, transform, sweepOfs, &result ) )
+		if( pHitProxy1->SweepTest( pProxy, transform, sweepOfs, fSideThreshold, &result ) )
 		{
 			vecResult.push_back( result );
 		}

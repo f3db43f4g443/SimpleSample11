@@ -12,8 +12,6 @@ CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
 {
 	SET_BASEOBJECT_ID( CPlayer );
-	m_moveData.bPlatformChannel[eEntityHitType_Platform] = true;
-	m_moveData.bPlatformChannel[eEntityHitType_Platform_1] = true;
 	m_nDir = 1;
 }
 
@@ -870,7 +868,7 @@ void CPlayer::OnTickAfterHitTest()
 		ofs = trans.MulVector2Dir( ofs );
 		SRaycastResult result;
 		result.fDist = fHitMove1;
-		m_moveData.DoSweepTest( this, trans, ofs, &result, true, m_pHit[1] );
+		m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[1] );
 		float fMove = result.fDist;
 		if( fMove < fHitMove1 )
 		{
@@ -879,7 +877,7 @@ void CPlayer::OnTickAfterHitTest()
 			m_moveData.TryMove1( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
 			trans = m_pHit[1]->GetGlobalTransform();
 			result.fDist = fHitMove1;
-			m_moveData.DoSweepTest( this, trans, ofs, &result, true, m_pHit[1] );
+			m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[1] );
 		}
 		m_pHit[1]->SetPosition( CVector2( 0, m_pHit[1]->y + result.fDist ) );
 		if( result.fDist < fHitMove1 )
@@ -892,7 +890,7 @@ void CPlayer::OnTickAfterHitTest()
 		ofs = trans.MulVector2Dir( ofs );
 		SRaycastResult result;
 		result.fDist = fHitMove2;
-		m_moveData.DoSweepTest( this, trans, ofs, &result, true, m_pHit[2] );
+		m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
 		float fMove = result.fDist;
 		if( fMove < fHitMove2 )
 		{
@@ -901,7 +899,7 @@ void CPlayer::OnTickAfterHitTest()
 			m_moveData.TryMove1( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
 			trans = m_pHit[2]->GetGlobalTransform();
 			result.fDist = fHitMove2;
-			m_moveData.DoSweepTest( this, trans, ofs, &result, true, m_pHit[2] );
+			m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
 		}
 		m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x + result.fDist * m_nDir, 0 ) );
 		if( result.fDist < fHitMove2 )
@@ -1181,7 +1179,7 @@ void CPlayer::FindFloor( const CVector2& gravityDir )
 	CMatrix2D mats[] = { m_pHit[0]->GetGlobalTransform(), m_pHit[1]->GetGlobalTransform(), m_pHit[2]->GetGlobalTransform() };
 	SRaycastResult result;
 	CVector2 gravity0( 0, 0 );
-	auto pNewLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, 3, pTestEntities, mats, ofs, CanHitPlatform() ? &dir : &gravity0, &result ) );
+	auto pNewLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, 3, pTestEntities, mats, ofs, MOVE_SIDE_THRESHOLD, CanHitPlatform() ? &dir : &gravity0, &result ) );
 
 	if( pNewLandedEntity && m_vel.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.5f )
 	{
@@ -2282,7 +2280,7 @@ void CPlayer::ForceRoll( bool bUpdate )
 		CVector2 ofs = k == 0 ? CVector2( 0, fMaxLen ) : CVector2( fMaxLen * m_nDir, 0 );
 		SRaycastResult result;
 		result.fDist = fMaxLen;
-		m_moveData.DoSweepTest( this, trans, ofs, &result, true, k == 0 ? m_pHit[1] : m_pHit[2] );
+		m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, k == 0 ? m_pHit[1] : m_pHit[2] );
 		if( k == 0 )
 			m_pHit[1]->SetPosition( CVector2( 0, m_pHit[0]->y + result.fDist ) );
 		else

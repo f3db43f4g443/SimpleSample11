@@ -108,8 +108,6 @@ public:
 
 	virtual bool Knockback( const CVector2& vec ) override;
 	float GetFallCritical() { return Min( 1.0f, Max( 0.0f, ( m_fFallHeight - m_fFallDmgBegin ) * m_fFallDmgPerHeight / m_nMaxHp ) ); }
-	virtual void Kill() { m_bKilled = true; }
-	bool IsKilled() { return m_bKilled; }
 protected:
 	bool CanHitPlatform();
 	void CleanUpOpenPlatforms();
@@ -278,7 +276,6 @@ protected:
 	CReference<CEntity> m_pCurAttackEffect;
 	int32 m_nSlideAirCDLeft;
 	float m_fFallHeight;
-	bool m_bKilled;
 	bool m_bKnockback;
 	int32 m_nKnockBackTime;
 	int32 m_nFireCDLeft;

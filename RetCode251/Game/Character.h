@@ -8,6 +8,10 @@ enum
 	eDamageHitType_Kick_Special,
 	eDamageHitType_Kick_Begin,
 	eDamageHitType_Kick_End,
+	eDamageHitType_Kick_End_1,
+	eDamageHitType_Kick_End_2,
+	eDamageHitType_Kick_End_3,
+	eDamageHitType_Kick_End_4,
 };
 
 class CCharacter : public CEntity
@@ -26,11 +30,13 @@ public:
 	int32 GetHp() { return m_nHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
 	int32 GetDmgToPlayer() { return m_nDmgToPlayer; }
+	int32 GetKillImpactLevel() { return m_nKillImpactLevel; }
 
 	virtual bool CanTriggerItem() { return false; }
 	virtual bool CanOpenDoor() { return false; }
 	virtual void Awake() {}
 	virtual void Kill();
+	virtual bool IsKilled() { return m_bKilled; }
 	void KillEffect();
 	virtual void Crush() { m_bCrushed = true; Kill(); }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
@@ -41,6 +47,8 @@ public:
 	bool IsIgnoreBullet() { return m_bIgnoreBullet; }
 	bool IsAlwaysBlockBullet() { return m_bAlwaysBlockBullet; }
 	bool IsAlerted();
+	virtual bool CanHit( CEntity* pEntity ) { return !m_bKilled; }
+	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) { return !m_bKilled; }
 
 	virtual bool IsResetable() { return false; }
 	virtual void Activate() {}
@@ -75,9 +83,11 @@ protected:
 	bool m_bIgnoreBullet;
 	bool m_bAlwaysBlockBullet;
 	int32 m_nDmgToPlayer;
+	int32 m_nKillImpactLevel;
 
 	class CMyLevel* m_pLevel;
 	int32 m_nHp;
+	bool m_bKilled;
 	bool m_bCrushed;
 	CReference<CCharacter> m_pOwner;
 

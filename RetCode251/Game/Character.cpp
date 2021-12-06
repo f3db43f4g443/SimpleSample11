@@ -10,7 +10,9 @@ CCharacter::CCharacter()
 	, m_bIgnoreBullet( false )
 	, m_bAlwaysBlockBullet( true )
 	, m_nDmgToPlayer( 0 )
+	, m_nKillImpactLevel( 0 )
 	, m_nHp( 0 )
+	, m_bKilled( false )
 	, m_bCrushed( false )
 	, m_pKillEffect( "" )
 	, m_pKillSound( "" )
@@ -22,6 +24,7 @@ CCharacter::CCharacter()
 CCharacter::CCharacter( const SClassCreateContext& context )
 	: CEntity( context ), m_nHp( m_nMaxHp )
 {
+	m_bHasHitFilter = true;
 	SET_BASEOBJECT_ID( CCharacter );
 }
 
@@ -61,7 +64,7 @@ CMatrix2D CCharacter::GetGlobalTransform()
 void CCharacter::Kill()
 {
 	KillEffect();
-	SetParentEntity( NULL );
+	m_bKilled = true;
 }
 
 void CCharacter::KillEffect()

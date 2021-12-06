@@ -8,6 +8,8 @@
 #include "CharacterMove.h"
 #include "MyGame.h"
 #include "Common/MathUtil.h"
+#include "Entities/UtilEntities.h"
+#include "GlobalCfg.h"
 
 void CAutoFolder::OnAddedToStage()
 {
@@ -24,37 +26,44 @@ void CAutoFolder::OnAddedToStage()
 	s = 1;
 }
 
-CCommonMoveableObject::CCommonMoveableObject( const SClassCreateContext& context ) : CCharacter( context )
-{
-	SET_BASEOBJECT_ID( CCommonMoveableObject );
-	for( int i = 0; i < m_nHitLevel; i++ )
-		m_moveData.bHitChannel[i] = 1;
-	for( int i = m_nPlatformLevel; i <= eEntityHitType_Platform_1; i++ )
-		m_moveData.bPlatformChannel[i] = 1;
-}
-
 bool CCommonMoveableObject::Damage( SDamageContext& context )
 {
 	if( context.nType == eDamageHitType_Kick_Special )
 	{
-		m_vel = context.hitDir * ( context.fDamage1 / m_fWeight );
+		SetImpactLevel( 0, 0 );
+		m_vel = context.hitDir * context.fDamage1 / m_fWeight;
 	}
 	else if( context.nType == eDamageHitType_Kick_Begin )
 	{
+		SetImpactLevel( 0, 0 );
 		m_nKickCounter++;
-		m_vel = context.hitDir * ( context.fDamage1 / m_fWeight );
+		m_vel = context.hitDir / m_fWeight;
 	}
-	else if( context.nType == eDamageHitType_Kick_End )
+	else if( context.nType >= eDamageHitType_Kick_End && context.nType <= eDamageHitType_Kick_End_4 )
 	{
 		if( m_nKickCounter )
 		{
 			m_nKickCounter--;
 			if( !m_nKickCounter )
-				m_vel = context.hitDir * ( context.fDamage1 / m_fWeight );
+			{
+				SetImpactLevel( context.nType - eDamageHitType_Kick_End, context.fDamage1 );
+				m_vel = context.hitDir / m_fWeight;
+			}
 		}
 	}
 	CCharacter::Damage( context );
 	return true;
+}
+
+void CCommonMoveableObject::OnTickBeforeHitTest()
+{
+	CCharacter::OnTickBeforeHitTest();
+	if( m_nImpactTick )
+	{
+		m_nImpactTick--;
+		if( !m_nImpactTick )
+			SetImpactLevel( 0, 0 );
+	}
 }
 
 void CCommonMoveableObject::OnTickAfterHitTest()
@@ -64,12 +73,37 @@ void CCommonMoveableObject::OnTickAfterHitTest()
 	CVector2 gravity( 0, -1 );
 	if( !m_moveData.ResolvePenetration( this, &m_vel, m_fFrac, NULL, NULL, &gravity ) )
 	{
-		Crush();
-		return;
+		//Crush();
+		//return;
 	}
 	auto dPos = HandleCommonMove();
 	m_moveData.TryMove( this, dPos, m_vel, NULL, m_fFrac );
-	GetLevel()->GetHitTestMgr().Update( this );
+	PostMove();
+}
+
+bool CCommonMoveableObject::CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast )
+{
+	auto p1 = SafeCast<CCharacter>( pEntity );
+	if( p1->GetKillImpactLevel() && m_nImpactLevel >= p1->GetKillImpactLevel() )
+	{
+		//p1->Kill();
+		return false;
+	}
+	return __super::CheckImpact( pEntity, result, bCast );
+}
+
+void CCommonMoveableObject::SetImpactLevel( int32 nLevel, int32 nTick )
+{
+	m_nImpactLevel = nLevel;
+	m_nImpactTick = nTick;
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetRenderObject() );
+	if( p )
+	{
+		if( m_nImpactLevel )
+			p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, true, CGlobalCfg::Inst().vecAttackLevelColor[m_nImpactLevel - 1] );
+		else
+			p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, false, CVector4( 0, 0, 0, 0 ) );
+	}
 }
 
 CVector2 CCommonMoveableObject::HandleCommonMove()
@@ -100,6 +134,32 @@ CVector2 CCommonMoveableObject::HandleCommonMove()
 		m_vel = m_vel + dVelocity;
 	}
 	return dPos;
+}
+
+void CCommonMoveableObject::PostMove()
+{
+	CEntity* pTested = this;
+	PostMove( 1, &pTested );
+}
+
+void CCommonMoveableObject::PostMove( int32 nTestEntities, CEntity** pTestEntities )
+{
+	for( int i = 0; i < nTestEntities; i++ )
+	{
+		GetLevel()->GetHitTestMgr().Update( pTestEntities[i] );
+		if( m_nImpactLevel )
+		{
+			for( auto pManifold = pTestEntities[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+			{
+				if( pManifold->normal.Length2() < MOVE_SIDE_THRESHOLD * MOVE_SIDE_THRESHOLD )
+					continue;
+				auto p = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+				auto pCharacter = SafeCast<CCharacter>( p );
+				if( pCharacter && pCharacter->GetKillImpactLevel() && m_nImpactLevel >= pCharacter->GetKillImpactLevel() )
+					pCharacter->Kill();
+			}
+		}
+	}
 }
 
 
@@ -748,8 +808,6 @@ void RegisterGameClasses_CharacterMisc()
 
 	REGISTER_CLASS_BEGIN( CCommonMoveableObject )
 		REGISTER_BASE_CLASS( CCharacter )
-		REGISTER_MEMBER( m_nHitLevel )
-		REGISTER_MEMBER( m_nPlatformLevel )
 		REGISTER_MEMBER( m_fWeight )
 		REGISTER_MEMBER( m_fGravity )
 		REGISTER_MEMBER( m_fFrac )
