@@ -11,33 +11,21 @@
 #include "Entities/UtilEntities.h"
 #include "GlobalCfg.h"
 
-void CAutoFolder::OnAddedToStage()
-{
-	CMatrix2D mat;
-	mat.Transform( x, y, r, s );
-	for( auto p = Get_TransformChild(); p; p = p->NextTransformChild() )
-	{
-		p->SetPosition( mat.MulVector2Pos( p->GetPosition() ) );
-		p->r += r;
-		p->s *= s;
-	}
-	SetPosition( CVector2( 0, 0 ) );
-	r = 0;
-	s = 1;
-}
-
 bool CCommonMoveableObject::Damage( SDamageContext& context )
 {
+	bool b = false;
 	if( context.nType == eDamageHitType_Kick_Special )
 	{
-		SetImpactLevel( 0, 0 );
 		m_vel = context.hitDir * context.fDamage1 / m_fWeight;
+		SetImpactLevel( 0, 0 );
+		b = true;
 	}
 	else if( context.nType == eDamageHitType_Kick_Begin )
 	{
-		SetImpactLevel( 0, 0 );
 		m_nKickCounter++;
 		m_vel = context.hitDir / m_fWeight;
+		SetImpactLevel( 0, 0 );
+		b = true;
 	}
 	else if( context.nType >= eDamageHitType_Kick_End && context.nType <= eDamageHitType_Kick_End_4 )
 	{
@@ -46,13 +34,18 @@ bool CCommonMoveableObject::Damage( SDamageContext& context )
 			m_nKickCounter--;
 			if( !m_nKickCounter )
 			{
-				SetImpactLevel( context.nType - eDamageHitType_Kick_End, context.fDamage1 );
-				m_vel = context.hitDir / m_fWeight;
+				auto nImpactLevel = context.nType - eDamageHitType_Kick_End;
+				if( nImpactLevel > m_nBlockImpactLevel )
+				{
+					m_vel = context.hitDir / m_fWeight;
+					SetImpactLevel( nImpactLevel, context.fDamage1 );
+				}
 			}
 		}
+		b = true;
 	}
-	CCharacter::Damage( context );
-	return true;
+	b = CCharacter::Damage( context ) || b;
+	return b;
 }
 
 void CCommonMoveableObject::OnTickBeforeHitTest()
@@ -62,7 +55,10 @@ void CCommonMoveableObject::OnTickBeforeHitTest()
 	{
 		m_nImpactTick--;
 		if( !m_nImpactTick )
+		{
 			SetImpactLevel( 0, 0 );
+			m_vel = m_vel * 0.5f;
+		}
 	}
 }
 
@@ -71,45 +67,129 @@ void CCommonMoveableObject::OnTickAfterHitTest()
 	CEntity* p = this;
 	SIgnoreEntityHit ignoreHit( &p, 1 );
 	CVector2 gravity( 0, -1 );
-	if( !m_moveData.ResolvePenetration( this, &m_vel, m_fFrac, NULL, NULL, &gravity ) )
+	CVector2 gravity0( 0, 0 );
+	auto pGravity = CanHitPlatform() ? &gravity : &gravity0;
+	if( !m_moveData.ResolvePenetration( this, &m_vel, m_fFrac, NULL, NULL, pGravity ) )
 	{
 		//Crush();
 		//return;
 	}
 	auto dPos = HandleCommonMove();
-	m_moveData.TryMove( this, dPos, m_vel, NULL, m_fFrac );
+	CEntity* pTested = this;
+	m_moveData.TryMove1XY( this, 1, &pTested, dPos, m_vel, m_fFrac, pGravity );
 	PostMove();
+}
+
+bool CCommonMoveableObject::ImpactHit( int32 nLevel, const CVector2& vec, CEntity* pEntity )
+{
+	if( m_nKickCounter || !m_nImpactHitTime )
+		return false;
+	if( nLevel > m_nBlockImpactLevel )
+	{
+		auto pCharacter = SafeCast<CCharacter>( pEntity );
+		auto fWeight = pCharacter ? pCharacter->GetWeight() : 0;
+		m_vel = fWeight > 0 && m_fWeight > 0 ? vec * fWeight / m_fWeight : vec;
+		SetImpactLevel( nLevel, m_nImpactHitTime );
+		return true;
+	}
+	return false;
 }
 
 bool CCommonMoveableObject::CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast )
 {
 	auto p1 = SafeCast<CCharacter>( pEntity );
-	if( p1->GetKillImpactLevel() && m_nImpactLevel >= p1->GetKillImpactLevel() )
+	if( p1 && p1->GetKillImpactLevel() && m_nBlockImpactLevel >= 0 && m_nImpactLevel >= p1->GetKillImpactLevel() )
 	{
-		//p1->Kill();
-		return false;
+		auto norm = result.normal;
+		if( bCast )
+			norm = norm * -1;
+		auto d = norm.Dot( m_vel );
+		if( d > m_fImpactSpeed0 )
+			//p1->Kill();
+			return false;
 	}
 	return __super::CheckImpact( pEntity, result, bCast );
 }
 
+int8 CCommonMoveableObject::CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher )
+{
+	if( hit.nUser )
+	{
+		auto pPusher = context.vecChars[nPusher].pChar;
+		if( m_moveData.setOpenPlatforms.find( pPusher ) != m_moveData.setOpenPlatforms.end() )
+			return -1;
+		float f = hit.normal.Dot( CanHitPlatform() ? CVector2( 0, -1 ) : CVector2( 0, 0 ) );
+		if( f < PLATFORM_THRESHOLD )
+		{
+			m_moveData.setOpenPlatforms.insert( pPusher );
+			return -1;
+		}
+	}
+	CEntity* pTested = this;
+	auto mat = globalTransform;
+	fDist = GetLevel()->Push( this, context, dir, fDist, 1, &pTested, &mat, MOVE_SIDE_THRESHOLD );
+	return 1;
+}
+
+void CCommonMoveableObject::HandlePush( const CVector2& dir, float fDist, int8 nStep )
+{
+	if( nStep == 0 )
+	{
+		if( fDist > 0 )
+		{
+			SetPosition( GetPosition() + dir * fDist );
+			SetDirty();
+		}
+	}
+	else if( nStep == 1 )
+	{
+		if( fDist > 0 )
+			GetLevel()->GetHitTestMgr().Update( this );
+	}
+	else
+	{
+		CEntity* pTested = this;
+		m_moveData.CleanUpOpenPlatforms( this, 1, &pTested );
+	}
+}
+
+bool CCommonMoveableObject::CanHitPlatform()
+{
+	return !( m_nKickCounter && m_vel.y < -1.0f );
+}
+
 void CCommonMoveableObject::SetImpactLevel( int32 nLevel, int32 nTick )
 {
+	if( !nLevel && m_nImpactLevel )
+		Trigger( eCharacterEvent_ImpactLevelEnd );
 	m_nImpactLevel = nLevel;
 	m_nImpactTick = nTick;
-	auto p = SafeCastToInterface<IImageEffectTarget>( GetRenderObject() );
-	if( p )
+	if( nLevel )
+		Trigger( eCharacterEvent_ImpactLevelBegin );
+	if( m_nImpactTick )
+	{
+		if( m_nUpdatePhase >= 2 )
+			m_nImpactTick++;
+	}
+	if( m_nBlockImpactLevel >= 0 )
 	{
 		if( m_nImpactLevel )
-			p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, true, CGlobalCfg::Inst().vecAttackLevelColor[m_nImpactLevel - 1] );
-		else
-			p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, false, CVector4( 0, 0, 0, 0 ) );
+			m_fImpactSpeed0 = m_vel.Length() * 0.7f;
+		auto p = SafeCastToInterface<IImageEffectTarget>( GetRenderObject() );
+		if( p )
+		{
+			if( m_nImpactLevel )
+				p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, true, CGlobalCfg::Inst().vecAttackLevelColor[m_nImpactLevel - 1] );
+			else
+				p->SetCommonEffectEnabled( eImageCommonEffect_Phantom, false, CVector4( 0, 0, 0, 0 ) );
+		}
 	}
 }
 
 CVector2 CCommonMoveableObject::HandleCommonMove()
 {
 	float fDeltaTime = GetLevel()->GetElapsedTimePerTick();
-	auto gravityDir = GetLevel()->GetGravityDir();
+	CVector2 gravityDir( 0, -1 );
 	CVector2 dPos = m_vel * fDeltaTime;
 	if( m_nKickCounter )
 	{
@@ -124,7 +204,7 @@ CVector2 CCommonMoveableObject::HandleCommonMove()
 			m_vel = vel1;
 		}
 	}
-	else
+	else if( /*m_nBlockImpactLevel == -1 ||*/ !m_nImpactLevel )
 	{
 		float fNormalVelocity = m_vel.Dot( gravityDir );
 		float fDeltaSpeed = Max( 0.0f, m_fMaxFallSpeed - fNormalVelocity );
@@ -144,10 +224,11 @@ void CCommonMoveableObject::PostMove()
 
 void CCommonMoveableObject::PostMove( int32 nTestEntities, CEntity** pTestEntities )
 {
+	bool bStopImpact = false;
 	for( int i = 0; i < nTestEntities; i++ )
 	{
 		GetLevel()->GetHitTestMgr().Update( pTestEntities[i] );
-		if( m_nImpactLevel )
+		if( m_nBlockImpactLevel >= 0 && m_nImpactLevel )
 		{
 			for( auto pManifold = pTestEntities[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 			{
@@ -155,11 +236,23 @@ void CCommonMoveableObject::PostMove( int32 nTestEntities, CEntity** pTestEntiti
 					continue;
 				auto p = static_cast<CEntity*>( pManifold->pOtherHitProxy );
 				auto pCharacter = SafeCast<CCharacter>( p );
-				if( pCharacter && pCharacter->GetKillImpactLevel() && m_nImpactLevel >= pCharacter->GetKillImpactLevel() )
-					pCharacter->Kill();
+				if( pCharacter )
+				{
+					if( pCharacter->GetKillImpactLevel() && m_nImpactLevel >= pCharacter->GetKillImpactLevel() )
+					{
+						if( m_nImpactLevel == pCharacter->GetKillImpactLevel() )
+							bStopImpact = true;
+						pCharacter->Kill();
+					}
+					else if( !pCharacter->GetHitChannnel()[GetHitType()] )
+						pCharacter->ImpactHit( m_nImpactLevel, m_vel, this );
+				}
 			}
 		}
 	}
+	if( bStopImpact )
+		SetImpactLevel( 0, 0 );
+	m_moveData.CleanUpOpenPlatforms( this, nTestEntities, pTestEntities );
 }
 
 
@@ -303,7 +396,7 @@ void CChunk::Init()
 	m_bInited = true;
 	m_nHp += m_fHpPerTile * ( m_nTileX * m_nTileY - 1 );
 	if( !m_bNoHit )
-		AddRect( CRectangle( m_ofs.x + m_hitSize.x, m_ofs.y + m_hitSize.y, m_tileSize.x * m_nTileX + m_hitSize.width, m_tileSize.y * m_nTileY + m_hitSize.width ) );
+		AddRect( CRectangle( m_ofs.x + m_hitSize.x, m_ofs.y + m_hitSize.y, m_tileSize.x * m_nTileX + m_hitSize.width, m_tileSize.y * m_nTileY + m_hitSize.height ) );
 	UpdateImages();
 }
 
@@ -552,7 +645,7 @@ void CChunk1::Init()
 	m_bInited = true;
 	m_nHp += m_fHpPerTile * ( m_nTileX * m_nTileY - 1 );
 	if( !m_bNoHit )
-		AddRect( CRectangle( m_ofs.x, m_ofs.y, m_tileSize.x * m_nTileX, m_tileSize.y * m_nTileY ) );
+		AddRect( CRectangle( m_ofs.x + m_hitSize.x, m_ofs.y + m_hitSize.y, m_tileSize.x * m_nTileX + m_hitSize.width, m_tileSize.y * m_nTileY + m_hitSize.height ) );
 	UpdateImages();
 }
 
@@ -630,17 +723,52 @@ void CAlertTrigger::OnTickAfterHitTest()
 	param = bTriggered ? m_colorTriggered : m_color0;
 }
 
+void CCharacterTriggerSpawn::OnAddedToStage()
+{
+	auto p = CMyLevel::GetEntityCharacterRootInLevel( this );
+	p->RegisterCharacterEvent( m_eEvent, &m_onTrigger );
+}
+
+void CCharacterTriggerSpawn::OnRemovedFromStage()
+{
+	if( m_onTrigger.IsRegistered() )
+		m_onTrigger.Unregister();
+}
+
+void CCharacterTriggerSpawn::Trigger()
+{
+	auto pOwner = CMyLevel::GetEntityCharacterRootInLevel( this );
+	auto trans = GetGlobalTransform();
+	auto p = SafeCast<CEntity>( m_pPrefab->GetRoot()->CreateInstance() );
+
+	p->SetPosition( trans.GetPosition() );
+	p->SetRotation( atan2( trans.m10, trans.m00 ) );
+	auto pCharacter = SafeCast<CCharacter>( p );
+	if( pCharacter )
+		pCharacter->SetOwner( pOwner );
+	p->SetParentBeforeEntity( pOwner );
+}
+
 void CTurret::UpdateModule( bool bActivated )
 {
+	int8 nStaticEft = 0;
 	if( bActivated )
 	{
+		bool bDetect = false;
+		if( m_nDetectActivateTime )
+			m_nDetectActivateTime--;
+		else
+			bDetect = Detect();
+
 		if( m_nActivateTimeLeft )
+		{
+			nStaticEft = 2;
 			m_nActivateTimeLeft--;
+		}
 		else
 		{
 			if( m_nFireCD )
 				m_nFireCD--;
-			bool bDetect = Detect();
 			if( !m_nFireCD )
 			{
 				if( !m_nFireCountLeft && bDetect )
@@ -652,6 +780,27 @@ void CTurret::UpdateModule( bool bActivated )
 					m_nFireCD = m_nFireCountLeft ? m_nFireInterval : m_nReloadTime;
 				}
 			}
+			nStaticEft = 1;
+		}
+	}
+	else
+	{
+		m_nFireCountLeft = 0;
+		m_nFireCD = 0;
+		m_nActivateTimeLeft = m_nActivateTime;
+		m_nDetectActivateTimeLeft = m_nDetectActivateTime;
+	}
+
+	if( nStaticEft != m_nStaticEft )
+	{
+		if( m_pStaticEft )
+		{
+			m_pStaticEft->SetParentEntity( NULL );
+			m_pStaticEft = NULL;
+		}
+		m_nStaticEft = nStaticEft;
+		if( nStaticEft == 1 )
+		{
 			if( m_pStaticEftPrefab )
 			{
 				if( !m_pStaticEft )
@@ -661,26 +810,31 @@ void CTurret::UpdateModule( bool bActivated )
 					p->SetParentEntity( this );
 					m_pStaticEft = p;
 				}
-				CMatrix2D mat;
-				mat.Rotate( m_fCurRot );
-				m_pStaticEft->SetPosition( mat.MulVector2Pos( m_staticEftOfs ) );
-				m_pStaticEft->SetRotation( m_fCurRot );
 			}
 		}
-	}
-	else
-	{
-		m_nFireCountLeft = 0;
-		m_nFireCD = 0;
-		m_nActivateTimeLeft = m_nActivateTime;
-		if( m_pStaticEft )
+		else
 		{
-			m_pStaticEft->SetParentEntity( NULL );
-			m_pStaticEft = NULL;
+			if( m_pStaticEftPreActivePrefab )
+			{
+				if( !m_pStaticEft )
+				{
+					auto p = SafeCast<CCharacter>( m_pStaticEftPreActivePrefab->GetRoot()->CreateInstance() );
+					p->SetOwner( CMyLevel::GetEntityCharacterRootInLevel( this ) );
+					p->SetParentEntity( this );
+					m_pStaticEft = p;
+				}
+			}
 		}
 	}
 	if( GetRenderObject() )
 		GetRenderObject()->SetRotation( m_fCurRot );
+	if( m_pStaticEft )
+	{
+		CMatrix2D mat;
+		mat.Rotate( m_fCurRot );
+		m_pStaticEft->SetPosition( mat.MulVector2Pos( m_staticEftOfs ) );
+		m_pStaticEft->SetRotation( m_fCurRot );
+	}
 }
 
 bool CTurret::Detect()
@@ -690,37 +844,54 @@ bool CTurret::Detect()
 	auto playerPos = trans.MulTVector2Pos( pPlayer->GetPosition() );
 	bool bSeePlayer = false;
 	float fRotAngle = m_fRotAngle / 180 * PI;
+	if( m_nScanType == 1 )
+	{
+		float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
+		if( fRotAngle > 0 )
+		{
+			m_fCurRot1 += dRot;
+			while( m_fCurRot1 >= fRotAngle * 2 )
+				m_fCurRot1 -= fRotAngle * 4;
+			m_fCurRot = abs( m_fCurRot1 )- fRotAngle;
+		}
+		else
+			m_fCurRot = NormalizeAngle( m_fCurRot + dRot );
+	}
+
 	if( m_fSightRange > 0 )
 	{
 		if( m_fSightRange * m_fSightRange < playerPos.Length2() )
 			return false;
-		float fRot = atan2( playerPos.y, playerPos.x );
-		if( fRotAngle > 0 )
-		{
-			float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
-			m_fCurRot = Min( m_fCurRot + dRot, Max( m_fCurRot - dRot, fRot ) );
-			m_fCurRot = Max( -fRotAngle, Min( fRotAngle, m_fCurRot ) );
-		}
-		else
-			m_fCurRot = CEntity::CommonTurn1( m_fCurRot, pPlayer->GetLevel()->GetElapsedTimePerTick(), m_fRotSpeed, fRot );
-		auto dRot = NormalizeAngle( m_fCurRot - fRot );
-		if( m_fSightAngle >= 0 && abs( dRot ) > m_fSightAngle / 180 * PI )
-			return false;
-
-		return true;
 	}
-	else
+	else if( Get_HitProxy() )
 	{
-		if( !Get_HitProxy() )
-			return true;
 		auto pLevel = pPlayer->GetLevel();
 		if( !SHitProxy::HitTest( Get_HitProxy(), pPlayer->Get_HitProxy(), trans, pPlayer->GetGlobalTransform() ) )
 			return false;
 	}
+	if( m_fRotSpeed <= 0 && m_fSightRange <= 0 )
+		return true;
 	float fRot = atan2( playerPos.y, playerPos.x );
-	float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
-	m_fCurRot = Min( m_fCurRot + dRot, Max( m_fCurRot - dRot, fRot ) );
-	m_fCurRot = Max( -fRotAngle, Min( fRotAngle, m_fCurRot ) );
+	if( m_fRotSpeed > 0 )
+	{
+		if( !m_nScanType )
+		{
+			if( fRotAngle > 0 )
+			{
+				float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
+				m_fCurRot = Min( m_fCurRot + dRot, Max( m_fCurRot - dRot, fRot ) );
+				m_fCurRot = Max( -fRotAngle, Min( fRotAngle, m_fCurRot ) );
+			}
+			else
+				m_fCurRot = CEntity::CommonTurn1( m_fCurRot, pPlayer->GetLevel()->GetElapsedTimePerTick(), m_fRotSpeed, fRot );
+		}
+	}
+	if( m_fSightRange > 0 )
+	{
+		auto dRot = NormalizeAngle( m_fCurRot - fRot );
+		if( m_fSightAngle >= 0 && abs( dRot ) > m_fSightAngle / 180 * PI )
+			return false;
+	}
 	return true;
 }
 
@@ -734,18 +905,322 @@ void CTurret::Fire()
 		float fAngle = m_fCurRot;
 		if( m_nBulletCount > 1 )
 			fAngle += m_fBulletAngle * ( ( i + ( m_nBulletCount - 1 ) * 0.5f ) / ( m_nBulletCount - 1 ) );
-		CVector2 vel( cos( fAngle ) * m_fBulletVel, sin( fAngle ) * m_fBulletVel );
-		vel = trans.MulVector2Dir( vel );
-		for( int i = 0; i < m_arrBulletOfs.Size(); i++ )
+		CVector2 vel0( cos( fAngle ), sin( fAngle ) );
+		vel0 = trans.MulVector2Dir( vel0 );
+		for( int32 iDesc = 0; iDesc < m_arrBulletDesc.Size(); iDesc++ )
 		{
-			auto p = SafeCast<CCharacter>( m_pBullet->GetRoot()->CreateInstance() );
-			p->SetPosition( trans.MulVector2Pos( trans1.MulVector2Pos( m_arrBulletOfs[i] ) ) );
+			auto& item = m_arrBulletDesc[iDesc];
+			auto p = SafeCast<CCharacter>( item.pPrefab->GetRoot()->CreateInstance() );
+			p->SetPosition( trans.MulVector2Pos( trans1.MulVector2Pos( item.ofs ) ) );
+			CVector2 vel( vel0.x * item.vel.x - vel0.y * item.vel.y, vel0.x * item.vel.y + vel0.y * item.vel.x );
 			p->SetRotation( atan2( vel.y, vel.x ) );
 			p->SetVelocity( vel );
 			p->SetOwner( CMyLevel::GetEntityCharacterRootInLevel( this ) );
 			if( SafeCast<CBullet>( p ) )
 				SafeCast<CBullet>( p )->SetBulletVelocity( vel );
 			p->SetParentEntity( CMasterLevel::GetInst()->GetCurLevel() );
+		}
+	}
+}
+
+void CGate::OnAddedToStage()
+{
+	Init();
+	CCharacter::OnAddedToStage();
+}
+
+void CGate::OnTickBeforeHitTest()
+{
+	if( m_nTriggerType == 0 )
+	{
+		auto pMasterLevel = CMasterLevel::GetInst();
+		if( pMasterLevel->GetCurLevel() == GetLevel() && pMasterLevel->GetTestState() && pMasterLevel->GetTestRect().Contains( GetGlobalTransform().GetPosition() ) )
+			m_nTriggerTimeLeft = m_nTriggerTime;
+	}
+	else if( m_nTriggerType == 1 )
+	{
+		if( IsAlerted() )
+			m_nTriggerTimeLeft = m_nTriggerTime;
+	}
+
+	bool bClose = m_nTriggerTimeLeft == 0;
+	if( m_bStartOpen )
+		bClose = !bClose;
+	if( bClose )
+	{
+		float dLen = Min( m_bStartOpen ? m_fMaxLength - m_fCurLength : m_fCurLength, m_fCloseLenPerTick );
+		if( dLen > 0 )
+		{
+			CVector2 dirs[4] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+			dLen = GetLevel()->Push( this, dirs[m_nDir], dLen );
+		}
+	}
+	else
+	{
+		float dLen = Min( m_bStartOpen ? m_fCurLength : m_fMaxLength - m_fCurLength, m_fOpenLenPerTick );
+		if( dLen > 0 )
+		{
+			auto& hitTestMgr = GetLevel()->GetHitTestMgr();
+			hitTestMgr.Remove( this );
+			m_fCurLength += m_bStartOpen ? -dLen : dLen;
+			UpdateHit();
+			hitTestMgr.Add( this );
+			hitTestMgr.Update( this );
+		}
+	}
+	UpdateImages();
+	if( m_nTriggerTimeLeft )
+		m_nTriggerTimeLeft--;
+}
+
+void CGate::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( int i = 0; i < ELEM_COUNT( m_elems ); i++ )
+	{
+		auto& elem = m_elems[i];
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+	}
+}
+
+void CGate::HandlePush( const CVector2& dir, float fDist, int8 nStep )
+{
+	auto& hitTestMgr = GetLevel()->GetHitTestMgr();
+	if( nStep == 0 )
+	{
+		if( fDist > 0 )
+		{
+			hitTestMgr.Remove( this );
+			m_fCurLength += m_bStartOpen ? fDist : -fDist;
+			UpdateHit();
+		}
+	}
+	else if( nStep == 1 )
+	{
+		if( fDist > 0 )
+		{
+			hitTestMgr.Add( this );
+			hitTestMgr.Update( this );
+		}
+	}
+}
+
+bool CGate::Damage( SDamageContext& context )
+{
+	if( m_nTriggerType == 2 && context.nType <= eDamageHitType_Alert )
+	{
+		m_nTriggerTimeLeft = m_nTriggerTime;
+		return true;
+	}
+	return false;
+}
+
+void CGate::Init()
+{
+	if( m_bInited )
+		return;
+	m_bInited = true;
+	InitImages();
+	UpdateHit();
+}
+
+void CGate::InitImages()
+{
+	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
+	m_rect0 = pImg->GetElem().rect;
+	m_rect0.SetSize( m_rect0.GetSize() * 0.5f );
+	m_texRect0 = m_texRect1 = pImg->GetElem().texRect;
+	m_texRect0.SetSize( m_texRect0.GetSize() * 0.5f );
+	pImg->SetRect( m_rect0 );
+	pImg->SetTexRect( m_texRect0 );
+	pImg->SetBoundDirty();
+	CMatrix2D mat;
+	mat.Identity();
+	static_cast<SHitProxyPolygon*>( Get_HitProxy() )->CalcBound( mat, m_initHit );
+
+	auto rect = m_rect0;
+	switch( m_nDir )
+	{
+	case 0:
+		m_elems[0].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[1].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[2].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y, 0, m_rect0.height * 0.5f );
+		m_elems[3].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, 0, m_rect0.height * 0.5f );
+		m_elems[0].texRect = CRectangle( m_texRect0.GetRight(), m_texRect0.GetBottom(), m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[1].texRect = CRectangle( m_texRect0.GetRight(), m_texRect1.y, m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect0.y - m_texRect1.y );
+		m_elems[2].texRect = CRectangle( m_texRect0.x + m_texRect0.width / 2, m_texRect0.GetBottom(), m_texRect0.width / 2, m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[3].texRect = CRectangle( m_texRect0.x + m_texRect0.width / 2, m_texRect1.y, m_texRect0.width / 2, m_texRect0.y - m_texRect1.y );
+		break;
+	case 1:
+		m_elems[0].rect = CRectangle( m_rect0.x, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[1].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[2].rect = CRectangle( m_rect0.x, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, 0 );
+		m_elems[3].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, 0 );
+		m_elems[0].texRect = CRectangle( m_texRect1.x, m_texRect1.y, m_texRect0.x - m_texRect1.x, m_texRect0.y - m_texRect1.y );
+		m_elems[1].texRect = CRectangle( m_texRect0.GetRight(), m_texRect1.y, m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect0.y - m_texRect1.y );
+		m_elems[2].texRect = CRectangle( m_texRect1.x, m_texRect0.y + m_texRect0.height / 2, m_texRect0.x - m_texRect1.x, m_texRect0.height / 2 );
+		m_elems[3].texRect = CRectangle( m_texRect0.GetRight(), m_texRect0.y + m_texRect0.height / 2, m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect0.height / 2 );
+		break;
+	case 2:
+		m_elems[0].rect = CRectangle( m_rect0.x, m_rect0.y, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[1].rect = CRectangle( m_rect0.x, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[2].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y, 0, m_rect0.height * 0.5f );
+		m_elems[3].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, 0, m_rect0.height * 0.5f );
+		m_elems[0].texRect = CRectangle( m_texRect1.x, m_texRect0.GetBottom(), m_texRect0.x - m_texRect1.x, m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[1].texRect = CRectangle( m_texRect1.x, m_texRect1.y, m_texRect0.x - m_texRect1.x, m_texRect0.y - m_texRect1.y );
+		m_elems[2].texRect = CRectangle( m_texRect0.x + m_texRect0.width / 2, m_texRect0.GetBottom(), m_texRect0.width / 2, m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[3].texRect = CRectangle( m_texRect0.x + m_texRect0.width / 2, m_texRect1.y, m_texRect0.width / 2, m_texRect0.y - m_texRect1.y );
+		break;
+	case 3:
+		m_elems[0].rect = CRectangle( m_rect0.x, m_rect0.y, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[1].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y, m_rect0.width * 0.5f, m_rect0.height * 0.5f );
+		m_elems[2].rect = CRectangle( m_rect0.x, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, 0 );
+		m_elems[3].rect = CRectangle( m_rect0.x + m_rect0.width * 0.5f, m_rect0.y + m_rect0.height * 0.5f, m_rect0.width * 0.5f, 0 );
+		m_elems[0].texRect = CRectangle( m_texRect1.x, m_texRect0.GetBottom(), m_texRect0.x - m_texRect1.x, m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[1].texRect = CRectangle( m_texRect0.GetRight(), m_texRect0.GetBottom(), m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect1.GetBottom() - m_texRect0.GetBottom() );
+		m_elems[2].texRect = CRectangle( m_texRect1.x, m_texRect0.y + m_texRect0.height / 2, m_texRect0.x - m_texRect1.x, m_texRect0.height / 2 );
+		m_elems[3].texRect = CRectangle( m_texRect0.GetRight(), m_texRect0.y + m_texRect0.height / 2, m_texRect1.GetRight() - m_texRect0.GetRight(), m_texRect0.height / 2 );
+		break;
+	default:
+		break;
+	}
+	for( int i = 0; i < 4; i++ )
+	{
+		m_elems[i].nInstDataSize = static_cast<CImage2D*>( GetRenderObject() )->GetParamCount() * sizeof( CVector4 );
+		m_elems[i].pInstData = static_cast<CImage2D*>( GetRenderObject() )->GetParam();
+	}
+	UpdateImages();
+}
+
+void CGate::UpdateImages()
+{
+	auto fLen = m_bStartOpen ? m_fCurLength : m_fMaxLength - m_fCurLength;
+
+	auto rect = m_rect0;
+	switch( m_nDir )
+	{
+	case 0:
+		rect.width += fLen;
+		m_elems[0].rect.x = m_elems[1].rect.x = m_rect0.x + m_rect0.width * 0.5f + fLen;
+		m_elems[2].rect.width = m_elems[3].rect.width = fLen;
+		break;
+	case 1:
+		rect.height += fLen;
+		m_elems[0].rect.y = m_elems[1].rect.y = m_rect0.y + m_rect0.height * 0.5f + fLen;
+		m_elems[2].rect.height = m_elems[3].rect.height = fLen;
+		break;
+	case 2:
+		rect.SetLeft( rect.x - fLen );
+		m_elems[0].rect.x = m_elems[1].rect.x = m_rect0.x - fLen;
+		m_elems[2].rect.x = m_elems[3].rect.x = m_rect0.x + m_rect0.width * 0.5f - fLen;
+		m_elems[2].rect.width = m_elems[3].rect.width = fLen;
+		break;
+	case 3:
+		rect.SetTop( rect.y - fLen );
+		m_elems[0].rect.y = m_elems[1].rect.y = m_rect0.y - fLen;
+		m_elems[2].rect.y = m_elems[3].rect.y = m_rect0.y + m_rect0.height * 0.5f - fLen;
+		m_elems[2].rect.height = m_elems[3].rect.height = fLen;
+		break;
+	default:
+		break;
+	}
+	SetLocalBound( rect );
+}
+
+void CGate::UpdateHit()
+{
+	auto fLen = m_bStartOpen ? m_fCurLength : m_fMaxLength - m_fCurLength;
+	auto rect = m_initHit;
+	switch( m_nDir )
+	{
+	case 0:
+		rect.width += fLen;
+		break;
+	case 1:
+		rect.height += fLen;
+		break;
+	case 2:
+		rect.SetLeft( rect.x - fLen );
+		break;
+	case 3:
+		rect.SetTop( rect.y - fLen );
+		break;
+	default:
+		break;
+	}
+	RemoveProxy( Get_HitProxy() );
+	AddRect( rect );
+}
+
+void CAlertBeam::OnTickAfterHitTest()
+{
+	__super::OnTickAfterHitTest();
+	if( m_nAlertTimeLeft )
+		m_nAlertTimeLeft--;
+}
+
+void CAlertBeam::HandleHit( CEntity* pEntity, const CVector2& hitPoint )
+{
+	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+	if( !pCharacter )
+		return;
+	if( m_nAlertTimeLeft && pCharacter->IsEnemy() )
+	{
+		SDamageContext context;
+		context.nSourceType = 3;
+		context.hitPos = hitPoint;
+		context.hitDir = globalTransform.MulVector2Dir( CVector2( m_fHitForce, 0 ) );
+		context.nHitType = -1;
+		context.nType = eDamageHitType_Alert;
+		pCharacter->Damage( context );
+		return;
+	}
+	if( SafeCast<CPlayer>( pEntity ) )
+	{
+		OnHit( pEntity );
+		m_nAlertTimeLeft = m_nAlertTime;
+	}
+}
+
+void CAlertBeam::UpdateImages()
+{
+	__super::UpdateImages();
+	if( m_nAlertTimeLeft )
+	{
+		for( int i = 0; i < 3; i++ )
+		{
+			auto texRect = static_cast<CImage2D*>( m_pBeamImg[i].GetPtr() )->GetElem().texRect;
+			texRect.x += m_alertTexOfs.x;
+			texRect.y += m_alertTexOfs.y;
+			static_cast<CImage2D*>( m_pBeamImg[i].GetPtr() )->SetTexRect( texRect );
 		}
 	}
 }
@@ -802,17 +1277,19 @@ void RegisterGameClasses_EffectMisc();
 void RegisterGameClasses_Bot();
 void RegisterGameClasses_CharacterMisc()
 {
-	REGISTER_CLASS_BEGIN( CAutoFolder )
+	REGISTER_CLASS_BEGIN( CDamageArea )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_bIgnoreDamageSource )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CCommonMoveableObject )
 		REGISTER_BASE_CLASS( CCharacter )
-		REGISTER_MEMBER( m_fWeight )
 		REGISTER_MEMBER( m_fGravity )
 		REGISTER_MEMBER( m_fFrac )
 		REGISTER_MEMBER( m_fMaxFallSpeed )
 		REGISTER_MEMBER( m_fAirborneFrac )
+		REGISTER_MEMBER( m_nBlockImpactLevel )
+		REGISTER_MEMBER( m_nImpactHitTime )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CCommonGrabbable )
@@ -883,6 +1360,7 @@ void RegisterGameClasses_CharacterMisc()
 		REGISTER_MEMBER( m_nTileX )
 		REGISTER_MEMBER( m_nTileY )
 		REGISTER_MEMBER( m_ofs )
+		REGISTER_MEMBER( m_hitSize )
 		REGISTER_MEMBER( m_fHpPerTile )
 		REGISTER_MEMBER( m_bNoHit )
 	REGISTER_CLASS_END()
@@ -895,6 +1373,18 @@ void RegisterGameClasses_CharacterMisc()
 		REGISTER_MEMBER( m_colorTriggered )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CCharacterTriggerSpawn )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_eEvent )
+		REGISTER_MEMBER( m_pPrefab )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SBulletDesc )
+		REGISTER_MEMBER( pPrefab )
+		REGISTER_MEMBER( ofs )
+		REGISTER_MEMBER( vel )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CTurret )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_BASE_CLASS( IBotModule )
@@ -902,17 +1392,38 @@ void RegisterGameClasses_CharacterMisc()
 		REGISTER_MEMBER( m_fSightAngle )
 		REGISTER_MEMBER( m_fRotAngle )
 		REGISTER_MEMBER( m_fRotSpeed )
-		REGISTER_MEMBER( m_pBullet )
-		REGISTER_MEMBER( m_arrBulletOfs )
-		REGISTER_MEMBER( m_fBulletVel )
+		REGISTER_MEMBER( m_nScanType )
+		REGISTER_MEMBER( m_pBullet )//
+		REGISTER_MEMBER( m_arrBulletOfs )//
+		REGISTER_MEMBER( m_fBulletVel )//
+		REGISTER_MEMBER( m_arrBulletDesc )
 		REGISTER_MEMBER( m_nBulletCount )
 		REGISTER_MEMBER( m_fBulletAngle )
 		REGISTER_MEMBER( m_nFireCount )
 		REGISTER_MEMBER( m_nFireInterval )
 		REGISTER_MEMBER( m_nReloadTime )
 		REGISTER_MEMBER( m_nActivateTime )
+		REGISTER_MEMBER( m_nDetectActivateTime )
+		REGISTER_MEMBER( m_pStaticEftPreActivePrefab )
 		REGISTER_MEMBER( m_pStaticEftPrefab )
 		REGISTER_MEMBER( m_staticEftOfs )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CGate )
+		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_nDir )
+		REGISTER_MEMBER( m_bStartOpen )
+		REGISTER_MEMBER( m_nTriggerType )
+		REGISTER_MEMBER( m_fMaxLength )
+		REGISTER_MEMBER( m_fOpenLenPerTick )
+		REGISTER_MEMBER( m_fCloseLenPerTick )
+		REGISTER_MEMBER( m_nTriggerTime )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CAlertBeam )
+		REGISTER_BASE_CLASS( CBeam )
+		REGISTER_MEMBER( m_nAlertTime )
+		REGISTER_MEMBER( m_alertTexOfs )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CEnemy1 )

@@ -5,27 +5,32 @@
 #include "Common/ResourceManager.h"
 #include "MyLevel.h"
 #include "MyGame.h"
+#include "GlobalCfg.h"
 #include "Entities/Bullet.h"
 #include "Entities/PlayerMisc.h"
+#include "Entities/UtilEntities.h"
 
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
 {
 	SET_BASEOBJECT_ID( CPlayer );
+	m_bHasHitFilter = true;
 	m_nDir = 1;
 }
 
 void CPlayer::OnAddedToStage()
 {
 	CCharacter::OnAddedToStage();
-	UpdateAnim( CVector2( 0, -1 ) );
+	for( int i = 0; i < 3; i++ )
+		m_pHit[i]->m_bHasHitFilter = m_pHit[i]->m_bParentHitFilter = true;
+	//UpdateAnim( CVector2( 0, -1 ) );
 	if( GetLevel() )
 	{
 		auto& hitTestMgr = GetLevel()->GetHitTestMgr();
 		for( int i = 0; i < 3; i++ )
 			hitTestMgr.Add( m_pHit[i] );
 	}
-	m_lastFramePos = GetPosition();
+	m_lastFramePos = m_lastLandPoint = GetPosition();
 }
 
 void CPlayer::OnRemovedFromStage()
@@ -37,6 +42,54 @@ void CPlayer::OnRemovedFromStage()
 			hitTestMgr.Remove( m_pHit[i] );
 	}
 	CCharacter::OnRemovedFromStage();
+}
+
+int8 CPlayer::CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher )
+{
+	if( hit.nUser )
+	{
+		auto pPusher = context.vecChars[nPusher].pChar;
+		if( m_moveData.setOpenPlatforms.find( pPusher ) != m_moveData.setOpenPlatforms.end() )
+			return -1;
+		float f = hit.normal.Dot( CanHitPlatform() ? CVector2( 0, -1 ) : CVector2( 0, 0 ) );
+		if( f < PLATFORM_THRESHOLD )
+		{
+			m_moveData.setOpenPlatforms.insert( pPusher );
+			return -1;
+		}
+	}
+	CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
+	CMatrix2D mat[] = { m_pHit[0]->globalTransform, m_pHit[1]->globalTransform, m_pHit[2]->globalTransform };
+	fDist = GetLevel()->Push( this, context, dir, fDist, 3, pTestEntities, mat, MOVE_SIDE_THRESHOLD );
+	return 1;
+}
+
+void CPlayer::HandlePush( const CVector2& dir, float fDist, int8 nStep )
+{
+	if( nStep == 0 )
+	{
+		if( fDist > 0 )
+		{
+			SetPosition( GetPosition() + dir * fDist );
+			for( int i = 0; i < 3; i++ )
+				m_pHit[i]->SetDirty();
+		}
+	}
+	else if( nStep == 1 )
+	{
+		if( fDist > 0 )
+		{
+			for( int i = 0; i < 3; i++ )
+				GetLevel()->GetHitTestMgr().Update( m_pHit[i] );
+		}
+	}
+	else
+	{
+		if( m_pLanded && m_pLanded->nPublicFlag )
+			lastLandedEntityTransform = m_pLanded->globalTransform;
+		CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
+		m_moveData.CleanUpOpenPlatforms( this, 3, pTestEntities );
+	}
 }
 
 void CPlayer::UpdateInput()
@@ -210,28 +263,33 @@ void CPlayer::UpdateInput()
 			m_nBufferedInput |= 16;
 		if( CGame::Inst().IsKey( 'L' ) )
 			m_nBufferedInput |= 32;
-		auto lo = m_nBufferedInput & 15;
-		if( CGame::Inst().IsKey( 'J' ) )
-			lo = 4;
-		if( lo < 4 )
+		auto lo = m_nBufferedInput & 7;
+		if( CGame::Inst().IsKey( 'W' ) )
+			lo = 2;
+		if( m_nMoveState )
 		{
-			if( CGame::Inst().IsKey( 'W' ) )
-				lo = 2;
-			if( m_nMoveState )
-			{
-				m_nDir = m_nMoveState;
-				lo = lo | 1;
-			}
+			m_nDir = m_nMoveState;
+			lo = lo | 1;
 		}
-		m_nBufferedInput = lo | ( m_nBufferedInput & ~15 );
+		m_nBufferedInput = lo | ( m_nBufferedInput & ~7 );
 	}
 	else if( m_nCurState == eState_Kick )
 	{
 		if( m_kickState.nAni < eAni_Kick_Special_Begin || m_kickState.nAni == eAni_Kick_Recover )
 		{
-			if( m_nLevel >= ePlayerLevel_Kick_Spin && CGame::Inst().IsKey( 'J' ) && ! m_kickState.nFlag1 )
+			if( CGame::Inst().IsKey( 'J' ) && m_kickState.bHit && !m_kickState.nFlag1 )
 			{
-				Kick( eAni_Kick_Spin );
+				if( CGame::Inst().IsKey( 'S' ) )
+					Kick( eAni_Kick_Spin_Slide );
+				else if( m_nMoveState == -m_nDir )
+				{
+					Kick( eAni_Kick_Spin );
+					CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+					tangentDir = tangentDir * m_nDir;
+					m_vel = tangentDir * m_kickSpinBackVel.x - gravityDir * m_kickSpinBackVel.y;
+				}
+				else
+					Kick( eAni_Kick_Spin );
 				m_nBufferedInput = 0;
 			}
 		}
@@ -284,6 +342,13 @@ bool CPlayer::Damage( SDamageContext& context )
 {
 	if( !context.nDamage )
 		return false;
+	if( context.nSourceType == 0 || context.nSourceType == 1 )
+	{
+		if( IsDodging() )
+			return true;
+		else if( IsBlocking() )
+			return false;
+	}
 	m_nShieldRecoverCDLeft = m_nShieldHitRecoverCD;
 
 	auto gravityDir = GetLevel()->GetGravityDir();
@@ -397,6 +462,7 @@ void CPlayer::OnTickAfterHitTest()
 
 		switch( m_nCurState )
 		{
+		case eState_Kick_Ready:
 		case eState_Kick:
 			KickBreak();
 			break;
@@ -504,7 +570,7 @@ void CPlayer::OnTickAfterHitTest()
 				if( CGame::Inst().IsKey( 'L' ) )
 					m_kickState.nType0 |= 2;
 			}
-			if( m_kickState.bHit && !m_kickState.nFlag1 && m_kickState.nTick == nKickDashFrame )
+			if( /*m_kickState.bHit &&*/ !m_kickState.nFlag1 && m_kickState.nTick == nKickDashFrame )
 			{
 				if( m_nLevel >= ePlayerLevel_Kick_Heavy && m_kickState.nType0 == 3 )
 				{
@@ -542,6 +608,12 @@ void CPlayer::OnTickAfterHitTest()
 				bFixVel = true;
 				fixVel = m_vel = CVector2( 0, 0 );
 			}
+		}
+		else if( m_kickState.nAni == eAni_Kick_Spin_Slide )
+		{
+			float fCur = m_pHit[2]->x * m_nDir;
+			float fTarget = m_fHitOfs2;
+			fHitMove2 = fTarget - fCur;
 		}
 		break;
 	}
@@ -612,7 +684,7 @@ void CPlayer::OnTickAfterHitTest()
 	case eState_Roll_Recover:
 	{
 		float fCur = m_pHit[2]->x * m_nDir;
-		float fTarget = m_fHitOfs1 * ( m_nStateTick + 1 ) / ( m_nStandUpAnimSpeed * 2 );
+		float fTarget = m_fHitOfs1 * ( m_nStateTick + 1 ) / ( m_nRollRecoverAnimSpeed * 2 );
 		fHitMove2 = fTarget - fCur;
 		break;
 	}
@@ -817,10 +889,13 @@ void CPlayer::OnTickAfterHitTest()
 	}
 
 	GetLevel()->GetHitTestMgr().Update( this );
+	for( int i = 0; i < 3; i++ )
+		GetLevel()->GetHitTestMgr().Update( m_pHit[i] );
+	UpdateImpactLevel();
 	CVector2 v0 = m_vel;
 	SRaycastResult res[3];
 	if( dPos.Length2() > 0 )
-		m_moveData.TryMove1( this, ELEM_COUNT( pTestEntities ), pTestEntities, dPos, bFixVel ? fixVel : m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
+		m_moveData.TryMove1XY( this, ELEM_COUNT( pTestEntities ), pTestEntities, dPos, bFixVel ? fixVel : m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
 	if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_Air || m_nCurState == eState_Slide_1 || m_nCurState == eState_Dash || m_nCurState == eState_Dash_Grab
 		|| m_nCurState == eState_Dash_Fall || m_nCurState == eState_Roll || m_nCurState == eState_Roll_Stop || m_nCurState == eState_BackFlip_1 )
 		m_vel = v0;
@@ -874,7 +949,7 @@ void CPlayer::OnTickAfterHitTest()
 		{
 			CVector2 ofs0( 0, fMove - fHitMove1 - 0.01f );
 			ofs0 = trans.MulVector2Dir( ofs0 );
-			m_moveData.TryMove1( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
+			m_moveData.TryMove1XY( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
 			trans = m_pHit[1]->GetGlobalTransform();
 			result.fDist = fHitMove1;
 			m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[1] );
@@ -896,7 +971,7 @@ void CPlayer::OnTickAfterHitTest()
 		{
 			CVector2 ofs0( ( fMove - fHitMove2 - 0.01f ) * m_nDir, 0 );
 			ofs0 = trans.MulVector2Dir( ofs0 );
-			m_moveData.TryMove1( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
+			m_moveData.TryMove1XY( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
 			trans = m_pHit[2]->GetGlobalTransform();
 			result.fDist = fHitMove2;
 			m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
@@ -907,7 +982,12 @@ void CPlayer::OnTickAfterHitTest()
 	}
 	if( bTransformBlocked )
 	{
-		if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_Air )
+		if( m_nCurState == eState_Kick && m_kickState.nAni == eAni_Kick_Spin_Slide )
+		{
+			m_kickState.nAni = eAni_Kick_Spin;
+			m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() );
+		}
+		else if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_Air )
 			SlideCancel();
 		else if( m_nCurState == eState_BackFlip )
 		{
@@ -1044,7 +1124,9 @@ void CPlayer::OnTickAfterHitTest()
 			pBomb->SetParentEntity( pLevel );
 		}
 	}
+
 	UpdateHit();
+	UpdateImpactLevel();
 	CMasterLevel::GetInst()->UpdateTest();
 	CMasterLevel::GetInst()->UpdateAlert();
 }
@@ -1083,19 +1165,44 @@ void CPlayer::PostUpdate()
 	auto gravityDir = GetLevel()->GetGravityDir();
 	UpdateAnim( gravityDir );
 	UpdateAnimState( gravityDir );
-	CleanUpOpenPlatforms();
+	CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
+	m_moveData.CleanUpOpenPlatforms( this, ELEM_COUNT( pTestEntities ), pTestEntities );
 	m_lastFramePos = GetPosition();
 	if( m_nHp <= 0 )
 		Kill();
 }
 
+bool CPlayer::CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast )
+{
+	auto p1 = SafeCast<CCharacter>( pEntity );
+	if( p1 && p1->GetKillImpactLevel() && m_nCurImpactLevel >= p1->GetKillImpactLevel() )
+	{
+		auto norm = result.normal;
+		if( bCast )
+			norm = norm * -1;
+		auto gravity = GetLevel()->GetGravityDir();
+		auto d = norm.Dot( gravity );
+		if( d > 0.7f )
+			return false;
+	}
+	return __super::CheckImpact( pEntity, result, bCast );
+}
+
 void CPlayer::OnKickFirstHit( CEntity* pKick )
 {
-	m_fFallHeight = 0;
 	if( m_nCurState == eState_Kick && m_pCurAttackEffect == pKick )
 	{
 		m_kickState.bHit = 1;
 	}
+}
+
+void CPlayer::OnKickFirstExtentHit( CEntity * pKick )
+{
+	/*if( m_nCurState == eState_Kick && m_pCurAttackEffect == pKick )
+	{
+		m_kickState.nTick1 = 0;
+		m_vel = CVector2( 0, 0 );
+	}*/
 }
 
 bool CPlayer::Knockback( const CVector2& vec )
@@ -1108,32 +1215,61 @@ bool CPlayer::Knockback( const CVector2& vec )
 	return true;
 }
 
+void CPlayer::UpdateImpactLevel()
+{
+	bool bStopImpact = false;
+	for( int i = 0; i < ELEM_COUNT( m_pHit ); i++ )
+	{
+		for( auto pManifold = m_pHit[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			if( pManifold->normal.Length2() < MOVE_SIDE_THRESHOLD * MOVE_SIDE_THRESHOLD )
+				continue;
+			auto p = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			auto pCharacter = SafeCast<CCharacter>( p );
+			if( pCharacter && pCharacter->GetKillImpactLevel() && m_nCurImpactLevel >= pCharacter->GetKillImpactLevel() )
+			{
+				if( m_nCurImpactLevel == pCharacter->GetKillImpactLevel() )
+					bStopImpact = true;
+				pCharacter->Kill();
+			}
+		}
+	}
+	if( bStopImpact )
+	{
+		m_fFallHeight = 0;
+		auto gravity = GetLevel()->GetGravityDir();
+		auto tangent = CVector2( -gravity.y, gravity.x );
+		m_vel = tangent * m_vel.Dot( tangent );
+		if( m_nCurState == eState_Kick || m_nCurState == eState_Kick_Ready )
+			KickBreak();
+		else if( m_nCurState == eState_Slide_Air )
+		{
+			Slide1();
+			GetLevel()->GetHitTestMgr().Update( m_pHit[1] );
+		}
+		else if( m_nCurState <= eState_Jump )
+		{
+			m_nJumpState = m_nLandTime;
+		}
+	}
+
+	int32 i;
+	for( i = 0; i < ELEM_COUNT( m_fImpactLevelFallHeight ); i++ )
+	{
+		if( m_fFallHeight < m_fImpactLevelFallHeight[i] )
+			break;
+	}
+	m_nCurImpactLevel = i;
+}
+
 bool CPlayer::CanHitPlatform()
 {
 	return m_nCurState >= eState_Slide && m_nCurState <= eState_BackFlip && m_nCurState != eState_Roll_Stand_Up;
 }
 
-void CPlayer::CleanUpOpenPlatforms()
-{
-	auto& setPlatforms = m_moveData.setOpenPlatforms;
-	auto setPlatformsOld = setPlatforms;
-	setPlatforms.clear();
-	CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
-	for( int i = 0; i < ELEM_COUNT( pTestEntities ); i++ )
-	{
-		pTestEntities[i]->ForceUpdateTransform();
-		for( auto pManifold = pTestEntities[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
-		{
-			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
-			if( setPlatformsOld.find( pEntity ) != setPlatformsOld.end() )
-				setPlatforms.insert( pEntity );
-		}
-	}
-}
-
 bool CPlayer::CanShoot()
 {
-	return m_nCurState == eState_Stand_1 || m_nCurState == eState_Walk_1 || m_nCurState == eState_Glide_Fall
+	return m_nCurState == eState_Slide_1 || m_nCurState == eState_Stand_1 || m_nCurState == eState_Walk_1 || m_nCurState == eState_Glide_Fall
 		|| m_nCurState == eState_Glide || m_nCurState == eState_Fly;
 }
 
@@ -1154,6 +1290,21 @@ bool CPlayer::CanFindFloor()
 bool CPlayer::CanRecoverShield()
 {
 	return m_nLevel >= ePlayerLevel_Shield && m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1;
+}
+
+bool CPlayer::IsDodging()
+{
+	return m_nCurState == eState_Dash || m_nCurState == eState_BackFlip_1;
+}
+
+bool CPlayer::IsBlocking()
+{
+	if( m_pCurAttackEffect )
+	{
+		if( SafeCast<CKickSpin>( m_pCurAttackEffect.GetPtr() ) )
+			return true;
+	}
+	return false;
 }
 
 float CPlayer::GetGravity()
@@ -1184,13 +1335,21 @@ void CPlayer::FindFloor( const CVector2& gravityDir )
 	if( pNewLandedEntity && m_vel.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.5f )
 	{
 		m_pLanded = pNewLandedEntity;
+		m_nLastLandTime = 100;
+		m_lastLandPoint = result.hitPoint;
 		SetPosition( GetPosition() + dir * result.fDist );
 		m_groundNorm = result.normal;
 		m_vel = m_vel - m_groundNorm * m_vel.Dot( m_groundNorm );
 		lastLandedEntityTransform = m_pLanded->GetGlobalTransform();
 	}
 	else
+	{
 		m_pLanded = NULL;
+		if( m_nLastLandTime )
+			m_nLastLandTime--;
+		else
+			m_lastLandPoint = GetPosition() + gravityDir * 24;
+	}
 }
 
 void CPlayer::UpdateHit()
@@ -1206,37 +1365,36 @@ void CPlayer::UpdateHit()
 	else
 		nNewHitAreaType = 4;
 	if( m_nHitAreaType == nNewHitAreaType )
+		GetLevel()->GetHitTestMgr().Update( this );
+	else
 	{
-		pLevel->GetHitTestMgr().Update( this );
-		return;
+		if( m_nHitAreaType )
+		{
+			if( pLevel )
+				pLevel->GetHitTestMgr().Remove( this );
+			RemoveProxy( Get_HitProxy() );
+		}
+		m_nHitAreaType = nNewHitAreaType;
+		if( m_nHitAreaType == 1 )
+			AddRect( CRectangle( -16, -16, 32, 64 ) );
+		else if( m_nHitAreaType == 2 )
+			AddRect( CRectangle( -16, -16, 48, 32 ) );
+		else if( m_nHitAreaType == 3 )
+			AddRect( CRectangle( -16, -32, 48, 32 ) );
+		else if( m_nHitAreaType == 4 )
+			AddRect( CRectangle( -16, -16, 32, 32 ) );
+		if( pLevel && m_nHitAreaType )
+			pLevel->GetHitTestMgr().Add( this );
 	}
 
-	if( m_nHitAreaType )
-	{
-		if( pLevel )
-			pLevel->GetHitTestMgr().Remove( this );
-		RemoveProxy( Get_HitProxy() );
-	}
-	m_nHitAreaType = nNewHitAreaType;
-	if( m_nHitAreaType == 1 )
-		AddRect( CRectangle( -16, -16, 32, 64 ) );
-	else if( m_nHitAreaType == 2 )
-		AddRect( CRectangle( -16, -16, 48, 32 ) );
-	else if( m_nHitAreaType == 3 )
-		AddRect( CRectangle( -16, -32, 48, 32 ) );
-	else if( m_nHitAreaType == 4 )
-		AddRect( CRectangle( -16, -16, 32, 32 ) );
-	if( pLevel && m_nHitAreaType )
-	{
-		pLevel->GetHitTestMgr().Add( this );
-		pLevel->GetHitTestMgr().Update( this );
-	}
+	GetLevel()->GetHitTestMgr().Update( this );
+	for( int i = 0; i < 3; i++ )
+		GetLevel()->GetHitTestMgr().Update( m_pHit[i] );
 }
 
 void CPlayer::UpdateAnim( const CVector2& gravityDir )
 {
 	auto tangent = CVector2( -gravityDir.y, gravityDir.x ) * m_nDir;
-	auto p = static_cast<CImage2D*>( GetRenderObject() );
 	CRectangle rect( 0, 0, 0, 0 );
 	CRectangle texRect( 0, 0, 0, 0 );
 	switch( m_nCurState )
@@ -1408,6 +1566,18 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 				texRect.x = 2 - texRect.GetRight();
 			}
 		}
+		else if( m_kickState.nAni == eAni_Kick_Spin_Slide )
+		{
+			int32 nFrame = m_kickState.nTick / m_nKickSpinAnimSpeed;
+			int32 n = nFrame / ( 2 * m_nKickSpinAnimRep );
+			rect = CRectangle( -28, -26, 96, 96 );
+			texRect = CRectangle( 3 + n * 3, 6, 3, 3 ) / 32;
+			if( !( nFrame & 1 ) )
+			{
+				rect.x = -rect.GetRight();
+				texRect.x = 2 - texRect.GetRight();
+			}
+		}
 		else
 		{
 			rect = CRectangle( -32, -26, 64, 96 );
@@ -1555,30 +1725,37 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 		rect.x = -rect.GetRight();
 		texRect.x = 2 - texRect.GetRight();
 	}
-	p->SetRect( rect );
-	p->SetTexRect( texRect );
+	auto pImg = SafeCastToInterface<IImageRect>( GetRenderObject() );
+	pImg->SetRect( rect );
+	pImg->SetTexRect( texRect );
 
 	if( m_nCurState == eState_Roll )
-		p->SetRotation( p->r - m_fRollRotateSpeed * GetLevel()->GetElapsedTimePerTick() * m_nDir );
+		GetRenderObject()->SetRotation( GetRenderObject()->r - m_fRollRotateSpeed * GetLevel()->GetElapsedTimePerTick() * m_nDir );
 	else if( m_nCurState == eState_Roll_Stop )
 	{
 		auto nStateTick = abs( m_nStateTick );
 		if( nStateTick == m_nRollStopFrames )
 		{
-			float d = p->r * m_nDir;
+			float d = GetRenderObject()->r * m_nDir;
 			d = d / ( PI * 2 );
 			d -= floor( d );
-			p->r = ( d + 1 ) * ( PI * 2 ) * m_nDir;
+			GetRenderObject()->r = ( d + 1 ) * ( PI * 2 ) * m_nDir;
 		}
-		p->SetRotation( p->r * ( nStateTick - 1 ) * ( nStateTick - 1 ) * 1.0f / ( nStateTick * nStateTick ) );
+		GetRenderObject()->SetRotation( GetRenderObject()->r * ( nStateTick - 1 ) * ( nStateTick - 1 ) * 1.0f / ( nStateTick * nStateTick ) );
 	}
 	else
-		p->SetRotation( 0 );
+		GetRenderObject()->SetRotation( 0 );
 	UpdateEffect();
 }
 
 void CPlayer::UpdateEffect()
 {
+	auto pImgEffect = SafeCastToInterface<IImageEffectTarget>( GetRenderObject() );
+	if( m_nCurImpactLevel )
+		pImgEffect->SetCommonEffectEnabled( eImageCommonEffect_Phantom, true, CGlobalCfg::Inst().vecAttackLevelColor[m_nCurImpactLevel - 1] );
+	else
+		pImgEffect->SetCommonEffectEnabled( eImageCommonEffect_Phantom, false, CVector4( 0, 0, 0, 0 ) );
+
 	auto pImgShieldBar = static_cast<CImage2D*>( m_pShieldEffect[0].GetPtr() );
 	auto pImgShieldBack = static_cast<CImage2D*>( m_pShieldEffect[1].GetPtr() );
 	auto pImgShieldCDBar = static_cast<CImage2D*>( m_pShieldEffect[2].GetPtr() );
@@ -1665,11 +1842,8 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 		m_nStateTick++;
 		if( m_nStateTick >= m_nKickReadyTime )
 		{
-			auto lo = m_nBufferedInput & 15;
-			if( lo >= 4 )
-				Kick( eAni_Kick_Spin );
-			else
-				Kick( lo == 3 ? 0 : lo );
+			auto lo = m_nBufferedInput & 7;
+			Kick( lo == 3 ? 0 : lo );
 			m_kickState.nType0 = ( m_nBufferedInput & 48 ) >> 4;
 			m_nBufferedInput = 0;
 		}
@@ -1757,6 +1931,14 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 		{
 			if( m_kickState.nTick >= m_nKickSpinAnimRep * m_nKickSpinAnimSpeed * 6 )
 				Kick( eAni_Kick_Recover );
+		}
+		else if( m_kickState.nAni == eAni_Kick_Spin_Slide )
+		{
+			if( m_kickState.nTick >= m_nKickSpinAnimRep * m_nKickSpinAnimSpeed * 4 )
+			{
+				KickBreak();
+				Slide1();
+			}
 		}
 		else
 		{
@@ -1968,13 +2150,10 @@ void CPlayer::Kick( int8 nAni )
 		nKickType0 = 0;
 	auto pLastAttackEffect = m_pCurAttackEffect;
 
-	if( nLastAni == eAni_Kick_Spin )
+	if( m_pCurAttackEffect && SafeCast<CKickSpin>( m_pCurAttackEffect.GetPtr() ) )
 	{
-		if( m_pCurAttackEffect )
-		{
-			SafeCast<CCharacter>( m_pCurAttackEffect.GetPtr() )->Kill();
-			m_pCurAttackEffect = NULL;
-		}
+		SafeCast<CCharacter>( m_pCurAttackEffect.GetPtr() )->Kill();
+		m_pCurAttackEffect = NULL;
 	}
 
 	uint8 nFlag = 0;
@@ -1986,13 +2165,20 @@ void CPlayer::Kick( int8 nAni )
 		else
 			nFlag = nLastAni / 3;
 	}
-	if( nAni == eAni_Kick_Spin )
+	if( nAni == eAni_Kick_Spin || nAni == eAni_Kick_Spin_Slide )
 	{
 		nFlag = nKickType0;
 		auto pKick = SafeCast<CCharacter>( m_pKickSpin[nKickType0]->GetRoot()->CreateInstance() );
 		pKick->SetParentEntity( this );
 		pKick->SetOwner( this );
-		if( m_kickState.nTick1 )
+		if( nAni == eAni_Kick_Spin_Slide )
+		{
+			auto gravityDir = GetLevel()->GetGravityDir();
+			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+			tangentDir = tangentDir * m_nDir;
+			m_vel = tangentDir * m_kickSpinSlideVel.x - gravityDir * m_kickSpinSlideVel.y;
+		}
+		else if( m_kickState.nTick1 )
 			m_vel = CVector2( 0, 0 );
 		KickMorph( pKick );
 	}
@@ -2261,6 +2447,8 @@ void CPlayer::BackFlip2()
 
 void CPlayer::ForceRoll( bool bUpdate )
 {
+	if( m_nCurState == eState_Kick )
+		KickBreak();
 	m_nCurState = eState_Roll;
 	m_nStateTick = -1;
 	for( int k = 0; k < 2; k++ )

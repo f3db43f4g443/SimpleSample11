@@ -71,8 +71,8 @@ void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
 	m_origCamSize = viewSize;
 	if( m_enterContext.pViewport )
 	{
-		m_enterContext.pViewport->SetCustomRender( viewSize * 0.25f );
-		m_enterContext.pViewport->RegisterOnPostProcess( &m_onPostProcess );
+		//m_enterContext.pViewport->SetCustomRender( viewSize * 0.25f );
+		//m_enterContext.pViewport->RegisterOnPostProcess( &m_onPostProcess );
 	}
 
 	m_bStarted = true;
@@ -230,7 +230,10 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 	effect.SetPriority( 1 );
 	CVector4 colorCenter( 1, 1, 1, 1 );
 	CVector4 colorEdge( 1, 1, 1, 1 );
-	float fPow = 1;
+	/*float k = ( abs( ( CGame::Inst().GetTimeStamp() & 511 ) - 256 ) - 128 ) / 128.0f;
+	colorCenter = colorCenter - CVector4( 0.25f, 0.2f, 0.15f, 0 ) * k;
+	colorEdge = colorEdge + CVector4( 0.25f, 0.2f, 0.15f, 0 ) * k;*/
+	float fPow = 2.5f;
 	CMasterLevel* pMasterLevel = CMasterLevel::GetInst();
 	if( pMasterLevel )
 	{
@@ -240,7 +243,7 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 			float t = pMasterLevel->GetKillFade();
 			colorEdge = CVector4( 1, 0, 0, 1 );
 			colorCenter = CVector4( 1, 0, 0, 1 ) + CVector4( 0, 1, 1, 0 ) * t;
-			fPow = 2;
+			fPow = 2.5f;
 		}
 		else
 		{
@@ -253,10 +256,9 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 			if( t1 > 0 )
 				colorCenter = colorCenter + CVector4( 1, 1, 1, 0 ) * t1 * ( 2 - t1 );
 			if( t < 1 || t1 > 0 )
-				fPow = 2 * pow( 5, t );
+				fPow = 2.5f * pow( 4, t );
 		}
 	}
-
 	effect.Set( colorCenter, colorEdge, fPow );
 	pPass->Register( &effect );
 }

@@ -7,6 +7,7 @@
 #include "MyLevel.h"
 #include "ParticleSystem.h"
 #include "Explosion.h"
+#include "Entities/CharacterMisc.h"
 
 void CBullet::OnHit( CEntity* pEntity )
 {
@@ -54,6 +55,7 @@ void CBullet::Kill()
 		static_cast<CMultiFrameImage2D*>( GetRenderObject() )->SetFrames( m_nDeathFrameBegin, m_nDeathFrameEnd, m_fDeathFramesPerSec );
 	else
 		GetRenderObject()->bVisible = false;
+	Trigger( eCharacterEvent_Kill );
 }
 
 void CBullet::OnAddedToStage()
@@ -117,43 +119,70 @@ void CBullet::OnTickAfterHitTest()
 		UpdateCommon();
 }
 
+CCharacter* CBullet::CheckHit( CEntity* pEntity )
+{
+	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+	if( pCharacter )
+	{
+		if( pCharacter->IsIgnoreDamageSource( 0 ) )
+			pCharacter = NULL;
+	}
+	else
+	{
+		auto p = SafeCast<CDamageArea>( pEntity );
+		if( p && !p->IsIgnoreDamageSource( 0 ) )
+			pCharacter = SafeCast<CCharacter>( p->GetParentEntity() );
+	}
+	if( !pCharacter || pCharacter->IsKilled() )
+		return NULL;
+	if( pCharacter->IsOwner( m_pOwner ) )
+		return NULL;
+	return pCharacter;
+}
+
+bool CBullet::HandleHit( CCharacter* pCharacter, const CVector2& hitPoint )
+{
+	CReference<CEntity> pTempRef = pCharacter;
+	SDamageContext context;
+	context.nSourceType = 1;
+	context.hitPos = hitPoint;
+	context.hitDir = m_vel;
+	if( m_fHitForce >= 0 )
+	{
+		context.hitDir.Normalize();
+		context.hitDir = context.hitDir * m_fHitForce;
+	}
+	context.nHitType = -1;
+	context.pSource = this;
+	if( m_bAlertEnemy && pCharacter->IsEnemy() )
+	{
+		context.nType = eDamageHitType_Alert;
+		pCharacter->Damage( context );
+		return false;
+	}
+	context.nDamage = m_nDamage;
+	context.fDamage1 = m_nDamage1;
+
+	if( pCharacter->Damage( context ) )
+	{
+		if( m_pDmgEft )
+			m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pCharacter, context );
+
+		OnHit( pCharacter );
+		return true;
+	}
+	return false;
+}
+
 void CBullet::UpdateCommon()
 {
 	for( auto pManifold = m_pManifolds; pManifold; pManifold = pManifold->NextManifold() )
 	{
-		CEntity* pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
-		if( m_pOwner && pEntity->IsOwner( m_pOwner ) )
-			continue;
-
-		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
+		CCharacter* pCharacter = CheckHit( static_cast<CEntity*>( pManifold->pOtherHitProxy ) );
+		if( pCharacter && HandleHit( pCharacter, pManifold->hitPoint ) )
 		{
-			CReference<CEntity> pTempRef = pEntity;
-			auto pPlayer = GetLevel()->GetPlayer();
-			if( m_pOwner && m_pOwner != pPlayer && pCharacter != pPlayer && !pCharacter->IsAlwaysBlockBullet() )
-				continue;
-
-			SDamageContext context;
-			context.nDamage = m_nDamage;
-			context.fDamage1 = m_nDamage1;
-			context.nSourceType = 1;
-			context.hitPos = pManifold->hitPoint;
-			context.hitDir = m_vel;
-			if( m_fHitForce >= 0 )
-			{
-				context.hitDir.Normalize();
-				context.hitDir = context.hitDir * m_fHitForce;
-			}
-			context.nHitType = -1;
-			if( pCharacter->Damage( context ) )
-			{
-				if( m_pDmgEft )
-					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pCharacter, context );
-
-				OnHit( pCharacter );
-				Kill();
-				return;
-			}
+			Kill();
+			return;
 		}
 	}
 	if( m_bHitStatic )
@@ -186,37 +215,11 @@ void CBullet::UpdateTrail()
 
 	for( int i = 0; i < vecHitEntities.size(); i++ )
 	{
-		CEntity* pEntity = vecHitEntities[i];
-		if( m_pOwner && pEntity->IsOwner( m_pOwner ) )
-			continue;
-		auto& result = vecResult[i];
-
-		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
+		CCharacter* pCharacter = CheckHit( static_cast<CEntity*>( vecHitEntities[i].GetPtr() ) );
+		if( pCharacter && HandleHit( pCharacter, vecResult[i].hitPoint ) )
 		{
-			CReference<CEntity> pTempRef = pEntity;
-
-			SDamageContext context;
-			context.nDamage = m_nDamage;
-			context.fDamage1 = m_nDamage1;
-			context.nSourceType = 1;
-			context.hitPos = result.hitPoint;
-			context.hitDir = m_vel;
-			if( m_fHitForce >= 0 )
-			{
-				context.hitDir.Normalize();
-				context.hitDir = context.hitDir * m_fHitForce;
-			}
-			context.nHitType = -1;
-			if( pCharacter->Damage( context ) )
-			{
-				if( m_pDmgEft )
-					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pCharacter, context );
-
-				OnHit( pCharacter );
-				Kill();
-				goto finalize;
-			}
+			Kill();
+			goto finalize;
 		}
 	}
 	if( m_bHitStatic )
@@ -255,6 +258,7 @@ void RegisterGameClasses_Bullet()
 		REGISTER_MEMBER( m_nDamage )
 		REGISTER_MEMBER( m_nDamage1 )
 		REGISTER_MEMBER( m_bHitStatic )
+		REGISTER_MEMBER( m_bAlertEnemy )
 		REGISTER_MEMBER( m_vel )
 		REGISTER_MEMBER( m_acc )
 		REGISTER_MEMBER( m_bTangentDir )

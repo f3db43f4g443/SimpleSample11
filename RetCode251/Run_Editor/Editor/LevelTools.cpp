@@ -107,9 +107,15 @@ public:
 				if( p == m_pLevelNode->GetRenderObject() )
 					continue;
 				auto pPrefabNode = dynamic_cast<CPrefabNode*>( p );
-				if( pPrefabNode && pPrefabNode->GetClassData()->Is( CClassMetaDataMgr::Inst().GetClassData<ILevelObjLayer>() ) )
-					m_vecAllObjLayers.push_back( pPrefabNode );
+				if( pPrefabNode )
+				{
+					m_vecAllRootChildren.push_back( pPrefabNode );
+					if( pPrefabNode->GetClassData()->Is( CClassMetaDataMgr::Inst().GetClassData<ILevelObjLayer>() ) )
+						m_vecAllObjLayers.push_back( pPrefabNode );
+				}
 			}
+			for( int i = 0; i < m_vecAllRootChildren.size() / 2; i++ )
+				swap( m_vecAllRootChildren[i], m_vecAllRootChildren[m_vecAllRootChildren.size() - 1 - i] );
 			for( int i = 0; i < m_vecAllObjLayers.size() / 2; i++ )
 				swap( m_vecAllObjLayers[i], m_vecAllObjLayers[m_vecAllObjLayers.size() - 1 - i] );
 			m_nObjLayer = -1;
@@ -118,10 +124,11 @@ public:
 		}
 		else
 		{
-			for( int i = 0; i < m_vecAllObjLayers.size() - 1; i++ )
-				m_vecAllObjLayers[i]->SetRenderParentAfter( m_vecAllObjLayers.back() );
+			for( int i = 0; i < m_vecAllRootChildren.size() - 1; i++ )
+				m_vecAllRootChildren[i]->SetRenderParentAfter( m_vecAllRootChildren.back() );
 			m_vecAllObjs.resize( 0 );
 			m_vecAllObjLayers.resize( 0 );
+			m_vecAllRootChildren.resize( 0 );
 			SelectObj( NULL );
 			SelectFile( NULL );
 			SelectTool( -1 );
@@ -225,6 +232,7 @@ protected:
 	int8 m_nLayerDisplay;
 	vector<CReference<CPrefabNode> > m_vecAllObjs;
 	vector<CReference<CPrefabNode> > m_vecAllObjLayers;
+	vector<CReference<CPrefabNode> > m_vecAllRootChildren;
 	vector<SLevelEditToolDesc> m_vecTools;
 	vector<CReference<CUIElement> > m_vecToolsBtn;
 	int32 m_nCurSelectedTool;
@@ -249,6 +257,8 @@ void CLevelObjectTool::OnDebugDraw( IRenderSystem* pRenderSystem, CUIViewport* p
 
 bool CLevelObjectTool::OnViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos )
 {
+	if( m_pObjEditor->bVisible )
+		return true;
 	m_bDragged = true;
 	if( m_nCurSelectedTool >= 0 )
 	{
@@ -576,10 +586,17 @@ void CLevelObjectTool::RefreshLayerDisplay()
 	}
 	else
 	{
-		for( int i = 1; i < m_vecAllObjLayers.size(); i++ )
+		int32 n;
+		for( n = 0; n < m_vecAllRootChildren.size(); n++ )
 		{
-			m_vecAllObjLayers[( i + m_nObjLayer ) % m_vecAllObjLayers.size()]
-				->SetRenderParentAfter( m_vecAllObjLayers[m_nObjLayer == -1 ? m_vecAllObjLayers.size() - 1 : m_nObjLayer] );
+			if( m_vecAllRootChildren[n] == m_vecAllObjLayers[m_nObjLayer].GetPtr() )
+				break;
+		}
+
+		for( int i = 1; i < m_vecAllRootChildren.size(); i++ )
+		{
+			m_vecAllRootChildren[( i + n ) % m_vecAllRootChildren.size()]
+				->SetRenderParentAfter( m_vecAllRootChildren[n == -1 ? m_vecAllRootChildren.size() - 1 : n] );
 		}
 	}
 }

@@ -2,9 +2,10 @@
 #include "Entity.h"
 #include "Trigger.h"
 
-enum
+enum EDamageType
 {
 	eDamageHitType_None,
+	eDamageHitType_Alert,
 	eDamageHitType_Kick_Special,
 	eDamageHitType_Kick_Begin,
 	eDamageHitType_Kick_End,
@@ -12,6 +13,18 @@ enum
 	eDamageHitType_Kick_End_2,
 	eDamageHitType_Kick_End_3,
 	eDamageHitType_Kick_End_4,
+};
+
+enum ECharacterEvent
+{
+	eCharacterEvent_Update1,
+	eCharacterEvent_Update2,
+
+	eCharacterEvent_Kill,
+	eCharacterEvent_ImpactLevelBegin,
+	eCharacterEvent_ImpactLevelEnd,
+
+	eCharacterEvent_Count,
 };
 
 class CCharacter : public CEntity
@@ -27,10 +40,14 @@ public:
 	class CMyLevel* GetLevel() { return m_pLevel; }
 	virtual bool IsOwner( CEntity* pEntity1 ) override { return pEntity1 == this || pEntity1 == m_pOwner; }
 	void SetOwner( CCharacter* pOwner ) { m_pOwner = pOwner; }
+	virtual bool IsEnemy() { return false; }
+	int8 GetUpdatePhase() { return m_nUpdatePhase; }
+	void SetUpdatePhase( int8 n ) { m_nUpdatePhase = n; }
 	int32 GetHp() { return m_nHp; }
 	int32 GetMaxHp() { return m_nMaxHp; }
 	int32 GetDmgToPlayer() { return m_nDmgToPlayer; }
 	int32 GetKillImpactLevel() { return m_nKillImpactLevel; }
+	float GetWeight() { return m_fWeight; }
 
 	virtual bool CanTriggerItem() { return false; }
 	virtual bool CanOpenDoor() { return false; }
@@ -39,16 +56,39 @@ public:
 	virtual bool IsKilled() { return m_bKilled; }
 	void KillEffect();
 	virtual void Crush() { m_bCrushed = true; Kill(); }
+	virtual bool ImpactHit( int32 nLevel, const CVector2& vec, CEntity* pEntity ) { return false; }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
 	virtual bool IsKnockback() { return false; }
 	virtual bool StartHooked( CEntity* pEntity ) { return false; }
 	virtual bool Hooked( const CVector2& vec ) { return false; }
 	virtual bool EndHooked() { return false; }
-	bool IsIgnoreBullet() { return m_bIgnoreBullet; }
+	bool IsIgnoreDamageSource( int8 nType ) { return m_bIgnoreDamageSource[nType]; }
 	bool IsAlwaysBlockBullet() { return m_bAlwaysBlockBullet; }
 	bool IsAlerted();
 	virtual bool CanHit( CEntity* pEntity ) { return !m_bKilled; }
 	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) { return !m_bKilled; }
+
+	struct SPush
+	{
+		struct SChar
+		{
+			CCharacter* pChar;
+			float fMoveDist;
+			int32 nDeg;
+			int32 nFirstEdge;
+		};
+		struct SHit
+		{
+			int32 nPushed;
+			int32 nPar;
+			float fDist0;
+			int32 nNxtEdge;
+		};
+		vector<SChar> vecChars;
+		vector<SHit> vecItems;
+	};
+	virtual int8 CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher ) { return 0; }
+	virtual void HandlePush( const CVector2& dir, float fDist, int8 nStep ) {}
 
 	virtual bool IsResetable() { return false; }
 	virtual void Activate() {}
@@ -59,7 +99,7 @@ public:
 		SDamageContext() { memset( this, 0, sizeof( SDamageContext ) ); }
 		int32 nDamage;
 		float fDamage1;
-		uint8 nType;
+		EDamageType nType;
 		uint8 nSourceType;
 		uint8 nHitType;
 		CVector2 hitPos;
@@ -74,24 +114,29 @@ public:
 
 	void RegisterTickBeforeHitTest( CTrigger* p ) { m_trigger.Register( 0, p  ); }
 	void RegisterTickAfterHitTest( CTrigger* p ) { m_trigger.Register( 1, p ); }
-	void Trigger( int32 i ) { m_trigger.Trigger( i, NULL ); }
+	void RegisterCharacterEvent( int32 i, CTrigger* p ) { m_trigger.Register( i, p ); }
+	void Trigger( int32 i, void* pContext = NULL ) { m_trigger.Trigger( i, pContext ); }
+
+	int32 nPublicFlag;
 protected:
 	int32 m_nMaxHp;
 	TResourceRef<CPrefab> m_pKillEffect;
 	TResourceRef<CSoundFile> m_pKillSound;
 	TResourceRef<CPrefab> m_pCrushEffect;
-	bool m_bIgnoreBullet;
+	bool m_bIgnoreDamageSource[3];
 	bool m_bAlwaysBlockBullet;
 	int32 m_nDmgToPlayer;
 	int32 m_nKillImpactLevel;
+	float m_fWeight;
 
 	class CMyLevel* m_pLevel;
 	int32 m_nHp;
+	int8 m_nUpdatePhase;
 	bool m_bKilled;
 	bool m_bCrushed;
 	CReference<CCharacter> m_pOwner;
 
-	CEventTrigger<2> m_trigger;
+	CEventTrigger<eCharacterEvent_Count> m_trigger;
 
 	LINK_LIST_REF( CCharacter, Character )
 };

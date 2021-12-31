@@ -6,18 +6,20 @@
 
 CCharacter::CCharacter()
 	: m_pLevel( NULL )
+	, nPublicFlag( 0 )
 	, m_nMaxHp( 0 )
-	, m_bIgnoreBullet( false )
 	, m_bAlwaysBlockBullet( true )
 	, m_nDmgToPlayer( 0 )
 	, m_nKillImpactLevel( 0 )
 	, m_nHp( 0 )
+	, m_nUpdatePhase( 0 )
 	, m_bKilled( false )
 	, m_bCrushed( false )
 	, m_pKillEffect( "" )
 	, m_pKillSound( "" )
 	, m_pCrushEffect( "" )
 {
+	memset( m_bIgnoreDamageSource, 0, sizeof( m_bIgnoreDamageSource ) );
 	SET_BASEOBJECT_ID( CCharacter );
 }
 
@@ -65,6 +67,7 @@ void CCharacter::Kill()
 {
 	KillEffect();
 	m_bKilled = true;
+	Trigger( eCharacterEvent_Kill );
 }
 
 void CCharacter::KillEffect()
@@ -87,7 +90,12 @@ bool CCharacter::IsAlerted()
 {
 	auto pMasterLevel = CMasterLevel::GetInst();
 	auto alertRect = pMasterLevel->GetAlertRect();
-	if( alertRect.width <= 0 || GetLevel() != CMasterLevel::GetInst()->GetCurLevel() || !alertRect.Contains( globalTransform.GetPosition() ) )
+	if( alertRect.width <= 0 || GetLevel() != CMasterLevel::GetInst()->GetCurLevel() )
+		return false;
+	SHitProxyPolygon hit( alertRect );
+	CMatrix2D mat;
+	mat.Identity();
+	if( !HitTest( &hit, mat, NULL ) )
 		return false;
 	return true;
 }
@@ -95,7 +103,7 @@ bool CCharacter::IsAlerted()
 bool CCharacter::Damage( SDamageContext & context )
 {
 	if( !m_nMaxHp || !context.nDamage )
-		return context.nSourceType == 1 ? IsAlwaysBlockBullet() : false;
+		return context.nSourceType == 1 || context.nSourceType == 3 ? IsAlwaysBlockBullet() : false;
 	m_nHp = Max( 0, m_nHp - context.nDamage );
 
 	if( m_nHp <= 0 )

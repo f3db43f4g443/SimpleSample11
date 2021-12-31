@@ -22,29 +22,25 @@ bool CBug::Damage( SDamageContext& context )
 	if( !IsActivated() )
 		return false;
 	if( m_nFixType == eBugFixType_None )
-		return true;
-	if( m_nFixType != eBugFixType_Common )
+		return false;
+	auto pSource = context.pSource;
+	auto pPlayer = GetLevel()->GetPlayer();
+	bool bPlayer = pSource == pPlayer;
+	if( !bPlayer )
 	{
-		EBugFixType nType = eBugFixType_System;
-		auto pSource = context.pSource;
-		auto pPlayer = GetLevel()->GetPlayer();
-		bool bPlayer = pSource == pPlayer;
-		if( !bPlayer )
-		{
-			auto pCharacter = SafeCast<CCharacter>( pSource );
-			if( pCharacter && pCharacter->IsOwner( CMasterLevel::GetInst()->GetPlayer() ) )
-				bPlayer = true;
-		}
-		if( bPlayer )
-		{
-			if( context.nType == eDamageHitType_Kick_Special || context.nType == eDamageHitType_Kick_Begin || context.nType == context.nType == eDamageHitType_Kick_End )
-				nType = eBugFixType_Melee;
-			else
-				nType = eBugFixType_Range;
-		}
-		if( nType != m_nFixType )
-			return false;
+		auto pCharacter = SafeCast<CCharacter>( pSource );
+		if( pCharacter && pCharacter->IsOwner( CMasterLevel::GetInst()->GetPlayer() ) )
+			bPlayer = true;
 	}
+	if( !bPlayer )
+		return false;
+	EBugFixType nType;
+	if( context.nType == eDamageHitType_Kick_Special || context.nType == eDamageHitType_Kick_Begin || context.nType == context.nType == eDamageHitType_Kick_End )
+		nType = eBugFixType_Melee;
+	else
+		nType = eBugFixType_Range;
+	if( m_nFixType != eBugFixType_Common && nType != m_nFixType )
+		return false;
 
 	Fix();
 	return true;

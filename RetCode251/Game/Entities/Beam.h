@@ -13,8 +13,8 @@ protected:
 	virtual void OnTickAfterHitTest() override;
 	virtual void OnHit( CEntity* pEntity ) {}
 	int8 CheckHit( CEntity* pEntity );
-	void HandleHit( CEntity* pEntity, const CVector2& hitPoint );
-	void UpdateImages();
+	virtual void HandleHit( CEntity* pEntity, const CVector2& hitPoint );
+	virtual void UpdateImages();
 	int32 m_nLife;
 	int32 m_nHitBeginFrame;
 	int32 m_nHitFrameCount;
@@ -26,6 +26,7 @@ protected:
 	int32 m_nBeginFrame;
 	int32 m_nLoopFrame;
 	int32 m_nFrameInterval;
+	bool m_bAlertEnemy;
 	TResourceRef<CPrefab> m_pDmgEft;
 	CReference<CEntity> m_pHit[2];
 	CReference<CRenderObject2D> m_pBeamImg[3];

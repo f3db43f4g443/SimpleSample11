@@ -34,12 +34,13 @@ struct SHitTestResult
 class CHitProxy;
 struct SRaycastResult
 {
-	SRaycastResult() : pHitProxy( NULL ), nUser( 0 ) {}
+	SRaycastResult() : pHitProxy( NULL ), nUser( 0 ), bThresholdFail( false ) {}
 	CHitProxy* pHitProxy;
 	CVector2 hitPoint;
 	CVector2 normal;
 	float fDist;
 	int32 nUser;
+	bool bThresholdFail;
 };
 
 struct SHitProxy
@@ -49,7 +50,7 @@ struct SHitProxy
 
 	static bool HitTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, SHitTestResult* pResult = NULL );
 	bool Raycast( const CVector2& begin, const CVector2& end, const CMatrix2D& trans, SRaycastResult* pResult = NULL );
-	static bool SweepTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL );
+	static int8 SweepTest( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL );
 	static bool Contain( SHitProxy* a, SHitProxy* b, const CMatrix2D& transA, const CMatrix2D& transB );
 
 	void CalcBound( const CMatrix2D& trans, CRectangle& newBound );

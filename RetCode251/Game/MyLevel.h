@@ -41,6 +41,19 @@ struct SLevelCamCtrlPointLink
 	float l0;
 };
 
+enum ELevelCamCtrlPointSmootherType
+{
+	eLevelCamCtrlPointSmoother_IgnoreSmallForce,
+};
+
+struct SLevelCamCtrlPointSmoother
+{
+	SLevelCamCtrlPointSmoother( const SClassCreateContext& context ) {}
+	int32 n;
+	ELevelCamCtrlPointSmootherType nType;
+	CVector4 params[2];
+};
+
 enum ELevelCamCtrlPoint1LimitorType
 {
 	eLevelCamCtrlPoint1Limitor_Rect,
@@ -111,6 +124,7 @@ private:
 	SLevelCamCtrlPoint m_ctrlPoint1, m_ctrlPoint2;
 	TArray<SLevelCamCtrlPoint> m_arrCtrlPoint;
 	TArray<SLevelCamCtrlPointLink> m_arrCtrlLink;
+	TArray<SLevelCamCtrlPointSmoother> m_arrCtrlSmoother;
 	TArray<SLevelCamCtrlPoint1Limitor> m_arrCtrlLimitor;
 	int32 m_nFadeTime;
 
@@ -240,6 +254,8 @@ public:
 	void MultiSweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
 	CHitTestMgr& GetHitTestMgr() { return m_hitTestMgr; }
 	bool CheckTeleport( CPlayer* pPlayer, const CVector2& transferOfs );
+	float Push( CCharacter* pCharacter, const CVector2& dir, float fDist );
+	float Push( CCharacter* pCharacter, CCharacter::SPush& context, const CVector2& dir, float fDist, int32 nTested, CEntity** pTested, CMatrix2D* matTested, float fSideThreshold );
 
 	void OnBugDetected( CBug* pBug );
 	void ResetBug( CBug* pBug );

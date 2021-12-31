@@ -1,5 +1,5 @@
 #pragma once
-#include "Character.h"
+#include "Entities/Explosion.h"
 
 class CKick : public CCharacter
 {
@@ -24,10 +24,12 @@ public:
 	void Cancel();
 protected:
 	virtual void OnTickAfterHitTest() override;
+	CCharacter* CheckHit( CEntity* pEntity );
 	void HitTest( const CRectangle& rect, const CMatrix2D& g, float fDmg );
 private:
 	void UpdateImage();
 	void OnFirstHit();
+	void OnFirstExtentHit();
 	int8 m_nKickType;
 	float m_fDamage0;
 	float m_fHitForce;
@@ -42,6 +44,7 @@ private:
 	int32 m_nTick;
 	int32 m_nDeathTime0;
 	bool m_bHit;
+	bool m_bExtentHit;
 	int32 m_nExtentTime;
 	CRectangle m_hitRect0;
 	CRectangle m_hitRect1;
@@ -57,4 +60,14 @@ private:
 		CVector2 hitDir;
 	};
 	map<CReference<CEntity>, SHit> m_hit;
+};
+
+class CKickSpin : public CExplosion
+{
+	friend void RegisterGameClasses_PlayerMisc();
+public:
+	CKickSpin( const SClassCreateContext& context ) : CExplosion( context ) { SET_BASEOBJECT_ID( CKickSpin ); }
+	virtual void OnHit( CEntity* pEntity ) override;
+private:
+	bool m_bHit;
 };

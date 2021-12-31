@@ -368,6 +368,28 @@ void CLevelEnvLayer::UpdateCtrlPoints()
 		point2.f2 = point2.f2 - d * link.fStrength2;
 	}
 
+	for( int32 i = 0; i < m_arrCtrlSmoother.Size(); i++ )
+	{
+		auto& smoother = m_arrCtrlSmoother[i];
+		switch( smoother.nType )
+		{
+		case eLevelCamCtrlPointSmoother_IgnoreSmallForce:
+		{
+			auto& state = m_vecCtrlPointStates[smoother.n < 0 ? smoother.n + m_vecCtrlPointStates.size() : smoother.n];
+			if( abs( state.f1.x ) < smoother.params[0].x )
+				state.f1.x = 0;
+			if( abs( state.f1.y ) < smoother.params[0].y )
+				state.f1.y = 0;
+			if( abs( state.f2.x ) < smoother.params[0].z )
+				state.f2.x = 0;
+			if( abs( state.f2.y ) < smoother.params[0].w )
+				state.f2.y = 0;
+			break;
+		}
+		default:
+			break;
+		}
+	}
 	for( int iPoint = 0; iPoint < m_vecCtrlPointStates.size(); iPoint++ )
 	{
 		auto& data = iPoint < m_arrCtrlPoint.Size() ? m_arrCtrlPoint[iPoint] : ( iPoint == m_arrCtrlPoint.Size() ? m_ctrlPoint1 : m_ctrlPoint2 );
@@ -800,7 +822,7 @@ void CMyLevel::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& res
 	}
 }
 
-CEntity* CMyLevel::DoHitTest( SHitProxy* pProxy, const CMatrix2D & transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult * pResult )
+CEntity* CMyLevel::DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult* pResult )
 {
 	vector<CHitProxy*> tempResult;
 	m_hitTestMgr.HitTest( pProxy, transform, tempResult );
@@ -897,7 +919,8 @@ CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const C
 		return NULL;
 	vector<SRaycastResult> result;
 	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
-	CEntity* p = NULL;
+	CEntity *p1 = NULL, *p2 = NULL;
+	SRaycastResult *r1 = NULL, *r2 = NULL;
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
@@ -915,17 +938,35 @@ CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const C
 			continue;
 		if( !pEntity1->CheckImpact( pEntity, result[i], false ) || !pEntity->CheckImpact( pEntity1, result[i], true ) )
 			continue;
-		if( pResult )
-			*pResult = result[i];
-		p = pEntity1;
-		break;
+
+		if( !p1 )
+		{
+			p1 = pEntity1;
+			r1 = &result[i];
+		}
+		if( !pResult->bThresholdFail )
+		{
+			p2 = pEntity1;
+			r2 = &result[i];
+			break;
+		}
 	}
+	if( p1 && p2 && p1 != p2 )
+	{
+		if( r1->normal.Dot( sweepOfs ) > r2->normal.Dot( sweepOfs ) )
+		{
+			p2 = p1;
+			r2 = r1;
+		}
+	}
+	if( pResult && r2 )
+		*pResult = *r2;
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity1 = static_cast<CEntity*>( result[i].pHitProxy );
 		pEntity1->Release();
 	}
-	return p;
+	return p2;
 }
 
 void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )
@@ -961,6 +1002,159 @@ bool CMyLevel::CheckTeleport( CPlayer* pPlayer, const CVector2& transferOfs )
 		}
 	}
 	return true;
+}
+
+float CMyLevel::Push( CCharacter* pCharacter, const CVector2& dir, float fDist )
+{
+	CCharacter::SPush context;
+	CEntity* pTested = pCharacter;
+	auto mat = pCharacter->GetGlobalTransform();
+	Push( pCharacter, context, dir, fDist, 1, &pTested, &mat, MOVE_SIDE_THRESHOLD );
+	for( int i = 1; i < context.vecChars.size(); i++ )
+		context.vecChars[i].fMoveDist = 0;
+
+	for( int i = 0; i < context.vecItems.size(); i++ )
+	{
+		auto& item = context.vecItems[i];
+		auto& pushed = context.vecChars[item.nPushed];
+		auto& par = context.vecChars[item.nPar];
+		pushed.nDeg++;
+		item.nNxtEdge = par.nFirstEdge;
+		par.nFirstEdge = i;
+	}
+
+	vector<int32> q;
+	q.push_back( 0 );
+	for( int i = 0; i < q.size(); i++ )
+	{
+		auto& par = context.vecChars[q[i]];
+		for( int iEdge = par.nFirstEdge; iEdge >= 0; )
+		{
+			auto& item = context.vecItems[iEdge];
+			auto& pushed = context.vecChars[item.nPushed];
+			pushed.fMoveDist = Max( pushed.fMoveDist, par.fMoveDist - item.fDist0 );
+			pushed.nDeg--;
+			if( !pushed.nDeg )
+				q.push_back( item.nPushed );
+			iEdge = item.nNxtEdge;
+		}
+	}
+
+	for( int i = 0; i < context.vecChars.size(); i++ )
+	{
+		auto& c = context.vecChars[i];
+		c.pChar->HandlePush( dir, c.fMoveDist, 0 );
+	}
+	for( int i = 0; i < context.vecChars.size(); i++ )
+	{
+		auto& c = context.vecChars[i];
+		c.pChar->HandlePush( dir, c.fMoveDist, 1 );
+	}
+	for( int i = 0; i < context.vecChars.size(); i++ )
+	{
+		auto& c = context.vecChars[i];
+		c.pChar->HandlePush( dir, c.fMoveDist, 2 );
+	}
+	for( int i = 0; i < context.vecChars.size(); i++ )
+	{
+		auto& c = context.vecChars[i];
+		c.pChar->nPublicFlag = 0;
+	}
+	return context.vecChars[0].fMoveDist;
+}
+
+float CMyLevel::Push( CCharacter* pCharacter, CCharacter::SPush& context, const CVector2& dir, float fDist, int32 nTested, CEntity** pTested, CMatrix2D* matTested, float fSideThreshold )
+{
+	auto nChar = pCharacter->nPublicFlag - 1;
+	if( nChar < 0 )
+	{
+		nChar = context.vecChars.size();
+		pCharacter->nPublicFlag = nChar + 1;
+		CCharacter::SPush::SChar char0 = { pCharacter, 0, 0, -1 };
+		context.vecChars.push_back( char0 );
+	}
+	else
+		return context.vecChars[nChar].fMoveDist;
+	auto& vecPush = context.vecItems;
+	float fMoveDist = fDist;
+
+	auto sweepOfs = dir * fDist;
+	vector<SRaycastResult> tempResult;
+	for( int i = 0; i < nTested; i++ )
+	{
+		int32 n0 = tempResult.size();
+		auto bHitChannel = pTested[i]->GetHitChannnel();
+		GetHitTestMgr().SweepTest( pTested[i]->Get_HitProxy(), matTested[i], sweepOfs, fSideThreshold, tempResult, false );
+		for( int i1 = tempResult.size() - 1; i1 >= n0; i1-- )
+		{
+			auto pOtherEntity = static_cast<CEntity*>( tempResult[i1].pHitProxy );
+			bool bHit = bHitChannel[pOtherEntity->GetHitType()] || pOtherEntity->GetHitChannnel()[pTested[i]->GetHitType()];
+			bool bPlatform = !bHit && pOtherEntity->GetPlatformChannel()[pTested[i]->GetHitType()];
+
+			tempResult[i1].nUser = bPlatform;
+			bool bOK = bHit || bPlatform;
+			if( bOK && pTested[i]->HasHitFilter() )
+			{
+				if( !pOtherEntity->CheckImpact( pTested[i], tempResult[i1], false ) || !pTested[i]->CheckImpact( pOtherEntity, tempResult[i1], true ) )
+					bOK = false;
+			}
+			if( bOK && tempResult[i1].normal.Dot( sweepOfs ) >= 0 )
+				bOK = false;
+			if( !bOK )
+			{
+				tempResult[i1] = tempResult.back();
+				tempResult.resize( tempResult.size() - 1 );
+			}
+		}
+	}
+
+	std::sort( tempResult.begin(), tempResult.end(), [] ( const SRaycastResult& lhs, const SRaycastResult& rhs )
+	{
+		if( lhs.fDist < rhs.fDist )
+			return true;
+		if( lhs.fDist > rhs.fDist )
+			return false;
+		if( lhs.nUser < rhs.nUser )
+			return true;
+		if( lhs.nUser > rhs.nUser )
+			return false;
+		return lhs.pHitProxy < rhs.pHitProxy;
+	} );
+
+	for( auto& item : tempResult )
+	{
+		auto pOtherEntity = static_cast<CEntity*>( item.pHitProxy );
+		auto pOwner = GetEntityCharacterRootInLevel( pOtherEntity );
+		if( !pOwner )
+			continue;
+		float fMoveDist1 = fDist;
+		int32 n = pOwner->CheckPush( item, dir, fMoveDist1, context, nChar );
+		if( n < 0 )
+			continue;
+		if( n > 0 )
+		{
+			CCharacter::SPush::SHit pushItem;
+			pushItem.nPushed = pOwner->nPublicFlag - 1;
+			pushItem.nPar = nChar;
+			pushItem.fDist0 = 0;
+			pushItem.nNxtEdge = -1;
+
+			auto fDist0 = item.fDist;
+			pushItem.fDist0 = item.fDist;
+			auto fPushDist = fDist - item.fDist;
+			fMoveDist1 = fDist + Min( fPushDist, fMoveDist1 ) - fPushDist;
+			fMoveDist = Min( fMoveDist, fMoveDist1 );
+
+			vecPush.push_back( pushItem );
+		}
+		else
+		{
+			fMoveDist = 0;
+			break;
+		}
+	}
+	context.vecChars[nChar].fMoveDist = fMoveDist;
+	return fMoveDist;
 }
 
 void CMyLevel::OnBugDetected( CBug* pBug )
@@ -1031,7 +1225,15 @@ void CMyLevel::CheckBugs( bool bTest )
 void CMyLevel::EditorFixBugListLoad( vector<SEditorBugListItem>& vecAllBugs )
 {
 	vector<int32> vec;
-	set<string> setBugNames;
+	auto _Less = [] ( const string& l, const string& r )
+	{
+		if( l.length() < r.length() )
+			return true;
+		if( r.length() < l.length() )
+			return false;
+		return l < r;
+	};
+	set<string, decltype( _Less )> setBugNames( _Less );
 	for( int i = 0; i < vecAllBugs.size(); i++ )
 	{
 		CPrefabNode* pNode = vecAllBugs[i].p;
@@ -1083,20 +1285,27 @@ void CMyLevel::EditorFixBugListLoad( vector<SEditorBugListItem>& vecAllBugs )
 		}
 	}
 
-	for( int i = 0; i < m_arrBugLink.Size(); i++ )
+	for( int i = m_arrBugLink.Size() - 1; i >= 0; i-- )
 	{
 		auto& item = m_arrBugLink[i];
+		bool bOK = false;
 		if( item.a < vec.size() && item.b < vec.size() )
 		{
 			auto a = vec[item.a];
 			auto b = vec[item.b];
 			if( a >= 0 && b >= 0 )
 			{
+				bOK = true;
 				vecAllBugs[b].par = vecAllBugs[a].p;
 				vecAllBugs[b].vecPath.resize( item.arrPath.Size() );
 				if( item.arrPath.Size() )
 					memcpy( &vecAllBugs[b].vecPath[0], &item.arrPath[0], sizeof( int32 ) * item.arrPath.Size() );
 			}
+		}
+		if( !bOK )
+		{
+			m_arrBugLink[i] = m_arrBugLink[m_arrBugLink.Size() - 1];
+			m_arrBugLink.Resize( m_arrBugLink.Size() - 1 );
 		}
 	}
 }
@@ -1229,6 +1438,7 @@ void CMyLevel::Update()
 	if( m_pPlayer )
 	{
 		m_pPlayer->OnTickBeforeHitTest();
+		m_pPlayer->SetUpdatePhase( 1 );
 		if( m_pPlayer->GetStage() )
 			m_pPlayer->Trigger( 0 );
 	}
@@ -1240,6 +1450,7 @@ void CMyLevel::Update()
 			continue;
 		DEFINE_TEMP_REF( pCharacter );
 		pCharacter->OnTickBeforeHitTest();
+		pCharacter->SetUpdatePhase( 1 );
 		if( pCharacter->GetStage() )
 			pCharacter->Trigger( 0 );
 	}
@@ -1251,6 +1462,7 @@ void CMyLevel::Update()
 	if( m_pPlayer )
 	{
 		m_pPlayer->OnTickAfterHitTest();
+		m_pPlayer->SetUpdatePhase( 2 );
 		if( m_pPlayer->GetStage() )
 			m_pPlayer->Trigger( 1 );
 	}
@@ -1262,6 +1474,7 @@ void CMyLevel::Update()
 			continue;
 		DEFINE_TEMP_REF( pCharacter );
 		pCharacter->OnTickAfterHitTest();
+		pCharacter->SetUpdatePhase( 2 );
 		if( pCharacter->GetStage() )
 			pCharacter->Trigger( 1 );
 	}
@@ -1289,7 +1502,7 @@ CMyLevel* CMyLevel::GetEntityLevel( CEntity* pEntity )
 	return NULL;
 }
 
-CEntity* CMyLevel::GetEntityRootInLevel( CEntity * pEntity )
+CEntity* CMyLevel::GetEntityRootInLevel( CEntity* pEntity )
 {
 	auto p = pEntity;
 	while( p )
@@ -1382,8 +1595,12 @@ void CMyLevel::ScanBug( CEntity* p )
 		pBug->bVisible = pBug->m_bDetected = item.bDetected;
 		return;
 	}
-	for( auto pChild = p->Get_ChildEntity(); pChild; pChild = pChild->NextChildEntity() )
+	for( auto pChild = p->Get_ChildEntity(); pChild; )
+	{
+		auto p1 = pChild->NextChildEntity();
 		ScanBug( pChild );
+		pChild = p1;
+	}
 }
 
 CMasterLevel* CMasterLevel::s_pInst = NULL;
@@ -1563,11 +1780,6 @@ void CMasterLevel::Update()
 				m_pPlayer->PostUpdate();
 
 			UpdateTestMasks( m_nTestState, m_nTestDir, m_testOrig, 1 );
-
-			float t = m_pPlayer->GetHp() * 1.0f / m_pPlayer->GetMaxHp();
-			m_maskParams[0] = m_maskParams[0] + m_dmgParam[0] * ( 1 - t );
-			m_maskParams[1] = m_maskParams[1] + m_dmgParam[1] * ( 1 - t );
-			m_maskParams[2] = m_maskParams[2] + m_dmgParam[2] * ( 1 - t );
 		}
 
 		auto camTrans = GetCamTrans();
@@ -1631,8 +1843,8 @@ CVector4 CMasterLevel::GetCamTrans()
 	auto trans = m_camTrans;
 	// temp solution
 	{
-		trans.x = floor( trans.x / 4 + 0.5f ) * 4;
-		trans.y = floor( trans.y / 4 + 0.5f ) * 4;
+		trans.x = floor( trans.x / 1 + 0.5f ) * 1;
+		trans.y = floor( trans.y / 1 + 0.5f ) * 1;
 		trans.z = 0;
 		trans.w = 1;
 	}
@@ -2031,6 +2243,10 @@ void CMasterLevel::UpdateTestMasks( int32 nType, int8 nDir, const CVector2& orig
 
 void RegisterGameClasses_Level()
 {
+	REGISTER_ENUM_BEGIN( ELevelCamCtrlPointSmootherType )
+		REGISTER_ENUM_ITEM( eLevelCamCtrlPointSmoother_IgnoreSmallForce )
+	REGISTER_ENUM_END()
+
 	REGISTER_ENUM_BEGIN( ELevelCamCtrlPoint1LimitorType )
 		REGISTER_ENUM_ITEM( eLevelCamCtrlPoint1Limitor_Rect )
 	REGISTER_ENUM_END()
@@ -2054,6 +2270,12 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( ofs2 )
 		REGISTER_MEMBER( fStrength1 )
 		REGISTER_MEMBER( fStrength2 )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SLevelCamCtrlPointSmoother )
+		REGISTER_MEMBER( n )
+		REGISTER_MEMBER( nType )
+		REGISTER_MEMBER( params )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( SLevelCamCtrlPoint1Limitor )
@@ -2081,6 +2303,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( m_ctrlPoint2 )
 		REGISTER_MEMBER( m_arrCtrlPoint )
 		REGISTER_MEMBER( m_arrCtrlLink )
+		REGISTER_MEMBER( m_arrCtrlSmoother )
 		REGISTER_MEMBER( m_arrCtrlLimitor )
 		REGISTER_MEMBER( m_nFadeTime )
 	REGISTER_CLASS_END()

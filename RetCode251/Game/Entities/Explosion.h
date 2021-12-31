@@ -22,6 +22,7 @@ public:
 	virtual void OnHit( CEntity* pEntity ) {}
 	virtual void AddInitHit( class CEntity* pHitEntity, const CVector2& hitPos, const CVector2& hitDir ) override;
 protected:
+	CCharacter* CheckHit( CEntity* pEntity );
 	void HandleHit( CCharacter* pCharacter, int32 nDmg, int32 nDmg1, const CVector2& hitPos, const CVector2& hitDir );
 	virtual void OnTickAfterHitTest() override;
 	uint32 m_nLife;
@@ -31,8 +32,7 @@ protected:
 	int32 m_nDeltaDamage;
 	int32 m_nDamage1;
 	int32 m_nDeltaDamage1;
-	int8 m_nDamageType;
-	int8 m_nRangeType;
+	EDamageType m_eDamageType;
 	float m_fInitRange;
 	float m_fDeltaRange;
 	float m_fInitRange1;
@@ -41,8 +41,11 @@ protected:
 	float m_fDeltaRange2;
 	float m_fInitRange3;
 	float m_fDeltaRange3;
+	int8 m_nRangeType;
 	bool m_bHitPlayer;
 	bool m_bHitCreator;
+	bool m_bAlertEnemy;
+	bool m_bCheckIgnoreSourceType;
 	uint32 m_nHitInterval;
 	CVector2 m_hitDir;
 	TResourceRef<CPrefab> m_pDmgEft;

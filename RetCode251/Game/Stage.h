@@ -35,6 +35,7 @@ enum
 
 enum
 {
+	eStageUpdatePhase_None,
 	eStageUpdatePhase_BeforeHitTest,
 	eStageUpdatePhase_HitTest,
 	eStageUpdatePhase_AfterHitTest,

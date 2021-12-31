@@ -523,7 +523,7 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 			if( m_nState == 1 && m_newMapSize.Contains( p ) );
 			{
 				m_newMapOfs = CVector2( floor( p.x / 64 + 0.5f ) * 64, floor( p.y / 64 + 0.5f ) * 64 );
-				m_nState = -1;
+				m_nDragType = -1;
 				return;
 			}
 
@@ -535,7 +535,7 @@ void CWorldCfgEditor::OnViewportStartDrag( SUIMouseEvent* pEvent )
 		{
 			m_newMapOfs = CVector2( floor( p.x / 64 + 0.5f ) * 64, floor( p.y / 64 + 0.5f ) * 64 );
 			m_newMapSize = m_pNewMapTemplate->GetRoot()->GetStaticDataSafe<CMyLevel>()->GetSize().Offset( m_newMapOfs );
-			m_nState = -1;
+			m_nDragType = -1;
 			return;
 		}
 		m_dragBegin = p;
@@ -622,7 +622,7 @@ void CWorldCfgEditor::OnViewportStopDrag( SUIMouseEvent* pEvent )
 		Super::OnViewportStopDrag( pEvent );
 		return;
 	}
-	if( m_nState >= 1 )
+	if( m_nState >= 1&& m_nDragType > 0 )
 	{
 		TRectangle<int32> r( floor( m_dragBegin.x / 64 ), floor( m_dragBegin.y / 64 ), 1, 1 );
 		auto d = p - m_dragBegin;

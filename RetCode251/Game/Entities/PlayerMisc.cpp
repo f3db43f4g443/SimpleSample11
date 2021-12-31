@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "MyLevel.h"
 #include "Interfaces.h"
+#include "Entities/CharacterMisc.h"
 
 void CKick::OnAddedToStage()
 {
@@ -18,6 +19,8 @@ void CKick::OnHit( CEntity* pEntity )
 {
 	if( !m_bHit )
 		OnFirstHit();
+	if( m_nExtentTime && !m_bExtentHit )
+		OnFirstExtentHit();
 }
 
 void CKick::Morph( CEntity* pEntity )
@@ -26,11 +29,14 @@ void CKick::Morph( CEntity* pEntity )
 	for( auto& item : m_hit )
 	{
 		auto p = SafeCast<CCharacter>( item.first.GetPtr() );
-		SDamageContext damageContext;
-		damageContext.fDamage1 = 0;
-		damageContext.nType = eDamageHitType_Kick_End;
-		damageContext.pSource = this;
-		p->Damage( damageContext );
+		if( m_nReleaseFrame )
+		{
+			SDamageContext damageContext;
+			damageContext.fDamage1 = 0;
+			damageContext.nType = eDamageHitType_Kick_End;
+			damageContext.pSource = this;
+			p->Damage( damageContext );
+		}
 		auto hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
 		pAttackEft->AddInitHit( p, hitPos, item.second.hitDir );
 	}
@@ -39,14 +45,17 @@ void CKick::Morph( CEntity* pEntity )
 
 void CKick::Cancel()
 {
-	for( auto& item : m_hit )
+	if( m_nReleaseFrame )
 	{
-		auto p = SafeCast<CCharacter>( item.first.GetPtr() );
-		SDamageContext damageContext;
-		damageContext.fDamage1 = 0;
-		damageContext.nType = eDamageHitType_Kick_End;
-		damageContext.pSource = this;
-		p->Damage( damageContext );
+		for( auto& item : m_hit )
+		{
+			auto p = SafeCast<CCharacter>( item.first.GetPtr() );
+			SDamageContext damageContext;
+			damageContext.fDamage1 = 0;
+			damageContext.nType = eDamageHitType_Kick_End;
+			damageContext.pSource = this;
+			p->Damage( damageContext );
+		}
 	}
 	Kill();
 }
@@ -92,7 +101,7 @@ void CKick::OnTickAfterHitTest()
 					auto p = SafeCast<CCharacter>( item.first.GetPtr() );
 					SDamageContext damageContext;
 					damageContext.fDamage1 = m_nKickEffectTime;
-					damageContext.nType = eDamageHitType_Kick_End + 1 + m_nKickType;
+					damageContext.nType = (EDamageType)( eDamageHitType_Kick_End + 1 + m_nKickType );
 					damageContext.hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
 					damageContext.hitDir = item.second.hitDir * m_fHitForce;
 					damageContext.pSource = this;
@@ -114,6 +123,26 @@ void CKick::OnTickAfterHitTest()
 	UpdateImage();
 }
 
+CCharacter* CKick::CheckHit( CEntity* pEntity )
+{
+	if( !pEntity->GetStage() )
+		return NULL;
+	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
+	if( !pCharacter )
+	{
+		auto p = SafeCast<CDamageArea>( pEntity );
+		if( p )
+			pCharacter = SafeCast<CCharacter>( p->GetParentEntity() );
+	}
+	if( !pCharacter || pCharacter->IsKilled() || m_hit.find( pCharacter ) != m_hit.end() )
+		return NULL;
+	if( SafeCast<CPlayer>( pCharacter ) )
+		return NULL;
+	if( m_pOwner && pCharacter->IsOwner( m_pOwner ) )
+		return NULL;
+	return pCharacter;
+}
+
 void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 {
 	vector<CReference<CEntity> > result;
@@ -123,27 +152,15 @@ void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 
 	for( int i = 0; i < hitResult.size(); i++ )
 	{
-		CEntity* pEntity = result[i];
-		auto& res = hitResult[i];
-		if( !pEntity->GetStage() )
-			continue;
-		if( m_hit.find( pEntity ) != m_hit.end() )
-			continue;
-
-		CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-		if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
+		auto pCharacter = CheckHit( result[i] );
+		if( pCharacter )
 		{
-			if( m_pOwner && pEntity->IsOwner( m_pOwner ) )
-				continue;
-			if( SafeCast<CPlayer>( pEntity ) )
-				continue;
-
 			CCharacter::SDamageContext context;
 			context.nDamage = 0;
 			context.fDamage1 = 0;
 			context.nType = eDamageHitType_Kick_Begin;
 			context.nSourceType = 2;
-			context.hitPos = res.hitPoint1;
+			context.hitPos = hitResult[i].hitPoint1;
 			auto hitDir = g.MulVector2Dir( CVector2( 1, 0 ) );
 			context.hitDir = hitDir * fDmg;
 			context.nHitType = -1;
@@ -152,10 +169,10 @@ void CKick::HitTest( const CRectangle& rect, const CMatrix2D &g, float fDmg )
 			{
 				if( m_pDmgEft )
 					m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pCharacter, context );
-				OnHit( pEntity );
-				if( pEntity->GetStage() )
+				OnHit( pCharacter );
+				if( pCharacter->GetStage() )
 				{
-					auto& hit = m_hit[pEntity];
+					auto& hit = m_hit[pCharacter];
 					hit.n = 1;
 					hit.hitPos = pCharacter->GetGlobalTransform().MulTVector2Pos( context.hitPos );
 					hit.hitDir = hitDir;
@@ -190,6 +207,23 @@ void CKick::OnFirstHit()
 		pPlayer->OnKickFirstHit( this );
 }
 
+void CKick::OnFirstExtentHit()
+{
+	m_bExtentHit = true;
+	auto pPlayer = SafeCast<CPlayer>( m_pOwner.GetPtr() );
+	if( pPlayer )
+		pPlayer->OnKickFirstExtentHit( this );
+}
+
+void CKickSpin::OnHit( CEntity* pEntity )
+{
+	if( m_bHit )
+		return;
+	m_bHit = true;
+	auto pPlayer = SafeCast<CPlayer>( m_pOwner.GetPtr() );
+	if( pPlayer )
+		pPlayer->OnKickFirstHit( this );
+}
 
 void RegisterGameClasses_PlayerMisc()
 {
@@ -205,5 +239,9 @@ void RegisterGameClasses_PlayerMisc()
 		REGISTER_MEMBER( m_hitDelta )
 		REGISTER_MEMBER( m_nReleaseFrame )
 		REGISTER_MEMBER( m_pDmgEft )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CKickSpin )
+		REGISTER_BASE_CLASS( CExplosion )
 	REGISTER_CLASS_END()
 }

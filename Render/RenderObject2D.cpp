@@ -429,7 +429,7 @@ bool CRenderObject2D::ForceUpdateTransform()
 		bParentUpdated = GetParent()->ForceUpdateTransform();
 	if( bParentUpdated || m_isTransformDirty )
 	{
-		CalcGlobalTransform();
+		UpdateDirty();
 		return true;
 	}
 	return false;

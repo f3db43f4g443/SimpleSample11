@@ -31,6 +31,8 @@ protected:
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 
+	CCharacter* CheckHit( CEntity* pEntity );
+	bool HandleHit( CCharacter* pCharacter, const CVector2& hitPoint );
 	void UpdateCommon();
 	void UpdateTrail();
 
@@ -43,6 +45,7 @@ protected:
 	uint32 m_nDamage1;
 	uint8 m_bHitStatic;
 	bool m_bTangentDir;
+	bool m_bAlertEnemy;
 	CVector2 m_vel;
 	CVector2 m_acc;
 	float m_fAngularVelocity;

@@ -10,13 +10,16 @@ public:
 	static float StretchEx( CCharacter* pCharacter, uint8 nDir, float fMinLen, float fMaxLen, float fMoveDist );
 };
 
-#define MOVE_SIDE_THRESHOLD 1.0f
+#define MOVE_SIDE_THRESHOLD 0.1f
+#define PLATFORM_THRESHOLD 0.99f
 struct SCharacterMovementData
 {
 	SCharacterMovementData() : bSleep( false ) {}
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, SRaycastResult* pHit = NULL );
 	void TryMove( CCharacter* pCharacter, const CVector2& ofs, CVector2& velocity, SRaycastResult* pHit = NULL, float fFrac = 0 );
 	void TryMove1( CCharacter* pCharacter, int32 nTested, CEntity** pTested, const CVector2& ofs, CVector2& velocity, float fFrac,
+		CVector2* pGravityDir = NULL, SRaycastResult* pHit = NULL );
+	void TryMove1XY( CCharacter* pCharacter, int32 nTested, CEntity** pTested, const CVector2& ofs, CVector2& velocity, float fFrac,
 		CVector2* pGravityDir = NULL, SRaycastResult* pHit = NULL );
 
 	bool ResolvePenetration( CCharacter* pCharacter, CVector2* pVel = NULL, float fFrac = 0, CEntity* pLandedEntity = NULL, CVector2* pLandedOfs = NULL, const CVector2* pGravityDir = NULL,
@@ -27,6 +30,8 @@ struct SCharacterMovementData
 	CEntity* DoSweepTest( CCharacter* pChar, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, CEntity* pTested = NULL );
 	CEntity* DoSweepTest1( CCharacter* pChar, int32 nTested, CEntity** pTested, CMatrix2D* matTested, const CVector2& sweepOfs, float fSideThreshold,
 		CVector2* pGravityDir = NULL, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
+
+	void CleanUpOpenPlatforms( CCharacter* pChar, int32 nTested, CEntity** pTested );
 
 	bool bSleep;
 	set<CReference<CEntity> > setOpenPlatforms;

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Beam.h"
 #include "MyLevel.h"
+#include "Entities/CharacterMisc.h"
 
 void CBeam::Init()
 {
@@ -78,32 +79,55 @@ void CBeam::OnTickAfterHitTest()
 	m_nTick = Min( m_nTick + 1, Max( m_nHitBeginFrame + m_nHitFrameCount, m_nLife ) );
 }
 
-int8 CBeam::CheckHit( CEntity * pEntity )
+int8 CBeam::CheckHit( CEntity* pEntity )
 {
 	if( m_pOwner && pEntity->IsOwner( m_pOwner ) )
-		return 0;;
-	if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
-		return 1;
+		return 0;
 	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
-	if( pCharacter && !pCharacter->IsKilled() && !pCharacter->IsIgnoreBullet() )
-		return -1;
-	return 0;
+	if( pCharacter )
+	{
+		if( pCharacter->IsIgnoreDamageSource( 2 ) )
+			pCharacter = NULL;
+	}
+	else
+	{
+		auto p = SafeCast<CDamageArea>( pEntity );
+		if( p && !p->IsIgnoreDamageSource( 2 ) )
+			pCharacter = SafeCast<CCharacter>( p->GetParentEntity() );
+	}
+	if( !pCharacter || pCharacter->IsKilled() )
+		return 0;
+	if( m_pOwner && pCharacter->IsOwner( m_pOwner ) )
+		return 0;
+	if( pCharacter->GetHitType() == eEntityHitType_WorldStatic || pCharacter->IsAlwaysBlockBullet() )
+		return 1;
+	return -1;
 }
 
 void CBeam::HandleHit( CEntity* pEntity, const CVector2& hitPoint )
 {
+	if( !m_nDamage && !m_nDamage1 && m_fHitForce == 0 )
+		return;
 	CCharacter* pCharacter = SafeCast<CCharacter>( pEntity );
 	if( !pCharacter )
 		return;
 	if( m_hit.find( pEntity ) != m_hit.end() )
 		return;
 	SDamageContext context;
-	context.nDamage = m_nDamage;
-	context.fDamage1 = m_nDamage1;
 	context.nSourceType = 3;
 	context.hitPos = hitPoint;
 	context.hitDir = globalTransform.MulVector2Dir( CVector2( m_fHitForce, 0 ) );
 	context.nHitType = -1;
+	context.pSource = this;
+	if( m_bAlertEnemy && pCharacter->IsEnemy() )
+	{
+		context.nType = eDamageHitType_Alert;
+		pCharacter->Damage( context );
+		return;
+	}
+
+	context.nDamage = m_nDamage;
+	context.fDamage1 = m_nDamage1;
 	if( pCharacter->Damage( context ) )
 	{
 		if( m_pDmgEft )
@@ -156,6 +180,7 @@ void RegisterGameClasses_Beam()
 		REGISTER_MEMBER( m_nLoopFrame )
 		REGISTER_MEMBER( m_nFrameInterval )
 		REGISTER_MEMBER( m_pDmgEft )
+		REGISTER_MEMBER( m_bAlertEnemy )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHit[0], hit )
 		REGISTER_MEMBER_TAGGED_PTR( m_pHit[1], hit1 )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBeamImg[0], 0 )

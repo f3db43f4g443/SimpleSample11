@@ -1098,6 +1098,97 @@ void CLevelEditObjectQuickToolAlertTriggerResize::OnViewportDragged( CUIViewport
 	}
 }
 
+void CLevelEditObjectQuickToolGate::ToolBegin( CPrefabNode * pPrefabNode )
+{
+	__super::ToolBegin( pPrefabNode );
+	m_baseSize = m_pObjData->GetBoundForEditor();
+}
+
+void CLevelEditObjectQuickToolGate::OnDebugDraw( CUIViewport * pViewport, IRenderSystem * pRenderSystem )
+{
+	CVector2 ofs[] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	auto rect = m_baseSize.Offset( ofs[m_pObjData->m_nDir] * m_pObjData->m_fMaxLength );
+
+	CVector2 verts[] = { { rect.x - 32, rect.y - 32 }, { rect.GetRight() + 32, rect.y - 32 },
+	{ rect.GetRight() + 32, rect.GetBottom() + 32 }, { rect.x - 32, rect.GetBottom() + 32 } };
+	CMatrix2D trans;
+	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+	for( int i = 0; i < ELEM_COUNT( verts ); i++ )
+		verts[i] = trans.MulVector2Pos( verts[i] );
+	CVector4 color = CVector4( 0.8f, 0.8f, 0.2f, 0.6f );
+	for( int i = 0; i < 4; i++ )
+		pViewport->DebugDrawLine( pRenderSystem, verts[i], verts[( i + 1 ) % 4], color );
+}
+
+bool CLevelEditObjectQuickToolGate::OnViewportStartDrag( CUIViewport * pViewport, const CVector2 & mousePos )
+{
+	CVector2 ofs[] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
+	auto d = ofs[m_pObjData->m_nDir] * m_pObjData->m_fMaxLength;
+	auto rect = m_baseSize.Offset( d );
+
+	CMatrix2D trans;
+	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+	auto localMousePos = trans.MulTVector2Pos( mousePos );
+
+	if( rect.Contains( localMousePos ) )
+	{
+		m_nDragType = 1;
+		m_dragLocalMousePos = localMousePos;
+		m_dragBeginSize = m_dragCurSize = TVector2<int32>( floor( d.x / rect.width * 2 + 0.5f ), floor( d.y / rect.height * 2 + 0.5f ) );
+		return true;
+	}
+
+	return false;
+}
+
+void CLevelEditObjectQuickToolGate::OnViewportDragged( CUIViewport * pViewport, const CVector2 & mousePos )
+{
+	CVector2 tileSize( m_baseSize.width / 2, m_baseSize.height / 2 );
+	CMatrix2D trans;
+	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+	auto localMousePos = trans.MulTVector2Pos( mousePos );
+	auto d = localMousePos - m_dragLocalMousePos;
+	auto size1 = m_dragBeginSize + TVector2<int32>( floor( d.x / tileSize.x + 0.5f ), floor( d.y / tileSize.y + 0.5f ) );
+	if( abs( localMousePos.x ) < abs( localMousePos.y ) )
+		size1.x = 0;
+	else
+		size1.y = 0;
+
+	if( size1 != m_dragCurSize )
+	{
+		m_pPrefabNode->OnEditorActive( true );
+		if( size1.y == 0 )
+		{
+			if( size1.x < 0 )
+			{
+				m_pObjData->m_nDir = 2;
+				m_pObjData->m_fMaxLength = -size1.x * tileSize.x;
+			}
+			else
+			{
+				m_pObjData->m_nDir = 0;
+				m_pObjData->m_fMaxLength = size1.x * tileSize.x;
+			}
+		}
+		else
+		{
+			if( size1.y < 0 )
+			{
+				m_pObjData->m_nDir = 3;
+				m_pObjData->m_fMaxLength = -size1.y * tileSize.y;
+			}
+			else
+			{
+				m_pObjData->m_nDir = 1;
+				m_pObjData->m_fMaxLength = size1.y * tileSize.y;
+			}
+		}
+		m_pPrefabNode->GetPatchedNode()->OnEdit();
+		m_pPrefabNode->OnEditorActive( false );
+		m_dragCurSize = size1;
+	}
+}
+
 void CLevelEditObjectQuickToolChunk1::OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem )
 {
 	__super::OnDebugDraw( pViewport, pRenderSystem );
@@ -1250,6 +1341,11 @@ CLevelEditObjectTool * CLevelEditObjectToolsetAlertTrigger::CreateQuickObjectToo
 	return &CLevelEditObjectQuickToolAlertTriggerResize::Inst();
 }
 
+CLevelEditObjectTool * CLevelEditObjectToolsetGate::CreateQuickObjectTool( CPrefabNode * pNode )
+{
+	return &CLevelEditObjectQuickToolGate::Inst();
+}
+
 void RegisterToolsets()
 {
 	auto& mgr = CLevelEditToolsetMgr::Inst();
@@ -1259,4 +1355,5 @@ void RegisterToolsets()
 	mgr.RegisterObject<CEntity, CLevelEditObjectToolsetEntity>();
 	mgr.RegisterObject<CChunk1, CLevelEditObjectToolsetChunk1>();
 	mgr.RegisterObject<CAlertTrigger, CLevelEditObjectToolsetAlertTrigger>();
+	mgr.RegisterObject<CGate, CLevelEditObjectToolsetGate>();
 }

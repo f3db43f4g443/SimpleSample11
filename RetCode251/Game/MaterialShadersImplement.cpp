@@ -16,6 +16,7 @@ IMPLEMENT_MATERIAL_SHADER( PSColorAdjust, "Shader/Distortion.shader", "PSColorAd
 
 IMPLEMENT_MATERIAL_SHADER( PSEmissionClearColorClip, "Shader/Effect.shader", "PSEmissionClearColorClip", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSEmissionClearColorNoClip, "Shader/Effect.shader", "PSEmissionClearColorNoClip", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSPhantomEffect, "Shader/Effect.shader", "PSPhantomEffect", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSCircle, "Shader/misc.shader", "PSCircle", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticleCommon, "Shader/ParticleCommon.shader", "VSParticle", "vs_5_0" );
 IMPLEMENT_MATERIAL_SHADER( VSParticle, "Shader/Particle.shader", "VSParticle", "vs_5_0" );

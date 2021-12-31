@@ -2,35 +2,47 @@
 #include "Character.h"
 #include "CharacterMove.h"
 #include "Interfaces.h"
+#include "Beam.h"
 
-class CAutoFolder : public CEntity
+class CDamageArea : public CEntity
 {
+	friend void RegisterGameClasses_CharacterMisc();
 public:
-	CAutoFolder( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CAutoFolder ); }
-	virtual void OnAddedToStage() override;
+	CDamageArea( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CDamageArea ); }
+
+	bool IsIgnoreDamageSource( int8 nType ) { return m_bIgnoreDamageSource[nType]; }
+private:
+	bool m_bIgnoreDamageSource[3];
 };
 
 class CCommonMoveableObject : public CCharacter
 {
 	friend void RegisterGameClasses_CharacterMisc();
 public:
-	CCommonMoveableObject( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CCommonMoveableObject ); }
+	CCommonMoveableObject( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CCommonMoveableObject ); m_bHasHitFilter = true; }
 	virtual bool Damage( SDamageContext& context ) override;
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
+	virtual bool ImpactHit( int32 nLevel, const CVector2& vec, CEntity* pEntity ) override;
 	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast );
+
+	virtual int8 CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher ) override;
+	virtual void HandlePush( const CVector2& dir, float fDist, int8 nStep ) override;
 protected:
+	bool CanHitPlatform();
 	void SetImpactLevel( int32 nLevel, int32 nTick );
 	CVector2 HandleCommonMove();
 	void PostMove();
 	void PostMove( int32 nTestEntities, CEntity** pTestEntities );
-	float m_fWeight;
 	float m_fGravity;
 	float m_fFrac;
 	float m_fMaxFallSpeed;
 	float m_fAirborneFrac;
+	int32 m_nBlockImpactLevel;
+	int32 m_nImpactHitTime;
 
 	CVector2 m_vel;
+	float m_fImpactSpeed0;
 	int32 m_nKickCounter;
 	int32 m_nImpactLevel;
 	int32 m_nImpactTick;
@@ -171,6 +183,7 @@ private:
 	CVector2 m_tileSize;
 	int32 m_nTileX, m_nTileY;
 	CVector2 m_ofs;
+	CRectangle m_hitSize;
 	float m_fHpPerTile;
 	bool m_bNoHit;
 
@@ -196,6 +209,29 @@ private:
 	bool m_bTriggered;
 };
 
+class CCharacterTriggerSpawn : public CEntity
+{
+	friend void RegisterGameClasses_CharacterMisc();
+public:
+	CCharacterTriggerSpawn( const SClassCreateContext& context ) : CEntity( context ), m_onTrigger( this, &CCharacterTriggerSpawn::Trigger ) { SET_BASEOBJECT_ID( CCharacterTriggerSpawn ); }
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+private:
+	void Trigger();
+	ECharacterEvent m_eEvent;
+	TResourceRef<CPrefab> m_pPrefab;
+
+	TClassTrigger<CCharacterTriggerSpawn> m_onTrigger;
+};
+
+struct SBulletDesc
+{
+	SBulletDesc( const SClassCreateContext& context ) {}
+	TResourceRef<CPrefab> pPrefab;
+	CVector2 ofs;
+	CVector2 vel;
+};
+
 class CTurret : public CEntity, public IBotModule
 {
 	friend void RegisterGameClasses_CharacterMisc();
@@ -210,23 +246,81 @@ private:
 	float m_fSightAngle;
 	float m_fRotAngle;
 	float m_fRotSpeed;
-	TResourceRef<CPrefab> m_pBullet;
-	TArray<CVector2> m_arrBulletOfs;
-	float m_fBulletVel;
+	int8 m_nScanType;
+	TResourceRef<CPrefab> m_pBullet;//
+	TArray<CVector2> m_arrBulletOfs;//
+	float m_fBulletVel;//
+	TArray<SBulletDesc> m_arrBulletDesc;
 	int32 m_nBulletCount;
 	float m_fBulletAngle;
 	int32 m_nFireCount;
 	int32 m_nFireInterval;
 	int32 m_nReloadTime;
 	int32 m_nActivateTime;
+	int32 m_nDetectActivateTime;
+	TResourceRef<CPrefab> m_pStaticEftPreActivePrefab;
 	TResourceRef<CPrefab> m_pStaticEftPrefab;
 	CVector2 m_staticEftOfs;
 
 	int32 m_nFireCountLeft;
 	int32 m_nFireCD;
 	int32 m_nActivateTimeLeft;
+	int32 m_nDetectActivateTimeLeft;
 	float m_fCurRot;
+	int8 m_nStaticEft;
+	int8 m_fCurRot1;
 	CReference<CEntity> m_pStaticEft;
+};
+
+class CGate : public CCharacter
+{
+	friend void RegisterGameClasses_CharacterMisc();
+	friend class CLevelEditObjectQuickToolGate;
+public:
+	CGate( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CGate ); }
+	virtual bool IsPreview() { return true; }
+	virtual void OnPreview() { InitImages(); }
+	virtual void OnAddedToStage() override;
+	virtual void OnTickBeforeHitTest() override;
+	virtual void Render( CRenderContext2D& context ) override;
+	virtual void HandlePush( const CVector2& dir, float fDist, int8 nStep ) override;
+	virtual bool Damage( SDamageContext& context ) override;
+protected:
+	void Init();
+	void InitImages();
+	void UpdateImages();
+	void UpdateHit();
+	int8 m_nDir;
+	bool m_bStartOpen;
+	int8 m_nTriggerType;
+	float m_fMaxLength;
+	float m_fOpenLenPerTick;
+	float m_fCloseLenPerTick;
+	int32 m_nTriggerTime;
+
+	bool m_bInited;
+	CRectangle m_rect0;
+	CRectangle m_texRect0;
+	CRectangle m_texRect1;
+	CRectangle m_initHit;
+	float m_fCurLength;
+	int32 m_nTriggerTimeLeft;
+	CElement2D m_elems[4];
+};
+
+class CAlertBeam : public CBeam
+{
+	friend void RegisterGameClasses_CharacterMisc();
+public:
+	CAlertBeam( const SClassCreateContext& context ) : CBeam( context ) { SET_BASEOBJECT_ID( CAlertBeam ); }
+protected:
+	virtual void OnTickAfterHitTest() override;
+	virtual void HandleHit( CEntity* pEntity, const CVector2& hitPoint ) override;
+	virtual void UpdateImages() override;
+	int32 m_nAlertTime;
+	CVector2 m_alertTexOfs;
+
+	int32 m_nAlertTimeLeft;
 };
 
 class CEnemy1 : public CCharacter

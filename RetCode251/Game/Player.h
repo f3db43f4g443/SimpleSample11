@@ -17,7 +17,6 @@ enum
 	ePlayerLevel_Slide_Air,
 	ePlayerLevel_Glide,
 	ePlayerLevel_Kick_Combo,
-	ePlayerLevel_Kick_Spin,
 	ePlayerLevel_Kick_Rev,
 	ePlayerLevel_Kick_Stomp,
 	ePlayerLevel_Bomb,
@@ -40,11 +39,15 @@ public:
 	void SetLevel( int32 nLevel ) { m_nLevel = nLevel; }
 	CReference<CEntity>* GetAllHits() { return m_pHit; }
 
+	virtual int8 CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher ) override;
+	virtual void HandlePush( const CVector2& dir, float fDist, int8 nStep ) override;
+
 	void UpdateInput();
 	virtual bool Damage( SDamageContext& context ) override;
 	virtual void OnTickBeforeHitTest() override;
 	virtual void OnTickAfterHitTest() override;
 	void PostUpdate();
+	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) override;
 	int32 GetDir() { return m_nDir; }
 	enum
 	{
@@ -99,21 +102,26 @@ public:
 
 		eAni_Kick_Special_Begin = eAni_Kick_Finish_End,
 		eAni_Kick_Spin = eAni_Kick_Special_Begin,
+		eAni_Kick_Spin_Slide,
 
 		eAni_Kick_Recover,
 		eAni_Kick_Recover_1,
 	};
 
 	void OnKickFirstHit( CEntity* pKick );
+	void OnKickFirstExtentHit( CEntity* pKick );
 
+	CVector2 GetLastLandPoint() { return m_lastLandPoint; }
 	virtual bool Knockback( const CVector2& vec ) override;
 	float GetFallCritical() { return Min( 1.0f, Max( 0.0f, ( m_fFallHeight - m_fFallDmgBegin ) * m_fFallDmgPerHeight / m_nMaxHp ) ); }
+	void UpdateImpactLevel();
 protected:
 	bool CanHitPlatform();
-	void CleanUpOpenPlatforms();
 	bool CanShoot();
 	bool CanFindFloor();
 	bool CanRecoverShield();
+	bool IsDodging();
+	bool IsBlocking();
 	float GetGravity();
 	bool IsFalling();
 	void FindFloor( const CVector2& gravityDir );
@@ -160,6 +168,8 @@ protected:
 	float m_fStop1Acc;
 	CVector2 m_kickVel[11];
 	CVector3 m_kickOffset[11];
+	CVector2 m_kickSpinBackVel;
+	CVector2 m_kickSpinSlideVel;
 	float m_fKickDashSpeed[4];
 	float m_nKickSpinDashSpeed;
 	float m_fSlideSpeed0;
@@ -194,6 +204,7 @@ protected:
 	float m_fFindFloorDist;
 	float m_fFallDmgBegin;
 	float m_fFallDmgPerHeight;
+	float m_fImpactLevelFallHeight[4];
 	int32 m_nMaxPunchFrame;
 	int32 m_nFireCD;
 	int32 m_nBombCD;
@@ -255,6 +266,7 @@ protected:
 			int8 nTick1;
 			int8 nAni;
 			uint8 nType0 : 2;
+			uint8 nTap : 2;
 			uint8 bHit : 1;
 			uint8 nFlag : 2;
 			uint8 nFlag1 : 1;
@@ -276,6 +288,7 @@ protected:
 	CReference<CEntity> m_pCurAttackEffect;
 	int32 m_nSlideAirCDLeft;
 	float m_fFallHeight;
+	int32 m_nCurImpactLevel;
 	bool m_bKnockback;
 	int32 m_nKnockBackTime;
 	int32 m_nFireCDLeft;
@@ -289,6 +302,8 @@ protected:
 	CMatrix2D lastLandedEntityTransform;
 	CVector2 m_groundNorm;
 	CReference<CCharacter> m_pLanded;
+	CVector2 m_lastLandPoint;
+	int32 m_nLastLandTime;
 	SCharacterMovementData m_moveData;
 	CReference<CEntity> m_pGrabbed;
 	SGrabDesc m_grabDesc;

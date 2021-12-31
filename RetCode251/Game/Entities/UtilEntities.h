@@ -133,7 +133,7 @@ private:
 	TClassTrigger<CImagePhantomEffect> m_onTick;
 };
 
-class CCommonImageEffect : public CEntity, public IImageEffectTarget
+class CCommonImageEffect : public CEntity, public IImageRect, public IImageEffectTarget
 {
 	friend void RegisterGameClasses_UtilEntities();
 public:
@@ -142,12 +142,19 @@ public:
 	virtual void OnPreview();
 	virtual void OnAddedToStage() override;
 	virtual void OnRemovedFromStage() override;
+
+	virtual CRectangle GetRect() override;
+	virtual CRectangle GetTexRect() override;
+	virtual void SetRect( const CRectangle& rect ) override;
+	virtual void SetTexRect( const CRectangle& rect ) override;
 	virtual bool GetParam( CVector4& param ) override;
 	virtual void SetParam( const CVector4& param ) override;
 	virtual void SetCommonEffectEnabled( int8 nEft, bool bEnabled, const CVector4& param ) override;
 private:
+	void Init();
 	void OnTick();
 
+	bool m_bInited;
 	int32 m_nPhantomImgCD;
 	int32 m_nPhantomImgLife;
 	CVector4 m_phantomParam0, m_phantomParam1;
@@ -172,6 +179,39 @@ private:
 	int8 m_nType;
 	bool m_bEnabled;
 	TClassTrigger<CImageEffect> m_onTick;
+};
+
+
+struct SImageParamEffectItem
+{
+	SImageParamEffectItem( const SClassCreateContext& context ) {}
+	int32 nFrame;
+	CVector4 param;
+};
+
+class CImageParamEffect : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CImageParamEffect( const SClassCreateContext& context ) : CEntity( context ), m_onTick( this, &CImageParamEffect::OnTick )
+	{
+		SET_BASEOBJECT_ID( CImageParamEffect );
+	}
+	virtual void OnAddedToStage() override;
+	virtual void OnRemovedFromStage() override;
+	void SetEnabled( bool b );
+protected:
+	virtual void OnUpdatePreview() override;
+private:
+	void OnTick();
+	void Refresh();
+	bool m_bEnabled;
+	bool m_bLoop;
+	TArray<SImageParamEffectItem> m_arrItems;
+
+	float m_fTime;
+	CVector4 m_param0;
+	TClassTrigger<CImageParamEffect> m_onTick;
 };
 
 class CSimpleTile : public CEntity, public IImageEffectTarget

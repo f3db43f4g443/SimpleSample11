@@ -215,6 +215,41 @@ void SCharacterMovementData::TryMove1( CCharacter* pCharacter, int32 nTested, CE
 	}
 }
 
+void SCharacterMovementData::TryMove1XY( CCharacter * pCharacter, int32 nTested, CEntity ** pTested, const CVector2 & ofs, CVector2 & velocity, float fFrac, CVector2 * pGravityDir, SRaycastResult * pHit )
+{
+	if( pHit )
+		memset( pHit, 0, sizeof( SRaycastResult ) * 3 );
+
+	SRaycastResult result;
+	CVector2 moveOfs = ofs;
+	if( moveOfs.x == 0 && moveOfs.y == 0 )
+		return;
+	CMatrix2D* mats = (CMatrix2D*)alloca( sizeof( CMatrix2D ) * nTested );
+	for( int i = 0; i < nTested; i++ )
+		mats[i] = pTested[i]->GetGlobalTransform();
+	int32 nHit = 0;
+	CVector2 totalOfs( 0, 0 );
+	for( int k = 0; k < 2; k++ )
+	{
+		auto sweepOfs = k == 0 ? CVector2( moveOfs.x, 0 ) : CVector2( 0, moveOfs.y );
+		if( sweepOfs == CVector2( 0, 0 ) )
+			continue;
+
+		if( DoSweepTest1( pCharacter, nTested, pTested, mats, sweepOfs, MOVE_SIDE_THRESHOLD, pGravityDir, &result, true ) )
+		{
+			if( pHit )
+				pHit[nHit++] = result;
+			sweepOfs = k == 0 ? CVector2( moveOfs.x > 0 ? result.fDist : -result.fDist, 0 ) : CVector2( 0, moveOfs.y > 0 ? result.fDist : -result.fDist );
+			auto v0 = result.pHitProxy->GetVelocity();
+			velocity = HitVel( velocity, v0, result.normal, fFrac );
+		}
+		for( int i = 0; i < nTested; i++ )
+			mats[i].SetPosition( mats[i].GetPosition() + sweepOfs );
+		totalOfs = totalOfs + sweepOfs;
+	}
+	pCharacter->SetPosition( pCharacter->GetPosition() + totalOfs );
+}
+
 struct SLP
 {
 	SLP() : bOpen( true ), bDead( false ) {}
@@ -433,7 +468,6 @@ struct SLP
 	}
 };
 
-#define PLATFORM_THRESHOLD 0.99f
 bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector2* pVel, float fFrac, CEntity* pLandedEntity, CVector2* pLandedOfs, const CVector2* pGravity,
 	CEntity** pTested, int32 nTested )
 {
@@ -481,11 +515,11 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 				float fLength = entityOfs.Length();
 				if( fLength == 0 )
 					continue;
-				while( fLength < 1 )
+				/*while( fLength < 1 )
 				{
 					fLength *= 2;
 					entityOfs = entityOfs * 2;
-				}
+				}*/
 
 				bFinished = false;
 				trans.SetPosition( trans.GetPosition() - entityOfs );
@@ -899,7 +933,7 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 			bool bOK = bHit || bPlatform;
 			if( bOK && pTested[i]->HasHitFilter() )
 			{
-				if( !pTested[i]->CanHit( pOtherEntity ) || !pOtherEntity->CanHit( pTested[i] ) )
+				if( !pOtherEntity->CheckImpact( pTested[i], tempResult[i1], false ) || !pTested[i]->CheckImpact( pOtherEntity, tempResult[i1], true ) )
 					bOK = false;
 			}
 			if( bOK && bIgnoreInverseNormal && tempResult[i1].normal.Dot( sweepOfs ) >= 0 )
@@ -924,6 +958,9 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 			return false;
 		return lhs.pHitProxy < rhs.pHitProxy;
 	} );
+
+	CEntity *p1 = NULL, *p2 = NULL;
+	SRaycastResult *r1 = NULL, *r2 = NULL;
 	for( auto& item : tempResult )
 	{
 		auto pOtherEntity = static_cast<CEntity*>( item.pHitProxy );
@@ -939,11 +976,47 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 				continue;
 			}
 		}
-		if( pResult )
-			*pResult = item;
-		return pOtherEntity;
+
+		if( !p1 )
+		{
+			p1 = pOtherEntity;
+			r1 = &item;
+		}
+		if( !item.bThresholdFail )
+		{
+			p2 = pOtherEntity;
+			r2 = &item;
+			break;
+		}
 	}
-	return NULL;
+
+	if( p1 && p2 && p1 != p2 )
+	{
+		if( r1->normal.Dot( sweepOfs ) > r2->normal.Dot( sweepOfs ) )
+		{
+			p2 = p1;
+			r2 = r1;
+		}
+	}
+	if( pResult && r2 )
+		*pResult = *r2;
+	return p2;
+}
+
+void SCharacterMovementData::CleanUpOpenPlatforms( CCharacter* pChar, int32 nTested, CEntity** pTested )
+{
+	auto setPlatformsOld = setOpenPlatforms;
+	setOpenPlatforms.clear();
+	for( int i = 0; i < nTested; i++ )
+	{
+		pChar->GetLevel()->GetHitTestMgr().Update( pTested[i] );
+		for( auto pManifold = pTested[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
+		{
+			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
+			if( setPlatformsOld.find( pEntity ) != setPlatformsOld.end() )
+				setOpenPlatforms.insert( pEntity );
+		}
+	}
 }
 
 void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& moveAxis, float fStopBaseSpd2 )

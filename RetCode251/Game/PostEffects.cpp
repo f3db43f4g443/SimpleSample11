@@ -96,7 +96,8 @@ void CPostProcessPixelUpsample::Process( CPostProcessPass* pPass, IRenderTarget*
 	for( int i = 0; i < 16; i++ )
 		( &k2.m00 )[i] = abs( ( &k1.m00 )[i] - ( &k0.m00 )[i] );*/
 	CMatrix k1_1( 1, 0, 0, 0, -0.5f, 1, 0, 0, 0.33f, 0, 1, 0, 0.17f, 0, 0, 1 );
-	CMatrix k1 = k1_1 * k0 * k1_1.Transpose();
+	//CMatrix k1 = k1_1 * k0 * k1_1.Transpose();
+	CMatrix k1 = k0;
 	CMatrix k2;
 	for( int i = 0; i < 16; i++ )
 		( &k2.m00 )[i] = ( &k1.m00 )[i] - ( &k0.m00 )[i];
@@ -126,7 +127,7 @@ void CPostProcessPixelUpsample::Process( CPostProcessPass* pPass, IRenderTarget*
 		}
 	}
 
-	CVector4 colorShift( 0.6f, 0.3f, -0.9f, 0 );
+	CVector4 colorShift( 0.5f, -0.5f, -0.5f, 0 );
 	pPixelShader->SetParams( pSystem, src->GetShaderResource(), filter, colorShift, srcSize, m_colorCenter, m_colorEdge, m_fEdgeTexPow );
 
 	pSystem->DrawInput();

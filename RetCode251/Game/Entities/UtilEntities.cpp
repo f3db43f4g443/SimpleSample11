@@ -312,17 +312,40 @@ void CCommonImageEffect::OnPreview()
 
 void CCommonImageEffect::OnAddedToStage()
 {
-	if( m_pPhantomEffect )
-	{
-		m_pPhantomEffect->Init( GetRenderObject() );
-		m_pPhantomEffect->SetParentEntity( NULL );
-	}
+	Init();
 }
 
 void CCommonImageEffect::OnRemovedFromStage()
 {
+	if( m_pPhantomEffect && m_pPhantomEffect->IsActive() )
+	{
+		auto p1 = SafeCast<CImagePhantomEffect>( m_pPhantomEffect->GetInstanceOwnerNode()->CreateInstance() );
+		m_pPhantomEffect->SetParentEntity( NULL );
+		p1->Init1( m_pPhantomEffect );
+		m_pPhantomEffect = p1;
+	}
 	if( m_onTick.IsRegistered() )
 		m_onTick.Unregister();
+}
+
+CRectangle CCommonImageEffect::GetRect()
+{
+	return static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
+}
+
+CRectangle CCommonImageEffect::GetTexRect()
+{
+	return static_cast<CImage2D*>( GetRenderObject() )->GetElem().texRect;
+}
+
+void CCommonImageEffect::SetRect( const CRectangle& rect )
+{
+	static_cast<CImage2D*>( GetRenderObject() )->SetRect( rect );
+}
+
+void CCommonImageEffect::SetTexRect( const CRectangle& rect )
+{
+	static_cast<CImage2D*>( GetRenderObject() )->SetTexRect( rect );
 }
 
 bool CCommonImageEffect::GetParam( CVector4& param )
@@ -367,6 +390,18 @@ void CCommonImageEffect::SetCommonEffectEnabled( int8 nEft, bool bEnabled, const
 				}
 			}
 		}
+	}
+}
+
+void CCommonImageEffect::Init()
+{
+	if( m_bInited )
+		return;
+	m_bInited = true;
+	if( m_pPhantomEffect )
+	{
+		m_pPhantomEffect->Init( GetRenderObject() );
+		m_pPhantomEffect->SetParentEntity( NULL );
 	}
 }
 
@@ -476,7 +511,6 @@ void CImageEffect::OnTick()
 	{
 	case 0:
 	{
-		GetStage()->RegisterStageEvent( eStageEvent_PostUpdate, &m_onTick );
 		m_params[2].w += GetStage()->GetElapsedTimePerTick() * m_params[2].x;
 		if( m_params[2].z )
 		{
@@ -507,6 +541,94 @@ void CImageEffect::OnTick()
 	default:
 		break;
 	}
+}
+
+void CImageParamEffect::OnAddedToStage()
+{
+	if( m_bEnabled )
+	{
+		m_bEnabled = false;
+		SetEnabled( true );
+	}
+}
+
+void CImageParamEffect::OnRemovedFromStage()
+{
+	if( m_bEnabled )
+	{
+		SetEnabled( false );
+		m_bEnabled = true;
+	}
+}
+
+void CImageParamEffect::SetEnabled( bool b )
+{
+	if( b == m_bEnabled )
+		return;
+	m_bEnabled = b;
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetParent() );
+	if( !p )
+		return;
+	if( m_bEnabled )
+	{
+		if( !p->GetParam( m_param0 ) )
+			return;
+		auto pCharacter = CMyLevel::GetEntityCharacterRootInLevel( this );
+		if( pCharacter )
+			pCharacter->RegisterTickAfterHitTest( &m_onTick );
+		else
+			GetStage()->RegisterStageEvent( eStageEvent_PostUpdate, &m_onTick );
+		Refresh();
+	}
+	else
+	{
+		p->SetParam( m_param0 );
+	}
+}
+
+void CImageParamEffect::OnUpdatePreview()
+{
+	m_fTime += IRenderSystem::Inst()->GetElapsedTime() * 60;
+	Refresh();
+}
+
+void CImageParamEffect::OnTick()
+{
+	m_fTime = m_fTime + 1;
+	Refresh();
+}
+
+void CImageParamEffect::Refresh()
+{
+	auto p = SafeCastToInterface<IImageEffectTarget>( GetParent() );
+	if( !p )
+		return;
+	int32 nItem = 0;
+	if( m_bLoop )
+	{
+		auto nTotalFrame = m_arrItems[0].nFrame;
+		while( m_fTime >= nTotalFrame )
+			m_fTime -= nTotalFrame;
+	}
+	for( nItem = 0; nItem < m_arrItems.Size() - 1; nItem++ )
+	{
+		if( m_fTime < m_arrItems[nItem + 1].nFrame )
+			break;
+	}
+	if( !m_bLoop )
+	{
+		if( nItem >= m_arrItems.Size() - 1 )
+		{
+			p->SetParam( m_arrItems[m_arrItems.Size() - 1].param );
+			return;
+		}
+	}
+	auto& item = m_arrItems[nItem];
+	auto& item1 = m_arrItems[( nItem + 1 ) % m_arrItems.Size()];
+	auto t = nItem == 0 ? 0 : item.nFrame;
+	auto t1 = item1.nFrame;
+	auto param = item.param + ( item1.param - item.param ) * ( m_fTime - t ) / ( t1 - t );
+	p->SetParam( param );
 }
 
 
@@ -1337,6 +1459,18 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER( m_bEnabled )
 	REGISTER_CLASS_END()
 
+	REGISTER_CLASS_BEGIN( CImageParamEffect )
+		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_MEMBER( m_bEnabled )
+		REGISTER_MEMBER( m_bLoop )
+		REGISTER_MEMBER( m_arrItems )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SImageParamEffectItem )
+		REGISTER_MEMBER( nFrame )
+		REGISTER_MEMBER( param )
+	REGISTER_CLASS_END()
+
 	REGISTER_CLASS_BEGIN( CImagePhantomEffect )
 		REGISTER_BASE_CLASS( CEntity )
 		REGISTER_MEMBER( m_nImgCD )
@@ -1347,6 +1481,7 @@ void RegisterGameClasses_UtilEntities()
 
 	REGISTER_CLASS_BEGIN( CCommonImageEffect )
 		REGISTER_BASE_CLASS( CEntity )
+		REGISTER_BASE_CLASS( IImageRect )
 		REGISTER_BASE_CLASS( IImageEffectTarget )
 		REGISTER_MEMBER_TAGGED_PTR( m_pPhantomEffect, eft )
 	REGISTER_CLASS_END()

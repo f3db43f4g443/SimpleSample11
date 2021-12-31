@@ -205,6 +205,22 @@ private:
 	TRectangle<int32> m_dragCurSize;
 };
 
+class CLevelEditObjectQuickToolGate : public TLevelEditObjectToolBase<CGate>
+{
+public:
+	virtual void ToolBegin( CPrefabNode* pPrefabNode ) override;
+	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
+	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectQuickToolGate )
+private:
+	CRectangle m_baseSize;
+	int32 m_nDragType;
+	CVector2 m_dragLocalMousePos;
+	TVector2<int32> m_dragBeginSize;
+	TVector2<int32> m_dragCurSize;
+};
+
 class CLevelEditObjectQuickToolChunk1 : public CLevelEditObjectQuickToolEntityResize
 {
 public:
@@ -247,4 +263,11 @@ class CLevelEditObjectToolsetAlertTrigger : public CLevelEditObjectToolsetEntity
 public:
 	virtual CLevelEditObjectTool* CreateQuickObjectTool( CPrefabNode* pNode ) override;
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectToolsetAlertTrigger )
+};
+
+class CLevelEditObjectToolsetGate : public CLevelEditObjectToolsetEntity
+{
+public:
+	virtual CLevelEditObjectTool* CreateQuickObjectTool( CPrefabNode* pNode ) override;
+	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectToolsetGate )
 };
