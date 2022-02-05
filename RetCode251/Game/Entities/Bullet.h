@@ -11,15 +11,18 @@ class CBullet : public CCharacter
 public:
 	CBullet( const SClassCreateContext& context )
 		: CCharacter( context ), m_pContext( NULL ) { SET_BASEOBJECT_ID( CBullet ); }
+	CVector2 GetBulletVelocity() { return m_vel; }
 	void SetBulletVelocity( const CVector2& velocity ) { m_vel = velocity; }
 	void SetAcceleration( const CVector2& acc ) { m_acc = acc; }
 	void SetAngularVelocity( float fVelocity ) { m_fAngularVelocity = fVelocity; }
+	void Pause( bool b ) { m_bPaused = b; }
 	void SetTangentDir( bool bTangentDir ) { m_bTangentDir = bTangentDir; }
 	void SetCreator( CEntity* pCreator ) { m_pCreator = pCreator; }
 	virtual void OnHit( CEntity* pEntity );
 	virtual void Kill();
 	void SetLife( uint32 nLife ) { m_nLife = nLife; }
 	void SetDamage( uint32 nDamage ) { m_nDamage = nDamage; }
+	CPrefab* GetCounterBullet() { return m_pCounterBullet; }
 
 	void SetOnHit( function<void( CBullet*, CEntity* )> onHit ) { m_onHit = onHit; }
 
@@ -55,17 +58,20 @@ protected:
 	float m_fTrailLen;
 	float m_fTrailSpeedScale;
 	TResourceRef<CPrefab> m_pDmgEft;
+	TResourceRef<CPrefab> m_pCounterBullet;
 	CReference<CEffectObject> m_pDeathEffect;
 	CReference<CRenderObject2D> m_pParticle;
 	CReference<CEntity> m_pExp;
 
 	bool m_bInited;
+	bool m_bPaused;
 	CReference<CEntity> m_pCreator;
 	SBulletContext* m_pContext;
 	bool m_bAttached;
 	bool m_bKilled1;
 	float m_fCurTrailLen;
 	CVector2 m_pos0;
+	CVector2 m_pos00;
 	CRectangle m_origImgRect;
 
 	function<void( CBullet*, CEntity* )> m_onHit;

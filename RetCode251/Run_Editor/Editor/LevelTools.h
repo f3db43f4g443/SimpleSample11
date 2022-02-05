@@ -65,6 +65,7 @@ public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CLevelToolsView )
 private:
 	CUIViewport* m_pViewport;
+	CReference<CRenderObject2D> m_pLight;
 	CReference<CRenderObject2D> m_pMask;
 
 	TClassTrigger1<CLevelToolsView, SUIMouseEvent*> m_onViewportStartDrag;

@@ -103,6 +103,16 @@ void CSimpleRenderer::OnRender( IRenderSystem* pSystem )
 		pSceneMgr->Flush( context, m_subRendererContext.pCamera, m_subRendererContext.pRoot, m_renderGroup );
 	else
 		pSceneMgr->Flush( context );
+	SDirectionalLight2D* pDirectionalLight;
+	while( ( pDirectionalLight = context.Get_DirectionalLight() ) != NULL )
+	{
+		pDirectionalLight->RemoveFrom_DirectionalLight();
+	}
+	SPointLight2D* pPointLight;
+	while( ( pPointLight = context.Get_PointLight() ) != NULL )
+	{
+		pPointLight->RemoveFrom_PointLight();
+	}
 
 	if( m_bIsSubRenderer )
 		sizeDependentPool.Release( m_pDepthStencil );

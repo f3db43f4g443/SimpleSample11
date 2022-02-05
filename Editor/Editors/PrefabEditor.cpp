@@ -379,7 +379,7 @@ void CPrefabEditor::OnInited()
 	CImage2D* pImage2D = new CImage2D( pDrawable, NULL, CRectangle( -32, -32, 256, 256 ), CRectangle( 0, 0, 1, 1 ), true );
 	m_pGizmo = pImage2D;
 	pImage2D->bVisible = false;
-	if( !IsLighted() )
+	if( !LightType() )
 		pImage2D->SetColorDrawable( pImage2D->GetGUIDrawable() );
 	if( m_pViewport )
 		m_pViewport->GetRoot()->AddChild( pImage2D );
@@ -1552,7 +1552,7 @@ public:
 		: CPrefabEditor::CNodeData( pOwner, pNode )
 	{
 		m_pView = pView;
-		m_pResRoot = CTreeFolder::Create( pView, NULL, "Directional Light Data" );
+		m_pResRoot = CTreeFolder::Create( pView, NULL, "Point Light Data" );
 		m_pAttenuationIntensity = CVectorEdit::Create( "Attenuation Params", 4 );
 		pView->AddContentChild( m_pAttenuationIntensity, m_pResRoot );
 		m_pShadowScale = CCommonEdit::Create( "Shadow Scale" );
@@ -1596,6 +1596,7 @@ protected:
 		pLight->fMaxRange = m_pMaxRange->GetValue<float>();
 		pLight->fLightHeight = m_pLightHeight->GetValue<float>();
 		pLight->baseColor = m_pBaseColor->GetFloat3();
+		pLight->SetLocalBound( CRectangle( -pLight->fMaxRange, -pLight->fMaxRange, pLight->fMaxRange * 2, pLight->fMaxRange * 2 ) );
 		m_pBaseColor->SetFloats( &pLight->baseColor.x );
 	}
 

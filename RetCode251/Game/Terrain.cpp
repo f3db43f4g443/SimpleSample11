@@ -9,7 +9,7 @@ void CTerrain::OnPreview()
 		p->OnPreview();
 }
 
-void CTerrain::OnAddedToStage()
+void CTerrain::Init()
 {
 	if( !m_bInited )
 	{

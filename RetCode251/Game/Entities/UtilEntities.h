@@ -329,3 +329,10 @@ protected:
 	int32 m_nSoundTextInterval;
 	vector<CElement2D> m_elemsEft;
 };
+
+class CGamePointLight : public CEntity
+{
+	friend void RegisterGameClasses_UtilEntities();
+public:
+	CGamePointLight( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CGamePointLight ); }
+};

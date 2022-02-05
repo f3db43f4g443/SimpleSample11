@@ -2,6 +2,7 @@
 #include "UIViewport.h"
 #include "UIManager.h"
 #include "Render/SimpleRenderer.h"
+#include "Render/SimpleLighted2DRenderer.h"
 #include "Render/Lighted2DRenderer.h"
 #include "Render/Scene2DManager.h"
 #include "Render/CommonShader.h"
@@ -14,7 +15,7 @@ CUIViewport::CUIViewport()
 	, m_pExternalCamera( NULL )
 	, m_pExternalGUICamera( NULL )
 	, m_texSize( 0, 0 )
-	, m_bLight( false )
+	, m_nLightType( 0 )
 	, m_bCustomRender( false )
 {
 	m_elem.SetDrawable( this );
@@ -66,7 +67,7 @@ void CUIViewport::Render( CRenderContext2D& context )
 			return;
 
 		auto origRect = GetCamera().GetViewArea();
-		if( m_bLight )
+		if( m_nLightType == 2 )
 		{
 			CVector2 size = m_bCustomRender ? m_customRes : m_texSize;
 			GetCamera().SetViewArea( origRect.Offset( CVector2( m_texSize.x - m_localBound.width, m_texSize.y - m_localBound.height ) * 0.5f ) );
@@ -177,7 +178,7 @@ CVector2 CUIViewport::GetScenePos( const CVector2& mousePos )
 	return vec;
 }
 
-void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight, IBlendState* pBlend )
+void CUIViewport::Set( CRenderObject2D* pRoot, int8 nLightType, CCamera2D* pExternalCamera, IBlendState* pBlend )
 {
 	if( m_pRoot )
 	{
@@ -193,20 +194,20 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 
 	m_pExternalRoot = pRoot;
 	m_pExternalCamera = pExternalCamera;
-	m_bLight = bLight;
+	m_nLightType = nLightType;
 	m_pBlend = pBlend;
 	m_bOpaque = m_pBlend == NULL;
 	
 	if( pRoot )
 	{
-		if( !m_bLight )
+		if( m_nLightType == 2 )
 			pExternalCamera->SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
 		else
 			pExternalCamera->SetViewport( 0, 0, 0, 0 );
 		pExternalCamera->SetSize( m_localBound.width, m_localBound.height );
 		pExternalCamera->SetPosition( 0, 0 );
 
-		if( bLight )
+		if( m_nLightType == 2 )
 		{
 			SLighted2DSubRendererContext context;
 			context.pCamera = pExternalCamera;
@@ -214,6 +215,15 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 			context.pGUIRoot = m_pGUIRoot;
 			context.pGUICamera = m_pExternalGUICamera;
 			m_pRenderer = new CLighted2DRenderer( context );
+		}
+		else if( nLightType == 1 )
+		{
+			SSimpleLighted2DRendererContext context;
+			context.pCamera = &GetCamera();
+			context.pRoot = GetRoot();
+			context.pGUIRoot = m_pGUIRoot;
+			context.pGUICamera = m_pExternalGUICamera;
+			m_pRenderer = new CSimpleLighted2DRenderer( context );
 		}
 		else
 		{
@@ -228,7 +238,7 @@ void CUIViewport::Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool 
 	}
 }
 
-void CUIViewport::SetLight( bool bLight )
+void CUIViewport::SetLight( int8 nLightType )
 {
 	if( m_pRenderer )
 	{
@@ -236,8 +246,8 @@ void CUIViewport::SetLight( bool bLight )
 		delete m_pRenderer;
 		m_pRenderer = NULL;
 	}
-	m_bLight = bLight;
-	if( bLight )
+	m_nLightType = nLightType;
+	if( nLightType == 2 )
 	{
 		SLighted2DSubRendererContext context;
 		context.pCamera = &GetCamera();
@@ -245,6 +255,15 @@ void CUIViewport::SetLight( bool bLight )
 		context.pGUIRoot = m_pGUIRoot;
 		context.pGUICamera = m_pExternalGUICamera;
 		m_pRenderer = new CLighted2DRenderer( context );
+	}
+	else if( nLightType == 1 )
+	{
+		SSimpleLighted2DRendererContext context;
+		context.pCamera = &GetCamera();
+		context.pRoot = GetRoot();
+		context.pGUIRoot = m_pGUIRoot;
+		context.pGUICamera = m_pExternalGUICamera;
+		m_pRenderer = new CSimpleLighted2DRenderer( context );
 	}
 	else
 	{
@@ -262,7 +281,7 @@ void CUIViewport::SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam )
 {
 	m_pGUIRoot = pRoot;
 	m_pExternalGUICamera = pCam;
-	if( m_bLight && m_pRenderer )
+	if( m_nLightType && m_pRenderer )
 	{
 		static_cast<CLighted2DRenderer*>( m_pRenderer )->SetGUICamera( pCam, pRoot );
 	}
@@ -290,7 +309,7 @@ void CUIViewport::OnInited()
 	m_pRenderer->OnCreateDevice( IRenderSystem::Inst() );
 	ReserveTexSize( CVector2( m_localBound.width, m_localBound.height ) );
 
-	if( !m_bLight )
+	if( m_nLightType != 2 )
 		m_camera.SetViewport( CRectangle( 0, 0, m_localBound.width, m_localBound.height ) );
 	else
 		m_camera.SetViewport( 0, 0, 0, 0 );
@@ -314,7 +333,7 @@ void CUIViewport::OnInited()
 void CUIViewport::OnResize( const CRectangle& oldRect, const CRectangle& newRect )
 {
 	ReserveTexSize( CVector2( newRect.width, newRect.height ) );
-	if( !m_bLight )
+	if( m_nLightType != 2 )
 		GetCamera().SetViewport( CRectangle( 0, 0, newRect.width, newRect.height ) );
 	else
 		GetCamera().SetViewport( 0, 0, 0, 0 );

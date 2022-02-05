@@ -16,7 +16,7 @@
 
 void InitEditor()
 {
-	CResourceEditor::IsLighted() = false;
+	CResourceEditor::LightType() = 0;
 	CObjectDataEditMgr::Inst().Register<CHitProxy, CHitProxyDataEdit>();
 	CObjectDataEditMgr::Inst().Register<CLevelEnvLayer, CLevelEnvLayerEdit>();
 	CObjectDataEditMgr::Inst().Register<CMyLevel, CLevelEdit>();

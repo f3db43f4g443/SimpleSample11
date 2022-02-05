@@ -169,6 +169,7 @@
     <ClInclude Include="Scene2DManager.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShaderResource.h" />
+    <ClInclude Include="SimpleLighted2DRenderer.h" />
     <ClInclude Include="SimpleRenderer.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="stdafx.h" />
@@ -236,6 +237,7 @@
     <ClCompile Include="Rope2D.cpp" />
     <ClCompile Include="Scene2DManager.cpp" />
     <ClCompile Include="ShaderParams.cpp" />
+    <ClCompile Include="SimpleLighted2DRenderer.cpp" />
     <ClCompile Include="SimpleRenderer.cpp" />
     <ClCompile Include="SoundFile.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -254,6 +256,7 @@
   <ItemGroup>
     <None Include="..\Shader\AlphaToOcclusion.shader" />
     <None Include="..\Shader\CommonMaterial.shader" />
+    <None Include="..\Shader\CommonMaterialSimpleLight.shader" />
     <None Include="..\Shader\Default2D.shh" />
     <None Include="..\Shader\Default2DScrTiled.shader" />
     <None Include="..\Shader\Default2DUI.shader" />
@@ -262,6 +265,7 @@
     <None Include="..\Shader\Default2DWorldToTex.shader" />
     <None Include="..\Shader\Light2DAO.shader" />
     <None Include="..\Shader\Light2DInstancing.shader" />
+    <None Include="..\Shader\Light2DSimple.shader" />
     <None Include="..\Shader\Rope2D.shader" />
     <None Include="..\Shader\RTImage.shader" />
     <None Include="..\Shader\SingleImage2D.shader" />

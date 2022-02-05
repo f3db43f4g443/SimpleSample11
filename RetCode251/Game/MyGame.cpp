@@ -191,6 +191,7 @@ void RegisterGameClasses_World();
 void RegisterGameClasses_Interfaces();
 void RegisterGameClasses_Level();
 void RegisterGameClasses_CharacterMisc();
+void RegisterGameClasses_LevelMisc();
 void RegisterGameClasses_GUI();
 void RegisterGameClasses_UtilEntities();
 
@@ -366,11 +367,17 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fMove1Speed )
 		REGISTER_MEMBER( m_fMove1Acc )
 		REGISTER_MEMBER( m_fStop1Acc )
+		REGISTER_MEMBER( m_fGlideAcc )
+		REGISTER_MEMBER( m_fVehicleStartUpSpeed )
+		REGISTER_MEMBER( m_fVehicleMaxAcc )
+		REGISTER_MEMBER( m_fVehicleMaxPower )
+		REGISTER_MEMBER( m_fVehicleFrac )
+		REGISTER_MEMBER( m_fVehicleBreakAcc )
 		REGISTER_MEMBER( m_kickVel )
 		REGISTER_MEMBER( m_kickOffset )
-		REGISTER_MEMBER( m_kickSpinBackVel )
 		REGISTER_MEMBER( m_kickSpinSlideVel )
 		REGISTER_MEMBER( m_fKickDashSpeed )
+		REGISTER_MEMBER( m_nKickSpinMaxSpeed )
 		REGISTER_MEMBER( m_nKickSpinDashSpeed )
 		REGISTER_MEMBER( m_fSlideSpeed0 )
 		REGISTER_MEMBER( m_fSlideAcc )
@@ -405,6 +412,7 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_fFallDmgBegin )
 		REGISTER_MEMBER( m_fFallDmgPerHeight )
 		REGISTER_MEMBER( m_fImpactLevelFallHeight )
+		REGISTER_MEMBER( m_fMaxWheelHeight )
 		REGISTER_MEMBER( m_nMaxPunchFrame )
 		REGISTER_MEMBER( m_nFireCD )
 		REGISTER_MEMBER( m_nBombCD )
@@ -444,6 +452,9 @@ void RegisterGameClasses()
 		REGISTER_MEMBER( m_nSlideAirCD )
 		REGISTER_MEMBER( m_nWalk1AnimSpeed )
 		REGISTER_MEMBER( m_nStand1ReadyTime )
+		REGISTER_MEMBER( m_nHopDownTime )
+		REGISTER_MEMBER( m_nHopFlipAnimSpeed )
+		REGISTER_MEMBER( m_nWheeledHitFallTime )
 		REGISTER_MEMBER( m_nGlideFallTime )
 		REGISTER_MEMBER( m_nDashGrabBeginFrame )
 		REGISTER_MEMBER( m_nGrabMaxTime )
@@ -502,6 +513,7 @@ void RegisterGameClasses()
 
 	RegisterGameClasses_Level();
 	RegisterGameClasses_CharacterMisc();
+	RegisterGameClasses_LevelMisc();
 	RegisterGameClasses_GUI();
 	RegisterGameClasses_UtilEntities();
 }

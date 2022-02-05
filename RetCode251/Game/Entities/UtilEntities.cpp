@@ -1524,4 +1524,8 @@ void RegisterGameClasses_UtilEntities()
 		REGISTER_MEMBER_TAGGED_PTR( m_pEft, eft )
 		REGISTER_MEMBER_TAGGED_PTR( m_pEnter, enter )
 	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CGamePointLight )
+		REGISTER_BASE_CLASS( CEntity )
+	REGISTER_CLASS_END()
 }

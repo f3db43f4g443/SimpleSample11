@@ -12,20 +12,25 @@ public:
 	{
 		eResType = eEngineResType_DrawableGroup,
 	};
-	CDrawableGroup( const char* name, int32 type ) : CResource( name, type ), m_nParamCount( 0 )
-		, m_colorDrawable( this ), m_occlusionDrawable( this ), m_guiDrawable( this ) {}
-	void Create();
-	void Clear()
+	enum
 	{
-		m_nParamCount = 0;
-		m_colorDrawable.Clear();
-		m_occlusionDrawable.Clear();
-		m_guiDrawable.Clear();
-		m_frameData.frames.clear();
-		m_tileMapInfo.nWidth = m_tileMapInfo.nHeight = m_tileMapInfo.nTileCount = 0;
-		m_tileMapInfo.params.clear();
-		ClearDependency();
-	}
+		eVer_Begin = 8,
+
+		eVer_End,
+		eVer_Cur = eVer_End - 1,
+	};
+	enum
+	{
+		eDrawable_Color,
+		eDrawable_Occ,
+		eDrawable_GUI,
+	};
+	
+	CDrawableGroup( const char* name, int32 type );
+	~CDrawableGroup();
+	void Create();
+	void Clear();
+	void SetDrawableCount( int8 n );
 	uint8 GetType() { return m_nType; }
 	uint8 GetParamCount() { return m_nParamCount; }
 
@@ -41,7 +46,7 @@ public:
 
 	struct SDrawableInfo
 	{
-		SDrawableInfo( CDrawableGroup* pOwner ) : pOwner( pOwner ), pDrawable( NULL ), nParamBeginIndex( 0 ), nParamCount( 0 ) {}
+		SDrawableInfo() : pOwner( NULL ), pDrawable( NULL ), nParamBeginIndex( 0 ), nParamCount( 0 ) {}
 		~SDrawableInfo() { Clear(); }
 		void Clear()
 		{
@@ -64,17 +69,15 @@ public:
 	void Load( IBufReader& buf );
 	void Save( CBufFile& buf );
 
-	CDrawable2D* GetColorDrawable() { return m_colorDrawable.pDrawable; }
-	CDrawable2D* GetOcclusionDrawable() { return m_occlusionDrawable.pDrawable; }
-	CDrawable2D* GetGUIDrawable() { return m_guiDrawable.pDrawable; }
+	CDrawable2D* GetColorDrawable() { return m_vecDrawables.size() > eDrawable_Color ? m_vecDrawables[eDrawable_Color].pDrawable : NULL; }
+	CDrawable2D* GetOcclusionDrawable() { return m_vecDrawables.size() > eDrawable_Color ? m_vecDrawables[eDrawable_Occ].pDrawable : NULL; }
+	CDrawable2D* GetGUIDrawable() { return m_vecDrawables.size() > eDrawable_Color ? m_vecDrawables[eDrawable_GUI].pDrawable : NULL; }
 
 	CRenderObject2D* CreateInstance( bool bForceCreateStatic = false );
 
 	void UpdateDependencies();
 private:
-	SDrawableInfo m_colorDrawable;
-	SDrawableInfo m_occlusionDrawable;
-	SDrawableInfo m_guiDrawable;
+	vector<SDrawableInfo> m_vecDrawables;
 	uint8 m_nParamCount;
 	uint8 m_nType;
 

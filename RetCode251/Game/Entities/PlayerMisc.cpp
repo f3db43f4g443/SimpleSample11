@@ -4,6 +4,7 @@
 #include "MyLevel.h"
 #include "Interfaces.h"
 #include "Entities/CharacterMisc.h"
+#include "Entities/Bullet.h"
 
 void CKick::OnAddedToStage()
 {
@@ -31,11 +32,20 @@ void CKick::Morph( CEntity* pEntity )
 		auto p = SafeCast<CCharacter>( item.first.GetPtr() );
 		if( m_nReleaseFrame )
 		{
-			SDamageContext damageContext;
-			damageContext.fDamage1 = 0;
-			damageContext.nType = eDamageHitType_Kick_End;
-			damageContext.pSource = this;
-			p->Damage( damageContext );
+			auto pBullet = SafeCast<CBullet>( p );
+			if( pBullet )
+			{
+				pBullet->Pause( false );
+				pBullet->SetBulletVelocity( pBullet->GetBulletVelocity() * -1 );
+			}
+			else
+			{
+				SDamageContext damageContext;
+				damageContext.fDamage1 = 0;
+				damageContext.nType = eDamageHitType_Kick_End;
+				damageContext.pSource = this;
+				p->Damage( damageContext );
+			}
 		}
 		auto hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
 		pAttackEft->AddInitHit( p, hitPos, item.second.hitDir );
@@ -50,14 +60,58 @@ void CKick::Cancel()
 		for( auto& item : m_hit )
 		{
 			auto p = SafeCast<CCharacter>( item.first.GetPtr() );
-			SDamageContext damageContext;
-			damageContext.fDamage1 = 0;
-			damageContext.nType = eDamageHitType_Kick_End;
-			damageContext.pSource = this;
-			p->Damage( damageContext );
+			auto pBullet = SafeCast<CBullet>( p );
+			if( pBullet )
+			{
+				pBullet->Pause( false );
+				pBullet->SetBulletVelocity( pBullet->GetBulletVelocity() * -1 );
+			}
+			else
+			{
+				SDamageContext damageContext;
+				damageContext.fDamage1 = 0;
+				damageContext.nType = eDamageHitType_Kick_End;
+				damageContext.pSource = this;
+				p->Damage( damageContext );
+			}
 		}
 	}
 	Kill();
+}
+
+bool CKick::CounterBullet( CEntity* p, const CVector2& hitPos, const CVector2& hitDir )
+{
+	if( !m_nReleaseFrame )
+		return false;
+
+	auto pPrefab = SafeCast<CBullet>( p )->GetCounterBullet();
+	auto pNewBullet = SafeCast<CBullet>( pPrefab->GetRoot()->CreateInstance() );
+	pNewBullet->SetPosition( hitPos );
+	auto vel0 = pNewBullet->GetBulletVelocity();
+	auto vel = hitDir;
+	vel.Normalize();
+	vel = CVector2( vel.x * vel0.x - vel.y * vel0.y, vel.x * vel0.y + vel.y * vel0.x );
+	pNewBullet->SetBulletVelocity( vel );
+	pNewBullet->SetOwner( this );
+	pNewBullet->Pause( true );
+	pNewBullet->SetParentBeforeEntity( p );
+
+	SDamageContext damageContext;
+	damageContext.fDamage1 = m_nKickEffectTime;
+	damageContext.nType = (EDamageType)( eDamageHitType_Kick_End + 1 + m_nKickType );
+	damageContext.hitPos = hitPos;
+	damageContext.hitDir = globalTransform.MulVector2Dir( CVector2( 1, 0 ) );
+	damageContext.pSource = this;
+	if( m_pDmgEft )
+		m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pNewBullet, damageContext );
+	OnHit( pNewBullet );
+
+	auto& hit = m_hit[pNewBullet];
+	hit.n = 1;
+	hit.hitPos = hitPos;
+	hit.hitDir = damageContext.hitDir;
+
+	return true;
 }
 
 void CKick::OnTickAfterHitTest()
@@ -99,13 +153,23 @@ void CKick::OnTickAfterHitTest()
 				for( auto& item : m_hit )
 				{
 					auto p = SafeCast<CCharacter>( item.first.GetPtr() );
-					SDamageContext damageContext;
-					damageContext.fDamage1 = m_nKickEffectTime;
-					damageContext.nType = (EDamageType)( eDamageHitType_Kick_End + 1 + m_nKickType );
-					damageContext.hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
-					damageContext.hitDir = item.second.hitDir * m_fHitForce;
-					damageContext.pSource = this;
-					p->Damage( damageContext );
+					auto pBullet = SafeCast<CBullet>( p );
+					if( pBullet )
+					{
+						pBullet->Pause( false );
+						auto vel = item.second.hitDir * pBullet->GetBulletVelocity().Length();
+						pBullet->SetBulletVelocity( vel );
+					}
+					else
+					{
+						SDamageContext damageContext;
+						damageContext.fDamage1 = m_nKickEffectTime;
+						damageContext.nType = (EDamageType)( eDamageHitType_Kick_End + 1 + m_nKickType );
+						damageContext.hitPos = p->GetGlobalTransform().MulVector2Pos( item.second.hitPos );
+						damageContext.hitDir = item.second.hitDir * m_fHitForce;
+						damageContext.pSource = this;
+						p->Damage( damageContext );
+					}
 				}
 			}
 		}

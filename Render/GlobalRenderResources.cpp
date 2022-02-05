@@ -12,6 +12,7 @@
 #include "ClassMetaData.h"
 #include "Rand.h"
 #include "Canvas.h"
+#include "LightRendering.h"
 
 void CGlobalShader::Create( const char* szShaderName, const char* szProfile, const CVertexBufferDesc** ppSOVertexBufferDesc, uint32 nVertexBuffers, uint32 nRasterizedStream )
 {
@@ -114,6 +115,14 @@ void RegisterEngineClasses()
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN_ABSTRACT( CMultiFrameImage2D )
+		REGISTER_BASE_CLASS( CRenderObject2D )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN_ABSTRACT( CDirectionalLightObject )
+		REGISTER_BASE_CLASS( CRenderObject2D )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN_ABSTRACT( CPointLightObject )
 		REGISTER_BASE_CLASS( CRenderObject2D )
 	REGISTER_CLASS_END()
 

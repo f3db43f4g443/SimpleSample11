@@ -67,10 +67,10 @@ public:
 	uint8 GetUserData( uint32 x, uint32 y );
 	void SetEditData( uint32 x, uint32 y, uint32 nValue ) { m_editData[x + y * ( m_nWidth + 1 )] = nValue; }
 	void RefreshAll();
+	void RefreshTile( uint32 x, uint32 y );
 
 	virtual void Render( CRenderContext2D& context ) override;
 private:
-	void RefreshTile( uint32 x, uint32 y );
 	CDrawable2D* m_pColorDrawable;
 	CDrawable2D* m_pOcclusionDrawable;
 	CDrawable2D* m_pGUIDrawable;

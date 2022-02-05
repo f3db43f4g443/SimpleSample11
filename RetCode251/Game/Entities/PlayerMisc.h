@@ -22,6 +22,7 @@ public:
 	void Extent( int32 nTime ) { m_nExtentTime = nTime; }
 	void Morph( CEntity* pEntity );
 	void Cancel();
+	bool CounterBullet( CEntity* p, const CVector2& hitPos, const CVector2& hitDir );
 protected:
 	virtual void OnTickAfterHitTest() override;
 	CCharacter* CheckHit( CEntity* pEntity );

@@ -8,6 +8,7 @@
 #include "ParticleSystem.h"
 #include "Explosion.h"
 #include "Entities/CharacterMisc.h"
+#include "Entities/PlayerMisc.h"
 
 void CBullet::OnHit( CEntity* pEntity )
 {
@@ -17,6 +18,8 @@ void CBullet::OnHit( CEntity* pEntity )
 
 void CBullet::Kill()
 {
+	if( m_bKilled || m_bKilled1 )
+		return;
 	if( m_pExp )
 	{
 		m_pExp->SetPosition( GetPosition() );
@@ -70,7 +73,7 @@ void CBullet::OnAddedToStage()
 			m_pDeathEffect->SetParentEntity( NULL );
 		m_origImgRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
 	}
-	m_pos0 = GetPosition();
+	m_pos0 = m_pos00 = GetPosition();
 }
 
 void CBullet::OnTickBeforeHitTest()
@@ -81,9 +84,16 @@ void CBullet::OnTickBeforeHitTest()
 void CBullet::OnTickAfterHitTest()
 {
 	CCharacter::OnTickAfterHitTest();
+	if( m_bPaused )
+	{
+		if( !m_bKilled1 && !m_bAttached && m_bTangentDir )
+			SetRotation( atan2( m_vel.y, m_vel.x ) );
+		return;
+	}
 	if( !m_bKilled1 && !m_bAttached )
 	{
 		CVector2 newVelocity = m_vel + m_acc * GetLevel()->GetElapsedTimePerTick();
+		m_pos00 = m_pos0;
 		m_pos0 = GetGlobalTransform().GetPosition();
 		SetPosition( GetPosition() + ( m_vel + newVelocity ) * ( GetLevel()->GetElapsedTimePerTick() * 0.5f ) );
 		m_vel = newVelocity;
@@ -142,16 +152,43 @@ CCharacter* CBullet::CheckHit( CEntity* pEntity )
 
 bool CBullet::HandleHit( CCharacter* pCharacter, const CVector2& hitPoint )
 {
+	auto hitDir = m_vel;
+	if( m_fHitForce >= 0 )
+	{
+		hitDir.Normalize();
+		hitDir = hitDir * m_fHitForce;
+	}
+	if( m_pCounterBullet )
+	{
+		auto pPlayer = SafeCast<CPlayer>( pCharacter->GetParentEntity() );
+		if( pPlayer )
+		{
+			if( pPlayer->CounterBullet( this, hitPoint, hitDir, true ) )
+			{
+				CCharacter::Kill();
+				return true;
+			}
+		}
+		if( SafeCast<CKick>( pCharacter ) || SafeCast<CKickSpin>( pCharacter ) )
+		{
+			pPlayer = SafeCast<CPlayer>( pCharacter->GetParentEntity() );
+			if( pPlayer )
+			{
+				if( pPlayer->CounterBullet( this, hitPoint, hitDir, false ) )
+				{
+					CCharacter::Kill();
+					return true;
+				}
+				return false;
+			}
+		}
+	}
+
 	CReference<CEntity> pTempRef = pCharacter;
 	SDamageContext context;
 	context.nSourceType = 1;
 	context.hitPos = hitPoint;
-	context.hitDir = m_vel;
-	if( m_fHitForce >= 0 )
-	{
-		context.hitDir.Normalize();
-		context.hitDir = context.hitDir * m_fHitForce;
-	}
+	context.hitDir = hitDir;
 	context.nHitType = -1;
 	context.pSource = this;
 	if( m_bAlertEnemy && pCharacter->IsEnemy() )
@@ -204,22 +241,27 @@ void CBullet::UpdateCommon()
 void CBullet::UpdateTrail()
 {
 	auto rect = m_initTrailRect;
-	rect.SetLeft( rect.x - m_fCurTrailLen );
+	//rect.SetLeft( rect.x - m_fCurTrailLen );
 	auto trans = GetGlobalTransform();
 	CVector2 pos = trans.GetPosition();
-	trans.SetPosition( m_pos0 );
+	trans.SetPosition( m_pos00 );
 	SHitProxyPolygon hit( rect );
 	static vector<CReference<CEntity> > vecHitEntities;
 	static vector<SRaycastResult> vecResult;
-	GetLevel()->MultiSweepTest( &hit, trans, pos - m_pos0, 0, vecHitEntities, &vecResult );
-
-	for( int i = 0; i < vecHitEntities.size(); i++ )
+	auto d = pos - m_pos00;
+	GetLevel()->MultiSweepTest( &hit, trans, d, 0, vecHitEntities, &vecResult );
+	if( vecHitEntities.size() )
 	{
-		CCharacter* pCharacter = CheckHit( static_cast<CEntity*>( vecHitEntities[i].GetPtr() ) );
-		if( pCharacter && HandleHit( pCharacter, vecResult[i].hitPoint ) )
+		auto dir = d;
+		dir.Normalize();
+		for( int i = 0; i < vecHitEntities.size(); i++ )
 		{
-			Kill();
-			goto finalize;
+			CCharacter* pCharacter = CheckHit( static_cast<CEntity*>( vecHitEntities[i].GetPtr() ) );
+			if( pCharacter && HandleHit( pCharacter, m_pos00 + dir * vecResult[i].fDist ) )
+			{
+				Kill();
+				goto finalize;
+			}
 		}
 	}
 	if( m_bHitStatic )
@@ -264,11 +306,12 @@ void RegisterGameClasses_Bullet()
 		REGISTER_MEMBER( m_bTangentDir )
 		REGISTER_MEMBER( m_fAngularVelocity )
 		REGISTER_MEMBER( m_fHitForce )
-		REGISTER_MEMBER( m_pDmgEft )
 		REGISTER_MEMBER( m_nBulletType )
 		REGISTER_MEMBER( m_initTrailRect )
 		REGISTER_MEMBER( m_fTrailLen )
 		REGISTER_MEMBER( m_fTrailSpeedScale )
+		REGISTER_MEMBER( m_pDmgEft )
+		REGISTER_MEMBER( m_pCounterBullet )
 		REGISTER_MEMBER_TAGGED_PTR( m_pDeathEffect, death )
 		REGISTER_MEMBER_TAGGED_PTR( m_pParticle, particle )
 		REGISTER_MEMBER_TAGGED_PTR( m_pExp, exp )

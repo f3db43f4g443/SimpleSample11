@@ -83,6 +83,7 @@
     </ClInclude>
     <ClInclude Include="TileMap2D.h" />
     <ClInclude Include="SimpleRenderer.h" />
+    <ClInclude Include="SimpleLighted2DRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -157,6 +158,7 @@
     </ClCompile>
     <ClCompile Include="TileMap2D.cpp" />
     <ClCompile Include="SimpleRenderer.cpp" />
+    <ClCompile Include="SimpleLighted2DRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="DX11">
@@ -215,6 +217,12 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="..\Shader\RTImage.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\Light2DSimple.shader">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="..\Shader\CommonMaterialSimpleLight.shader">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

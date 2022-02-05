@@ -207,7 +207,7 @@ int8 SweepTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const C
 	}
 
 	SRaycastResult tempResult;
-	tempResult.fDist = fMaxDist * 2;
+	tempResult.fDist = fMaxDist;
 	bool bHit = false;
 	for( int i = 0; i < nVertices; i++ )
 	{
@@ -216,17 +216,36 @@ int8 SweepTestCircleAndPolygon( SHitProxyCircle* a, SHitProxyPolygon* b, const C
 		v1 = vertices[vertIndex1] + normals[i] * fRadius;
 		v2 = vertices[vertIndex2] + normals[i] * fRadius;
 
-		SHitProxyEdge edge;
-		edge.vert0 = v1;
-		edge.vert1 = v2;
-		if( edge.Raycast( worldCenter, worldCenter + sweepOfs, transB, pResult ) )
 		{
-			if( !pResult )
-				return 1;
-			if( pResult->fDist < tempResult.fDist )
+			CVector2 p0 = transB.MulVector2Pos( v1 );
+			CVector2 p1 = transB.MulVector2Pos( v2 );
+
+			CVector2 a = sweepOfs;
+			CVector2 b = p1 - p0;
+			CVector2 c = worldCenter - p0;
+			float k = ( c.y * b.x - c.x * b.y ) / ( a.x * b.y - a.y * b.x );
+			float k1 = ( c.y * a.x - c.x * a.y ) / ( a.x * b.y - a.y * b.x );
+			if( k >= -fRadius / fMaxDist && k <= 1 && k1 >= 0 && k1 <= 1 )
 			{
-				bHit = true;
-				tempResult = *pResult;
+				k = Max( 0.0f, k );
+				auto normal = CVector2( b.y, -b.x );
+				if( normal.Dot( a ) <= 0 )
+				{
+					if( pResult )
+					{
+						pResult->hitPoint = worldCenter + a * k;
+						pResult->normal = normal;
+						pResult->normal.Normalize();
+						pResult->fDist = k * fMaxDist;
+						if( pResult->fDist < tempResult.fDist )
+						{
+							bHit = true;
+							tempResult = *pResult;
+						}
+					}
+					else
+						return 1;
+				}
 			}
 		}
 
@@ -920,12 +939,13 @@ bool SHitProxyEdge::Raycast( const CVector2& begin, const CVector2& end, const C
 	float k1 = ( c.y * a.x - c.x * a.y ) / ( a.x * b.y - a.y * b.x );
 	if( k < 0 || k > 1 || k1 < 0 || k1 > 1 )
 		return false;
+	auto normal = CVector2( b.y, -b.x );
+	if( normal.Dot( a ) > 0 )
+		return false;
 	if( pResult )
 	{
 		pResult->hitPoint = begin + a * k;
-		pResult->normal = CVector2( b.y, -b.x );
-		if( pResult->normal.Dot( a ) > 0 )
-			pResult->normal = CVector2( -b.y, b.x );
+		pResult->normal = normal;
 		pResult->normal.Normalize();
 		pResult->fDist = k * a.Length();
 	}

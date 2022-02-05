@@ -13,11 +13,17 @@ struct SLevelEditToolDesc
 class CLevelEditTool
 {
 public:
+	virtual CRenderObject2D* CreateToolPreview() { return NULL; }
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) {}
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) { return false; }
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) {}
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) {}
 	virtual bool OnViewportKey( struct SUIKeyEvent* pEvent ) { return false; }
+
+	virtual void OnPreviewDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) {}
+	virtual bool OnPreviewViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) { return false; }
+	virtual void OnPreviewViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) {}
+	virtual void OnPreviewViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) {}
 };
 
 class CLevelEditCommonTool : public CLevelEditTool

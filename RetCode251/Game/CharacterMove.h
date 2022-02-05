@@ -11,7 +11,7 @@ public:
 };
 
 #define MOVE_SIDE_THRESHOLD 0.1f
-#define PLATFORM_THRESHOLD 0.99f
+#define PLATFORM_THRESHOLD 0.98f
 struct SCharacterMovementData
 {
 	SCharacterMovementData() : bSleep( false ) {}

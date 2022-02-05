@@ -550,16 +550,16 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 				CVector2 finalOfs = entityOfs * ( ( fLength - result.fDist ) / fLength );
 				lp.AddItem( finalOfs.x, finalOfs.y, finalOfs.Length2() );
 				if( pEntity == pLandedEntity )
-					*pLandedOfs = *pLandedOfs - finalOfs * 2;
+					*pLandedOfs = *pLandedOfs - finalOfs;
 				vecHits.push_back( pEntity );
-				if( pVel )
+				/*if( pVel )
 				{
 					auto& velocity = *pVel;
 					auto v0 = pEntity->GetVelocity();
 					auto norm = finalOfs;
 					if( norm.Normalize() > 0 )
 						velocity = HitVel( velocity, v0, norm, fFrac );
-				}
+				}*/
 			}
 		}
 		if( lp.bDead )
@@ -589,6 +589,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 			hitResult.resize( 0 );
 			hitTestedEntity.resize( 0 );
 			hitTestResult.resize( 0 );
+			bFinished = true;
 			for( int i = 0; i < nTested; i++ )
 			{
 				auto pTestedEntity = pTested[i];
@@ -603,7 +604,6 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 				for( int k = nHitSize0; k < hitResult.size(); k++ )
 					hitTestedEntity[k] = pTestedEntity;
 
-				bFinished = true;
 				for( int i = nHitSize0; i < hitResult.size(); i++ )
 				{
 					auto pEntity = static_cast<CEntity*>( hitResult[i] );
@@ -637,7 +637,6 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 							}
 						}
 
-						bFinished = false;
 						bool b = false;
 						for( auto p1 : vecHits )
 						{
@@ -649,6 +648,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 						}
 						if( b )
 							continue;
+						bFinished = false;
 						bHit = true;
 						vecHits.push_back( pEntity );
 						CVector2 ofs1 = hitTestResult[i].normal;
@@ -936,7 +936,7 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 				if( !pOtherEntity->CheckImpact( pTested[i], tempResult[i1], false ) || !pTested[i]->CheckImpact( pOtherEntity, tempResult[i1], true ) )
 					bOK = false;
 			}
-			if( bOK && bIgnoreInverseNormal && tempResult[i1].normal.Dot( sweepOfs ) >= 0 )
+			if( bOK && bIgnoreInverseNormal && tempResult[i1].normal.Dot( sweepOfs ) >= -0.001f )
 				bOK = false;
 			if( !bOK )
 			{
@@ -1386,7 +1386,7 @@ void SCharacterWalkData::FindFloor( CCharacter * pCharacter )
 	SRaycastResult result;
 	auto pNewLandedEntity = SafeCast<CCharacter>( pCharacter->GetLevel()->SweepTest( pCharacter->Get_HitProxy(), trans, ofs, MOVE_SIDE_THRESHOLD,
 		pCharacter->GetHitType(), pCharacter->GetHitChannnel(), &result ) );
-	if( pNewLandedEntity && velocity.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.5f )
+	if( pNewLandedEntity && velocity.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.6f )
 	{
 		pLandedEntity = pNewLandedEntity;
 		pCharacter->SetPosition( pCharacter->GetPosition() + dir * result.fDist );

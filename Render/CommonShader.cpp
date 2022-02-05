@@ -102,6 +102,12 @@ IMPLEMENT_MATERIAL_SHADER( PSWithColorData, "Shader/CommonMaterial.shader", "PSW
 IMPLEMENT_MATERIAL_SHADER( PSEmission, "Shader/CommonMaterial.shader", "PSEmission", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSEmissionAlpha, "Shader/CommonMaterial.shader", "PSEmissionAlpha", "ps_5_0" );
 
+IMPLEMENT_MATERIAL_SHADER( PSDefaultSimpleLight, "Shader/CommonMaterialSimpleLight.shader", "PSDefault", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSDefaultMulInstDataSimpleLight, "Shader/CommonMaterialSimpleLight.shader", "PSDefaultMulInstData", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSEmissionSimpleLight, "Shader/CommonMaterialSimpleLight.shader", "PSEmission", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSEmissionMulInstDataSimpleLight, "Shader/CommonMaterialSimpleLight.shader", "PSEmissionMulInstData", "ps_5_0" );
+IMPLEMENT_MATERIAL_SHADER( PSGlassSimpleLight, "Shader/CommonMaterialSimpleLight.shader", "PSGlass", "ps_5_0" );
+
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColor, "Shader/AlphaToOcclusion.shader", "PSColor", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusion, "Shader/AlphaToOcclusion.shader", "PSOcclusion", "ps_5_0" );
 IMPLEMENT_MATERIAL_SHADER( PSAlphaToOcclusionColorConstData, "Shader/AlphaToOcclusion.shader", "PSColorConstData", "ps_5_0" );

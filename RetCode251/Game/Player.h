@@ -12,7 +12,8 @@ enum
 	ePlayerLevel_Shoot,
 	ePlayerLevel_Test_Scan,
 	
-	ePlayerLevel_Max,
+	ePlayerLevel_VehicleMode,
+	ePlayerLevel_CounterBullet,
 	ePlayerLevel_Grab,
 	ePlayerLevel_Slide_Air,
 	ePlayerLevel_Glide,
@@ -25,6 +26,7 @@ enum
 	ePlayerLevel_Kick_Mid,
 	ePlayerLevel_Kick_Heavy,
 	ePlayerLevel_Test_Scan_1,
+	ePlayerLevel_Max,
 };
 
 class CPlayer : public CCharacter
@@ -41,6 +43,7 @@ public:
 
 	virtual int8 CheckPush( SRaycastResult& hit, const CVector2& dir, float& fDist, SPush& context, int32 nPusher ) override;
 	virtual void HandlePush( const CVector2& dir, float fDist, int8 nStep ) override;
+	bool CounterBullet( CEntity* p, const CVector2& hitPos, const CVector2& hitDir, bool bHitPlayer );
 
 	void UpdateInput();
 	virtual bool Damage( SDamageContext& context ) override;
@@ -62,19 +65,26 @@ public:
 		eState_Stand_1,
 		eState_Stand_1_Ready,
 		eState_Walk_1,
+		eState_Hop,
+		eState_Hop_Down,
 		eState_Glide_Fall,
 		eState_Glide,
 		eState_Boost,
 		eState_Fly,
+		eState_Hop_Flip,
 		eState_Dash,
+		eState_Grab,
 		eState_Dash_Grab,
 		eState_Grip,
+		eState_Grab_Edge,
 		eState_Punch,
 		eState_Dash_Fall,
 		eState_Roll,
 		eState_Roll_Stand_Up,
 		eState_Roll_Stop,
 		eState_Roll_Recover,
+		eState_Roll_Grab_Edge_Recover,
+		eState_Roll_Grab_Edge_Recover1,
 		eState_Roll_Dash,
 		eState_BackFlip,
 		eState_BackFlip_1,
@@ -121,9 +131,10 @@ protected:
 	bool CanFindFloor();
 	bool CanRecoverShield();
 	bool IsDodging();
-	bool IsBlocking();
 	float GetGravity();
 	bool IsFalling();
+	bool IsUsingWheel();
+	bool IsVehicleMode();
 	void FindFloor( const CVector2& gravityDir );
 	void UpdateHit();
 	void UpdateAnim( const CVector2& gravityDir );
@@ -137,13 +148,19 @@ protected:
 	void BeginRoll();
 	void Slide1();
 	void SlideCancel();
+	void BeginVehicleMode();
 	void Glide();
-	void Fly();
+	void Fly( int8 nFlyDir );
+	void Hop();
+	void HopDown();
 	void Dash();
 	void DashGrab();
 	void CheckGrab();
 	void GrabControl( const CVector2& gravityDir );
 	void GrabDetach();
+	bool TryGrabEdge( const CVector2& gravityDir, const CVector2& pos0, const CVector2& ofs0, CVector2 v0 );
+	void GrabEdgeRecover( const CVector2 &gravityDir );
+	void GrabEdgeRecover1( const CVector2 &gravityDir );
 	void Punch();
 	void PunchHit( const CVector2& gravityDir, SRaycastResult hit[3] );
 	void DashFall();
@@ -166,11 +183,17 @@ protected:
 	float m_fMove1Speed;
 	float m_fMove1Acc;
 	float m_fStop1Acc;
+	float m_fGlideAcc;
+	float m_fVehicleStartUpSpeed;
+	float m_fVehicleMaxAcc;
+	float m_fVehicleMaxPower;
+	float m_fVehicleFrac;
+	float m_fVehicleBreakAcc;
 	CVector2 m_kickVel[11];
 	CVector3 m_kickOffset[11];
-	CVector2 m_kickSpinBackVel;
 	CVector2 m_kickSpinSlideVel;
 	float m_fKickDashSpeed[4];
+	float m_nKickSpinMaxSpeed;
 	float m_nKickSpinDashSpeed;
 	float m_fSlideSpeed0;
 	float m_fSlideAcc;
@@ -205,6 +228,7 @@ protected:
 	float m_fFallDmgBegin;
 	float m_fFallDmgPerHeight;
 	float m_fImpactLevelFallHeight[4];
+	float m_fMaxWheelHeight;
 	int32 m_nMaxPunchFrame;
 	int32 m_nFireCD;
 	int32 m_nBombCD;
@@ -241,6 +265,9 @@ protected:
 	int32 m_nSlideAirCD;
 	int32 m_nWalk1AnimSpeed;
 	int32 m_nStand1ReadyTime;
+	int32 m_nHopDownTime;
+	int32 m_nHopFlipAnimSpeed;
+	int32 m_nWheeledHitFallTime;
 	int32 m_nGlideFallTime;
 	int32 m_nDashGrabBeginFrame;
 	int32 m_nGrabMaxTime;
@@ -297,6 +324,7 @@ protected:
 	int32 m_nHpRecoverCDLeft;
 	int32 m_nShield;
 	int32 m_nShieldRecoverCDLeft;
+	float m_fGlideBaseVel;
 	float m_fFuel;
 	CVector2 m_vel;
 	CMatrix2D lastLandedEntityTransform;

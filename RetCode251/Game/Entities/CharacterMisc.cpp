@@ -688,6 +688,241 @@ void CChunk1::UpdateImages()
 	}
 }
 
+void CChunk2::OnAddedToStage()
+{
+	Init();
+	CCharacter::OnAddedToStage();
+}
+
+void CChunk2::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_vecElems )
+	{
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+	}
+}
+
+void CChunk2::Resize( const TRectangle<int32>& size )
+{
+	m_ofs = m_ofs + CVector2( size.x, size.y ) * m_tileSize;
+	vector<int32> vecTemp;
+	vecTemp.resize( m_nTileX * m_nTileY );
+	memcpy( &vecTemp[0], &m_arrData[0], sizeof( int32 ) * Min( vecTemp.size(), m_arrData.Size() ) );
+	auto x0 = m_nTileX;
+	auto y0 = m_nTileY;
+	m_nTileX = size.width;
+	m_nTileY = size.height;
+
+	m_arrData.Resize( m_nTileX * m_nTileY );
+	for( int i = 0; i < m_nTileX; i++ )
+	{
+		for( int j = 0; j < m_nTileY; j++ )
+		{
+			auto& item = m_arrData[i + j * m_nTileX];
+			auto x = Max( 0, Min( x0 - 1, i + size.x ) );
+			auto y = Max( 0, Min( y0 - 1, j + size.y ) );
+			item = vecTemp[x + y * x0];
+		}
+	}
+}
+
+void CChunk2::Init()
+{
+	if( m_bInited )
+		return;
+	m_bInited = true;
+	m_nHp += m_fHpPerTile * ( m_nTileX * m_nTileY - 1 );
+	m_arrData.Resize( m_nTileX * m_nTileY );
+	UpdateHit();
+	UpdateImages();
+}
+
+void CChunk2::UpdateHit()
+{
+	TVector2<int32>* nTypes = (TVector2<int32>*)alloca( m_nTexX * m_nTexY * sizeof( TVector2<int32> ) );
+	memset( nTypes, 0, sizeof( TVector2<int32> ) * m_nTexX * m_nTexY );
+	for( int i = 0; i < m_arrTileDesc.Size(); i++ )
+	{
+		auto& tileDesc = m_arrTileDesc[i];
+		for( int i1 = 0; i1 < tileDesc.w; i1++ )
+		{
+			auto x = i1 + tileDesc.x;
+			if( x < 0 || x >= m_nTexX )
+				continue;
+			for( int j1 = 0; j1 < tileDesc.h; j1++ )
+			{
+				auto y = j1 + tileDesc.y;
+				if( y < 0 || y >= m_nTexY )
+					continue;
+				auto& item = nTypes[x + y * m_nTexX];
+				if( tileDesc.nType >= 2 )
+				{
+					if( i1 > 0 || j1 < tileDesc.h - 1 )
+					{
+						item.x = 0;
+						continue;
+					}
+					item.y = tileDesc.w > tileDesc.h ? tileDesc.w / tileDesc.h - 1 : tileDesc.h / tileDesc.w - 1;
+				}
+				item.x = tileDesc.nType;
+			}
+		}
+	}
+	
+	for( int i = 0; i < m_nTileX; i++ )
+	{
+		for( int j = 0; j < m_nTileY; j++ )
+		{
+			int32 nData = m_arrData[i + j * m_nTileX];
+			int32 tX = nData & 0xffff;
+			int32 tY = nData >> 16;
+			auto nType = nTypes[tX + tY * m_nTexX].x;
+			auto nType1 = nTypes[tX + tY * m_nTexX].y;
+			int32 xScale = 1 + Max( 0, nType1 );
+			int32 yScale = 1 + Max( 0, -nType1 );
+			switch( nType )
+			{
+			case 1:
+			{
+				CRectangle rect( m_tileSize.x * i, m_tileSize.y * j, m_tileSize.x, m_tileSize.y );
+				rect = rect.Offset( m_ofs );
+				auto pEntity = new CCharacter;
+				pEntity->SetHitType( GetHitType() );
+				memcpy( pEntity->GetHitChannnel(), GetHitChannnel(), sizeof( eEntityHitType_Count ) );
+				pEntity->AddRect( rect );
+				pEntity->SetParentEntity( this );
+				break;
+			}
+			case 2:
+			{
+				CVector2 vertices[] = { { 0, 0 }, { m_tileSize.x, 0 }, { m_tileSize.x, m_tileSize.y } };
+				for( int k = 0; k < 3; k++ )
+					vertices[k] = vertices[k] * CVector2( xScale, yScale ) + CVector2( m_tileSize.x * i, m_tileSize.y * j ) + m_ofs;
+				auto pEntity = new CCharacter;
+				pEntity->SetHitType( GetHitType() );
+				memcpy( pEntity->GetHitChannnel(), GetHitChannnel(), sizeof( eEntityHitType_Count ) );
+				pEntity->AddPolygon( 3, vertices );
+				pEntity->SetParentEntity( this );
+				break;
+			}
+			case 3:
+			{
+				CVector2 vertices[] = { { 0, 0 }, { m_tileSize.x, 0 }, { 0, m_tileSize.y } };
+				for( int k = 0; k < 3; k++ )
+					vertices[k] = vertices[k] * CVector2( xScale, yScale ) + CVector2( m_tileSize.x * i, m_tileSize.y * j ) + m_ofs;
+				auto pEntity = new CCharacter;
+				pEntity->SetHitType( GetHitType() );
+				memcpy( pEntity->GetHitChannnel(), GetHitChannnel(), sizeof( eEntityHitType_Count ) );
+				pEntity->AddPolygon( 3, vertices );
+				pEntity->SetParentEntity( this );
+				break;
+			}
+			case 4:
+			{
+				CVector2 vertices[] = { { m_tileSize.x, 0 }, { m_tileSize.x, m_tileSize.y }, { 0, m_tileSize.y } };
+				for( int k = 0; k < 3; k++ )
+					vertices[k] = vertices[k] * CVector2( xScale, yScale ) + CVector2( m_tileSize.x * i, m_tileSize.y * j ) + m_ofs;
+				auto pEntity = new CCharacter;
+				pEntity->SetHitType( GetHitType() );
+				memcpy( pEntity->GetHitChannnel(), GetHitChannnel(), sizeof( eEntityHitType_Count ) );
+				pEntity->AddPolygon( 3, vertices );
+				pEntity->SetParentEntity( this );
+				break;
+			}
+			case 5:
+			{
+				CVector2 vertices[] = { { 0, 0 }, { m_tileSize.x, m_tileSize.y }, { 0, m_tileSize.y } };
+				for( int k = 0; k < 3; k++ )
+					vertices[k] = vertices[k] * CVector2( xScale, yScale ) + CVector2( m_tileSize.x * i, m_tileSize.y * j ) + m_ofs;
+				auto pEntity = new CCharacter;
+				pEntity->SetHitType( GetHitType() );
+				memcpy( pEntity->GetHitChannnel(), GetHitChannnel(), sizeof( eEntityHitType_Count ) );
+				pEntity->AddPolygon( 3, vertices );
+				pEntity->SetParentEntity( this );
+				break;
+			}
+			default:
+				break;
+			}
+		}
+	}
+}
+
+void CChunk2::UpdateImages()
+{
+	if( !GetRenderObject() )
+		return;
+	auto pImage = static_cast<CImage2D*>( GetRenderObject() );
+	auto tex = pImage->GetElem().texRect;
+	m_origTexRect = CRectangle( tex.x, tex.y, tex.width / m_nTexX, tex.height / m_nTexY );
+	m_nParamCount = Min<int32>( 2, pImage->GetParamCount() );
+	if( m_nParamCount )
+	{
+		for( int i = 0; i < m_nParamCount; i++ )
+			m_params[i] = pImage->GetParam()[0];
+	}
+	SetRenderObject( NULL );
+	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
+	if( !pDrawable )
+		return;
+
+	auto size = m_tileSize * CVector2( m_nTileX, m_nTileY );
+	auto ofs = m_ofs;
+	SetLocalBound( CRectangle( ofs.x, ofs.y, size.x, size.y ) );
+
+	m_vecElems.resize( m_nTileX * m_nTileY );
+	int32 iElem = 0;
+	for( int i = 0; i < m_nTileX; i++ )
+	{
+		for( int j = 0; j < m_nTileY; j++ )
+		{
+			auto& elem = m_vecElems[iElem++];
+			auto p = static_cast<CImage2D*>( pDrawable->CreateInstance() );
+			elem.rect = CRectangle( m_tileSize.x * i + m_ofs.x, m_tileSize.y * j + m_ofs.y, m_tileSize.x, m_tileSize.y );
+			int32 nData = m_arrData[i + j * m_nTileX];
+			int32 tX = nData & 0xffff;
+			int32 tY = nData >> 16;
+
+			auto texRect = m_origTexRect;
+			texRect.x += texRect.width * tX;
+			texRect.y += texRect.height * tY;
+			elem.texRect = texRect;
+			elem.nInstDataSize = m_nParamCount * sizeof( CVector4 );
+			if( m_nParamCount )
+				elem.pInstData = m_params;
+		}
+	}
+}
+
 bool CAlertTrigger::IsTriggered()
 {
 	auto pMasterLevel = CMasterLevel::GetInst();
@@ -1361,6 +1596,31 @@ void RegisterGameClasses_CharacterMisc()
 		REGISTER_MEMBER( m_nTileY )
 		REGISTER_MEMBER( m_ofs )
 		REGISTER_MEMBER( m_hitSize )
+		REGISTER_MEMBER( m_fHpPerTile )
+		REGISTER_MEMBER( m_bNoHit )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( SChunk2TileDesc )
+		REGISTER_MEMBER( x )
+		REGISTER_MEMBER( y )
+		REGISTER_MEMBER( w )
+		REGISTER_MEMBER( h )
+		REGISTER_MEMBER( nType )
+	REGISTER_CLASS_END()
+
+	REGISTER_CLASS_BEGIN( CChunk2 )
+		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_BASE_CLASS( IEditorTiled )
+		REGISTER_MEMBER( m_arrTileDesc )
+		REGISTER_MEMBER( m_nTexX )
+		REGISTER_MEMBER( m_nTexY )
+		REGISTER_MEMBER_BEGIN( m_arrData )
+			MEMBER_ARG( editor_hide, 1 )
+		REGISTER_MEMBER_END()
+		REGISTER_MEMBER( m_tileSize )
+		REGISTER_MEMBER( m_nTileX )
+		REGISTER_MEMBER( m_nTileY )
+		REGISTER_MEMBER( m_ofs )
 		REGISTER_MEMBER( m_fHpPerTile )
 		REGISTER_MEMBER( m_bNoHit )
 	REGISTER_CLASS_END()

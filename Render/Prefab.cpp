@@ -429,6 +429,7 @@ void CPrefabNode::LoadOtherExtraData( IBufReader & extraData )
 		extraData.Read( pLightObject->fMaxRange );
 		extraData.Read( pLightObject->fLightHeight );
 		extraData.Read( pLightObject->baseColor );
+		pLightObject->SetLocalBound( CRectangle( -pLightObject->fMaxRange, -pLightObject->fMaxRange, pLightObject->fMaxRange * 2, pLightObject->fMaxRange * 2 ) );
 		SetRenderObject( pLightObject );
 	}
 }

@@ -10,6 +10,10 @@
 #include "Entities/PlayerMisc.h"
 #include "Entities/UtilEntities.h"
 
+#define GRAB_EDGE_TIME 9
+#define GRAB_EDGE_RECOVER_TIME 9
+#define ROLL_DASH_SPEED_Y 600
+
 CPlayer::CPlayer( const SClassCreateContext& context )
 	: CCharacter( context )
 {
@@ -92,6 +96,43 @@ void CPlayer::HandlePush( const CVector2& dir, float fDist, int8 nStep )
 	}
 }
 
+bool CPlayer::CounterBullet( CEntity* p, const CVector2& hitPos, const CVector2& hitDir, bool bHitPlayer )
+{
+	if( m_nLevel < ePlayerLevel_CounterBullet )
+		return false;
+	if( !m_pCurAttackEffect )
+		return false;
+	auto pKick = SafeCast<CKick>( m_pCurAttackEffect.GetPtr() );
+	if( pKick )
+	{
+		if( bHitPlayer )
+		{
+			/*auto gravityDir = GetLevel()->GetGravityDir();
+			auto tangentDir = CVector2( -gravityDir.y, gravityDir.x ) * m_nDir;
+			if( tangentDir.Dot( hitDir ) > 0 )
+				return false;*/
+			return false;
+		}
+		return pKick->CounterBullet( p, hitPos, hitDir );
+	}
+	return false;
+	/*auto pPrefab = SafeCast<CBullet>( p )->GetCounterBullet();
+	auto pNewBullet = SafeCast<CBullet>( pPrefab->GetRoot()->CreateInstance() );
+	pNewBullet->SetPosition( hitPos );
+	auto vel0 = pNewBullet->GetBulletVelocity();
+	auto vel = hitDir * -1;
+	vel.Normalize();
+	vel = CVector2( vel.x * vel0.x - vel.y * vel0.y, vel.x * vel0.y + vel.y * vel0.x );
+	pNewBullet->SetBulletVelocity( vel );
+	pNewBullet->SetRotation( atan2( vel.y, vel.x ) );
+	pNewBullet->SetOwner( this );
+	pNewBullet->SetParentBeforeEntity( p );
+	auto pKickSpin = SafeCast<CKickSpin>( m_pCurAttackEffect.GetPtr() );
+	if( pKickSpin )
+		pKickSpin->OnHit( pNewBullet );
+	return true;*/
+}
+
 void CPlayer::UpdateInput()
 {
 	m_nMoveState = CGame::Inst().IsKey( 'D' ) - CGame::Inst().IsKey( 'A' );
@@ -132,14 +173,12 @@ void CPlayer::UpdateInput()
 				m_nCurState = eState_Slide;
 				m_vel = tangentDir * m_fSlideSpeed0 * m_nDir + gravityDir * m_vel.Dot( gravityDir );
 				m_nStateTick = 0;
-				CGame::Inst().ForceKeyRelease( 'J' );
 			}
 			else if( m_nLevel >= ePlayerLevel_Slide_Air && !m_nSlideAirCDLeft )
 			{
 				m_nCurState = eState_Slide_Air;
 				m_vel = ( tangentDir * m_nDir + gravityDir ) * m_fSlideSpeed0;
 				m_nStateTick = 0;
-				CGame::Inst().ForceKeyRelease( 'J' );
 			}
 		}
 		else
@@ -165,22 +204,19 @@ void CPlayer::UpdateInput()
 		m_nCurState = eState_Stand_1;
 		m_nStateTick = 0;
 		m_nBufferedInput = 0;
+		m_nJumpState = 0;
 	}
-	if( m_nCurState == eState_Stand_1 || m_nCurState == eState_Walk_1 || m_nCurState == eState_Slide_1 && m_nStateTick >= m_nSlideDashTime )
+	if( m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1 || m_nCurState == eState_Slide_1 && m_nStateTick >= m_nSlideDashTime )
 	{
-		if( CGame::Inst().IsKey( 'J' ) && m_nMoveState )
+		if( CGame::Inst().IsKey( 'U' ) )
+			Dash();
+		else if( CGame::Inst().IsKey( 'J' ) && CGame::Inst().IsKey( 'S' ) )
+			HopDown();
+		else if( m_nCurState != eState_Stand_1_Ready && CGame::Inst().IsKey( 'J' ) && m_pLanded )
 		{
-			if( m_nMoveState * m_nDir < 0 )
-			{
-				BackFlip();
-			}
-			else if( m_pLanded )
-			{
-				m_nCurState = eState_Stand_1_Ready;
-				m_nStateTick = 0;
-			}
-			else if( m_nCurState != eState_Glide || m_vel.Dot( gravityDir ) >= m_glideVel.y - 1 )
-				DashGrab();
+			m_nCurState = eState_Stand_1_Ready;
+			m_nStateTick = 0;
+			m_nBufferedInput = 0;
 		}
 		else
 		{
@@ -191,38 +227,61 @@ void CPlayer::UpdateInput()
 	if( m_nCurState == eState_Glide )
 	{
 		CVector2 tangent( -gravityDir.y, gravityDir.x );
-		auto tanVel = m_vel.Dot( tangent ) * m_nDir;
-		if( tanVel > m_fBoostThresholdSpeed && CGame::Inst().IsKey( 'J' ) && m_nMoveState == -m_nDir )
+		auto tanVel = m_vel.Dot( tangent );
+		if( CGame::Inst().IsKey( 'J' ) && tanVel * -m_nMoveState > m_fBoostThresholdSpeed )
 		{
 			m_nCurState = eState_Boost;
 			m_boostState.nTick = 0;
 			m_boostState.nTick1 = ceil( ( tanVel - m_fBoostThresholdSpeed ) * 0.5f / ( m_boostAcc.x * GetStage()->GetElapsedTimePerTick() ) );
-			m_vel = m_vel - tangent * m_nDir * ( m_fBoostThresholdSpeed - m_fBoostMinSpeed );
+			m_vel = m_vel - tangent * m_nMoveState * ( m_fBoostThresholdSpeed - m_fBoostMinSpeed );
 			m_fFuel = m_fBoostThresholdSpeed - m_fBoostMinSpeed;
 		}
-		else if( CGame::Inst().IsKey( 'J' ) && m_nMoveState == m_nDir )
-			DashGrab();
+		else if( CGame::Inst().IsKey( 'U' ) )
+			Dash();
 		else if( CGame::Inst().IsKey( 'S' ) )
 		{
-			m_nCurState = eState_Glide_Fall;
+			//m_nCurState = eState_Glide_Fall;
+			m_nCurState = eState_Stand_1;
 			m_nStateTick = 0;
 		}
 	}
-	if( m_nCurState == eState_Dash_Grab && !m_pGrabbed )
-	{
-		if( !CGame::Inst().IsKey( 'J' ) )
-			DashFall();
-	}
 	
+	if( m_nCurState == eState_Hop )
+	{
+		if( CGame::Inst().IsKey( 'J' ) )
+			m_nBufferedInput |= 1;
+		if( CGame::Inst().IsKey( 'U' ) )
+			m_nBufferedInput |= 2;
+		if( CGame::Inst().IsKeyDown( 'S' ) )
+			m_nBufferedInput |= 4;
+	}
+	if( m_nCurState == eState_Hop_Down )
+	{
+		if( CGame::Inst().IsKey( 'U' ) )
+			Dash();
+	}
 	if( m_nCurState == eState_Stand_1_Ready )
 	{
-		if( m_nMoveState * m_nDir < 0 )
-			BackFlip();
+		if( m_nJumpState )
+		{
+			CGame::Inst().ForceKeyRelease( 'J' );
+			Hop();
+		}
+		else
+		{
+			if( !CGame::Inst().IsKey( 'J' ) )
+				Hop();
+			else if( !m_pLanded )
+			{
+				CGame::Inst().ForceKeyRelease( 'J' );
+				Hop();
+			}
+		}
 	}
-	if( m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Dash )
+	if( m_nCurState == eState_Dash || m_nCurState == eState_Roll_Dash )
 	{
-		if( CGame::Inst().IsKeyDown( 'W' ) )
-			m_nBufferedInput = 1;
+		if( m_nLevel >= ePlayerLevel_Grab && !CGame::Inst().IsKey( 'U' ) )
+			DashGrab();
 	}
 	if( m_nCurState == eState_Roll )
 	{
@@ -245,16 +304,10 @@ void CPlayer::UpdateInput()
 	}
 	if( m_nCurState == eState_Slide_1 && m_nStateTick < m_nSlideDashTime || m_nCurState == eState_Roll_Recover )
 	{
-		int8 bJump = m_nBufferedInput & 1;
-		int8 nDir = m_nBufferedInput >> 1;
-		if( m_nMoveState )
-			nDir = m_nMoveState * m_nDir > 0 ? 1 : 2;
 		if( CGame::Inst().IsKey( 'J' ) )
-		{
-			bJump = 1;
-			CGame::Inst().ForceKeyRelease( 'J' );
-		}
-		m_nBufferedInput = bJump | ( nDir << 1 );
+			m_nBufferedInput |= 1;
+		if( CGame::Inst().IsKey( 'U' ) )
+			m_nBufferedInput |= 2;
 	}
 
 	if( m_nCurState == eState_Kick_Ready )
@@ -279,17 +332,7 @@ void CPlayer::UpdateInput()
 		{
 			if( CGame::Inst().IsKey( 'J' ) && m_kickState.bHit && !m_kickState.nFlag1 )
 			{
-				if( CGame::Inst().IsKey( 'S' ) )
-					Kick( eAni_Kick_Spin_Slide );
-				else if( m_nMoveState == -m_nDir )
-				{
-					Kick( eAni_Kick_Spin );
-					CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-					tangentDir = tangentDir * m_nDir;
-					m_vel = tangentDir * m_kickSpinBackVel.x - gravityDir * m_kickSpinBackVel.y;
-				}
-				else
-					Kick( eAni_Kick_Spin );
+				Kick( eAni_Kick_Spin );
 				m_nBufferedInput = 0;
 			}
 		}
@@ -307,6 +350,17 @@ void CPlayer::UpdateInput()
 				m_nBufferedInput = m_nBufferedInput | 1;
 			if( CGame::Inst().IsKeyDown( 'W' ) )
 				m_nBufferedInput = m_nBufferedInput | 2;
+		}
+		if( m_kickState.nAni == eAni_Kick_Spin )
+		{
+			if( CGame::Inst().IsKey( 'S' ) )
+			{
+				m_nStateTick = eAni_Kick_Spin_Slide << 16;
+				auto gravityDir = GetLevel()->GetGravityDir();
+				CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+				tangentDir = tangentDir * m_nDir;
+				m_vel = tangentDir * m_kickSpinSlideVel.x - gravityDir * m_kickSpinSlideVel.y;
+			}
 		}
 		else if( m_kickState.nAni == eAni_Kick_Recover )
 		{
@@ -346,8 +400,6 @@ bool CPlayer::Damage( SDamageContext& context )
 	{
 		if( IsDodging() )
 			return true;
-		else if( IsBlocking() )
-			return false;
 	}
 	m_nShieldRecoverCDLeft = m_nShieldHitRecoverCD;
 
@@ -473,6 +525,7 @@ void CPlayer::OnTickAfterHitTest()
 		case eState_BackFlip:
 			m_nCurState = eState_Stand_1;
 			m_nStateTick = 0;
+			m_nJumpState = 0;
 			m_pHit[1]->SetPosition( m_pHit[0]->GetPosition() );
 			break;
 		default:
@@ -487,6 +540,7 @@ void CPlayer::OnTickAfterHitTest()
 			{
 				m_nCurState = eState_Stand_1;
 				m_nStateTick = 0;
+				m_nJumpState = 0;
 				m_pHit[1]->SetPosition( m_pHit[0]->GetPosition() );
 			}
 			else if( m_nCurState < eState_BackFlip_1 )
@@ -635,7 +689,7 @@ void CPlayer::OnTickAfterHitTest()
 	case eState_Fly:
 	{
 		bFixVel = true;
-		CVector2 speed( m_fFlySpeed * m_nDir, 0 );
+		CVector2 speed( m_fFlySpeed * m_nJumpState, 0 );
 		float fFuelConsume = m_fFlyFuelConsume;
 		int8 nMoveState1 = CGame::Inst().IsKey( 'W' ) - CGame::Inst().IsKey( 'S' );
 		if( m_nMoveState )
@@ -650,15 +704,28 @@ void CPlayer::OnTickAfterHitTest()
 		}
 		m_fFuel = Max( 0.0f, m_fFuel - fFuelConsume * GetStage()->GetElapsedTimePerTick() );
 		fixVel = m_vel = speed;
-	}
-	case eState_Dash:
-	{
-		CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-		tangentDir = tangentDir * m_nDir;
-		m_vel = tangentDir * m_fDashSpeed - gravityDir * m_fDashSpeedY;
 		break;
 	}
+	case eState_Hop_Flip:
+	{
+		if( m_nStateTick >= m_nHopFlipAnimSpeed * 3 )
+		{
+			float fCur = m_pHit[2]->x * m_nDir;
+			float fTarget = m_fHitOfs2 * ( m_nStateTick + 1 - m_nHopFlipAnimSpeed * 3 ) / m_nHopFlipAnimSpeed;
+			fHitMove2 = fTarget - fCur;
+		}
+		break;
+	}
+	case eState_Dash:
 	case eState_Dash_Grab:
+	{
+		CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+		m_vel = m_vel - tangentDir * ( m_fDashSpeed * 1.0f / m_nDashGrabBeginFrame ) * m_nDir;
+		bFixVel = true;
+		fixVel = m_vel;
+		break;
+	}
+	case eState_Grab:
 	{
 		CVector2 tangentDir( -gravityDir.y, gravityDir.x );
 		tangentDir = tangentDir * m_nDir;
@@ -691,10 +758,10 @@ void CPlayer::OnTickAfterHitTest()
 	case eState_Roll_Dash:
 	{
 		float fCur = m_pHit[2]->x * m_nDir;
-		float fTarget = m_fHitOfs1 * ( m_nStateTick + 1 ) / m_nStand1ReadyTime;
+		float fTarget = m_fHitOfs1 * ( m_nStateTick + 1 ) / ( m_nRollRecoverAnimSpeed * 2 );
 		fHitMove2 = fTarget - fCur;
 		bFixVel = true;
-		fixVel = m_vel = CVector2( 0, 0 );
+		fixVel = m_vel;
 		break;
 	}
 	case eState_BackFlip:
@@ -711,7 +778,8 @@ void CPlayer::OnTickAfterHitTest()
 		break;
 	}
 
-	auto pos0 = GetPosition(); 
+	auto pos0 = GetPosition();
+	CVector2 hit2ofs0 = m_pHit[2]->GetPosition();
 	bool bFalling = IsFalling();
 	CVector2 dPos = ( bFixVel ? fixVel : m_vel ) * fDeltaTime;
 	CVector2 grabTarget( 0, 0 );
@@ -720,11 +788,17 @@ void CPlayer::OnTickAfterHitTest()
 		grabTarget = m_pGrabbed->GetGlobalTransform().MulVector2Pos( m_grabDesc.grabOfs );
 		m_pGrabDetect->ForceUpdateTransform();
 		dPos = grabTarget - m_pGrabDetect->globalTransform.GetPosition();
-		if( m_nCurState == eState_Dash_Grab && dPos.Length2() > m_fGrabAttachSpeed * m_fGrabAttachSpeed )
+		if( m_nCurState == eState_Grab && dPos.Length2() > m_fGrabAttachSpeed * m_fGrabAttachSpeed )
 		{
 			dPos.Normalize();
 			dPos = dPos * m_fGrabAttachSpeed;
 		}
+	}
+	else if( m_nCurState == eState_Grab_Edge || m_nCurState == eState_Roll_Grab_Edge_Recover || m_nCurState == eState_Roll_Grab_Edge_Recover1 )
+	{
+		dPos = landedEntityOfs;
+		if( !m_nJumpState )
+			dPos = dPos + CVector2( -gravityDir.y, gravityDir.x ) * ( m_nDir * 4 );
 	}
 	else if( m_nCurState != eState_Slide_Air && !bFixVel )
 	{
@@ -739,26 +813,12 @@ void CPlayer::OnTickAfterHitTest()
 
 		if( !m_bKnockback )
 		{
-			if( m_nCurState == eState_Kick || m_nCurState == eState_Kick_Ready )
-			{
-				moveDir = tangent;
-				float fTangentVelocity = m_vel.Dot( moveDir );
-				if( fTangentVelocity < 0 )
-				{
-					fTangentVelocity = -fTangentVelocity;
-					moveDir = moveDir * -1;
-				}
-				fAcc = m_pLanded ? m_fStopAcc : m_fAirAcc;
-				t0 = Max( 0.0f, Min( fDeltaTime, fTangentVelocity / fAcc ) );
-				t1 = fDeltaTime - t0;
-				dVelocity = dVelocity - moveDir * ( fAcc * t0 );
-				dPos = dPos - moveDir * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
-			}
 			if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_1 )
 			{
 				moveDir = tangent * m_nDir;
 				float fTangentVelocity = m_vel.Dot( moveDir );
 				fAcc = m_fSlideAcc;
+				fAcc += moveDir.Dot( gravityDir ) * GetGravity();
 				t0 = Max( 0.0f, Min( fDeltaTime, ( m_fSlideSpeed - fTangentVelocity ) / m_fSlideAcc ) );
 				t1 = fDeltaTime - t0;
 				dVelocity = dVelocity + moveDir * ( fAcc * t0 );
@@ -771,6 +831,7 @@ void CPlayer::OnTickAfterHitTest()
 					moveDir = tangent * m_nDir;
 					float fTangentVelocity = m_vel.Dot( moveDir );
 					fAcc = m_fRollAcc - m_fRollAcc1 * m_nDir * m_nMoveState;
+					fAcc += moveDir.Dot( gravityDir ) * GetGravity();
 					t0 = Max( 0.0f, Min( fDeltaTime, fTangentVelocity / fAcc ) );
 					t1 = fDeltaTime - t0;
 					dVelocity = dVelocity + moveDir * ( -fAcc * t0 );
@@ -802,19 +863,20 @@ void CPlayer::OnTickAfterHitTest()
 				moveDir = tangent * m_nDir;
 				float fTangentVelocity = m_vel.Dot( moveDir );
 				fAcc = m_fBackFlipAcc;
+				fAcc += moveDir.Dot( gravityDir ) * GetGravity();
 				t0 = Max( 0.0f, Min( fDeltaTime, -fTangentVelocity / fAcc ) );
 				t1 = fDeltaTime - t0;
 				dVelocity = dVelocity + moveDir * ( fAcc * t0 );
 				dPos = dPos + moveDir * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
 			}
-			else if( m_nCurState <= eState_Jump || m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1 )
+			else if( m_nCurState <= eState_Jump || m_nCurState == eState_Kick || m_nCurState == eState_Kick_Ready )
 			{
-				moveDir = tangent * m_nMoveState;
+				moveDir = tangent * ( m_nCurState <= eState_Jump || m_nCurState == eState_Kick && m_kickState.nAni == eAni_Kick_Spin ? m_nMoveState : 0 );
 				float fSpeedTarget = 0;
 				float k = tangent.Dot( moveDir );
 				float fTangentVelocity = m_vel.Dot( tangent );
-				float fMaxSpeed = ( m_pLanded ? ( m_nCurState <= eState_Jump ? m_fMoveSpeed : m_fMove1Speed ) : m_fAirMaxSpeed ) * k + fSpeedTarget;
-				fSpeedTarget = ( m_nCurState <= eState_Jump ? m_fMoveSpeed : m_fMove1Speed ) * k + fSpeedTarget;
+				float fMaxSpeed = ( m_nCurState == eState_Kick ? m_nKickSpinMaxSpeed : ( m_pLanded ? m_fMoveSpeed : m_fAirMaxSpeed ) ) * k + fSpeedTarget;
+				fSpeedTarget = m_fMoveSpeed * k + fSpeedTarget;
 				if( !m_pLanded )
 				{
 					if( k > 0 )
@@ -824,19 +886,73 @@ void CPlayer::OnTickAfterHitTest()
 				}
 
 				bool bIsMoveOrStop = k == 0 ? false : fTangentVelocity * k >= 0 && fTangentVelocity * k < fSpeedTarget * k;
-				fAcc = m_pLanded ? ( bIsMoveOrStop ? ( m_nCurState <= eState_Jump ? m_fMoveAcc : m_fMove1Acc ) :
-					( m_nCurState <= eState_Jump ? m_fStopAcc : m_fStop1Acc ) ) : m_fAirAcc;
+				fAcc = m_pLanded ? ( bIsMoveOrStop ? m_fMoveAcc : m_fStopAcc ) : m_fAirAcc;
 				fDeltaSpeed = fSpeedTarget - fTangentVelocity;
 				if( fDeltaSpeed < 0 )
 				{
 					fDeltaSpeed = -fDeltaSpeed;
 					tangent = tangent * -1;
 				}
+				fAcc += tangent.Dot( gravityDir ) * GetGravity();
 				t0 = Min( fDeltaTime, fDeltaSpeed / fAcc );
 				t1 = fDeltaTime - t0;
 
 				dVelocity = dVelocity + tangent * ( fAcc * t0 );
 				dPos = dPos + tangent * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
+			}
+			else if( m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1
+				|| m_nCurState == eState_Hop || m_nCurState == eState_Hop_Down || m_nCurState == eState_Glide )
+			{
+				float fSpeed = m_vel.Dot( tangent * m_nDir );
+				if( abs( fSpeed ) < m_fMove1Speed && ( m_nMoveState != m_nDir || !m_pLanded && m_nCurState != eState_Glide ) )
+					m_nJumpState = 0;
+				bool bIsVehicle = m_nJumpState;
+				float fTangentVelocity = m_vel.Dot( tangent );
+
+				if( bIsVehicle )
+				{
+					if( m_pLanded || m_nCurState == eState_Glide )
+					{
+						if( m_nDir == m_nMoveState )
+							fAcc = Min( m_fVehicleMaxPower / abs( fTangentVelocity ), m_fVehicleMaxAcc );
+						else if( m_nDir == -m_nMoveState && fSpeed >= m_fMove1Speed )
+							fAcc = -m_fVehicleBreakAcc;
+						else
+							fAcc = 0;
+						fAcc += ( tangent * m_nDir ).Dot( gravityDir ) * GetGravity() - ( fSpeed > 0 ? m_fVehicleFrac : -m_fVehicleFrac );
+						dVelocity = dVelocity + tangent * m_nDir * ( fAcc * fDeltaTime );
+						dPos = dPos + tangent * m_nDir * ( fAcc * fDeltaTime * fDeltaTime * 0.5f );
+					}
+				}
+				else
+				{
+					moveDir = tangent * m_nMoveState;
+					float fSpeedTarget = 0;
+					float k = tangent.Dot( moveDir );
+					if( m_nCurState == eState_Glide )
+					{
+						fSpeedTarget = m_glideVel.x * k + m_fGlideBaseVel * m_nDir;
+						fAcc = m_fGlideAcc;
+					}
+					else
+					{
+						fSpeedTarget = m_fMove1Speed * k + fSpeedTarget;
+						bool bIsMoveOrStop = k == 0 ? false : fTangentVelocity * k >= 0 && fTangentVelocity * k < fSpeedTarget * k;
+						fAcc = bIsMoveOrStop ? m_fMove1Acc : m_fStop1Acc;
+					}
+
+					fDeltaSpeed = fSpeedTarget - fTangentVelocity;
+					if( fDeltaSpeed < 0 )
+					{
+						fDeltaSpeed = -fDeltaSpeed;
+						tangent = tangent * -1;
+					}
+					t0 = Min( fDeltaTime, fDeltaSpeed / fAcc );
+					t1 = fDeltaTime - t0;
+
+					dVelocity = dVelocity + tangent * ( fAcc * t0 );
+					dPos = dPos + tangent * ( fAcc * t0 * ( t0 * 0.5f + t1 ) );
+				}
 			}
 		}
 
@@ -859,6 +975,7 @@ void CPlayer::OnTickAfterHitTest()
 				if( fYAcc < 0 && CGame::Inst().IsKey( 'J' ) && CGame::Inst().IsKey( 'W' ) )
 				{
 					float v = -fYAcc * t0 * m_fGlideVelTransfer;
+					m_fGlideBaseVel += v;
 					m_vel = m_vel + tangent * m_nDir * v;
 				}
 			}
@@ -866,20 +983,26 @@ void CPlayer::OnTickAfterHitTest()
 			{
 				float fXAcc = -m_boostAcc.x;
 				float fTargetSpeed = m_fBoostMinSpeed;
-				float fTangentVelocity = m_vel.Dot( tangent ) * m_nDir;
+				float fTangentVelocity = m_vel.Dot( tangent );
+				int32 nDir = 1;
+				if( fTangentVelocity < 0 )
+				{
+					fTangentVelocity = -fTangentVelocity;
+					nDir = -1;
+				}
 				fDeltaSpeed = fTargetSpeed - fTangentVelocity;
 				if( fDeltaSpeed >= 0 )
-					Fly();
+					Fly( nDir );
 				else
 				{
 					t0 = Min( fDeltaTime, fDeltaSpeed / fXAcc );
 					t1 = fDeltaTime - t0;
-					dVelocity = dVelocity + tangent * m_nDir * ( fXAcc * t0 );
-					dPos = dPos + tangent * m_nDir * ( fXAcc * t0 * ( t0 * 0.5f + t1 ) );
+					dVelocity = dVelocity + tangent * nDir * ( fXAcc * t0 );
+					dPos = dPos + tangent * nDir * ( fXAcc * t0 * ( t0 * 0.5f + t1 ) );
 					m_fFuel += -fXAcc * t0;
 
 					if( !CGame::Inst().IsKey( 'J' ) )
-						Fly();
+						Fly( nDir );
 				}
 			}
 		}
@@ -887,52 +1010,204 @@ void CPlayer::OnTickAfterHitTest()
 
 		dPos = dPos + landedEntityOfs;
 	}
+	bool bUsingWheel = IsUsingWheel();
+	if( bUsingWheel )
+	{
+		fHitMove2 += abs( m_pHit[2]->x );
+		m_pHit[2]->SetPosition( CVector2( 0, 0 ) );
+	}
+	else if( m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed )
+	{
+		fHitMove2 = m_fHitOfs2;
+		auto trans = m_pHit[2]->GetGlobalTransform();
+		SRaycastResult result;
+		CVector2 ofs;
+		result.fDist = m_fMaxWheelHeight - m_pHit[2]->y;
+		ofs = trans.MulVector2Dir( CVector2( 0, result.fDist ) );
+		m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+		m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x, m_pHit[2]->y + result.fDist ) );
+	}
 
 	GetLevel()->GetHitTestMgr().Update( this );
 	for( int i = 0; i < 3; i++ )
 		GetLevel()->GetHitTestMgr().Update( m_pHit[i] );
 	UpdateImpactLevel();
-	CVector2 v0 = m_vel;
+	auto v0 = m_vel;
 	SRaycastResult res[3];
 	if( dPos.Length2() > 0 )
-		m_moveData.TryMove1XY( this, ELEM_COUNT( pTestEntities ), pTestEntities, dPos, bFixVel ? fixVel : m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
-	if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_Air || m_nCurState == eState_Slide_1 || m_nCurState == eState_Dash || m_nCurState == eState_Dash_Grab
-		|| m_nCurState == eState_Dash_Fall || m_nCurState == eState_Roll || m_nCurState == eState_Roll_Stop || m_nCurState == eState_BackFlip_1 )
+		m_moveData.TryMove1( this, bUsingWheel ? 2 : 3, pTestEntities, dPos, bFixVel ? fixVel : m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
+	auto v1 = m_vel;
+	if( m_nCurState == eState_Slide || m_nCurState == eState_Slide_Air || m_nCurState == eState_Slide_1 || m_nCurState == eState_Dash || m_nCurState == eState_Grab
+		|| m_nCurState == eState_Dash_Grab || m_nCurState == eState_Dash_Fall || m_nCurState == eState_Roll || m_nCurState == eState_Roll_Stop || m_nCurState == eState_BackFlip_1 )
 		m_vel = v0;
+	else if( m_nCurState == eState_Hop )
+		m_vel = m_vel + gravityDir * ( v0 - m_vel ).Dot( gravityDir );
 
-	if( m_nCurState == eState_Punch )
+	if( bUsingWheel || m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed )
 	{
-		CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-		tangentDir = tangentDir * m_nDir;
-		if( fixVel.Dot( tangentDir ) < v0.Dot( tangentDir ) - 10 )
-			PunchHit( gravityDir, res );
+		auto trans = m_pHit[2]->GetGlobalTransform();
+		SRaycastResult result;
+		CVector2 ofs;
+		ofs = CVector2( fHitMove2 * m_nDir, 0 );
+		ofs = trans.MulVector2Dir( ofs );
+		result.fDist = fHitMove2;
+		m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+
+		auto xTarget = abs( m_pHit[2]->x ) + fHitMove2;
+		m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x + result.fDist * m_nDir, m_pHit[2]->y ) );
+		if( m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed )
+			hit2ofs0 = m_pHit[2]->GetPosition();
+		bool bCheck = abs( m_pHit[2]->x ) < xTarget;
+		if( bCheck || m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed || !m_pLanded && CGame::Inst().IsKey( 'W' ) )
+		{
+			if( TryGrabEdge( gravityDir, pos0, hit2ofs0, v0 ) || m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed )
+				bCheck = false;
+		}
+
+		if( bCheck )
+		{
+			do
+			{
+				trans = m_pHit[2]->GetGlobalTransform();
+				result.fDist = m_fMaxWheelHeight - m_pHit[2]->y;
+				if( result.fDist <= 0.1f )
+					break;
+				ofs = trans.MulVector2Dir( CVector2( 0, result.fDist ) );
+				m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+				if( result.fDist <= 0.1f )
+					break;
+				m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x, m_pHit[2]->y + result.fDist ) );
+
+				trans = m_pHit[2]->GetGlobalTransform();
+				float fDist0 = xTarget - abs( m_pHit[2]->x );
+				result.fDist = xTarget - abs( m_pHit[2]->x );
+				if( result.fDist <= 0.01f )
+					break;
+				ofs = trans.MulVector2Dir( CVector2( result.fDist * m_nDir, 0 ) );
+				m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+				float fDist = result.fDist;
+
+				if( !IsVehicleMode() && fDist0 - fDist > 0 )
+				{
+					auto fDist1 = fDist0 - fDist;
+					CVector2 ofs0( -fDist1 * m_nDir, 0 );
+					ofs0 = trans.MulVector2Dir( ofs0 );
+					m_moveData.TryMove1XY( this, ELEM_COUNT( pTestEntities ), pTestEntities, ofs0, m_vel, 0, CanHitPlatform() ? &gravityDir : &gravity0, res );
+					trans = m_pHit[2]->GetGlobalTransform();
+					result.fDist = fDist1;
+					m_moveData.DoSweepTest( this, trans, ofs0 * -1, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+					fDist += fDist1;
+				}
+
+				if( fDist <= 0.01f )
+					break;
+				m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x + fDist * m_nDir, m_pHit[2]->y ) );
+			} while( abs( m_pHit[2]->x ) < xTarget );
+
+			fHitMove2 = xTarget - abs( m_pHit[2]->x );
+			if( fHitMove2 <= 0.1f )
+			{
+				trans = m_pHit[2]->GetGlobalTransform();
+				result.fDist = m_fMaxWheelHeight;
+				ofs = trans.MulVector2Dir( CVector2( 0, -result.fDist ) );
+				m_moveData.DoSweepTest( this, trans, ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+				m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x, m_pHit[2]->y - result.fDist ) );
+			}
+			else
+			{
+				if( IsVehicleMode() )
+				{
+					auto tangent = CVector2( -gravityDir.y, gravityDir.x );
+					m_vel = v0 - tangent * tangent.Dot( v0 ) * 1.5f;
+					m_nDir = -m_nDir;
+					DashFall();
+					m_nStateTick = -m_nWheeledHitFallTime;
+				}
+				else
+					DashFall();
+			}
+		}
+
+		fHitMove2 = 0;
+		if( m_nCurState == eState_Dash_Fall || m_nCurState == eState_Grab && !m_pGrabbed )
+			m_pHit[2]->SetPosition( CVector2( 0, 0 ) );
+	}
+	else
+	{
+		if( m_nCurState == eState_Punch )
+		{
+			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+			tangentDir = tangentDir * m_nDir;
+			if( fixVel.Dot( tangentDir ) < v0.Dot( tangentDir ) - 10 )
+				PunchHit( gravityDir, res );
+		}
+
+		if( m_pGrabbed )
+		{
+			m_pGrabDetect->ForceUpdateTransform();
+			auto d = grabTarget - m_pGrabDetect->globalTransform.GetPosition();
+			bool bOK = d.Length2() < m_grabDesc.fDropThreshold * m_grabDesc.fDropThreshold;
+			if( bOK )
+			{
+				if( m_nCurState == eState_Grab )
+				{
+					m_nCurState = eState_Grip;
+					m_nStateTick = 0;
+					m_grabDesc.bAttached = true;
+					SafeCastToInterface<IGrabbable>( m_pGrabbed.GetPtr() )->OnAttached( this );
+				}
+			}
+			else
+			{
+				if( m_nCurState == eState_Grip )
+				{
+					GrabDetach();
+					DashFall();
+				}
+			}
+			if( m_nCurState == eState_Grip )
+				GrabControl( gravityDir );
+		}
+
+		if( m_nCurState == eState_Grab_Edge )
+		{
+			if( !TryGrabEdge( gravityDir, pos0, hit2ofs0, v0 ) )
+			{
+				m_nJumpState = 0;
+				m_nBufferedInput = 0;
+				if( IsVehicleMode() )
+				{
+					auto tangent = CVector2( -gravityDir.y, gravityDir.x );
+					m_vel = v0 - tangent * tangent.Dot( v0 ) * 1.5f;
+					m_nDir = -m_nDir;
+					DashFall();
+					m_nStateTick = -m_nWheeledHitFallTime;
+				}
+				else
+					DashFall();
+			}
+		}
+		if( m_nCurState == eState_Roll_Grab_Edge_Recover )
+		{
+			GrabEdgeRecover( gravityDir );
+		}
+		else if( m_nCurState == eState_Roll_Grab_Edge_Recover1 )
+		{
+			GrabEdgeRecover1( gravityDir );
+		}
 	}
 
-	if( m_pGrabbed )
+	if( m_nCurState != eState_Grab_Edge && m_nCurState != eState_Roll_Grab_Edge_Recover )
 	{
-		m_pGrabDetect->ForceUpdateTransform();
-		auto d = grabTarget - m_pGrabDetect->globalTransform.GetPosition();
-		bool bOK = d.Length2() < m_grabDesc.fDropThreshold * m_grabDesc.fDropThreshold;
-		if( bOK )
+		if( CanFindFloor() )
 		{
-			if( m_nCurState == eState_Dash_Grab )
-			{
-				m_nCurState = eState_Grip;
-				m_nStateTick = 0;
-				m_grabDesc.bAttached = true;
-				SafeCastToInterface<IGrabbable>( m_pGrabbed.GetPtr() )->OnAttached( this );
-			}
+			bool bPreLandedEntity = m_pLanded != NULL;
+			FindFloor( gravityDir );
+			if( m_bKnockback && m_pLanded )
+				m_bKnockback = false;
 		}
 		else
-		{
-			if( m_nCurState == eState_Grip )
-			{
-				GrabDetach();
-				DashFall();
-			}
-		}
-		if( m_nCurState == eState_Grip )
-			GrabControl( gravityDir );
+			m_pLanded = NULL;
 	}
 
 	bool bTransformBlocked = false;
@@ -999,16 +1274,6 @@ void CPlayer::OnTickAfterHitTest()
 			ForceRoll();
 	}
 
-	if( CanFindFloor() )
-	{
-		bool bPreLandedEntity = m_pLanded != NULL;
-		FindFloor( gravityDir );
-		if( m_bKnockback && m_pLanded )
-			m_bKnockback = false;
-	}
-	else
-		m_pLanded = NULL;
-
 	if( bFalling )
 	{
 		m_fFallHeight = Max( 0.0f, m_fFallHeight + ( GetPosition() - pos0 ).Dot( gravityDir ) );
@@ -1049,18 +1314,6 @@ void CPlayer::OnTickAfterHitTest()
 			m_nCurState = eState_Stand_1;
 			m_nStateTick = 0;
 		}
-		else
-		{
-			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-			tangentDir = tangentDir * m_nDir;
-			if( m_vel.Dot( tangentDir ) < m_glideVel.x - 10 )
-			{
-				if( CGame::Inst().IsKey( 'J' ) && m_nMoveState == m_nDir && m_vel.Dot( gravityDir ) >= m_glideVel.y - 1 )
-					DashGrab();
-				else
-					DashFall();
-			}
-		}
 		break;
 	case eState_Dash:
 		if( m_vel.Dot( gravityDir ) > 0 )
@@ -1074,12 +1327,10 @@ void CPlayer::OnTickAfterHitTest()
 			m_nBufferedInput = 0;
 		}
 		break;
-	case eState_Dash_Grab:
+	case eState_Grab:
 	case eState_Dash_Fall:
-		if( m_pLanded )
+		if( m_pLanded && m_nStateTick >= 0 )
 		{
-			if( m_nCurState == eState_Dash_Grab )
-				CGame::Inst().ForceKeyRelease( 'J' );
 			BeginRoll();
 		}
 		break;
@@ -1104,9 +1355,33 @@ void CPlayer::OnTickAfterHitTest()
 				auto ofs = m_arrBulletOfs[i];
 				ofs.x *= m_nDir;
 				auto pBullet = SafeCast<CBullet>( m_pBullet->GetRoot()->CreateInstance() );
-				pBullet->SetPosition( curTransform.MulVector2Pos( ofs ) );
 				CVector2 bulletDir( -gravityDir.y, gravityDir.x );
-				pBullet->SetBulletVelocity( bulletDir * m_nDir * 2000 );
+				auto vel = bulletDir * m_nDir * 2000;
+				if( bUsingWheel || m_nCurState == eState_Grab_Edge )
+				{
+					float d = 8;
+					auto a = m_nCurState == eState_Grab_Edge ? m_fHitOfs2 : abs( m_pHit[2]->x );
+					auto b = m_nCurState == eState_Grab_Edge ? m_fMaxWheelHeight - d : m_pHit[2]->y - d;
+					auto a2 = a * a;
+					auto b2 = b * b;
+					auto d2 = d * d;
+					auto sn = ( b * sqrt( Max( 0.0f, a2 + b2 - d2 ) ) + a * d ) / ( a2 + b2 );
+					auto cs = sqrt( 1 - sn * sn );
+					CVector2 dir( cs, sn * m_nDir );
+					ofs = CVector2( ofs.x * dir.x - ofs.y * dir.y, ofs.x * dir.y + ofs.y * dir.x );
+					vel = CVector2( vel.x * dir.x - vel.y * dir.y, vel.x * dir.y + vel.y * dir.x );
+				}
+				if( IsVehicleMode() && !m_pLanded )
+				{
+					auto vy = m_vel.Dot( gravityDir );
+					auto vel1 = gravityDir * vy;
+					auto vel2 = m_vel - vel1;
+					float k = vy < 0 ? i * 1.0f / ( m_arrBulletOfs.Size() - 1 ) : ( m_arrBulletOfs.Size() - 1 - i ) * 1.0f / ( m_arrBulletOfs.Size() - 1 );
+					vel = vel + vel1 * ( k + 0.5f ) + vel2;
+				}
+				auto pos = curTransform.MulVector2Pos( ofs );
+				pBullet->SetPosition( pos );
+				pBullet->SetBulletVelocity( vel );
 				pBullet->SetOwner( this );
 				pBullet->SetParentEntity( pLevel );
 			}
@@ -1209,9 +1484,12 @@ bool CPlayer::Knockback( const CVector2& vec )
 {
 	if( m_nKnockBackTime )
 		return false;
+	if( IsVehicleMode() )
+		m_nJumpState = 0;
 	m_bKnockback = true;
 	m_nKnockBackTime = 30;
-	m_vel = vec;
+	CVector2 t( vec.y, -vec.x );
+	m_vel = vec + t * m_vel.Dot( t ) / Max( 1.0f, t.Length2() );
 	return true;
 }
 
@@ -1264,20 +1542,25 @@ void CPlayer::UpdateImpactLevel()
 
 bool CPlayer::CanHitPlatform()
 {
+	if( m_nCurState == eState_Hop_Down && m_nStateTick == 0 )
+		return false;
 	return m_nCurState >= eState_Slide && m_nCurState <= eState_BackFlip && m_nCurState != eState_Roll_Stand_Up;
 }
 
 bool CPlayer::CanShoot()
 {
-	return m_nCurState == eState_Slide_1 || m_nCurState == eState_Stand_1 || m_nCurState == eState_Walk_1 || m_nCurState == eState_Glide_Fall
-		|| m_nCurState == eState_Glide || m_nCurState == eState_Fly;
+	return m_nCurState == eState_Slide_1 || m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1
+		|| m_nCurState == eState_Hop || m_nCurState == eState_Hop_Down || m_nCurState == eState_Hop_Flip || m_nCurState == eState_Glide_Fall
+		|| m_nCurState == eState_Grab_Edge  || m_nCurState == eState_Glide || m_nCurState == eState_Fly;
 }
 
 bool CPlayer::CanFindFloor()
 {
 	if( m_nKnockBackTime )
 		return false;
-	if( m_nCurState == eState_Grip || m_nCurState == eState_Dash || m_nCurState == eState_BackFlip_1 || m_nCurState == eState_Boost || m_nCurState == eState_Fly )
+	if( m_nCurState == eState_Grip || m_nCurState == eState_Dash || m_nCurState == eState_Dash_Grab || m_nCurState == eState_BackFlip_1 || m_nCurState == eState_Boost || m_nCurState == eState_Fly )
+		return false;
+	if( m_nCurState == eState_Hop_Down && m_nStateTick == 0 )
 		return false;
 	if( m_nCurState <= eState_Jump )
 	{
@@ -1289,7 +1572,7 @@ bool CPlayer::CanFindFloor()
 
 bool CPlayer::CanRecoverShield()
 {
-	return m_nLevel >= ePlayerLevel_Shield && m_nCurState == eState_Stand_1 || m_nCurState == eState_Stand_1_Ready || m_nCurState == eState_Walk_1;
+	return m_nLevel >= ePlayerLevel_Shield && ( m_nCurState >= eState_Stand_1 && m_nCurState <= eState_Glide || m_nCurState == eState_Hop_Flip );
 }
 
 bool CPlayer::IsDodging()
@@ -1297,20 +1580,16 @@ bool CPlayer::IsDodging()
 	return m_nCurState == eState_Dash || m_nCurState == eState_BackFlip_1;
 }
 
-bool CPlayer::IsBlocking()
-{
-	if( m_pCurAttackEffect )
-	{
-		if( SafeCast<CKickSpin>( m_pCurAttackEffect.GetPtr() ) )
-			return true;
-	}
-	return false;
-}
-
 float CPlayer::GetGravity()
 {
+	if( m_nCurState == eState_Hop_Down || m_nCurState == eState_Hop_Flip )
+		return m_fGravity;
 	if( m_nCurState >= eState_Stand_1 && m_nCurState <= eState_Glide )
+	{
+		if( m_nCurState <= eState_Walk_1 && CGame::Inst().IsKey( 'S' ) )
+			return m_fGravity;
 		return m_fGravity1;
+	}
 	return m_fGravity;
 }
 
@@ -1321,18 +1600,28 @@ bool CPlayer::IsFalling()
 	return true;
 }
 
+bool CPlayer::IsUsingWheel()
+{
+	return m_nCurState >= eState_Slide && m_nCurState <= eState_Glide && m_nCurState != eState_Hop || m_nCurState == eState_Roll_Recover || m_nCurState == eState_BackFlip;
+}
+
+bool CPlayer::IsVehicleMode()
+{
+	return m_nJumpState && ( m_nCurState >= eState_Slide_1 && m_nCurState <= eState_Glide || m_nCurState == eState_Hop_Flip || m_nCurState == eState_BackFlip );
+}
+
 void CPlayer::FindFloor( const CVector2& gravityDir )
 {
 	CMatrix2D trans = GetGlobalTransform();
 	CVector2 dir = gravityDir;
 	CVector2 ofs = dir * m_fFindFloorDist;
-	CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
-	CMatrix2D mats[] = { m_pHit[0]->GetGlobalTransform(), m_pHit[1]->GetGlobalTransform(), m_pHit[2]->GetGlobalTransform() };
+	CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1] };
+	CMatrix2D mats[] = { m_pHit[0]->GetGlobalTransform(), m_pHit[1]->GetGlobalTransform() };
 	SRaycastResult result;
 	CVector2 gravity0( 0, 0 );
-	auto pNewLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, 3, pTestEntities, mats, ofs, MOVE_SIDE_THRESHOLD, CanHitPlatform() ? &dir : &gravity0, &result ) );
+	auto pNewLandedEntity = SafeCast<CCharacter>( m_moveData.DoSweepTest1( this, 2, pTestEntities, mats, ofs, MOVE_SIDE_THRESHOLD, CanHitPlatform() ? &dir : &gravity0, &result ) );
 
-	if( pNewLandedEntity && m_vel.Dot( result.normal ) < 1.0f && result.normal.Dot( dir ) < -0.5f )
+	if( pNewLandedEntity && m_vel.Dot( result.normal ) < 5.0f && result.normal.Dot( dir ) < -0.5f )
 	{
 		m_pLanded = pNewLandedEntity;
 		m_nLastLandTime = 100;
@@ -1390,6 +1679,11 @@ void CPlayer::UpdateHit()
 	GetLevel()->GetHitTestMgr().Update( this );
 	for( int i = 0; i < 3; i++ )
 		GetLevel()->GetHitTestMgr().Update( m_pHit[i] );
+	if( m_pCurAttackEffect )
+	{
+		if( m_pCurAttackEffect->Get_HitProxy() )
+			GetLevel()->GetHitTestMgr().Update( m_pCurAttackEffect );
+	}
 }
 
 void CPlayer::UpdateAnim( const CVector2& gravityDir )
@@ -1629,6 +1923,26 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 		}
 		break;
 	}
+	case eState_Hop:
+		rect = CRectangle( -28, -26, 96, 64 );
+		texRect = CRectangle( 0, 10, 3, 2 ) / 32;
+		break;
+	case eState_Hop_Down:
+		rect = CRectangle( -32, -26, 96, 64 );
+		texRect = CRectangle( 0, 18, 3, 2 ) / 32;
+		break;
+	case eState_Hop_Flip:
+		if( m_nStateTick < m_nHopFlipAnimSpeed || m_nStateTick >= m_nHopFlipAnimSpeed * 3 )
+		{
+			rect = CRectangle( -28, -26, 96, 64 );
+			texRect = CRectangle( 3, 18, 3, 2 ) / 32;
+		}
+		else
+		{
+			rect = CRectangle( -28, -26, 64, 64 );
+			texRect = CRectangle( 6, 18, 2, 2 ) / 32;
+		}
+		break;
 	case eState_Glide_Fall:
 		rect = CRectangle( -32, -26, 96, 64 );
 		texRect = CRectangle( 0, 18, 3, 2 ) / 32;
@@ -1653,6 +1967,10 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 		rect = CRectangle( -28, -26, 96, 64 );
 		texRect = CRectangle( 0, 10, 3, 2 ) / 32;
 		break;
+	case eState_Grab:
+		rect = CRectangle( -28, -26, 96, 64 );
+		texRect = CRectangle( 0, 12, 3, 2 ) / 32;
+		break;
 	case eState_Dash_Grab:
 		rect = CRectangle( -28, -26, 96, 64 );
 		texRect = CRectangle( 0, 12, 3, 2 ) / 32;
@@ -1660,6 +1978,10 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 	case eState_Grip:
 		rect = CRectangle( -32, -32, 64, 64 );
 		texRect = CRectangle( 3, 14, 2, 2 ) / 32;
+		break;
+	case eState_Grab_Edge:
+		rect = CRectangle( -24, -26, 64, 64 );
+		texRect = CRectangle( 11, 9, 2, 2 ) / 32;
 		break;
 	case eState_Punch:
 		rect = CRectangle( -32, -32, 64, 64 );
@@ -1686,6 +2008,14 @@ void CPlayer::UpdateAnim( const CVector2& gravityDir )
 	case eState_Roll_Recover:
 		rect = CRectangle( -28, -26, 96, 64 );
 		texRect = CRectangle( 7 + ( m_nStateTick / m_nRollRecoverAnimSpeed ) * 3, 14, 3, 2 ) / 32;
+		break;
+	case eState_Roll_Grab_Edge_Recover:
+		rect = CRectangle( -28, -26, 96, 64 );
+		texRect = CRectangle( 7, 14, 3, 2 ) / 32;
+		break;
+	case eState_Roll_Grab_Edge_Recover1:
+		rect = CRectangle( -28, -26, 96, 64 );
+		texRect = CRectangle( 7, 14, 3, 2 ) / 32;
 		break;
 	case eState_Roll_Dash:
 		rect = CRectangle( -28, -26, 96, 64 );
@@ -1966,8 +2296,9 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 			HandBufferInputStand1();
 		else if( m_nStateTick == m_nSlideMaxFrame )
 		{
-			m_nStateTick = 0;
 			m_nCurState = eState_Stand_1;
+			m_nStateTick = 0;
+			m_nJumpState = 0;
 		}
 		break;
 	case eState_Walk_1:
@@ -1989,8 +2320,62 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 	}
 	case eState_Stand_1_Ready:
 		m_nStateTick++;
-		if( m_nStateTick == m_nStand1ReadyTime )
-			Dash();
+		if( m_nStateTick >= m_nStand1ReadyTime )
+		{
+			m_nStateTick = m_nStand1ReadyTime;
+			if( m_nLevel >= ePlayerLevel_VehicleMode && !m_nJumpState )
+			{
+				BeginVehicleMode();
+				CGame::Inst().ForceKeyRelease( 'J' );
+			}
+		}
+		break;
+	case eState_Hop:
+		m_nStateTick++;
+		if( m_nStateTick == m_nDashGrabBeginFrame )
+		{
+			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+			m_nStateTick = 0;
+			if( !!( m_nBufferedInput & 2 ) )
+				Dash();
+			else if( !!( m_nBufferedInput & 4 ) || CGame::Inst().IsKey( 'S' ) )
+			{
+				m_vel = m_vel + gravityDir * m_fDashSpeedY * 2;
+				HopDown();
+			}
+			else if( !!( m_nBufferedInput & 1 ) )
+			{
+				m_vel = m_vel + gravityDir * m_fDashSpeedY * 2;
+				m_nCurState = eState_Hop_Flip;
+			}
+			else
+			{
+				m_vel = m_vel + gravityDir * m_fDashSpeedY;
+				m_nCurState = eState_Stand_1;
+			}
+			m_nBufferedInput = 0;
+		}
+		break;
+	case eState_Hop_Down:
+		if( m_nStateTick < m_nHopDownTime )
+			m_nStateTick++;
+		if( m_nStateTick >= m_nHopDownTime && m_pLanded )
+		{
+			m_nStateTick = 0;
+			m_nCurState = eState_Stand_1;
+		}
+		break;
+	case eState_Hop_Flip:
+		m_nStateTick++;
+		if( m_nStateTick == m_nHopFlipAnimSpeed * 4 )
+		{
+			m_nStateTick = 0;
+			m_nCurState = eState_Stand_1;
+		}
+		else if( m_nStateTick == m_nHopFlipAnimSpeed )
+			m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() );
+		else if( m_nStateTick == m_nHopFlipAnimSpeed * 2 )
+			m_nDir = -m_nDir;
 		break;
 	case eState_Glide_Fall:
 		m_nStateTick++;
@@ -2005,45 +2390,30 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 		break;
 	case eState_Fly:
 		if( m_fFuel <= 0 )
+		{
+			m_nJumpState = 0;
 			Glide();
+		}
 		break;
 	case eState_Dash:
-		/*if( m_nStateTick >= 0 )
-		{
-			m_nStateTick++;
-			if( m_nStateTick == m_nDashGrabBeginFrame )
-				DashGrab();
-		}
-		else
-		{
-			m_nStateTick--;
-			if( m_nStateTick == -m_nDashGrabBeginFrame )
-			{
-				CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-				m_vel = tangentDir * m_vel.Dot( tangentDir ) + gravityDir * Max( 0.0f, -m_vel.Dot( gravityDir ) );
-				DashFall();
-			}
-		}*/
 		m_nStateTick++;
 		if( m_nStateTick == m_nDashGrabBeginFrame )
-		{
-			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-			if( CGame::Inst().IsKey( 'W' ) )
-				m_nBufferedInput = 1;
-			if( m_nLevel >= ePlayerLevel_Glide && m_nBufferedInput == 1 )
-				Glide();
-			else
-			{
-				m_vel = tangentDir * m_vel.Dot( tangentDir ) + gravityDir * Max( 0.0f, -m_vel.Dot( gravityDir ) );
-				if( CGame::Inst().IsKey( 'J' ) )
-					DashGrab();
-				else
-					DashFall();
-			}
-			m_nBufferedInput = 0;
-		}
+			DashFall();
 		break;
 	case eState_Dash_Grab:
+		m_nStateTick--;
+		if( m_nStateTick <= 0 )
+		{
+			if( m_nJumpState )
+			{
+				m_nJumpState = 0;
+				m_vel = tangent * m_fDashSpeed - gravityDir * ROLL_DASH_SPEED_Y;
+			}
+			m_nCurState = eState_Grab;
+			m_nStateTick = 0;
+		}
+		break;
+	case eState_Grab:
 		if( m_pGrabbed )
 		{
 			m_nStateTick++;
@@ -2059,9 +2429,26 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 		m_nStateTick++;
 		if( m_nStateTick == m_nDashFallEndFrame )
 		{
-			if( m_nCurState == eState_Dash_Grab )
-				CGame::Inst().ForceKeyRelease( 'J' );
 			BeginRoll();
+		}
+		break;
+	case eState_Grab_Edge:
+		m_nStateTick++;
+		if( m_nStateTick >= GRAB_EDGE_TIME )
+		{
+			m_nStateTick = m_nStateTick;
+			if( m_nMoveState == m_nDir )
+			{
+				m_nCurState = eState_Roll_Grab_Edge_Recover;
+				m_nStateTick = GRAB_EDGE_RECOVER_TIME;
+				m_nJumpState = 0;
+			}
+			else if( m_nMoveState == -m_nDir )
+			{
+				m_nCurState = eState_Roll_Grab_Edge_Recover1;
+				m_nStateTick = GRAB_EDGE_RECOVER_TIME;
+				m_nJumpState = 0;
+			}
 		}
 		break;
 	case eState_Roll:
@@ -2095,15 +2482,32 @@ void CPlayer::UpdateAnimState( const CVector2& gravityDir )
 		{
 			if( !HandBufferInputStand1() )
 			{
-				m_nStateTick = 0;
 				m_nCurState = eState_Stand_1;
+				m_nStateTick = 0;
+				m_nJumpState = 0;
 			}
+		}
+		break;
+	case eState_Roll_Grab_Edge_Recover:
+		m_nStateTick--;
+		if( !m_nStateTick )
+			RollRecover( m_nDir );
+		break;
+	case eState_Roll_Grab_Edge_Recover1:
+		m_nStateTick--;
+		if( !m_nStateTick )
+		{
+			RollRecover( m_nDir );
+			m_vel = tangent * -200;
 		}
 		break;
 	case eState_Roll_Dash:
 		m_nStateTick++;
-		if( m_nStateTick == m_nStand1ReadyTime )
-			Dash();
+		if( m_nStateTick == m_nRollRecoverAnimSpeed * 2 )
+		{
+			m_vel = tangent * m_fDashSpeed - gravityDir * ROLL_DASH_SPEED_Y;
+			DashFall();
+		}
 		break;
 	case eState_BackFlip:
 		m_nStateTick++;
@@ -2165,20 +2569,13 @@ void CPlayer::Kick( int8 nAni )
 		else
 			nFlag = nLastAni / 3;
 	}
-	if( nAni == eAni_Kick_Spin || nAni == eAni_Kick_Spin_Slide )
+	if( nAni == eAni_Kick_Spin )
 	{
 		nFlag = nKickType0;
 		auto pKick = SafeCast<CCharacter>( m_pKickSpin[nKickType0]->GetRoot()->CreateInstance() );
 		pKick->SetParentEntity( this );
 		pKick->SetOwner( this );
-		if( nAni == eAni_Kick_Spin_Slide )
-		{
-			auto gravityDir = GetLevel()->GetGravityDir();
-			CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-			tangentDir = tangentDir * m_nDir;
-			m_vel = tangentDir * m_kickSpinSlideVel.x - gravityDir * m_kickSpinSlideVel.y;
-		}
-		else if( m_kickState.nTick1 )
+		if( m_kickState.nTick1 )
 			m_vel = CVector2( 0, 0 );
 		KickMorph( pKick );
 	}
@@ -2228,6 +2625,7 @@ void CPlayer::Slide1()
 {
 	m_nCurState = eState_Slide_1;
 	m_nStateTick = 0;
+	m_nJumpState = 0;
 	m_pHit[1]->SetPosition( m_pHit[0]->GetPosition() );
 }
 
@@ -2239,20 +2637,59 @@ void CPlayer::SlideCancel()
 	m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() );
 }
 
-void CPlayer::Glide()
+void CPlayer::BeginVehicleMode()
 {
 	auto gravityDir = GetLevel()->GetGravityDir();
-	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-	tangentDir = tangentDir * m_nDir;
-	m_nCurState = eState_Glide;
+	auto tangent = CVector2( -gravityDir.y, gravityDir.x ) * m_nDir;
+	m_nCurState = eState_Stand_1;
 	m_nStateTick = 0;
-	m_vel = gravityDir * m_vel.Dot( gravityDir ) + tangentDir * m_glideVel.x;
+	m_nJumpState = 1;
+	m_vel = gravityDir * m_vel.Dot( gravityDir ) + tangent * m_fVehicleStartUpSpeed;
 }
 
-void CPlayer::Fly()
+void CPlayer::Glide()
+{
+	m_nCurState = eState_Glide;
+	m_nStateTick = 0;
+	m_fGlideBaseVel = 0;
+	/*auto gravityDir = GetLevel()->GetGravityDir();
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	tangentDir = tangentDir * m_nDir;
+	m_vel = gravityDir * m_vel.Dot( gravityDir ) + tangentDir * m_glideVel.x;*/
+}
+
+void CPlayer::Fly( int8 nFlyDir )
 {
 	m_nCurState = eState_Fly;
 	m_nStateTick = 0;
+	m_nJumpState = nFlyDir;
+}
+
+void CPlayer::Hop()
+{
+	auto pLevel = GetLevel();
+	auto gravityDir = pLevel->GetGravityDir();
+
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	m_vel = m_vel + gravityDir * -m_fDashSpeedY;
+
+	m_nCurState = eState_Hop;
+	m_nStateTick = 0;
+}
+
+void CPlayer::HopDown()
+{
+	auto pLevel = GetLevel();
+	auto gravityDir = pLevel->GetGravityDir();
+
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	if( m_nCurState == eState_Hop )
+		m_nStateTick = 1;
+	else
+		m_nStateTick = m_pLanded ? 0 : 1;
+	if( !m_nStateTick )
+		m_pLanded = NULL;
+	m_nCurState = eState_Hop_Down;
 }
 
 void CPlayer::Dash()
@@ -2260,20 +2697,17 @@ void CPlayer::Dash()
 	auto pLevel = GetLevel();
 	auto gravityDir = pLevel->GetGravityDir();
 	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-	m_vel = tangentDir * m_fDashSpeed * m_nDir + gravityDir * -m_fDashSpeedY;
+	if( !IsVehicleMode() )
+		m_vel = tangentDir * m_fDashSpeed * 2 * m_nDir;
 	m_nCurState = eState_Dash;
 	m_nStateTick = 0;
 }
 
 void CPlayer::DashGrab()
 {
-	if( m_nLevel < ePlayerLevel_Grab )
-	{
-		DashFall();
-		return;
-	}
+	m_nJumpState = m_nCurState == eState_Roll_Dash;
+	m_nStateTick = m_nJumpState ? m_nRollRecoverAnimSpeed * 2 - m_nStateTick : m_nDashGrabBeginFrame - m_nStateTick;
 	m_nCurState = eState_Dash_Grab;
-	m_nStateTick = 0;
 	m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() );
 	m_pGrabDetect->x = abs( m_pGrabDetect->x ) * m_nDir;
 	m_pGrabDetect->SetTransformDirty();
@@ -2281,7 +2715,7 @@ void CPlayer::DashGrab()
 
 void CPlayer::CheckGrab()
 {
-	if( m_nCurState != eState_Dash_Grab && m_nCurState != eState_Grip )
+	if( m_nCurState != eState_Dash_Grab && m_nCurState != eState_Grab && m_nCurState != eState_Grip )
 		return;
 	if( m_nKnockBackTime )
 	{
@@ -2313,6 +2747,7 @@ void CPlayer::CheckGrab()
 			if( p && p->CheckGrab( this, m_grabDesc ) )
 			{
 				m_pGrabbed = pEntity;
+				m_nCurState = eState_Grab;
 				m_nStateTick = 0;
 				break;
 			}
@@ -2325,23 +2760,23 @@ void CPlayer::GrabControl( const CVector2& gravityDir )
 {
 	if( m_grabDesc.nDetachType >= SGrabDesc::eDetachType_Release )
 	{
-		if( !CGame::Inst().IsKey( 'J' ) )
+		if( CGame::Inst().IsKey( 'U' ) )
+		{
+			GrabDetach();
+			RollDash( -m_nDir );
+			return;
+		}
+		if( CGame::Inst().IsKey( 'J' ) )
 		{
 			if( m_grabDesc.nDetachType == SGrabDesc::eDetachType_Walljump )
 			{
-				if( m_nMoveState == m_nDir )
+				/*if( m_nMoveState == m_nDir )
 				{
 					GrabDetach();
 					Punch();
 					return;
 				}
-				if( m_nMoveState == -m_nDir )
-				{
-					GrabDetach();
-					RollDash( -m_nDir );
-					return;
-				}
-				else if( CGame::Inst().IsKey( 'W' ) )
+				else*/ if( !CGame::Inst().IsKey( 'S' ) )
 				{
 					GrabDetach();
 					m_vel = gravityDir * -m_fJumpSpeed;
@@ -2363,6 +2798,145 @@ void CPlayer::GrabDetach()
 	m_pGrabbed = NULL;
 }
 
+bool CPlayer::TryGrabEdge( const CVector2 &gravityDir, const CVector2& pos0, const CVector2& ofs0, CVector2 v0 )
+{
+	if( IsVehicleMode() || m_nCurState <= eState_Slide_Air || m_nCurState == eState_Roll_Dash || m_nCurState == eState_Roll_Recover )
+		return false;
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	tangentDir = tangentDir * m_nDir;
+	auto pos1 = GetPosition();
+	auto ofs1 = m_pHit[2]->GetPosition();
+
+	if( m_nCurState != eState_Grab_Edge )
+	{
+		SetPosition( pos0 );
+		m_pHit[2]->SetPosition( ofs0 );
+		CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
+		CMatrix2D mats[] = { m_pHit[0]->GetGlobalTransform(), m_pHit[1]->GetGlobalTransform(), m_pHit[2]->GetGlobalTransform() };
+		CVector2 dPos = pos1 - pos0;
+		CVector2 gravity0( 0, 0 );
+		SRaycastResult res[3];
+		m_moveData.TryMove1( this, 3, pTestEntities, dPos, v0, 0, &gravity0, res );
+	}
+	else
+	{
+		CEntity* pTestEntities[] = { m_pHit[0], m_pHit[1], m_pHit[2] };
+		CMatrix2D mats[] = { m_pHit[0]->GetGlobalTransform(), m_pHit[1]->GetGlobalTransform(), m_pHit[2]->GetGlobalTransform() };
+		CVector2 gravity0( 0, 0 );
+		m_moveData.TryMove1XY( this, 3, pTestEntities, gravityDir * 4, CVector2( 0, 0 ), 0, &gravity0, NULL );
+	}
+
+	CVector2 ofs = gravityDir * 4;
+	SRaycastResult result;
+	result.fDist = 4;
+	auto pNewLandedEntity = m_moveData.DoSweepTest( this, m_pHit[2]->GetGlobalTransform(), ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[2] );
+	if( !pNewLandedEntity )
+	{
+		SetPosition( pos1 );
+		m_pHit[2]->SetPosition( ofs1 );
+		return false;
+	}
+	bool bLanded = result.fDist >= m_fFindFloorDist;
+
+	float fGrabOfsY = 28.0f;
+	fGrabOfsY -= m_pHit[2]->y;
+	ofs = gravityDir * fGrabOfsY;
+	result.fDist = fGrabOfsY;
+	auto pLanded1 = m_moveData.DoSweepTest( this, m_pHit[0]->GetGlobalTransform(), ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[0] );
+	if( pLanded1 )
+	{
+		if( m_nCurState != eState_Grab_Edge && m_nCurState != eState_Dash_Fall )
+		{
+			auto y1 = m_pHit[2]->y + result.fDist;
+			if( y1 <= m_fMaxWheelHeight )
+			{
+				SetPosition( GetPosition() + gravityDir * result.fDist );
+				m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x, y1 ) );
+				m_vel = v0;
+
+				m_pLanded = SafeCast<CCharacter>( pLanded1 );
+				m_nLastLandTime = 100;
+				m_lastLandPoint = result.hitPoint;
+				m_groundNorm = result.normal;
+				m_vel = m_vel - m_groundNorm * m_vel.Dot( m_groundNorm );
+				lastLandedEntityTransform = m_pLanded->GetGlobalTransform();
+				return true;
+			}
+		}
+		SetPosition( pos1 );
+		m_pHit[2]->SetPosition( ofs1 );
+		return false;
+	}
+	SetPosition( GetPosition() + ofs );
+	m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x, m_pHit[2]->y + fGrabOfsY ) );
+	float fGrabOfsX = 20;
+	fGrabOfsX = m_pHit[2]->x * m_nDir - fGrabOfsX;
+	if( fGrabOfsX > 0 )
+	{
+		ofs = tangentDir * fGrabOfsX;
+		result.fDist = fGrabOfsX;
+		m_moveData.DoSweepTest( this, m_pHit[0]->GetGlobalTransform(), ofs, MOVE_SIDE_THRESHOLD, &result, true, m_pHit[0] );
+		SetPosition( GetPosition() + tangentDir * result.fDist );
+		m_pHit[2]->SetPosition( CVector2( m_pHit[2]->x - result.fDist * m_nDir, m_pHit[2]->y ) );
+	}
+
+	m_pLanded = SafeCast<CCharacter>( pNewLandedEntity );
+	m_nLastLandTime = 100;
+	m_lastLandPoint = result.hitPoint;
+	m_groundNorm = result.normal;
+	m_vel = CVector2( 0, 0 );
+	lastLandedEntityTransform = m_pLanded->GetGlobalTransform();
+	if( m_nCurState != eState_Grab_Edge )
+	{
+		m_nCurState = eState_Grab_Edge;
+		m_nStateTick = 0;
+	}
+	m_nJumpState = bLanded ? 1 : 0;
+	m_pHit[1]->SetPosition( CVector2( 0, 0 ) );
+	return true;
+}
+
+void CPlayer::GrabEdgeRecover( const CVector2& gravityDir )
+{
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	tangentDir = tangentDir * m_nDir;
+	auto pos0 = m_pHit[2]->GetGlobalTransform().GetPosition();
+
+	auto ofs = m_pHit[2]->GetPosition() * ( ( m_nStateTick - 1.0f ) / m_nStateTick );
+	m_pHit[0]->SetPosition( m_pHit[2]->GetPosition() - ofs );
+	CEntity* pTested = m_pHit[0];
+	GetLevel()->GetHitTestMgr().Update( pTested );
+	if( !m_moveData.ResolvePenetration( this, NULL, 0, NULL, NULL, NULL, &pTested, 1 ) )
+	{
+		m_pHit[0]->SetPosition( CVector2( 0, 0 ) );
+		DashFall();
+		return;
+	}
+	SetPosition( m_pHit[0]->GetGlobalTransform().GetPosition() );
+	m_pHit[0]->SetPosition( CVector2( 0, 0 ) );
+	m_pHit[2]->SetPosition( GetGlobalTransform().MulTVector2Pos( pos0 ) );
+}
+
+void CPlayer::GrabEdgeRecover1( const CVector2 & gravityDir )
+{
+	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
+	tangentDir = tangentDir * m_nDir;
+	auto pos0 = GetPosition();
+
+	auto ofs = m_pHit[2]->GetPosition() * ( ( m_nStateTick - 1.0f ) / m_nStateTick );
+	m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() + ofs );
+	CEntity* pTested = m_pHit[2];
+	GetLevel()->GetHitTestMgr().Update( pTested );
+	if( !m_moveData.ResolvePenetration( this, NULL, 0, NULL, NULL, NULL, &pTested, 1 ) )
+	{
+		DashFall();
+		return;
+	}
+	auto pos1 = m_pHit[2]->GetGlobalTransform().GetPosition();
+	SetPosition( pos0 );
+	m_pHit[2]->SetPosition( GetGlobalTransform().MulTVector2Pos( pos1 ) );
+}
+
 void CPlayer::Punch()
 {
 	m_nCurState = eState_Punch;
@@ -2381,8 +2955,7 @@ void CPlayer::PunchHit( const CVector2& gravityDir, SRaycastResult hit[3] )
 
 void CPlayer::DashFall()
 {
-	if( m_nCurState != eState_Dash_Grab )
-		m_nStateTick = 0;
+	m_nStateTick = 0;
 	m_nCurState = eState_Dash_Fall;
 	m_pHit[2]->SetPosition( m_pHit[0]->GetPosition() );
 }
@@ -2391,6 +2964,10 @@ void CPlayer::RollStandUp()
 {
 	m_nCurState = eState_Roll_Stand_Up;
 	m_nStateTick = 0;
+	if( CGame::Inst().IsKey( 'K' ) )
+		CGame::Inst().ForceKeyRelease( 'K' );
+	if( CGame::Inst().IsKey( 'L' ) )
+		CGame::Inst().ForceKeyRelease( 'L' );
 }
 
 void CPlayer::RollStop()
@@ -2412,7 +2989,7 @@ void CPlayer::RollDash( int8 nDir )
 	auto pLevel = GetLevel();
 	auto gravityDir = pLevel->GetGravityDir();
 	CVector2 tangentDir( -gravityDir.y, gravityDir.x );
-	m_vel = tangentDir * m_fDashSpeed * m_nDir + gravityDir * ( m_nDashGrabBeginFrame * pLevel->GetElapsedTimePerTick() * m_fGravity - m_fDashSpeedY );
+	m_vel = CVector2( 0, 0 );
 	m_nCurState = eState_Roll_Dash;
 	m_nStateTick = 0;
 }
@@ -2479,15 +3056,17 @@ void CPlayer::ForceRoll( bool bUpdate )
 bool CPlayer::HandBufferInputStand1()
 {
 	bool b = false;
-	if( !!( m_nBufferedInput & 1 ) )
+	if( !!( m_nBufferedInput & 2 ) )
 	{
 		b = true;
-		if( !!( m_nBufferedInput & 4 ) )
-			BackFlip();
-		else
+		Dash();
+	}
+	if( m_pLanded && !CGame::Inst().IsKey( 'J' ) )
+	{
+		if( !!( m_nBufferedInput & 1 ) )
 		{
-			m_nCurState = eState_Stand_1_Ready;
-			m_nStateTick = 0;
+			b = true;
+			Hop();
 		}
 	}
 	m_nBufferedInput = 0;

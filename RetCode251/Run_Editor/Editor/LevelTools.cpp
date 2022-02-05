@@ -53,7 +53,16 @@ public:
 		m_pFiles = m_pPanel0->GetChildByName<CUIScrollView>( "files" );
 		m_pSelectedFile = m_pPanel0->GetChildByName<CUILabel>( "selected" );
 		m_pViewport = m_pPanel0->GetChildByName<CUIViewport>( "viewport" );
-		m_pViewport->SetLight( false );
+		m_pViewport->SetLight( 0 );
+		m_onPreviewViewportStartDrag.Set( this, &CLevelObjectTool::OnPreviewViewportStartDrag );
+		m_pViewport->Register( eEvent_StartDrag, &m_onPreviewViewportStartDrag );
+		m_onPreviewViewportDragged.Set( this, &CLevelObjectTool::OnPreviewViewportDragged );
+		m_pViewport->Register( eEvent_Dragged, &m_onPreviewViewportDragged );
+		m_onPreviewViewportStopDrag.Set( this, &CLevelObjectTool::OnPreviewViewportStopDrag );
+		m_pViewport->Register( eEvent_StopDrag, &m_onPreviewViewportStopDrag );
+		m_onPreviewDebugDraw.Set( this, &CLevelObjectTool::OnPreviewViewportDebugDraw );
+		m_pViewport->Register( eEvent_Action, &m_onPreviewDebugDraw );
+
 		m_pToolsPanel = GetChildByName<CUIElement>( "tools" );
 		m_nCurSelectedTool = -1;
 		m_pToolResource = CResourceManager::Inst()->CreateResource<CUIResource>( "EditorRes/UI/tool_default.xml" );
@@ -150,6 +159,11 @@ public:
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportKey( SUIKeyEvent* pEvent );
 
+	void OnPreviewViewportDebugDraw( IRenderSystem* pRenderSystem );
+	void OnPreviewViewportStartDrag( SUIMouseEvent* pEvent );
+	void OnPreviewViewportDragged( SUIMouseEvent* pEvent );
+	void OnPreviewViewportStopDrag( SUIMouseEvent* pEvent );
+
 	void SelectObjLayer( int32 n );
 	void SelectFile( CPrefab* pPrefab );
 	void SelectObj( CPrefabNode* pObjNode );
@@ -226,6 +240,7 @@ protected:
 	CReference<CPrefabEditor> m_pObjEditor;
 
 	CReference<CRenderObject2D> m_pPreview;
+	CReference<CRenderObject2D> m_pToolPreview;
 	CReference<CPrefab> m_pCurSelectedPrefab;
 	CReference<CPrefabNode> m_pCurSelectedObj;
 	int32 m_nObjLayer;
@@ -240,9 +255,14 @@ protected:
 	CReference<CUIResource> m_pToolResource;
 
 	bool m_bDragged;
+	bool m_bPreviewViewportDrag;
 	CReference<CObjectDataEditItem> m_pObjectData;
 	TClassTrigger<CLevelObjectTool> m_onCalcSize;
 	TClassTrigger1<CLevelObjectTool, int32> m_onObjDataChanged;
+	TClassTrigger1<CLevelObjectTool, SUIMouseEvent*> m_onPreviewViewportStartDrag;
+	TClassTrigger1<CLevelObjectTool, SUIMouseEvent*> m_onPreviewViewportDragged;
+	TClassTrigger1<CLevelObjectTool, SUIMouseEvent*> m_onPreviewViewportStopDrag;
+	TClassTrigger1<CLevelObjectTool, IRenderSystem*> m_onPreviewDebugDraw;
 };
 
 
@@ -333,6 +353,54 @@ void CLevelObjectTool::OnViewportKey( SUIKeyEvent* pEvent )
 	}
 }
 
+void CLevelObjectTool::OnPreviewViewportDebugDraw( IRenderSystem* pRenderSystem )
+{
+	if( m_nCurSelectedTool >= 0 )
+	{
+		auto pTool = m_vecTools[m_nCurSelectedTool].pTool;
+		pTool->OnPreviewDebugDraw( m_pViewport, pRenderSystem );
+	}
+}
+
+void CLevelObjectTool::OnPreviewViewportStartDrag( SUIMouseEvent* pEvent )
+{
+	m_bPreviewViewportDrag = true;
+	if( m_nCurSelectedTool >= 0 )
+	{
+		auto pTool = m_vecTools[m_nCurSelectedTool].pTool;
+		CVector2 fixOfs = m_pViewport->GetScenePos( pEvent->mousePos );
+		if( pTool->OnPreviewViewportStartDrag( m_pViewport, fixOfs ) )
+			m_bPreviewViewportDrag = true;
+	}
+}
+
+void CLevelObjectTool::OnPreviewViewportDragged( SUIMouseEvent* pEvent )
+{
+	if( m_bPreviewViewportDrag )
+	{
+		CVector2 fixOfs = m_pViewport->GetScenePos( pEvent->mousePos );
+		if( m_nCurSelectedTool >= 0 )
+		{
+			auto pTool = m_vecTools[m_nCurSelectedTool].pTool;
+			pTool->OnPreviewViewportDragged( m_pViewport, fixOfs );
+		}
+	}
+}
+
+void CLevelObjectTool::OnPreviewViewportStopDrag( SUIMouseEvent * pEvent )
+{
+	if( m_bPreviewViewportDrag )
+	{
+		m_bPreviewViewportDrag = false;
+		CVector2 fixOfs = m_pViewport->GetScenePos( pEvent->mousePos );
+		if( m_nCurSelectedTool >= 0 )
+		{
+			auto pTool = m_vecTools[m_nCurSelectedTool].pTool;
+			pTool->OnPreviewViewportStopDrag( m_pViewport, fixOfs );
+		}
+	}
+}
+
 void CLevelObjectTool::SelectObjLayer( int32 n )
 {
 	if( n == m_nObjLayer )
@@ -371,9 +439,10 @@ void CLevelObjectTool::SelectFile( CPrefab* pPrefab )
 	m_pCurSelectedPrefab = pPrefab;
 	if( pPrefab )
 	{
-		auto p = SafeCast<CEntity>( pPrefab->GetRoot()->CreateInstance() );
+		auto p = SafeCast<CEntity>( pPrefab->GetRoot()->CreateInstance( false ) );
 		m_pPreview = p;
-		m_pViewport->GetRoot()->AddChild( p );
+		if( !m_pToolPreview )
+			m_pViewport->GetRoot()->AddChild( p );
 		p->OnPreview();
 		m_pSelectedFile->SetText( pPrefab->GetName() );
 	}
@@ -401,6 +470,13 @@ void CLevelObjectTool::SelectTool( int32 n )
 			static_cast<CLevelEditPrefabTool*>( m_vecTools[m_nCurSelectedTool].pTool )->ToolEnd();
 		else
 			static_cast<CLevelEditCommonTool*>( m_vecTools[m_nCurSelectedTool].pTool )->ToolEnd();
+		if( m_pToolPreview )
+		{
+			m_pToolPreview->RemoveThis();
+			m_pToolPreview = NULL;
+			if( m_pPreview )
+				m_pViewport->GetRoot()->AddChild( m_pPreview );
+		}
 	}
 	m_nCurSelectedTool = n;
 	if( n >= 0 )
@@ -411,6 +487,14 @@ void CLevelObjectTool::SelectTool( int32 n )
 			static_cast<CLevelEditPrefabTool*>( m_vecTools[n].pTool )->ToolBegin( m_pCurSelectedPrefab );
 		else
 			static_cast<CLevelEditCommonTool*>( m_vecTools[n].pTool )->ToolBegin();
+		auto p = m_vecTools[n].pTool->CreateToolPreview();
+		m_pToolPreview = p;
+		if( m_pToolPreview )
+		{
+			if( m_pPreview )
+				m_pPreview->RemoveThis();
+			m_pViewport->GetRoot()->AddChild( m_pToolPreview );
+		}
 	}
 }
 
@@ -1199,7 +1283,7 @@ protected:
 void CLevelToolsView::OnInited()
 {
 	m_pViewport = GetChildByName<CUIViewport>( "viewport" );
-	m_pViewport->SetLight( false );
+	m_pViewport->SetLight( 1 );
 
 	m_onViewportStartDrag.Set( this, &CLevelToolsView::OnViewportStartDrag );
 	m_pViewport->Register( eEvent_StartDrag, &m_onViewportStartDrag );
@@ -1239,6 +1323,9 @@ void CLevelToolsView::OnInited()
 	AddChild( pLevelEnvTool );
 	m_vecTools.push_back( pLevelEnvTool );
 
+	CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ), CVector3( 1, 1, 1 ), 8, 256 );
+	m_pViewport->GetRoot()->AddChild( pDirectionalLight );
+	m_pLight = pDirectionalLight;
 	static CDefaultDrawable2D* pDrawable1 = NULL;
 	if( !pDrawable1 )
 	{
@@ -1412,7 +1499,11 @@ void CLevelToolsView::OnViewportKey( SUIKeyEvent* pEvent )
 {
 	if( !pEvent->bKeyDown )
 		return;
-	if( pEvent->nChar >= VK_F1 && pEvent->nChar <= VK_F12 )
+	if( pEvent->nChar == VK_F12 )
+	{
+		m_pLight->bVisible = !m_pLight->bVisible;
+	}
+	if( pEvent->nChar >= VK_F1 && pEvent->nChar <= VK_F11 )
 	{
 		auto nTool = pEvent->nChar - VK_F1;
 		if( nTool < m_vecTools.size() && nTool != m_nCurTool )

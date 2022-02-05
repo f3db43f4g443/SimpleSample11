@@ -9,12 +9,18 @@ class CLevelEditToolDefault : public CLevelEditCommonTool
 {
 public:
 	CLevelEditToolDefault() : m_nMode( 0 ), m_bDrag( false ), m_bQuickToolDrag( false ), m_bDblClick( false ) {}
+	virtual CRenderObject2D* CreateToolPreview() override;
 	virtual void ToolEnd() override;
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual bool OnViewportKey( struct SUIKeyEvent* pEvent ) override;
+
+	virtual void OnPreviewDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
+	virtual bool OnPreviewViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual void OnPreviewViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual void OnPreviewViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditToolDefault )
 private:
 	int8 m_nMode;
@@ -24,6 +30,7 @@ private:
 	CVector2 m_beginMousePos;
 	CVector2 m_beginObjPos;
 	CReference<CPrefabNode> m_pTempSelectedNode;
+	CReference<CRenderObject2D> m_pPreviewRoot;
 	CLevelEditObjectTool* m_pQuickTool;
 };
 
@@ -151,7 +158,7 @@ public:
 class CLevelEditObjectToolTerrain : public TLevelEditObjectToolBase<CTerrain>
 {
 public:
-	CLevelEditObjectToolTerrain() : m_nCurBrushSize( 1 ) {}
+	CLevelEditObjectToolTerrain() : m_nCurBrushSize( 1 ), m_nDragType1( 0 ) {}
 	virtual void ToolBegin( CPrefabNode* pPrefabNode ) override;
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
@@ -162,23 +169,37 @@ public:
 	class CTileMap2D* GetTileMapData();
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectToolTerrain )
 private:
-	bool OnEditMap( const CVector2& localPos );
-	void DebugDrawEditMap( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos );
+	bool OnBrush( const CVector2& localPos );
+	void CopyTileData();
+	void OverwriteTileData();
+	void RestoreTileData();
+	void DebugDrawBrush( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos );
+	void DebugDrawBlock( class CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos );
+
+	int8 m_nEditType;
+	bool m_bDragging;
+	uint32 m_nCurBrushTileType;
+	uint8 m_nCurBrushSize;
+	uint8 m_nCurBrushShape;
+
 	int32 m_nDragType1;
 	CVector2 m_dragLocalMousePos;
 	TVector2<int32> m_dragBeginSize;
 	TRectangle<int32> m_dragCurSize;
 	CVector2 m_dragBeginOfs;
 
-	bool m_bDragging;
-	uint32 m_nCurEditType;
-	uint8 m_nCurBrushSize;
-	uint8 m_nCurBrushShape;
+	TVector2<int32> m_dragBeginGrid;
+	TVector2<int32> m_dragCurGrid;
+	TRectangle<int32> m_selectedArea;
+	TRectangle<int32> m_dragBeginArea;
+	vector<uint32> m_vecCopyData;
+	vector<uint32> m_vecOrigData;
 };
 
 class CLevelEditObjectQuickToolEntityResize : public TLevelEditObjectToolBase<CEntity>
 {
 public:
+	CLevelEditObjectQuickToolEntityResize() : m_nDragType( 0 ) {}
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
@@ -194,6 +215,7 @@ private:
 class CLevelEditObjectQuickToolAlertTriggerResize : public TLevelEditObjectToolBase<CAlertTrigger>
 {
 public:
+	CLevelEditObjectQuickToolAlertTriggerResize() : m_nDragType( 0 ) {}
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
 	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
@@ -208,6 +230,7 @@ private:
 class CLevelEditObjectQuickToolGate : public TLevelEditObjectToolBase<CGate>
 {
 public:
+	CLevelEditObjectQuickToolGate() : m_nDragType( 0 ) {}
 	virtual void ToolBegin( CPrefabNode* pPrefabNode ) override;
 	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
 	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
@@ -228,11 +251,28 @@ public:
 	virtual bool OnViewportKey( struct SUIKeyEvent* pEvent ) override;
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectQuickToolChunk1 )
 protected:
+};
+
+class CLevelEditObjectQuickToolChunk2 : public CLevelEditObjectQuickToolEntityResize
+{
+public:
+	CLevelEditObjectQuickToolChunk2() : m_nDragType( 0 ) {}
+	virtual CRenderObject2D* CreateToolPreview() override;
+	virtual void OnDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
+	virtual bool OnViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual void OnViewportDragged( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual void OnViewportStopDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	virtual bool OnViewportKey( struct SUIKeyEvent* pEvent ) override;
+
+	virtual void OnPreviewDebugDraw( class CUIViewport* pViewport, IRenderSystem* pRenderSystem ) override;
+	virtual bool OnPreviewViewportStartDrag( class CUIViewport* pViewport, const CVector2& mousePos ) override;
+	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectQuickToolChunk2 )
+protected:
+	CRectangle m_previewImgRect;
+	int32 m_nSelectedX, m_nSelectedY;
+
 	int32 m_nDragType;
-	CVector2 m_dragLocalMousePos;
-	TVector2<int32> m_dragBeginSize;
-	TRectangle<int32> m_dragCurSize;
-	CVector2 m_dragBeginOfs;
+	CVector2 m_dragBeginPos;
 };
 
 
@@ -256,6 +296,13 @@ class CLevelEditObjectToolsetChunk1 : public CLevelEditObjectToolsetEntity
 public:
 	virtual CLevelEditObjectTool* CreateQuickObjectTool( CPrefabNode* pNode ) override;
 	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectToolsetChunk1 )
+};
+
+class CLevelEditObjectToolsetChunk2 : public CLevelEditObjectToolsetEntity
+{
+public:
+	virtual CLevelEditObjectTool* CreateQuickObjectTool( CPrefabNode* pNode ) override;
+	DECLARE_GLOBAL_INST_REFERENCE( CLevelEditObjectToolsetChunk2 )
 };
 
 class CLevelEditObjectToolsetAlertTrigger : public CLevelEditObjectToolsetEntity

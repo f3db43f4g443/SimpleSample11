@@ -5,7 +5,10 @@ class ILevelObjLayer
 {
 public:
 	virtual bool GetBound( CRectangle& rect ) const = 0;
+	virtual void Init() = 0;
 	virtual void InitFromTemplate( class CEntity* p, const CRectangle& rect ) = 0;
+	virtual void Update() = 0;
+	virtual void UpdateScroll(	const CVector4& camTrans ) = 0;
 };
 
 class IEditorTiled

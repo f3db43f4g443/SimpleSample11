@@ -14,6 +14,8 @@ enum
 #define VK_TAB				0x09
 #define VK_RETURN			0x0D
 
+#define VK_SHIFT			0x10
+#define VK_CONTROL			0x11
 #define VK_ESCAPE			0x1B
 #define VK_DELETE			0x2E
 

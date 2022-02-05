@@ -13,7 +13,7 @@ class CResourceEditor : public CUIElement
 public:
 	virtual void NewFile( const char* szFileName ) {}
 	virtual void SetFileName( const char* szFileName, const char* szParam ) {}
-	static bool& IsLighted() { static bool b = true; return b; }
+	static int8& LightType() { static int8 n = 2; return n; }
 };
 
 template <class T>
@@ -132,7 +132,7 @@ protected:
 	{
 		m_pViewport = GetChildByName<CUIViewport>( "viewport" );
 		if( m_pViewport )
-			m_pViewport->SetLight( IsLighted() );
+			m_pViewport->SetLight( LightType() );
 	}
 
 	virtual void OnInitViewport()
@@ -235,9 +235,9 @@ protected:
 	CVector2 m_startDragPos;
 	CVector2 m_camOfs;
 	map<string, string> m_mapParams;
-private:
 	CReference<CRenderObject2D> m_pLight;
 	CReference<CRenderObject2D> m_pBackground;
+private:
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStartDrag;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportDragged;
 	TClassTrigger1<TResourceEditor, SUIMouseEvent*> m_onViewportStopDrag;

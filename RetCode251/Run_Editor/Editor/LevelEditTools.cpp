@@ -7,6 +7,13 @@
 #include "Game/Entities/CharacterMisc.h"
 #include "Game/Entities/UtilEntities.h"
 
+CRenderObject2D * CLevelEditToolDefault::CreateToolPreview()
+{
+	if( !m_pPreviewRoot )
+		m_pPreviewRoot = new CRenderObject2D;
+	return m_pPreviewRoot;
+}
+
 void CLevelEditToolDefault::ToolEnd()
 {
 	__super::ToolEnd();
@@ -16,6 +23,8 @@ void CLevelEditToolDefault::ToolEnd()
 	{
 		m_pQuickTool->ToolEnd();
 		m_pQuickTool = NULL;
+		if( m_pPreviewRoot )
+			m_pPreviewRoot->RemoveAllChild();
 	}
 }
 
@@ -63,6 +72,7 @@ bool CLevelEditToolDefault::OnViewportStartDrag( CUIViewport* pViewport, const C
 	{
 		m_pQuickTool->ToolEnd();
 		m_pQuickTool = NULL;
+		m_pPreviewRoot->RemoveAllChild();
 	}
 	if( m_pTempSelectedNode == pNode )
 		m_bDblClick = true;
@@ -107,7 +117,12 @@ void CLevelEditToolDefault::OnViewportStopDrag( CUIViewport* pViewport, const CV
 		auto pToolset = CLevelEditToolsetMgr::Inst().GetObjectToolset( m_pTempSelectedNode->GetPatchedNode()->GetClassData() );
 		m_pQuickTool = pToolset->CreateQuickObjectTool( m_pTempSelectedNode );
 		if( m_pQuickTool )
+		{
 			m_pQuickTool->ToolBegin( m_pTempSelectedNode );
+			auto pPreview = m_pQuickTool->CreateToolPreview();
+			if( pPreview )
+				m_pPreviewRoot->AddChild( pPreview );
+		}
 	}
 }
 
@@ -119,6 +134,31 @@ bool CLevelEditToolDefault::OnViewportKey( SUIKeyEvent* pEvent )
 			return true;
 	}
 	return false;
+}
+
+void CLevelEditToolDefault::OnPreviewDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
+{
+	if( m_pQuickTool )
+		m_pQuickTool->OnPreviewDebugDraw( pViewport, pRenderSystem );
+}
+
+bool CLevelEditToolDefault::OnPreviewViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	if( m_pQuickTool )
+		return m_pQuickTool->OnPreviewViewportStartDrag( pViewport, mousePos );
+	return false;
+}
+
+void CLevelEditToolDefault::OnPreviewViewportDragged( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	if( m_pQuickTool )
+		m_pQuickTool->OnPreviewViewportDragged( pViewport, mousePos );
+}
+
+void CLevelEditToolDefault::OnPreviewViewportStopDrag( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	if( m_pQuickTool )
+		m_pQuickTool->OnPreviewViewportStopDrag( pViewport, mousePos );
 }
 
 void CLevelEditToolEditBase::ToolBegin()
@@ -695,11 +735,15 @@ void CLevelEditObjectToolEntityDefault::ToolEnd()
 void CLevelEditObjectToolTerrain::ToolBegin( CPrefabNode* pPrefabNode )
 {
 	m_pPrefabNode = pPrefabNode;
+	m_nEditType = 0;
 	m_pObjData = (CTerrain*)pPrefabNode->GetStaticDataSafe<CTerrain>();
 	CTileMap2D* pTileMap = GetTileMapData();
 	pTileMap->SetTileSize( m_pObjData->m_tileSize );
 	pTileMap->Resize( TRectangle<int32>( 0, 0, m_pObjData->m_nTileX - 1, m_pObjData->m_nTileY - 1 ) );
 	pTileMap->SetBaseOffset( m_pObjData->m_ofs + m_pObjData->m_tileSize * 0.5f );
+	m_selectedArea = TRectangle<int32>( 0, 0, 0, 0 );
+	m_vecCopyData.resize( 0 );
+	m_vecOrigData.resize( 0 );
 }
 
 void CLevelEditObjectToolTerrain::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
@@ -716,12 +760,18 @@ void CLevelEditObjectToolTerrain::OnDebugDraw( CUIViewport* pViewport, IRenderSy
 	CVector4 color = CVector4( 0.8f, 0.8f, 0.2f, 0.6f );
 	for( int i = 0; i < 4; i++ )
 		pViewport->DebugDrawLine( pRenderSystem, verts[i], verts[( i + 1 ) % 4], color );
-	DebugDrawEditMap( pViewport, pRenderSystem, localMousePos );
+	if( m_nEditType == 0 )
+		DebugDrawBrush( pViewport, pRenderSystem, localMousePos );
+	else
+		DebugDrawBlock( pViewport, pRenderSystem, localMousePos );
 }
 
 bool CLevelEditObjectToolTerrain::OnViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos )
 {
+	if( pViewport->GetMgr()->IsKey( VK_CONTROL ) )
+		return false;
 	auto rect = m_pObjData->GetBoundForEditor();
+	auto tileSize = m_pObjData->GetTileSize();
 	CRectangle rects[8] =
 	{
 		{ rect.GetRight(), rect.y, 32, rect.height },
@@ -736,24 +786,54 @@ bool CLevelEditObjectToolTerrain::OnViewportStartDrag( CUIViewport* pViewport, c
 	CMatrix2D trans;
 	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
 	auto localMousePos = trans.MulTVector2Pos( mousePos );
-	if( OnEditMap( localMousePos ) )
-	{
-		m_bDragging = true;
-		return true;
-	}
 
-	for( int i = 0; i < 8; i++ )
+	if( m_nEditType == 0 )
 	{
-		if( rects[i].Contains( localMousePos ) )
+		if( OnBrush( localMousePos ) )
 		{
-			m_nDragType1 = i;
-			m_dragLocalMousePos = localMousePos;
-			auto p = SafeCastToInterface<IEditorTiled>( m_pObjData );
-			m_dragBeginSize = p->GetSize();
-			m_dragCurSize = TRectangle<int32>( 0, 0, m_dragBeginSize.x, m_dragBeginSize.y );
-			m_dragBeginOfs = p->GetBaseOfs();
+			m_bDragging = true;
 			return true;
 		}
+
+		for( int i = 0; i < 8; i++ )
+		{
+			if( rects[i].Contains( localMousePos ) )
+			{
+				m_nDragType1 = i;
+				m_dragLocalMousePos = localMousePos;
+				auto p = SafeCastToInterface<IEditorTiled>( m_pObjData );
+				m_dragBeginSize = p->GetSize();
+				m_dragCurSize = TRectangle<int32>( 0, 0, m_dragBeginSize.x, m_dragBeginSize.y );
+				m_dragBeginOfs = p->GetBaseOfs();
+				return true;
+			}
+		}
+	}
+	else
+	{
+		m_bDragging = true;
+		m_nDragType1 = 0;
+		m_dragLocalMousePos = localMousePos;
+		m_dragBeginGrid = TVector2<int32>( floor( ( localMousePos.x - m_pObjData->GetBaseOfs().x ) / tileSize.x + 1 ), floor( ( localMousePos.y - m_pObjData->GetBaseOfs().y ) / tileSize.y + 1 ) );
+		if( m_selectedArea.width && m_selectedArea.height )
+		{
+			CRectangle r( ( m_selectedArea.x - 0.5f ) * m_pObjData->GetTileSize().x + m_pObjData->GetBaseOfs().x,
+				( m_selectedArea.y - 0.5f ) * m_pObjData->GetTileSize().y + m_pObjData->GetBaseOfs().y,
+				m_selectedArea.width * m_pObjData->GetTileSize().x, m_selectedArea.height * m_pObjData->GetTileSize().y );
+			if( r.Contains( localMousePos ) )
+			{
+				m_nDragType1 = 1;
+				m_dragBeginArea = m_selectedArea;
+			}
+			else
+			{
+				RestoreTileData();
+				m_vecCopyData.resize( 0 );
+				m_vecOrigData.resize( 0 );
+				m_selectedArea = TRectangle<int32>( 0, 0, 0, 0 );
+			}
+		}
+		return true;
 	}
 	return false;
 }
@@ -767,74 +847,171 @@ void CLevelEditObjectToolTerrain::OnViewportDragged( CUIViewport* pViewport, con
 	CMatrix2D trans;
 	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
 	auto localMousePos = trans.MulTVector2Pos( mousePos );
-	if( m_bDragging )
-	{
-		OnEditMap( localMousePos );
-		return;
-	}
 
-	auto d = localMousePos - m_dragLocalMousePos;
-	if( m_nDragType1 == 0 || m_nDragType1 == 4 || m_nDragType1 == 6 )
+	if( m_nEditType == 0 )
 	{
-		int32 dx = floor( d.x / tileSize.x + 0.5f );
-		size1.width = Max( m_dragBeginSize.x + dx, 2 );
+		if( m_bDragging )
+		{
+			OnBrush( localMousePos );
+			return;
+		}
+
+		auto d = localMousePos - m_dragLocalMousePos;
+		if( m_nDragType1 == 0 || m_nDragType1 == 4 || m_nDragType1 == 6 )
+		{
+			int32 dx = floor( d.x / tileSize.x + 0.5f );
+			size1.width = Max( m_dragBeginSize.x + dx, 2 );
+		}
+		if( m_nDragType1 == 1 || m_nDragType1 == 5 || m_nDragType1 == 7 )
+		{
+			int32 dx = -floor( d.x / tileSize.x + 0.5f );
+			size1.SetLeft( size1.GetRight() - Max( m_dragBeginSize.x + dx, 2 ) );
+		}
+		if( m_nDragType1 == 2 || m_nDragType1 == 4 || m_nDragType1 == 5 )
+		{
+			int32 dy = floor( d.y / tileSize.y + 0.5f );
+			size1.height = Max( m_dragBeginSize.y + dy, 2 );
+		}
+		if( m_nDragType1 == 3 || m_nDragType1 == 6 || m_nDragType1 == 7 )
+		{
+			int32 dy = -floor( d.y / tileSize.y + 0.5f );
+			size1.SetTop( size1.GetBottom() - Max( m_dragBeginSize.y + dy, 2 ) );
+		}
+		if( size1 != m_dragCurSize )
+		{
+			auto s = size1.Offset( TVector2<int32>( -m_dragCurSize.x, -m_dragCurSize.y ) );
+			p->Resize( s );
+			GetTileMapData()->Resize( TRectangle<int32>( s.x, s.y, s.width - 1, s.height - 1 ) );
+			m_pPrefabNode->OnEdit();
+			m_dragCurSize = size1;
+		}
 	}
-	if( m_nDragType1 == 1 || m_nDragType1 == 5 || m_nDragType1 == 7 )
+	else
 	{
-		int32 dx = -floor( d.x / tileSize.x + 0.5f );
-		size1.SetLeft( size1.GetRight() - Max( m_dragBeginSize.x + dx, 2 ) );
-	}
-	if( m_nDragType1 == 2 || m_nDragType1 == 4 || m_nDragType1 == 5 )
-	{
-		int32 dy = floor( d.y / tileSize.y + 0.5f );
-		size1.height = Max( m_dragBeginSize.y + dy, 2 );
-	}
-	if( m_nDragType1 == 3 || m_nDragType1 == 6 || m_nDragType1 == 7 )
-	{
-		int32 dy = -floor( d.y / tileSize.y + 0.5f );
-		size1.SetTop( size1.GetBottom() - Max( m_dragBeginSize.y + dy, 2 ) );
-	}
-	if( size1 != m_dragCurSize )
-	{
-		auto s = size1.Offset( TVector2<int32>( -m_dragCurSize.x, -m_dragCurSize.y ) );
-		p->Resize( s );
-		GetTileMapData()->Resize( TRectangle<int32>( s.x, s.y, s.width - 1, s.height - 1 ) );
-		m_pPrefabNode->OnEdit();
-		m_dragCurSize = size1;
+		m_dragCurGrid = TVector2<int32>( floor( ( localMousePos.x - m_pObjData->GetBaseOfs().x ) / tileSize.x + 1 ), floor( ( localMousePos.y - m_pObjData->GetBaseOfs().y ) / tileSize.y + 1 ) );
+		if( m_nDragType1 == 0 )
+		{
+			m_selectedArea = TRectangle<int32>( m_dragBeginGrid.x, m_dragBeginGrid.y, 0, 0 ) + TRectangle<int32>( m_dragCurGrid.x, m_dragCurGrid.y, 0, 0 );
+		}
+		else if( m_nDragType1 == 1 )
+		{
+			auto d = localMousePos - m_dragLocalMousePos;
+			auto newSelectArea = m_dragBeginArea.Offset( TVector2<int32>( floor( d.x / tileSize.x + 0.5f ), floor( d.y / tileSize.y + 0.5f ) ) );
+			if( newSelectArea != m_selectedArea )
+			{
+				RestoreTileData();
+				m_selectedArea = newSelectArea;
+				OverwriteTileData();
+			}
+		}
 	}
 }
 
-void CLevelEditObjectToolTerrain::OnViewportStopDrag( CUIViewport * pViewport, const CVector2 & mousePos )
+void CLevelEditObjectToolTerrain::OnViewportStopDrag( CUIViewport* pViewport, const CVector2& mousePos )
 {
 	if( m_bDragging )
 		m_bDragging = false;
+	if( m_nEditType == 1 )
+	{
+		auto tileSize = m_pObjData->GetTileSize();
+		CMatrix2D trans;
+		trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+		auto localMousePos = trans.MulTVector2Pos( mousePos );
+
+		m_dragCurGrid = TVector2<int32>( floor( ( localMousePos.x - m_pObjData->GetBaseOfs().x )/ tileSize.x + 1 ), floor( ( localMousePos.y - m_pObjData->GetBaseOfs().y ) / tileSize.y + 1 ) );
+
+		if( m_nDragType1 == 0 )
+		{
+			m_selectedArea = TRectangle<int32>( m_dragBeginGrid.x, m_dragBeginGrid.y, 0, 0 ) + TRectangle<int32>( m_dragCurGrid.x, m_dragCurGrid.y, 0, 0 );
+		}
+		else if( m_nDragType1 == 1 )
+		{
+			auto d = localMousePos - m_dragLocalMousePos;
+			auto newSelectArea = m_dragBeginArea.Offset( TVector2<int32>( floor( d.x / tileSize.x + 0.5f ), floor( d.y / tileSize.y + 0.5f ) ) );
+			if( newSelectArea != m_selectedArea )
+			{
+				RestoreTileData();
+				m_selectedArea = newSelectArea;
+				OverwriteTileData();
+			}
+		}
+	}
 }
 
-bool CLevelEditObjectToolTerrain::OnViewportKey( SUIKeyEvent * pEvent )
+bool CLevelEditObjectToolTerrain::OnViewportKey( SUIKeyEvent* pEvent )
 {
+	if( m_bDragging )
+		return true;
 	CTileMap2D* pTileMap = GetTileMapData();
 	uint32 nEditTypeCount = pTileMap->GetInfo()->editInfos.size();
 
-	switch( pEvent->nChar )
+	char szTileKey[] = "QWERASDFZXCV";
+	for( int i = 0; i < ELEM_COUNT( szTileKey ) - 1; i++ )
 	{
-	case 'Q':
-		m_nCurEditType = m_nCurEditType > 0 ? m_nCurEditType - 1 : nEditTypeCount - 1;
+		if( pEvent->nChar == szTileKey[i] )
+		{
+			if( i < nEditTypeCount )
+				m_nCurBrushTileType = i;
+			return true;
+		}
+	}
+	if( pEvent->nChar == VK_TAB )
+	{
+		m_nEditType = 1 - m_nEditType;
 		return true;
-	case 'W':
-		m_nCurEditType = m_nCurEditType < nEditTypeCount - 1 ? m_nCurEditType + 1 : 0;
-		return true;
-	case 'X':
-		m_nCurBrushSize = Min<int8>( m_nCurBrushSize + 1, 9 );
-		return true;
-	case 'Z':
-		m_nCurBrushSize = Max<int8>( m_nCurBrushSize - 1, 1 );
-		return true;
-	case 'S':
-		m_nCurBrushShape = m_nCurBrushShape < 2 ? m_nCurBrushShape + 1 : 0;
-		return true;
-	case 'A':
-		m_nCurBrushShape = m_nCurBrushShape > 0 ? m_nCurBrushShape - 1 : 2;
-		return true;
+	}
+	if( m_nEditType == 1 )
+	{
+		switch( pEvent->nChar )
+		{
+		case ' ':
+			if( m_selectedArea.width && m_selectedArea.height )
+			{
+				if( !m_vecCopyData.size() )
+					CopyTileData();
+				else
+				{
+					m_vecCopyData.resize( 0 );
+					m_vecOrigData.resize( 0 );
+				}
+			}
+			return true;
+		case VK_BACK:
+			if( m_selectedArea.width && m_selectedArea.height )
+			{
+				if( m_vecCopyData.size() )
+				{
+					RestoreTileData();
+					m_vecCopyData.resize( 0 );
+					m_vecOrigData.resize( 0 );
+				}
+			}
+			return true;
+		}
+	}
+	else
+	{
+		switch( pEvent->nChar )
+		{
+		case 'B':
+			m_nCurBrushTileType = m_nCurBrushTileType > 0 ? m_nCurBrushTileType - 1 : nEditTypeCount - 1;
+			return true;
+		case 'N':
+			m_nCurBrushTileType = m_nCurBrushTileType < nEditTypeCount - 1 ? m_nCurBrushTileType + 1 : 0;
+			return true;
+		case 'T':
+			m_nCurBrushSize = Min<int8>( m_nCurBrushSize + 1, 9 );
+			return true;
+		case 'G':
+			m_nCurBrushSize = Max<int8>( m_nCurBrushSize - 1, 1 );
+			return true;
+		case 'Y':
+			m_nCurBrushShape = m_nCurBrushShape < 2 ? m_nCurBrushShape + 1 : 0;
+			return true;
+		case 'H':
+			m_nCurBrushShape = m_nCurBrushShape > 0 ? m_nCurBrushShape - 1 : 2;
+			return true;
+		}
 	}
 	return false;
 }
@@ -844,7 +1021,7 @@ CTileMap2D* CLevelEditObjectToolTerrain::GetTileMapData()
 	return (CTileMap2D*)m_pPrefabNode->GetRenderObject();
 }
 
-bool CLevelEditObjectToolTerrain::OnEditMap( const CVector2& localPos )
+bool CLevelEditObjectToolTerrain::OnBrush( const CVector2& localPos )
 {
 	CTileMap2D* pTileMap = GetTileMapData();
 	CVector2 grid = ( localPos - pTileMap->GetBaseOffset() ) * CVector2( 1.0f / pTileMap->GetTileSize().x, 1.0f / pTileMap->GetTileSize().y );
@@ -870,7 +1047,7 @@ bool CLevelEditObjectToolTerrain::OnEditMap( const CVector2& localPos )
 					if( abs( x * 2 + 1 - p0.x ) + abs( y * 2 + 1 - p0.y ) > m_nCurBrushSize )
 						continue;
 				}
-				pTileMap->EditTile( x, y, m_nCurEditType );
+				pTileMap->EditTile( x, y, m_nCurBrushTileType );
 			}
 		}
 		return true;
@@ -878,7 +1055,83 @@ bool CLevelEditObjectToolTerrain::OnEditMap( const CVector2& localPos )
 	return false;
 }
 
-void CLevelEditObjectToolTerrain::DebugDrawEditMap( CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos )
+void CLevelEditObjectToolTerrain::CopyTileData()
+{
+	if( !m_selectedArea.width || !m_selectedArea.height )
+		return;
+
+	auto pTileData = GetTileMapData();
+	m_vecCopyData.resize( m_selectedArea.width * m_selectedArea.height );
+	m_vecOrigData.resize( m_selectedArea.width * m_selectedArea.height );
+	for( int i = 0; i < m_selectedArea.width; i++ )
+	{
+		for( int j = 0; j < m_selectedArea.height; j++ )
+		{
+			auto x = Min<int32>( pTileData->GetWidth(), Max( 0, i + m_selectedArea.x ) );
+			auto y = Min<int32>( pTileData->GetHeight(), Max( 0, j + m_selectedArea.y ) );
+			m_vecOrigData[i + j * m_selectedArea.width] = m_vecCopyData[i + j * m_selectedArea.width] = pTileData->GetEditData( x, y );
+		}
+	}
+}
+
+void CLevelEditObjectToolTerrain::OverwriteTileData()
+{
+	if( !m_vecCopyData.size() )
+		return;
+
+	auto pTileData = GetTileMapData();
+	for( int i = 0; i < m_selectedArea.width; i++ )
+	{
+		for( int j = 0; j < m_selectedArea.height; j++ )
+		{
+			auto x = i + m_selectedArea.x;
+			auto y = j + m_selectedArea.y;
+			if( x >= 0 && y >= 0 && x <= pTileData->GetWidth() && y <= pTileData->GetHeight() )
+			{
+				m_vecOrigData[i + j * m_selectedArea.width] = pTileData->GetEditData( x, y );
+				pTileData->SetEditData( x, y, m_vecCopyData[i + j * m_selectedArea.width] );
+			}
+		}
+	}
+	TRectangle<int32> refreshRect( m_selectedArea.x - 1, m_selectedArea.y - 1, m_selectedArea.width + 1, m_selectedArea.height + 1 );
+	refreshRect = refreshRect * TRectangle<int32>( 0, 0, pTileData->GetWidth(), pTileData->GetHeight() );
+	for( int i = 0; i < refreshRect.width; i++ )
+	{
+		for( int j = 0; j < refreshRect.height; j++ )
+		{
+			pTileData->RefreshTile( i + refreshRect.x, j + refreshRect.y );
+		}
+	}
+}
+
+void CLevelEditObjectToolTerrain::RestoreTileData()
+{
+	if( !m_vecOrigData.size() )
+		return;
+
+	auto pTileData = GetTileMapData();
+	for( int i = 0; i < m_selectedArea.width; i++ )
+	{
+		for( int j = 0; j < m_selectedArea.height; j++ )
+		{
+			auto x = i + m_selectedArea.x;
+			auto y = j + m_selectedArea.y;
+			if( x >= 0 && y >= 0 && x <= pTileData->GetWidth() && y <= pTileData->GetHeight() )
+				pTileData->SetEditData( x, y, m_vecOrigData[i + j * m_selectedArea.width] );
+		}
+	}
+	TRectangle<int32> refreshRect( m_selectedArea.x - 1, m_selectedArea.y - 1, m_selectedArea.width + 1, m_selectedArea.height + 1 );
+	refreshRect = refreshRect * TRectangle<int32>( 0, 0, pTileData->GetWidth(), pTileData->GetHeight() );
+	for( int i = 0; i < refreshRect.width; i++ )
+	{
+		for( int j = 0; j < refreshRect.height; j++ )
+		{
+			pTileData->RefreshTile( i + refreshRect.x, j + refreshRect.y );
+		}
+	}
+}
+
+void CLevelEditObjectToolTerrain::DebugDrawBrush( CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos )
 {
 	CTileMap2D* pTileMap = GetTileMapData();
 	CVector2 grid = ( localPos - pTileMap->GetBaseOffset() ) * CVector2( 1.0f / pTileMap->GetTileSize().x, 1.0f / pTileMap->GetTileSize().y );
@@ -890,7 +1143,7 @@ void CLevelEditObjectToolTerrain::DebugDrawEditMap( CUIViewport* pViewport, IRen
 	{
 		CVector2 ofs[] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
 		CVector4 colors[] = { { 1, 1, 0, 1 }, { 0, 1, 0, 1 }, { 0, 1, 1, 0 }, { 0, 0, 1, 1 }, { 1, 0, 1, 1 }, { 1, 0, 0, 1 }, { 1, 1, 1, 1 }, { 0.5, 0.5, 0.5, 1 } };
-		CVector4 color = colors[m_nCurEditType % ELEM_COUNT( colors )];
+		CVector4 color = colors[m_nCurBrushTileType % ELEM_COUNT( colors )];
 		CMatrix2D trans;
 		trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
 		for( int x = rect.x; x < rect.GetRight(); x++ )
@@ -918,6 +1171,37 @@ void CLevelEditObjectToolTerrain::DebugDrawEditMap( CUIViewport* pViewport, IRen
 					pViewport->DebugDrawLine( pRenderSystem, trans.MulVector2Pos( a ), trans.MulVector2Pos( b ), color );
 				}
 			}
+		}
+	}
+}
+
+void CLevelEditObjectToolTerrain::DebugDrawBlock( CUIViewport* pViewport, IRenderSystem* pRenderSystem, const CVector2& localPos )
+{
+	if( m_selectedArea.width && m_selectedArea.height )
+	{
+		CMatrix2D trans;
+		trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+
+		CRectangle rect( ( m_selectedArea.x - 0.5f ) * m_pObjData->GetTileSize().x + m_pObjData->GetBaseOfs().x,
+			( m_selectedArea.y - 0.5f ) * m_pObjData->GetTileSize().y + m_pObjData->GetBaseOfs().y,
+			m_selectedArea.width * m_pObjData->GetTileSize().x, m_selectedArea.height * m_pObjData->GetTileSize().y );
+		CVector2 verts[] = { { rect.x, rect.y }, { rect.GetRight(), rect.y },
+		{ rect.GetRight(), rect.GetBottom() }, { rect.x, rect.GetBottom() } };
+		for( int i = 0; i < ELEM_COUNT( verts ); i++ )
+			verts[i] = trans.MulVector2Pos( verts[i] );
+		CVector4 color = CVector4( 0.3f, 0.6f, 0.9f, 1 );
+		for( int i = 0; i < 4; i++ )
+			pViewport->DebugDrawLine( pRenderSystem, verts[i], verts[( i + 1 ) % 4], color );
+
+		if( m_vecCopyData.size() )
+		{
+			rect = CRectangle( rect.x - 8, rect.y - 8, rect.width + 16, rect.height + 16 );
+			CVector2 verts1[] = { { rect.x, rect.y }, { rect.GetRight(), rect.y },
+			{ rect.GetRight(), rect.GetBottom() }, { rect.x, rect.GetBottom() } };
+			for( int i = 0; i < ELEM_COUNT( verts1 ); i++ )
+				verts1[i] = trans.MulVector2Pos( verts1[i] );
+			for( int i = 0; i < 4; i++ )
+				pViewport->DebugDrawLine( pRenderSystem, verts1[i], verts[( i + 1 ) % 4], color );
 		}
 	}
 }
@@ -1310,6 +1594,207 @@ bool CLevelEditObjectQuickToolChunk1::OnViewportKey( SUIKeyEvent* pEvent )
 	return false;
 }
 
+CRenderObject2D* CLevelEditObjectQuickToolChunk2::CreateToolPreview()
+{
+	auto p = (CEntity*)m_pPrefabNode->GetPatchedNode()->CreateInstance( false );
+	auto rect = ( (CImage2D*)p->GetRenderObject() )->GetElem().rect;
+	float k = Max( rect.width / 400, rect.height / 300 );
+	int32 nScale = 1;
+	for( ; nScale < k; nScale *= 2 );
+	rect = rect * ( 1.0f / nScale );
+	( (CImage2D*)p->GetRenderObject() )->SetRect( rect );
+	p->SetPosition( rect.GetCenter() * -1 );
+	rect.SetCenter( CVector2( 0, 0 ) );
+	m_previewImgRect = rect;
+	m_nSelectedX = m_nSelectedY = 0;
+	return p;
+}
+
+void CLevelEditObjectQuickToolChunk2::OnDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
+{
+	__super::OnDebugDraw( pViewport, pRenderSystem );
+	auto mousePos = pViewport->GetScenePos( pViewport->GetMgr()->GetMousePos() );
+	CMatrix2D trans;
+	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+	auto localMousePos = trans.MulTVector2Pos( mousePos );
+
+	auto nTexX = ( (CChunk2*)m_pObjData )->GetTexX();
+	auto nTexY = ( (CChunk2*)m_pObjData )->GetTexY();
+	auto pChunk = SafeCast<CChunk2>( m_pObjData );
+	CRectangle rect;
+	if( m_nDragType <= 1 )
+	{
+		CVector2 grid = ( localMousePos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p( floor( grid.x ), floor( grid.y ) );
+		if( !( p.x >= 0 && p.y >= 0 && p.x < pChunk->GetSize().x && p.y < pChunk->GetSize().y ) )
+			return;
+		rect = CRectangle( floor( grid.x ) * pChunk->GetTileSize().x, floor( grid.y ) * pChunk->GetTileSize().y, pChunk->GetTileSize().x, pChunk->GetTileSize().y );
+		rect = rect.Offset( pChunk->GetBaseOfs() );
+	}
+	else
+	{
+		CVector2 grid = ( localMousePos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p( floor( grid.x ), floor( grid.y ) );
+		CVector2 grid1 = ( m_dragBeginPos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p1( floor( grid1.x ), floor( grid1.y ) );
+
+		auto r0 = TRectangle<int32>( p.x, p.y, 1, 1 ) + TRectangle<int32>( p1.x, p1.y, 1, 1 );
+		r0 = r0 * TRectangle<int32>( 0, 0, pChunk->GetSize().x, pChunk->GetSize().y );
+		rect = CRectangle( r0.x * pChunk->GetTileSize().x, r0.y * pChunk->GetTileSize().y, r0.width * pChunk->GetTileSize().x, r0.height * pChunk->GetTileSize().y );
+		rect = rect.Offset( pChunk->GetBaseOfs() );
+	}
+
+	CVector2 a( rect.x, rect.y );
+	CVector2 b( rect.width, rect.height );
+	CVector4 color( 1, 1, 1, 1 );
+	CVector4 color1[] = { { 1, 0.8f, 0.2f, 1 }, { 0.3f, 0.8f, 0.7f, 1 } };
+	CVector2 ofs[4] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
+	for( int i = 0; i < 4; i++ )
+		pViewport->DebugDrawLine( pRenderSystem, trans.MulVector2Pos( a + b * ofs[i] ), trans.MulVector2Pos( a + b * ofs[( i + 1 ) % 4] ), CVector4( 1, 0.8f, 0.2f, 1 ) );
+}
+
+bool CLevelEditObjectQuickToolChunk2::OnViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	auto pChunk = SafeCast<CChunk2>( m_pObjData );
+	CMatrix2D trans;
+	trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+	auto localMousePos = trans.MulTVector2Pos( mousePos );
+	CVector2 grid = ( localMousePos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+	TVector2<int32> p( floor( grid.x ), floor( grid.y ) );
+	if( p.x >= 0 && p.y >= 0 && p.x < pChunk->GetSize().x && p.y < pChunk->GetSize().y )
+	{
+		m_dragBeginPos = localMousePos;
+		if( pViewport->GetMgr()->IsKey( VK_CONTROL ) )
+		{
+			m_nDragType = 2;
+			return true;
+		}
+		if( pViewport->GetMgr()->IsKey( VK_SHIFT ) )
+		{
+			m_nDragType = 3;
+			return true;
+		}
+
+		auto& arrData = pChunk->GetData();
+		m_pPrefabNode->OnEditorActive( true );
+		arrData[p.x + p.y * pChunk->GetSize().x] = m_nSelectedX + ( m_nSelectedY << 16 );
+		m_pPrefabNode->GetPatchedNode()->OnEdit();
+		m_pPrefabNode->OnEditorActive( false );
+		m_nDragType = 1;
+		return true;
+	}
+
+	return __super::OnViewportStartDrag( pViewport, mousePos );
+}
+
+void CLevelEditObjectQuickToolChunk2::OnViewportDragged( CUIViewport * pViewport, const CVector2 & mousePos )
+{
+	if( !m_nDragType )
+	{
+		__super::OnViewportDragged( pViewport, mousePos );
+		return;
+	}
+	if( m_nDragType == 1 )
+	{
+		auto pChunk = SafeCast<CChunk2>( m_pObjData );
+		CMatrix2D trans;
+		trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+		auto localMousePos = trans.MulTVector2Pos( mousePos );
+		CVector2 grid = ( localMousePos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p( floor( grid.x ), floor( grid.y ) );
+		if( p.x >= 0 && p.y >= 0 && p.x < pChunk->GetSize().x && p.y < pChunk->GetSize().y )
+		{
+			auto& arrData = pChunk->GetData();
+			m_pPrefabNode->OnEditorActive( true );
+			arrData[p.x + p.y * pChunk->GetSize().x] = m_nSelectedX + ( m_nSelectedY << 16 );
+			m_pPrefabNode->GetPatchedNode()->OnEdit();
+			m_pPrefabNode->OnEditorActive( false );
+		}
+	}
+}
+
+void CLevelEditObjectQuickToolChunk2::OnViewportStopDrag( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	if( !m_nDragType )
+	{
+		__super::OnViewportStopDrag( pViewport, mousePos );
+		return;
+	}
+	if( m_nDragType > 1 )
+	{
+		auto pChunk = SafeCast<CChunk2>( m_pObjData );
+		CMatrix2D trans;
+		trans.Transform( m_pPrefabNode->x, m_pPrefabNode->y, m_pPrefabNode->r, m_pPrefabNode->s );
+		auto localMousePos = trans.MulTVector2Pos( mousePos );
+		auto& arrData = pChunk->GetData();
+		CVector2 grid = ( localMousePos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p( floor( grid.x ), floor( grid.y ) );
+		CVector2 grid1 = ( m_dragBeginPos - pChunk->GetBaseOfs() ) * CVector2( 1.0f / pChunk->GetTileSize().x, 1.0f / pChunk->GetTileSize().y );
+		TVector2<int32> p1( floor( grid1.x ), floor( grid1.y ) );
+
+		m_pPrefabNode->OnEditorActive( true );
+		auto rect = TRectangle<int32>( p.x, p.y, 1, 1 ) + TRectangle<int32>( p1.x, p1.y, 1, 1 );
+		rect = rect * TRectangle<int32>( 0, 0, pChunk->GetSize().x, pChunk->GetSize().y );
+		for( int i = rect.x; i < rect.GetRight(); i++ )
+		{
+			for( int j = rect.y; j < rect.GetBottom(); j++ )
+			{
+				if( m_nDragType == 2 )
+				{
+					arrData[i + j * pChunk->GetSize().x] = m_nSelectedX + ( m_nSelectedY << 16 );
+				}
+				else
+				{
+					auto x = m_nSelectedX + ( i - p1.x );
+					auto y = m_nSelectedY + ( p1.y - j );
+					if( x < 0 || y < 0 || x >= pChunk->GetTexX() || y >= pChunk->GetTexY() )
+						continue;
+					arrData[i + j * pChunk->GetSize().x] = x + ( y << 16 );
+				}
+			}
+		}
+		m_pPrefabNode->GetPatchedNode()->OnEdit();
+		m_pPrefabNode->OnEditorActive( false );
+	}
+	m_nDragType = 0;
+}
+
+bool CLevelEditObjectQuickToolChunk2::OnViewportKey( SUIKeyEvent* pEvent )
+{
+	return false;
+}
+
+void CLevelEditObjectQuickToolChunk2::OnPreviewDebugDraw( CUIViewport* pViewport, IRenderSystem* pRenderSystem )
+{
+	auto nTexX = ( (CChunk2*)m_pObjData )->GetTexX();
+	auto nTexY = ( (CChunk2*)m_pObjData )->GetTexY();
+	CRectangle rect( m_previewImgRect.x, m_previewImgRect.y, m_previewImgRect.width / nTexX, m_previewImgRect.height / nTexY );
+	rect.x += m_nSelectedX * rect.width;
+	rect.y += ( nTexY - 1 - m_nSelectedY ) * rect.height;
+
+	CVector2 a( rect.x, rect.y );
+	CVector2 b( rect.width, rect.height );
+	CVector4 color( 1, 1, 1, 1 );
+	CVector4 color1[] = { { 1, 0.8f, 0.2f, 1 }, { 0.3f, 0.8f, 0.7f, 1 } };
+	CVector2 ofs[4] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
+	for( int i = 0; i < 4; i++ )
+		pViewport->DebugDrawLine( pRenderSystem, a + b * ofs[i], a + b * ofs[( i + 1 ) % 4], CVector4( 1, 0.8f, 0.2f, 1 ) );
+}
+
+bool CLevelEditObjectQuickToolChunk2::OnPreviewViewportStartDrag( CUIViewport* pViewport, const CVector2& mousePos )
+{
+	auto nTexX = ( (CChunk2*)m_pObjData )->GetTexX();
+	auto nTexY = ( (CChunk2*)m_pObjData )->GetTexY();
+	int32 nSelectedX = floor( mousePos.x - m_previewImgRect.x ) * nTexX / m_previewImgRect.width;
+	int32 nSelectedY = floor( mousePos.y - m_previewImgRect.y ) * nTexY / m_previewImgRect.height;
+	nSelectedY = nTexY - 1 - nSelectedY;
+	if( nSelectedX >= 0 && nSelectedX < nTexX && nSelectedY >= 0 && nSelectedY < nTexY )
+	{
+		m_nSelectedX = nSelectedX;
+		m_nSelectedY = nSelectedY;
+	}
+	return false;
+}
 
 void CLevelEditPrefabToolsetCommon::CreatePrefabTools( CPrefab* pPrefab, vector<SLevelEditToolDesc>& result )
 {
@@ -1336,6 +1821,11 @@ CLevelEditObjectTool* CLevelEditObjectToolsetChunk1::CreateQuickObjectTool( CPre
 	return &CLevelEditObjectQuickToolChunk1::Inst();
 }
 
+CLevelEditObjectTool * CLevelEditObjectToolsetChunk2::CreateQuickObjectTool( CPrefabNode * pNode )
+{
+	return &CLevelEditObjectQuickToolChunk2::Inst();
+}
+
 CLevelEditObjectTool * CLevelEditObjectToolsetAlertTrigger::CreateQuickObjectTool( CPrefabNode * pNode )
 {
 	return &CLevelEditObjectQuickToolAlertTriggerResize::Inst();
@@ -1351,9 +1841,11 @@ void RegisterToolsets()
 	auto& mgr = CLevelEditToolsetMgr::Inst();
 	mgr.RegisterPrefab<CCharacter, CLevelEditPrefabToolsetCommon>();
 	mgr.RegisterPrefab<CSimpleText, CLevelEditPrefabToolsetCommon>();
+	mgr.RegisterPrefab<CGamePointLight, CLevelEditPrefabToolsetCommon>();
 
 	mgr.RegisterObject<CEntity, CLevelEditObjectToolsetEntity>();
 	mgr.RegisterObject<CChunk1, CLevelEditObjectToolsetChunk1>();
+	mgr.RegisterObject<CChunk2, CLevelEditObjectToolsetChunk2>();
 	mgr.RegisterObject<CAlertTrigger, CLevelEditObjectToolsetAlertTrigger>();
 	mgr.RegisterObject<CGate, CLevelEditObjectToolsetGate>();
 }

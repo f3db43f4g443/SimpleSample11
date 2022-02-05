@@ -88,6 +88,13 @@ void CWorldCfgEditor::OnInited()
 	m_pPanel[1]->GetChildByName<CUIButton>( "cancel" )->Register( eEvent_Action, &m_onNewLevelCancel );
 }
 
+void CWorldCfgEditor::OnInitViewport()
+{
+	CDirectionalLightObject* pDirectionalLight = new CDirectionalLightObject( CVector2( 0.6, -0.8 ), CVector3( 1, 1, 1 ), 8, 256 );
+	m_pViewport->GetRoot()->AddChild( pDirectionalLight );
+	m_pLight = pDirectionalLight;
+}
+
 void CWorldCfgEditor::Save()
 {
 	Super::Save();

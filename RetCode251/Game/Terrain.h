@@ -10,11 +10,13 @@ public:
 	CTerrain( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CTerrain ); }
 	virtual bool IsPreview() { return true; }
 	virtual void OnPreview();
-	virtual void OnAddedToStage() override;
 
 	virtual bool GetBound( CRectangle& rect ) const override
 	{ rect = CRectangle( m_ofs.x, m_ofs.y, m_nTileX * m_tileSize.x, m_nTileY * m_tileSize.y ); return true; }
+	virtual void Init() override;
 	virtual void InitFromTemplate( CEntity* p, const CRectangle& rect ) override;
+	virtual void Update() override {}
+	virtual void UpdateScroll( const CVector4& camTrans ) override {}
 	virtual CVector2 GetTileSize() const override { return m_tileSize; }
 	virtual TVector2<int32> GetSize() const override { return TVector2<int32>( m_nTileX, m_nTileY ); }
 	virtual TVector2<int32> GetMinSize() const override { return TVector2<int32>( 4, 4 ); }

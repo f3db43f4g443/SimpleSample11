@@ -21,8 +21,8 @@ public:
 	void ReleaseTexture();
 	void ReserveTexSize( const CVector2& size );
 
-	void Set( CRenderObject2D* pRoot, CCamera2D* pExternalCamera, bool bLight, IBlendState* pBlend = NULL );
-	void SetLight( bool bLight );
+	void Set( CRenderObject2D* pRoot, int8 nLightType, CCamera2D* pExternalCamera, IBlendState* pBlend = NULL );
+	void SetLight( int8 nLightType );
 	void SetBlend( IBlendState* pBlend ) { m_pBlend = pBlend; m_bOpaque = m_pBlend == NULL; }
 	void SetGUICamera( CRenderObject2D* pRoot, CCamera2D* pCam );
 	void SetCustomRender( const CVector2& customRes );
@@ -46,7 +46,7 @@ private:
 	CCamera2D* m_pExternalGUICamera;
 	CVector2 m_texSize;
 	CElement2D m_elem;
-	bool m_bLight;
+	int8 m_nLightType;
 	IBlendState* m_pBlend;
 
 	bool m_bCustomRender;

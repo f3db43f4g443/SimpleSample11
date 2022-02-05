@@ -7,6 +7,7 @@
 #include "Player.h"
 #include "GlobalCfg.h"
 #include "MyGame.h"
+#include "LightRendering.h"
 #include <algorithm>
 
 void CBlackRegion::Init()
@@ -682,6 +683,7 @@ void CMyLevel::OnPreview()
 {
 	for( auto p = Get_ChildEntity(); p; p = p->NextChildEntity() )
 		p->OnPreview();
+	DisableLights( this );
 }
 
 void CMyLevel::Init()
@@ -692,6 +694,15 @@ void CMyLevel::Init()
 	BuildBugList();
 	if( m_pBugIndicatorLayer )
 		m_pBugIndicatorLayer->Update();
+	for( auto p = Get_ChildEntity(); p; p = p->NextChildEntity() )
+	{
+		auto pObjLayer = SafeCastToInterface<ILevelObjLayer>( p );
+		if( pObjLayer )
+		{
+			m_vecAllLayers.push_back( p );
+			pObjLayer->Init();
+		}
+	}
 	m_hitTestMgr.Update();
 }
 
@@ -1486,6 +1497,18 @@ void CMyLevel::Update()
 			pCharacter->SetParentEntity( NULL );
 		pCharacter = pNxt;
 	}
+	for( CEntity* p : m_vecAllLayers )
+		SafeCastToInterface<ILevelObjLayer>( p )->Update();
+}
+
+void CMyLevel::Update1()
+{
+	auto camTrans = CMasterLevel::GetInst()->GetCamTrans();
+	CVector2 camPos( camTrans.x - x, camTrans.y - y );
+	camTrans.x -= x;
+	camTrans.y -= y;
+	for( CEntity* p : m_vecAllLayers )
+		SafeCastToInterface<ILevelObjLayer>( p )->UpdateScroll( camTrans );
 }
 
 CMyLevel* CMyLevel::GetEntityLevel( CEntity* pEntity )
@@ -1531,6 +1554,14 @@ CCharacter* CMyLevel::GetEntityCharacterRootInLevel( CEntity* pEntity, bool bFin
 		pParent = pParent->GetParentEntity();
 	}
 	return pCharacter;
+}
+
+void CMyLevel::DisableLights( CRenderObject2D* p )
+{
+	if( SafeCast<CDirectionalLightObject>( p ) || SafeCast<CPointLightObject>( p ) )
+		p->bVisible = false;
+	for( auto pChild = p->Get_TransformChild(); pChild; pChild = pChild->NextRenderChild() )
+		DisableLights( pChild );
 }
 
 void CMyLevel::BuildBugList()
@@ -1757,8 +1788,9 @@ void CMasterLevel::Update()
 				m_pTestConsoleCoroutine = NULL;
 			}
 		}
-		else if( !m_pPlayer->IsKilled() && CGame::Inst().IsKeyDown( VK_RETURN ) )
+		else if( !m_pPlayer->IsKilled() && CGame::Inst().IsKey( VK_RETURN ) )
 		{
+			CGame::Inst().ForceKeyRelease( VK_RETURN );
 			if( m_nTestState )
 				EndTest();
 			else
@@ -1782,6 +1814,7 @@ void CMasterLevel::Update()
 			UpdateTestMasks( m_nTestState, m_nTestDir, m_testOrig, 1 );
 		}
 
+		UpdateCtrlPoints( 1.0f );
 		auto camTrans = GetCamTrans();
 		auto pLevelData = GetStage()->GetWorld()->GetWorldCfg().GetLevelData( m_pCurLevelPrefab->GetName() );
 		CVector2 ofs = CVector2( camTrans.x, camTrans.y ) * ( CVector2( 1, 1 ) - m_backOfsScale ) - pLevelData->displayOfs * m_backOfsScale;
@@ -1806,6 +1839,12 @@ void CMasterLevel::Update()
 			m_bTryTeleport = false;
 		}
 	}
+	else
+		UpdateCtrlPoints( 1.0f );
+	if( m_pLastLevel )
+		m_pLastLevel->Update1();
+	if( m_pCurLevel )
+		m_pCurLevel->Update1();
 	auto pParam = static_cast<CImage2D*>( m_pLayer1.GetPtr() )->GetParam();
 	auto camTrans = GetCamTrans();
 	m_pLayer1->SetPosition( CVector2( camTrans.x, camTrans.y ) );
@@ -1814,7 +1853,6 @@ void CMasterLevel::Update()
 	pParam[2] = CVector4( 0, 0, 1, 0 ) + m_maskParams[2];
 	for( int i = 0; i < 3; i++ )
 		pParam[i].w = pow( 2, -pParam[i].w );
-	UpdateCtrlPoints( 1.0f );
 }
 
 void CMasterLevel::Kill()
@@ -2179,8 +2217,9 @@ void CMasterLevel::TestConsoleFunc()
 			}
 		}
 
-		if( CGame::Inst().IsKeyDown( VK_RETURN ) )
+		if( CGame::Inst().IsKey( VK_RETURN ) )
 		{
+			CGame::Inst().ForceKeyRelease( VK_RETURN );
 			m_pMask1->bVisible = false;
 			m_pTestUI->bVisible = false;
 			return;

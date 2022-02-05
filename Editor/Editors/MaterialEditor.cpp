@@ -621,9 +621,9 @@ void CMaterialEditor::Refresh()
 	uint8 nType = m_pRes->m_nType;
 	CDrawableGroup::SDrawableInfo* pInfo[] = 
 	{
-		&m_pRes->m_colorDrawable,
-		&m_pRes->m_occlusionDrawable,
-		&m_pRes->m_guiDrawable
+		&m_pRes->m_vecDrawables[0],
+		&m_pRes->m_vecDrawables[1],
+		&m_pRes->m_vecDrawables[2]
 	};
 	for( int i = 0; i < ELEM_COUNT( pInfo ); i++ )
 	{
@@ -780,6 +780,7 @@ void CMaterialEditor::RefreshPreview()
 	m_pRes->RefreshBegin();
 	IRenderSystem* pRenderSystem = IRenderSystem::Inst();
 	m_pRes->Clear();
+	m_pRes->SetDrawableCount( 3 );
 	m_pRes->m_nType = (uint8)m_pType->GetSelectedItem()->pData;
 	m_pRes->m_nParamCount = m_pParamCount->GetValue<uint32>();
 	m_pRes->m_defaultParams.resize( m_pRes->m_nParamCount );
@@ -843,12 +844,12 @@ void CMaterialEditor::RefreshPreview()
 	if( bGUI )
 	{
 		pInfo[0] = pInfo[1] = NULL;
-		pInfo[2] = &m_pRes->m_guiDrawable;
+		pInfo[2] = &m_pRes->m_vecDrawables[2];
 	}
 	else
 	{
-		pInfo[0] = &m_pRes->m_colorDrawable;
-		pInfo[1] = &m_pRes->m_occlusionDrawable;
+		pInfo[0] = &m_pRes->m_vecDrawables[0];
+		pInfo[1] = &m_pRes->m_vecDrawables[1];
 		pInfo[2] = NULL;
 	}
 

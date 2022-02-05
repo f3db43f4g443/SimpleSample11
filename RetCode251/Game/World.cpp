@@ -113,6 +113,11 @@ CWorld::CWorld()
 	, m_fPercent( 0.5f )
 	, m_nRestartTime( 0 )
 {
+	auto& context = m_mapStageContexts["1.pf"];
+	context.strName = "1.pf";
+	context.nLightType = 0;
+	context.strSceneResName = context.strName;
+
 	m_pWorldCfgFile = CResourceManager::Inst()->CreateResource<CWorldCfgFile>( "levels/world.w" );
 	CStageDirector::Inst()->OnWorldCreated( this );
 	LoadWorldData();
@@ -176,7 +181,6 @@ void CWorld::EnterStage( const char* szStageName, SStageEnterContext& enterConte
 	{
 		auto& context = m_mapStageContexts[szStageName];
 		context.strName = szStageName;
-		context.bLight = false;
 		//Load
 		context.strSceneResName = context.strName;
 	}

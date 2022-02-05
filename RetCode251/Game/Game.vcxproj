@@ -412,6 +412,7 @@
     <ClCompile Include="Entities\CharacterMisc.cpp" />
     <ClCompile Include="Entities\EffectObject.cpp" />
     <ClCompile Include="Entities\Explosion.cpp" />
+    <ClCompile Include="Entities\LevelMisc.cpp" />
     <ClCompile Include="Entities\PlayerMisc.cpp" />
     <ClCompile Include="Entities\EffectMisc.cpp" />
     <ClCompile Include="Entities\UtilEntities.cpp" />
@@ -456,6 +457,7 @@
     <ClInclude Include="Entities\EffectMisc.h" />
     <ClInclude Include="Entities\EffectObject.h" />
     <ClInclude Include="Entities\Explosion.h" />
+    <ClInclude Include="Entities\LevelMisc.h" />
     <ClInclude Include="Entities\PlayerMisc.h" />
     <ClInclude Include="Entities\UtilEntities.h" />
     <ClInclude Include="Entity.h" />

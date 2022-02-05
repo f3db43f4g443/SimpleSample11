@@ -191,6 +191,52 @@ private:
 	vector<CElement2D> m_vecElems;
 };
 
+struct SChunk2TileDesc
+{
+	SChunk2TileDesc( const SClassCreateContext& context ) {}
+	int32 x, y, w, h;
+	int8 nType;
+};
+
+class CChunk2 : public CCharacter, public IEditorTiled
+{
+	friend void RegisterGameClasses_CharacterMisc();
+public:
+	CChunk2( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CChunk2 ); }
+	virtual void OnAddedToStage() override;
+	virtual bool IsPreview() { return true; }
+	virtual void OnPreview() { m_arrData.Resize( m_nTileX * m_nTileY ); UpdateImages(); }
+	virtual void Render( CRenderContext2D& context ) override;
+
+	int32 GetTexX() { return m_nTexX; }
+	int32 GetTexY() { return m_nTexY; }
+	TArray<int32>& GetData() { return m_arrData; }
+	virtual CVector2 GetTileSize() const override { return m_tileSize; }
+	virtual TVector2<int32> GetSize() const override { return TVector2<int32>( m_nTileX, m_nTileY ); }
+	virtual TVector2<int32> GetMinSize() const override { return TVector2<int32>( 1, 1 ); }
+	virtual CVector2 GetBaseOfs() const override { return m_ofs; }
+	virtual void Resize( const TRectangle<int32>& size ) override;
+	virtual void SetBaseOfs( const CVector2& ofs ) override { m_ofs = ofs; }
+private:
+	void Init();
+	void UpdateHit();
+	void UpdateImages();
+	TArray<SChunk2TileDesc> m_arrTileDesc;
+	int32 m_nTexX, m_nTexY;
+	TArray<int32> m_arrData;
+	CVector2 m_tileSize;
+	int32 m_nTileX, m_nTileY;
+	CVector2 m_ofs;
+	float m_fHpPerTile;
+	bool m_bNoHit;
+
+	bool m_bInited;
+	CRectangle m_origTexRect;
+	vector<CElement2D> m_vecElems;
+	int32 m_nParamCount;
+	CVector4 m_params[2];
+};
+
 class CAlertTrigger : public CCharacter
 {
 	friend void RegisterGameClasses_CharacterMisc();

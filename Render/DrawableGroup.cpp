@@ -8,50 +8,53 @@
 
 CRenderObject2D* CDrawableGroup::CreateInstance( bool bForceCreateStatic )
 {
-	bool bGUI = m_guiDrawable.pDrawable != NULL;
+	auto& colorDrawable = m_vecDrawables[eDrawable_Color];
+	auto& occlusionDrawable = m_vecDrawables[eDrawable_Occ];
+	auto& guiDrawable = m_vecDrawables[eDrawable_GUI];
+	bool bGUI = guiDrawable.pDrawable != NULL;
 	if( bForceCreateStatic || m_nType == eType_Default )
 	{
-		CImage2D* pImage2D = new CImage2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
-			bGUI ? NULL : m_occlusionDrawable.pDrawable, m_defaultRect, m_defaultTexRect, bGUI );
+		CImage2D* pImage2D = new CImage2D( bGUI ? guiDrawable.pDrawable : colorDrawable.pDrawable,
+			bGUI ? NULL : occlusionDrawable.pDrawable, m_defaultRect, m_defaultTexRect, bGUI );
 		pImage2D->SetParam( m_nParamCount, m_defaultParams.size() ? &m_defaultParams[0] : NULL,
-			m_colorDrawable.nParamBeginIndex, m_colorDrawable.nParamCount,
-			m_occlusionDrawable.nParamBeginIndex, m_occlusionDrawable.nParamCount,
-			m_guiDrawable.nParamBeginIndex, m_guiDrawable.nParamCount );
+			colorDrawable.nParamBeginIndex, colorDrawable.nParamCount,
+			occlusionDrawable.nParamBeginIndex, occlusionDrawable.nParamCount,
+			guiDrawable.nParamBeginIndex, guiDrawable.nParamCount );
 		return pImage2D;
 	}
 	else if( m_nType == eType_Rope )
 	{
-		CRopeObject2D* pRopeObject2D = new CRopeObject2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
-			bGUI ? NULL : m_occlusionDrawable.pDrawable, NULL, bGUI );
+		CRopeObject2D* pRopeObject2D = new CRopeObject2D( bGUI ? guiDrawable.pDrawable : colorDrawable.pDrawable,
+			bGUI ? NULL : occlusionDrawable.pDrawable, NULL, bGUI );
 		pRopeObject2D->SetDataCount( 2 );
 		pRopeObject2D->SetData( 0, CVector2( 0, 0 ), m_defaultRect.height,
 			CVector2( m_defaultTexRect.x, m_defaultTexRect.y ), CVector2( m_defaultTexRect.GetRight(), m_defaultTexRect.y ) );
 		pRopeObject2D->SetData( 1, CVector2( m_defaultRect.width, 0 ), m_defaultRect.height,
 			CVector2( m_defaultTexRect.x, m_defaultTexRect.GetBottom() ), CVector2( m_defaultTexRect.GetRight(), m_defaultTexRect.GetBottom() ) );
 		pRopeObject2D->SetParams( m_nParamCount, m_defaultParams.size() ? &m_defaultParams[0] : NULL,
-			m_colorDrawable.nParamBeginIndex, m_colorDrawable.nParamCount,
-			m_occlusionDrawable.nParamBeginIndex, m_occlusionDrawable.nParamCount,
-			m_guiDrawable.nParamBeginIndex, m_guiDrawable.nParamCount, true );
+			colorDrawable.nParamBeginIndex, colorDrawable.nParamCount,
+			occlusionDrawable.nParamBeginIndex, occlusionDrawable.nParamCount,
+			guiDrawable.nParamBeginIndex, guiDrawable.nParamCount, true );
 		return pRopeObject2D;
 	}
 	else if( m_nType == eType_MultiFrame )
 	{
-		CMultiFrameImage2D* pMultiImage2D = new CMultiFrameImage2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
-			bGUI ? NULL : m_occlusionDrawable.pDrawable, &m_frameData, bGUI );
+		CMultiFrameImage2D* pMultiImage2D = new CMultiFrameImage2D( bGUI ? guiDrawable.pDrawable : colorDrawable.pDrawable,
+			bGUI ? NULL : occlusionDrawable.pDrawable, &m_frameData, bGUI );
 		pMultiImage2D->SetFrames( 0, m_frameData.frames.size(), m_frameData.fFramesPerSec );
 		pMultiImage2D->SetParam( m_nParamCount, m_defaultParams.size() ? &m_defaultParams[0] : NULL,
-			m_colorDrawable.nParamBeginIndex, m_colorDrawable.nParamCount,
-			m_occlusionDrawable.nParamBeginIndex, m_occlusionDrawable.nParamCount,
-			m_guiDrawable.nParamBeginIndex, m_guiDrawable.nParamCount );
+			colorDrawable.nParamBeginIndex, colorDrawable.nParamCount,
+			occlusionDrawable.nParamBeginIndex, occlusionDrawable.nParamCount,
+			guiDrawable.nParamBeginIndex, guiDrawable.nParamCount );
 		return pMultiImage2D;
 	}
 	else
 	{
-		CTileMap2D* pTileMap = new CTileMap2D( bGUI ? m_guiDrawable.pDrawable : m_colorDrawable.pDrawable,
-			bGUI ? NULL : m_occlusionDrawable.pDrawable, &m_tileMapInfo, m_tileMapInfo.defaultTileSize, CVector2( 0, 0 ), 16, 16, bGUI,
-			m_nParamCount, m_colorDrawable.nParamBeginIndex, m_colorDrawable.nParamCount,
-			m_occlusionDrawable.nParamBeginIndex, m_occlusionDrawable.nParamCount,
-			m_guiDrawable.nParamBeginIndex, m_guiDrawable.nParamCount );
+		CTileMap2D* pTileMap = new CTileMap2D( bGUI ? guiDrawable.pDrawable : colorDrawable.pDrawable,
+			bGUI ? NULL : occlusionDrawable.pDrawable, &m_tileMapInfo, m_tileMapInfo.defaultTileSize, CVector2( 0, 0 ), 16, 16, bGUI,
+			m_nParamCount, colorDrawable.nParamBeginIndex, colorDrawable.nParamCount,
+			occlusionDrawable.nParamBeginIndex, occlusionDrawable.nParamCount,
+			guiDrawable.nParamBeginIndex, guiDrawable.nParamCount );
 		return pTileMap;
 	}
 }
@@ -59,14 +62,14 @@ CRenderObject2D* CDrawableGroup::CreateInstance( bool bForceCreateStatic )
 void CDrawableGroup::UpdateDependencies()
 {
 	ClearDependency();
-	CDrawable2D* pDrawables[] = { m_colorDrawable.pDrawable, m_occlusionDrawable.pDrawable, m_guiDrawable.pDrawable };
-	for( int i = 0; i < ELEM_COUNT( pDrawables ); i++ )
+	for( auto& item : m_vecDrawables )
 	{
-		if( !pDrawables[i] )
+		auto pDrawable = item.pDrawable;
+		if( !pDrawable )
 			continue;
 		if( m_nType == eType_Default || m_nType == eType_MultiFrame || m_nType == eType_TileMap )
 		{
-			auto pDefaultDrawable = static_cast<CDefaultDrawable2D*>( pDrawables[i] );
+			auto pDefaultDrawable = static_cast<CDefaultDrawable2D*>( pDrawable );
 			for( auto& pResource : pDefaultDrawable->GetDependentResources() )
 			{
 				AddDependency( pResource );
@@ -74,7 +77,7 @@ void CDrawableGroup::UpdateDependencies()
 		}
 		else if( m_nType == eType_Rope )
 		{
-			auto pRopeDrawable = static_cast<CRopeDrawable2D*>( pDrawables[i] );
+			auto pRopeDrawable = static_cast<CRopeDrawable2D*>( pDrawable );
 			for( auto& pResource : pRopeDrawable->GetDependentResources() )
 			{
 				AddDependency( pResource );
@@ -136,12 +139,28 @@ void CDrawableGroup::SDrawableInfo::Save( CBufFile& buf )
 
 void CDrawableGroup::Load( IBufReader& buf )
 {
-	buf.Read( m_nParamCount );
+	uint8 nVer;
+	buf.Read( nVer );
+	if( nVer < eVer_Begin )
+	{
+		m_nParamCount = nVer;
+		buf.Read( m_nType );
+		m_vecDrawables.resize( 3 );
+	}
+	else
+	{
+		buf.Read( m_nParamCount );
+		buf.Read( m_nType );
+		int8 nDrawables = 0;
+		buf.Read( nDrawables );
+		m_vecDrawables.resize( nDrawables );
+	}
 	m_defaultParams.resize( m_nParamCount );
-	buf.Read( m_nType );
-	m_colorDrawable.Load( buf );
-	m_occlusionDrawable.Load( buf );
-	m_guiDrawable.Load( buf );
+	for( int i = 0; i < m_vecDrawables.size(); i++ )
+	{
+		m_vecDrawables[i].pOwner = this;
+		m_vecDrawables[i].Load( buf );
+	}
 
 	uint8 bDefaultData = buf.Read<uint8>();
 	if( bDefaultData )
@@ -212,11 +231,13 @@ void CDrawableGroup::Load( IBufReader& buf )
 
 void CDrawableGroup::Save( CBufFile& buf )
 {
+	uint8 nVersion = eVer_Cur;
+	buf.Write( nVersion );
 	buf.Write( m_nParamCount );
 	buf.Write( m_nType );
-	m_colorDrawable.Save( buf );
-	m_occlusionDrawable.Save( buf );
-	m_guiDrawable.Save( buf );
+	buf.Write( (uint8)m_vecDrawables.size() );
+	for( auto& item : m_vecDrawables )
+		item.Save( buf );
 
 	buf.Write( (uint8)1 );
 	buf.Write( m_defaultRect );
@@ -258,6 +279,19 @@ void CDrawableGroup::Save( CBufFile& buf )
 	}
 }
 
+CDrawableGroup::CDrawableGroup( const char * name, int32 type )
+	: CResource( name, type ), m_nParamCount( 0 )
+{
+	SetDrawableCount( 3 );
+}
+
+CDrawableGroup::~CDrawableGroup()
+{
+	for( auto& item : m_vecDrawables )
+		item.Clear();
+	m_vecDrawables.resize( 0 );
+}
+
 void CDrawableGroup::Create()
 {
 	if( strcmp( GetFileExtension( GetName() ), "mtl" ) )
@@ -270,27 +304,32 @@ void CDrawableGroup::Create()
 	m_bCreated = true;
 }
 
+void CDrawableGroup::Clear()
+{
+	m_nParamCount = 0;
+	for( auto& item : m_vecDrawables )
+		item.Clear();
+	m_vecDrawables.resize( 0 );
+	m_frameData.frames.clear();
+	m_tileMapInfo.nWidth = m_tileMapInfo.nHeight = m_tileMapInfo.nTileCount = 0;
+	m_tileMapInfo.params.clear();
+	ClearDependency();
+}
+
+void CDrawableGroup::SetDrawableCount( int8 n )
+{
+	m_vecDrawables.resize( n );
+	for( int i = 0; i < n; i++ )
+		m_vecDrawables[i].pOwner = this;
+}
+
 void CDrawableGroup::BindShaderResource( EShaderType eShaderType, const char* szName, IShaderResourceProxy* pShaderResource )
 {
-	if( m_colorDrawable.pDrawable )
+	for( auto& item : m_vecDrawables )
 	{
 		if( m_nType == eType_Default || m_nType == eType_MultiFrame || m_nType == eType_TileMap )
-			static_cast<CDefaultDrawable2D*>( m_colorDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
+			static_cast<CDefaultDrawable2D*>( item.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
 		else
-			static_cast<CRopeDrawable2D*>( m_colorDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
-	}
-	if( m_occlusionDrawable.pDrawable )
-	{
-		if( m_nType == eType_Default || m_nType == eType_MultiFrame || m_nType == eType_TileMap )
-			static_cast<CDefaultDrawable2D*>( m_occlusionDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
-		else
-			static_cast<CRopeDrawable2D*>( m_occlusionDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
-	}
-	if( m_guiDrawable.pDrawable )
-	{
-		if( m_nType == eType_Default || m_nType == eType_MultiFrame || m_nType == eType_TileMap )
-			static_cast<CDefaultDrawable2D*>( m_guiDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
-		else
-			static_cast<CRopeDrawable2D*>( m_guiDrawable.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
+			static_cast<CRopeDrawable2D*>( item.pDrawable )->BindShaderResource( eShaderType, szName, pShaderResource );
 	}
 }

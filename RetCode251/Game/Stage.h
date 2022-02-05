@@ -5,11 +5,11 @@
 
 struct SStageContext
 {
-	SStageContext() : nStageInsts( 0 ), bLight( false ) {}
+	SStageContext() : nStageInsts( 0 ), nLightType( 0 ) {}
 	uint32 nStageInsts;
 	string strName;
 	string strSceneResName;
-	bool bLight;
+	int8 nLightType;
 
 	map<string, CReference<CResource> > mapDependentRes;
 };
@@ -107,7 +107,7 @@ private:
 	SStageContext* m_pContext;
 	bool m_bStarted;
 	uint8 m_nUpdatePhase;
-	bool m_bLight;
+	int8 m_nLightType;
 	CHitTestMgr m_hitTestMgr;
 	CReference<CEntity> m_pEntityRoot;
 	CPlayer* m_pPlayer;

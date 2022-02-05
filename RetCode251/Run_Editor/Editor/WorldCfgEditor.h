@@ -17,7 +17,7 @@ public:
 	DECLARE_GLOBAL_INST_POINTER_WITH_REFERENCE( CWorldCfgEditor )
 protected:
 	virtual void OnInited() override;
-	virtual void OnInitViewport() override {}
+	virtual void OnInitViewport() override;
 	virtual void Save() override;
 	virtual void RefreshPreview() override;
 	void Validate( const char* szName );

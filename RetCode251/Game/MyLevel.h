@@ -163,7 +163,10 @@ class CLevelObjLayer : public CEntity, public ILevelObjLayer
 public:
 	CLevelObjLayer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CLevelObjLayer ); }
 	virtual bool GetBound( CRectangle& rect ) const override { return false; }
+	virtual void Init() override {}
 	virtual void InitFromTemplate( CEntity* p, const CRectangle& rect ) override {}
+	virtual void Update() override {}
+	virtual void UpdateScroll( const CVector4& camTrans ) override {}
 	virtual bool IsPreview() { return true; }
 	virtual void OnPreview();
 };
@@ -174,12 +177,13 @@ class CLevelBugIndicatorLayer : public CEntity, public ILevelObjLayer
 public:
 	CLevelBugIndicatorLayer( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CLevelBugIndicatorLayer ); }
 	virtual void OnAddedToStage() override;
-	virtual bool GetBound( CRectangle& rect ) const override { return false; }
-	virtual void InitFromTemplate( CEntity* p, const CRectangle& rect ) override { m_texRect = ( (CLevelBugIndicatorLayer*)p )->m_texRect; }
 	virtual bool IsPreview() { return true; }
 	virtual void OnPreview();
-
-	void Update();
+	virtual bool GetBound( CRectangle& rect ) const override { return false; }
+	virtual void Init() override {}
+	virtual void InitFromTemplate( CEntity* p, const CRectangle& rect ) override { m_texRect = ( (CLevelBugIndicatorLayer*)p )->m_texRect; }
+	virtual void Update() override;
+	virtual void UpdateScroll( const CVector4& camTrans ) override {}
 	virtual void Render( CRenderContext2D& context ) override;
 private:
 	void UpdateImg( int32 i, const CVector2& origPos, const CVector4& color );
@@ -270,10 +274,12 @@ public:
 	void EditorFixBugListSave( vector<SEditorBugListItem>& vecAllBugs );
 
 	void Update();
+	void Update1();
 	static CMyLevel* GetEntityLevel( CEntity* pEntity );
 	static CEntity* GetEntityRootInLevel( CEntity* pEntity );
 	static CCharacter* GetEntityCharacterRootInLevel( CEntity* pEntity, bool bFindResetable = false );
 private:
+	void DisableLights( CRenderObject2D* p );
 	void BuildBugList();
 	void ScanBug( CEntity* p );
 	int32 m_nLevelZ;
@@ -290,6 +296,7 @@ private:
 	bool m_bBegin;
 	bool m_bEnd;
 
+	vector<CReference<CEntity> > m_vecAllLayers;
 	struct SBugListItem
 	{
 		SBugListItem() : nFirstChild( -1 ), nNxtSib( -1 ), nParent( -1 ), bDetected( false ) {}
