@@ -60,11 +60,6 @@ void CStageDirector::OnTick()
 	CGame::Inst().Register( 1, &m_onTick );
 	if( m_pWorld )
 	{
-		CPlayer* pPlayer = m_pWorld->GetPlayer();
-		if( pPlayer )
-		{
-			//pPlayer->AimAt( m_pMainStageViewport->GetScenePos( m_mousePos ) );
-		}
 	}
 }
 

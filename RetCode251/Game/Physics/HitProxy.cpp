@@ -1699,13 +1699,15 @@ void CHitTestMgr::Update( CHitProxy* pHitProxy, vector<CHitProxy*>* pVecOverlaps
 		{
 			pHitProxy->m_lastPos = pHitProxy->m_curPos;
 			pHitProxy->m_curPos = transform.GetPosition();
-			pHitProxy->m_velocity = ( pHitProxy->m_curPos - pHitProxy->m_lastPos ) * GetElapsedTimePerTickInv();
+			if( m_fDeltaTime > 0 )
+				pHitProxy->m_velocity = ( pHitProxy->m_curPos - pHitProxy->m_lastPos ) / m_fDeltaTime;
 		}
 	}
 }
 
-void CHitTestMgr::Update()
+void CHitTestMgr::Update( float fDeltaTime )
 {
+	m_fDeltaTime = fDeltaTime;
 	vector<CHitProxy*> vecOverlaps;
 	vecOverlaps.reserve( 10 );
 	for( CHitProxy* pHitProxy = m_pHitProxy; pHitProxy; pHitProxy = pHitProxy->NextHitProxy() )
@@ -1724,7 +1726,8 @@ void CHitTestMgr::Update()
 			{
 				pHitProxy->m_lastPos = pHitProxy->m_curPos;
 				pHitProxy->m_curPos = pHitProxy->GetGlobalTransform().GetPosition();
-				pHitProxy->m_velocity = ( pHitProxy->m_curPos - pHitProxy->m_lastPos ) * GetElapsedTimePerTickInv();
+				if( m_fDeltaTime > 0 )
+					pHitProxy->m_velocity = ( pHitProxy->m_curPos - pHitProxy->m_lastPos ) / m_fDeltaTime;
 			}
 		}
 	}

@@ -24,7 +24,7 @@ bool CBug::Damage( SDamageContext& context )
 	if( m_nFixType == eBugFixType_None )
 		return false;
 	auto pSource = context.pSource;
-	auto pPlayer = GetLevel()->GetPlayer();
+	auto pPlayer = GetLevel()->GetControlled();
 	bool bPlayer = pSource == pPlayer;
 	if( !bPlayer )
 	{
@@ -96,7 +96,7 @@ void CBug::OnTickAfterHitTest()
 				for( auto pManifold = Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 				{
 					auto pOther = (CEntity*)pManifold->pOtherHitProxy;
-					if( pOther->GetHitType() == eEntityHitType_Player )
+					if( pOther == GetLevel()->GetControlled() )
 					{
 						Fix();
 						break;

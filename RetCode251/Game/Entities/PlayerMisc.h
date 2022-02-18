@@ -19,7 +19,7 @@ public:
 		eType_Count,
 	};
 	void OnHit( CEntity* pEntity );
-	void Extent( int32 nTime ) { m_nExtentTime = nTime; }
+	void Extent( int32 nTime ) { m_nExtentTime = nTime * T_SCL; }
 	void Morph( CEntity* pEntity );
 	void Cancel();
 	bool CounterBullet( CEntity* p, const CVector2& hitPos, const CVector2& hitDir );
@@ -43,7 +43,7 @@ private:
 
 	int32 m_nAnimTick;
 	int32 m_nTick;
-	int32 m_nDeathTime0;
+	int32 m_nDeathTimeLeft;
 	bool m_bHit;
 	bool m_bExtentHit;
 	int32 m_nExtentTime;

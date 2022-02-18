@@ -480,6 +480,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 	CMatrix2D* testedTransform = (CMatrix2D*)alloca( sizeof( CMatrix2D ) * nTested );
 	for( int i = 0; i < nTested; i++ )
 		testedTransform[i] = pTested[i]->GetGlobalTransform();
+	auto nGroup = pCharacter->GetUpdateGroup();
 
 	static SLP lp;
 	lp.Reset();
@@ -599,7 +600,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 				matTestedNewTrans.SetPosition( matTestedNewTrans.GetPosition() + ofs );
 
 				int32 nHitSize0 = hitResult.size();
-				pLevel->GetHitTestMgr().HitTest( pTestedEntity->Get_HitProxy(), matTestedNewTrans, hitResult, &hitTestResult );
+				pLevel->GetHitTestMgr( nGroup ).HitTest( pTestedEntity->Get_HitProxy(), matTestedNewTrans, hitResult, &hitTestResult );
 				hitTestedEntity.resize( hitResult.size() );
 				for( int k = nHitSize0; k < hitResult.size(); k++ )
 					hitTestedEntity[k] = pTestedEntity;
@@ -743,7 +744,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, CVector
 
 				hitResult.resize( 0 );
 				hitTestResult.resize( 0 );
-				pLevel->GetHitTestMgr().HitTest( pTestedEntity->Get_HitProxy(), newTransform, hitResult, &hitTestResult );
+				pLevel->GetHitTestMgr( nGroup ).HitTest( pTestedEntity->Get_HitProxy(), newTransform, hitResult, &hitTestResult );
 				for( int i = 0; i < hitResult.size(); i++ )
 				{
 					auto pEntity = static_cast<CEntity*>( hitResult[i] );
@@ -807,6 +808,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, const C
 		float fNormalLength;
 		float fInitialNormalLength;
 	};
+	auto nGroup = pCharacter->GetUpdateGroup();
 
 	CMatrix2D trans0 = pCharacter->GetGlobalTransform();
 	vector<SPenetration> vecPenetrations;
@@ -862,7 +864,7 @@ bool SCharacterMovementData::ResolvePenetration( CCharacter* pCharacter, const C
 		trans.SetPosition( newPos );
 		vector<CHitProxy*> hitResult;
 		vector<SHitTestResult> hitTestResult;
-		pCharacter->GetLevel()->GetHitTestMgr().HitTest( pCharacter->Get_HitProxy(), trans, hitResult, &hitTestResult );
+		pCharacter->GetLevel()->GetHitTestMgr( nGroup ).HitTest( pCharacter->Get_HitProxy(), trans, hitResult, &hitTestResult );
 		bool bHit = false;
 		for( int i = 0; i < hitResult.size(); i++ )
 		{
@@ -915,6 +917,7 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 {
 	CEntity* pHit = NULL;
 	float l = FLT_MAX;
+	auto nGroup = pChar->GetUpdateGroup();
 
 	vector<SRaycastResult> tempResult;
 	for( int i = 0; i < nTested; i++ )
@@ -922,7 +925,7 @@ CEntity* SCharacterMovementData::DoSweepTest1( CCharacter* pChar, int32 nTested,
 		int32 n0 = tempResult.size();
 		auto bHitChannel = pTested[i]->GetHitChannnel();
 		auto bPlatformChannel = pTested[i]->GetPlatformChannel();
-		pChar->GetLevel()->GetHitTestMgr().SweepTest( pTested[i]->Get_HitProxy(), matTested[i], sweepOfs, fSideThreshold, tempResult, false );
+		pChar->GetLevel()->GetHitTestMgr( nGroup ).SweepTest( pTested[i]->Get_HitProxy(), matTested[i], sweepOfs, fSideThreshold, tempResult, false );
 		for( int i1 = tempResult.size() - 1; i1 >= n0; i1-- )
 		{
 			auto pOtherEntity = static_cast<CEntity*>( tempResult[i1].pHitProxy );
@@ -1009,7 +1012,7 @@ void SCharacterMovementData::CleanUpOpenPlatforms( CCharacter* pChar, int32 nTes
 	setOpenPlatforms.clear();
 	for( int i = 0; i < nTested; i++ )
 	{
-		pChar->GetLevel()->GetHitTestMgr().Update( pTested[i] );
+		pChar->GetLevel()->GetHitTestMgr( pChar->GetUpdateGroup() ).Update( pTested[i] );
 		for( auto pManifold = pTested[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
 		{
 			auto pEntity = static_cast<CEntity*>( pManifold->pOtherHitProxy );
@@ -1046,7 +1049,7 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 		return;
 	}
 	pCharacter->GetGlobalTransform().SetPosition( pCharacter->GetPosition() );
-	pCharacter->GetLevel()->GetHitTestMgr().Update( pCharacter );
+	pCharacter->GetLevel()->GetHitTestMgr( pCharacter->GetUpdateGroup() ).Update( pCharacter );
 
 	CVector2 baseVel( 0, 0 );
 	if( pLandedEntity )
@@ -1056,11 +1059,10 @@ void SCharacterFlyData::UpdateMove( CCharacter* pCharacter, const CVector2& move
 			baseVel = pChunk->GetSurfaceVel( pCharacter->GetPosition() );*/
 	}
 	CVector2 moveOfs;
-	float fDeltaTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float fDeltaTime = pCharacter->GetLevel()->GetDeltaTime();
 	if( nState == eState_Rolling )
 	{
-		float fTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
-		float fNewRollTime = Min( fRollTime + fTime, fRollMaxTime );
+		float fNewRollTime = Min( fRollTime + fDeltaTime, fRollMaxTime );
 		float fDist0 = ( 2 - fRollTime / fRollMaxTime ) * fRollTime * fRollMaxSpeed * 0.5f;
 		float fDist1 = ( 2 - fNewRollTime / fRollMaxTime ) * fNewRollTime * fRollMaxSpeed * 0.5f;
 		CVector2 rollOfsLeft = rollDir * ( fRollMaxTime * fRollMaxSpeed * 0.5f - fDist0 );
@@ -1154,7 +1156,7 @@ void SCharacterWalkData::UpdateMove( CCharacter * pCharacter, const CVector2& mo
 	CMatrix2D curTransform = oldTransform;
 	const CVector2 oldPos = oldTransform.GetPosition();
 	CVector2 curPos = oldPos;
-	float fDeltaTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float fDeltaTime = pCharacter->GetLevel()->GetDeltaTime();
 	if( nState == eState_Knockback )
 	{
 		float fKnockbackTime0 = fKnockbackTime;
@@ -1200,7 +1202,7 @@ void SCharacterWalkData::UpdateMove( CCharacter * pCharacter, const CVector2& mo
 
 	if( nState == eState_JumpHolding )
 	{
-		fJumpHoldingTime += pCharacter->GetLevel()->GetElapsedTimePerTick();
+		fJumpHoldingTime += pCharacter->GetLevel()->GetDeltaTime();
 		if( fJumpHoldingTime >= fJumpMaxHoldTime )
 		{
 			fJumpHoldingTime = fJumpMaxHoldTime;
@@ -1278,7 +1280,7 @@ void SCharacterWalkData::UpdateMove( CCharacter * pCharacter, const CVector2& mo
 	}
 
 	pCharacter->SetPosition( pCharacter->GetPosition() );
-	pCharacter->GetLevel()->GetHitTestMgr().Update( pCharacter );
+	pCharacter->GetLevel()->GetHitTestMgr( pCharacter->GetUpdateGroup() ).Update( pCharacter );
 	CVector2 v0 = velocity;
 	SRaycastResult res[3];
 	TryMove( pCharacter, dPos, velocity, res );
@@ -1357,7 +1359,7 @@ CVector2 SCharacterWalkData::OnLandedEntityMoved( CCharacter* pCharacter, const 
 	CVector2 localPos = oldTrans.MulTVector2PosNoScale( oldPos );
 	CVector2 newPos = newTrans.MulVector2Pos( localPos );
 
-	CVector2 landVelocity = ( newPos - oldPos ) / pCharacter->GetLevel()->GetElapsedTimePerTick() - velocity;
+	CVector2 landVelocity = ( newPos - oldPos ) / pCharacter->GetLevel()->GetDeltaTime() - velocity;
 
 	CVector2 gravityDir = gravity;
 	gravityDir.Normalize();
@@ -1406,7 +1408,7 @@ CVector2 SCharacterSimpleWalkData::UpdateMove( CCharacter * pCharacter, const CV
 		return CVector2();
 	}
 
-	float fTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float fTime = pCharacter->GetLevel()->GetDeltaTime();
 
 	float dY = -fFallSpeed * fTime;
 	float fFallSpeed1 = Min( fFallSpeed + fTime * fGravity, fMaxFallSpeed );
@@ -1471,7 +1473,7 @@ void SCharacterPhysicsFlyData::UpdateMove( CCharacter * pCharacter, const CVecto
 	if( l > 1.0f )
 		acc = d * fMaxAcc;
 
-	float fTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float fTime = pCharacter->GetLevel()->GetDeltaTime();
 	CVector2 curVelocity = lastVelocity + acc * fTime;
 	CVector2 dPos = ( lastVelocity + curVelocity ) * ( fTime / 2 );
 	bHit = false;
@@ -1508,10 +1510,10 @@ void SCharacterPhysicsFlyData1::UpdateMove( CCharacter* pCharacter, CVector2 acc
 	CVector2 lastVelocity = pCharacter->GetVelocity();
 	CVector2 curVelocity = lastVelocity;
 	float l = curVelocity.Normalize();
-	curVelocity = curVelocity * Max( l - fMaxAcc * pCharacter->GetLevel()->GetElapsedTimePerTick(), 0.0f );
-	curVelocity = curVelocity + acc * pCharacter->GetLevel()->GetElapsedTimePerTick();
+	curVelocity = curVelocity * Max( l - fMaxAcc * pCharacter->GetLevel()->GetDeltaTime(), 0.0f );
+	curVelocity = curVelocity + acc * pCharacter->GetLevel()->GetDeltaTime();
 
-	CVector2 dPos = ( lastVelocity + curVelocity ) * ( 0.5f * pCharacter->GetLevel()->GetElapsedTimePerTick() );
+	CVector2 dPos = ( lastVelocity + curVelocity ) * ( 0.5f * pCharacter->GetLevel()->GetDeltaTime() );
 	bHit = false;
 	if( bHasAnyCollision )
 	{
@@ -1539,7 +1541,7 @@ void SCharacterCreepData::UpdateMove( CCharacter* pCharacter, int8 nTurnDir )
 		return;
 	}
 
-	float deltaTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float deltaTime = pCharacter->GetLevel()->GetDeltaTime();
 	float fDir = pCharacter->GetRotation();
 	if( fKnockbackTime <= 0 )
 	{
@@ -1633,7 +1635,7 @@ void SCharacterSurfaceWalkData::UpdateMove( CCharacter * pCharacter, int8 nDir )
 		return;
 	}
 
-	float fTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float fTime = pCharacter->GetLevel()->GetDeltaTime();
 
 	if( bHitSurface )
 	{
@@ -1705,7 +1707,7 @@ void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
 		return;
 	}
 
-	float deltaTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float deltaTime = pCharacter->GetLevel()->GetDeltaTime();
 	CVector2 vel = pCharacter->GetVelocity();
 
 	CVector2 vel1 = CVector2( vel.x, vel.y - fGravity * deltaTime );
@@ -1734,7 +1736,7 @@ void SCharacterPhysicsMovementData::UpdateMove( CCharacter * pCharacter )
 
 void SCharacterVehicleMovementData::UpdateMove( CCharacter * pCharacter )
 {
-	float deltaTime = pCharacter->GetLevel()->GetElapsedTimePerTick();
+	float deltaTime = pCharacter->GetLevel()->GetDeltaTime();
 	bHitWall = false;
 	bHitWall1 = false;
 	fDamage = 0;
@@ -1975,7 +1977,7 @@ void SCharacterQueueMovementData::Setup( CCharacter ** pCharacters, uint32 nChar
 
 void SCharacterQueueMovementData::UpdateMove( CCharacter ** pCharacters, uint32 nCharacters )
 {
-	float fTime = pCharacters[nCharacters - 1]->GetLevel()->GetElapsedTimePerTick();
+	float fTime = pCharacters[nCharacters - 1]->GetLevel()->GetDeltaTime();
 	fPercent += fTime * fSpeed;
 	if( fPercent >= 1 )
 	{
@@ -2082,7 +2084,7 @@ float CCharacterMoveUtil::Stretch( CCharacter * pCharacter, uint8 nDir, float fM
 	pRect->vertices[1] = CVector2( fMaxX, fMinY );
 	pRect->vertices[2] = CVector2( fMaxX, fMaxY );
 	pRect->vertices[3] = CVector2( fMinX, fMaxY );
-	pCharacter->GetLevel()->GetHitTestMgr().Update( pCharacter );
+	pCharacter->GetLevel()->GetHitTestMgr( pCharacter->GetUpdateGroup() ).Update( pCharacter );
 	return fDist;
 }
 
@@ -2160,6 +2162,6 @@ float CCharacterMoveUtil::StretchEx( CCharacter* pCharacter, uint8 nDir, float f
 	pRect->vertices[1] = CVector2( fMaxX, fMinY );
 	pRect->vertices[2] = CVector2( fMaxX, fMaxY );
 	pRect->vertices[3] = CVector2( fMinX, fMaxY );
-	pCharacter->GetLevel()->GetHitTestMgr().Update( pCharacter );
+	pCharacter->GetLevel()->GetHitTestMgr( pCharacter->GetUpdateGroup() ).Update( pCharacter );
 	return fDist;
 }

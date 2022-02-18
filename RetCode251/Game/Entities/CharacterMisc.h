@@ -130,7 +130,7 @@ class CChunkPortal : public CChunk
 	friend void RegisterGameClasses_CharacterMisc();
 public:
 	CChunkPortal( const SClassCreateContext& context ) : CChunk( context ) { SET_BASEOBJECT_ID( CChunkPortal ); }
-	bool CheckTeleport( CPlayer* pPlayer );
+	bool CheckTeleport( CCharacter* pPlayer );
 	virtual void OnTickAfterHitTest() override;
 private:
 	bool m_bUp;
@@ -217,6 +217,7 @@ public:
 	virtual CVector2 GetBaseOfs() const override { return m_ofs; }
 	virtual void Resize( const TRectangle<int32>& size ) override;
 	virtual void SetBaseOfs( const CVector2& ofs ) override { m_ofs = ofs; }
+	virtual bool AccountInLevelBound() override { return true; }
 private:
 	void Init();
 	void UpdateHit();
@@ -311,7 +312,6 @@ private:
 	int32 m_nFireCountLeft;
 	int32 m_nFireCD;
 	int32 m_nActivateTimeLeft;
-	int32 m_nDetectActivateTimeLeft;
 	float m_fCurRot;
 	int8 m_nStaticEft;
 	int8 m_fCurRot1;

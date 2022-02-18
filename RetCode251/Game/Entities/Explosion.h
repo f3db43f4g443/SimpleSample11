@@ -26,8 +26,8 @@ protected:
 	void HandleHit( CCharacter* pCharacter, int32 nDmg, int32 nDmg1, const CVector2& hitPos, const CVector2& hitDir );
 	virtual void OnTickAfterHitTest() override;
 	uint32 m_nLife;
-	uint32 m_nHitBeginFrame;
-	uint32 m_nHitFrameCount;
+	int32 m_nHitBeginFrame;
+	int32 m_nHitFrameCount;
 	int32 m_nDamage;
 	int32 m_nDeltaDamage;
 	int32 m_nDamage1;
@@ -51,6 +51,7 @@ protected:
 	TResourceRef<CPrefab> m_pDmgEft;
 	TResourceRef<CSoundFile> m_pSound;
 
+	int32 m_nLifeLeft;
 	uint32 m_nHitFrame;
 	CReference<CEntity> m_pCreator;
 

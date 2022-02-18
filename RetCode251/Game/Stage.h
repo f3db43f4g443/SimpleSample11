@@ -39,6 +39,7 @@ enum
 	eStageUpdatePhase_BeforeHitTest,
 	eStageUpdatePhase_HitTest,
 	eStageUpdatePhase_AfterHitTest,
+	eStageUpdatePhase_PostUpdate,
 };
 
 enum
@@ -48,7 +49,6 @@ enum
 };
 
 class CWorld;
-class CPlayer;
 class CStage
 {
 public:
@@ -59,7 +59,7 @@ public:
 	SStageContext* GetContext() { return m_pContext; }
 	void Create( SStageContext* pContext );
 
-	void Start( CPlayer* pPlayer, const SStageEnterContext& context );
+	void Start( class CPlayerCross* pPlayer, const SStageEnterContext& context );
 	void Stop();
 
 	void SetViewport( CUIViewport* pViewport );
@@ -86,8 +86,9 @@ public:
 
 	uint8 GetUpdatePhase() { return m_nUpdatePhase; }
 	CEntity* GetRoot() { return m_pEntityRoot; }
-	CPlayer* GetPlayer() { return m_pPlayer; }
+	CPlayerCross* GetPlayer() { return m_pPlayer; }
 	CCamera2D& GetCamera() { return m_camera; }
+	CRectangle GetCamRectBound( const CVector4& camTrans );
 
 	void AddStartPoint( CEntity* pEntity ) { m_mapStartPoints[pEntity->GetName().c_str()] = pEntity; }
 	CEntity* GetStartPoint( const char* szName )
@@ -110,7 +111,7 @@ private:
 	int8 m_nLightType;
 	CHitTestMgr m_hitTestMgr;
 	CReference<CEntity> m_pEntityRoot;
-	CPlayer* m_pPlayer;
+	CPlayerCross* m_pPlayer;
 	CCamera2D m_camera;
 	CVector2 m_origCamSize;
 	map<string, CReference<CEntity> > m_mapStartPoints;

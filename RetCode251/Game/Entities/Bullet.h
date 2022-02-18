@@ -2,8 +2,6 @@
 #include "Character.h"
 #include "Entities/EffectObject.h"
 
-class CPlayer;
-
 struct SBulletContext;
 class CBullet : public CCharacter
 {
@@ -65,6 +63,7 @@ protected:
 
 	bool m_bInited;
 	bool m_bPaused;
+	int32 m_nLifeLeft;
 	CReference<CEntity> m_pCreator;
 	SBulletContext* m_pContext;
 	bool m_bAttached;

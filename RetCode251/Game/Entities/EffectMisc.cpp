@@ -74,7 +74,7 @@ void CDropBombEffect::Render( CRenderContext2D& context )
 
 void CDropBombEffect::OnTick()
 {
-	if( m_nTick == m_nLife )
+	if( m_nTick == m_nLife * T_SCL )
 	{
 		SetParentEntity( NULL );
 		return;
@@ -82,7 +82,7 @@ void CDropBombEffect::OnTick()
 
 	auto pImg = static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() );
 	int32 nImgTiles = pImg->GetElem().rect.width / m_fImgWidth;
-	float t = m_nTick / ( m_nLife - 1.0f );
+	float t = m_nTick / T_SCL / ( m_nLife - 1.0f );
 	float t1 = t * ( 2 - t );
 	float fWidth = m_widthParam.x + ( m_widthParam.y - m_widthParam.x ) * ( t + m_widthParam.z * ( t1 - t ) );
 	float fHeight = m_heightParam.x + ( m_heightParam.y - m_heightParam.x ) * ( t + m_heightParam.z * ( t1 - t ) );
@@ -116,7 +116,7 @@ void CDropBombEffect::OnTick()
 		elem.elem.nInstDataSize = pImg->GetParamCount() * sizeof( CVector4 );
 		elem.elem.pInstData = pImg->GetParam();
 	}
-	m_nTick++;
+	m_nTick += CMyLevel::GetEntityLevel( this )->GetDeltaTick();
 }
 
 void CSpinEffect::OnAddedToStage()
@@ -198,12 +198,13 @@ void CSpinEffect::Render( CRenderContext2D& context )
 
 void CSpinEffect::OnTick()
 {
+	auto nDeltaTick = CMyLevel::GetEntityLevel( this )->GetDeltaTick();
 	auto nMaxTime = ( m_nLoopImgCount + m_arrLoopAnim.Size() - 1 ) * m_nFrameSpeed;
 	for( int i = m_nItemBegin; i < m_nItemEnd; i++ )
 	{
 		auto& item = m_vecItems[i % m_vecItems.size()];
-		item.nTime++;
-		if( item.nTime >= nMaxTime )
+		item.nTime += nDeltaTick;
+		if( item.nTime >= nMaxTime * T_SCL )
 		{
 			m_nItemBegin++;
 			continue;
@@ -212,14 +213,14 @@ void CSpinEffect::OnTick()
 
 	SRand rnd;
 	rnd.nSeed = m_nSeed;
-	m_nSpawnTick++;
-	auto nSpawn = m_nSpawnTick / m_nSpawnInterval;
-	m_nSpawnTick -= m_nSpawnInterval * nSpawn;
+	m_nSpawnTick += nDeltaTick;
+	auto nSpawn = m_nSpawnTick / ( m_nSpawnInterval * T_SCL );
+	m_nSpawnTick -= m_nSpawnInterval * nSpawn * T_SCL;
 	nSpawn = Min<int32>( nSpawn, m_vecItems.size() );
 	for( int i = nSpawn - 1; i >= 0; i-- )
 	{
 		auto& item = m_vecItems[( m_nItemEnd++ ) % m_vecItems.size()];
-		item.nTime = i * m_nSpawnInterval + m_nSpawnTick;
+		item.nTime = i * m_nSpawnInterval * T_SCL + m_nSpawnTick;
 		item.nInitFrame = rnd.Rand( 0, m_nRows );
 		item.initOfs = CVector2( m_spawnRect.x + rnd.Rand( 0.0f, m_spawnRect.width ), m_spawnRect.y + rnd.Rand( 0.0f, m_spawnRect.height ) );
 		item.loopOfs = CVector2( m_loopOffset.x + rnd.Rand( 0.0f, m_loopOffset.width ), m_loopOffset.y + rnd.Rand( 0.0f, m_loopOffset.height ) );
@@ -239,13 +240,13 @@ void CSpinEffect::OnTick()
 	auto pImg = static_cast<CImage2D*>( m_pOrigRenderObject.GetPtr() );
 	for( int j = 0; j < m_arrLoopAnim.Size(); j++ )
 	{
-		int32 nTime0 = j * m_nFrameSpeed;
+		int32 nTime0 = j * m_nFrameSpeed * T_SCL;
 		for( int i = m_nItemBegin; i < m_nItemEnd; i++ )
 		{
 			auto& item = m_vecItems[i % m_vecItems.size()];
-			if( item.nTime < nTime0 || item.nTime >= nTime0 + m_nLoopImgCount * m_nFrameSpeed )
+			if( item.nTime < nTime0 || item.nTime >= nTime0 + m_nLoopImgCount * m_nFrameSpeed * T_SCL )
 				continue;
-			int32 nFrame = ( item.nTime - nTime0 ) / m_nFrameSpeed;
+			int32 nFrame = ( item.nTime - nTime0 ) / ( m_nFrameSpeed * T_SCL );
 			int32 nFrameX = nX;
 			int32 nFrameY = ( item.nInitFrame + nFrame + nY ) % m_nRows;
 

@@ -83,8 +83,8 @@ public:
 	SWorldSaveData& GetWorldData() { return m_worldData; }
 	void LoadWorldData();
 	void SaveWorldData();
-	CPlayer* GetPlayer() { return m_pCurPlayer; }
-	void SetPlayer( CPlayer* pPlayer ) { m_pCurPlayer = pPlayer; }
+	CPlayerCross* GetPlayer() { return m_pCurPlayer; }
+	void SetPlayer( CPlayerCross* pPlayer ) { m_pCurPlayer = pPlayer; }
 	void CreatePlayer();
 
 	void EnterStage( const char* szStageName, SStageEnterContext& enterContext );
@@ -102,7 +102,7 @@ private:
 	CReference<CWorldCfgFile> m_pWorldCfgFile;
 	SWorldSaveData m_worldData;
 	CStage* m_pCurStage;
-	CReference<CPlayer> m_pCurPlayer;
+	CReference<CPlayerCross> m_pCurPlayer;
 	map<string, SStageContext> m_mapStageContexts;
 	vector<SSubStage> m_subStages;
 

@@ -179,7 +179,7 @@ protected:
 class CHitTestMgr
 {
 public:
-	CHitTestMgr() : m_pHitProxy( NULL ), m_pHitProxyBulletMode( NULL ), m_grids( NULL ), m_size( 0, 0, 0, 0 ) {}
+	CHitTestMgr() : m_pHitProxy( NULL ), m_pHitProxyBulletMode( NULL ), m_grids( NULL ), m_size( 0, 0, 0, 0 ), m_fDeltaTime( 0 ){}
 	struct SGrid
 	{
 		friend class CHitTestMgr;
@@ -187,8 +187,8 @@ public:
 	};
 	SGrid* GetGrid( const TVector2<int32>& grid );
 	static const uint32 nGridSize = 32;
-	float GetElapsedTimePerTick() { return 1.0f / 60; }
-	float GetElapsedTimePerTickInv() { return 60; }
+	float GetElapsedTimePerTick() { return m_fDeltaTime; }
+	float GetElapsedTimePerTickInv() { return 1.0f / m_fDeltaTime; }
 	
 	void Add( CHitProxy* pProxy );
 	void Remove( CHitProxy* pProxy );
@@ -196,7 +196,7 @@ public:
 	void ClearManifolds( CHitProxy* pProxy );
 	void ClearNoBulletModeManifolds( CHitProxy* pProxy );
 
-	void Update();
+	void Update( float fDeltaTime = 0 );
 	void Update( CHitProxy* pHitProxy );
 	void CalcBound( SHitProxy* pProxy, const CMatrix2D& transform );
 	void HitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CHitProxy*>& vecResult, vector<SHitTestResult>* pResult = NULL );
@@ -214,6 +214,7 @@ private:
 	SGrid* m_grids;
 	TRectangle<int32> m_size;
 
+	float m_fDeltaTime;
 	CHitProxy* m_pHitProxyBulletMode;
 	LINK_LIST_HEAD( m_pHitProxy, CHitProxy, HitProxy );
 };

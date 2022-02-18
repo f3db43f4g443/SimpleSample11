@@ -67,6 +67,23 @@ struct SLevelCamCtrlPoint1Limitor
 	CVector4 params[2];
 };
 
+class CLightArea : public CCharacter
+{
+	friend void RegisterGameClasses_Level();
+public:
+	CLightArea( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CLightArea ); }
+
+	virtual void OnRemovedFromStage() override;
+	float GetRad() { return m_fRad; }
+	float GetRad1() { return m_fRad1; }
+	virtual void PostUpdate() override;
+private:
+	float m_fRad, m_fRad1;
+
+	bool m_bAdded;
+	CVector2 m_lastLightPos;
+};
+
 class CBlackRegion : public CEntity
 {
 	friend void RegisterGameClasses_Level();
@@ -74,32 +91,37 @@ public:
 	CBlackRegion( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CBlackRegion ); }
 
 	void Init();
-	void Update( CPlayer* pPlayer );
 	virtual bool IsPreview() { return true; }
 	virtual void OnPreview();
+	float GetGridSize() { return 32.0f; }
 
-	bool CheckOutOfBound( CEntity* p );
+	void PostUpdate( CPlayerCross* pPlayer, bool bPlayerAttached );
+	void OnPlayerAttach( CPlayerCross* pPlayer ) {}
+	void OnPlayerDetach( CPlayerCross* pPlayer ) {}
+	void UpdateLight( CLightArea* pLightArea, const CVector2& p, bool bAdd );
+	virtual void Render( CRenderContext2D& context ) override;
+	void UpdateImages( const CRectangle& viewRect );
 private:
-	void UpdateImages();
-	TArray<CVector3> m_arrCircles;
-	CReference<CEntity> m_pCircleImg;
+	void UpdateCharIndicators( class CMyLevel* pLevel, const CVector2& cursorPos, const CRectangle& viewRect );
+	void AddImage( const CRectangle& rect, const CRectangle& texRect, const CVector4& param );
+	void AddImage1( const CRectangle& rect, const CVector4& param );
 
-	CVector4 m_param, m_param1;
-	float m_fFade;
-	vector<CReference<CRenderObject2D> > m_vecBoundImg;
-	vector<CReference<CRenderObject2D> > m_vecCircleImg;
-};
+	bool m_bInited;
+	TRectangle<int32> m_size;
+	struct SGrid
+	{
+		int16 nLight;
+		bool bExplored;
+		TVector2<int32> tex;
+		TVector2<int32> texSpeed;
+	};
+	vector<SGrid> m_vecGrid;
+	vector<CElement2D> m_vecElems;
+	vector<CVector4> m_vecParams;
+	int8 m_nShowType;
 
-class CEyeChunk : public CCharacter
-{
-	friend void RegisterGameClasses_Level();
-	friend class CLevelEnvLayer;
-public:
-	CEyeChunk( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CEyeChunk ) }
-	virtual bool Damage( SDamageContext& context ) override;
-private:
-	int32 m_nIndex;
-	float m_fWeight;
+	CReference<CCharacter> m_pLastTarget;
+	CRectangle m_targetRect[2];
 };
 
 class CLevelEnvLayer : public CEntity
@@ -198,7 +220,7 @@ class CPortal : public CCharacter
 	friend void RegisterGameClasses_Level();
 public:
 	CPortal( const SClassCreateContext& context ) : CCharacter( context ) { SET_BASEOBJECT_ID( CPortal ); }
-	bool CheckTeleport( CPlayer* pPlayer );
+	bool CheckTeleport( CCharacter* pPlayer );
 	virtual void OnTickAfterHitTest() override;
 private:
 	bool m_bUp;
@@ -228,12 +250,13 @@ public:
 	void Init();
 	void Begin();
 	void End();
-	void PlayerEnter( CPlayer* pPlayer );
+	void PlayerEnter( CPlayerCross* pPlayerCross, CCharacter* pControlled );
 	void PlayerLeave();
 	void OnAddCharacter( CCharacter* p );
 	void OnRemoveCharacter( CCharacter* p );
 	bool IsBegin() { return m_bBegin; }
-	CPlayer* GetPlayer() { return m_pPlayer; }
+	CPlayerCross* GetPlayer() { return m_pPlayer; }
+	CCharacter* GetControlled() { return m_pControlled; }
 
 	CEntity* GetStartPoint() { return m_pStartPoint; }
 	int32 GetLevelZ() const { return m_nLevelZ; }
@@ -241,25 +264,33 @@ public:
 	void SetSize( const CRectangle& size ) { m_size = size; }
 	CVector2 GetGravityDir();
 	bool CheckOutOfBound( CEntity* p );
+	CBlackRegion* GetBlackRegion() { return m_pBlackRegion; }
 	CLevelEnvLayer* GetEnv() { return m_pCurEnvLayer; }
 	void ChangeToEnvLayer( CLevelEnvLayer* pEnv );
 	uint8 GetUpdatePhase() { return m_nUpdatePhase; }
-	float GetElapsedTimePerTick();
+	float GetDeltaTime();
+	int32 GetDeltaTick() { return m_nDeltaTick; }
+	int32 GetSlowMotionScale() { return T_SCL; }
+	float GetPlayerPickRad() { return 64.0f; }
 
-	CEntity* Pick( const CVector2& pos );
-	void MultiPick( const CVector2& pos, vector<CReference<CEntity> >& result );
-	CEntity* DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult* pResult = NULL );
-	void MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult = NULL );
-	CEntity* Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL );
-	void MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
-	CEntity* SweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
-	CEntity* SweepTest( SHitProxy* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, EEntityHitType hitType, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
-	CEntity* SweepTest( CEntity* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false );
-	void MultiSweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL );
-	CHitTestMgr& GetHitTestMgr() { return m_hitTestMgr; }
-	bool CheckTeleport( CPlayer* pPlayer, const CVector2& transferOfs );
+	CEntity* Pick( const CVector2& pos, int8 nGroup = 0 );
+	void MultiPick( const CVector2& pos, vector<CReference<CEntity> >& result, int8 nGroup = 0 );
+	CEntity* DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult* pResult = NULL, int8 nGroup = 0 );
+	void MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult = NULL, int8 nGroup = 0 );
+	CEntity* Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL, int8 nGroup = 0 );
+	void MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL, int8 nGroup = 0 );
+	CEntity* SweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, EEntityHitType hitType = eEntityHitType_Count, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, int8 nGroup = 0 );
+	CEntity* SweepTest( SHitProxy* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, EEntityHitType hitType, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, int8 nGroup = 0 );
+	CEntity* SweepTest( CEntity* pEntity, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, SRaycastResult* pResult = NULL, bool bIgnoreInverseNormal = false, int8 nGroup = 0 );
+	void MultiSweepTest( SHitProxy* pHitProxy, const CMatrix2D& trans, const CVector2& sweepOfs, float fSideThreshold, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult = NULL, int8 nGroup = 0 );
+	CHitTestMgr& GetHitTestMgr( int8 nGroup ) { return m_hitTestMgr[nGroup]; }
+	bool CheckTeleport( CCharacter* pPlayer, const CVector2& transferOfs );
 	float Push( CCharacter* pCharacter, const CVector2& dir, float fDist );
 	float Push( CCharacter* pCharacter, CCharacter::SPush& context, const CVector2& dir, float fDist, int32 nTested, CEntity** pTested, CMatrix2D* matTested, float fSideThreshold );
+
+	CCharacter* FindAttach();
+	CCharacter* TryAttach( CCharacter* pChar0 );
+	void TryDetach();
 
 	void OnBugDetected( CBug* pBug );
 	void ResetBug( CBug* pBug );
@@ -275,6 +306,7 @@ public:
 
 	void Update();
 	void Update1();
+	int8 GetUpdateType() { return m_nUpdateType; }
 	static CMyLevel* GetEntityLevel( CEntity* pEntity );
 	static CEntity* GetEntityRootInLevel( CEntity* pEntity );
 	static CCharacter* GetEntityCharacterRootInLevel( CEntity* pEntity, bool bFindResetable = false );
@@ -286,11 +318,16 @@ private:
 	CRectangle m_size;
 	TArray<SBugLink> m_arrBugLink;
 	CReference<CEntity> m_pStartPoint;
+	CReference<CBlackRegion> m_pBlackRegion;
 	CReference<CLevelEnvLayer> m_pCurEnvLayer;
 	CReference<CLevelBugIndicatorLayer> m_pBugIndicatorLayer;
 
-	CHitTestMgr m_hitTestMgr;
-	CReference<CPlayer> m_pPlayer;
+	int32 m_nDeltaTick;
+	int32 m_nTick0;
+	CHitTestMgr m_hitTestMgr[2];
+	CReference<CPlayerCross> m_pPlayer;
+	CReference<CCharacter> m_pControlled;
+	int8 m_nUpdateType;
 	uint8 m_nUpdatePhase;
 	bool m_bInited;
 	bool m_bBegin;
@@ -315,7 +352,7 @@ private:
 
 	TClassTrigger<CMyLevel> m_onTick;
 
-	LINK_LIST_REF_HEAD( m_pCharacters, CCharacter, Character )
+	LINK_LIST_REF_HEAD_ARR( m_pCharacters, 2, CCharacter, Character )
 };
 
 class CMasterLevel : public CEntity
@@ -335,10 +372,12 @@ public:
 	void Update();
 	void Kill();
 	float GetKillFade() { return m_nKillTickLeft * 1.0f / m_nKillTick; }
-	CPlayer* GetPlayer() { return m_pPlayer; }
+	CCharacter* GetPlayer() { return m_pPlayer; }
 	CMyLevel* GetCurLevel() { return m_pCurLevel; }
 	CVector2 GetCtrlPointFollowPlayerPos( const CVector2& p );
 	CVector4 GetCamTrans();
+	void OnAttached() {}
+	void OnDetached() {}
 	enum
 	{
 		eTest_None,
@@ -396,7 +435,7 @@ private:
 	CVector4 m_camTrans;
 	CVector2 m_camTransPlayerOfs;
 	int32 m_nKillTickLeft;
-	CReference<CPlayer> m_pPlayer;
+	CReference<CPlayerCross> m_pPlayer;
 	CReference<CMyLevel> m_pCurLevel;
 	CReference<CMyLevel> m_pLastLevel;
 	CReference<CPrefab> m_pCurLevelPrefab;

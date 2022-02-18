@@ -12,7 +12,7 @@ void CKick::OnAddedToStage()
 	auto pImg = static_cast<CImage2D*>( GetRenderObject() );
 	m_origImgRect = pImg->GetElem().rect;
 	m_origImgTexRect = pImg->GetElem().texRect;
-	m_nDeathTime0 = m_nDeathTime;
+	m_nDeathTimeLeft = m_nDeathTime * T_SCL;
 	SetRenderParent( GetLevel() );
 }
 
@@ -118,16 +118,17 @@ void CKick::OnTickAfterHitTest()
 {
 	auto g = GetGlobalTransform();
 	auto curGlobalPos = g.GetPosition();
-	if( m_nTick < m_nHitFrames )
+	auto nDeltaTick = GetLevel()->GetDeltaTick();
+	if( m_nTick < m_nHitFrames * T_SCL )
 	{
-		m_hitRect.x = m_hitBegin.x + m_hitDelta.x * m_nTick;
-		m_hitRect.y = m_hitBegin.y + m_hitDelta.y * m_nTick;
-		m_hitRect.width = m_hitBegin.width + m_hitDelta.width * m_nTick;
-		m_hitRect.height = m_hitBegin.height + m_hitDelta.height * m_nTick;
+		m_hitRect.x = m_hitBegin.x + m_nTick / T_SCL * m_hitDelta.x;
+		m_hitRect.y = m_hitBegin.y + m_nTick / T_SCL * m_hitDelta.y;
+		m_hitRect.width = m_hitBegin.width + m_nTick / T_SCL * m_hitDelta.width;
+		m_hitRect.height = m_hitBegin.height + m_nTick / T_SCL * m_hitDelta.height;
 		m_hitRect0 = m_hitRect1 = m_nTick == 0 ? m_hitRect : m_hitRect + m_hitRect0;
 
 		HitTest( m_hitRect, g, m_fDamage0 );
-		m_nTick++;
+		m_nTick += nDeltaTick;
 	}
 	else
 	{
@@ -143,11 +144,11 @@ void CKick::OnTickAfterHitTest()
 			auto pImg = static_cast<CImage2D*>( GetRenderObject() );
 			pImg->SetRect( imgRect );
 			pImg->SetBoundDirty();
-			m_nExtentTime--;
+			m_nExtentTime = Max( 0, m_nExtentTime - nDeltaTick );
 		}
 		else if( m_nReleaseFrame )
 		{
-			m_nReleaseFrame--;
+			m_nReleaseFrame = Max( 0, m_nReleaseFrame - nDeltaTick );
 			if( !m_nReleaseFrame )
 			{
 				for( auto& item : m_hit )
@@ -173,10 +174,10 @@ void CKick::OnTickAfterHitTest()
 				}
 			}
 		}
-		else if( m_nDeathTime )
+		else if( m_nDeathTimeLeft )
 		{
-			m_nDeathTime--;
-			if( !m_nDeathTime )
+			m_nDeathTimeLeft = Max( 0, m_nDeathTimeLeft - nDeltaTick );
+			if( !m_nDeathTimeLeft )
 			{
 				Kill();
 				return;
@@ -250,11 +251,11 @@ void CKick::UpdateImage()
 {
 	int32 nFrame;
 	if( !m_nReleaseFrame )
-		nFrame = 4 + ( m_nDeathTime0 - m_nDeathTime ) * 4 / m_nDeathTime0;
+		nFrame = 4 + ( m_nDeathTime * T_SCL - m_nDeathTimeLeft ) * 4 / ( m_nDeathTimeLeft * T_SCL );
 	else if( m_nAnimTick < 9 )
 	{
-		nFrame = m_nAnimTick / 3;
-		m_nAnimTick++;
+		nFrame = m_nAnimTick / ( 3 * T_SCL );
+		m_nAnimTick += GetLevel()->GetDeltaTick();
 	}
 	else
 		nFrame = 3;
@@ -266,7 +267,7 @@ void CKick::UpdateImage()
 void CKick::OnFirstHit()
 {
 	m_bHit = true;
-	auto pPlayer = SafeCast<CPlayer>( m_pOwner.GetPtr() );
+	auto pPlayer = SafeCast<CPlayer0>( m_pOwner.GetPtr() );
 	if( pPlayer )
 		pPlayer->OnKickFirstHit( this );
 }
@@ -274,7 +275,7 @@ void CKick::OnFirstHit()
 void CKick::OnFirstExtentHit()
 {
 	m_bExtentHit = true;
-	auto pPlayer = SafeCast<CPlayer>( m_pOwner.GetPtr() );
+	auto pPlayer = SafeCast<CPlayer0>( m_pOwner.GetPtr() );
 	if( pPlayer )
 		pPlayer->OnKickFirstExtentHit( this );
 }
@@ -284,7 +285,7 @@ void CKickSpin::OnHit( CEntity* pEntity )
 	if( m_bHit )
 		return;
 	m_bHit = true;
-	auto pPlayer = SafeCast<CPlayer>( m_pOwner.GetPtr() );
+	auto pPlayer = SafeCast<CPlayer0>( m_pOwner.GetPtr() );
 	if( pPlayer )
 		pPlayer->OnKickFirstHit( this );
 }

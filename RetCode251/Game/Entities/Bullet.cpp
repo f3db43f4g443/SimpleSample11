@@ -73,6 +73,7 @@ void CBullet::OnAddedToStage()
 			m_pDeathEffect->SetParentEntity( NULL );
 		m_origImgRect = static_cast<CImage2D*>( GetRenderObject() )->GetElem().rect;
 	}
+	m_nLifeLeft = m_nLife * T_SCL;
 	m_pos0 = m_pos00 = GetPosition();
 }
 
@@ -90,27 +91,28 @@ void CBullet::OnTickAfterHitTest()
 			SetRotation( atan2( m_vel.y, m_vel.x ) );
 		return;
 	}
+	auto fDeltaTime = GetLevel()->GetDeltaTime();
 	if( !m_bKilled1 && !m_bAttached )
 	{
-		CVector2 newVelocity = m_vel + m_acc * GetLevel()->GetElapsedTimePerTick();
+		CVector2 newVelocity = m_vel + m_acc * fDeltaTime;
 		m_pos00 = m_pos0;
 		m_pos0 = GetGlobalTransform().GetPosition();
-		SetPosition( GetPosition() + ( m_vel + newVelocity ) * ( GetLevel()->GetElapsedTimePerTick() * 0.5f ) );
+		SetPosition( GetPosition() + ( m_vel + newVelocity ) * ( fDeltaTime * 0.5f ) );
 		m_vel = newVelocity;
 		if( m_bTangentDir )
 			SetRotation( atan2( m_vel.y, m_vel.x ) );
 		else
-			SetRotation( r + m_fAngularVelocity * GetLevel()->GetElapsedTimePerTick() );
+			SetRotation( r + m_fAngularVelocity * fDeltaTime );
 	}
-	if( m_nLife )
+	if( m_nLifeLeft )
 	{
-		m_nLife--;
-		if( !m_nLife )
+		m_nLifeLeft -= GetLevel()->GetDeltaTick();
+		if( !m_nLifeLeft )
 			Kill();
 	}
 	if( m_bKilled1 )
 	{
-		m_fDeathTime -= GetLevel()->GetElapsedTimePerTick();
+		m_fDeathTime -= fDeltaTime;
 		if( m_fDeathTime <= 0 )
 		{
 			SetParentEntity( NULL );
@@ -160,7 +162,7 @@ bool CBullet::HandleHit( CCharacter* pCharacter, const CVector2& hitPoint )
 	}
 	if( m_pCounterBullet )
 	{
-		auto pPlayer = SafeCast<CPlayer>( pCharacter->GetParentEntity() );
+		auto pPlayer = SafeCast<CPlayer0>( pCharacter );
 		if( pPlayer )
 		{
 			if( pPlayer->CounterBullet( this, hitPoint, hitDir, true ) )
@@ -171,7 +173,7 @@ bool CBullet::HandleHit( CCharacter* pCharacter, const CVector2& hitPoint )
 		}
 		if( SafeCast<CKick>( pCharacter ) || SafeCast<CKickSpin>( pCharacter ) )
 		{
-			pPlayer = SafeCast<CPlayer>( pCharacter->GetParentEntity() );
+			pPlayer = SafeCast<CPlayer0>( pCharacter->GetParentEntity() );
 			if( pPlayer )
 			{
 				if( pPlayer->CounterBullet( this, hitPoint, hitDir, false ) )

@@ -50,7 +50,7 @@ void CStage::Create( SStageContext* pContext )
 	}
 }
 
-void CStage::Start( CPlayer* pPlayer, const SStageEnterContext& context )
+void CStage::Start( CPlayerCross* pPlayer, const SStageEnterContext& context )
 {
 	if( m_bStarted )
 		return;
@@ -130,7 +130,7 @@ void CStage::AddEntity( CEntity* pEntity )
 	pEntity->OnAddedToStage();
 	pEntity->m_bIsChangingStage = false;
 
-	CPlayer* pPlayer = SafeCast<CPlayer>( pEntity );
+	CPlayerCross* pPlayer = SafeCast<CPlayerCross>( pEntity );
 	if( pPlayer )
 		m_pPlayer = pPlayer;
 
@@ -248,7 +248,8 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 		else
 		{
 			float t = pPlayer->GetHp() * 1.0f / pPlayer->GetMaxHp();
-			float t1 = pPlayer->GetFallCritical();
+			//float t1 = pPlayer->GetFallCritical();
+			float t1 = 1;
 			if( t < 1 )
 			{
 				colorEdge = CVector4( 1, 0, 0, 1 ) + CVector4( 0, 1, 1, 0 ) * t;
@@ -261,4 +262,15 @@ void CStage::OnPostProcess( CPostProcessPass* pPass )
 	}
 	effect.Set( colorCenter, colorEdge, fPow );
 	pPass->Register( &effect );
+}
+
+CRectangle CStage::GetCamRectBound( const CVector4 & camTrans )
+{
+	CRectangle rect( -m_origCamSize.x * 0.5f, -m_origCamSize.y * 0.5f, m_origCamSize.x, m_origCamSize.y );
+	CVector2 ofs( camTrans.x, camTrans.y );
+	float r = camTrans.z;
+	float s = camTrans.w;
+	rect = rect * s;
+	rect = rect.Offset( ofs );
+	return rect.RotateByCenter( r );
 }

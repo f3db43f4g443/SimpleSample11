@@ -53,7 +53,7 @@ void CCommonMoveableObject::OnTickBeforeHitTest()
 	CCharacter::OnTickBeforeHitTest();
 	if( m_nImpactTick )
 	{
-		m_nImpactTick--;
+		m_nImpactTick = Max( 0, m_nImpactTick - GetLevel()->GetDeltaTick() );
 		if( !m_nImpactTick )
 		{
 			SetImpactLevel( 0, 0 );
@@ -144,7 +144,7 @@ void CCommonMoveableObject::HandlePush( const CVector2& dir, float fDist, int8 n
 	else if( nStep == 1 )
 	{
 		if( fDist > 0 )
-			GetLevel()->GetHitTestMgr().Update( this );
+			GetLevel()->GetHitTestMgr( GetUpdateGroup() ).Update( this );
 	}
 	else
 	{
@@ -163,13 +163,13 @@ void CCommonMoveableObject::SetImpactLevel( int32 nLevel, int32 nTick )
 	if( !nLevel && m_nImpactLevel )
 		Trigger( eCharacterEvent_ImpactLevelEnd );
 	m_nImpactLevel = nLevel;
-	m_nImpactTick = nTick;
+	m_nImpactTick = nTick * T_SCL;
 	if( nLevel )
 		Trigger( eCharacterEvent_ImpactLevelBegin );
 	if( m_nImpactTick )
 	{
 		if( m_nUpdatePhase >= 2 )
-			m_nImpactTick++;
+			m_nImpactTick += GetLevel()->GetDeltaTick();
 	}
 	if( m_nBlockImpactLevel >= 0 )
 	{
@@ -188,7 +188,7 @@ void CCommonMoveableObject::SetImpactLevel( int32 nLevel, int32 nTick )
 
 CVector2 CCommonMoveableObject::HandleCommonMove()
 {
-	float fDeltaTime = GetLevel()->GetElapsedTimePerTick();
+	float fDeltaTime = GetLevel()->GetDeltaTime();
 	CVector2 gravityDir( 0, -1 );
 	CVector2 dPos = m_vel * fDeltaTime;
 	if( m_nKickCounter )
@@ -225,9 +225,10 @@ void CCommonMoveableObject::PostMove()
 void CCommonMoveableObject::PostMove( int32 nTestEntities, CEntity** pTestEntities )
 {
 	bool bStopImpact = false;
+	auto hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
 	for( int i = 0; i < nTestEntities; i++ )
 	{
-		GetLevel()->GetHitTestMgr().Update( pTestEntities[i] );
+		hitTestMgr.Update( pTestEntities[i] );
 		if( m_nBlockImpactLevel >= 0 && m_nImpactLevel )
 		{
 			for( auto pManifold = pTestEntities[i]->Get_Manifold(); pManifold; pManifold = pManifold->NextManifold() )
@@ -258,8 +259,8 @@ void CCommonMoveableObject::PostMove( int32 nTestEntities, CEntity** pTestEntiti
 
 bool CCommonGrabbable::CheckGrab( class CPlayer* pPlayer, SGrabDesc& desc )
 {
-	if( m_nGrabDir && pPlayer->GetDir() != m_nGrabDir )
-		return false;
+	/*if( m_nGrabDir && pPlayer->GetDir() != m_nGrabDir )
+		return false;*/
 	desc.grabOfs = m_grabOfs;
 	desc.fDropThreshold = m_fDropThreshold;
 	desc.nGrabDir = m_nGrabDir;
@@ -293,7 +294,9 @@ void CLever::OnTickBeforeHitTest()
 	if( m_nNxtState != m_nCurState )
 	{
 		auto targetState = m_nNxtState ? m_state0 + m_arrState[m_nNxtState - 1] : m_state0;
-		m_nStateTransferTime--;
+
+		auto t0 = m_nStateTransferTime;
+		m_nStateTransferTime = Max( 0, m_nStateTransferTime - GetLevel()->GetDeltaTick() );
 		if( !m_nStateTransferTime )
 		{
 			SetPosition( CVector2( targetState.x, targetState.y ) );
@@ -303,7 +306,7 @@ void CLever::OnTickBeforeHitTest()
 		else
 		{
 			auto curState = CVector3( x, y, r );
-			curState = curState + ( targetState - curState ) * ( 1.0f / ( m_nStateTransferTime + 1 ) );
+			curState = curState + ( targetState - curState ) * ( m_nStateTransferTime * 1.0f / t0 );
 			SetPosition( CVector2( curState.x, curState.y ) );
 			SetRotation( curState.z );
 		}
@@ -336,7 +339,7 @@ bool CLever::CheckGrab( class CPlayer* pPlayer, SGrabDesc& desc )
 				if( !CGame::Inst().IsKey( nKey ) )
 					continue;
 				m_nNxtState = transfer.y;
-				m_nStateTransferTime = transfer.z;
+				m_nStateTransferTime = transfer.z * T_SCL;
 				break;
 			}
 		}
@@ -479,19 +482,13 @@ void CChunk::UpdateImages()
 	}
 }
 
-bool CChunkPortal::CheckTeleport( CPlayer* pPlayer )
+bool CChunkPortal::CheckTeleport( CCharacter* pPlayer )
 {
-	auto pPlayerHits = pPlayer->GetAllHits();
-	static vector<CHitProxy*> vecResult;
-	for( int i = 0; i < 3; i++ )
-	{
-		auto mat = pPlayerHits[i]->GetGlobalTransform();
-		vecResult.resize( 0 );
-		auto pHitProxy = Get_HitProxy();
-		auto pHitProxy1 = pPlayerHits[i]->Get_HitProxy();
-		if( !SHitProxy::Contain( pHitProxy, pHitProxy1, GetGlobalTransform(), mat ) )
-			return false;
-	}
+	auto pHitProxy = Get_HitProxy();
+	auto pHitProxy1 = pPlayer->Get_HitProxy();
+	auto mat = pPlayer->GetGlobalTransform();
+	if( !SHitProxy::Contain( pHitProxy, pHitProxy1, GetGlobalTransform(), mat ) )
+		return false;
 	return true;
 }
 
@@ -986,6 +983,8 @@ void CCharacterTriggerSpawn::Trigger()
 
 void CTurret::UpdateModule( bool bActivated )
 {
+	auto pLevel = CMyLevel::GetEntityLevel( this );
+	auto nDeltaTick = pLevel->GetDeltaTick();
 	int8 nStaticEft = 0;
 	if( bActivated )
 	{
@@ -998,12 +997,12 @@ void CTurret::UpdateModule( bool bActivated )
 		if( m_nActivateTimeLeft )
 		{
 			nStaticEft = 2;
-			m_nActivateTimeLeft--;
+			m_nActivateTimeLeft = Max( 0, m_nActivateTimeLeft - nDeltaTick );
 		}
 		else
 		{
 			if( m_nFireCD )
-				m_nFireCD--;
+				m_nFireCD = Max( 0, m_nFireCD - nDeltaTick );
 			if( !m_nFireCD )
 			{
 				if( !m_nFireCountLeft && bDetect )
@@ -1012,7 +1011,7 @@ void CTurret::UpdateModule( bool bActivated )
 				{
 					Fire();
 					m_nFireCountLeft--;
-					m_nFireCD = m_nFireCountLeft ? m_nFireInterval : m_nReloadTime;
+					m_nFireCD = ( m_nFireCountLeft ? m_nFireInterval : m_nReloadTime ) * T_SCL;
 				}
 			}
 			nStaticEft = 1;
@@ -1022,8 +1021,7 @@ void CTurret::UpdateModule( bool bActivated )
 	{
 		m_nFireCountLeft = 0;
 		m_nFireCD = 0;
-		m_nActivateTimeLeft = m_nActivateTime;
-		m_nDetectActivateTimeLeft = m_nDetectActivateTime;
+		m_nActivateTimeLeft = m_nActivateTime * T_SCL;
 	}
 
 	if( nStaticEft != m_nStaticEft )
@@ -1079,9 +1077,10 @@ bool CTurret::Detect()
 	auto playerPos = trans.MulTVector2Pos( pPlayer->GetPosition() );
 	bool bSeePlayer = false;
 	float fRotAngle = m_fRotAngle / 180 * PI;
+	auto fDeltaTime = pPlayer->GetLevel()->GetDeltaTime();
 	if( m_nScanType == 1 )
 	{
-		float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
+		float dRot = m_fRotSpeed * fDeltaTime;
 		if( fRotAngle > 0 )
 		{
 			m_fCurRot1 += dRot;
@@ -1113,12 +1112,12 @@ bool CTurret::Detect()
 		{
 			if( fRotAngle > 0 )
 			{
-				float dRot = m_fRotSpeed * pPlayer->GetLevel()->GetElapsedTimePerTick();
+				float dRot = m_fRotSpeed * fDeltaTime;
 				m_fCurRot = Min( m_fCurRot + dRot, Max( m_fCurRot - dRot, fRot ) );
 				m_fCurRot = Max( -fRotAngle, Min( fRotAngle, m_fCurRot ) );
 			}
 			else
-				m_fCurRot = CEntity::CommonTurn1( m_fCurRot, pPlayer->GetLevel()->GetElapsedTimePerTick(), m_fRotSpeed, fRot );
+				m_fCurRot = CEntity::CommonTurn1( m_fCurRot, fDeltaTime, m_fRotSpeed, fRot );
 		}
 	}
 	if( m_fSightRange > 0 )
@@ -1170,12 +1169,12 @@ void CGate::OnTickBeforeHitTest()
 	{
 		auto pMasterLevel = CMasterLevel::GetInst();
 		if( pMasterLevel->GetCurLevel() == GetLevel() && pMasterLevel->GetTestState() && pMasterLevel->GetTestRect().Contains( GetGlobalTransform().GetPosition() ) )
-			m_nTriggerTimeLeft = m_nTriggerTime;
+			m_nTriggerTimeLeft = m_nTriggerTime * T_SCL;
 	}
 	else if( m_nTriggerType == 1 )
 	{
 		if( IsAlerted() )
-			m_nTriggerTimeLeft = m_nTriggerTime;
+			m_nTriggerTimeLeft = m_nTriggerTime * T_SCL;
 	}
 
 	bool bClose = m_nTriggerTimeLeft == 0;
@@ -1195,7 +1194,7 @@ void CGate::OnTickBeforeHitTest()
 		float dLen = Min( m_bStartOpen ? m_fCurLength : m_fMaxLength - m_fCurLength, m_fOpenLenPerTick );
 		if( dLen > 0 )
 		{
-			auto& hitTestMgr = GetLevel()->GetHitTestMgr();
+			auto& hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
 			hitTestMgr.Remove( this );
 			m_fCurLength += m_bStartOpen ? -dLen : dLen;
 			UpdateHit();
@@ -1205,7 +1204,7 @@ void CGate::OnTickBeforeHitTest()
 	}
 	UpdateImages();
 	if( m_nTriggerTimeLeft )
-		m_nTriggerTimeLeft--;
+		m_nTriggerTimeLeft = Max( 0, m_nTriggerTimeLeft - GetLevel()->GetDeltaTick() );
 }
 
 void CGate::Render( CRenderContext2D & context )
@@ -1248,7 +1247,7 @@ void CGate::Render( CRenderContext2D & context )
 
 void CGate::HandlePush( const CVector2& dir, float fDist, int8 nStep )
 {
-	auto& hitTestMgr = GetLevel()->GetHitTestMgr();
+	auto& hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
 	if( nStep == 0 )
 	{
 		if( fDist > 0 )
@@ -1272,7 +1271,7 @@ bool CGate::Damage( SDamageContext& context )
 {
 	if( m_nTriggerType == 2 && context.nType <= eDamageHitType_Alert )
 	{
-		m_nTriggerTimeLeft = m_nTriggerTime;
+		m_nTriggerTimeLeft = m_nTriggerTime * T_SCL;
 		return true;
 	}
 	return false;
@@ -1419,7 +1418,7 @@ void CAlertBeam::OnTickAfterHitTest()
 {
 	__super::OnTickAfterHitTest();
 	if( m_nAlertTimeLeft )
-		m_nAlertTimeLeft--;
+		m_nAlertTimeLeft = Max( 0, m_nAlertTimeLeft - GetLevel()->GetDeltaTick() );
 }
 
 void CAlertBeam::HandleHit( CEntity* pEntity, const CVector2& hitPoint )
@@ -1441,7 +1440,7 @@ void CAlertBeam::HandleHit( CEntity* pEntity, const CVector2& hitPoint )
 	if( SafeCast<CPlayer>( pEntity ) )
 	{
 		OnHit( pEntity );
-		m_nAlertTimeLeft = m_nAlertTime;
+		m_nAlertTimeLeft = m_nAlertTime * T_SCL;
 	}
 }
 
@@ -1474,9 +1473,9 @@ void CEnemy1::OnAddedToStage()
 void CEnemy1::OnTickAfterHitTest()
 {
 	CVector2 vel = m_initVel;
-	float t = m_nTick * 1.0f / m_nVelPeriod;
-	m_nTick++;
-	if( m_nTick >= m_nVelPeriod )
+	float t = m_nTick * 1.0f / ( m_nVelPeriod * T_SCL );
+	m_nTick += GetLevel()->GetDeltaTick();
+	if( m_nTick >= m_nVelPeriod * T_SCL )
 		m_nTick = 0;
 	switch( m_nVelType )
 	{
@@ -1494,7 +1493,7 @@ void CEnemy1::OnTickAfterHitTest()
 	}
 	break;
 	}
-	auto d = ( GetVelocity() + vel ) * GetLevel()->GetElapsedTimePerTick() * 0.5f;
+	auto d = ( GetVelocity() + vel ) * GetLevel()->GetDeltaTime() * 0.5f;
 	SetVelocity( vel );
 	SCharacterMovementData data;
 	SRaycastResult result[3];

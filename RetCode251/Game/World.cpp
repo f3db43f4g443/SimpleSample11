@@ -154,7 +154,7 @@ void CWorld::CreatePlayer()
 		SetPlayer( NULL );
 	}
 
-	CPlayer* pPlayer = static_cast<CPlayer*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
+	CPlayerCross* pPlayer = static_cast<CPlayerCross*>( CResourceManager::Inst()->CreateResource<CPrefab>( "player.pf" )->GetRoot()->CreateInstance() );
 	SetPlayer( pPlayer );
 }
 

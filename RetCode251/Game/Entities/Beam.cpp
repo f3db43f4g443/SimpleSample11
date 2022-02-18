@@ -16,7 +16,8 @@ void CBeam::Init()
 
 void CBeam::OnTickAfterHitTest()
 {
-	if( m_nLife && m_nTick >= m_nLife )
+	auto nDeltaTick = GetLevel()->GetDeltaTick();
+	if( m_nLife && m_nTick >= m_nLife * T_SCL )
 	{
 		Kill();
 		return;
@@ -24,7 +25,7 @@ void CBeam::OnTickAfterHitTest()
 
 	auto trans = GetGlobalTransform();
 	float fDist = m_fMaxRange;
-	bool bHit = !( m_nTick < m_nHitBeginFrame || m_nHitFrameCount && m_nTick >= m_nHitBeginFrame + m_nHitFrameCount );
+	bool bHit = !( m_nTick < m_nHitBeginFrame * T_SCL || m_nHitFrameCount && m_nTick >= ( m_nHitBeginFrame + m_nHitFrameCount ) * T_SCL );
 
 	CReference<CEntity> pHit0;
 	for( int k = 0; k < ( bHit ? 2 : 1 ); k++ )
@@ -65,7 +66,7 @@ void CBeam::OnTickAfterHitTest()
 	{
 		for( auto itr = m_hit.begin(); itr != m_hit.end(); )
 		{
-			itr->second--;
+			itr->second = Max( 0, itr->second - nDeltaTick );
 			if( !itr->second )
 				itr = m_hit.erase( itr );
 			else
@@ -76,7 +77,7 @@ void CBeam::OnTickAfterHitTest()
 	if( m_pHit[1] )
 		m_pHit[1]->SetPosition( CVector2( fDist, 0 ) );
 	UpdateImages();
-	m_nTick = Min( m_nTick + 1, Max( m_nHitBeginFrame + m_nHitFrameCount, m_nLife ) );
+	m_nTick = Min( m_nTick + nDeltaTick, Max( m_nHitBeginFrame + m_nHitFrameCount, m_nLife ) * T_SCL );
 }
 
 int8 CBeam::CheckHit( CEntity* pEntity )
@@ -135,7 +136,7 @@ void CBeam::HandleHit( CEntity* pEntity, const CVector2& hitPoint )
 
 		OnHit( pCharacter );
 		if( pCharacter->GetStage() )
-			m_hit[pCharacter] = m_nHitInterval;
+			m_hit[pCharacter] = m_nHitInterval * T_SCL;
 		return;
 	}
 }
@@ -149,12 +150,12 @@ void CBeam::UpdateImages()
 	m_pBeamImg[1]->SetBoundDirty();
 	m_pBeamImg[2]->SetPosition( CVector2( m_pHit[0]->x, 0 ) );
 
-	int32 nFrame = m_nAnimTick / m_nFrameInterval;
+	int32 nFrame = m_nAnimTick / ( m_nFrameInterval * T_SCL );
 	if( nFrame >= m_nBeginFrame )
 		nFrame = ( nFrame - m_nBeginFrame ) % m_nLoopFrame + m_nBeginFrame;
-	m_nAnimTick++;
-	if( m_nAnimTick >= m_nFrameInterval * ( m_nBeginFrame + m_nLoopFrame ) )
-		m_nAnimTick -= m_nFrameInterval * m_nLoopFrame;
+	m_nAnimTick += GetLevel()->GetDeltaTick();
+	if( m_nAnimTick >= m_nFrameInterval * T_SCL * ( m_nBeginFrame + m_nLoopFrame ) )
+		m_nAnimTick -= m_nFrameInterval * T_SCL * m_nLoopFrame;
 
 	for( int i = 0; i < 3; i++ )
 	{

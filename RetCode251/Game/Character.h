@@ -27,9 +27,10 @@ enum ECharacterEvent
 	eCharacterEvent_Count,
 };
 
+#define T_SCL 16
 class CCharacter : public CEntity
 {
-	friend void RegisterGameClasses();
+	friend void RegisterGameClasses_Character();
 public:
 	CCharacter();
 	CCharacter( const SClassCreateContext& context );
@@ -38,6 +39,8 @@ public:
 	virtual void OnRemovedFromStage() override;
 	virtual CMatrix2D GetGlobalTransform() override;
 	class CMyLevel* GetLevel() { return m_pLevel; }
+	int8 GetUpdateGroup() { return m_nUpdateGroup; }
+	bool IsKillOnPlayerAttach() { return m_bKillOnPlayerAttach; }
 	virtual bool IsOwner( CEntity* pEntity1 ) override { return pEntity1 == this || pEntity1 == m_pOwner; }
 	void SetOwner( CCharacter* pOwner ) { m_pOwner = pOwner; }
 	virtual bool IsEnemy() { return false; }
@@ -59,14 +62,17 @@ public:
 	virtual bool ImpactHit( int32 nLevel, const CVector2& vec, CEntity* pEntity ) { return false; }
 	virtual bool Knockback( const CVector2& vec ) { return false; }
 	virtual bool IsKnockback() { return false; }
-	virtual bool StartHooked( CEntity* pEntity ) { return false; }
-	virtual bool Hooked( const CVector2& vec ) { return false; }
-	virtual bool EndHooked() { return false; }
 	bool IsIgnoreDamageSource( int8 nType ) { return m_bIgnoreDamageSource[nType]; }
 	bool IsAlwaysBlockBullet() { return m_bAlwaysBlockBullet; }
 	bool IsAlerted();
 	virtual bool CanHit( CEntity* pEntity ) { return !m_bKilled; }
 	virtual bool CheckImpact( CEntity* pEntity, SRaycastResult& result, bool bCast ) { return !m_bKilled; }
+
+	virtual bool CanBeControlled() { return false; }
+	virtual float CheckControl( const CVector2& p );
+	virtual CRectangle GetPlayerPickBound();
+	virtual void BeginControl() {}
+	virtual void EndControl() {}
 
 	struct SPush
 	{
@@ -111,6 +117,7 @@ public:
 	virtual bool IsHiding() { return false; }
 	virtual void OnTickBeforeHitTest();
 	virtual void OnTickAfterHitTest();
+	virtual void PostUpdate() {}
 
 	void RegisterTickBeforeHitTest( CTrigger* p ) { m_trigger.Register( 0, p  ); }
 	void RegisterTickAfterHitTest( CTrigger* p ) { m_trigger.Register( 1, p ); }
@@ -119,6 +126,8 @@ public:
 
 	int32 nPublicFlag;
 protected:
+	int8 m_nUpdateGroup;
+	bool m_bKillOnPlayerAttach;
 	int32 m_nMaxHp;
 	TResourceRef<CPrefab> m_pKillEffect;
 	TResourceRef<CSoundFile> m_pKillSound;
@@ -151,7 +160,7 @@ enum
 
 class CDamageEft : public CEntity
 {
-	friend void RegisterGameClasses();
+	friend void RegisterGameClasses_Character();
 public:
 	CDamageEft( const SClassCreateContext& context ) : CEntity( context ) { SET_BASEOBJECT_ID( CDamageEft ); }
 

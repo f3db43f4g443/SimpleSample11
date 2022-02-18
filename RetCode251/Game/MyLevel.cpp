@@ -9,158 +9,602 @@
 #include "MyGame.h"
 #include "LightRendering.h"
 #include <algorithm>
+#include "Rand.h"
+
+void CLightArea::OnRemovedFromStage()
+{
+	if( m_bAdded )
+	{
+		m_bAdded = false;
+		auto p = GetLevel()->GetBlackRegion();
+		if( p )
+			p->UpdateLight( this, m_lastLightPos, false );
+	}
+}
+
+void CLightArea::PostUpdate()
+{
+	auto p = GetLevel()->GetBlackRegion();
+	if( !p )
+		return;
+	auto pos = GetGlobalTransform().GetPosition();
+	if( m_bAdded )
+	{
+		if( pos == m_lastLightPos )
+			return;
+		p->UpdateLight( this, m_lastLightPos, false );
+	}
+	m_bAdded = true;
+	p->UpdateLight( this, pos, true );
+	m_lastLightPos = pos;
+}
 
 void CBlackRegion::Init()
 {
-	m_param = static_cast<CImage2D*>( GetRenderObject() )->GetParam()[0];
-	m_param1 = static_cast<CImage2D*>( m_pCircleImg->GetRenderObject() )->GetParam()[0];
+	if( m_bInited )
+		return;
+	m_bInited = true;
 	SetRenderObject( NULL );
-	m_pCircleImg->SetRenderObject( NULL );
-	m_fFade = 0;
-	UpdateImages();
-}
 
-void CBlackRegion::Update( CPlayer* pPlayer )
-{
-	if( m_fFade < 1 )
+	auto pLevel = SafeCast<CMyLevel>( GetParentEntity() );
+	if( pLevel )
 	{
-		m_fFade = Min( 1.0f, m_fFade + 0.02f );
-		UpdateImages();
-	}
+		auto size = pLevel->GetSize();
+		auto fGridSize = GetGridSize();
+		auto xMin = floor( size.x / fGridSize );
+		auto yMin = floor( size.y / fGridSize );
+		auto xMax = ceil( size.GetRight() / fGridSize );
+		auto yMax = ceil( size.GetBottom() / fGridSize );
+		m_size = TRectangle<int32>( xMin, yMin, xMax - xMin, yMax - yMin );
+		m_vecGrid.resize( m_size.width * m_size.height );
 
-	if( CheckOutOfBound( pPlayer ) )
-	{
-		CCharacter::SDamageContext context;
-		context.nDamage = 1;
-		pPlayer->Damage( context );
-		return;
-	}
-	CMatrix2D trans0;
-	trans0.Identity();
-	for( int i = 0; i < m_arrCircles.Size(); i++ )
-	{
-		auto circle = m_arrCircles[i];
-		SHitProxyCircle hitProxy;
-		hitProxy.fRadius = Max( 0.0f, circle.z * m_fFade - 12 );
-
-		if( SHitProxy::HitTest( &hitProxy, pPlayer->Get_HitProxy(), trans0, pPlayer->GetGlobalTransform() ) )
+		for( int i = 0; i < m_size.width; i++ )
 		{
-			CCharacter::SDamageContext context;
-			context.nDamage = 1;
-			pPlayer->Damage( context );
-			return;
+			for( int j = 0; j < m_size.height; j++ )
+			{
+				auto& grid = m_vecGrid[i + j * m_size.width];
+				grid.tex.x = SRand::Inst<eRand_Render>().Rand( 0, 512 );
+				grid.tex.y = SRand::Inst<eRand_Render>().Rand( 0, 512 );
+				grid.texSpeed.x = SRand::Inst<eRand_Render>().Rand( -4, 5 );
+				grid.texSpeed.y = SRand::Inst<eRand_Render>().Rand( -4, 5 );
+			}
 		}
-	}
-	if( CheckOutOfBound( pPlayer ) )
-	{
-		CCharacter::SDamageContext context;
-		context.nDamage = 1;
-		pPlayer->Damage( context );
-		return;
 	}
 }
 
 void CBlackRegion::OnPreview()
 {
-	m_param = static_cast<CImage2D*>( GetRenderObject() )->GetParam()[0];
 	SetRenderObject( NULL );
-	if( m_pCircleImg )
-	{
-		m_param1 = static_cast<CImage2D*>( m_pCircleImg->GetRenderObject() )->GetParam()[0];
-		m_pCircleImg->SetRenderObject( NULL );
-	}
-	m_fFade = 1;
-	UpdateImages();
 }
 
-bool CBlackRegion::CheckOutOfBound( CEntity* p )
+void CBlackRegion::PostUpdate( CPlayerCross* pPlayer, bool bPlayerAttached )
 {
-	SHitProxyCircle hitProxyDefault;
-	SHitProxy* pHitProxy;
-	if( p->Get_HitProxy() )
-		pHitProxy = p->Get_HitProxy();
+	m_nShowType = bPlayerAttached ? 0 : 1;
+	float fGridSize = GetGridSize();
+	auto p = pPlayer->globalTransform.GetPosition();
+	int32 i = floor( p.x / fGridSize ) - m_size.x;
+	int32 j = floor( p.y / fGridSize ) - m_size.y;
+	bool bOpen = false;
+	if( i >= 0 && j >= 0 && i < m_size.width && j < m_size.height )
+	{
+		auto& grid = m_vecGrid[i + j * m_size.width];
+		if( grid.nLight )
+			bOpen = true;
+	}
+	if( !bOpen )
+	{
+		CCharacter::SDamageContext context;
+		context.nDamage = 100;
+		pPlayer->Damage( context );
+	}
+}
+
+void CBlackRegion::UpdateLight( CLightArea* pLightArea, const CVector2& p, bool bAdd )
+{
+	float fGridSize = GetGridSize();
+
+	float fRad = pLightArea->GetRad();
+	float fRad1 = pLightArea->GetRad1();
+	CRectangle rect( p.x - fRad1, p.y - fRad1, fRad1 * 2, fRad1 * 2 );
+	rect = rect / fGridSize;
+	int32 xMin = Max( m_size.x, (int32)floor( rect.x ) );
+	int32 yMin = Max( m_size.y, (int32)floor( rect.y ) );
+	int32 xMax = Min( m_size.GetRight(), (int32)ceil( rect.GetRight() ) );
+	int32 yMax = Min( m_size.GetBottom(), (int32)ceil( rect.GetBottom() ) );
+	for( int x = xMin; x < xMax; x++ )
+	{
+		int32 i = x - m_size.x;
+		for( int y = yMin; y < yMax; y++ )
+		{
+			int32 j = y - m_size.y;
+			auto d = CVector2( ( x + 0.5f ) * fGridSize, ( y + 0.5f ) * fGridSize ) - p;
+			if( d.Length2() < fRad1 * fRad1 )
+			{
+				auto& grid = m_vecGrid[i + j * m_size.width];
+				if( bAdd )
+					grid.bExplored = true;
+				if( d.Length2() < fRad * fRad )
+				{
+					if( bAdd )
+						grid.nLight++;
+					else
+						grid.nLight--;
+				}
+			}
+
+		}
+	}
+}
+
+void CBlackRegion::Render( CRenderContext2D & context )
+{
+	auto pDrawableGroup = static_cast<CDrawableGroup*>( GetResource() );
+	auto pColorDrawable = pDrawableGroup->GetColorDrawable();
+	auto pOcclusionDrawable = pDrawableGroup->GetOcclusionDrawable();
+	auto pGUIDrawable = pDrawableGroup->GetGUIDrawable();
+
+	uint32 nPass = -1;
+	uint32 nGroup = 0;
+	switch( context.eRenderPass )
+	{
+	case eRenderPass_Color:
+		if( pColorDrawable )
+			nPass = 0;
+		else if( pGUIDrawable )
+		{
+			nPass = 2;
+			nGroup = 1;
+		}
+		break;
+	case eRenderPass_Occlusion:
+		if( pOcclusionDrawable )
+			nPass = 1;
+		break;
+	}
+	if( nPass == -1 )
+		return;
+	CDrawable2D* pDrawables[3] = { pColorDrawable, pOcclusionDrawable, pGUIDrawable };
+
+	for( auto& elem : m_vecElems )
+	{
+		elem.worldMat = globalTransform;
+		elem.SetDrawable( pDrawables[nPass] );
+		context.AddElement( &elem, nGroup );
+	}
+}
+
+void CBlackRegion::UpdateImages( const CRectangle& viewRect )
+{
+	SetLocalBound( viewRect );
+	m_vecElems.resize( 0 );
+	m_vecParams.resize( 0 );
+	float fGridSize = GetGridSize();
+	int32 nTexSize = 512;
+	int32 nLeft0 = floor( viewRect.x / fGridSize );
+	int32 nTop0 = floor( viewRect.y / fGridSize );
+	int32 nRight0 = ceil( viewRect.GetRight() / fGridSize );
+	int32 nBottom0 = ceil( viewRect.GetBottom() / fGridSize );
+	int32 nLeft = Max( m_size.x, nLeft0 );
+	int32 nTop = Max( m_size.y, nTop0 );
+	int32 nRight = Min( m_size.GetRight(), nRight0 );
+	int32 nBottom = Min( m_size.GetBottom(), nBottom0 );
+	for( int x = nLeft; x < nRight; x++ )
+	{
+		auto i = x - m_size.x;
+		for( int y = nTop; y < nBottom; y++ )
+		{
+			auto j = y - m_size.y;
+			auto& grid = m_vecGrid[i + j * m_size.width];
+			grid.tex.x = ( grid.tex.x + grid.texSpeed.x + nTexSize ) % nTexSize;
+			grid.tex.y = ( grid.tex.y + grid.texSpeed.y + nTexSize ) % nTexSize;
+			if( !SRand::Inst<eRand_Render>().Rand( 0, 3 ) )
+			{
+				grid.tex.x = SRand::Inst<eRand_Render>().Rand( 0, nTexSize );
+				grid.tex.y = SRand::Inst<eRand_Render>().Rand( 0, nTexSize );
+				grid.texSpeed.x = SRand::Inst<eRand_Render>().Rand( -4, 5 );
+				grid.texSpeed.y = SRand::Inst<eRand_Render>().Rand( -4, 5 );
+			}
+		}
+	}
+
+	CVector4 paramBorder( 0.25f, 0.25f, 0.25f, 1 );
+	if( nLeft0 < nLeft )
+	{
+		for( int y = nTop; y < nBottom; y++ )
+		{
+			auto& grid = m_vecGrid[( y - m_size.y ) * m_size.width];
+			auto rect = CRectangle( nLeft0, y, nLeft - nLeft0, 1 ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x + 0.25f, grid.tex.y, 0.5f, fGridSize ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+		if( nTop0 < nTop )
+		{
+			auto& grid = m_vecGrid[0];
+			auto rect = CRectangle( nLeft0, nTop0, nLeft - nLeft0, nTop - nTop0 ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x + 0.25f, ( grid.tex.y + 31 ) % nTexSize + 0.25f, 0.5f, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+		if( nBottom0 > nBottom )
+		{
+			auto& grid = m_vecGrid[( m_size.height - 1 ) * m_size.width];
+			auto rect = CRectangle( nLeft0, nBottom, nLeft - nLeft0, nBottom0 - nBottom ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x + 0.25f, grid.tex.y + 0.25f, 0.5f, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+	}
+	if( nRight0 > nRight )
+	{
+		for( int y = nTop; y < nBottom; y++ )
+		{
+			auto& grid = m_vecGrid[m_size.width - 1 + ( y - m_size.y ) * m_size.width];
+			auto rect = CRectangle( nRight, y, nRight0 - nRight, 1 ) * fGridSize;
+			auto texRect = CRectangle( ( grid.tex.x + 31 ) % nTexSize + 0.25f, grid.tex.y, 0.5f, fGridSize ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+		if( nTop0 < nTop )
+		{
+			auto& grid = m_vecGrid[m_size.width - 1];
+			auto rect = CRectangle( nRight, nTop0, nRight0 - nRight, nTop - nTop0 ) * fGridSize;
+			auto texRect = CRectangle( ( grid.tex.x + 31 ) % nTexSize + 0.25f, ( grid.tex.y + 31 ) % nTexSize + 0.25f, 0.5f, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+		if( nBottom0 > nBottom )
+		{
+			auto& grid = m_vecGrid[m_size.width - 1 + ( m_size.height - 1 ) * m_size.width];
+			auto rect = CRectangle( nRight, nBottom, nRight0 - nRight, nBottom0 - nBottom ) * fGridSize;
+			auto texRect = CRectangle( ( grid.tex.x + 31 ) % nTexSize + 0.25f, grid.tex.y + 0.25f, 0.5f, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+	}
+	if( nTop0 < nTop )
+	{
+		for( int x = nLeft; x < nRight; x++ )
+		{
+			auto& grid = m_vecGrid[x - m_size.x];
+			auto rect = CRectangle( x, nTop0, 1, nTop - nTop0 ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x, ( grid.tex.y + 31 ) % nTexSize + 0.25f, fGridSize, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+	}
+	if( nBottom0 > nBottom )
+	{
+		for( int x = nLeft; x < nRight; x++ )
+		{
+			auto& grid = m_vecGrid[x - m_size.x + ( m_size.height - 1 ) * m_size.width];
+			auto rect = CRectangle( x, nBottom, 1, nBottom0 - nBottom ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x, grid.tex.y + 0.25f, fGridSize, 0.5f ) / nTexSize;
+			AddImage( rect, texRect, paramBorder );
+		}
+	}
+
+	CVector4 paramUnexplored( 0.25f, 0.25f, 0.25f, 1 );
+	CVector4 paramUnlit( 0.0625f, 0.0625f, 0.0625f, 0.25f );
+	CVector4 paramGrid( 1, 1, 1, 1 );
+	CVector4 paramGrid1( 2, 0.5f, 0.5f, 1 );
+	CVector4 paramCursor( 2, 2, 2, 1 );
+	auto pLevel = SafeCast<CMyLevel>( GetParentEntity() );
+	auto cursorPos = pLevel->GetPlayer()->GetPosition();
+	cursorPos.x = floor( cursorPos.x + 0.5f );
+	cursorPos.y = floor( cursorPos.y + 0.5f );
+	
+	if( m_nShowType )
+	{
+		for( int x = nLeft0; x <= nRight0; x++ )
+		{
+			int32 i = x - m_size.x;
+			int32 y0 = nTop0;
+			bool b = false;
+			for( int y = nTop0; y <= nBottom0; y++ )
+			{
+				int8 bOpen = 2;
+				if( y < nBottom0 )
+				{
+					bOpen = 0;
+					int32 j = y - m_size.y;
+					if( j >= 0 && j < m_size.height )
+					{
+						for( int k = 0; k < 2; k++ )
+						{
+							int8 bOpen1;
+							if( i - k < 0 || i - k >= m_size.width )
+								bOpen1 = false;
+							else
+								bOpen1 = m_vecGrid[i - k + j * m_size.width].nLight > 0;
+							bOpen += bOpen1;
+						}
+					}
+				}
+
+				if( bOpen == 2 )
+				{
+					if( y > y0 && b )
+					{
+						auto rect = CRectangle( x * fGridSize - 1, y0 * fGridSize, 2, ( y - y0 ) * fGridSize );
+						AddImage1( rect, paramGrid1 );
+					}
+					y0 = y + 1;
+				}
+				else if( bOpen == 1 )
+					b = true;
+			}
+		}
+		for( int y = nTop0; y <= nBottom0; y++ )
+		{
+			int32 j = y - m_size.y;
+			int32 x0 = nLeft0;
+			bool b = false;
+			for( int x = nLeft0; x <= nRight0; x++ )
+			{
+				int8 bOpen = 2;
+				if( x < nRight0 )
+				{
+					bOpen = 0;
+					int32 i = x - m_size.x;
+					if( i >= 0 && i < m_size.width )
+					{
+						for( int k = 0; k < 2; k++ )
+						{
+							int8 bOpen1;
+							if( j - k < 0 || j - k >= m_size.height )
+								bOpen1 = false;
+							else
+								bOpen1 = m_vecGrid[i + ( j - k ) * m_size.width].nLight > 0;
+							bOpen += bOpen1;
+						}
+					}
+				}
+
+				if( bOpen == 2 )
+				{
+					if( x > x0 && b )
+					{
+						auto rect = CRectangle( x0 * fGridSize, y * fGridSize - 1, ( x - x0 ) * fGridSize, 2 );
+						AddImage1( rect, paramGrid1 );
+					}
+					x0 = x + 1;
+				}
+				else if( bOpen == 1 )
+					b = true;
+			}
+		}
+	}
 	else
 	{
-		hitProxyDefault.center = CVector2( 0, 0 );
-		hitProxyDefault.fRadius = 10;
-		pHitProxy = &hitProxyDefault;
+		AddImage1( CRectangle( viewRect.x, cursorPos.y - 1, cursorPos.x - viewRect.x - 128, 2 ), paramGrid );
+		AddImage1( CRectangle( cursorPos.x - 1, viewRect.y, 2, cursorPos.y - viewRect.y - 128 ), paramGrid );
+		AddImage1( CRectangle( cursorPos.x + 128, cursorPos.y - 1, viewRect.GetRight() - cursorPos.x - 128, 2 ), paramGrid );
+		AddImage1( CRectangle( cursorPos.x - 1, cursorPos.y + 128, 2, viewRect.GetBottom() - cursorPos.y - 128 ), paramGrid );
+
+		for( int x = nLeft; x <= nRight; x++ )
+		{
+			int32 i = x - m_size.x;
+			for( int y = nTop; y < nBottom; y++ )
+			{
+				int8 bOpen = false;
+				int32 j = y - m_size.y;
+				if( j >= 0 && j < m_size.height )
+				{
+					bOpen = true;
+					for( int k = 0; k < 2; k++ )
+					{
+						int8 bOpen1;
+						if( i - k < 0 || i - k >= m_size.width )
+							bOpen1 = false;
+						else
+							bOpen1 = m_vecGrid[i - k + j * m_size.width].nLight > 0;
+						bOpen = bOpen ^ bOpen1;
+					}
+				}
+
+				if( !bOpen )
+				{
+					auto rect = CRectangle( x * fGridSize - 1, y * fGridSize, 2, fGridSize );
+					AddImage1( rect, paramGrid );
+				}
+			}
+		}
+		for( int y = nTop; y <= nBottom; y++ )
+		{
+			int32 j = y - m_size.y;
+			for( int x = nLeft; x < nRight; x++ )
+			{
+				int8 bOpen = false;
+				int32 i = x - m_size.x;
+				if( i >= 0 && i < m_size.width )
+				{
+					bOpen = true;
+					for( int k = 0; k < 2; k++ )
+					{
+						int8 bOpen1;
+						if( j - k < 0 || j - k >= m_size.height )
+							bOpen1 = false;
+						else
+							bOpen1 = m_vecGrid[i + ( j - k ) * m_size.width].nLight > 0;
+						bOpen = bOpen ^ bOpen1;
+					}
+				}
+
+				if( !bOpen )
+				{
+					auto rect = CRectangle( x * fGridSize, y * fGridSize - 1, fGridSize, 2 );
+					AddImage1( rect, paramGrid );
+				}
+			}
+		}
 	}
 
-	SHitProxyPolygon hit0;
-	CMatrix2D trans0;
-	trans0.Identity();
-	auto pPolygon = (SHitProxyPolygon*)Get_HitProxy();
-	hit0.nVertices = pPolygon->nVertices;
-	for( int i = 0; i < hit0.nVertices; i++ )
-		hit0.vertices[i] = pPolygon->vertices[i];
-	hit0.CalcNormals();
-	if( !SHitProxy::HitTest( pHitProxy, &hit0, p->GetGlobalTransform(), trans0 ) )
-		return true;
-	return false;
+	for( int x = nLeft; x < nRight; x++ )
+	{
+		int32 i = x - m_size.x;
+		for( int y = nTop; y < nBottom; y++ )
+		{
+			int32 j = y - m_size.y;
+			auto& grid = m_vecGrid[i + j * m_size.width];
+			auto rect = CRectangle( x, y, 1, 1 ) * fGridSize;
+			auto texRect = CRectangle( grid.tex.x, grid.tex.y, fGridSize, fGridSize ) / nTexSize;
+			bool bExplored = grid.bExplored;
+			if( !bExplored )
+			{
+				AddImage( rect, texRect, paramUnexplored );
+				continue;
+			}
+
+			if( grid.nLight > 0 )
+				continue;
+			AddImage( rect, texRect, paramUnlit );
+		}
+	}
+	UpdateCharIndicators( pLevel, cursorPos, viewRect );
+
+	for( int i = 0; i < m_vecElems.size(); i++ )
+	{
+		m_vecElems[i].nInstDataSize = sizeof( CVector4 );
+		m_vecElems[i].pInstData = &m_vecParams[i];
+	}
 }
 
-void CBlackRegion::UpdateImages()
+void CBlackRegion::UpdateCharIndicators( CMyLevel* pLevel, const CVector2& cursorPos, const CRectangle& viewRect )
 {
-	auto pHitProxy = Get_HitProxy();
-	if( !pHitProxy || pHitProxy->nType != eHitProxyType_Polygon )
-		return;
-
-	auto pPolygon = (SHitProxyPolygon*)pHitProxy;
-	auto pDrawable = static_cast<CDrawableGroup*>( GetResource() );
-	auto pDrawable1 = m_pCircleImg ? static_cast<CDrawableGroup*>( m_pCircleImg->GetResource() ) : NULL;
-	if( !pDrawable || !pDrawable1 )
-		return;
-	for( int i = 0; i < pPolygon->nVertices; i++ )
+	if( m_nShowType )
 	{
-		auto p1 = pPolygon->vertices[i];
-		auto p2 = pPolygon->vertices[( i + 1 ) % pPolygon->nVertices];
-		auto p = ( p1 + p2 ) * 0.5f;
-
-		CImage2D* pImg;
-		if( i < m_vecBoundImg.size() )
-			pImg = static_cast<CImage2D*>( m_vecBoundImg[i].GetPtr() );
-		else
+		auto p = pLevel->GetPlayer()->GetCurLockedTarget();
+		bool bAttach = pLevel->GetPlayer()->IsTryingToAttach();
+		auto fPlayerPickRad = pLevel->GetPlayerPickRad();
+		if( p != m_pLastTarget )
 		{
-			pImg = static_cast<CImage2D*>( pDrawable->CreateInstance() );
-			m_vecBoundImg.push_back( pImg );
-			AddChild( pImg );
+			m_pLastTarget = p;
+			m_targetRect[0] = CRectangle( cursorPos.x - fPlayerPickRad, cursorPos.y - fPlayerPickRad, fPlayerPickRad * 2, fPlayerPickRad * 2 );
+			if( m_pLastTarget )
+			{
+				auto pos = m_pLastTarget->globalTransform.GetPosition();
+				m_targetRect[1] = CRectangle( pos.x - 8, pos.y - 8, 16, 16 );
+			}
 		}
-		pImg->SetRect( CRectangle( -10000, 0, 20000, 20000 ) );
-		pImg->SetPosition( p );
-		pImg->SetRotation( atan2( p1.y - p2.y, p1.x - p2.x ) );
-		pImg->GetParam()[0] = m_param;
+		else if( m_pLastTarget )
+		{
+			CRectangle r[2] = { CRectangle( cursorPos.x - fPlayerPickRad, cursorPos.y - fPlayerPickRad, fPlayerPickRad * 2, fPlayerPickRad * 2 ),
+				m_pLastTarget->GetPlayerPickBound() };
+			for( int i = 0; i < 2; i++ )
+			{
+				if( bAttach )
+					m_targetRect[i] = m_targetRect[i] + r[i];
+				else
+					m_targetRect[i].SetCenter( r[i].GetCenter() );
+			}
+			if( bAttach )
+				r[0] = r[1] = r[0] + r[1];
+			for( int i = 0; i < 2; i++ )
+			{
+				float f[4] = { m_targetRect[i].GetCenterX(), m_targetRect[i].GetCenterY(), m_targetRect[i].width / 2, m_targetRect[i].height / 2 };
+				float f1[4] = { r[i].GetCenterX(), r[i].GetCenterY(), r[i].width / 2, r[i].height / 2 };
+				float d = 4;
+				if( !bAttach && m_targetRect[i].width < r[i].width && m_targetRect[i].height < r[i].height)
+					d = 1;
+				for( int k = 0; k < 4; k++ )
+					f[k] = Max( f[k] - d, Min( f[k] + d, f1[k] ) );
+				m_targetRect[i] = CRectangle( f[0] - f[2], f[1] - f[3], f[2] * 2, f[3] * 2 );
+			}
+		}
+		else
+			m_targetRect[0] = CRectangle( cursorPos.x - fPlayerPickRad, cursorPos.y - fPlayerPickRad, fPlayerPickRad * 2, fPlayerPickRad * 2 );
+
+		CVector4 param0( 2, 1, 1, 1 );
+		CVector4 param( 2, 2, 2, 1 );
+		AddImage1( CRectangle( cursorPos.x - 2, cursorPos.y - 2, 4, 4 ), param0 );
+
+		AddImage1( CRectangle( m_targetRect[0].x, m_targetRect[0].y + m_targetRect[0].height / 4, 2, m_targetRect[0].height / 2 ), param );
+		AddImage1( CRectangle( m_targetRect[0].x + m_targetRect[0].width / 4, m_targetRect[0].y, m_targetRect[0].width / 2, 2 ), param );
+		AddImage1( CRectangle( m_targetRect[0].GetRight() - 2, m_targetRect[0].y + m_targetRect[0].height / 4, 2, m_targetRect[0].height / 2 ), param );
+		AddImage1( CRectangle( m_targetRect[0].x + m_targetRect[0].width / 4, m_targetRect[0].GetBottom() - 2, m_targetRect[0].width / 2, 2 ), param );
+
+		if( m_pLastTarget )
+		{
+			AddImage1( CRectangle( m_targetRect[1].x, m_targetRect[1].y, 16, 2 ), param );
+			AddImage1( CRectangle( m_targetRect[1].x, m_targetRect[1].y, 2, 16 ), param );
+			AddImage1( CRectangle( m_targetRect[1].GetRight() - 16, m_targetRect[1].y, 16, 2 ), param );
+			AddImage1( CRectangle( m_targetRect[1].GetRight() - 2, m_targetRect[1].y, 2, 16 ), param );
+			AddImage1( CRectangle( m_targetRect[1].x, m_targetRect[1].GetBottom() - 2, 16, 2 ), param );
+			AddImage1( CRectangle( m_targetRect[1].x, m_targetRect[1].GetBottom() - 16, 2, 16 ), param );
+			AddImage1( CRectangle( m_targetRect[1].GetRight() - 16, m_targetRect[1].GetBottom() - 2, 16, 2 ), param );
+			AddImage1( CRectangle( m_targetRect[1].GetRight() - 2, m_targetRect[1].GetBottom() - 16, 2, 16 ), param );
+		}
+
+		for( auto pCharacter = pLevel->Get_Character( 0 ); pCharacter; pCharacter = pCharacter->NextCharacter() )
+		{
+			if( pCharacter == m_pLastTarget )
+				continue;
+			if( pCharacter->CanBeControlled() )
+			{
+				auto p = pCharacter->globalTransform.GetPosition();
+				CRectangle rect1( p.x - 8, p.y - 8, 16, 16 );
+				auto r1 = viewRect * rect1;
+				if( r1.width > 0 && r1.height > 0 )
+				{
+					AddImage1( CRectangle( rect1.x, rect1.y, 16, 2 ), param );
+					AddImage1( CRectangle( rect1.x, rect1.y, 2, 16 ), param );
+					AddImage1( CRectangle( rect1.x, rect1.GetBottom() - 2, 16, 2 ), param );
+					AddImage1( CRectangle( rect1.GetRight() - 2, rect1.y, 2, 16 ), param );
+				}
+			}
+		}
 	}
-
-	for( int i = 0; i < m_arrCircles.Size(); i++ )
+	else
 	{
-		auto circle = m_arrCircles[i];
-
-		CImage2D* pImg;
-		if( i < m_vecCircleImg.size() )
-			pImg = static_cast<CImage2D*>( m_vecCircleImg[i].GetPtr() );
-		else
-		{
-			pImg = static_cast<CImage2D*>( pDrawable1->CreateInstance() );
-			m_vecCircleImg.push_back( pImg );
-			AddChild( pImg );
-		}
-		pImg->SetPosition( CVector2( circle.x, circle.y ) );
-		pImg->SetRect( CRectangle( -circle.z, -circle.z, circle.z * 2, circle.z * 2 ) * m_fFade );
-		pImg->GetParam()[0] = m_param1;
+		m_pLastTarget = NULL;
 	}
 }
 
-bool CEyeChunk::Damage( SDamageContext & context )
+void CBlackRegion::AddImage( const CRectangle& rect, const CRectangle& texRect, const CVector4& param )
 {
-	if( GetLevel()->GetEnv() != GetParentEntity() )
-		return false;
-	if( !context.fDamage1 )
-		return false;
-	auto hitDir = context.hitDir;
-	hitDir.Normalize();
-	hitDir = hitDir * context.fDamage1;
-	GetLevel()->GetEnv()->ApplyForce( m_nIndex, 1, hitDir.x * m_fWeight, hitDir.y * m_fWeight, 1, 0 );
-	return true;
+	m_vecElems.resize( m_vecElems.size() + 1 );
+	auto& elem = m_vecElems.back();
+	elem.rect = rect;
+	elem.texRect = texRect;
+	m_vecParams.push_back( param );
+}
+
+void CBlackRegion::AddImage1( const CRectangle& rect, const CVector4& param )
+{
+	if( rect.width <= 0 || rect.height <= 0 )
+		return;
+	int32 n0 = m_vecElems.size();
+	m_vecElems.resize( m_vecElems.size() + 1 );
+	auto& elem = m_vecElems.back();
+	elem.rect = rect;
+	int32 nTexSize = 512;
+
+	for( int i = n0; i < m_vecElems.size(); )
+	{
+		auto rect = m_vecElems[i].rect;
+		if( rect.width > rect.height )
+		{
+			if( rect.width >= SRand::Inst<eRand_Render>().Rand( 64, 256 ) )
+			{
+				auto w = SRand::Inst<eRand_Render>().Rand<int32>( 32, rect.width - 32 + 1 );
+				m_vecElems[i].rect = CRectangle( rect.x, rect.y, w, rect.height );
+				m_vecElems.resize( m_vecElems.size() + 1 );
+				m_vecElems.back().rect = CRectangle( rect.x + w, rect.y, rect.width - w, rect.height );
+				continue;
+			}
+		}
+		else
+		{
+			if( rect.height >= SRand::Inst<eRand_Render>().Rand( 64, 256 ) )
+			{
+				auto h = SRand::Inst<eRand_Render>().Rand<int32>( 32, rect.height - 32 + 1 );
+				m_vecElems[i].rect = CRectangle( rect.x, rect.y, rect.width, h );
+				m_vecElems.resize( m_vecElems.size() + 1 );
+				m_vecElems.back().rect = CRectangle( rect.x, rect.y + h, rect.width, rect.height - h );
+				continue;
+			}
+		}
+		m_vecElems[i].texRect = CRectangle( SRand::Inst<eRand_Render>().Rand<int32>( 0, nTexSize ),
+			SRand::Inst<eRand_Render>().Rand<int32>( 0, nTexSize ), rect.width, rect.height ) / nTexSize;
+		i++;
+	}
+
+	for( int i = m_vecElems.size(); i > n0; i-- )
+		m_vecParams.push_back( param );
 }
 
 void CLevelEnvLayer::OnAddedToStage()
@@ -178,7 +622,7 @@ void CLevelEnvLayer::OnAddedToStage()
 	{
 		m_pLevel = pLevel;
 		if( Get_HitProxy() )
-			pLevel->GetHitTestMgr().Add( this );
+			pLevel->GetHitTestMgr( 0 ).Add( this );
 	}
 }
 
@@ -187,7 +631,7 @@ void CLevelEnvLayer::OnRemovedFromStage()
 	if( m_pLevel )
 	{
 		if( Get_HitProxy() )
-			m_pLevel->GetHitTestMgr().Remove( this );
+			m_pLevel->GetHitTestMgr( 0 ).Remove( this );
 		m_pLevel = NULL;
 	}
 }
@@ -442,7 +886,7 @@ void CLevelEnvLayer::UpdateCtrlPoints()
 		state.debugDrawParam[1] = CVector4( 0, 0.1, 0.5, 0 );
 	}
 
-	for( auto pChildEntity = Get_ChildEntity(); pChildEntity; pChildEntity = pChildEntity->NextChildEntity() )
+	/*for( auto pChildEntity = Get_ChildEntity(); pChildEntity; pChildEntity = pChildEntity->NextChildEntity() )
 	{
 		auto p = SafeCast<CEyeChunk>( pChildEntity );
 		if( p )
@@ -451,7 +895,7 @@ void CLevelEnvLayer::UpdateCtrlPoints()
 			auto cur = GetCtrlPointCurPos( point1 );
 			p->SetPosition( cur );
 		}
-	}
+	}*/
 }
 
 CVector4 CLevelEnvLayer::GetCtrlPointsTrans()
@@ -644,9 +1088,9 @@ void CLevelBugIndicatorLayer::UpdateImg( int32 i, const CVector2& origPos, const
 	Func( nDir ^ 2 );
 }
 
-bool CPortal::CheckTeleport( CPlayer* pPlayer )
+bool CPortal::CheckTeleport( CCharacter* pPlayer )
 {
-	auto pPlayerHits = pPlayer->GetAllHits();
+	/*auto pPlayerHits = pPlayer->GetAllHits();
 	static vector<CHitProxy*> vecResult;
 	for( int i = 0; i < 3; i++ )
 	{
@@ -657,7 +1101,12 @@ bool CPortal::CheckTeleport( CPlayer* pPlayer )
 		if( !SHitProxy::Contain( pHitProxy, pHitProxy1, GetGlobalTransform(), mat ) )
 			return false;
 	}
-	return true;
+	return true;*/
+	auto mat = pPlayer->GetGlobalTransform();
+	auto pHitProxy = Get_HitProxy();
+	auto pHitProxy1 = pPlayer->Get_HitProxy();
+	if( !SHitProxy::Contain( pHitProxy, pHitProxy1, GetGlobalTransform(), mat ) )
+		return false;
 }
 
 void CPortal::OnTickAfterHitTest()
@@ -703,7 +1152,10 @@ void CMyLevel::Init()
 			pObjLayer->Init();
 		}
 	}
-	m_hitTestMgr.Update();
+	for( int i = 0; i < 2; i++ )
+		m_hitTestMgr[i].Update();
+	if( m_pBlackRegion )
+		m_pBlackRegion->Init();
 }
 
 void CMyLevel::Begin()
@@ -717,13 +1169,21 @@ void CMyLevel::End()
 	m_bEnd = true;
 }
 
-void CMyLevel::PlayerEnter( CPlayer* pPlayer )
+void CMyLevel::PlayerEnter( CPlayerCross* pPlayerCross, CCharacter* pControlled )
 {
-	m_pPlayer = pPlayer;
+	m_pPlayer = pPlayerCross;
 	if( m_pStartPoint )
+	{
 		m_pPlayer->SetParentBeforeEntity( m_pStartPoint );
+		if( pControlled )
+			pControlled->SetParentBeforeEntity( m_pStartPoint );
+	}
 	else
+	{
 		m_pPlayer->SetParentEntity( this );
+		if( pControlled )
+			pControlled->SetParentEntity( this );
+	}
 }
 
 void CMyLevel::PlayerLeave()
@@ -734,16 +1194,16 @@ void CMyLevel::PlayerLeave()
 
 void CMyLevel::OnAddCharacter( CCharacter * p )
 {
-	Insert_Character( p );
+	Insert_Character( p, p->GetUpdateGroup() );
 	if( p->Get_HitProxy() )
-		m_hitTestMgr.Add( p );
+		m_hitTestMgr[p->GetUpdateGroup()].Add( p );
 }
 
 void CMyLevel::OnRemoveCharacter( CCharacter * p )
 {
 	if( p->Get_HitProxy() )
-		m_hitTestMgr.Remove( p );
-	Remove_Character( p );
+		m_hitTestMgr[p->GetUpdateGroup()].Remove( p );
+	Remove_Character( p, p->GetUpdateGroup() );
 }
 
 CVector2 CMyLevel::GetGravityDir()
@@ -787,12 +1247,12 @@ void CMyLevel::ChangeToEnvLayer( CLevelEnvLayer* pEnv )
 	m_pCurEnvLayer = pEnv;
 }
 
-float CMyLevel::GetElapsedTimePerTick()
+float CMyLevel::GetDeltaTime()
 {
-	return GetStage()->GetElapsedTimePerTick();
+	return GetStage()->GetElapsedTimePerTick() * GetDeltaTick() / T_SCL;
 }
 
-CEntity* CMyLevel::Pick( const CVector2& pos )
+CEntity* CMyLevel::Pick( const CVector2& pos, int8 nGroup )
 {
 	SHitProxyCircle hitProxy;
 	hitProxy.center = pos;
@@ -800,7 +1260,7 @@ CEntity* CMyLevel::Pick( const CVector2& pos )
 	CMatrix2D transform;
 	transform.Identity();
 	vector<CHitProxy*> vecResults;
-	m_hitTestMgr.HitTest( &hitProxy, transform, vecResults );
+	m_hitTestMgr[nGroup].HitTest( &hitProxy, transform, vecResults );
 
 	CEntity* pEntity = NULL;
 	uint32 nMinTraverseOrder = -1;
@@ -816,7 +1276,7 @@ CEntity* CMyLevel::Pick( const CVector2& pos )
 	return pEntity;
 }
 
-void CMyLevel::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& result )
+void CMyLevel::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& result, int8 nGroup )
 {
 	SHitProxyCircle hitProxy;
 	hitProxy.center = pos;
@@ -824,7 +1284,7 @@ void CMyLevel::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& res
 	CMatrix2D transform;
 	transform.Identity();
 	vector<CHitProxy*> vecResults;
-	m_hitTestMgr.HitTest( &hitProxy, transform, vecResults );
+	m_hitTestMgr[nGroup].HitTest( &hitProxy, transform, vecResults );
 
 	for( int i = 0; i < vecResults.size(); i++ )
 	{
@@ -833,10 +1293,10 @@ void CMyLevel::MultiPick( const CVector2& pos, vector<CReference<CEntity> >& res
 	}
 }
 
-CEntity* CMyLevel::DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult* pResult )
+CEntity* CMyLevel::DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, bool hitTypeFilter[eEntityHitType_Count], SHitTestResult* pResult, int8 nGroup )
 {
 	vector<CHitProxy*> tempResult;
-	m_hitTestMgr.HitTest( pProxy, transform, tempResult );
+	m_hitTestMgr[nGroup].HitTest( pProxy, transform, tempResult );
 	for( int i = 0; i < tempResult.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( tempResult[i] );
@@ -847,10 +1307,10 @@ CEntity* CMyLevel::DoHitTest( SHitProxy* pProxy, const CMatrix2D& transform, boo
 	return NULL;
 }
 
-void CMyLevel::MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult )
+void CMyLevel::MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vector<CReference<CEntity> >& result, vector<SHitTestResult>* pResult, int8 nGroup )
 {
 	vector<CHitProxy*> tempResult;
-	m_hitTestMgr.HitTest( pProxy, transform, tempResult, pResult );
+	m_hitTestMgr[nGroup].HitTest( pProxy, transform, tempResult, pResult );
 	for( int i = 0; i < tempResult.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( tempResult[i] );
@@ -858,10 +1318,10 @@ void CMyLevel::MultiHitTest( SHitProxy* pProxy, const CMatrix2D& transform, vect
 	}
 }
 
-CEntity* CMyLevel::Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType, SRaycastResult* pResult )
+CEntity* CMyLevel::Raycast( const CVector2& begin, const CVector2& end, EEntityHitType hitType, SRaycastResult* pResult, int8 nGroup )
 {
 	vector<SRaycastResult> result;
-	m_hitTestMgr.Raycast( begin, end, result );
+	m_hitTestMgr[nGroup].Raycast( begin, end, result );
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
@@ -874,10 +1334,10 @@ CEntity* CMyLevel::Raycast( const CVector2& begin, const CVector2& end, EEntityH
 	return NULL;
 }
 
-void CMyLevel::MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult )
+void CMyLevel::MultiRaycast( const CVector2& begin, const CVector2& end, vector<CReference<CEntity> >& result, vector<SRaycastResult>* pResult, int8 nGroup )
 {
 	vector<SRaycastResult> tempResult;
-	m_hitTestMgr.Raycast( begin, end, tempResult );
+	m_hitTestMgr[nGroup].Raycast( begin, end, tempResult );
 	for( int i = 0; i < tempResult.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( tempResult[i].pHitProxy );
@@ -887,10 +1347,10 @@ void CMyLevel::MultiRaycast( const CVector2& begin, const CVector2& end, vector<
 	}
 }
 
-CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, SRaycastResult * pResult, bool bIgnoreInverseNormal, int8 nGroup )
 {
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
+	m_hitTestMgr[nGroup].SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
@@ -905,10 +1365,10 @@ CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, co
 	return NULL;
 }
 
-CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, EEntityHitType hitType, bool hitTypeFilter[eEntityHitType_Count], SRaycastResult * pResult, bool bIgnoreInverseNormal, int8 nGroup )
 {
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
+	m_hitTestMgr[nGroup].SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	for( int i = 0; i < result.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( result[i].pHitProxy );
@@ -923,13 +1383,13 @@ CEntity* CMyLevel::SweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, co
 	return NULL;
 }
 
-CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, SRaycastResult * pResult, bool bIgnoreInverseNormal )
+CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, SRaycastResult * pResult, bool bIgnoreInverseNormal, int8 nGroup )
 {
 	SHitProxy* pHitProxy = pEntity->Get_HitProxy();
 	if( !pHitProxy )
 		return NULL;
 	vector<SRaycastResult> result;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
+	m_hitTestMgr[nGroup].SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, result );
 	CEntity *p1 = NULL, *p2 = NULL;
 	SRaycastResult *r1 = NULL, *r2 = NULL;
 	for( int i = 0; i < result.size(); i++ )
@@ -980,10 +1440,10 @@ CEntity* CMyLevel::SweepTest( CEntity* pEntity, const CMatrix2D & trans, const C
 	return p2;
 }
 
-void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult )
+void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, const CVector2 & sweepOfs, float fSideThreshold, vector<CReference<CEntity>>& result, vector<SRaycastResult>* pResult, int8 nGroup )
 {
 	vector<SRaycastResult> tempResult;
-	m_hitTestMgr.SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, tempResult, true );
+	m_hitTestMgr[nGroup].SweepTest( pHitProxy, trans, sweepOfs, fSideThreshold, tempResult, true );
 	for( int i = 0; i < tempResult.size(); i++ )
 	{
 		CEntity* pEntity = static_cast<CEntity*>( tempResult[i].pHitProxy );
@@ -993,11 +1453,11 @@ void CMyLevel::MultiSweepTest( SHitProxy * pHitProxy, const CMatrix2D & trans, c
 	}
 }
 
-bool CMyLevel::CheckTeleport( CPlayer* pPlayer, const CVector2& transferOfs )
+bool CMyLevel::CheckTeleport( CCharacter* pPlayer, const CVector2& transferOfs )
 {
 	if( !m_size.Contains( pPlayer->GetPosition() - transferOfs ) )
 		return false;
-	auto pPlayerHits = pPlayer->GetAllHits();
+	/*auto pPlayerHits = pPlayer->GetAllHits();
 	static vector<CHitProxy*> vecResult;
 	for( int i = 0; i < 3; i++ )
 	{
@@ -1011,6 +1471,16 @@ bool CMyLevel::CheckTeleport( CPlayer* pPlayer, const CVector2& transferOfs )
 			if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
 				return false;
 		}
+	}*/
+	static vector<CHitProxy*> vecResult;
+	vecResult.resize( 0 );
+	auto mat = pPlayer->GetGlobalTransform();
+	GetHitTestMgr( pPlayer->GetUpdateGroup() ).HitTest( pPlayer->Get_HitProxy(), mat, vecResult );
+	for( auto p : vecResult )
+	{
+		auto pEntity = static_cast<CEntity*>( p );
+		if( pEntity->GetHitType() == eEntityHitType_WorldStatic )
+			return false;
 	}
 	return true;
 }
@@ -1095,7 +1565,7 @@ float CMyLevel::Push( CCharacter* pCharacter, CCharacter::SPush& context, const 
 	{
 		int32 n0 = tempResult.size();
 		auto bHitChannel = pTested[i]->GetHitChannnel();
-		GetHitTestMgr().SweepTest( pTested[i]->Get_HitProxy(), matTested[i], sweepOfs, fSideThreshold, tempResult, false );
+		GetHitTestMgr( pCharacter->GetUpdateGroup() ).SweepTest( pTested[i]->Get_HitProxy(), matTested[i], sweepOfs, fSideThreshold, tempResult, false );
 		for( int i1 = tempResult.size() - 1; i1 >= n0; i1-- )
 		{
 			auto pOtherEntity = static_cast<CEntity*>( tempResult[i1].pHitProxy );
@@ -1166,6 +1636,72 @@ float CMyLevel::Push( CCharacter* pCharacter, CCharacter::SPush& context, const 
 	}
 	context.vecChars[nChar].fMoveDist = fMoveDist;
 	return fMoveDist;
+}
+
+CCharacter * CMyLevel::FindAttach()
+{
+	static vector<CHitProxy*> vecResult;
+	vecResult.resize( 0 );
+	SHitProxyCircle hitProxy;
+	hitProxy.center = CVector2( 0, 0 );
+	hitProxy.fRadius = GetPlayerPickRad();
+	auto mat = m_pPlayer->GetGlobalTransform();
+	GetHitTestMgr( 0 ).HitTest( &hitProxy, mat, vecResult );
+	float fDist = FLT_MAX;
+	CCharacter* pResult = NULL;
+
+	for( auto p : vecResult )
+	{
+		auto pEntity = static_cast<CEntity*>( p );
+
+		auto pCharacter = SafeCast<CCharacter>( pEntity );
+		if( !pCharacter || !pCharacter->CanBeControlled() )
+			continue;
+		float f = pCharacter->CheckControl( m_pPlayer->GetPosition() );
+		if( f < fDist )
+		{
+			fDist = f;
+			pResult = pCharacter;
+		}
+	}
+	return pResult;
+}
+
+CCharacter* CMyLevel::TryAttach( CCharacter* pChar0 )
+{
+	CCharacter* pResult = pChar0;
+	if( pResult )
+	{
+		if( pResult->GetLevel() != this || !pResult->CanBeControlled() )
+			pResult = NULL;
+	}
+	if( !pResult )
+		pResult = FindAttach();
+	if( pResult )
+	{
+		auto d = m_pPlayer->GetPosition() - pResult->GetPosition();
+		if( d.Length2() <= 1 )
+		{
+			m_pControlled = pResult;
+			pResult->BeginControl();
+			m_pPlayer->OnAttachBegin();
+			if( m_pBlackRegion )
+				m_pBlackRegion->OnPlayerAttach( m_pPlayer );
+			CMasterLevel::GetInst()->OnAttached();
+			return NULL;
+		}
+	}
+	return pResult;
+}
+
+void CMyLevel::TryDetach()
+{
+	CMasterLevel::GetInst()->OnDetached();
+	if( m_pBlackRegion )
+		m_pBlackRegion->OnPlayerDetach( m_pPlayer );
+	m_pPlayer->OnAttachEnd();
+	m_pControlled->EndControl();
+	m_pControlled = NULL;
 }
 
 void CMyLevel::OnBugDetected( CBug* pBug )
@@ -1445,58 +1981,110 @@ void CMyLevel::Update()
 	if( m_pPlayer && m_pPlayer->IsKilled() )
 		return;
 
-	m_nUpdatePhase = eStageUpdatePhase_BeforeHitTest;
-	if( m_pPlayer )
+	int32 nDeltaTick[2];
+	if( m_pControlled )
 	{
-		m_pPlayer->OnTickBeforeHitTest();
-		m_pPlayer->SetUpdatePhase( 1 );
-		if( m_pPlayer->GetStage() )
-			m_pPlayer->Trigger( 0 );
+		nDeltaTick[0] = GetSlowMotionScale() - m_nTick0;
+		m_nTick0 = 0;
+		m_nUpdateType = 0;
 	}
-	LINK_LIST_FOR_EACH_BEGIN( pCharacter, m_pCharacters, CCharacter, Character )
+	else
 	{
-		if( pCharacter == m_pPlayer )
-			continue;
-		if( pCharacter->IsKilled() )
-			continue;
-		DEFINE_TEMP_REF( pCharacter );
-		pCharacter->OnTickBeforeHitTest();
-		pCharacter->SetUpdatePhase( 1 );
-		if( pCharacter->GetStage() )
-			pCharacter->Trigger( 0 );
+		nDeltaTick[0] = 1;
+		m_nTick0++;
+		if( m_nTick0 >= GetSlowMotionScale() )
+			m_nTick0 = 0;
+		m_nUpdateType = 1;
 	}
-	LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters, CCharacter, Character )
-	m_nUpdatePhase = eStageUpdatePhase_HitTest;
-	m_hitTestMgr.Update();
-	m_nUpdatePhase = eStageUpdatePhase_AfterHitTest;
+	nDeltaTick[1] = GetSlowMotionScale();
 
-	if( m_pPlayer )
+	for( m_nUpdatePhase = eStageUpdatePhase_BeforeHitTest; m_nUpdatePhase <= eStageUpdatePhase_PostUpdate; m_nUpdatePhase++ )
 	{
-		m_pPlayer->OnTickAfterHitTest();
-		m_pPlayer->SetUpdatePhase( 2 );
-		if( m_pPlayer->GetStage() )
-			m_pPlayer->Trigger( 1 );
+		if( m_nUpdatePhase == eStageUpdatePhase_PostUpdate )
+		{
+			if( m_pBlackRegion )
+				m_pBlackRegion->PostUpdate( m_pPlayer, m_pControlled != NULL );
+		}
+		for( int k = 0; k < 2; k++ )
+		{
+			m_nDeltaTick = nDeltaTick[k];
+			CCharacter* pPlayer = k == 0 ? m_pControlled : (CCharacter*)m_pPlayer.GetPtr();
+
+			if( m_nUpdatePhase == eStageUpdatePhase_BeforeHitTest )
+			{
+				if( pPlayer )
+				{
+					pPlayer->OnTickBeforeHitTest();
+					pPlayer->SetUpdatePhase( 1 );
+					if( pPlayer->GetStage() )
+						pPlayer->Trigger( 0 );
+				}
+				LINK_LIST_FOR_EACH_BEGIN( pCharacter, m_pCharacters[k], CCharacter, Character )
+				{
+					if( pCharacter == pPlayer )
+						continue;
+					if( pCharacter->IsKilled() )
+						continue;
+					if( m_nUpdateType == 0 && pCharacter->IsKillOnPlayerAttach() )
+					{
+						pCharacter->Kill();
+						continue;
+					}
+					DEFINE_TEMP_REF( pCharacter );
+					pCharacter->OnTickBeforeHitTest();
+					pCharacter->SetUpdatePhase( 1 );
+					if( pCharacter->GetStage() )
+						pCharacter->Trigger( 0 );
+				}
+				LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters[k], CCharacter, Character );
+			}
+			else if( m_nUpdatePhase == eStageUpdatePhase_HitTest )
+			{
+				m_hitTestMgr[k].Update( GetDeltaTime() );
+			}
+			else if( m_nUpdatePhase == eStageUpdatePhase_AfterHitTest )
+			{
+				if( pPlayer )
+				{
+					pPlayer->OnTickAfterHitTest();
+					pPlayer->SetUpdatePhase( 2 );
+					if( pPlayer->GetStage() )
+						pPlayer->Trigger( 1 );
+				}
+				LINK_LIST_FOR_EACH_BEGIN( pCharacter, m_pCharacters[k], CCharacter, Character )
+				{
+					if( pCharacter == pPlayer )
+						continue;
+					if( pCharacter->IsKilled() )
+						continue;
+					DEFINE_TEMP_REF( pCharacter );
+					pCharacter->OnTickAfterHitTest();
+					pCharacter->SetUpdatePhase( 2 );
+					if( pCharacter->GetStage() )
+						pCharacter->Trigger( 1 );
+				}
+				LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters[k], CCharacter, Character );
+			}
+			else
+			{
+				for( auto pCharacter = m_pCharacters[k]; pCharacter; )
+				{
+					auto pNxt = pCharacter->NextCharacter();
+					if( pCharacter != pPlayer )
+					{
+						if( pCharacter->IsKilled() )
+							pCharacter->SetParentEntity( NULL );
+						else
+							pCharacter->PostUpdate();
+					}
+					pCharacter = pNxt;
+				}
+				if( pPlayer )
+					pPlayer->PostUpdate();
+			}
+		}
 	}
-	LINK_LIST_FOR_EACH_BEGIN( pCharacter, m_pCharacters, CCharacter, Character )
-	{
-		if( pCharacter == m_pPlayer )
-			continue;
-		if( pCharacter->IsKilled() )
-			continue;
-		DEFINE_TEMP_REF( pCharacter );
-		pCharacter->OnTickAfterHitTest();
-		pCharacter->SetUpdatePhase( 2 );
-		if( pCharacter->GetStage() )
-			pCharacter->Trigger( 1 );
-	}
-	LINK_LIST_FOR_EACH_END( pCharacter, m_pCharacters, CCharacter, Character )
-	for( auto pCharacter = m_pCharacters; pCharacter; )
-	{
-		auto pNxt = pCharacter->NextCharacter();
-		if( pCharacter->IsKilled() )
-			pCharacter->SetParentEntity( NULL );
-		pCharacter = pNxt;
-	}
+
 	for( CEntity* p : m_vecAllLayers )
 		SafeCastToInterface<ILevelObjLayer>( p )->Update();
 }
@@ -1509,6 +2097,13 @@ void CMyLevel::Update1()
 	camTrans.y -= y;
 	for( CEntity* p : m_vecAllLayers )
 		SafeCastToInterface<ILevelObjLayer>( p )->UpdateScroll( camTrans );
+	if( m_pBlackRegion )
+	{
+		CMatrix2D mat = m_pBlackRegion->GetGlobalTransform();
+		mat = mat.Inverse();
+		CRectangle localRect = GetStage()->GetCamRectBound( camTrans ) * mat;
+		m_pBlackRegion->UpdateImages( localRect );
+	}
 }
 
 CMyLevel* CMyLevel::GetEntityLevel( CEntity* pEntity )
@@ -1656,9 +2251,9 @@ void CMasterLevel::NewGame()
 	m_nKillTickLeft = m_nKillTick;
 
 	m_pCurLevelPrefab = CResourceManager::Inst()->CreateResource<CPrefab>( m_strBeginLevel );
-	m_pPlayer = SafeCast<CPlayer>( m_pPlayerPrefab->GetRoot()->CreateInstance() );
+	m_pPlayer = SafeCast<CPlayerCross>( m_pPlayerPrefab->GetRoot()->CreateInstance() );
 	int32 nExp = GetStage()->GetWorld()->GetWorldData().nPlayerExp;
-	m_pPlayer->SetLevel( CGlobalCfg::Inst().GetLevelByExp( nExp ) );
+	//m_pPlayer->SetLevel( CGlobalCfg::Inst().GetLevelByExp( nExp ) );
 	CreateCurLevel();
 	auto pCurEnv = CurEnv();
 	auto p = m_pCurLevel->GetStartPoint()->GetPosition();
@@ -1667,7 +2262,7 @@ void CMasterLevel::NewGame()
 	m_pCurEnvLayer = pCurEnv;
 	m_pCurEnvLayer->InitCtrlPointsState( m_camTrans.x, m_camTrans.y, m_camTrans.z, m_camTrans.w );
 	m_pPlayer->SetPosition( p );
-	m_pCurLevel->PlayerEnter( m_pPlayer );
+	m_pCurLevel->PlayerEnter( m_pPlayer, NULL );
 	BufferLevels();
 	BeginCurLevel();
 }
@@ -1808,9 +2403,9 @@ void CMasterLevel::Update()
 		}
 		if( m_pPlayer )
 		{
-			if( m_pCurLevel && m_pCurLevel->IsBegin() )
+			/*if( m_pCurLevel && m_pCurLevel->IsBegin() )
 				m_pPlayer->PostUpdate();
-
+*/
 			UpdateTestMasks( m_nTestState, m_nTestDir, m_testOrig, 1 );
 		}
 
@@ -2102,7 +2697,7 @@ void CMasterLevel::TransferFunc()
 	m_pLastLevel->SetRenderParentAfter( m_pLevelFadeMask );
 	m_pLastLevel->PlayerLeave();
 	m_pPlayer->SetPosition( m_pPlayer->GetPosition() - m_transferOfs );
-	m_pCurLevel->PlayerEnter( m_pPlayer );
+	m_pCurLevel->PlayerEnter( m_pPlayer, m_pLastLevel->m_pControlled );
 	m_camTransPlayerOfs = CVector2( 0, 0 );
 
 	for( int i = 59; i >= 0; i-- )
@@ -2128,7 +2723,7 @@ void CMasterLevel::TestConsoleFunc()
 	int8 nSelectedDir = 0;
 	CVector2 orig = m_pPlayer->GetPosition();
 	m_pTestUI->SetPosition( orig );
-	m_pTestUIItems[1]->bVisible = m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan;
+	//m_pTestUIItems[1]->bVisible = m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan;
 	m_pTestUIItems[2]->bVisible = false;
 	while( true )
 	{
@@ -2143,11 +2738,11 @@ void CMasterLevel::TestConsoleFunc()
 		UpdateTestMasks( nSelectedType + 1, nSelectedDir - 1, orig, 0 );
 		m_pTestConsoleCoroutine->Yield( 0 );
 
-		if( m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan )
+		if( /*m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan*/true )
 		{
 			int8 nX = CGame::Inst().IsKeyDown( 'D' ) - CGame::Inst().IsKeyDown( 'A' );
 			int8 nY = CGame::Inst().IsKeyDown( 'W' ) - CGame::Inst().IsKeyDown( 'S' );
-			if( m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan_1 )
+			if( /*m_pPlayer->GetPlayerLevel() >= ePlayerLevel_Test_Scan_1*/true )
 			{
 				if( nX )
 				{
@@ -2324,16 +2919,14 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER( params )
 	REGISTER_CLASS_END()
 
-	REGISTER_CLASS_BEGIN( CBlackRegion )
-		REGISTER_BASE_CLASS( CEntity )
-		REGISTER_MEMBER( m_arrCircles )
-		REGISTER_MEMBER_TAGGED_PTR( m_pCircleImg, circle )
+	REGISTER_CLASS_BEGIN( CLightArea )
+		REGISTER_BASE_CLASS( CCharacter )
+		REGISTER_MEMBER( m_fRad )
+		REGISTER_MEMBER( m_fRad1 )
 	REGISTER_CLASS_END()
 
-	REGISTER_CLASS_BEGIN( CEyeChunk )
-		REGISTER_BASE_CLASS( CCharacter )
-		REGISTER_MEMBER( m_nIndex )
-		REGISTER_MEMBER( m_fWeight )
+	REGISTER_CLASS_BEGIN( CBlackRegion )
+		REGISTER_BASE_CLASS( CEntity )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CLevelEnvLayer )
@@ -2376,6 +2969,7 @@ void RegisterGameClasses_Level()
 		REGISTER_MEMBER_TAGGED_PTR( m_pStartPoint, start )
 		REGISTER_MEMBER_TAGGED_PTR( m_pCurEnvLayer, env )
 		REGISTER_MEMBER_TAGGED_PTR( m_pBugIndicatorLayer, bug_l )
+		REGISTER_MEMBER_TAGGED_PTR( m_pBlackRegion, black_region )
 	REGISTER_CLASS_END()
 
 	REGISTER_CLASS_BEGIN( CMasterLevel )

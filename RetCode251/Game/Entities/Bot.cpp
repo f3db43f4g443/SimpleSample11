@@ -18,7 +18,7 @@ void CBot::OnTickBeforeHitTest()
 	if( m_bActivate )
 	{
 		if( m_nDamageTick )
-			m_nDamageTick--;
+			m_nDamageTick = Max( 0, m_nDamageTick - GetLevel()->GetDeltaTick() );
 		if( ( !m_bActivateOnDamage || !m_nDamageTick ) && ( !m_bActivateOnAlert || !IsAlerted() ) )
 			Deactivate();
 	}
@@ -26,7 +26,7 @@ void CBot::OnTickBeforeHitTest()
 	{
 		if( m_nDamageTick )
 		{
-			m_nDamageTick--;
+			m_nDamageTick = Max( 0, m_nDamageTick - GetLevel()->GetDeltaTick() );
 			if( m_bActivateOnDamage && !m_nDamageTick )
 				Activate();
 		}
@@ -51,9 +51,9 @@ bool CBot::Damage( SDamageContext& context )
 	if( ( b || context.nType == eDamageHitType_Alert ) && m_bActivateOnDamage )
 	{
 		if( m_bActivate )
-			m_nDamageTick = m_nDeactivateTime;
+			m_nDamageTick = m_nDeactivateTime * T_SCL;
 		else if( !m_nDamageTick )
-			m_nDamageTick = m_nDamageActivateTime;
+			m_nDamageTick = m_nDamageActivateTime * T_SCL;
 	}
 	return b;
 }
@@ -63,9 +63,9 @@ bool CBot::ImpactHit( int32 nLevel, const CVector2& vec, CEntity* pEntity )
 	if( __super::ImpactHit( nLevel, vec, pEntity ) )
 	{
 		if( m_bActivate )
-			m_nDamageTick = m_nDeactivateTime;
+			m_nDamageTick = m_nDeactivateTime * T_SCL;
 		else if( !m_nDamageTick )
-			m_nDamageTick = m_nDamageActivateTime;
+			m_nDamageTick = m_nDamageActivateTime * T_SCL;
 		return true;
 	}
 	return false;
@@ -101,9 +101,10 @@ void CBot::UpdateModules( bool bActivated )
 
 void CBotTypeA::OnTickBeforeHitTest()
 {
+	auto nDeltaTick = GetLevel()->GetDeltaTick();
 	if( m_nRespawnTick )
 	{
-		m_nRespawnTick--;
+		m_nRespawnTick = Max( 0, m_nRespawnTick - nDeltaTick );
 		if( !m_nRespawnTick )
 			m_nHp = m_nMaxHp;
 	}
@@ -112,16 +113,16 @@ void CBotTypeA::OnTickBeforeHitTest()
 		Deactivate();
 		m_bActivateOK = false;
 		m_nStateTransitCurTime = 0;
-		m_nRespawnTick = m_nRespawnTime;
+		m_nRespawnTick = m_nRespawnTime * T_SCL;
 		UpdateHit();
 	}
 
 	if( m_bActivate && !m_bForceDeactivate )
 	{
-		if( m_nStateTransitCurTime < m_nStateTransitTime && !m_nRespawnTick )
+		if( m_nStateTransitCurTime < m_nStateTransitTime * T_SCL && !m_nRespawnTick )
 		{
-			m_nStateTransitCurTime++;
-			if( m_nStateTransitCurTime == m_nStateTransitTime )
+			m_nStateTransitCurTime += nDeltaTick;
+			if( m_nStateTransitCurTime >= m_nStateTransitTime * T_SCL )
 				m_bActivateOK = true;
 			UpdateHit();
 		}
@@ -130,7 +131,7 @@ void CBotTypeA::OnTickBeforeHitTest()
 	{
 		if( m_nStateTransitCurTime )
 		{
-			m_nStateTransitCurTime--;
+			m_nStateTransitCurTime = Max( 0, m_nStateTransitCurTime - nDeltaTick );
 			if( !m_nStateTransitCurTime )
 			{
 				m_bActivate = false;
@@ -201,8 +202,9 @@ void CBotTypeA::HandlePush( const CVector2 & dir, float fDist, int8 nStep )
 	{
 		if( fDist > 0 )
 		{
-			GetLevel()->GetHitTestMgr().Update( this );
-			GetLevel()->GetHitTestMgr().Update( m_p1 );
+			auto& hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
+			hitTestMgr.Update( this );
+			hitTestMgr.Update( m_p1.GetPtr() );
 		}
 	}
 	else
@@ -226,14 +228,14 @@ bool CBotTypeA::HandlePenetration( CEntity ** pTestEntities, int32 nTestEntities
 
 void CBotTypeA::UpdateHit()
 {
-	auto& hitTestMgr = GetLevel()->GetHitTestMgr();
+	auto& hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
 	if( m_p1->Get_HitProxy() )
 		hitTestMgr.Remove( m_p1 );
 	if( m_p1->Get_HitProxy() )
 		m_p1->RemoveProxy( m_p1->Get_HitProxy() );
 	if( m_nStateTransitCurTime > 0 )
 	{
-		CVector4 r = m_shapeParams[0] + ( m_shapeParams[1] - m_shapeParams[0] ) * m_nStateTransitCurTime / m_nStateTransitTime;
+		CVector4 r = m_shapeParams[0] + ( m_shapeParams[1] - m_shapeParams[0] ) * m_nStateTransitCurTime / ( m_nStateTransitTime * T_SCL );
 		if( m_nShapeType == 0 )
 			m_p1->AddCircle( r.z * 0.5f, CVector2( r.x + r.z * 0.5f, r.y + r.w * 0.5f ) );
 		else
@@ -269,7 +271,7 @@ void CBotTypeALeap::OnTickAfterHitTest()
 	CVector2 dPos;
 	if( m_nLeapFixedVelTimeLeft )
 	{
-		float fDeltaTime = GetLevel()->GetElapsedTimePerTick();
+		float fDeltaTime = GetLevel()->GetDeltaTime();
 		dPos = m_vel * fDeltaTime;
 	}
 	else
@@ -441,7 +443,7 @@ bool CBotTypeALeap::AICanHitPlatform()
 {
 	if( m_bIsLeaping )
 	{
-		auto pPlayer = GetLevel()->GetPlayer();
+		auto pPlayer = SafeCast<CPlayer0>( GetLevel()->GetPlayer() );
 		if( pPlayer->GetLastLandPoint().y + m_fLandPointCheckOfs < y )
 			return false;
 	}
@@ -455,8 +457,8 @@ void CBotTypeALeap::UpdateImg()
 	int32 nTex = 0;
 	if( m_nLeapReadyTimeLeft )
 		nTex = 8;
-	else if( m_nStateTransitCurTime < m_nStateTransitTime )
-		nTex = m_nStateTransitCurTime ? ( m_nStateTransitCurTime * 3 / m_nStateTransitTime ) + 1 : 0;
+	else if( m_nStateTransitCurTime < m_nStateTransitTime * T_SCL )
+		nTex = m_nStateTransitCurTime ? ( m_nStateTransitCurTime * 3 / ( m_nStateTransitTime * T_SCL ) ) + 1 : 0;
 	else
 	{
 		nTex = 4;
@@ -504,7 +506,7 @@ void CBotTypeAPatrol::OnTickAfterHitTest()
 			CVector2 localPos = oldTrans.MulTVector2PosNoScale( oldPos );
 			CVector2 newPos = newTrans.MulVector2Pos( localPos );
 
-			CVector2 landVelocity = ( newPos - oldPos ) / GetLevel()->GetElapsedTimePerTick() - m_vel;
+			CVector2 landVelocity = ( newPos - oldPos ) / GetLevel()->GetDeltaTime() - m_vel;
 
 			float fNormalSpeed = landVelocity.Dot( gravity );
 			if( fNormalSpeed > m_fMaxFallSpeed )
@@ -631,7 +633,8 @@ bool CBotTypeAPatrol::FallDetect( const CVector2& gravityDir )
 	SHitProxyPolygon hit( detectRect );
 	static vector<CHitProxy*> vecResult;
 	static vector<SHitTestResult> vecHitResult;
-	GetLevel()->GetHitTestMgr().HitTest( &hit, globalTransform, vecResult, &vecHitResult );
+	auto& hitTestMgr = GetLevel()->GetHitTestMgr( GetUpdateGroup() );
+	hitTestMgr.HitTest( &hit, globalTransform, vecResult, &vecHitResult );
 	bool b = true;
 	for( int i = 0; i < vecResult.size(); i++ )
 	{
@@ -690,21 +693,22 @@ void CBotTypeAPatrol::FindFloor( CEntity** pTestEntities, int32 nTestEntities, c
 
 void CBotTypeAPatrol::UpdateImg()
 {
+	auto nDeltaTick = GetLevel()->GetDeltaTick();
 	m_p1->bVisible = m_nRespawnTick || m_nStateTransitCurTime > 0;
 	auto p = static_cast<CImage2D*>( m_p1->GetRenderObject() );
 	int32 nTex = 0;
 	if( m_nAttackTimeLeft )
 		nTex = 2 + m_nStateTransitFrames + m_nWalkAnimFrames;
-	else if( m_nStateTransitCurTime < m_nStateTransitTime )
-		nTex = m_nStateTransitCurTime ? ( m_nStateTransitCurTime * m_nStateTransitFrames / m_nStateTransitTime ) + 1 : 0;
+	else if( m_nStateTransitCurTime < m_nStateTransitTime * T_SCL )
+		nTex = m_nStateTransitCurTime ? ( m_nStateTransitCurTime * m_nStateTransitFrames / ( m_nStateTransitTime * T_SCL ) ) + 1 : 0;
 	else
 	{
 		nTex = m_nStateTransitFrames + 1;
 		if( m_bIsWalking )
 		{
-			nTex = m_nStateTransitFrames + 2 + m_nAnimTick / m_nWalkAnimSpeed;
-			m_nAnimTick++;
-			if( m_nAnimTick >= m_nWalkAnimFrames * m_nWalkAnimSpeed )
+			nTex = m_nStateTransitFrames + 2 + m_nAnimTick / ( m_nWalkAnimSpeed * T_SCL );
+			m_nAnimTick += nDeltaTick;
+			if( m_nAnimTick >= m_nWalkAnimFrames * m_nWalkAnimSpeed * T_SCL )
 				m_nAnimTick = 0;
 		}
 		else

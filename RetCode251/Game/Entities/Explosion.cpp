@@ -13,6 +13,7 @@ void CExplosion::OnAddedToStage()
 	bVisible = false;
 	if( m_pSound )
 		m_pSound->CreateSoundTrack()->Play( ESoundPlay_KeepRef );
+	m_nLifeLeft = m_nLife * T_SCL;
 }
 
 void CExplosion::OnRemovedFromStage()
@@ -78,17 +79,18 @@ void CExplosion::HandleHit( CCharacter* pCharacter, int32 nDmg, int32 nDmg1, con
 			m_pDmgEft->GetRoot()->GetStaticData<CDamageEft>()->OnDamage( pCharacter, context );
 		OnHit( pCharacter );
 		if( pCharacter->GetStage() )
-			m_hit[pCharacter] = m_nHitInterval;
+			m_hit[pCharacter] = m_nHitInterval * T_SCL;
 	}
 }
 
 void CExplosion::OnTickAfterHitTest()
 {
 	bVisible = true;
-	if( m_nLife )
+	auto nDeltaTick = GetLevel()->GetDeltaTick();
+	if( m_nLifeLeft )
 	{
-		m_nLife--;
-		if( !m_nLife )
+		m_nLifeLeft = Max( 0, m_nLifeLeft - nDeltaTick );
+		if( !m_nLifeLeft )
 		{
 			Kill();
 			return;
@@ -98,15 +100,15 @@ void CExplosion::OnTickAfterHitTest()
 	int32 nDmg = 0, nDmg1 = 0;
 	if( m_nHitBeginFrame )
 	{
-		m_nHitBeginFrame--;
+		m_nHitBeginFrame = Max( 0, m_nHitBeginFrame - nDeltaTick );
 		bTest = false;
 	}
-	else if( m_nHitFrameCount > 0 && m_nHitFrame >= m_nHitFrameCount )
+	else if( m_nHitFrameCount > 0 && m_nHitFrame >= m_nHitFrameCount * T_SCL )
 		bTest = false;
 	else
 	{
-		nDmg = Max<int32>( m_nDamage + m_nHitFrame * m_nDeltaDamage, 0 );
-		nDmg1 = Max<int32>( m_nDamage1 + m_nHitFrame * m_nDeltaDamage1, 0 );
+		nDmg = Max<int32>( m_nDamage + m_nHitFrame / T_SCL * m_nDeltaDamage, 0 );
+		nDmg1 = Max<int32>( m_nDamage1 + m_nHitFrame / T_SCL * m_nDeltaDamage1, 0 );
 		if( !nDmg && !nDmg1 )
 			bTest = false;
 	}
@@ -119,7 +121,7 @@ void CExplosion::OnTickAfterHitTest()
 	case 0:
 	{
 		SHitProxyCircle circle;
-		circle.fRadius = m_fInitRange + m_nHitFrame * m_fDeltaRange;
+		circle.fRadius = m_fInitRange + m_nHitFrame / T_SCL * m_fDeltaRange;
 		circle.center = CVector2( 0, 0 );
 		if( bTest )
 			GetLevel()->MultiHitTest( &circle, GetGlobalTransform(), result, &hitResult );
@@ -130,10 +132,10 @@ void CExplosion::OnTickAfterHitTest()
 	case 1:
 	{
 		CRectangle rect;
-		rect.x = -m_fInitRange - m_nHitFrame * m_fDeltaRange;
-		rect.y = -m_fInitRange1 - m_nHitFrame * m_fDeltaRange1;
-		rect.width = m_fInitRange2 + m_nHitFrame * m_fDeltaRange2 - rect.x;
-		rect.height = m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 - rect.y;
+		rect.x = -m_fInitRange - m_nHitFrame / T_SCL * m_fDeltaRange;
+		rect.y = -m_fInitRange1 - m_nHitFrame / T_SCL * m_fDeltaRange1;
+		rect.width = m_fInitRange2 + m_nHitFrame / T_SCL * m_fDeltaRange2 - rect.x;
+		rect.height = m_fInitRange3 + m_nHitFrame / T_SCL * m_fDeltaRange3 - rect.y;
 		if( bTest )
 		{
 			SHitProxyPolygon polygon( rect );
@@ -146,10 +148,10 @@ void CExplosion::OnTickAfterHitTest()
 	default:
 	{
 		SHitProxyPolygon polygon;
-		polygon.vertices[0] = CVector2( -m_fInitRange - m_nHitFrame * m_fDeltaRange, 0 );
-		polygon.vertices[1] = CVector2( 0, -m_fInitRange1 - m_nHitFrame * m_fDeltaRange1 );
-		polygon.vertices[2] = CVector2( m_fInitRange2 + m_nHitFrame * m_fDeltaRange2, 0 );
-		polygon.vertices[3] = CVector2( 0, m_fInitRange3 + m_nHitFrame * m_fDeltaRange3 );
+		polygon.vertices[0] = CVector2( -m_fInitRange - m_nHitFrame / T_SCL * m_fDeltaRange, 0 );
+		polygon.vertices[1] = CVector2( 0, -m_fInitRange1 - m_nHitFrame / T_SCL * m_fDeltaRange1 );
+		polygon.vertices[2] = CVector2( m_fInitRange2 + m_nHitFrame / T_SCL * m_fDeltaRange2, 0 );
+		polygon.vertices[3] = CVector2( 0, m_fInitRange3 + m_nHitFrame / T_SCL * m_fDeltaRange3 );
 		polygon.nVertices = 4;
 		polygon.CalcNormals();
 		if( bTest )
@@ -174,14 +176,14 @@ void CExplosion::OnTickAfterHitTest()
 		}
 
 		if( m_nHitFrameCount > 0 )
-			m_nHitFrame++;
+			m_nHitFrame += nDeltaTick;
 	}
 
 	if( m_nHitInterval )
 	{
 		for( auto itr = m_hit.begin(); itr != m_hit.end(); )
 		{
-			itr->second--;
+			itr->second = Max( 0, itr->second - nDeltaTick );
 			if( !itr->second )
 				itr = m_hit.erase( itr );
 			else
